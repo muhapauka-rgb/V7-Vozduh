@@ -173,6 +173,11 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
             "## Authoritative Unfinished Capability Closure Registry",
             "FSSE_00_EXTERNAL_REENTRY_STATUS", "`DEFERRED_PLATFORM_CERTIFICATION`",
         )
+        sources["cps"] = self.lib._replace_section_field(
+            sources["cps"], "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "BACKGROUND_AUTOMATION_STATE", "`EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED`",
+        )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
         self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")

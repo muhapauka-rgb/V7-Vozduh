@@ -49,15 +49,15 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
     "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
-    "current_stop_condition": "ENGINEERING_AUTHORITY",
-    "current_active_scope": "SAFE_DEPLOY_CURRENT_CANONICAL_HEAD",
-    "current_safe_next_action": "AUTHORIZE AND RUN THE CANONICAL SAFE DEPLOY FOR CURRENT_CANONICAL_HEAD",
-    "current_scope_class": "SAFE_DEPLOY",
+    "current_stop_condition": "REAL_WORLD_LIMIT",
+    "current_active_scope": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "current_safe_next_action": "STATUS; WAIT FOR OWNER-BACKED REAL-WORLD LEARNING EVIDENCE",
+    "current_scope_class": "AUTOMATION_COMPLETION",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
     "latest_terminal_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
     "latest_terminal_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
-    "latest_terminal_mission_state": "IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED",
+    "latest_terminal_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "latest_terminal_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
     "latest_terminal_mission_started_at": "2026-07-15T16:43:20.381+00:00",
     "previous_terminal_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
@@ -68,22 +68,22 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_mission_role": "LATEST_TERMINAL_MISSION",
     "current_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
     "current_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
-    "current_mission_state": "IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED",
+    "current_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "current_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
-    "state_captured": "2026-07-16T00:16:27+0700",
-    "current_state_generation": "cpsgen_V7_BACKGROUND_AUTOMATION_DEPLOY_PENDING_928718904BCD",
-    "current_transition_id": "EXTERNAL_REENTRY_TWO_RUN_VALIDATED_DEPLOY_PENDING_V1",
-    "current_next_action_id": "AUTHORIZE_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD",
-    "current_program_stage": "FSSE_04_COMPLETE_EXTERNAL_REENTRY_DEPLOY_PENDING",
-    "current_program_execution_frontier": "SAFE_DEPLOY_CURRENT_CANONICAL_HEAD",
-    "program_frontier_input": "two distinct natural platform reentries passed; next scenario NONE; local and GitHub must resolve to the current canonical HEAD while production remains at 81ec5ed6",
-    "program_frontier_owner": "EXISTING_SAFE_DEPLOY_OWNER",
-    "program_frontier_expected_output": "SAFE_DEPLOY -> TRUTH_ALL -> CONVERGENCE -> SNAPSHOT_EQUALITY -> TERMINAL_CERTIFICATION",
+    "state_captured": "2026-07-16T08:05:40+0700",
+    "current_state_generation": "cpsgen_V7_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED_928718904BCD",
+    "current_transition_id": "EXTERNAL_REENTRY_PRODUCTION_CERTIFIED_V1",
+    "current_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
+    "current_program_stage": "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "current_program_execution_frontier": "NONE",
+    "program_frontier_input": "two natural external reentries and production deployment are certified; no independent READY capability exists",
+    "program_frontier_owner": "EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER",
+    "program_frontier_expected_output": "OWNER_BACKED_REAL_OUTCOME -> FRESH CPS -> NEXT LEGAL OMP FRONTIER",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "ENGINEERING_AUTHORITY_FOR_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD_ONLY",
+    "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -96,14 +96,14 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "ENGINEERING_AUTHORITY_REQUIRED",
+    "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "ENGINEERING_AUTHORITY_SAFE_DEPLOY_REQUIRED",
+    "program_terminal_state": "REAL_WORLD_LIMIT_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "authorize and run the canonical safe deploy for CURRENT_CANONICAL_HEAD, then verify truth, convergence and snapshot equality",
-    "omp_continuation_pointer": "stop at ENGINEERING_AUTHORITY until the canonical safe deploy for CURRENT_CANONICAL_HEAD is explicitly authorized",
+    "smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome",
+    "omp_continuation_pointer": "Status; the external heartbeat remains enabled and Continue OMP remains a manual fallback",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -124,15 +124,15 @@ NORMALIZED_CPS_LIVE_STATE = {
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
     "source_summary": "two distinct natural Codex Automation Platform reentries invoked the standard Continue OMP consumer after prior target-thread turns exited; both passed with released leases, no overlap and zero Runtime/production effects.",
-    "automatic_continue_omp_result": "TWO_NATURAL_REENTRIES_CERTIFIED; SOURCE_DEPLOY_PENDING",
-    "required_workflow": "safe deploy CURRENT_CANONICAL_HEAD -> truth --all -> convergence -> snapshot equality -> production-closure reconciliation",
+    "automatic_continue_omp_result": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "required_workflow": "external independent trigger -> standard Continue OMP -> bounded internal engineering loop -> persisted terminal",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global program frontier is ENGINEERING_AUTHORITY for safe deploy CURRENT_CANONICAL_HEAD",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT",
     "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "preserve CAP-U07 evidence unchanged while the separate global safe-deploy boundary is closed",
+    "wip_smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome",
     "sequence_execution_class": "real-world evidence wait",
     "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -142,19 +142,19 @@ NORMALIZED_CPS_LIVE_STATE = {
     "open_engineering_intents": "21",
     "omp_continuation_required": "FALSE",
     "external_input_required": "TRUE",
-    "external_input_type": "ENGINEERING_AUTHORITY",
-    "transaction_terminal_class": "IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_PENDING",
-    "program_terminal_class": "ENGINEERING_AUTHORITY",
+    "external_input_type": "OWNER_BACKED_REAL_WORLD_EVIDENCE",
+    "transaction_terminal_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "program_terminal_class": "REAL_WORLD_LIMIT",
     "next_mission_formed": "FALSE",
     "next_mission_id": "NONE",
     "premature_operator_return": "FALSE",
     "continuation_iteration": "20",
-    "continuation_stop_reason": "TWO_NATURAL_EXTERNAL_REENTRIES_CERTIFIED; SAFE_DEPLOY_REQUIRED; PRODUCTION_APPLY_NOT_AUTHORIZED",
-    "no_progress_fingerprint": "f4fea63e861a62100ac474077915ea48334d2b5fbfa2358b0f9dc47a4598ba4b",
-    "program_reconciliation_footprint_class": "AUTOMATION_COMPLETE_CONSUMED_DEPLOY_PENDING",
+    "continuation_stop_reason": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED; NO_INDEPENDENT_READY_CAPABILITY",
+    "no_progress_fingerprint": "e46d2e1d18362b4ed13c0765c1e68e910e2412c957c2693c3b9d9305ba43e5cb",
+    "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "program_reconciliation_real_callers": "3",
     "program_reconciliation_test_callers": "4",
-    "omp_automation_level": "TWO_NATURAL_REENTRIES_CERTIFIED_DEPLOY_PENDING",
+    "omp_automation_level": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "heartbeat_status": "ACTIVE",
     "automation_enabled": "TRUE",
     "heartbeat_automation_level": "EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE",
@@ -164,7 +164,7 @@ NORMALIZED_CPS_LIVE_STATE = {
     "heartbeat_last_dependency_fingerprint": "e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950",
     "heartbeat_last_decision": "REENTRY_COMPLETED",
     "heartbeat_last_run_at": "2026-07-15T17:13:42.562861+00:00",
-    "background_automation_state": "TWO_NATURAL_REENTRIES_CERTIFIED_DEPLOY_PENDING",
+    "background_automation_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "external_reentry_owner": "CODEX_AUTOMATION_PLATFORM",
     "external_reentry_schedule": HEARTBEAT_SCHEDULE,
     "external_reentry_enabled": "TRUE",
@@ -181,7 +181,7 @@ NORMALIZED_CPS_LIVE_STATE = {
     "current_completion_contract": "AUTOMATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
     "fsse_status": "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
-    "fsse_00_external_reentry_status": "TWO_NATURAL_REENTRIES_CERTIFIED_SOURCE_DEPLOY_PENDING",
+    "fsse_00_external_reentry_status": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "fsse_00_blocks_fsse_01": "FALSE",
     "manual_continue_omp_fallback": "ACTIVE",
     "scenario_coverage_generation": "fssef_dcd80bd4189d95ec7c58d661",
@@ -993,8 +993,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     else:
         row = (
             f"| `1` | `U07` Learning WAITING WIP; `{state['current_state_generation']}`; `{state['current_transition_id']}` | "
-            "U01 Learning chain is consumed; representative real outcomes remain unavailable and no independent READY capability exists | "
-            f"`{state['current_next_action_id']}` | {state['sequence_execution_class']} | `{state['current_stop_condition']}` | "
+            f"U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario {state['next_scenario_id']}; no independent READY capability exists | "
+            f"`{state['current_next_action_id']}` | {state['sequence_execution_class']}; {state['program_frontier_owner']} | `{state['current_stop_condition']}` | "
             f"{state['sequence_expected_output']} |"
         )
     cps_text = cps_text.replace(rows[0], row, 1)
@@ -2220,6 +2220,14 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
     ))
     current_stop = live_state.get("CURRENT_STOP_CONDITION", "").strip("`")
+    production_certified_terminal = all((
+        current_stop == "REAL_WORLD_LIMIT",
+        live_state.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") in {"", "NONE"},
+        live_state.get("OMP_CONTINUATION_REQUIRED", "").strip("`") == "FALSE",
+        live_state.get("PROGRAM_TERMINAL_CLASS", "").strip("`") == "REAL_WORLD_LIMIT",
+        live_state.get("BACKGROUND_AUTOMATION_STATE", "").strip("`")
+        == "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    ))
     acceptance_boundary = phase2_executed and phase2_revalidated and not phase2_accepted
     missing_stage = not phase2_accepted
     global_real_world_valid = current_stop == "REAL_WORLD_LIMIT" and not missing_stage
@@ -2241,10 +2249,10 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         errors.append("aep_phase3_acceptance_invalid")
     if phase3_lock and not phase3_locked:
         errors.append("aep_phase3_lock_invalid")
-    if global_real_world_valid:
+    if global_real_world_valid and not production_certified_terminal:
         errors.append("global_real_world_limit_illegal_while_program_stage_open")
     frontier = (
-        [] if phase5_complete
+        [] if production_certified_terminal or phase5_complete
         else ["OMP_REAL_CONSUMER_ACTIVATION"] if phase4_admitted
         else ["V7_OMP_PHASE_3_TO_PHASE_4_PROGRAM_CONSUMER_EXTENSION_V1"] if phase3_locked
         else ["AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"] if phase3_executed
@@ -2267,7 +2275,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         root=root,
         ordinary_work_available=bool(frontier) and not ordinary_frontier_deferred,
     )
-    if scenario_frontier.get("decision") in {
+    if not production_certified_terminal and scenario_frontier.get("decision") in {
         "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED", "SCENARIO_READY",
         "SCENARIO_FRONTIER_EXHAUSTED",
     }:
@@ -2318,7 +2326,7 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "scenario_frontier_decision": scenario_frontier.get("decision", "SCENARIO_STOP_SAFE"),
         "scenario_frontier_consumer_invoked": True,
         "scenario_frontier_next_output": scenario_frontier.get("next_output", "STOP_SAFE"),
-        "global_real_world_limit_verdict": "GLOBAL_REAL_WORLD_LIMIT_INVALID" if missing_stage else "GLOBAL_REAL_WORLD_LIMIT_VALID",
+        "global_real_world_limit_verdict": "GLOBAL_REAL_WORLD_LIMIT_INVALID" if missing_stage and not production_certified_terminal else "GLOBAL_REAL_WORLD_LIMIT_VALID",
         "acceptance_required": acceptance_boundary,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
         "final_verdict": "PASS" if not errors else "PROGRAM_STAGE_OPEN",

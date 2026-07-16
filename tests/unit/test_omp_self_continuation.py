@@ -97,12 +97,12 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_stops_at_safe_deploy_authority(self):
+    def test_materialized_cps_stops_at_real_world_limit(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["omp_continuation_required"], "FALSE")
         self.assertEqual(result["external_input_required"], "TRUE")
-        self.assertEqual(result["external_input_type"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(result["external_input_type"], "OWNER_BACKED_REAL_WORLD_EVIDENCE")
         self.assertEqual(result["continuation_iteration"], "20")
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):

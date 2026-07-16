@@ -30,6 +30,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         current_cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
         historical_cps = cls.lib.build_normalized_cps_document(current_cps, {
             "current_program_stage": "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+            "current_program_execution_frontier": "SAFE_DEPLOY_CURRENT_CANONICAL_HEAD",
             "background_automation_state": "EXTERNAL_REENTRY_IMPLEMENTATION_READY_NOT_YET_PLATFORM_CERTIFIED",
             "aep_phase4_status": "IMPLEMENTED_MANUALLY_CALLABLE",
             "aep_phase5_status": "BLOCKED_MISSING_REAL_CONSUMER",

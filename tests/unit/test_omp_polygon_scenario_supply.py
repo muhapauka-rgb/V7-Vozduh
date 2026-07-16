@@ -149,7 +149,7 @@ class OmpPolygonScenarioSupplyTest(unittest.TestCase):
 
     def test_19_real_world_limit_intents_remain_waiting(self):
         result = self.lib.engineering_polygon_scenario_supply_from_cps(self.cps, scenario_sources=[self.source()])
-        self.assertEqual(result["bdp"]["candidate"]["state_generation"], "cpsgen_V7_BACKGROUND_AUTOMATION_DEPLOY_PENDING_928718904BCD")
+        self.assertEqual(result["bdp"]["candidate"]["state_generation"], "cpsgen_V7_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED_928718904BCD")
         self.assertNotIn("production_maturity", result["bdp"]["candidate"])
 
     def test_20_historical_evidence_alone_is_not_a_source(self):

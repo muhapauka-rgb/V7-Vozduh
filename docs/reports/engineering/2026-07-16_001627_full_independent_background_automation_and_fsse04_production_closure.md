@@ -3,7 +3,7 @@ Run Nonce: `V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890`
 
 # Full Independent Background Automation And FSSE-04 Production Closure
 
-Status: `IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED`
+Status: `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`
 
 ## Evidence
 
@@ -37,7 +37,7 @@ The command evidence does not independently claim `prior_context_exited`. Platfo
 - Phase 5: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`;
 - Phase 6: `READY_WHERE_PRODUCTION_CERTIFICATION_REQUIRED`;
 - OMP automation evidence: `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`.
-- Current source convergence: `DEPLOY_REQUIRED`; the first post-publication classification used local/GitHub commit `5a35300f81fb8426d5e472c8aaedecdfc8fcaed5`, subsequent fail-closed reconciliation is part of `CURRENT_CANONICAL_HEAD`, and production remains at `81ec5ed6a30906236e6fdab7404ef17d2c2e7498`.
+- Production closure: commit `a8e6454f62699d0a2bea5eeccfb0b959cb6abf3e` installed through `deploy-z8-14-Updatesystem-a8e6454-20260716T080226`; local, GitHub and production snapshots agree.
 
 The existing external owner is sufficient. No scheduler, daemon, queue, Runtime, Planner, owner or automation task was created.
 
@@ -54,24 +54,25 @@ The existing external owner is sufficient. No scheduler, daemon, queue, Runtime,
 
 - Python compile: `PASS`;
 - focused external reentry, functional footprint, completion gate and CPS atomic tests: `PASS`;
-- full unit suite: `1345 tests`, `PASS`;
+- full unit suite: `1352 tests`, `PASS`;
 - atomic CPS post-write reread: `PASS`;
 - CPS derived projection contradictions: `0`;
 - git diff check: `PASS`.
 
 Post-publication validation:
 
-- initial local/GitHub truth: `PASS`, both at `5a35300f81fb8426d5e472c8aaedecdfc8fcaed5`; final deploy target is resolved from `CURRENT_CANONICAL_HEAD` after publication;
-- safe deploy classification: `DEPLOY_REQUIRED`;
-- deploy delta: only `tools/v7_sync_lib.py`;
-- production commit: `81ec5ed6a30906236e6fdab7404ef17d2c2e7498`;
-- truth `--all`: `NO-GO`, blocker `runtime_local_commit_mismatch`;
-- convergence: `NOT_ALIGNED`, runtime action `DEPLOY_REQUIRED`;
-- snapshot equality: not achieved;
-- production apply: `NOT_AUTHORIZED` and not performed.
+- safe deploy: `PASS`, `deploy-z8-14-Updatesystem-a8e6454-20260716T080226`;
+- deployed runtime delta: only `tools/v7_sync_lib.py`;
+- post-deploy delta: `0`;
+- production commit: `a8e6454f62699d0a2bea5eeccfb0b959cb6abf3e`;
+- truth `--all`: `PASS`, `FULLY_ALIGNED`, blockers `0`;
+- convergence: `PASS`, `ALIGNED`;
+- snapshot equality: local = GitHub = production = `a8e6454f62699d0a2bea5eeccfb0b959cb6abf3e`;
+- service restart: not required;
+- production safety: routing mutation `NONE`, users moved `0`, packet execution `NONE`, restore-barrier write `NONE`, rollback apply `NONE`, Authority expansion `NONE`, Production Maturity effect `NONE`.
 
-The two natural reentries remain accepted owner-backed automation evidence. Production terminal promotion is fail-closed until the canonical safe deploy, truth, convergence and snapshot-equality gates pass.
+The standard operating path is external independent trigger -> standard `Continue OMP` -> bounded internal engineering loop -> persisted terminal -> later independent trigger when continuation becomes required. Normal operator command: `Status`; `Continue OMP` remains a manual fallback.
 
 ## Final Verdict
 
-`IMPLEMENTATION_COMPLETE_SAFE_DEPLOY_AUTHORITY_REQUIRED`
+`FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`

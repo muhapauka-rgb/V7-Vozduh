@@ -33,10 +33,10 @@ class OmpDocumentIndexTest(unittest.TestCase):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
         self.assertEqual(operator["current_program"], "FUTURE_SCALE_SCENARIO_ENGINEERING")
-        self.assertEqual(operator["current_step"], "SAFE_DEPLOY_CURRENT_CANONICAL_HEAD")
-        self.assertEqual(operator["next_step"], "AUTHORIZE_SAFE_DEPLOY_CURRENT_CANONICAL_HEAD")
+        self.assertEqual(operator["current_step"], "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED")
+        self.assertEqual(operator["next_step"], "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES")
         self.assertEqual(operator["next_scenario"], "NONE")
-        self.assertEqual(operator["current_stop"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(operator["current_stop"], "REAL_WORLD_LIMIT")
         self.assertEqual(operator["external_input_required"], "TRUE")
         self.assertEqual(operator["omp_continuation_required"], "FALSE")
 
@@ -50,8 +50,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_V7_BACKGROUND_AUTOMATION_DEPLOY_PENDING_928718904BCD")
-        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_TWO_RUN_VALIDATED_DEPLOY_PENDING_V1")
+        self.assertEqual(response["current_state_generation"], "cpsgen_V7_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED_928718904BCD")
+        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_PRODUCTION_CERTIFIED_V1")
 
 
 if __name__ == "__main__":

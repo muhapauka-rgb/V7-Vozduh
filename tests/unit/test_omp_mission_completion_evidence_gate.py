@@ -149,6 +149,18 @@ class OmpMissionCompletionEvidenceGateTest(unittest.TestCase):
         self.assertEqual(result["mission_completion_evidence_gate_status"], "ACTIVE_V1")
         self.assertEqual(result["current_completion_verdict"], "COMPLETE_CONSUMED")
 
+    def test_31_program_completion_requires_exact_consumed_boundary(self):
+        result = self.gate(
+            "PROGRAM_COMPLETION",
+            PROGRAM_FRONTIER_RECONCILED=True,
+            SCENARIO_OBLIGATIONS_CONSUMED=True,
+            CONTROLLED_PREPARATION_PROVEN=True,
+            CAPABILITY_CRITERIA_RECONCILED=True,
+            EXACT_BOUNDARY_PROVEN=True,
+            NEXT_OUTPUT_PROVEN=True,
+        )
+        self.assertEqual(result["completion_verdict"], "COMPLETE_CONSUMED")
+
 
 if __name__ == "__main__":
     unittest.main()

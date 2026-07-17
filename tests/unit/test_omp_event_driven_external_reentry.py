@@ -57,6 +57,22 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             "state_captured": self.now.isoformat(),
             "current_state_generation": "cpsgen_EVENT_REENTRY_TEST_001",
             "current_transition_id": "EVENT_REENTRY_TEST_TRANSITION_V1",
+            "current_stop_condition": "NONE",
+            "current_next_action_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "current_safe_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+            "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+            "program_terminal_state": "NONE_MULTI_LANE_FRONTIER_ACTIVE",
+            "program_terminal_class": "NONE",
+            "omp_continuation_required": "TRUE",
+            "external_input_required": "FALSE",
+            "external_input_type": "NATURAL_PRODUCTION_EVIDENCE_FOR_PHASE6C_ONLY",
+            "next_mission_formed": "TRUE",
+            "next_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+            "next_scenario_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "current_completion_contract": "INTEGRATION_COMPLETION",
+            "current_completion_verdict": "COMPLETE_CONSUMED",
             "last_wake_request_id": "NONE",
             "last_dispatched_wake_id": "NONE",
             "pending_wake_id": "NONE",
@@ -141,6 +157,22 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
         self.assertEqual(live["PENDING_WAKE_ID"].strip("`"), result["external_wake"]["event_id"])
         self.assertEqual(live["WAKE_STARTED_AT"].strip("`"), "NONE")
 
+    def test_atomic_writer_can_defer_wake_inside_serial_continuation(self):
+        result = self.lib.atomic_reconcile_cps(
+            self.cps, state=self.state(), request_external_wake=False,
+        )
+        self.assertTrue(result["ok"], result)
+        self.assertFalse(result["external_wake"]["dispatch_required"])
+        self.assertEqual(
+            result["external_wake"]["outcome"],
+            "IMMEDIATE_REENTRY_DEFERRED_BY_SERIAL_CONTINUATION",
+        )
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(live["PENDING_WAKE_ID"].strip("`"), "NONE")
+
     def test_dispatch_lifecycle_is_atomic_and_duplicate_safe(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
@@ -170,6 +202,55 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             evidence_path=self.root / "evidence.jsonl", now=self.now, root=self.root,
         )
         self.assertFalse(duplicate["standard_entrypoint_invoked"])
+
+    def test_external_reentry_final_projection_preserves_consumer_cps_progress(self):
+        write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
+        event_id = write["external_wake"]["event_id"]
+        self.lib.event_driven_wake_lifecycle(
+            self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now,
+        )
+
+        def progressing_runner(root):
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            current = cps_path.read_text(encoding="utf-8")
+            state = self.lib._normalized_state_from_live_cps(current)
+            state.update({
+                "scenario_covered_count": "48",
+                "scenario_eligible_count": "4",
+                "next_scenario_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+                "current_next_action_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+                "current_safe_next_action": "EXECUTE PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+                "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+            })
+            update = self.lib.atomic_reconcile_cps(
+                cps_path, state=state, request_external_wake=False,
+            )
+            return {
+                "final_verdict": "PASS", "subprocess_returncode": 0,
+                "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+                "transitions": [{"transaction_terminal": "SCENARIO_CONSUMED"}],
+                "program_terminal": "BOUNDED_INVOCATION_BUDGET_REACHED",
+                "exact_next_operator_command": "Continue OMP", "errors": [],
+                "atomic_update": update,
+            }
+
+        result = self.lib.heartbeat_program_reentry(
+            event_time=self.now.isoformat(), event_identity_override=event_id,
+            event_source_kind="IMMEDIATE_THREAD_SIGNAL", execute_continue_omp=True,
+            continue_runner=progressing_runner,
+            lease_path=self.root / "lease.json", evidence_path=self.root / "evidence.jsonl",
+            now=self.now, root=self.root,
+        )
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(live["SCENARIO_COVERED_COUNT"].strip("`"), "48")
+        self.assertEqual(
+            live["NEXT_SCENARIO_ID"].strip("`"),
+            "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+        )
 
     def test_failed_dispatch_is_recovered_once_by_watchdog(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())

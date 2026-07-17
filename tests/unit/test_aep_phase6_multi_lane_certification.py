@@ -26,9 +26,12 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)
         lanes = self.lib.phase6_multi_lane_reconciliation(self.cps, frontier)
         self.assertEqual(lanes["PHASE_6C_STATUS"], "WAITING_NATURAL_PRODUCTION_EVIDENCE")
-        self.assertEqual(lanes["PHASE_6A_STATUS"], "ACTIVE")
-        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "ACTIVE_MULTI_LANE_CERTIFICATION")
-        self.assertNotEqual(lanes["PHASE_6_GLOBAL_STOP"], "REAL_WORLD_LIMIT")
+        self.assertEqual(lanes["PHASE_6A_STATUS"], "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION")
+        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "LANES_EXHAUSTED_WAITING_NATURAL_EVIDENCE")
+        self.assertEqual(
+            lanes["PHASE_6_GLOBAL_STOP"],
+            "REAL_WORLD_LIMIT_AFTER_SCENARIO_AND_CONTROLLED_CERTIFICATION_EXHAUSTION",
+        )
 
     def test_controlled_preparation_is_independent_and_no_action_selected(self):
         frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)
@@ -71,6 +74,70 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertTrue(result["consumer_result"]["consumed"])
         self.assertEqual(result["situation_decision_trace"]["learning"]["natural_production_credit"], False)
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
+    def test_v2_v3_v4_obligations_are_owner_ordered_and_frontier_is_exhausted(self):
+        corpus = self.lib.load_future_scale_scenario_corpus(root=ROOT)
+        for generation in (2, 3, 4):
+            obligations = [
+                row for row in corpus["scenarios"]
+                if row.get("OBLIGATION_GENERATION") == f"PHASE6_MULTI_LANE_V{generation}"
+            ]
+            self.assertEqual(len(obligations), 6)
+            self.assertEqual(
+                [row["OBLIGATION_PRIORITY"] for row in obligations], list(range(6)),
+            )
+            self.assertTrue(all(row["OBLIGATION_SOURCE_CRITERIA"] for row in obligations))
+            self.assertTrue(all(row["INVALIDATION_TRIGGERS"] for row in obligations))
+        frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)
+        self.assertEqual(frontier["NEXT_SCENARIO_ID"], "NONE")
+        self.assertEqual(len(frontier["COVERED_SCENARIOS"]), 64)
+        self.assertEqual(len(frontier["ELIGIBLE_SCENARIOS"]), 0)
+
+    def test_comprehensive_campaign_consumes_engineering_frontier_at_exact_boundary(self):
+        result = self.lib.comprehensive_phase6_phase7_campaign_reconciliation(
+            self.cps, root=ROOT,
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["completion_gate"]["completion_contract"], "PROGRAM_COMPLETION")
+        self.assertEqual(result["completion_gate"]["completion_verdict"], "COMPLETE_CONSUMED")
+        self.assertEqual(result["scenario_covered_count"], 64)
+        self.assertEqual(len(result["scenario_generations_closed"]), 4)
+        self.assertEqual(
+            result["action_class_certification"]["state"], "CERTIFIED_FOR_CLASS_APPROVAL",
+        )
+        self.assertFalse(any(row["whole_capability_complete"] for row in result["capability_reconciliation"]))
+        self.assertEqual(result["runtime_impact"], "NONE")
+        self.assertEqual(result["authority_impact"], "NONE")
+
+    def test_exhausted_corpus_is_a_legal_bounded_continuation_not_missing_frontier(self):
+        result = self.lib.continue_phase6a_obligation_corpus(root=ROOT)
+        self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION")
+        self.assertEqual(result["errors"], [])
+        self.assertEqual(result["scenarios_executed"], 0)
+        self.assertEqual(
+            result["program_terminal"],
+            "PHASE6A_CURRENT_GENERATION_CERTIFIED_OBLIGATION_DISCOVERY_REQUIRED",
+        )
+
+    def test_first_v2_scenario_has_complete_trace_and_no_forbidden_credit(self):
+        result = self.lib.execute_future_scale_scenario(
+            "PHASE6V2_MULTI_SIGNAL_INTERPRETATION_CONFLICT", root=ROOT,
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        trace = result["situation_decision_trace"]
+        for key in (
+            "scenario_id", "situation_id", "situation_class", "evidence_class",
+            "source_context_fingerprint", "applicable_knowledge", "applicable_policies",
+            "possible_decisions", "selected_decision", "rejected_alternatives",
+            "expected_benefit", "state_change_cost", "decision_trace_id",
+            "decision_fingerprint", "deterministic_replay_result", "expected_terminal",
+            "actual_terminal", "verification", "rollback", "learning",
+            "capability_criteria_affected", "production_maturity_impact",
+            "authority_impact", "forbidden_claims",
+        ):
+            self.assertIn(key, trace)
+        self.assertTrue(all(result["evidence_taxonomy_verification"].values()))
         self.assertFalse(any(result["forbidden_effects"].values()))
 
 

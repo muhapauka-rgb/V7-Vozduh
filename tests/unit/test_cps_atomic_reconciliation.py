@@ -36,11 +36,11 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertNotEqual(self.validate(drift)["final_verdict"], "PASS")
 
     def test_02_real_world_limit_with_stop_safe_projection_fails(self):
-        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
+        drift = self.cps.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT` |", "| `current_primary_stop` | `STOP_SAFE` |", 1)
         self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
-        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |", "| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |", 1)
+        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |", "| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |", 1)
         self.assertIn("delegated_policy_live_operational_authority_required", self.delegated_validate(drift)["contradiction_ids"])
 
     def test_04_binding_certified_with_unresolved_cap_u01_drift_fails(self):
@@ -74,15 +74,15 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_context_drift_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | EXECUTE PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY; preserve CAP-U07 natural evidence WIP without reordering |",
+            "| `smallest_existing_next_action` | WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
         self.assertIn("cps_wip_next_action_context_divergence", self.validate(drift)["errors"])
 
     def test_09_sequence_position_one_stop_differs_fails(self):
-        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE`"))
-        drift = self.cps.replace(row, row.replace("| `NONE` |", "| `STOP_SAFE` |", 1), 1)
+        row = next(line for line in self.cps.splitlines() if line.startswith("| `1` | `U07` Learning WAITING WIP"))
+        drift = self.cps.replace(row, row.replace("| `REAL_WORLD_LIMIT` |", "| `STOP_SAFE` |", 1), 1)
         self.assertIn("cps_sequence_position_1_divergence", self.validate(drift)["errors"])
 
     def test_10_explicit_historical_stale_values_pass(self):
@@ -91,7 +91,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_11_historical_binding_drift_does_not_affect_live_scheduling(self):
         self.assertIn("SUPERSEDED/HISTORICAL: SOURCE_SNAPSHOT_BUNDLE_DRIFT", self.cps)
-        self.assertEqual(self.validate(self.cps)["current_stop"], "NONE")
+        self.assertEqual(self.validate(self.cps)["current_stop"], "REAL_WORLD_LIMIT")
 
     def test_12_single_normalized_state_generates_all_live_projections(self):
         rendered = self.lib.build_normalized_cps_document(self.cps)
@@ -118,7 +118,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             before = path.read_text(encoding="utf-8")
             def corrupt(written):
                 text = written.read_text(encoding="utf-8")
-                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
+                written.write_text(text.replace("| `current_primary_stop` | `REAL_WORLD_LIMIT` |", "| `current_primary_stop` | `STOP_SAFE` |", 1), encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(path, post_write_hook=corrupt)
             self.assertEqual(result["status"], "CPS_POST_WRITE_REREAD_FAILED_ROLLED_BACK")
             self.assertTrue(result["previous_state_preserved"])
@@ -231,7 +231,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(registry["OPEN_ENGINEERING_INTENTS"].strip("`"), "21")
         self.assertNotIn("| `U01` |", open_intents)
 
-    def test_30_real_world_limit_is_current_program_terminal(self):
+    def test_30_natural_wait_becomes_program_terminal_only_after_safe_frontier_exhaustion(self):
         stops = self.lib._markdown_section(
             self.cps,
             "### Authority, Reality And Safety Stops",
@@ -260,7 +260,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             1,
         ).replace("`SUPERSEDED/HISTORICAL`", "historical", 1)
         result = self.delegated_validate(self.cps.replace(row, drifted_row, 1))
-        self.assertIn("delegated_policy_cap_con_06_current_terminal_divergence", result["contradiction_ids"])
+        self.assertIn("delegated_policy_cap_con_06_stale_operational_authority", result["contradiction_ids"])
         self.assertIn("delegated_policy_cap_con_06_stale_operational_authority", result["contradiction_ids"])
 
     def test_33_normalized_builder_repairs_cap_con_06_terminal_drift(self):
@@ -276,21 +276,21 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("`SUPERSEDED/HISTORICAL`", rendered_row)
         self.assertEqual(self.delegated_validate(rendered)["contradiction_count"], 0)
 
-    def test_34_registry_smallest_action_is_real_world_wait(self):
+    def test_34_registry_smallest_action_is_protected_learning_reentry(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
         self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES")
-        self.assertIn("preserve accepted U01 Learning evidence", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
+        self.assertIn("new material outcome", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
 
-    def test_35_registry_continuation_pointer_is_status_and_heartbeat(self):
+    def test_35_registry_continuation_pointer_is_exact_external_reentry(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertIn("Status", registry["OMP_CONTINUATION_POINTER"])
-        self.assertIn("external heartbeat remains enabled", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("fresh controlled window", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("natural outcome", registry["OMP_CONTINUATION_POINTER"])
 
-    def test_36_wip_real_world_wait_matches_global_terminal(self):
+    def test_36_wip_real_world_wait_is_lane_local(self):
         wip = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Active Protected Work In Progress", "### Complete Or Locked Capability Records"
         ))
@@ -315,9 +315,9 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_41_sequence_head_binds_scenario_and_execution_class(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))
-        self.assertIn("next scenario NONE", row)
+        self.assertIn("WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES", row)
         self.assertIn("EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER", row)
-        self.assertIn("REAL_WORLD_LIMIT", row)
+        self.assertIn("| `REAL_WORLD_LIMIT` |", row)
 
     def test_42_current_derived_projection_gate_passes(self):
         result = self.validate(self.cps)

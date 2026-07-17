@@ -180,11 +180,11 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
-        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_READY")
-        self.assertTrue(result["scenario_frontier"]["NEXT_SCENARIO_ID"].startswith("PHASE6_"))
+        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")
+        self.assertEqual(result["scenario_frontier"]["NEXT_SCENARIO_ID"], "NONE")
         self.assertEqual(
             result["executable_program_frontier"],
-            [f"PHASE6A_SCENARIO:{result['scenario_frontier']['NEXT_SCENARIO_ID']}"],
+            [],
         )
 
     def test_23_real_truth_check_entrypoint_exists(self):

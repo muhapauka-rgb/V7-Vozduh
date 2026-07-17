@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.29`
+Version: `4.30`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed closure evidence: `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` (`PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_PRODUCTION_CERTIFIED`).
-Previous consumed closure evidence: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md` (`FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED`).
+Latest consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`).
+Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md` (`PHASE6A_CURRENT_GENERATION_CERTIFIED_AND_NEXT_OBLIGATION_FRONTIER_MATERIALIZED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -39,6 +39,8 @@ V4.25 adds the Mission Completion Evidence Gate inside existing OMP, Engineering
 V4.26 adds Future-Scale Scenario Engineering to the existing Engineering Polygon and OMP continuation owners. When ordinary safe engineering work is exhausted, OMP immediately builds a deterministic Scenario Frontier from owner-bound machine-readable scenarios, stable invariant identities, current source/dependency fingerprints and current coverage. Scenario results are Engineering Evidence only: they may expose reproducible defects and certify invariant behavior, but cannot claim production outcomes, grant Authority, mutate Runtime, move users or increase Production Maturity. A reproducible mismatch flows through the existing BDP -> Candidate -> OMP Mission lifecycle. No new Polygon, owner, Runtime, Planner, scheduler, queue, truth source or simulation platform is created.
 
 V4.29 corrects Phase 6 terminal semantics inside the existing Program Execution Reconciliation owner. Natural-production evidence wait is lane-local and cannot block independent Phase 6A scenario/future-scale work, Phase 6B controlled-production preparation where safe, or Phase 7 engineering continuous evolution. Evidence classes are criterion-specific and non-interchangeable. Production Authority evolution remains locked; no production action is selected or authorized by this correction.
+
+V4.30 extends the existing Phase 6A FSSE/OMP consumer with owner-backed obligation generations. A generation closes only under its exact source/dependency fingerprints; the next generation is derived from still-uncertified scenario-safe capability criteria, consumed in deterministic obligation order, and remains Engineering Evidence only. Intermediate CPS transitions inside one bounded serial continuation defer external wake creation until the invocation frontier is stable, preventing external reentry from consuming a mixed generation. No Runtime, routing, user, Authority or Production Maturity effect is granted.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7825,8 +7827,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8813,10 +8815,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY`
-Latest consumed report: `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md`
-Previous consumed report: `docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Latest consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md`
+Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

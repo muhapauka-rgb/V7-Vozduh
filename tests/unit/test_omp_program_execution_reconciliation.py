@@ -157,8 +157,8 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("V7_AEP_PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_ACTIVATION_V1", self.sources["cps"])
-        self.assertIn("FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY", self.sources["cps"])
+        self.assertIn("V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1", self.sources["cps"])
+        self.assertIn("COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY", self.sources["cps"])
         self.assertIn("CURRENT_PROGRAM_EXECUTION_FRONTIER` | `SAFE_DEPLOY_CURRENT_CANONICAL_HEAD", self.sources["cps"])
         self.assertNotIn("global program frontier is OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 

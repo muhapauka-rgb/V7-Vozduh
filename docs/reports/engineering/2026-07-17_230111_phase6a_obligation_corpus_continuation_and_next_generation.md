@@ -49,11 +49,11 @@ Run Nonce: `V7_PHASE6A_52A689A6CEBA`
 
 ## Delivery evidence
 
-- Commit: `PENDING`.
-- Deploy ID: `PENDING`.
-- Truth: `PENDING`.
-- Convergence: `PENDING`.
-- Local/GitHub/production equality: `PENDING`.
+- Commit: `c257c369a5b3bf1f17ebc095c30f64079401c6ed`.
+- Deploy ID: `deploy-z8-14-Updatesystem-c257c36-20260718T003405`.
+- Truth: `PASS`; `tools/v7-truth-check --all --json`.
+- Convergence: `ALIGNED`; embedded truth status `FULLY_ALIGNED`.
+- Local/GitHub/production equality: confirmed at `c257c369a5b3bf1f17ebc095c30f64079401c6ed`; deploy delta mismatches `0`.
 
 Forbidden effects: Runtime mutation `NONE`; routing mutation `NONE`; users moved `0`; restore-barrier write `NONE`; rollback apply `NONE`; daemon/timer change `NONE`; Production Maturity change `NONE`; Authority expansion `NONE`.
 

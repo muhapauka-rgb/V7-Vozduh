@@ -59,8 +59,9 @@ Scenario behavior mismatch не обнаружен; BDP repair Candidate не т
 - Focused regression before finalization: `51` tests PASS, включая external reentry, multi-lane и `PROGRAM_COMPLETION`.
 - Real caller/consumer: `tools/v7-truth-check --omp-program-reconciliation --json` -> PASS; comprehensive terminal consumed.
 - Full changed-surface regression: `216/216` PASS; compile, JSON/static and `git diff --check` PASS.
-- Safe-deploy preview: only `tools/v7_sync_lib.py` and `tools/v7-truth-check` differ from production; every other deploy-manifest binary matches.
-- Commit, deploy, final truth/convergence and equality are recorded by the delivery closure after this report is committed.
+- Commit: `c257c369a5b3bf1f17ebc095c30f64079401c6ed`; pushed to `origin/Updatesystem`.
+- Safe deploy: `deploy-z8-14-Updatesystem-c257c36-20260718T003405`; only `tools/v7_sync_lib.py` and `tools/v7-truth-check` changed, every other deploy-manifest binary matched.
+- Final truth: `PASS`; convergence: `ALIGNED` with embedded `FULLY_ALIGNED`; local/GitHub/production all equal at `c257c369a5b3bf1f17ebc095c30f64079401c6ed`, deploy delta mismatches `0`.
 
 ## Effects and exact boundary
 

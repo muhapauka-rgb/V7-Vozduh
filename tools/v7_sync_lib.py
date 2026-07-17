@@ -3755,16 +3755,22 @@ def _external_reentry_eligibility(live: dict[str, str]) -> dict[str, Any]:
     active_state = value("CURRENT_EXECUTION_MISSION_STATE")
     if active_id not in {"", "NONE"} or active_state not in {"", "NONE"}:
         return {"eligible": False, "outcome": "REENTRY_ALREADY_ACTIVE", "reason": f"active_mission:{active_id}:{active_state}"}
-    if value("CURRENT_NEXT_ACTION_ID") != "CONTINUE_OMP" and value("NEXT_MISSION_ID") != "CONTINUE_OMP":
+    executable_frontier = value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
+    continue_omp_selected = (
+        value("CURRENT_NEXT_ACTION_ID") == "CONTINUE_OMP"
+        or value("NEXT_MISSION_ID") == "CONTINUE_OMP"
+        or executable_frontier not in {"", "NONE"}
+    )
+    if not continue_omp_selected:
         return {"eligible": False, "outcome": "REENTRY_NOT_REQUIRED", "reason": "next_action_not_continue_omp"}
     if not value("CURRENT_STATE_GENERATION"):
         return {"eligible": False, "outcome": "REENTRY_FAILED_SAFE", "reason": "cps_generation_missing"}
-    if program_terminal in {"", "NONE"}:
+    if program_terminal in {"", "NONE"} and executable_frontier in {"", "NONE"}:
         return {"eligible": False, "outcome": "REENTRY_ALREADY_ACTIVE", "reason": "previous_invocation_not_terminal"}
     return {
         "eligible": True,
         "outcome": "REENTRY_ACQUIRED",
-        "reason": "fresh_cps_continue_omp_eligible",
+        "reason": "fresh_cps_executable_frontier_eligible",
         "cps_generation": value("CURRENT_STATE_GENERATION"),
     }
 

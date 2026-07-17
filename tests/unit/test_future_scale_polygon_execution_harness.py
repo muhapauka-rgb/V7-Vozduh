@@ -83,13 +83,13 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         self.assertEqual(self.result["resource_bounds"]["max_users"], 10_000)
         self.assertEqual(self.result["resource_bounds"]["max_channels"], 100)
 
-    def test_12_real_consumer_covers_result_and_preserves_exhausted_frontier(self):
+    def test_12_real_consumer_covers_result_and_materializes_next_generation_frontier(self):
         consumer = self.result["consumer_result"]
         self.assertEqual(consumer["final_verdict"], "PASS")
         self.assertTrue(consumer["consumed"])
         self.assertEqual(consumer["behavior_change"], "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED")
-        self.assertEqual(consumer["next_scenario_id"], "NONE")
-        self.assertTrue(consumer["frontier"]["FRONTIER_EXHAUSTED"])
+        self.assertEqual(consumer["next_scenario_id"], "PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY")
+        self.assertFalse(consumer["frontier"]["FRONTIER_EXHAUSTED"])
 
     def test_13_result_is_engineering_evidence_only(self):
         self.assertEqual(self.result["evidence_class"], "ENGINEERING_SCENARIO_EVIDENCE")

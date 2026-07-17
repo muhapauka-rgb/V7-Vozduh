@@ -39,6 +39,13 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
         self.cps = self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+        baseline = self.cps.read_text(encoding="utf-8")
+        baseline = self.lib._replace_section_field(
+            baseline, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "OMP_CONTINUATION_REQUIRED", "`FALSE`",
+        )
+        self.cps.write_text(baseline, encoding="utf-8")
         self.now = datetime(2026, 7, 16, 9, 0, tzinfo=timezone.utc)
 
     def tearDown(self):
@@ -50,29 +57,6 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             "state_captured": self.now.isoformat(),
             "current_state_generation": "cpsgen_EVENT_REENTRY_TEST_001",
             "current_transition_id": "EVENT_REENTRY_TEST_TRANSITION_V1",
-            "current_next_action_id": "CONTINUE_OMP",
-            "current_stop_condition": "BOUNDED_INVOCATION_BUDGET_REACHED",
-            "current_active_scope": "INDEPENDENT_BACKGROUND_CONTINUE_OMP",
-            "current_safe_next_action": "RUN THE STANDARD CONTINUE OMP TRIGGER",
-            "current_scope_class": "EXTERNAL_ENGINEERING_AUTOMATION",
-            "current_program_execution_frontier": "CONTINUE_OMP",
-            "current_execution_frontier": "NONE",
-            "program_frontier_input": "event-driven certification Mission admitted; next scenario NONE",
-            "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
-            "program_terminal_state": "BOUNDED_INVOCATION_BUDGET_REACHED_EXACT_CONTINUATION_SAVED",
-            "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
-            "smallest_existing_next_action": "run the standard Continue OMP trigger from fresh CPS",
-            "omp_continuation_pointer": "run Continue OMP; preserve CAP-U07 WAITING WIP and recalculate ordinary work before scenario fallback",
-            "required_workflow": "Continue OMP -> fresh CPS -> deterministic ordinary/scenario priority -> bounded legal terminal",
-            "wip_current_primary_stop": "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; global Continue OMP frontier is bounded at BOUNDED_INVOCATION_BUDGET_REACHED",
-            "wip_smallest_existing_next_action": "preserve CAP-U07 evidence while the standard Continue OMP trigger recalculates the global frontier",
-            "omp_continuation_required": "TRUE",
-            "external_input_required": "FALSE",
-            "external_input_type": "NONE",
-            "program_terminal_class": "BOUNDED_INVOCATION_BUDGET_REACHED",
-            "next_mission_formed": "TRUE",
-            "next_mission_id": "CONTINUE_OMP",
-            "continuation_stop_reason": "EVENT_REENTRY_TEST_READY; EXACT_CONTINUATION_SAVED",
             "last_wake_request_id": "NONE",
             "last_dispatched_wake_id": "NONE",
             "pending_wake_id": "NONE",
@@ -125,7 +109,7 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
         self.assertEqual(self.lib.event_driven_external_wake_request(original, false_state)["outcome"], "IMMEDIATE_REENTRY_NOT_REQUIRED")
         empty = self.candidate(
             current_program_execution_frontier="NONE", current_execution_frontier="NONE",
-            next_mission_formed="FALSE", next_mission_id="NONE",
+            next_mission_formed="FALSE", next_mission_id="NONE", next_scenario_id="NONE",
         )
         self.assertEqual(self.lib.event_driven_external_wake_request(original, empty)["reason"], "ready_frontier_empty")
 

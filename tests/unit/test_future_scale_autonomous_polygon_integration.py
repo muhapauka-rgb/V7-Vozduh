@@ -61,10 +61,10 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
         self.assertEqual(self.result["selective_invalidation"]["affected_scenarios"], ["LEASE_CONFLICT"])
 
     def test_11_unrelated_scenarios_remain_current(self):
-        self.assertEqual(len(self.result["selective_invalidation"]["unrelated_scenarios"]), 39)
+        self.assertEqual(len(self.result["selective_invalidation"]["unrelated_scenarios"]), 45)
 
-    def test_12_coverage_transitions_40_39_40(self):
-        self.assertEqual((self.result["coverage_before"], self.result["coverage_after_invalidation"], self.result["coverage_after"]), (40, 39, 40))
+    def test_12_coverage_transitions_46_45_46(self):
+        self.assertEqual((self.result["coverage_before"], self.result["coverage_after_invalidation"], self.result["coverage_after"]), (46, 45, 46))
 
     def test_13_real_scenario_execution(self):
         self.assertEqual(self.result["scenario_result"]["scenario_id"], "LEASE_CONFLICT")
@@ -242,12 +242,12 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
         result = self.lib.capability_dependency_consistency(normalized)
         self.assertEqual(result["final_verdict"], "PASS", result["errors"])
 
-    def test_52_bounded_terminal_does_not_validate_another_frontier(self):
+    def test_52_active_multi_lane_requires_a_nonempty_frontier(self):
         cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-        state = self.lib.normalized_cps_live_state({"current_program_execution_frontier": "OTHER_FRONTIER"})
+        state = self.lib.normalized_cps_live_state({"current_program_execution_frontier": "NONE"})
         normalized = self.lib.build_normalized_cps_document(cps, state)
         result = self.lib.capability_dependency_consistency(normalized)
-        self.assertIn("program_frontier_stopped_program", result["errors"])
+        self.assertIn("empty_frontier_continuation_decision_invalid", result["errors"])
 
 
 if __name__ == "__main__":

@@ -150,8 +150,8 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         result = self.reconcile()
         self.assertEqual((result["runtime_impact"], result["production_impact"], result["authority_impact"]), ("NONE", "NONE", "NONE"))
 
-    def test_27_recalculation_selects_fsse04_program_frontier(self):
-        self.assertEqual(self.reconcile()["executable_program_frontier"], ["V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1"])
+    def test_27_ordinary_program_frontier_preempts_new_scenario_generation(self):
+        self.assertEqual(self.reconcile()["executable_program_frontier"], ["AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER"])
 
     def test_28_replay_reproduces_inventory_and_sequence(self):
         self.assertEqual(self.reconcile(), self.reconcile())
@@ -166,7 +166,9 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertIn("Program Execution And Consumption Reconciliation Rule", self.sources["omp"])
 
     def test_31_phase6_real_world_limit_is_consumed_and_phase7_stays_blocked(self):
-        aep = self.sources["aep"] + """
+        aep = self.sources["aep"].replace(
+            "PHASE_6_MULTI_LANE_EVIDENCE_MODEL = ACTIVE", "HISTORICAL_SINGLE_LANE_MODEL",
+        ) + """
 COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES
 PHASE_6_VERDICT = REAL_WORLD_LIMIT
 FULL_OR_BOUNDED_CERTIFICATION = NOT_ACCEPTED

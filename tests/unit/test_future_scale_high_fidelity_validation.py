@@ -29,7 +29,7 @@ class FutureScaleHighFidelityValidationTest(unittest.TestCase):
     def test_01_corpus_is_bounded_high_fidelity_size(self):
         self.assertEqual(self.corpus["final_verdict"], "PASS")
         self.assertGreaterEqual(self.corpus["corpus_count"], 25)
-        self.assertLessEqual(self.corpus["corpus_count"], 40)
+        self.assertLessEqual(self.corpus["corpus_count"], 64)
 
     def test_02_required_risk_scenarios_exist(self):
         required = {
@@ -142,7 +142,7 @@ class FutureScaleHighFidelityValidationTest(unittest.TestCase):
         self.assertIn("execute_future_scale_high_fidelity_batch", source)
 
     def test_23_batch_budget_is_capped(self):
-        self.assertEqual(self.lib.FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS, 40)
+        self.assertEqual(self.lib.FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS, 64)
         self.assertLessEqual(self.batch["scenario_budget"], 40)
 
     def test_24_result_consumption_is_not_file_persistence(self):

@@ -39,7 +39,7 @@ HEARTBEAT_TARGET_THREAD_ID = "019f4b9f-dda6-7762-b26c-3ab651f0a67c"
 HEARTBEAT_SCHEDULE = "FREQ=MINUTELY;INTERVAL=30"
 EVENT_DRIVEN_REENTRY_MODE = "EVENT_DRIVEN_WITH_WATCHDOG"
 EVENT_DRIVEN_WAKE_OWNER = "CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL"
-EVENT_DRIVEN_OMP_VERSION = "4.28"
+EVENT_DRIVEN_OMP_VERSION = "4.29"
 EXTERNAL_REENTRY_LEASE_TTL_SECONDS = 20 * 60
 EXTERNAL_REENTRY_STANDARD_ENTRYPOINT = (
     "tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json"
@@ -52,41 +52,41 @@ RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
     "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
-    "current_stop_condition": "REAL_WORLD_LIMIT",
-    "current_active_scope": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "current_safe_next_action": "STATUS; WAIT FOR OWNER-BACKED REAL-WORLD LEARNING EVIDENCE",
-    "current_scope_class": "AUTOMATION_COMPLETION",
+    "current_stop_condition": "NONE",
+    "current_active_scope": "PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION",
+    "current_safe_next_action": "EXECUTE PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY THROUGH EXISTING FSSE/OMP CONSUMER",
+    "current_scope_class": "INTEGRATION_COMPLETION",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
-    "latest_terminal_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
-    "latest_terminal_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
-    "latest_terminal_mission_started_at": "2026-07-15T16:43:20.381+00:00",
-    "previous_terminal_mission_id": "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-15_214500_future_scale_autonomous_polygon_integration_and_certification.md",
+    "latest_terminal_mission_id": "V7_AEP_PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_ACTIVATION_V1",
+    "latest_terminal_run_nonce": "V7_PHASE6_MULTI_LANE_A1DD11DE3AD3",
+    "latest_terminal_mission_state": "PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_PRODUCTION_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md",
+    "latest_terminal_mission_started_at": "2026-07-17T02:07:57.163357+00:00",
+    "previous_terminal_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1",
-    "current_run_nonce": "V7_OMP_EXTERNAL_REENTRY_PAIR_6E013631_92871890",
-    "current_mission_state": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "current_mission_report": "docs/reports/engineering/2026-07-16_001627_full_independent_background_automation_and_fsse04_production_closure.md",
-    "state_captured": "2026-07-16T09:12:05.102738+00:00",
-    "current_state_generation": "cpsgen_V7_REENTRY_COMPLETE_02F861BCBC5C",
-    "current_transition_id": "EXTERNAL_REENTRY_COMPLETED_V1",
-    "current_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "current_program_stage": "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "current_program_execution_frontier": "NONE",
-    "program_frontier_input": "two natural external reentries and production deployment are certified; no independent READY capability exists",
+    "current_mission_id": "V7_AEP_PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_ACTIVATION_V1",
+    "current_run_nonce": "V7_PHASE6_MULTI_LANE_A1DD11DE3AD3",
+    "current_mission_state": "PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_PRODUCTION_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md",
+    "state_captured": "2026-07-17T02:07:57.163357+00:00",
+    "current_state_generation": "cpsgen_PHASE6_MULTI_LANE_A1DD11DE3AD3",
+    "current_transition_id": "PHASE6_MULTI_LANE_SCENARIO_CONSUMED_V1",
+    "current_next_action_id": "PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY",
+    "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+    "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY",
+    "program_frontier_input": "old 40-scenario generation is covered; 5 obligation-driven Phase 6A scenarios remain safe and uncovered",
     "program_frontier_owner": "EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER",
-    "program_frontier_expected_output": "OWNER_BACKED_REAL_OUTCOME -> FRESH CPS -> NEXT LEGAL OMP FRONTIER",
+    "program_frontier_expected_output": "SCENARIO RESULT -> OMP CONSUMPTION -> NEXT PHASE6A FRONTIER",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
     "routing_readiness_state": "PASS_CANDIDATE_SCOPED",
-    "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
     "old_packets_reusable": "NO",
@@ -99,14 +99,14 @@ NORMALIZED_CPS_LIVE_STATE = {
     "waiting_capabilities": "CAP-U02,CAP-U05,CAP-U06,CAP-U07",
     "ready_capabilities": "NONE",
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
-    "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+    "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "REAL_WORLD_LIMIT_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "program_terminal_state": "NONE_MULTI_LANE_FRONTIER_ACTIVE",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome",
-    "omp_continuation_pointer": "Status; the external heartbeat remains enabled and Continue OMP remains a manual fallback",
+    "smallest_existing_next_action": "EXECUTE PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY through the existing FSSE/OMP consumer",
+    "omp_continuation_pointer": "Continue OMP through the active Phase 6A frontier; preserve Phase 6C natural wait lane-locally",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -126,33 +126,33 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "two distinct natural Codex Automation Platform reentries invoked the standard Continue OMP consumer after prior target-thread turns exited; both passed with released leases, no overlap and zero Runtime/production effects.",
-    "automatic_continue_omp_result": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+    "source_summary": "the existing FSSE/OMP consumer consumed a new obligation-driven Phase 6A scenario end to end; Phase 6C natural evidence remains independently pending with zero Runtime/production effects.",
+    "automatic_continue_omp_result": "PHASE6_MULTI_LANE_FRONTIER_MATERIALIZED",
     "required_workflow": "external independent trigger -> standard Continue OMP -> bounded internal engineering loop -> persisted terminal",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
     "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
-    "wip_current_primary_stop": "REAL_WORLD_LIMIT",
-    "wip_smallest_existing_next_action_id": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES",
-    "wip_smallest_existing_next_action": "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome",
-    "sequence_execution_class": "real-world evidence wait",
-    "sequence_expected_output": "new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL",
+    "wip_smallest_existing_next_action_id": "PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY",
+    "wip_smallest_existing_next_action": "EXECUTE PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY; preserve CAP-U07 natural evidence WIP without reordering",
+    "sequence_execution_class": "Phase 6A engineering scenario certification",
+    "sequence_expected_output": "scenario result -> OMP consumer -> next Phase 6A frontier",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
     "capabilities_inventoried": "34",
     "complete_or_locked_capabilities": "13",
     "unfinished_capabilities": "21",
     "open_engineering_intents": "21",
-    "omp_continuation_required": "FALSE",
-    "external_input_required": "TRUE",
-    "external_input_type": "OWNER_BACKED_REAL_WORLD_EVIDENCE",
-    "transaction_terminal_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "program_terminal_class": "REAL_WORLD_LIMIT",
-    "next_mission_formed": "FALSE",
-    "next_mission_id": "NONE",
+    "omp_continuation_required": "TRUE",
+    "external_input_required": "FALSE",
+    "external_input_type": "NATURAL_PRODUCTION_EVIDENCE_FOR_PHASE6C_ONLY",
+    "transaction_terminal_class": "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED",
+    "program_terminal_class": "NONE",
+    "next_mission_formed": "TRUE",
+    "next_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
     "premature_operator_return": "FALSE",
     "continuation_iteration": "20",
-    "continuation_stop_reason": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED; NO_INDEPENDENT_READY_CAPABILITY",
+    "continuation_stop_reason": "BOUNDED_CURRENT_INVOCATION_COMPLETE; EXACT NEXT PHASE6A SCENARIO PRESERVED",
     "no_progress_fingerprint": "5db961c0f10dc77d0058f51f698c51ced522a2e7f8a0e6827faf4596a0c309e4",
     "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "program_reconciliation_real_callers": "3",
@@ -202,34 +202,34 @@ NORMALIZED_CPS_LIVE_STATE = {
     "reentry_platform_health": "PASS",
     "aep_phase4_status": "COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER",
     "aep_phase5_status": "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
-    "aep_phase6_status": "REAL_WORLD_LIMIT",
+    "aep_phase6_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
     "mission_completion_evidence_gate": "ACTIVE_V1",
-    "current_completion_contract": "AUTOMATION_COMPLETION",
+    "current_completion_contract": "INTEGRATION_COMPLETION",
     "current_completion_verdict": "COMPLETE_CONSUMED",
     "fsse_status": "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED",
     "fsse_00_external_reentry_status": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "fsse_00_blocks_fsse_01": "FALSE",
     "manual_continue_omp_fallback": "ACTIVE",
-    "scenario_coverage_generation": "fssef_dcd80bd4189d95ec7c58d661",
-    "scenario_coverage_fingerprint": "dcd80bd4189d95ec7c58d661af3ac313c1f7760f925c9937f9f15dfe40f873df",
-    "scenario_target_level": "HIGH_FIDELITY_CRITICAL_CORPUS_CURRENT_AFTER_SELECTIVE_REPLAY",
-    "scenario_corpus_count": "40",
-    "scenario_eligible_count": "0",
-    "scenario_covered_count": "40",
+    "scenario_coverage_generation": "fssef_4dbdb7818bacf2b855b5331a",
+    "scenario_coverage_fingerprint": "4dbdb7818bacf2b855b5331a9e71e4354847154719afebbcfe95a46f9676342d",
+    "scenario_target_level": "PHASE6_MULTI_LANE_V1_OBLIGATION_DRIVEN",
+    "scenario_corpus_count": "46",
+    "scenario_eligible_count": "5",
+    "scenario_covered_count": "41",
     "scenario_stale_count": "0",
     "scenario_blocked_count": "0",
     "scenario_mismatch_count": "0",
-    "next_scenario_id": "NONE",
-    "next_scenario_reason": "FSSE_03_CORPUS_EXHAUSTED",
+    "next_scenario_id": "PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY",
+    "next_scenario_reason": "invariants=AUTHORITY_NON_EXPANSION,FINAL_OPEN_OR_STOP_SAFE",
     "active_scenario_id": "NONE",
-    "last_scenario_id": "LEASE_CONFLICT",
+    "last_scenario_id": "PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY",
     "last_scenario_verdict": "PASS",
-    "last_scenario_fingerprint": "846a1cca6107a79711ae219b5568cd297d5ef717f754ffb0701d9c1d8b02bba6",
+    "last_scenario_fingerprint": "609ccfbb80809c373e251c96900361ace83832eb5417d2181994f4ece7c38a7c",
     "active_scenario_candidate": "NONE",
     "active_scenario_mission": "NONE",
-    "scenario_budget": "40",
-    "scenario_stop_reason": "FSSE_04_CERTIFIED_CONTINUE_OMP",
-    "fsse_next_action": "CONTINUE_OMP",
+    "scenario_budget": "10",
+    "scenario_stop_reason": "BOUNDED_CURRENT_INVOCATION_COMPLETE; EXACT NEXT SCENARIO PRESERVED",
+    "fsse_next_action": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
 }
 
 
@@ -1979,6 +1979,152 @@ PROGRAM_EXECUTION_REMAINING_STATUSES = {
 }
 
 
+PHASE6_EVIDENCE_TAXONOMY = {
+    "ENGINEERING_TEST_EVIDENCE": {
+        "closes": ("IMPLEMENTATION",), "natural": False, "maturity": False, "authority": False,
+    },
+    "ENGINEERING_SCENARIO_EVIDENCE": {
+        "closes": ("SCENARIO_CORRECTNESS", "INTEGRATION", "PRE_PRODUCTION"),
+        "natural": False, "maturity": False, "authority": False,
+    },
+    "SCENARIO_BEHAVIOUR_CERTIFICATION": {
+        "closes": ("SCENARIO_CORRECTNESS", "PRE_PRODUCTION"),
+        "natural": False, "maturity": False, "authority": False,
+    },
+    "FUTURE_SCALE_CERTIFICATION": {
+        "closes": ("FUTURE_SCALE", "PRE_PRODUCTION"),
+        "natural": False, "maturity": False, "authority": False,
+    },
+    "CONTROLLED_PRODUCTION_EVIDENCE": {
+        "closes": ("CONTROLLED_PRODUCTION", "INTEGRATION"),
+        "natural": False, "maturity": True, "authority": False,
+    },
+    "CONTROLLED_PRODUCTION_READINESS_EVIDENCE": {
+        "closes": ("CONTROLLED_PRODUCTION_READINESS", "PRE_PRODUCTION"),
+        "natural": False, "maturity": False, "authority": False,
+    },
+    "NATURAL_PRODUCTION_EVIDENCE": {
+        "closes": ("NATURAL_REPRESENTATIVENESS", "PRODUCTION_MATURITY"),
+        "natural": True, "maturity": True, "authority": True,
+    },
+    "HISTORICAL_EVIDENCE": {
+        "closes": (), "natural": False, "maturity": False, "authority": False,
+    },
+    "INVALID_OR_SYNTHETIC_PRODUCTION_CLAIM": {
+        "closes": (), "natural": False, "maturity": False, "authority": False,
+    },
+}
+
+
+def phase6_evidence_classification(evidence_class: str, criterion_class: str) -> dict[str, Any]:
+    """Keep scenario, controlled and natural evidence valuable but non-interchangeable."""
+    evidence = str(evidence_class or "")
+    criterion = str(criterion_class or "")
+    contract = PHASE6_EVIDENCE_TAXONOMY.get(evidence)
+    valid = contract is not None and evidence != "INVALID_OR_SYNTHETIC_PRODUCTION_CLAIM"
+    accepted = bool(valid and criterion in set(contract["closes"]))
+    return {
+        "schema": "v7.phase6-evidence-classification.v1",
+        "evidence_class": evidence,
+        "criterion_class": criterion,
+        "known_evidence_class": contract is not None,
+        "accepted_for_criterion": accepted,
+        "natural_evidence": bool(contract and contract["natural"]),
+        "production_maturity_credit_allowed": bool(accepted and contract and contract["maturity"]),
+        "authority_impact_allowed": bool(accepted and contract and contract["authority"]),
+        "natural_representativeness_pending": not bool(contract and contract["natural"]),
+        "final_verdict": "PASS" if accepted else "NOT_ACCEPTED_FOR_CRITERION",
+    }
+
+
+def phase6_capability_criterion_projection() -> list[dict[str, Any]]:
+    """Project U02-U09 criteria by evidence lane without closing whole capabilities."""
+    controlled_ready = {"CAP-U02", "CAP-U03", "CAP-U05", "CAP-U06", "CAP-U07", "CAP-U08"}
+    scenario_ready = {"CAP-U02", "CAP-U03", "CAP-U05", "CAP-U06", "CAP-U07", "CAP-U08", "CAP-U09"}
+    rows = []
+    for index in range(2, 10):
+        capability = f"CAP-U{index:02d}"
+        rows.append({
+            "capability_id": capability,
+            "implementation_criterion": "COMPLETE_CONSUMED",
+            "integration_criterion": "COMPLETE_OR_PARTIAL_EXISTING_OWNER",
+            "scenario_correctness_criterion": "READY" if capability in scenario_ready else "BLOCKED_DEPENDENCY",
+            "future_scale_criterion": "READY" if capability in scenario_ready else "NOT_APPLICABLE_WITH_REASON",
+            "controlled_production_criterion": "READY_WHERE_SAFE" if capability in controlled_ready else "BLOCKED_DEPENDENCY",
+            "natural_representativeness_criterion": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
+            "authority_criterion": "LOCKED_NO_EXPANSION" if capability in {"CAP-U04", "CAP-U09"} else "NO_CHANGE",
+            "production_maturity_criterion": "NO_NATURAL_CREDIT_FROM_SCENARIOS",
+            "whole_capability_complete": False,
+        })
+    return rows
+
+
+def phase6_multi_lane_reconciliation(
+    cps_text: str,
+    scenario_frontier: dict[str, Any],
+    *,
+    trace_capture_ready: bool = True,
+) -> dict[str, Any]:
+    """Reconcile Phase 6A/6B/6C independently inside the existing AEP/OMP owner."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    next_scenario = str(scenario_frontier.get("NEXT_SCENARIO_ID") or "NONE")
+    scenario_ready = next_scenario != "NONE" and scenario_frontier.get("final_verdict") == "PASS"
+    phase6a_status = "ACTIVE" if scenario_ready else "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION"
+    phase6a_frontier = [f"PHASE6A_SCENARIO:{next_scenario}"] if scenario_ready else []
+
+    current_candidate = live.get("PHASE_6_CURRENT_CANDIDATE", "`NONE`").strip("`")
+    current_packet = live.get("PHASE_6_CURRENT_PACKET", "`NONE`").strip("`")
+    current_lease = live.get("PHASE_6_CURRENT_LEASE", "`NONE`").strip("`")
+    controlled_identity_open = any(item not in {"", "NONE"} for item in (current_candidate, current_packet, current_lease))
+    if not trace_capture_ready:
+        phase6b_status = "CONTROLLED_PRODUCTION_PREPARATION_READY"
+        phase6b_frontier = ["PHASE6B_TRACE_COMPLETENESS_PREPARATION"]
+        phase6b_next = "COMPLETE_CONTROLLED_SITUATION_AND_DECISION_TRACE_CAPTURE"
+    elif controlled_identity_open:
+        phase6b_status = "CONTROLLED_PRODUCTION_READY"
+        phase6b_frontier = ["PHASE6B_REVALIDATE_CURRENT_BOUNDED_TRANSACTION"]
+        phase6b_next = "REVALIDATE_CURRENT_BOUNDED_TRANSACTION_WITHOUT_REUSING_IDENTITY"
+    else:
+        phase6b_status = "CONTROLLED_PRODUCTION_READY_WHERE_SAFE"
+        phase6b_frontier = []
+        phase6b_next = "WAIT_FOR_FRESH_EXACT_CONTROLLED_WINDOW_OR_CURRENT_ELIGIBLE_CANDIDATE"
+
+    executable = [*phase6b_frontier, *phase6a_frontier]
+    global_active = bool(executable)
+    global_status = "ACTIVE_MULTI_LANE_CERTIFICATION" if global_active else "LANES_EXHAUSTED_WAITING_NATURAL_EVIDENCE"
+    global_stop = "NONE" if global_active else "REAL_WORLD_LIMIT_AFTER_SCENARIO_AND_CONTROLLED_CERTIFICATION_EXHAUSTION"
+    return {
+        "schema": "v7.aep-phase6-multi-lane-reconciliation.v1",
+        "PHASE_6A_STATUS": phase6a_status,
+        "PHASE_6A_FRONTIER": phase6a_frontier,
+        "PHASE_6A_NEXT_ACTION": f"EXECUTE_SCENARIO:{next_scenario}" if scenario_ready else "DISCOVER_NEXT_GENERATION_OBLIGATIONS",
+        "PHASE_6B_STATUS": phase6b_status,
+        "PHASE_6B_FRONTIER": phase6b_frontier,
+        "PHASE_6B_NEXT_ACTION": phase6b_next,
+        "PHASE_6B_AUTHORITY_STATUS": "CURRENT_POLICY_BOUNDED; NO_ACTION_SELECTED; NO_EXPANSION",
+        "PHASE_6C_STATUS": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
+        "PHASE_6C_FRONTIER": [],
+        "PHASE_6C_REENTRY_CONDITION": "NEW_MATERIAL_NON_SYNTHETIC_NATURAL_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING",
+        "PHASE_6_EXECUTABLE_FRONTIER": executable,
+        "PHASE_6_GLOBAL_STATUS": global_status,
+        "PHASE_6_GLOBAL_STOP": global_stop,
+        "PHASE_7_ENGINEERING_EVOLUTION_STATUS": (
+            "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE" if global_active else "READY_ON_NEW_ENGINEERING_OBLIGATION"
+        ),
+        "PHASE_7_PRODUCTION_AUTHORITY_STATUS": "LOCKED_PENDING_NATURAL_AND_CONTROLLED_CERTIFICATION",
+        "evidence_taxonomy": PHASE6_EVIDENCE_TAXONOMY,
+        "capability_criteria": phase6_capability_criterion_projection(),
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_NATURAL_CREDIT",
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
 COMPLETION_CONTRACTS = {
     "ANALYSIS_COMPLETION": ("ANALYSIS_ARTIFACT_PROVEN", "EVIDENCE_TRACEABILITY_PROVEN"),
     "DISCOVERY_COMPLETION": ("DISCOVERY_OUTPUT_PROVEN", "EVIDENCE_TRACEABILITY_PROVEN", "NEXT_OUTPUT_PROVEN"),
@@ -2276,7 +2422,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "PHASE_3_TO_PHASE_4_CONSUMPTION_STATUS = PASS" in phase4_execution,
         "ENGINEERING_INTENT_CLOSURE_STATUS = CLOSED" in phase4_execution,
     ))
-    phase6_real_world_limit = phase5_complete and all(token in aep for token in (
+    phase6_multi_lane_enabled = phase5_complete and "PHASE_6_MULTI_LANE_EVIDENCE_MODEL = ACTIVE" in aep
+    phase6_real_world_limit = not phase6_multi_lane_enabled and phase5_complete and all(token in aep for token in (
         "PHASE_6_VERDICT = REAL_WORLD_LIMIT",
         "FULL_OR_BOUNDED_CERTIFICATION = NOT_ACCEPTED",
         "PHASE_7 = PHASE_7_NOT_STARTED",
@@ -2334,14 +2481,15 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         {
             "program_id": "AEP", "stage_id": "PHASE_6",
             "status": (
-                "STAGE_BLOCKED_REAL_WORLD" if phase6_real_world_limit
+                "STAGE_IN_PROGRESS" if phase6_multi_lane_enabled
+                else "STAGE_BLOCKED_REAL_WORLD" if phase6_real_world_limit
                 else "STAGE_READY_NOT_STARTED" if phase5_complete
                 else "STAGE_BLOCKED_DEPENDENCY"
             ),
         },
         {
             "program_id": "AEP", "stage_id": "PHASE_7",
-            "status": "STAGE_BLOCKED_DEPENDENCY",
+            "status": "STAGE_IN_PROGRESS" if phase6_multi_lane_enabled else "STAGE_BLOCKED_DEPENDENCY",
         },
     ))
 
@@ -2350,7 +2498,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         {
             "program_id": "AEP", "type": "STRATEGIC_ROUTE", "document_status": _program_document_status(aep),
             "execution_status": (
-                "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
+                "PHASE_6_ACTIVE_MULTI_LANE" if phase6_multi_lane_enabled
+                else "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
                 else "PHASE_6_READY" if phase5_complete
                 else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
                 else "PHASE_4_READY" if phase3_locked
@@ -2447,10 +2596,13 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         root=root,
         ordinary_work_available=bool(frontier) and not ordinary_frontier_deferred,
     )
+    phase6_lanes = phase6_multi_lane_reconciliation(cps, scenario_frontier) if phase6_multi_lane_enabled else None
+    if phase6_lanes and phase6_lanes["PHASE_6_EXECUTABLE_FRONTIER"]:
+        frontier = list(phase6_lanes["PHASE_6_EXECUTABLE_FRONTIER"])
     if not production_certified_terminal and scenario_frontier.get("decision") in {
         "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED", "SCENARIO_READY",
         "SCENARIO_FRONTIER_EXHAUSTED",
-    }:
+    } and not phase6_multi_lane_enabled:
         frontier = [scenario_frontier["next_output"]]
     return {
         "schema": "v7-omp-program-execution-reconciliation/v1",
@@ -2461,7 +2613,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "stage_counts": counts,
         "stage2_status": "STAGE2_TERMINAL_COMPLETE" if stage2_complete else "STAGE2_INCOMPLETE",
         "aep_status": (
-            "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
+            "PHASE_6_ACTIVE_MULTI_LANE" if phase6_multi_lane_enabled
+            else "PHASE_6_REAL_WORLD_LIMIT" if phase6_real_world_limit
             else "PHASE_6_READY" if phase5_complete
             else "PHASE_4_IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted
             else "PHASE_4_READY" if phase3_locked
@@ -2487,8 +2640,8 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "aep_real_consumer_verified": real_consumer_verified,
         "aep_phase4_status": "COMPLETE_CONSUMED" if phase4_consumed else "IMPLEMENTED_MANUALLY_CALLABLE" if phase4_admitted else "READY" if phase3_locked else "BLOCKED",
         "aep_phase5_status": "COMPLETE_CONSUMED" if phase5_complete else "READY" if phase4_consumed else "BLOCKED",
-        "aep_phase6_status": "REAL_WORLD_LIMIT" if phase6_real_world_limit else "READY" if phase5_complete else "BLOCKED",
-        "aep_state": "REAL_WORLD_LIMIT" if phase6_real_world_limit else "IMPLEMENTATION_READY" if phase5_complete else "GAP_READY" if phase4_admitted or phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
+        "aep_phase6_status": "ACTIVE_MULTI_LANE" if phase6_multi_lane_enabled else "REAL_WORLD_LIMIT" if phase6_real_world_limit else "READY" if phase5_complete else "BLOCKED",
+        "aep_state": "MULTI_LANE_CERTIFICATION_ACTIVE" if phase6_multi_lane_enabled else "REAL_WORLD_LIMIT" if phase6_real_world_limit else "IMPLEMENTATION_READY" if phase5_complete else "GAP_READY" if phase4_admitted or phase3_locked else "PHASE_3_READY_FOR_ACCEPTANCE" if phase3_executed else "CURRENT_READY",
         "bdp_status": "BDP_EXECUTED_FOR_CURRENT_PROJECT_SCOPE" if bdp_project_scope_complete else "BDP_EXECUTED_FOR_LIMITED_SCENARIO_SCOPE",
         "bdp_required_passes_complete": bdp_project_scope_complete,
         "backlog_status": "34/34_DONE" if backlog_complete else "INCOMPLETE",
@@ -2499,6 +2652,15 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         "scenario_frontier_decision": scenario_frontier.get("decision", "SCENARIO_STOP_SAFE"),
         "scenario_frontier_consumer_invoked": True,
         "scenario_frontier_next_output": scenario_frontier.get("next_output", "STOP_SAFE"),
+        "phase6_lanes": phase6_lanes,
+        "phase6a_status": phase6_lanes.get("PHASE_6A_STATUS") if phase6_lanes else "NOT_ACTIVE",
+        "phase6b_status": phase6_lanes.get("PHASE_6B_STATUS") if phase6_lanes else "NOT_ACTIVE",
+        "phase6c_status": phase6_lanes.get("PHASE_6C_STATUS") if phase6_lanes else "NOT_ACTIVE",
+        "phase6_executable_frontier": phase6_lanes.get("PHASE_6_EXECUTABLE_FRONTIER", []) if phase6_lanes else [],
+        "phase6_global_status": phase6_lanes.get("PHASE_6_GLOBAL_STATUS") if phase6_lanes else "NOT_ACTIVE",
+        "phase6_global_stop": phase6_lanes.get("PHASE_6_GLOBAL_STOP") if phase6_lanes else "NOT_ACTIVE",
+        "phase7_engineering_evolution_status": phase6_lanes.get("PHASE_7_ENGINEERING_EVOLUTION_STATUS") if phase6_lanes else "NOT_ACTIVE",
+        "phase7_production_authority_status": phase6_lanes.get("PHASE_7_PRODUCTION_AUTHORITY_STATUS") if phase6_lanes else "LOCKED",
         "global_real_world_limit_verdict": "GLOBAL_REAL_WORLD_LIMIT_INVALID" if missing_stage and not production_certified_terminal else "GLOBAL_REAL_WORLD_LIMIT_VALID",
         "acceptance_required": acceptance_boundary,
         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
@@ -5196,7 +5358,7 @@ def _expand_future_scale_high_fidelity_scenario(source: dict[str, Any]) -> dict[
     failures = list(source.get("failures") or ["NONE"])
     recoveries = list(source.get("recoveries") or ["NONE"])
     risk = str(source.get("risk") or "HIGH")
-    return {
+    expanded = {
         "SCENARIO_ID": scenario_id,
         "SCENARIO_VERSION": int(source.get("version") or 1),
         "TITLE": str(source.get("title") or scenario_id.replace("_", " ").title()),
@@ -5242,6 +5404,16 @@ def _expand_future_scale_high_fidelity_scenario(source: dict[str, Any]) -> dict[
         "RATIONALE": str(source.get("rationale") or f"Exercises {scenario_id} through existing V7 owners."),
         "VALIDATION_LANE": str(source.get("lane") or "REAL_CODE_HIGH_FIDELITY"),
     }
+    if source.get("obligation_generation"):
+        expanded.update({
+            "OBLIGATION_GENERATION": str(source["obligation_generation"]),
+            "OBLIGATION_CLASS": str(source.get("obligation_class") or "UNSPECIFIED"),
+            "CAPABILITY_CRITERIA": list(source.get("capability_criteria") or []),
+            "FORBIDDEN_CLAIMS": list(source.get("forbidden_claims") or [
+                "NATURAL_PRODUCTION_REPRESENTATIVENESS", "PRODUCTION_AUTHORITY_EXPANSION",
+            ]),
+        })
+    return expanded
 
 
 def load_future_scale_scenario_corpus(*, root: Path = ROOT) -> dict[str, Any]:
@@ -5267,7 +5439,15 @@ def load_future_scale_scenario_corpus(*, root: Path = ROOT) -> dict[str, Any]:
             "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
             "final_verdict": "STOP_SAFE", "errors": ["high_fidelity_scenario_list_invalid"],
         }
-    expanded = [_expand_future_scale_high_fidelity_scenario(item) for item in compact]
+    obligations = payload.get("phase6_obligation_scenarios") if isinstance(payload, dict) else []
+    if obligations is None:
+        obligations = []
+    if not isinstance(obligations, list) or any(not isinstance(item, dict) for item in obligations):
+        return {
+            "schema": "v7-future-scale-scenario-corpus/v1", "scenarios": [],
+            "final_verdict": "STOP_SAFE", "errors": ["phase6_obligation_scenario_list_invalid"],
+        }
+    expanded = [_expand_future_scale_high_fidelity_scenario(item) for item in [*compact, *obligations]]
     validated = [validate_future_scale_scenario(item) for item in [*raw, *expanded]]
     errors = sorted({error for row in validated for error in row["errors"]})
     scenarios = [row["scenario"] for row in validated if row["scenario"]]
@@ -5324,43 +5504,30 @@ def future_scale_scenario_frontier(
         if last_scenario not in {"", "NONE"} and last_verdict == "PASS" and last_fingerprint not in {"", "NONE"}:
             history[last_scenario] = {"result": "PASS", "scenario_fingerprint": last_fingerprint}
     current_program_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
-    high_fidelity_coverage_complete = (
+    legacy_corpus_count = 40
+    try:
+        declared_covered_count = int(live.get("SCENARIO_COVERED_COUNT", "0").strip("`") or 0)
+    except ValueError:
+        declared_covered_count = 0
+    legacy_coverage_complete = (
         (
             current_program_stage == "FSSE_03_COMPLETE_FSSE_04_READY"
             or current_program_stage == "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY"
             or current_program_stage == "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
+            or current_program_stage == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
         )
-        and live.get("SCENARIO_COVERED_COUNT", "").strip("`") == str(corpus["corpus_count"])
+        and declared_covered_count >= legacy_corpus_count
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
     )
-    if high_fidelity_coverage_complete:
-        return {
-            "schema": "v7-future-scale-scenario-frontier/v1",
-            "FRONTIER_GENERATION": live.get("SCENARIO_COVERAGE_GENERATION", "").strip("`"),
-            "FRONTIER_FINGERPRINT": live.get("SCENARIO_COVERAGE_FINGERPRINT", "").strip("`"),
-            "ELIGIBLE_SCENARIOS": [],
-            "STALE_SCENARIOS": [],
-            "COVERED_SCENARIOS": [row["SCENARIO_ID"] for row in corpus["scenarios"]],
-            "BLOCKED_SCENARIOS": [],
-            "NEXT_SCENARIO_ID": "NONE",
-            "NEXT_SCENARIO_REASON": "FSSE_03_CORPUS_EXHAUSTED",
-            "CURRENT_TARGET_COVERAGE": "HIGH_FIDELITY_CRITICAL_CORPUS_CONSUMED",
-            "FRONTIER_EXHAUSTED": True,
-            "EXHAUSTION_REASON": "ALL_CURRENT_SCENARIOS_COVERED",
-            "SCENARIO_CORPUS_COUNT": corpus["corpus_count"],
-            "SCENARIO_BUDGET": int(live.get("SCENARIO_BUDGET", "0").strip("`") or 0),
-            "decision": "SCENARIO_FRONTIER_EXHAUSTED",
-            "next_output": FUTURE_SCALE_FSSE_04_OUTPUT,
-            "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
-            "runtime_impact": "NONE",
-            "production_impact": "NONE",
-            "authority_expansion": False,
-            "maturity_impact": "NONE",
-            "final_verdict": "PASS",
-            "errors": [],
-        }
+    legacy_covered_ids = {
+        row["SCENARIO_ID"] for row in corpus["scenarios"]
+        if row.get("OBLIGATION_GENERATION") != "PHASE6_MULTI_LANE_V1"
+    } if legacy_coverage_complete else set()
     for scenario in corpus["scenarios"]:
         scenario_id = scenario["SCENARIO_ID"]
+        if scenario_id in legacy_covered_ids:
+            covered.append(scenario_id)
+            continue
         missing_sources = [path for path in scenario["SOURCE_DEPENDENCIES"] if not (root / path).exists()]
         if missing_sources:
             blocked.append({"SCENARIO_ID": scenario_id, "REASON": "MISSING_SOURCE_DEPENDENCY:" + ",".join(missing_sources)})
@@ -5382,10 +5549,15 @@ def future_scale_scenario_frontier(
     ))
     bounded_budget = max(0, min(int(scenario_budget), 10))
     selected = eligible[0] if eligible and bounded_budget else None
-    fsse_02_complete = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "FSSE_02_COMPLETE_FSSE_03_READY"
+    fsse_harness_ready = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in {
+        "FSSE_02_COMPLETE_FSSE_03_READY", "FSSE_03_COMPLETE_FSSE_04_READY",
+        "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY",
+        "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+        "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+    }
     decision = (
         "ORDINARY_FRONTIER_SELECTED" if ordinary_work_available
-        else "SCENARIO_READY" if selected and fsse_02_complete
+        else "SCENARIO_READY" if selected and fsse_harness_ready
         else "SCENARIO_FOUNDATION_READY_EXECUTION_HARNESS_REQUIRED" if selected
         else "SCENARIO_BUDGET_REACHED" if eligible
         else "SCENARIO_FRONTIER_EXHAUSTED"
@@ -6028,6 +6200,32 @@ def execute_future_scale_scenario(
             {"step": 3, "producer": "operator_execution_pipeline", "output": "read-only preview contracts", "consumer": "invariant oracle"},
             {"step": 4, "producer": "invariant oracle", "output": "PASS" if not failed else failed["invariant_id"], "consumer": "OMP result consumer"},
         ],
+        "situation_decision_trace": {
+            "situation_identity": state["state_identity"],
+            "interpretation": {
+                "source": "deterministic isolated engineering scenario",
+                "telemetry_profile": scenario.get("TELEMETRY_PROFILE"),
+                "failure_injections": scenario.get("FAILURE_INJECTIONS"),
+                "evidence_class": scenario.get("EVIDENCE_CLASS"),
+            },
+            "decision": {
+                "owner": "tools/v7-users-autoswitch:AutoswitchPlanner.plan",
+                "selected_count": first["selected_count"],
+                "authority_scope": scenario.get("AUTHORITY_SCOPE"),
+                "apply_selected": False,
+            },
+            "execution_safety": {
+                "consumer": "admin_core/operator_execution_pipeline.py",
+                "preview_only": True,
+                "forbidden_effects_enforced": True,
+            },
+            "outcome": "PASS" if not failed else "SCENARIO_MISMATCH",
+            "learning": {
+                "class": "ENGINEERING_SCENARIO_LEARNING",
+                "natural_production_credit": False,
+                "production_maturity_credit": False,
+            },
+        },
         "produced_outputs": {
             "planner": first,
             "replay_mode": replay.get("planner_registry_mode"),
@@ -6082,7 +6280,7 @@ def execute_future_scale_scenario(
 
 FUTURE_SCALE_HIGH_FIDELITY_MISSION_ID = "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1"
 FUTURE_SCALE_FSSE_04_OUTPUT = "V7_OMP_FUTURE_SCALE_AUTONOMOUS_POLYGON_INTEGRATION_AND_CERTIFICATION_V1"
-FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS = 40
+FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS = 64
 FUTURE_SCALE_GENERATOR_CASE_BUDGET = 12
 
 
@@ -8156,14 +8354,15 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     )
     fsse_status = live.get("FSSE_STATUS", "").strip("`")
     fsse_automation_complete = fsse_status == "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
+    phase6_multi_lane_active = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
     fsse_foundation_complete = fsse_status in {
         "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY",
         "FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY",
         "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     }
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
-        "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "MISSION_TYPE": "INTEGRATION" if phase6_multi_lane_active else "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "INDEPENDENT_TRIGGER_PROVEN": fsse_automation_complete or background_automation_certified,
         "ENTRYPOINT_ACTIVE": heartbeat_active or fsse_automation_complete,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
@@ -8201,11 +8400,11 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             if background_automation_certified else "BLOCKED_MISSING_REAL_CONSUMER"
         ),
         "AEP_PHASE_6_STATUS": (
-            "REAL_WORLD_LIMIT"
+            "ACTIVE_MULTI_LANE_CERTIFICATION" if phase6_multi_lane_active else "REAL_WORLD_LIMIT"
             if background_automation_certified else "BLOCKED_BY_PHASE_5"
         ),
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []

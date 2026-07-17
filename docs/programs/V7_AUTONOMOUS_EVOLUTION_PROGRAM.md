@@ -2,12 +2,12 @@
 
 Status: `ORGANIZED`
 Document status: `ORGANIZED`
-Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_PHASE_6_REAL_WORLD_LIMIT`
-Completion evidence status: `PHASE_6_NOT_COMPLETE`; two unique real outcomes were consumed, but representative interpretation, decision replay, learning and capability closure are insufficient for full or bounded production-autonomy certification.
-Current program state: `PHASE_6_REAL_WORLD_LIMIT`
+Execution status: `PHASE_3_ACCEPTED_LOCKED_PHASE_4_COMPLETE_CONSUMED_PHASE_5_COMPLETE_PHASE_6_MULTI_LANE_CERTIFICATION_ACTIVE_PHASE_7_ENGINEERING_EVOLUTION_ACTIVE`
+Completion evidence status: `PHASE_6_MULTI_LANE_ACTIVE`; natural representativeness remains incomplete, while safe scenario certification and controlled-production preparation remain independently executable.
+Current program state: `PHASE_6_MULTI_LANE_CERTIFICATION_ACTIVE`
 Current execution evidence: `docs/reports/engineering/2026-07-16_191336_aep_phase6_production_certification_final.md`
 Current acceptance state: `PHASE_3_ACCEPTED_LOCKED; aep3lock_f4e40b34f14e2743819e3a2e`
-Next legal stage: remain in Phase 6 and wait for a materially different owner-backed real outcome with complete situation interpretation and outcome-linked Decision Trace/replay evidence; Phase 7 is not started.
+Next legal stage: continue Phase 6A obligation-driven scenario certification and Phase 6B controlled-production preparation where safe; Phase 6C waits for a materially different owner-backed natural outcome. Phase 7 engineering continuous evolution is active, while production Authority evolution remains locked.
 Mode: `PROGRAM_ROUTE`
 Runtime impact: `NONE`
 Authority impact: `NONE`
@@ -2239,6 +2239,22 @@ FUNDAMENTAL_ARCHITECTURE_GAP
 ```
 
 Before Formal Architecture Evolution is allowed, the program must prove that existing owners, OMP, Runtime Model, Decision Model, Autonomous Runtime Model, Autonomous Execution Program, Autonomous Operating System, Production Maturity, SYSTEM_MAP, and locked knowledge cannot resolve the gap through reuse or extension.
+
+## 27A. Phase 6 Multi-Lane Certification And Phase 7 Engineering Evolution
+
+`PHASE_6_MULTI_LANE_EVIDENCE_MODEL = ACTIVE`
+
+Phase 6 has three independent certification lanes inside the existing AEP/OMP execution owner:
+
+| Lane | Current meaning | Evidence boundary | Stop semantics |
+|---|---|---|---|
+| `6A_SCENARIO_AND_FUTURE_SCALE` | Obligation-driven situation, decision, execution, recovery, scale and learning scenarios through the existing FSSE/Polygon consumer. | Engineering Scenario, Scenario Behaviour and Future-Scale Certification evidence only. | Continue while an uncovered safe scenario exists. |
+| `6B_CONTROLLED_PRODUCTION` | Trace-completeness preparation and a fresh exact governed transaction only when an eligible current Candidate, Packet, lease and policy window exist. | Controlled Production Readiness or Controlled Production evidence only. | No action is selected in this update; wait lane-locally when no fresh exact window exists. |
+| `6C_NATURAL_PRODUCTION` | Material non-synthetic outcomes with complete situation, Decision Trace, outcome and learning chain. | Natural Production evidence only. | `WAITING_NATURAL_PRODUCTION_EVIDENCE` is lane-local while 6A or 6B remains executable. |
+
+Evidence classes are non-interchangeable. Engineering tests, scenarios, future-scale runs, controlled readiness, controlled outcomes, natural outcomes and historical evidence close only their declared criteria. Scenario or controlled-readiness evidence cannot close natural representativeness, grant production Authority, or increase Production Maturity. An invalid or synthetic production claim closes nothing.
+
+Phase 7 is split by aspect: `PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE` may discover and consume new owner-backed engineering obligations through the existing OMP/BDP/FSSE owners, while `PHASE_7_PRODUCTION_AUTHORITY_LOCKED_PENDING_NATURAL_AND_CONTROLLED_CERTIFICATION` preserves current Authority. This is not a Phase 7 Authority unlock and creates no second program, registry, engine, planner, runtime, queue, scheduler or truth source.
 
 ## 28. Final Program Organization Verdict
 

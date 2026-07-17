@@ -125,10 +125,9 @@ class AepPhase2AcceptanceTest(unittest.TestCase):
         self.assertEqual(result["phase3_status"], "READY")
         self.assertNotIn("REAL_WORLD_LIMIT", result["acceptance_verdict"])
 
-    def test_28_cps_frontier_is_empty_at_real_world_terminal(self):
-        self.assertEqual(
-            self.lib.NORMALIZED_CPS_LIVE_STATE["current_program_execution_frontier"],
-            "NONE",
+    def test_28_cps_frontier_remains_nonempty_during_phase6_multi_lane_work(self):
+        self.assertTrue(
+            self.lib.NORMALIZED_CPS_LIVE_STATE["current_program_execution_frontier"].startswith("PHASE6A_SCENARIO:")
         )
 
     def test_29_self_continuation_forms_next_mission(self):

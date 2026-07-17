@@ -41,7 +41,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
 
     def test_02_seed_corpus_has_bounded_high_fidelity_count(self):
         self.assertGreaterEqual(self.corpus["corpus_count"], 25)
-        self.assertLessEqual(self.corpus["corpus_count"], 40)
+        self.assertLessEqual(self.corpus["corpus_count"], 64)
         self.assertEqual(self.corpus["final_verdict"], "PASS")
 
     def test_03_all_required_invariants_resolve(self):
@@ -180,8 +180,12 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
-        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")
-        self.assertEqual(result["executable_program_frontier"], [self.lib.FUTURE_SCALE_FSSE_04_OUTPUT])
+        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_READY")
+        self.assertTrue(result["scenario_frontier"]["NEXT_SCENARIO_ID"].startswith("PHASE6_"))
+        self.assertEqual(
+            result["executable_program_frontier"],
+            [f"PHASE6A_SCENARIO:{result['scenario_frontier']['NEXT_SCENARIO_ID']}"],
+        )
 
     def test_23_real_truth_check_entrypoint_exists(self):
         source = (ROOT / "tools/v7-truth-check").read_text()

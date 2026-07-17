@@ -49,16 +49,16 @@ Executed scenario: `PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY`.
 
 ## Verification And Effects
 
-Focused Phase 6, FSSE and program-reconciliation tests pass. Full suite, commit, safe-deploy manifest, production deploy ID, post-deploy truth, convergence and local/GitHub/production equality are recorded below after execution of those gates.
+Focused Phase 6, FSSE and program-reconciliation tests pass. The standard non-test caller consumed `PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY` through the actual `OMP_PROGRAM_EXECUTION_RECONCILIATION` consumer and materialized the next frontier. Safe deploy changed only the existing production owner `/usr/local/bin/v7_sync_lib.py`; no service or timer restart was requested. Post-deploy source, GitHub and production runtime were aligned at implementation commit `8b997a06e302f23ce1818469ce1f81d67de6d001`, with zero deploy-delta mismatches.
 
 | Gate | Result |
 |---|---|
-| Commit | `PENDING` |
-| Safe deploy manifest | `PENDING` |
-| Deploy ID | `PENDING` |
-| Truth | `PENDING` |
-| Convergence | `PENDING` |
-| Snapshots | `PENDING` |
+| Implementation commit | `8b997a06e302f23ce1818469ce1f81d67de6d001` |
+| Safe deploy manifest | `PASS; changed file: tools/v7_sync_lib.py only` |
+| Deploy ID | `deploy-z8-14-Updatesystem-8b997a0-20260717T100608` |
+| Truth | `PASS; FULLY_ALIGNED at implementation commit` |
+| Convergence | `PASS; ALIGNED; deploy delta mismatches 0` |
+| Snapshots | `local = GitHub = production runtime = 8b997a06e302f23ce1818469ce1f81d67de6d001; runtime hashes match authoritative owners` |
 | Runtime mutation | `NONE` |
 | Routing mutation | `NONE` |
 | Users moved | `0` |

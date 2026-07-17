@@ -49,16 +49,20 @@ Executed scenario: `PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY`.
 
 ## Verification And Effects
 
-Focused Phase 6, FSSE and program-reconciliation tests pass. The standard non-test caller consumed `PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY` through the actual `OMP_PROGRAM_EXECUTION_RECONCILIATION` consumer and materialized the next frontier. Safe deploy changed only the existing production owner `/usr/local/bin/v7_sync_lib.py`; no service or timer restart was requested. Post-deploy source, GitHub and production runtime were aligned at implementation commit `8b997a06e302f23ce1818469ce1f81d67de6d001`, with zero deploy-delta mismatches.
+Focused Phase 6, FSSE and program-reconciliation tests pass. The standard non-test caller consumed `PHASE6_EXECUTION_SAFETY_PARTIAL_VISIBILITY` through the actual `OMP_PROGRAM_EXECUTION_RECONCILIATION` consumer and materialized the next frontier. Final event-driven regression verification found and repaired one compatibility defect in the existing reentry owner: eligibility still required the historical literal `CONTINUE_OMP` and did not recognize the new owner-backed Phase 6A executable frontier. The same owner now accepts any non-empty canonical program frontier while preserving active-Mission, external-input, Authority and lease guards. All 241 relevant Phase 6, FSSE, program, completion-gate and event-driven regression tests passed in bounded groups; compile, JSON/static validation and `git diff --check` passed.
+
+Both safe deploys changed only the existing production owner `/usr/local/bin/v7_sync_lib.py`; no service or timer restart was requested. Final post-deploy source, GitHub and production runtime were aligned at compatibility commit `37ef7848ae58472cd7923dd7ed21613ea23a02f1`, with zero deploy-delta mismatches.
 
 | Gate | Result |
 |---|---|
-| Implementation commit | `8b997a06e302f23ce1818469ce1f81d67de6d001` |
+| Primary implementation commit | `8b997a06e302f23ce1818469ce1f81d67de6d001` |
+| Final compatibility commit | `37ef7848ae58472cd7923dd7ed21613ea23a02f1` |
 | Safe deploy manifest | `PASS; changed file: tools/v7_sync_lib.py only` |
-| Deploy ID | `deploy-z8-14-Updatesystem-8b997a0-20260717T100608` |
-| Truth | `PASS; FULLY_ALIGNED at implementation commit` |
+| Primary deploy ID | `deploy-z8-14-Updatesystem-8b997a0-20260717T100608` |
+| Final deploy ID | `deploy-z8-14-Updatesystem-37ef784-20260717T102846` |
+| Truth | `PASS; FULLY_ALIGNED at final compatibility commit` |
 | Convergence | `PASS; ALIGNED; deploy delta mismatches 0` |
-| Snapshots | `local = GitHub = production runtime = 8b997a06e302f23ce1818469ce1f81d67de6d001; runtime hashes match authoritative owners` |
+| Snapshots | `local = GitHub = production runtime = 37ef7848ae58472cd7923dd7ed21613ea23a02f1; runtime hashes match authoritative owners` |
 | Runtime mutation | `NONE` |
 | Routing mutation | `NONE` |
 | Users moved | `0` |

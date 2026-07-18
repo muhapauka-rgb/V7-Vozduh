@@ -5,7 +5,7 @@ Run Nonce: `V7_PPOLY_U05_5845AC43869B`
 
 ## Вердикт
 
-`COMPLETE_CONSUMED_LOCAL; PRODUCTION_DEPLOY_AND_FINAL_EQUALITY_PENDING`.
+`COMPLETE_CONSUMED_PRODUCTION_CERTIFIED_FULLY_ALIGNED`.
 
 Automation Break подтверждён: CAP-U03 consumer сформировал CAP-U05 Mission, но existing Permanent Polygon consumer завершал invocation без Mission start и без materialized wake. Первый сломанный link: `OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER -> next Mission start/dispatch producer`. Responsibility: `STATE_TRANSITION_NOT_COMPLETED; LEGAL_TERMINAL_CONSUMER_NOT_REACHED`.
 
@@ -45,7 +45,12 @@ Mismatch/repair: system defect в CAP-U05 owners не обнаружен; repair
 - Full unit regression: `1423/1423 PASS` after replacing ten obsolete pre-CAP-U05 live-state literals with canonical CPS-derived expectations.
 - Compile: `PASS` с отдельным writable pycache.
 - `git diff --check`: `PASS`.
-- Deploy, production caller, truth/convergence/equality: pending final section update.
+- Implementation commit: `111ee779c6f23f934998f67ba19ade855f7a90a3`; GitHub push `PASS`.
+- Safe deploy: `PASS`; `deploy-z8-14-Updatesystem-111ee77-20260718T155325`; only `tools/v7_sync_lib.py` changed; service restart `FALSE`; deploy safety flags all `FALSE`.
+- Production non-test caller: `PASS`; `PERMANENT_POLYGON_DEPLOYMENT_TRUTH_CONSUMER`; next output `PERMANENT_POLYGON_PRODUCTION_CALLER_CONSUMED_TRUTH_REQUIRED`.
+- Production truth: `FULLY_ALIGNED / PASS`; CPS contradictions `0`.
+- Convergence: `PASS`; local/GitHub/production implementation commit equality `111ee779c6f23f934998f67ba19ade855f7a90a3`; deploy delta mismatches `[]`.
+- Final report-only canonical commit is followed by a no-binary-change safe provenance refresh and repeated truth/convergence equality.
 
 ## Эффекты
 

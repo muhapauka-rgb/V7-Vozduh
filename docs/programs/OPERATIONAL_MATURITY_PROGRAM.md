@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` (`PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED`).
-Previous consumed report: `docs/reports/engineering/2026-07-18_205129_permanent_polygon_multi_generation_campaign.md` (`PERMANENT_POLYGON_MULTI_GENERATION_EVOLUTION_AND_REPAIR_LOOP_CONSUMED`).
+Latest consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` (`PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED`).
+Previous consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` (`PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7835,8 +7835,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1`
+Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
+Resolved current next action: `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8823,10 +8823,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1`
-Latest consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md`
-Previous consumed report: `docs/reports/engineering/2026-07-18_205129_permanent_polygon_multi_generation_campaign.md`
+Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
+Resolved current next action: `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS`
+Latest consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md`
+Previous consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

@@ -27,12 +27,12 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         lanes = self.lib.phase6_multi_lane_reconciliation(self.cps, frontier)
         self.assertEqual(lanes["PHASE_6C_STATUS"], "WAITING_NATURAL_PRODUCTION_EVIDENCE")
         self.assertEqual(lanes["PHASE_6A_STATUS"], "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION")
-        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "ACTIVE_MULTI_LANE_CERTIFICATION")
-        self.assertEqual(lanes["PHASE_6_GLOBAL_STOP"], "NONE")
-        self.assertTrue(any(
-            "PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1" in item
-            for item in lanes["PHASE_6_EXECUTABLE_FRONTIER"]
-        ))
+        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "LANES_EXHAUSTED_WAITING_NATURAL_EVIDENCE")
+        self.assertEqual(
+            lanes["PHASE_6_GLOBAL_STOP"],
+            "REAL_WORLD_LIMIT_AFTER_SCENARIO_AND_CONTROLLED_CERTIFICATION_EXHAUSTION",
+        )
+        self.assertEqual(lanes["PHASE_6_EXECUTABLE_FRONTIER"], [])
 
     def test_controlled_preparation_is_independent_and_no_action_selected(self):
         frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)
@@ -99,9 +99,9 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         result = self.lib.comprehensive_phase6_phase7_campaign_reconciliation(
             self.cps, root=ROOT,
         )
-        self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION")
+        self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["completion_gate"]["completion_contract"], "PROGRAM_COMPLETION")
-        self.assertEqual(result["completion_gate"]["completion_verdict"], "PROGRAM_INCOMPLETE")
+        self.assertEqual(result["completion_gate"]["completion_verdict"], "COMPLETE_CONSUMED")
         self.assertEqual(result["scenario_covered_count"], 64)
         self.assertEqual(len(result["scenario_generations_closed"]), 4)
         self.assertEqual(

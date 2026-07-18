@@ -38,7 +38,7 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
         ))
         self.assertEqual(
             live["PHASE_6_CERTIFICATION_FRONTIER"].strip("`"),
-            "PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1",
+            "NONE",
         )
         self.assertFalse(live["PHASE_6_EXACT_NEXT_ACTION"].strip("`").startswith("EXECUTE PHASE6"))
 
@@ -73,7 +73,11 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
             "## Authoritative Unfinished Capability Closure Registry",
         ))
         self.assertIn("CAP-U07", live["PROTECTED_CAPABILITY_WIP"])
-        self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
+        self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "FALSE")
+        self.assertEqual(
+            live["PROGRAM_TERMINAL_CLASS"].strip("`"),
+            self.lib.PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        )
 
     def test_reentry_requires_fresh_owner_backed_input(self):
         self.assertEqual(self.result["exact_next_action"], "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME")

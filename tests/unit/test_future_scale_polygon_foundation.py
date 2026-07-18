@@ -184,7 +184,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertEqual(result["scenario_frontier"]["NEXT_SCENARIO_ID"], "NONE")
         self.assertEqual(
             result["executable_program_frontier"],
-            ["PHASE6_ENGINEERING:PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1"],
+            [],
         )
 
     def test_23_real_truth_check_entrypoint_exists(self):

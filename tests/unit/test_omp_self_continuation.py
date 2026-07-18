@@ -103,9 +103,16 @@ class OmpSelfContinuationTest(unittest.TestCase):
     def test_materialized_cps_continues_digital_twin_deployment_frontier(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["omp_continuation_required"], "TRUE")
-        self.assertEqual(result["external_input_required"], "FALSE")
-        self.assertEqual(result["external_input_type"], "NONE")
+        self.assertEqual(result["omp_continuation_required"], "FALSE")
+        self.assertEqual(result["external_input_required"], "TRUE")
+        self.assertEqual(
+            result["external_input_type"],
+            "FRESH_OWNER_BACKED_L7_L8_OUTCOME_OR_NEW_ENGINEERING_OBLIGATION",
+        )
+        self.assertEqual(
+            result["program_terminal_class"],
+            self.lib.PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        )
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             CPS.read_text(encoding="utf-8"),
             "## 0. Authoritative Live Current State",

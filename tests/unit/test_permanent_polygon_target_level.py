@@ -23,18 +23,22 @@ class PermanentPolygonTargetLevelTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
 
-    def test_mission0_rejects_stale_phase6_and_false_global_stop(self):
+    def test_target_terminal_rejects_stale_phase6_and_mission_frontiers(self):
         live = self.lib._normalized_state_from_live_cps(self.cps)
         rendered = self.lib.build_normalized_cps_document(self.cps, live)
         stale = rendered.replace(
-            f"| `PHASE_6_CERTIFICATION_FRONTIER` | `{live['current_next_action_id']}` |",
+            "| `PHASE_6_CERTIFICATION_FRONTIER` | `NONE` |",
             "| `PHASE_6_CERTIFICATION_FRONTIER` | `STALE-CAP-U06` |",
+        1,
+        ).replace(
+            "| `POLYGON_MISSION_FRONTIER` | `NONE_PROGRAM_TERMINAL` |",
+            "| `POLYGON_MISSION_FRONTIER` | `ADMITTED_READY_FOR_DISPATCH:STALE` |",
             1,
-        ).replace("| `PHASE_6_GLOBAL_STOP` | `NONE` |", "| `PHASE_6_GLOBAL_STOP` | `REAL_WORLD_LIMIT` |", 1)
+        )
         result = self.lib.cps_live_state_consistency(stale, verify_external=False, expected_state=live)
         self.assertEqual(result["final_verdict"], "NO-GO")
-        self.assertIn("permanent_polygon_phase6_frontier_stale", result["errors"])
-        self.assertIn("permanent_polygon_false_global_real_world_stop", result["errors"])
+        self.assertIn("permanent_polygon_terminal_frontier_not_empty", result["errors"])
+        self.assertIn("permanent_polygon_terminal_mission_frontier_invalid", result["errors"])
 
     def test_frontier_roles_and_consumed_rows_are_unambiguous(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, verify_external=False)
@@ -97,7 +101,7 @@ class PermanentPolygonTargetLevelTest(unittest.TestCase):
             self.assertEqual(result["status"], "STALE_CPS_GENERATION_STOP_SAFE")
             self.assertEqual(path.read_text(encoding="utf-8"), self.cps)
 
-    def test_direct_final_certification_frontier_suppresses_external_overlap(self):
+    def test_program_terminal_suppresses_external_overlap(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
@@ -106,8 +110,33 @@ class PermanentPolygonTargetLevelTest(unittest.TestCase):
             key: value.strip("`") for key, value in live.items()
         })
         self.assertFalse(result["eligible"])
-        self.assertEqual(result["outcome"], "REENTRY_ALREADY_ACTIVE")
-        self.assertIn("active_execution_frontier", result["reason"])
+        self.assertEqual(result["outcome"], "REENTRY_NOT_REQUIRED")
+        self.assertEqual(result["reason"], "continuation_not_required")
+
+    def test_target_level_terminal_is_atomic_and_keeps_production_claims_separate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            cps_path.write_text(self.cps, encoding="utf-8")
+            state = self.lib.permanent_polygon_target_level_terminal_state(
+                report="docs/reports/engineering/final.md", root=root,
+            )
+            result = self.lib.atomic_reconcile_cps(
+                cps_path, state=state, request_external_wake=False,
+                criterion_records=self.lib.permanent_polygon_criterion_registry(self.cps)["records"],
+            )
+            self.assertTrue(result["ok"], result.get("errors"))
+            live = self.lib._normalized_state_from_live_cps(cps_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                live["program_terminal_class"],
+                self.lib.PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+            )
+            self.assertEqual(live["polygon_obligation_frontier"], "NONE")
+            self.assertEqual(live["polygon_mission_frontier"], "NONE_PROGRAM_TERMINAL")
+            self.assertEqual(live["production_routing_autonomy_status"], "NOT_CLAIMED")
+            self.assertEqual(live["authority_promotion_status"], "NONE")
+            self.assertEqual(live["production_maturity_change_status"], "NONE")
 
 
 if __name__ == "__main__":

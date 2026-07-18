@@ -57,7 +57,7 @@ class V7SyncToolsTest(unittest.TestCase):
             "`STOP_SAFE`",
         )
         result = self.lib.cps_live_state_consistency(stop_drift)
-        self.assertIn("cps_wip_global_context_divergence", result["errors"])
+        self.assertIn("cps_current_stop_divergence", result["errors"])
 
         generation_drift = self.lib._replace_section_field(
             cps,

@@ -47,7 +47,7 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
 
     def test_consumed_seed_delegates_to_reachable_program_stage_without_reexecution(self):
         successor = self.integration["next_mission_start"]
-        self.assertEqual(successor["mission_state"], "ADMITTED_READY_FOR_DISPATCH")
+        self.assertEqual(successor["mission_state"], "MISSION_NOT_REQUIRED_ALREADY_CONSUMED")
         self.assertNotEqual(successor["mission_state"], "IN_PROGRESS")
         self.assertEqual(self.integration["final_verdict"], "PASS")
         self.assertIsNone(self.supply["next_obligation"])

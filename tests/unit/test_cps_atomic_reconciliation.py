@@ -47,7 +47,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.cps, "### Active Protected Work In Progress", "### Complete Or Locked Capability Records",
             "current_primary_stop", "`STOP_SAFE`",
         )
-        self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
+        self.assertIn("cps_current_stop_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
         drift = self.lib._replace_section_field(

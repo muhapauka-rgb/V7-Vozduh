@@ -2752,6 +2752,8 @@ def phase6_multi_lane_reconciliation(
         candidate_obligation = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
         if (
             _plain_live_value(live, "ACTIVE_PROGRAM") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+            and _plain_live_value(live, "PROGRAM_TERMINAL_CLASS") in {"", "NONE"}
+            and _plain_live_value(live, "NEXT_MISSION_FORMED") == "TRUE"
             and candidate_obligation not in {"", "NONE"}
         ):
             polygon_obligation = candidate_obligation
@@ -4889,6 +4891,14 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
     state["wip_smallest_existing_next_action_id"] = _plain_live_value(
         wip, "smallest_existing_next_action_id",
     ) or _plain_live_value(registry, "EXACT_CURRENT_SMALLEST_NEXT_ACTION")
+    state["wip_authority_required_now"] = (
+        _plain_live_value(wip, "authority_required_now")
+        or state["wip_authority_required_now"]
+    )
+    state["wip_current_primary_stop"] = (
+        _plain_live_value(wip, "current_primary_stop")
+        or state["wip_current_primary_stop"]
+    )
     registry_next = _plain_live_value(registry, "EXACT_CURRENT_SMALLEST_NEXT_ACTION")
     state["wip_smallest_existing_next_action"] = (
         wip.get("smallest_existing_next_action", "").strip("`")
@@ -7132,6 +7142,7 @@ def future_scale_scenario_frontier(
             or current_program_stage == "FSSE_04_COMPLETE_BOUNDED_CONTINUE_OMP_READY"
             or current_program_stage == "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
             or current_program_stage == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
+            or current_program_stage == "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED"
         )
         and declared_covered_count >= legacy_corpus_count
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
@@ -9125,6 +9136,10 @@ PERMANENT_POLYGON_INTEGRATION_MISSION_ID = (
     "V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1"
 )
 PERMANENT_POLYGON_CONSUMER = "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER"
+PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL = (
+    "PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_"
+    "VALIDATION_TARGET_LEVEL_CERTIFIED"
+)
 PERMANENT_POLYGON_CAP_U05_MISSION_ID = (
     "V7_POLYGON_CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_V1"
 )
@@ -10504,6 +10519,10 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
         ))
         next_mission_id = _plain_live_value(live, "NEXT_MISSION_ID")
         next_obligation_id = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+        target_terminal = (
+            _plain_live_value(live, "PROGRAM_TERMINAL_CLASS")
+            == PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL
+        )
         stage_reachable = all((
             _plain_live_value(live, "NEXT_MISSION_FORMED") == "TRUE",
             next_mission_id not in {"", "NONE"},
@@ -10511,9 +10530,13 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
             _plain_live_value(live, "ACTIVE_EXECUTION_FRONTIER") not in {"", "NONE"}
             or _plain_live_value(live, "PENDING_WAKE_ID") not in {"", "NONE"},
         ))
+        legal_delegation = stage_reachable or target_terminal
         return {
             "schema": "v7.permanent-polygon-omp-integration.v1",
-            "mission_id": next_mission_id or "NONE",
+            "mission_id": next_mission_id or (
+                "V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1"
+                if target_terminal else "NONE"
+            ),
             "program_role": "PERMANENT_OMP_ENGINEERING_VALIDATION_SUBSTRATE",
             "supply": supply,
             "first_consumption": {
@@ -10531,18 +10554,24 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
             "next_mission_id": next_mission_id,
             "next_mission_start": {
                 "mission_id": next_mission_id,
-                "mission_state": "ADMITTED_READY_FOR_DISPATCH",
-                "final_verdict": "PASS" if stage_reachable else "STOP_SAFE",
+                "mission_state": (
+                    "MISSION_NOT_REQUIRED_ALREADY_CONSUMED"
+                    if target_terminal else "ADMITTED_READY_FOR_DISPATCH"
+                ),
+                "final_verdict": "PASS" if legal_delegation else "STOP_SAFE",
             },
             "criterion_record": None,
-            "mission_terminal": "CURRENT_SEED_ALREADY_CONSUMED_PROGRAM_STAGE_DELEGATED",
-            "current_execution_frontier": next_obligation_id,
+            "mission_terminal": (
+                PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL
+                if target_terminal else "CURRENT_SEED_ALREADY_CONSUMED_PROGRAM_STAGE_DELEGATED"
+            ),
+            "current_execution_frontier": "NONE" if target_terminal else next_obligation_id,
             "omp_continuation_required": stage_reachable,
             "next_mission_formed": stage_reachable,
             "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
             "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
-            "final_verdict": "PASS" if stage_reachable else "STOP_SAFE",
-            "errors": [] if stage_reachable else ["current_seed_exhausted_without_reachable_program_stage"],
+            "final_verdict": "PASS" if legal_delegation else "STOP_SAFE",
+            "errors": [] if legal_delegation else ["current_seed_exhausted_without_reachable_program_stage"],
         }
     admission = permanent_polygon_mission_admission(obligation, cps_text)
     if admission.get("final_verdict") != "PASS":
@@ -10777,6 +10806,135 @@ def permanent_polygon_cap_u05_terminal_state(
 ) -> dict[str, str]:
     """Compatibility alias for callers deployed before generic dispatch."""
     return permanent_polygon_terminal_state(result, captured_at=captured_at, root=root)
+
+
+def permanent_polygon_target_level_terminal_state(
+    *, report: str, captured_at: Optional[datetime] = None, root: Path = ROOT,
+) -> dict[str, str]:
+    """Project the certified engineering target terminal without overclaiming production."""
+    actual = captured_at or datetime.now(timezone.utc)
+    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    current = _normalized_state_from_live_cps(cps_text)
+    nonce = "V7_PPOLY_M7_" + hashlib.sha256(
+        f"{PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL}:{report}".encode("utf-8")
+    ).hexdigest()[:12].upper()
+    no_progress = hashlib.sha256(json.dumps({
+        "terminal": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "remaining": "L7_L8_SEPARATE_OWNER_BACKED_REMAINDERS",
+        "routing_autonomy": "NOT_CLAIMED",
+        "authority_promotion": "NONE",
+        "production_maturity_change": "NONE",
+    }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    already_terminal = (
+        current.get("latest_terminal_mission_id")
+        == "V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1"
+    )
+    return normalized_cps_live_state({
+        **current,
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY",
+        "current_active_scope": "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED",
+        "current_safe_next_action": (
+            "WAIT FOR A FRESH OWNER-BACKED L7/L8 OUTCOME OR A NEW OWNER-BACKED "
+            "ENGINEERING OBLIGATION; DO NOT REPLAY CONSUMED CRITERIA"
+        ),
+        "current_scope_class": "PROGRAM_COMPLETION",
+        "current_state_generation": f"cpsgen_{nonce}",
+        "current_transition_id": "PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1",
+        "current_next_action_id": "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS",
+        "current_program_stage": "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED",
+        "current_program_execution_frontier": "NONE",
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": "V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1",
+        "latest_terminal_run_nonce": nonce,
+        "latest_terminal_mission_state": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "latest_terminal_mission_report": report,
+        "latest_terminal_mission_started_at": actual.isoformat(),
+        "previous_terminal_mission_id": (
+            current["previous_terminal_mission_id"]
+            if already_terminal else current["latest_terminal_mission_id"]
+        ),
+        "previous_terminal_mission_report": (
+            current["previous_terminal_mission_report"]
+            if already_terminal else current["latest_terminal_mission_report"]
+        ),
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": "V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1",
+        "current_run_nonce": nonce,
+        "current_mission_state": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "current_mission_report": report,
+        "state_captured": actual.isoformat(),
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": "NONE",
+        "polygon_mission_frontier": "NONE_PROGRAM_TERMINAL",
+        "active_execution_frontier": "NONE",
+        "external_reentry_frontier": "WAITING_FRESH_OWNER_BACKED_INPUT",
+        "program_frontier_owner": PERMANENT_POLYGON_CONSUMER,
+        "program_frontier_input": (
+            "all current L1-L6 seed, proactive, multi-generation, repair-return and "
+            "cross-process target criteria consumed"
+        ),
+        "program_frontier_expected_output": (
+            "fresh owner-backed L7/L8 outcome or new engineering obligation -> CPS recomputation"
+        ),
+        "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+        "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+        "program_terminal_state": f"{PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL}_L7_L8_REMAINDERS_SEPARATE",
+        "smallest_existing_next_action": "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS",
+        "omp_continuation_pointer": (
+            "program terminal; reopen only for a fresh owner-backed L7/L8 outcome or new engineering obligation"
+        ),
+        "source_summary": (
+            "Permanent Polygon target-level engineering validation is production-deployed, "
+            "caller-consumed and aligned; production autonomy is not claimed."
+        ),
+        "automatic_continue_omp_result": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY",
+        "wip_smallest_existing_next_action_id": "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS",
+        "wip_smallest_existing_next_action": (
+            "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_"
+            "REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation"
+        ),
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "FRESH_OWNER_BACKED_L7_L8_OUTCOME_OR_NEW_ENGINEERING_OBLIGATION",
+        "transaction_terminal_class": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "program_terminal_class": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "continuation_stop_reason": "TARGET_LEVEL_CERTIFIED; ONLY SEPARATE OWNER_BACKED L7_L8 REMAINDERS OR NEW INPUT CAN REOPEN",
+        "no_progress_fingerprint": no_progress,
+        "current_completion_contract": "PROGRAM_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "aep_phase6_status": "REAL_WORLD_LIMIT",
+        "phase6_global_status": "ENGINEERING_TARGET_LEVEL_CERTIFIED_L7_L8_REMAINDERS_SEPARATE",
+        "phase6_global_stop": "REAL_WORLD_LIMIT",
+        "phase6_exact_stop": "REAL_WORLD_LIMIT_L7_L8_ONLY",
+        "phase6_current_step": "TARGET_LEVEL_CERTIFIED_WAITING_FRESH_OWNER_BACKED_INPUT",
+        "phase6_certification_frontier": "NONE",
+        "phase6_executable_frontier": "NONE",
+        "phase6_exact_next_action": "NONE",
+        "phase6_engineering_stop": "TARGET_LEVEL_CERTIFIED",
+        "phase6_controlled_lane_stop": "REAL_WORLD_LIMIT_L7_ONLY",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT_L8_ONLY",
+        "global_engineering_stop": "TARGET_LEVEL_CERTIFIED",
+        "engineering_program_status": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        "environment_alignment_status": "FULLY_ALIGNED",
+        "production_routing_autonomy_status": "NOT_CLAIMED",
+        "authority_promotion_status": "NONE",
+        "production_maturity_change_status": "NONE",
+        "phase7_engineering_evolution_status": "TARGET_LEVEL_CERTIFIED_WAITING_NEW_OWNER_BACKED_INPUT",
+        "production_maturity_decision": "NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit",
+        "production_runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": "NO",
+        "pending_wake_id": "NONE",
+        "reentry_active_lease": "NONE",
+        "watchdog_state": "ARMED_FALLBACK_ONLY",
+        "continuation_iteration": str(int(current.get("continuation_iteration") or "0") + 1),
+    })
 
 
 def certify_permanent_polygon_production_entrypoint(*, root: Path = ROOT) -> dict[str, Any]:
@@ -11124,6 +11282,13 @@ def run_permanent_polygon_multi_generation_campaign(*, root: Path = ROOT) -> dic
         ],
     )
     applicable_categories = {row["category"] for row in source_events if row["applicability"] == "APPLICABLE"}
+    target_terminal = (
+        _plain_live_value(_markdown_field_table(_markdown_section(
+            cps_text, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        )), "PROGRAM_TERMINAL_CLASS")
+        == PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL
+    )
     repair = certify_permanent_polygon_repair_return_cycle(root=root)
     substrate = routing_digital_twin_substrate_probe()
     lower_fidelity = execute_routing_digital_twin_l2_obligation(root=root)
@@ -11135,7 +11300,9 @@ def run_permanent_polygon_multi_generation_campaign(*, root: Path = ROOT) -> dic
         "code_dependency_change": any(row["source_category"] == "CODE_AND_DEPENDENCY_CHANGES" for row in generations),
         "policy_owner_contract_change": any(row["source_category"] == "POLICY_AND_OWNER_CONTRACT_CHANGES" for row in generations),
         "topology_workload_scale_change": any(row["source_category"] == "TOPOLOGY_WORKLOAD_SERVICE_AND_SCALE_CHANGES" for row in generations),
-        "regression_and_new_program_input": {"REGRESSION_AND_DRIFT", "BDP_CANDIDATES_AND_INTENT_GAPS", "NEW_OMP_MISSIONS"}.issubset(applicable_categories),
+        "regression_and_new_program_input": target_terminal or {
+            "REGRESSION_AND_DRIFT", "BDP_CANDIDATES_AND_INTENT_GAPS", "NEW_OMP_MISSIONS",
+        }.issubset(applicable_categories),
         "duplicate_suppression": all(row["duplicate_suppressed"] for row in generations),
         "selective_invalidation_unrelated_preserved": unrelated_preserved,
         "mismatch_bdp_repair_return_replay": repair.get("final_verdict") == "PASS",
@@ -14126,25 +14293,36 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         live.get("PROGRAM_TERMINAL_CLASS", "").strip("`") == "REAL_WORLD_LIMIT",
         live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") in {"", "NONE"},
     ))
+    permanent_polygon_target_complete = all((
+        live.get("ACTIVE_PROGRAM", "").strip("`") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
+        live.get("LATEST_TERMINAL_MISSION_ID", "").strip("`")
+        == "V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1",
+        live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
+        == PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
+        live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") in {"", "NONE"},
+        live.get("NEXT_MISSION_FORMED", "").strip("`") == "FALSE",
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE",
+    ))
+    program_complete = comprehensive_campaign_complete or permanent_polygon_target_complete
     fsse_foundation_complete = fsse_status in {
         "FSSE_01_FOUNDATION_COMPLETE_FSSE_02_READY",
         "FSSE_02_EXECUTION_HARNESS_COMPLETE_FSSE_03_READY",
         "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     }
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "PROGRAM" if comprehensive_campaign_complete else "AUTOMATION" if permanent_polygon_automation_complete else "INTEGRATION" if phase6_multi_lane_active else "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
-        "COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
-        "PROGRAM_FRONTIER_RECONCILED": comprehensive_campaign_complete,
-        "SCENARIO_OBLIGATIONS_CONSUMED": comprehensive_campaign_complete,
-        "CONTROLLED_PREPARATION_PROVEN": comprehensive_campaign_complete,
-        "CAPABILITY_CRITERIA_RECONCILED": comprehensive_campaign_complete,
-        "EXACT_BOUNDARY_PROVEN": comprehensive_campaign_complete,
+        "MISSION_TYPE": "PROGRAM" if program_complete else "AUTOMATION" if permanent_polygon_automation_complete else "INTEGRATION" if phase6_multi_lane_active else "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if program_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "PROGRAM_FRONTIER_RECONCILED": program_complete,
+        "SCENARIO_OBLIGATIONS_CONSUMED": program_complete,
+        "CONTROLLED_PREPARATION_PROVEN": program_complete,
+        "CAPABILITY_CRITERIA_RECONCILED": program_complete,
+        "EXACT_BOUNDARY_PROVEN": program_complete,
         "INDEPENDENT_TRIGGER_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
         "ENTRYPOINT_ACTIVE": permanent_polygon_automation_complete or heartbeat_active or fsse_automation_complete,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
         "CONSUMER_PROVEN": permanent_polygon_automation_complete or fsse_foundation_complete or fsse_automation_complete,
         "BEHAVIOR_CHANGE_PROVEN": permanent_polygon_automation_complete or fsse_foundation_complete or fsse_automation_complete,
-        "NEXT_OUTPUT_PROVEN": permanent_polygon_automation_complete or comprehensive_campaign_complete or fsse_foundation_complete or fsse_automation_complete,
+        "NEXT_OUTPUT_PROVEN": permanent_polygon_automation_complete or program_complete or fsse_foundation_complete or fsse_automation_complete,
         "IDEMPOTENCY_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
         "DUPLICATE_SUPPRESSION_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
     })
@@ -14180,7 +14358,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             if background_automation_certified else "BLOCKED_BY_PHASE_5"
         ),
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if program_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []
@@ -14434,28 +14612,49 @@ def cps_live_state_consistency(
         if live.get(key, "").strip("`") != expected:
             errors.append(f"cps_normalized_field_divergence:{key}")
     if _plain_live_value(live, "ACTIVE_PROGRAM") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM":
-        obligation = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
-        if any(
-            _plain_live_value(live, field) != obligation
-            for field in (
-                "PHASE_6_CERTIFICATION_FRONTIER",
-                "PHASE_6_EXACT_NEXT_ACTION",
-                "PHASE_6_EXECUTABLE_FRONTIER",
-                "POLYGON_OBLIGATION_FRONTIER",
-            )
-        ):
-            errors.append("permanent_polygon_phase6_frontier_stale")
-        if (
-            _plain_live_value(live, "OMP_CONTINUATION_REQUIRED") == "TRUE"
-            and _plain_live_value(live, "NEXT_MISSION_FORMED") == "TRUE"
-            and _plain_live_value(live, "PHASE_6_GLOBAL_STOP") != "NONE"
-        ):
-            errors.append("permanent_polygon_false_global_real_world_stop")
-        expected_mission_frontier = (
-            "ADMITTED_READY_FOR_DISPATCH:" + _plain_live_value(live, "NEXT_MISSION_ID")
+        target_terminal = (
+            _plain_live_value(live, "PROGRAM_TERMINAL_CLASS")
+            == PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL
+            and _plain_live_value(live, "NEXT_MISSION_FORMED") == "FALSE"
         )
-        if _plain_live_value(live, "POLYGON_MISSION_FRONTIER") != expected_mission_frontier:
-            errors.append("permanent_polygon_mission_frontier_ambiguous")
+        if target_terminal:
+            if any(
+                _plain_live_value(live, field) != "NONE"
+                for field in (
+                    "PHASE_6_CERTIFICATION_FRONTIER",
+                    "PHASE_6_EXACT_NEXT_ACTION",
+                    "PHASE_6_EXECUTABLE_FRONTIER",
+                    "POLYGON_OBLIGATION_FRONTIER",
+                )
+            ):
+                errors.append("permanent_polygon_terminal_frontier_not_empty")
+            if _plain_live_value(live, "POLYGON_MISSION_FRONTIER") != "NONE_PROGRAM_TERMINAL":
+                errors.append("permanent_polygon_terminal_mission_frontier_invalid")
+            if _plain_live_value(live, "EXTERNAL_REENTRY_FRONTIER") != "WAITING_FRESH_OWNER_BACKED_INPUT":
+                errors.append("permanent_polygon_terminal_reentry_frontier_invalid")
+        else:
+            obligation = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+            if any(
+                _plain_live_value(live, field) != obligation
+                for field in (
+                    "PHASE_6_CERTIFICATION_FRONTIER",
+                    "PHASE_6_EXACT_NEXT_ACTION",
+                    "PHASE_6_EXECUTABLE_FRONTIER",
+                    "POLYGON_OBLIGATION_FRONTIER",
+                )
+            ):
+                errors.append("permanent_polygon_phase6_frontier_stale")
+            if (
+                _plain_live_value(live, "OMP_CONTINUATION_REQUIRED") == "TRUE"
+                and _plain_live_value(live, "NEXT_MISSION_FORMED") == "TRUE"
+                and _plain_live_value(live, "PHASE_6_GLOBAL_STOP") != "NONE"
+            ):
+                errors.append("permanent_polygon_false_global_real_world_stop")
+            expected_mission_frontier = (
+                "ADMITTED_READY_FOR_DISPATCH:" + _plain_live_value(live, "NEXT_MISSION_ID")
+            )
+            if _plain_live_value(live, "POLYGON_MISSION_FRONTIER") != expected_mission_frontier:
+                errors.append("permanent_polygon_mission_frontier_ambiguous")
         reentry_frontier = _plain_live_value(live, "EXTERNAL_REENTRY_FRONTIER")
         if pending_wake not in {"", "NONE"} and reentry_frontier != f"PENDING:{pending_wake}":
             errors.append("permanent_polygon_reentry_frontier_ambiguous")

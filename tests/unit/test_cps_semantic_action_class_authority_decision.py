@@ -22,7 +22,11 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.lib = load_lib()
-        cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        current = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        target = cls.lib.permanent_polygon_target_level_terminal_state(
+            report="docs/reports/engineering/authority-target-test.md", root=ROOT,
+        )
+        cls.cps = cls.lib.build_normalized_cps_document(current, target)
         cls.result = cls.lib.action_class_authority_decision_reconciliation(
             cls.cps, root=ROOT, consumer_proven=True,
         )

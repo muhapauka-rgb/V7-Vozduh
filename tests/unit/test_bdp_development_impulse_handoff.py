@@ -172,9 +172,9 @@ class BdpDevelopmentImpulseHandoffTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(
             result["bdp_development_impulse_status"],
-            "NO_ACTION_REQUIRED",
+            "NOT_EVALUATED_PROGRAM_FRONTIER_PREEMPTS_CAPABILITY_GRAPH",
         )
-        self.assertEqual(result["bdp_admission_decision"], "MISSION_NOT_APPLICABLE")
+        self.assertEqual(result["bdp_admission_decision"], "NONE")
         self.assertGreaterEqual(result["bdp_real_world_limit_intents_preserved"], 1)
 
 

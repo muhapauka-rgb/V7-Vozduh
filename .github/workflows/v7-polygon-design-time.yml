@@ -1,0 +1,72 @@
+name: V7 Polygon Design-Time Engineering
+
+on:
+  pull_request:
+    paths:
+      - "admin/**"
+      - "admin_core/**"
+      - "tools/**"
+      - "tests/scenarios/future_scale/**"
+      - "tests/unit/test_polygon_design_time_engineering.py"
+      - ".github/workflows/v7-polygon-design-time.yml"
+  push:
+    branches: [Updatesystem]
+    paths:
+      - "admin/**"
+      - "admin_core/**"
+      - "tools/**"
+      - "tests/scenarios/future_scale/**"
+      - "tests/unit/test_polygon_design_time_engineering.py"
+      - ".github/workflows/v7-polygon-design-time.yml"
+  workflow_dispatch:
+    inputs:
+      high_fidelity:
+        description: "Run the bounded high-fidelity engineering lane"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v7-polygon-design-time-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantic-selective-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile and test the design-time loop
+        run: |
+          python -m unittest tests.unit.test_polygon_design_time_engineering -v
+          tools/v7-truth-check --omp-polygon-design-time --json > /tmp/v7-polygon-design-time.json
+          python -c 'import json; r=json.load(open("/tmp/v7-polygon-design-time.json")); assert r["final_verdict"] == "PASS"; assert r["real_consumer"] == "OMP_PROGRAM_EXECUTION_RECONCILIATION"; assert r["next_output"] != "STOP_SAFE"'
+      - name: Verify forbidden effects remain absent
+        run: |
+          python -c 'import json; r=json.load(open("/tmp/v7-polygon-design-time.json")); assert not any(r["forbidden_effects"].values())'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v7-polygon-design-time-evidence
+          path: /tmp/v7-polygon-design-time.json
+
+  bounded-high-fidelity:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.high_fidelity }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: semantic-selective-gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Execute engineering-only high-fidelity batch
+        run: tools/v7-truth-check --omp-high-fidelity-batch --scenario-budget 8 --json
+

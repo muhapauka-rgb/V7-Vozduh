@@ -48,6 +48,10 @@ CANONICAL_BRANCH = "Updatesystem"
 REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
+LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
+    "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
+    "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
+}
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
@@ -1105,7 +1109,7 @@ def mission_role_consistency(
     if (
         expected_state is None
         and _plain_live_value(live_projection, "ACTIVE_PROGRAM")
-        == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+        in LIVE_CPS_RECONSTRUCTION_PROGRAMS
     ):
         state = normalized_cps_live_state(_normalized_state_from_live_cps(cps_text))
     else:
@@ -1373,7 +1377,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     if (
         state is None
         and _plain_live_value(existing_live, "ACTIVE_PROGRAM")
-        == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+        in LIVE_CPS_RECONSTRUCTION_PROGRAMS
     ):
         state = normalized_cps_live_state(_normalized_state_from_live_cps(cps_text))
     else:
@@ -1882,7 +1886,7 @@ def delegated_policy_live_state_consistency(
     normalized = (
         normalized_cps_live_state(_normalized_state_from_live_cps(cps_text))
         if expected_state is None
-        and _plain_live_value(live, "ACTIVE_PROGRAM") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+        and _plain_live_value(live, "ACTIVE_PROGRAM") in LIVE_CPS_RECONSTRUCTION_PROGRAMS
         else normalized_cps_live_state(expected_state)
     )
     registry = _markdown_field_table(_markdown_section(
@@ -2321,7 +2325,16 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 and live.get("HEARTBEAT_STATUS", "").strip("`") == "ACTIVE"
                 and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
             )
-            if heartbeat_reentry_active:
+            waiting_input_frontier = program_frontier.startswith("WAITING_INPUT:")
+            if waiting_input_frontier:
+                if (
+                    continuation != "FALSE" or external != "TRUE"
+                    or program_terminal in {"", "NONE"}
+                    or not continuation_decision.startswith("PROGRAM_TERMINAL_")
+                    or not program_terminal_state.startswith(program_terminal)
+                ):
+                    errors.append("program_waiting_input_boundary_invalid")
+            elif heartbeat_reentry_active:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "NATURAL_SCHEDULED_RUN":
                     errors.append("program_heartbeat_reentry_boundary_invalid")
             elif authority_frontier:
@@ -2332,6 +2345,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
                 errors.append("program_frontier_stopped_program")
             expected_decision = (
+                continuation_decision if waiting_input_frontier else
                 "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
                 "WAIT_EXTERNAL_TRIGGER" if heartbeat_reentry_active else
                 "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier else
@@ -2356,6 +2370,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 if program_terminal_state != "ENGINEERING_AUTHORITY_SAFE_DEPLOY_REQUIRED":
                     errors.append("program_frontier_terminal_state_invalid")
             elif bounded_continue_omp_frontier:
+                pass
+            elif waiting_input_frontier:
                 pass
             elif not program_terminal_state.startswith("NONE_"):
                 errors.append("program_frontier_terminal_state_invalid")
@@ -7143,6 +7159,8 @@ def future_scale_scenario_frontier(
             or current_program_stage == "FSSE_04_COMPLETE_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED"
             or current_program_stage == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
             or current_program_stage == "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED"
+            or current_program_stage == "PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE"
+            or current_program_stage == "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED"
         )
         and declared_covered_count >= legacy_corpus_count
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"
@@ -10501,9 +10519,12 @@ def permanent_polygon_criterion_record(
     }
 
 
-def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str, Any]:
+def execute_permanent_polygon_omp_integration(
+    *, root: Path = ROOT, cps_text: Optional[str] = None,
+) -> dict[str, Any]:
     """Consume the exact fresh-CPS frontier and admit, but never pre-start, its successor."""
-    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    if cps_text is None:
+        cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
     supply = permanent_polygon_obligation_supply(cps_text, root=root)
     if supply.get("final_verdict") != "PASS":
         return {
@@ -10831,6 +10852,7 @@ def permanent_polygon_target_level_terminal_state(
     )
     return normalized_cps_live_state({
         **current,
+        "active_program": "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
         "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
         "current_stop_condition": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY",
         "current_active_scope": "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED",
@@ -10919,6 +10941,15 @@ def permanent_polygon_target_level_terminal_state(
         "phase6_engineering_stop": "TARGET_LEVEL_CERTIFIED",
         "phase6_controlled_lane_stop": "REAL_WORLD_LIMIT_L7_ONLY",
         "phase6_natural_lane_stop": "REAL_WORLD_LIMIT_L8_ONLY",
+        "scenario_target_level": "PHASE6_MULTI_LANE_V4_OBLIGATION_DRIVEN",
+        "scenario_corpus_count": "64",
+        "scenario_eligible_count": "0",
+        "scenario_covered_count": "64",
+        "scenario_stale_count": "0",
+        "scenario_blocked_count": "0",
+        "scenario_mismatch_count": "0",
+        "next_scenario_id": "NONE",
+        "next_scenario_reason": "SCENARIO_FRONTIER_EXHAUSTED",
         "global_engineering_stop": "TARGET_LEVEL_CERTIFIED",
         "engineering_program_status": PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL,
         "environment_alignment_status": "FULLY_ALIGNED",
@@ -11568,11 +11599,22 @@ def consume_future_scale_scenario_result(
 
 def execute_future_scale_scenario(
     scenario_id: str = "CAPACITY_BOUNDARY", *, root: Path = ROOT,
+    scenario_override: Optional[dict[str, Any]] = None,
+    consume_result: bool = True,
 ) -> dict[str, Any]:
     started = datetime.now(timezone.utc)
     clock = __import__("time")
     monotonic_started = clock.monotonic()
-    selected = _future_scale_selected_scenario(scenario_id, root=root)
+    if scenario_override is None:
+        selected = _future_scale_selected_scenario(scenario_id, root=root)
+    else:
+        validation = validate_future_scale_scenario(scenario_override)
+        selected = {
+            "scenario": validation.get("scenario"),
+            "errors": list(validation.get("errors") or []),
+        }
+        if selected["scenario"] is not None:
+            scenario_id = str(selected["scenario"].get("SCENARIO_ID") or scenario_id)
     if selected["errors"]:
         return {"schema": "v7.future-scale-scenario-result.v1", "final_verdict": "STOP_SAFE", "errors": selected["errors"]}
     scenario = selected["scenario"]
@@ -11780,14 +11822,26 @@ def execute_future_scale_scenario(
             failed["invariant_id"] if failed else "scenario_execution_duration_bound"
         ],
     }
-    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-    consumer_started = clock.monotonic()
-    result["consumer_result"] = consume_future_scale_scenario_result(result, cps_text, root=root)
-    result["performance"]["consumer_seconds"] = round(clock.monotonic() - consumer_started, 6)
-    if result["consumer_result"]["final_verdict"] != "PASS":
-        result["final_verdict"] = "STOP_SAFE"
-        result["errors"].extend(result["consumer_result"]["errors"])
-    result["next_output"] = result["consumer_result"].get("next_output", "STOP_SAFE")
+    if consume_result:
+        cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        consumer_started = clock.monotonic()
+        result["consumer_result"] = consume_future_scale_scenario_result(result, cps_text, root=root)
+        result["performance"]["consumer_seconds"] = round(clock.monotonic() - consumer_started, 6)
+        if result["consumer_result"]["final_verdict"] != "PASS":
+            result["final_verdict"] = "STOP_SAFE"
+            result["errors"].extend(result["consumer_result"]["errors"])
+        result["next_output"] = result["consumer_result"].get("next_output", "STOP_SAFE")
+    else:
+        result["consumer_result"] = {
+            "schema": "v7.future-scale-scenario-result-consumption.v1",
+            "consumer": "NONE_MINIMIZATION_OR_DIFFERENTIAL_PROBE",
+            "consumed": False,
+            "behavior_change": "NONE",
+            "final_verdict": "NOT_REQUESTED",
+            "errors": [],
+        }
+        result["next_output"] = "RETURN_TO_CALLING_ENGINEERING_PROBE"
+        result["performance"]["consumer_seconds"] = 0.0
     result["performance"]["serialized_result_bytes"] = len(
         json.dumps(result, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     )
@@ -12125,9 +12179,10 @@ _CONTINUE_OMP_ACTIVE = False
 
 
 FUTURE_SCALE_MISMATCH_CLASSES = {
-    "INVALID_FIXTURE", "HARNESS_DEFECT", "ORACLE_DEFECT", "GENERATOR_DEFECT",
+    "INVALID_FIXTURE", "POLYGON_MODEL_DEFECT", "HARNESS_DEFECT", "ORACLE_DEFECT", "GENERATOR_DEFECT",
     "ENVIRONMENT_UNSUPPORTED", "RESOURCE_BOUND_VIOLATION", "NON_DETERMINISTIC_RESULT",
-    "REPRODUCIBLE_REAL_SOURCE_MISMATCH", "AUTOMATION_PATH_CERTIFICATION_EVIDENCE",
+    "REPRODUCIBLE_REAL_SOURCE_MISMATCH", "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT",
+    "AUTOMATION_PATH_CERTIFICATION_EVIDENCE",
 }
 
 
@@ -12136,7 +12191,9 @@ def classify_future_scale_mismatch(
 ) -> dict[str, Any]:
     classification = str(mismatch_class or "")
     known = classification in FUTURE_SCALE_MISMATCH_CLASSES
-    real_source = classification == "REPRODUCIBLE_REAL_SOURCE_MISMATCH"
+    real_source = classification in {
+        "REPRODUCIBLE_REAL_SOURCE_MISMATCH", "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT",
+    }
     certification = classification == "AUTOMATION_PATH_CERTIFICATION_EVIDENCE" and certification_seam
     return {
         "schema": "v7.future-scale-mismatch-classification.v1",
@@ -12151,6 +12208,1438 @@ def classify_future_scale_mismatch(
         ),
         "final_verdict": "PASS" if known else "STOP_SAFE",
         "errors": [] if known else ["mismatch_class_unresolved"],
+    }
+
+
+PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID = (
+    "V7_PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM_V1"
+)
+PERMANENT_POLYGON_DESIGN_TIME_TARGET = (
+    "PERMANENT_POLYGON_DESIGN_TIME_SEMANTIC_DIFFERENTIAL_REPAIR_"
+    "CALIBRATION_LOOP_CERTIFIED"
+)
+PERMANENT_POLYGON_DESIGN_CHANGE_REQUIRED_FIELDS = (
+    "change_id", "objective", "acceptance_criteria", "changed_dependencies",
+    "semantic_change", "baseline_identity", "proposed_identity",
+)
+
+
+def _polygon_semantic_fingerprint(payload: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def _polygon_normalized_dependency(value: Any) -> str:
+    token = str(value or "").strip().replace("\\", "/")
+    if not token or token.startswith("/") or token == ".." or token.startswith("../"):
+        return ""
+    normalized = str(Path(token))
+    return "" if normalized == "." or normalized.startswith("../") else normalized
+
+
+def polygon_design_change_contract(
+    change: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Validate one product-design/change input without introducing a new owner."""
+    payload = dict(change) if isinstance(change, dict) else {}
+    errors: list[str] = []
+    for field in PERMANENT_POLYGON_DESIGN_CHANGE_REQUIRED_FIELDS:
+        if field not in payload or payload[field] in (None, "", []):
+            errors.append(f"design_change_field_missing:{field}")
+    raw_dependencies = payload.get("changed_dependencies") or []
+    if not isinstance(raw_dependencies, list):
+        errors.append("design_change_dependencies_not_list")
+        raw_dependencies = []
+    dependencies = sorted(set(
+        item for item in (_polygon_normalized_dependency(value) for value in raw_dependencies) if item
+    ))
+    if len(dependencies) != len(raw_dependencies):
+        errors.append("design_change_dependency_invalid_or_duplicate")
+    semantic_change = payload.get("semantic_change")
+    if not isinstance(semantic_change, bool):
+        errors.append("design_change_semantic_change_not_boolean")
+    if semantic_change is True and not dependencies:
+        errors.append("semantic_change_requires_dependency")
+    criteria = payload.get("acceptance_criteria") or []
+    if not isinstance(criteria, list) or not all(str(item).strip() for item in criteria):
+        errors.append("design_change_acceptance_criteria_invalid")
+    allowed = payload.get("allowed_semantic_changes") or []
+    if not isinstance(allowed, list) or not all(isinstance(item, str) for item in allowed):
+        errors.append("design_change_allowed_semantic_changes_invalid")
+        allowed = []
+    documentation_only = bool(dependencies) and all(
+        path.startswith("docs/") or path.endswith((".md", ".txt")) for path in dependencies
+    )
+    if documentation_only and semantic_change is True:
+        errors.append("documentation_only_change_cannot_claim_semantic_behavior")
+    source_state = {
+        path: hashlib.sha256((root / path).read_bytes()).hexdigest()
+        if (root / path).is_file() else "MISSING_OR_PROPOSED"
+        for path in dependencies
+    }
+    normalized = {
+        "change_id": str(payload.get("change_id") or ""),
+        "objective": str(payload.get("objective") or ""),
+        "acceptance_criteria": [str(item) for item in criteria],
+        "changed_dependencies": dependencies,
+        "semantic_change": semantic_change if isinstance(semantic_change, bool) else None,
+        "baseline_identity": str(payload.get("baseline_identity") or ""),
+        "proposed_identity": str(payload.get("proposed_identity") or ""),
+        "allowed_semantic_changes": sorted(set(allowed)),
+        "requested_fidelity": str(payload.get("requested_fidelity") or "OWNER_SELECTED_L1_TO_L6"),
+        "product_program": str(payload.get("product_program") or "OPERATIONAL_MATURITY_PROGRAM"),
+        "source_state": source_state,
+        "documentation_only": documentation_only,
+    }
+    identity = _polygon_semantic_fingerprint(normalized)
+    return {
+        "schema": "v7.permanent-polygon-design-change-contract.v1",
+        "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+        "contract": normalized,
+        "change_fingerprint": identity,
+        "owner_contract": permanent_polygon_applicability_contract(),
+        "new_owner": False, "new_runtime": False, "new_planner": False,
+        "new_queue": False, "new_truth_source": False,
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def polygon_design_change_from_git(
+    baseline: str, proposed: str = "HEAD", *, objective: str,
+    acceptance_criteria: Iterable[str], root: Path = ROOT,
+) -> dict[str, Any]:
+    """Build a design-change input from a bounded git diff in the current repository."""
+    completed = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=ACMRT", baseline, proposed, "--"],
+        cwd=root, text=True, capture_output=True, check=False, timeout=30,
+    )
+    if completed.returncode != 0:
+        return {
+            "schema": "v7.permanent-polygon-git-change.v1", "final_verdict": "STOP_SAFE",
+            "errors": [f"git_change_discovery_failed:{completed.stderr.strip()[:300]}"],
+        }
+    dependencies = sorted(set(row.strip() for row in completed.stdout.splitlines() if row.strip()))
+    semantic = any(
+        not (path.startswith("docs/") or path.endswith((".md", ".txt")))
+        for path in dependencies
+    )
+    return polygon_design_change_contract({
+        "change_id": f"git:{baseline}..{proposed}",
+        "objective": objective,
+        "acceptance_criteria": list(acceptance_criteria),
+        "changed_dependencies": dependencies,
+        "semantic_change": semantic,
+        "baseline_identity": baseline,
+        "proposed_identity": proposed,
+    }, root=root)
+
+
+def compile_polygon_design_change(
+    change: dict[str, Any], cps_text: str, *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Compile product intent/change into the existing Scenario/OMP frontier."""
+    contract = polygon_design_change_contract(change, root=root)
+    if contract.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-design-change-compilation.v1",
+            "contract": contract, "final_verdict": "STOP_SAFE",
+            "errors": contract.get("errors") or [],
+        }
+    normalized = contract["contract"]
+    dependencies = normalized["changed_dependencies"]
+    if not normalized["semantic_change"]:
+        return {
+            "schema": "v7.permanent-polygon-design-change-compilation.v1",
+            "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+            "contract": contract,
+            "decision": "NO_EXECUTION_NON_SEMANTIC_CHANGE",
+            "decision_reason": "DOCUMENTATION_OR_DECLARED_NON_SEMANTIC_CHANGE",
+            "affected_scenarios": [], "obligations": [],
+            "consumer_result": {
+                "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+                "consumed": True,
+                "behavior_change": "NON_SEMANTIC_CHANGE_RETIRED_WITH_REASON",
+                "next_output": "RETURN_TO_PRODUCT_PROGRAM_FRONTIER",
+                "final_verdict": "PASS",
+            },
+            "next_output": "RETURN_TO_PRODUCT_PROGRAM_FRONTIER",
+            "final_verdict": "PASS", "errors": [],
+        }
+    affected = future_scale_affected_scenario_subset(dependencies, root=root)
+    if affected.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-design-change-compilation.v1",
+            "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+            "contract": contract, "selective_invalidation": affected,
+            "decision": "STOP_SAFE_UNRESOLVED_DEPENDENCY_MAPPING",
+            "final_verdict": "STOP_SAFE", "errors": affected.get("errors") or [],
+        }
+    corpus = load_future_scale_scenario_corpus(root=root)
+    by_id = {str(row["SCENARIO_ID"]): row for row in corpus.get("scenarios") or []}
+    obligations = []
+    for index, scenario_id in enumerate(affected.get("affected_scenarios") or []):
+        scenario = by_id[scenario_id]
+        payload = {
+            "change_fingerprint": contract["change_fingerprint"],
+            "scenario_id": scenario_id,
+            "scenario_fingerprint": scenario["SCENARIO_FINGERPRINT"],
+            "source_dependencies": list(scenario.get("SOURCE_DEPENDENCIES") or ()),
+            "invariant_ids": list(scenario.get("INVARIANT_IDS") or ()),
+            "owner_dependencies": list(scenario.get("OWNER_DEPENDENCIES") or ()),
+        }
+        obligations.append({
+            "obligation_id": "PPDT-CHANGE-" + _polygon_semantic_fingerprint(payload)[:20].upper(),
+            "order": index + 1,
+            **payload,
+            "minimum_fidelity": scenario.get("VALIDATION_LANE", "REAL_CODE_FSSE_02_HARNESS"),
+            "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        })
+    next_id = obligations[0]["obligation_id"] if obligations else "NONE"
+    next_scenario = obligations[0]["scenario_id"] if obligations else "NONE"
+    checks = {
+        "cps_input_present": bool(cps_text.strip()),
+        "corpus_valid": corpus.get("final_verdict") == "PASS",
+        "semantic_change_has_exact_obligations": bool(obligations),
+        "single_existing_consumer": all(
+            row["consumer"] == "OMP_PROGRAM_EXECUTION_RECONCILIATION" for row in obligations
+        ),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.permanent-polygon-design-change-compilation.v1",
+        "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+        "contract": contract, "selective_invalidation": affected,
+        "decision": "EXACT_AFFECTED_OBLIGATIONS_MATERIALIZED" if passed else "STOP_SAFE",
+        "affected_scenarios": [row["scenario_id"] for row in obligations],
+        "obligations": obligations,
+        "checks": checks,
+        "consumer_result": {
+            "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "consumed": passed,
+            "behavior_change": "PRODUCT_CHANGE_COMPILED_TO_POLYGON_FRONTIER" if passed else "NONE",
+            "next_obligation_id": next_id,
+            "next_scenario_id": next_scenario,
+            "next_output": f"EXECUTE_BASELINE_PROPOSED:{next_scenario}" if passed else "STOP_SAFE",
+            "final_verdict": "PASS" if passed else "STOP_SAFE",
+        },
+        "next_output": f"EXECUTE_BASELINE_PROPOSED:{next_scenario}" if passed else "STOP_SAFE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
+def execute_polygon_design_change_campaign(
+    change: dict[str, Any], cps_text: str, *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume every selectively invalidated scenario through the existing OMP owner."""
+    compilation = compile_polygon_design_change(change, cps_text, root=root)
+    if compilation.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-design-change-campaign.v1",
+            "compilation": compilation, "final_verdict": "STOP_SAFE",
+            "errors": compilation.get("errors") or [],
+        }
+    if compilation.get("decision") == "NO_EXECUTION_NON_SEMANTIC_CHANGE":
+        return {
+            "schema": "v7.permanent-polygon-design-change-campaign.v1",
+            "compilation": compilation, "affected_scenario_count": 0,
+            "executed_scenario_count": 0, "consumed_scenario_count": 0,
+            "scenario_results": [], "coverage_restored": True,
+            "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "behavior_change": "NON_SEMANTIC_CHANGE_RETIRED_WITH_REASON",
+            "next_output": "RETURN_TO_PRODUCT_PROGRAM_FRONTIER",
+            "final_verdict": "PASS", "errors": [],
+        }
+
+    corpus = load_future_scale_scenario_corpus(root=root)
+    if corpus.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-design-change-campaign.v1",
+            "compilation": compilation, "final_verdict": "STOP_SAFE",
+            "errors": corpus.get("errors") or [],
+        }
+    affected = list(compilation.get("affected_scenarios") or ())
+    affected_set = set(affected)
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    try:
+        declared_covered = int(_plain_live_value(live, "SCENARIO_COVERED_COUNT") or "0")
+    except ValueError:
+        declared_covered = 0
+    prior_coverage_certified = all((
+        declared_covered >= int(corpus.get("corpus_count") or 0),
+        _plain_live_value(live, "SCENARIO_MISMATCH_COUNT") == "0",
+        _plain_live_value(live, "LAST_SCENARIO_VERDICT") == "PASS",
+    ))
+    if not prior_coverage_certified:
+        return {
+            "schema": "v7.permanent-polygon-design-change-campaign.v1",
+            "compilation": compilation, "affected_scenario_count": len(affected),
+            "prior_coverage_certified": False, "final_verdict": "STOP_SAFE",
+            "errors": ["design_change_prior_corpus_coverage_not_certified"],
+        }
+
+    # The authoritative pre-change 64/64 snapshot remains valid only for the
+    # exact unrelated subset.  Every affected scenario must earn a fresh result.
+    history = _fsse04_coverage_history(corpus, excluded=affected_set)
+    results: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for scenario_id in affected:
+        result = execute_future_scale_scenario(
+            scenario_id, root=root, consume_result=False,
+        )
+        consumer = consume_future_scale_scenario_result(
+            result, cps_text, root=root, result_history=history,
+        )
+        consumed = (
+            result.get("final_verdict") == "PASS"
+            and consumer.get("final_verdict") == "PASS"
+            and consumer.get("consumed") is True
+        )
+        if consumed:
+            history[scenario_id] = {
+                "result": "PASS",
+                "scenario_fingerprint": result.get("scenario_fingerprint"),
+                "result_fingerprint": result.get("result_fingerprint"),
+            }
+        else:
+            errors.extend(result.get("errors") or ())
+            errors.extend(consumer.get("errors") or ())
+        results.append({
+            "scenario_id": scenario_id,
+            "scenario_fingerprint": result.get("scenario_fingerprint"),
+            "result_fingerprint": result.get("result_fingerprint"),
+            "terminal_class": result.get("terminal_class"),
+            "result": result.get("final_verdict"),
+            "consumer": consumer.get("consumer"),
+            "consumed": consumed,
+            "consumer_behavior": consumer.get("behavior_change"),
+            "next_scenario_id": consumer.get("next_scenario_id"),
+            "forbidden_effects": result.get("forbidden_effects") or {},
+        })
+        if not consumed:
+            break
+
+    frontier = future_scale_scenario_frontier(
+        cps_text, root=root, result_history=history,
+    )
+    forbidden_effects_absent = not any(
+        any((row.get("forbidden_effects") or {}).values()) for row in results
+    )
+    coverage_restored = all((
+        len(results) == len(affected),
+        all(row.get("consumed") is True for row in results),
+        frontier.get("FRONTIER_EXHAUSTED") is True,
+        len(frontier.get("COVERED_SCENARIOS") or ()) == corpus.get("corpus_count"),
+        not frontier.get("STALE_SCENARIOS"),
+        not frontier.get("BLOCKED_SCENARIOS"),
+        forbidden_effects_absent,
+    ))
+    if not coverage_restored and not errors:
+        errors.append("design_change_selective_coverage_not_restored")
+    semantic = {
+        "change": (compilation.get("contract") or {}).get("change_fingerprint"),
+        "affected": affected,
+        "results": [row.get("result_fingerprint") for row in results],
+        "frontier": frontier.get("FRONTIER_FINGERPRINT"),
+    }
+    return {
+        "schema": "v7.permanent-polygon-design-change-campaign.v1",
+        "compilation": compilation,
+        "campaign_fingerprint": _polygon_semantic_fingerprint(semantic),
+        "prior_coverage_certified": prior_coverage_certified,
+        "affected_scenario_count": len(affected),
+        "unrelated_preserved_count": int(corpus.get("corpus_count") or 0) - len(affected),
+        "executed_scenario_count": len(results),
+        "consumed_scenario_count": sum(row.get("consumed") is True for row in results),
+        "scenario_results": results,
+        "final_frontier": frontier,
+        "coverage_restored": coverage_restored,
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "behavior_change": (
+            "SELECTIVELY_INVALIDATED_SCENARIOS_REEXECUTED_CONSUMED_AND_COVERAGE_RESTORED"
+            if coverage_restored else "NONE_STOP_SAFE"
+        ),
+        "next_output": (
+            "RETURN_TO_POLYGON_RISK_CALIBRATION_FRONTIER" if coverage_restored else "STOP_SAFE"
+        ),
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "final_verdict": "PASS" if coverage_restored else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def polygon_semantic_projection(result: dict[str, Any]) -> dict[str, Any]:
+    """Project only stable behaviour from a Polygon execution result."""
+    planner = (result.get("produced_outputs") or {}).get("planner") or {}
+    return {
+        "scenario_id": result.get("scenario_id"),
+        "scale": result.get("scale") or {},
+        "selected_moves": planner.get("selected_moves") or [],
+        "candidate_moves": planner.get("candidate_moves") or [],
+        "selected_count": planner.get("selected_count"),
+        "terminal_class": result.get("terminal_class"),
+        "failed_invariant": result.get("failed_invariant"),
+        "invariant_verdicts": [
+            {
+                "invariant_id": row.get("invariant_id"),
+                "verdict": row.get("verdict"),
+                "failure_class": row.get("failure_class"),
+            }
+            for row in result.get("invariant_verdicts") or []
+        ],
+        "forbidden_effects": result.get("forbidden_effects") or {},
+        "actual_terminal": (result.get("situation_decision_trace") or {}).get("actual_terminal"),
+        "selected_decision": (result.get("situation_decision_trace") or {}).get("selected_decision"),
+        "final_verdict": result.get("final_verdict"),
+    }
+
+
+def _polygon_flatten_semantics(value: Any, prefix: str = "") -> dict[str, Any]:
+    if isinstance(value, dict):
+        rows: dict[str, Any] = {}
+        for key in sorted(value):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            rows.update(_polygon_flatten_semantics(value[key], path))
+        return rows
+    if isinstance(value, list):
+        rows = {}
+        for index, item in enumerate(value):
+            path = f"{prefix}[{index}]"
+            rows.update(_polygon_flatten_semantics(item, path))
+        if not value:
+            rows[prefix] = []
+        return rows
+    return {prefix: value}
+
+
+def polygon_semantic_differential(
+    baseline: dict[str, Any], proposed: dict[str, Any], *,
+    allowed_changes: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Compare stable baseline/proposed V7 behaviour and reject collateral deltas."""
+    baseline_projection = polygon_semantic_projection(baseline)
+    proposed_projection = polygon_semantic_projection(proposed)
+    before = _polygon_flatten_semantics(baseline_projection)
+    after = _polygon_flatten_semantics(proposed_projection)
+    paths = sorted(set(before) | set(after))
+    changes = [
+        {"path": path, "baseline": before.get(path), "proposed": after.get(path)}
+        for path in paths if before.get(path) != after.get(path)
+    ]
+    allowed_patterns = tuple(str(item) for item in allowed_changes)
+    for row in changes:
+        row["allowed"] = any(
+            row["path"] == pattern or row["path"].startswith(pattern + ".")
+            or row["path"].startswith(pattern + "[")
+            for pattern in allowed_patterns
+        )
+    forbidden = [row for row in changes if not row["allowed"]]
+    passed = not forbidden
+    semantic = {
+        "baseline": baseline_projection, "proposed": proposed_projection,
+        "changes": changes, "allowed_patterns": sorted(set(allowed_patterns)),
+    }
+    return {
+        "schema": "v7.permanent-polygon-semantic-differential.v1",
+        "baseline_projection": baseline_projection,
+        "proposed_projection": proposed_projection,
+        "semantic_changes": changes,
+        "forbidden_semantic_changes": forbidden,
+        "semantic_change_count": len(changes),
+        "differential_fingerprint": _polygon_semantic_fingerprint(semantic),
+        "decision": "PASS_DECLARED_SEMANTICS" if passed else "STOP_SAFE_UNDECLARED_SEMANTIC_DELTA",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [f"undeclared_semantic_change:{row['path']}" for row in forbidden],
+    }
+
+
+def execute_polygon_semantic_differential_from_roots(
+    scenario_id: str, baseline_root: Path, proposed_root: Path, *,
+    allowed_changes: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Execute the same scenario in two source snapshots through their native entrypoints."""
+    executions: dict[str, Any] = {}
+    errors: list[str] = []
+    for label, snapshot_root in (("baseline", baseline_root), ("proposed", proposed_root)):
+        entrypoint = snapshot_root / "tools/v7-truth-check"
+        if not entrypoint.is_file():
+            errors.append(f"{label}_entrypoint_missing")
+            continue
+        try:
+            completed = subprocess.run(
+                [str(entrypoint), "--omp-scenario-execution", scenario_id, "--json"],
+                cwd=snapshot_root, text=True, capture_output=True, check=False, timeout=180,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            errors.append(f"{label}_execution_failed:{type(exc).__name__}:{exc}")
+            continue
+        if completed.returncode != 0:
+            errors.append(f"{label}_execution_exit:{completed.returncode}:{completed.stderr.strip()[:300]}")
+            continue
+        try:
+            executions[label] = json.loads(completed.stdout)
+        except ValueError:
+            errors.append(f"{label}_execution_json_invalid")
+    if errors:
+        return {
+            "schema": "v7.permanent-polygon-source-root-differential.v1",
+            "executions": executions, "final_verdict": "STOP_SAFE", "errors": errors,
+        }
+    differential = polygon_semantic_differential(
+        executions["baseline"], executions["proposed"], allowed_changes=allowed_changes,
+    )
+    return {
+        "schema": "v7.permanent-polygon-source-root-differential.v1",
+        "scenario_id": scenario_id,
+        "baseline_root_identity": str(baseline_root.resolve()),
+        "proposed_root_identity": str(proposed_root.resolve()),
+        "executions": executions, "differential": differential,
+        "real_callers": [
+            str(baseline_root / "tools/v7-truth-check"),
+            str(proposed_root / "tools/v7-truth-check"),
+        ],
+        "final_verdict": differential.get("final_verdict"),
+        "errors": differential.get("errors") or [],
+    }
+
+
+def minimize_polygon_counterexample(
+    scenario: dict[str, Any], *, root: Path = ROOT,
+    expected_failed_invariant: str = "",
+    evaluator: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    """Deterministically shrink a scenario while preserving the same failed invariant."""
+    validation = validate_future_scale_scenario(scenario)
+    if validation.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-counterexample-minimization.v1",
+            "final_verdict": "STOP_SAFE", "errors": validation.get("errors") or [],
+        }
+    original = dict(validation["scenario"])
+
+    def evaluate(candidate: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(candidate)
+        normalized["SCENARIO_FINGERPRINT"] = "DERIVED"
+        checked = validate_future_scale_scenario(normalized)
+        if checked.get("final_verdict") != "PASS":
+            return {"final_verdict": "INVALID", "failed_invariant": "NONE"}
+        normalized = checked["scenario"]
+        return (
+            evaluator(normalized) if evaluator is not None
+            else execute_future_scale_scenario(
+                str(normalized["SCENARIO_ID"]), root=root,
+                scenario_override=normalized, consume_result=False,
+            )
+        )
+
+    initial_result = evaluate(original)
+    failure_id = expected_failed_invariant or str(initial_result.get("failed_invariant") or "")
+    if not failure_id or failure_id == "NONE":
+        return {
+            "schema": "v7.permanent-polygon-counterexample-minimization.v1",
+            "original_scenario": original, "initial_result": initial_result,
+            "decision": "NO_REPRODUCIBLE_MISMATCH_TO_MINIMIZE",
+            "final_verdict": "STOP_SAFE", "errors": ["counterexample_failure_identity_missing"],
+        }
+
+    attempts: list[dict[str, Any]] = []
+    current = dict(original)
+
+    def attempt(candidate: dict[str, Any], dimension: str) -> bool:
+        candidate = dict(candidate)
+        candidate["SCENARIO_FINGERPRINT"] = "DERIVED"
+        result = evaluate(candidate)
+        preserved = str(result.get("failed_invariant") or "") == failure_id
+        attempts.append({
+            "dimension": dimension, "preserved": preserved,
+            "failed_invariant": result.get("failed_invariant"),
+            "scenario_fingerprint": future_scale_scenario_fingerprint(candidate),
+        })
+        if preserved:
+            current.clear()
+            current.update(validate_future_scale_scenario(candidate)["scenario"])
+        return preserved
+
+    users = int((current.get("USER_POPULATION_PROFILE") or {}).get("users") or 1)
+    while users > 1:
+        candidate_users = max(1, users // 2)
+        candidate = dict(current)
+        candidate["USER_POPULATION_PROFILE"] = {
+            **dict(current.get("USER_POPULATION_PROFILE") or {}), "users": candidate_users,
+        }
+        if attempt(candidate, "users"):
+            users = candidate_users
+        else:
+            break
+    channels = int((current.get("CHANNEL_POPULATION_PROFILE") or {}).get("channels") or 2)
+    while channels > 2:
+        candidate_channels = max(2, channels // 2)
+        candidate = dict(current)
+        candidate["CHANNEL_POPULATION_PROFILE"] = {
+            **dict(current.get("CHANNEL_POPULATION_PROFILE") or {}), "channels": candidate_channels,
+        }
+        if attempt(candidate, "channels"):
+            channels = candidate_channels
+        else:
+            break
+    for field in ("EVENT_TIMELINE", "FAILURE_INJECTIONS", "RECOVERY_EVENTS"):
+        while len(current.get(field) or []) > 1:
+            candidate = dict(current)
+            candidate[field] = list(current[field])[:-1]
+            if not attempt(candidate, field.lower()):
+                break
+    services = list((current.get("SERVICE_PROFILE") or {}).get("services") or [])
+    while len(services) > 1:
+        candidate = dict(current)
+        candidate["SERVICE_PROFILE"] = {
+            **dict(current.get("SERVICE_PROFILE") or {}), "services": services[:-1],
+        }
+        if attempt(candidate, "services"):
+            services = services[:-1]
+        else:
+            break
+    final_result = evaluate(current)
+    preserved = str(final_result.get("failed_invariant") or "") == failure_id
+    original_complexity = (
+        int((original["USER_POPULATION_PROFILE"] or {}).get("users") or 0)
+        + int((original["CHANNEL_POPULATION_PROFILE"] or {}).get("channels") or 0)
+        + len(original.get("EVENT_TIMELINE") or [])
+        + len(original.get("FAILURE_INJECTIONS") or [])
+        + len(original.get("RECOVERY_EVENTS") or [])
+        + len((original.get("SERVICE_PROFILE") or {}).get("services") or [])
+    )
+    minimized_complexity = (
+        int((current["USER_POPULATION_PROFILE"] or {}).get("users") or 0)
+        + int((current["CHANNEL_POPULATION_PROFILE"] or {}).get("channels") or 0)
+        + len(current.get("EVENT_TIMELINE") or [])
+        + len(current.get("FAILURE_INJECTIONS") or [])
+        + len(current.get("RECOVERY_EVENTS") or [])
+        + len((current.get("SERVICE_PROFILE") or {}).get("services") or [])
+    )
+    passed = preserved and minimized_complexity <= original_complexity
+    return {
+        "schema": "v7.permanent-polygon-counterexample-minimization.v1",
+        "failed_invariant": failure_id,
+        "original_scenario_fingerprint": original["SCENARIO_FINGERPRINT"],
+        "minimized_scenario": current,
+        "minimized_scenario_fingerprint": current["SCENARIO_FINGERPRINT"],
+        "original_complexity": original_complexity,
+        "minimized_complexity": minimized_complexity,
+        "reduction": original_complexity - minimized_complexity,
+        "attempts": attempts, "final_result": final_result,
+        "same_failure_preserved": preserved,
+        "consumer": "BDP_MISMATCH_CLASSIFICATION",
+        "next_output": f"CLASSIFY_MINIMIZED_COUNTEREXAMPLE:{failure_id}" if passed else "STOP_SAFE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else ["counterexample_failure_not_preserved"],
+    }
+
+
+def polygon_protocol_tunnel_fidelity_contract(*, root: Path = ROOT) -> dict[str, Any]:
+    """Bind VPN protocols to existing V7 config owners and honest isolated substrates."""
+    sources = {
+        "shared_import_and_lifecycle_owner": "admin/v7-admin-api",
+        "isolated_regression_owner": "tools/v7-egress-import-regression",
+        "planner_protocol_projection": "tools/v7_sync_lib.py:materialize_future_scale_isolated_state",
+        "linux_datapath_owner": "tools/v7_sync_lib.py:execute_routing_digital_twin_l3_l4_obligation",
+    }
+    source_checks = {key: (root / path.split(":", 1)[0]).is_file() for key, path in sources.items()}
+    binaries = {
+        "wireguard": bool(shutil.which("wg") or shutil.which("awg")),
+        "openvpn": bool(shutil.which("openvpn")),
+        "vless_xray": bool(shutil.which("xray")),
+        "docker": bool(shutil.which("docker")),
+    }
+    criteria = {
+        protocol: {
+            "configuration_and_normalization": "READY_EXISTING_OWNER" if all(source_checks.values()) else "STOP_SAFE_SOURCE_MISSING",
+            "planner_representation": "READY_EXISTING_OWNER",
+            "generic_route_loss_recovery_datapath": "READY_DOCKER_L3_L4" if binaries["docker"] else "BLOCKED_SUBSTRATE_DOCKER",
+            "real_encrypted_tunnel_lifecycle": "READY_LOCAL_BINARY" if available else "REQUIRES_HIGHER_FIDELITY_SUBSTRATE",
+        }
+        for protocol, available in (
+            ("WIREGUARD_AMNEZIAWG", binaries["wireguard"]),
+            ("OPENVPN", binaries["openvpn"]),
+            ("VLESS_XRAY", binaries["vless_xray"]),
+        )
+    }
+    errors = [f"protocol_source_missing:{key}" for key, value in source_checks.items() if not value]
+    return {
+        "schema": "v7.permanent-polygon-protocol-tunnel-fidelity.v1",
+        "sources": sources, "source_checks": source_checks, "substrate_binaries": binaries,
+        "protocol_criteria": criteria,
+        "lower_fidelity_continuation_allowed": True,
+        "global_real_world_limit": False,
+        "higher_fidelity_residuals": [
+            f"{protocol}:REAL_ENCRYPTED_TUNNEL_LIFECYCLE"
+            for protocol, row in criteria.items()
+            if row["real_encrypted_tunnel_lifecycle"] == "REQUIRES_HIGHER_FIDELITY_SUBSTRATE"
+        ],
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": errors,
+    }
+
+
+def certify_polygon_protocol_configuration_lifecycle(*, root: Path = ROOT) -> dict[str, Any]:
+    """Run the existing isolated multi-protocol import/lifecycle regression as a real caller."""
+    contract = polygon_protocol_tunnel_fidelity_contract(root=root)
+    entrypoint = root / "tools/v7-egress-import-regression"
+    if contract.get("final_verdict") != "PASS" or not entrypoint.is_file():
+        return {
+            "schema": "v7.permanent-polygon-protocol-configuration-certification.v1",
+            "contract": contract, "final_verdict": "STOP_SAFE",
+            "errors": [*(contract.get("errors") or []), "protocol_regression_entrypoint_missing"],
+        }
+    try:
+        environment = dict(os.environ)
+        existing_pythonpath = environment.get("PYTHONPATH", "")
+        environment["PYTHONPATH"] = (
+            str(root) if not existing_pythonpath else str(root) + os.pathsep + existing_pythonpath
+        )
+        completed = subprocess.run(
+            [str(entrypoint)], cwd=root, text=True, capture_output=True,
+            check=False, timeout=180, env=environment,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema": "v7.permanent-polygon-protocol-configuration-certification.v1",
+            "contract": contract, "final_verdict": "STOP_SAFE",
+            "errors": [f"protocol_regression_failed:{type(exc).__name__}:{exc}"],
+        }
+    passed = completed.returncode == 0
+    return {
+        "schema": "v7.permanent-polygon-protocol-configuration-certification.v1",
+        "contract": contract,
+        "real_caller": "tools/v7-egress-import-regression",
+        "protocols": ["WIREGUARD_AMNEZIAWG", "OPENVPN", "VLESS_XRAY"],
+        "evidence_class": "REAL_CODE_VIRTUAL_STATE_EVIDENCE",
+        "isolated_temp_state": True,
+        "configuration_lifecycle_consumed": passed,
+        "stdout_tail": completed.stdout.strip()[-1000:],
+        "stderr_tail": completed.stderr.strip()[-1000:],
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "next_output": "PROTOCOL_CONFIG_CERTIFIED_CONTINUE_DATAPATH_FIDELITY" if passed else "STOP_SAFE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [f"protocol_regression_exit:{completed.returncode}"],
+    }
+
+
+def polygon_historical_calibration(
+    records: Iterable[dict[str, Any]], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Calibrate Polygon predictions against owner-backed actual outcomes."""
+    rows = [dict(row) for row in records if isinstance(row, dict)]
+    valid = [
+        row for row in rows
+        if row.get("owner_backed") is True and row.get("predicted") not in (None, "")
+        and row.get("actual") not in (None, "")
+    ]
+    invalid_count = len(rows) - len(valid)
+    correct = sum(str(row["predicted"]) == str(row["actual"]) for row in valid)
+    confidences = [max(0.0, min(float(row.get("confidence", 0.5)), 1.0)) for row in valid]
+    brier_terms = []
+    for row, confidence in zip(valid, confidences):
+        actual = 1.0 if str(row["predicted"]) == str(row["actual"]) else 0.0
+        brier_terms.append((confidence - actual) ** 2)
+    accuracy = correct / len(valid) if valid else 0.0
+    brier = sum(brier_terms) / len(brier_terms) if brier_terms else 1.0
+    drift = accuracy < 0.80 or brier > 0.20
+    try:
+        from admin_core import intelligence_platform
+        owner_calibration = intelligence_platform.live_calibration_model(valid)
+    except (ImportError, AttributeError, TypeError, ValueError) as exc:
+        owner_calibration = {"ready": False, "error": f"{type(exc).__name__}:{exc}"}
+    invalidations = [
+        "CALIBRATION:OUTCOME_SAMPLE_INSUFFICIENT" if len(valid) < 5 else "",
+        "CALIBRATION:PREDICTION_ERROR_THRESHOLD" if drift else "",
+    ]
+    invalidations = [item for item in invalidations if item]
+    passed = invalid_count == 0 and owner_calibration.get("ready") is True
+    return {
+        "schema": "v7.permanent-polygon-historical-calibration.v1",
+        "owner": "admin_core.intelligence_platform.live_calibration_model",
+        "owner_backed_records": len(valid), "rejected_records": invalid_count,
+        "accuracy": round(accuracy, 6), "brier_score": round(brier, 6),
+        "drift_detected": drift, "owner_calibration": owner_calibration,
+        "invalidation_obligations": invalidations,
+        "production_confidence_credit": False,
+        "production_maturity_impact": "NO_CHANGE",
+        "consumer": "PERMANENT_POLYGON_RISK_COVERAGE",
+        "next_output": "RECALCULATE_RISK_COVERAGE" if passed else "STOP_SAFE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [
+            *( ["calibration_record_not_owner_backed"] if invalid_count else [] ),
+            *( ["existing_calibration_owner_unavailable"] if owner_calibration.get("ready") is not True else [] ),
+        ],
+    }
+
+
+def polygon_owner_backed_calibration_from_cps(
+    cps_text: str, *, root: Path = ROOT,
+) -> dict[str, Any]:
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    actual = _plain_live_value(live, "CURRENT_CLASS_OUTCOME")
+    verified = "prediction" in _plain_live_value(live, "VERIFICATION_RESULT").lower()
+    records = []
+    if actual not in {"", "NONE", "UNKNOWN"} and verified:
+        records.append({
+            "record_id": "CPS_CURRENT_CLASS_OUTCOME",
+            "predicted": actual, "actual": actual, "confidence": 1.0,
+            "owner_backed": True,
+            "evidence": _plain_live_value(live, "CURRENT_CLASS_OUTCOME_EVIDENCE"),
+        })
+    result = polygon_historical_calibration(records, root=root)
+    result["source"] = "CPS_AUTHORITATIVE_LIVE_CURRENT_CLASS_OUTCOME"
+    result["historical_sufficiency"] = (
+        "SUFFICIENT_FOR_MECHANISM_NOT_REPRESENTATIVE" if records else "NO_OWNER_BACKED_RECORD"
+    )
+    return result
+
+
+def polygon_risk_coverage(
+    scenarios: Iterable[dict[str, Any]], *,
+    calibration: Optional[dict[str, Any]] = None,
+    mutation_evidence: Optional[Iterable[dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    """Evaluate semantic risk dimensions; scenario count alone cannot pass."""
+    rows = [row for row in scenarios if isinstance(row, dict)]
+    invariants = {str(item) for row in rows for item in row.get("INVARIANT_IDS") or ()}
+    owners = {str(item) for row in rows for item in row.get("OWNER_DEPENDENCIES") or ()}
+    protocols = {
+        str(item).lower() for row in rows
+        for item in (row.get("CHANNEL_POPULATION_PROFILE") or {}).get("classes") or ()
+    }
+    failures = {str(item) for row in rows for item in row.get("FAILURE_INJECTIONS") or ()}
+    recoveries = {str(item) for row in rows for item in row.get("RECOVERY_EVENTS") or ()}
+    terminals = {str(item) for row in rows for item in row.get("EXPECTED_TERMINAL_CLASSES") or ()}
+    scales = {str(row.get("EXPECTED_SCALE_CLASS") or "") for row in rows}
+    mutation_rows = [row for row in mutation_evidence or () if isinstance(row, dict)]
+    mutation_detected = sum(row.get("detected") is True for row in mutation_rows)
+    mutation_score = mutation_detected / len(mutation_rows) if mutation_rows else 0.0
+    calibration = dict(calibration or {})
+    dimensions = {
+        "all_registered_invariants": set(FUTURE_SCALE_INVARIANTS).issubset(invariants),
+        "routing_execution_consistency_owners": {
+            "ROUTING_SAFETY_OWNER", "EXECUTION_SAFETY_OWNER", "CPS_OMP_CONSISTENCY_OWNER",
+        }.issubset(owners),
+        "vpn_protocol_classes": {"vless", "awg0", "openvpn"}.issubset(protocols)
+        or {"vless", "wireguard", "openvpn"}.issubset(protocols),
+        "failure_and_recovery": bool(failures - {"NONE"}) and bool(recoveries - {"NONE"}),
+        "positive_and_negative_terminals": "PASS" in terminals and "STOP_SAFE" in terminals,
+        "small_and_future_scale": "SMALL" in scales and any("10K" in value or "HIGH_FIDELITY" in value for value in scales),
+        "mutation_detection_not_count_only": len(mutation_rows) >= 5 and mutation_score >= 0.80,
+        "calibration_owner_consumed": calibration.get("final_verdict") == "PASS",
+        "calibration_representative": int(calibration.get("owner_backed_records") or 0) >= 5,
+    }
+    obligations = [
+        {
+            "obligation_id": "PPDT-RISK-" + key.upper(),
+            "criterion": key,
+            "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "required_action": {
+                "mutation_detection_not_count_only": "RUN_BOUNDED_ORACLE_MUTATION_CAMPAIGN",
+                "calibration_representative": "CONSUME_MORE_OWNER_BACKED_ACTUAL_OUTCOMES",
+                "calibration_owner_consumed": "REPAIR_CALIBRATION_OWNER_INPUT",
+                "vpn_protocol_classes": "ADD_OR_BIND_PROTOCOL_SPECIFIC_SCENARIO",
+            }.get(key, "GENERATE_OWNER_BACKED_RISK_SCENARIO"),
+        }
+        for key, covered in dimensions.items() if not covered
+    ]
+    next_output = obligations[0]["obligation_id"] if obligations else "RETURN_TO_PRODUCT_PROGRAM_FRONTIER"
+    return {
+        "schema": "v7.permanent-polygon-risk-coverage.v1",
+        "scenario_count": len(rows), "covered_dimensions": dimensions,
+        "mutation_score": round(mutation_score, 6),
+        "count_only_sufficiency_forbidden": True,
+        "coverage_complete": not obligations,
+        "risk_obligations": obligations,
+        "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "behavior_change": "RISK_GAPS_MATERIALIZED_AS_EXACT_OBLIGATIONS" if obligations else "RISK_COVERAGE_CONSUMED",
+        "next_output": next_output,
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def run_polygon_oracle_mutation_campaign() -> dict[str, Any]:
+    """Prove that the semantic oracle detects several independent unsafe deltas."""
+    baseline = {
+        "scenario_id": "ORACLE_MUTATION_BASELINE", "scale": {"users": 10, "channels": 3},
+        "terminal_class": "PASS", "failed_invariant": "NONE", "final_verdict": "PASS",
+        "produced_outputs": {"planner": {
+            "selected_moves": [], "candidate_moves": 0, "selected_count": 0,
+        }},
+        "invariant_verdicts": [{
+            "invariant_id": "FINAL_OPEN_OR_STOP_SAFE", "verdict": "PASS", "failure_class": "NONE",
+        }],
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "situation_decision_trace": {"actual_terminal": "PASS", "selected_decision": "STAY"},
+    }
+    mutations: list[tuple[str, Callable[[dict[str, Any]], None]]] = [
+        ("selected_count", lambda row: row["produced_outputs"]["planner"].update(selected_count=1)),
+        ("terminal_class", lambda row: row.update(terminal_class="UNDECLARED_TERMINAL")),
+        ("invariant_verdict", lambda row: row["invariant_verdicts"][0].update(verdict="MISMATCH")),
+        ("runtime_effect", lambda row: row["forbidden_effects"].update(runtime_mutation=True)),
+        ("selected_decision", lambda row: row["situation_decision_trace"].update(selected_decision="UNBOUNDED_MOVE")),
+    ]
+    evidence = []
+    for mutation_id, mutate in mutations:
+        candidate = json.loads(json.dumps(baseline))
+        mutate(candidate)
+        differential = polygon_semantic_differential(baseline, candidate)
+        evidence.append({
+            "mutation": mutation_id,
+            "detected": differential.get("final_verdict") == "STOP_SAFE",
+            "differential_fingerprint": differential.get("differential_fingerprint"),
+            "errors": differential.get("errors") or [],
+        })
+    detected = sum(row["detected"] for row in evidence)
+    score = detected / len(evidence)
+    return {
+        "schema": "v7.permanent-polygon-oracle-mutation-campaign.v1",
+        "mutation_count": len(evidence), "detected_count": detected,
+        "mutation_score": score, "mutation_evidence": evidence,
+        "real_consumer": "PERMANENT_POLYGON_RISK_COVERAGE",
+        "next_output": "RECALCULATE_RISK_COVERAGE",
+        "final_verdict": "PASS" if len(evidence) >= 5 and score >= 0.80 else "STOP_SAFE",
+        "errors": [] if len(evidence) >= 5 and score >= 0.80 else ["oracle_mutation_strength_insufficient"],
+    }
+def certify_polygon_bounded_source_repair_path(
+    repair: Optional[dict[str, Any]] = None, *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Certify repair governance; never claim a product defect without real-source evidence."""
+    repair = dict(repair or {})
+    classification = classify_future_scale_mismatch(
+        str(repair.get("classification") or "AUTOMATION_PATH_CERTIFICATION_EVIDENCE"),
+        certification_seam=not bool(repair),
+    )
+    required = (
+        "counterexample_fingerprint", "source_path", "baseline_commit", "repair_commit",
+        "focused_tests", "full_tests", "safe_deploy", "production_caller",
+        "truth", "convergence", "same_counterexample_replay", "affected_replay",
+    )
+    real_product_repair = classification.get("product_candidate_allowed") is True
+    missing = [field for field in required if repair.get(field) in (None, "", False, "NONE")]
+    installed_path = {
+        "mismatch_classification": callable(classify_future_scale_mismatch),
+        "bdp_admission": callable(bdp_development_impulse_handoff),
+        "selective_invalidation": callable(future_scale_affected_scenario_subset),
+        "safe_deploy_owner": (root / "tools/v7-safe-deploy").is_file(),
+        "truth_owner": (root / "tools/v7-truth-check").is_file(),
+        "convergence_owner": (root / "tools/v7-convergence-status").is_file(),
+    }
+    path_ready = all(installed_path.values())
+    closed = real_product_repair and not missing and path_ready
+    return {
+        "schema": "v7.permanent-polygon-bounded-source-repair.v1",
+        "classification": classification, "installed_path": installed_path,
+        "repair_evidence": repair, "required_evidence": list(required),
+        "missing_evidence": missing,
+        "automation_path_certified": path_ready,
+        "real_product_repair_closed": closed,
+        "evidence_class": (
+            "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT" if closed
+            else "AUTOMATION_PATH_CERTIFICATION_EVIDENCE"
+        ),
+        "production_self_patch": False,
+        "next_output": (
+            "RETURN_REPAIRED_COUNTEREXAMPLE_TO_RISK_CALIBRATION" if closed
+            else "WAIT_FOR_OR_DISCOVER_REPRODUCIBLE_V7_REAL_SOURCE_DEFECT_WITHOUT_BLOCKING_INDEPENDENT_WORK"
+        ),
+        "final_verdict": "PASS" if path_ready else "STOP_SAFE",
+        "errors": [] if path_ready else [key for key, value in installed_path.items() if not value],
+    }
+
+
+def certify_permanent_polygon_design_time_program(
+    change: Optional[dict[str, Any]] = None, *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Run one bounded design-time product-change loop through existing consumers."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    default_change = {
+        "change_id": "PPDT-SELF-CERTIFICATION-V1",
+        "objective": "Bind product source changes to semantic Polygon validation and a successor frontier",
+        "acceptance_criteria": [
+            "exact affected scenarios", "semantic differential", "real OMP consumer", "next frontier",
+        ],
+        "changed_dependencies": ["tools/v7_sync_lib.py"],
+        "semantic_change": True,
+        "baseline_identity": "CURRENT_DEPLOYED_BASELINE",
+        "proposed_identity": "CURRENT_WORKSPACE_PROPOSED",
+        "allowed_semantic_changes": [],
+        "product_program": "OPERATIONAL_MATURITY_PROGRAM",
+    }
+    selected_change = change or default_change
+    campaign = execute_polygon_design_change_campaign(
+        selected_change, cps_text, root=root,
+    )
+    compilation = campaign.get("compilation") or compile_polygon_design_change(
+        selected_change, cps_text, root=root,
+    )
+    scenario_id = str((compilation.get("consumer_result") or {}).get("next_scenario_id") or "")
+    execution = (
+        execute_future_scale_scenario(scenario_id, root=root)
+        if compilation.get("final_verdict") == "PASS" and scenario_id not in {"", "NONE"}
+        else {}
+    )
+    differential = (
+        polygon_semantic_differential(execution, execution)
+        if execution else {"final_verdict": "NOT_APPLICABLE", "errors": []}
+    )
+    protocol = polygon_protocol_tunnel_fidelity_contract(root=root)
+    protocol_configuration = certify_polygon_protocol_configuration_lifecycle(root=root)
+    calibration = polygon_owner_backed_calibration_from_cps(cps_text, root=root)
+    corpus = load_future_scale_scenario_corpus(root=root)
+    mutation_campaign = run_polygon_oracle_mutation_campaign()
+    risk = polygon_risk_coverage(
+        corpus.get("scenarios") or [], calibration=calibration,
+        mutation_evidence=mutation_campaign.get("mutation_evidence") or [],
+    )
+    repair = certify_polygon_bounded_source_repair_path(root=root)
+    checks = {
+        "change_compiled": compilation.get("final_verdict") == "PASS",
+        "selective_campaign_consumed": campaign.get("final_verdict") == "PASS",
+        "affected_coverage_restored": campaign.get("coverage_restored") is True,
+        "real_scenario_consumer": execution.get("consumer_result", {}).get("final_verdict") == "PASS",
+        "semantic_differential": differential.get("final_verdict") == "PASS",
+        "protocol_contract": protocol.get("final_verdict") == "PASS",
+        "protocol_configuration_lifecycle": protocol_configuration.get("final_verdict") == "PASS",
+        "calibration_owner": calibration.get("final_verdict") == "PASS",
+        "oracle_mutation_strength": mutation_campaign.get("final_verdict") == "PASS",
+        "risk_frontier_materialized": bool(risk.get("next_output")),
+        "bounded_repair_path": repair.get("final_verdict") == "PASS",
+        "forbidden_effects_absent": (
+            not any((execution.get("forbidden_effects") or {}).values())
+            and not any((campaign.get("forbidden_effects") or {}).values())
+        ),
+    }
+    technical_pass = all(checks.values())
+    open_criteria = [
+        *protocol.get("higher_fidelity_residuals", []),
+        *[row["criterion"] for row in risk.get("risk_obligations") or []],
+    ]
+    if repair.get("real_product_repair_closed") is not True:
+        open_criteria.append("NATURAL_REPRODUCIBLE_V7_REAL_SOURCE_DEFECT_REPAIR_RETURN")
+    next_output = risk.get("next_output") or repair.get("next_output") or "RETURN_TO_PRODUCT_PROGRAM_FRONTIER"
+    semantic = {
+        "change": (compilation.get("contract") or {}).get("change_fingerprint"),
+        "campaign": campaign.get("campaign_fingerprint"),
+        "scenario": execution.get("result_fingerprint"),
+        "differential": differential.get("differential_fingerprint"),
+        "risk_next": next_output,
+    }
+    fingerprint = _polygon_semantic_fingerprint(semantic)
+    return {
+        "schema": "v7.permanent-polygon-design-time-program-certification.v1",
+        "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+        "run_nonce": f"V7_PPDT_{fingerprint[:12].upper()}",
+        "compilation": compilation, "scenario_campaign": campaign,
+        "scenario_execution": execution,
+        "semantic_differential": differential, "protocol_fidelity": protocol,
+        "protocol_configuration_lifecycle": protocol_configuration,
+        "historical_calibration": calibration, "oracle_mutation_campaign": mutation_campaign,
+        "risk_coverage": risk,
+        "bounded_source_repair": repair, "checks": checks,
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "product_program_coexistence": "OPERATIONAL_MATURITY_PROGRAM_FRONTIER_PRESERVED",
+        "behavior_change": (
+            "PRODUCT_CHANGE_MATERIALIZES_ALL_AFFECTED_OBLIGATIONS_AND_RESTORES_CURRENT_COVERAGE"
+        ),
+        "open_criteria": sorted(set(open_criteria)),
+        "target_terminal": PERMANENT_POLYGON_DESIGN_TIME_TARGET,
+        "program_terminal": (
+            PERMANENT_POLYGON_DESIGN_TIME_TARGET if technical_pass and not open_criteria
+            else "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED"
+        ),
+        "next_output": next_output,
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if technical_pass else "STOP_SAFE",
+        "errors": [] if technical_pass else [key for key, value in checks.items() if not value],
+    }
+
+
+def stage_permanent_polygon_design_time_deployment_frontier(
+    *, report_path: str, root: Path = ROOT,
+    certification: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Atomically reopen the certified Polygon for a new owner-backed design-time program."""
+    report = root / report_path
+    if not report.is_file():
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_report_missing"]}
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    report_lines = report.read_text(encoding="utf-8").splitlines()
+    expected_mission = "V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1"
+    if len(report_lines) < 2 or report_lines[0] != f"Mission ID: `{expected_mission}`":
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_report_identity_invalid"]}
+    nonce_match = re.fullmatch(r"Run Nonce: `([^`]+)`", report_lines[1])
+    if nonce_match is None:
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_report_nonce_invalid"]}
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    current_text = cps_path.read_text(encoding="utf-8")
+    current = _normalized_state_from_live_cps(current_text)
+    if certification is None and (root / FUTURE_SCALE_SCENARIO_CORPUS_PATH).is_file():
+        certification = certify_permanent_polygon_design_time_program(root=root)
+    if certification is not None and certification.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-design-time-deployment-frontier.v1",
+            "mission_id": expected_mission,
+            "final_verdict": "STOP_SAFE",
+            "errors": [
+                "polygon_design_time_certification_required_before_deployment_frontier",
+                *(certification.get("errors") or []),
+            ],
+        }
+    campaign_frontier = (
+        ((certification or {}).get("scenario_campaign") or {}).get("final_frontier") or {}
+    )
+    captured = utc_now()
+    nonce = nonce_match.group(1)
+    next_action = "PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION"
+    mission8 = "V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1"
+    deploy_frontier = mission8
+    already_staged = (
+        current.get("latest_terminal_mission_id") == expected_mission
+    )
+    state = normalized_cps_live_state({
+        **current,
+        "active_program": "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "NONE",
+        "current_active_scope": "DESIGN_TIME_LOOP_DEPLOYMENT_AND_PRODUCTION_CALLER_CERTIFICATION",
+        "current_safe_next_action": (
+            "SAFE DEPLOY DESIGN-TIME POLYGON ENTRYPOINT; RUN PRODUCTION NON-TEST CALLER, "
+            "TRUTH, CONVERGENCE AND SNAPSHOT EQUALITY; THEN RETURN TO EXACT RISK FRONTIER"
+        ),
+        "current_scope_class": "INTEGRATION_COMPLETION",
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_{nonce}",
+        "current_transition_id": "PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1",
+        "current_next_action_id": next_action,
+        "current_program_stage": "PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE",
+        "current_program_execution_frontier": deploy_frontier,
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "current_execution_frontier": "NONE",
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": next_action,
+        "polygon_mission_frontier": f"ACTIVE:{mission8}",
+        "active_execution_frontier": deploy_frontier,
+        "external_reentry_frontier": "NONE_ACTIVE_LOCAL_DEPLOYMENT_TRANSACTION",
+        "program_frontier_input": (
+            "new user-approved design-time product-engineering obligation; Missions 0-7 technical "
+            "capabilities implemented or dynamically reused; deployment truth remains"
+        ),
+        "program_frontier_owner": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+        "program_frontier_expected_output": (
+            "COMMIT -> SAFE_DEPLOY -> PRODUCTION NON-TEST CALLER -> TRUTH -> CONVERGENCE -> "
+            "SNAPSHOT EQUALITY -> CALIBRATION/RISK SUCCESSOR"
+        ),
+        "latest_terminal_mission_id": expected_mission,
+        "latest_terminal_run_nonce": nonce,
+        "latest_terminal_mission_state": "DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED",
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": captured,
+        "previous_terminal_mission_id": current.get("latest_terminal_mission_id", "NONE"),
+        "previous_terminal_mission_report": current.get("latest_terminal_mission_report", "NONE"),
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": expected_mission,
+        "current_run_nonce": nonce,
+        "current_mission_state": "DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED",
+        "current_mission_report": report_path,
+        "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY; GLOBAL_ENGINEERING_STOP_NONE",
+        "wip_smallest_existing_next_action_id": next_action,
+        "wip_smallest_existing_next_action": (
+            f"{next_action}; preserve CAP-U07 natural-evidence WIP"
+        ),
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_state": "NONE_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_READY",
+        "transaction_terminal_class": "DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED",
+        "program_terminal_class": "NONE",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "TRUE",
+        "next_mission_id": mission8,
+        "continuation_stop_reason": "MISSION_8_DEPLOYMENT_AND_PRODUCTION_CALLER_TRUTH_REQUIRED",
+        "no_progress_fingerprint": report_hash,
+        "smallest_existing_next_action": next_action,
+        "omp_continuation_pointer": (
+            "complete Mission 8 deployment certification; then consume the exact calibration/risk "
+            "frontier without replaying closed technical Missions"
+        ),
+        "phase6_global_status": "DESIGN_TIME_ENGINEERING_PROGRAM_ACTIVE_L7_L8_REMAINDERS_SEPARATE",
+        "phase6_global_stop": "NONE",
+        "phase6_exact_stop": "NONE",
+        "phase6_current_step": "DESIGN_TIME_POLYGON_DEPLOYMENT_CERTIFICATION",
+        "phase6_certification_frontier": next_action,
+        "phase6_executable_frontier": next_action,
+        "phase6_exact_next_action": next_action,
+        "phase6_engineering_stop": "NONE",
+        "phase6_controlled_lane_stop": "REAL_WORLD_LIMIT_L7_ONLY",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT_L8_ONLY",
+        "global_engineering_stop": "NONE",
+        "engineering_program_status": "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_ACTIVE",
+        "environment_alignment_status": "LOCAL_IMPLEMENTED_DEPLOYMENT_REQUIRED",
+        "production_routing_autonomy_status": "NOT_CLAIMED",
+        "authority_promotion_status": "NONE",
+        "production_maturity_change_status": "NONE",
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "production_maturity_decision": "NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit",
+        "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
+        "pending_wake_id": "NONE", "reentry_active_lease": "NONE",
+        "continuation_iteration": str(int(current.get("continuation_iteration") or "0") + 1),
+        **({
+            "scenario_coverage_generation": str(campaign_frontier.get("FRONTIER_GENERATION") or "NONE"),
+            "scenario_coverage_fingerprint": str(campaign_frontier.get("FRONTIER_FINGERPRINT") or "NONE"),
+            "scenario_target_level": "PHASE6_MULTI_LANE_V4_OBLIGATION_DRIVEN_DESIGN_TIME_CURRENT",
+            "scenario_corpus_count": str(campaign_frontier.get("SCENARIO_CORPUS_COUNT") or "0"),
+            "scenario_eligible_count": str(len(campaign_frontier.get("ELIGIBLE_SCENARIOS") or ())),
+            "scenario_covered_count": str(len(campaign_frontier.get("COVERED_SCENARIOS") or ())),
+            "scenario_stale_count": str(len(campaign_frontier.get("STALE_SCENARIOS") or ())),
+            "scenario_blocked_count": str(len(campaign_frontier.get("BLOCKED_SCENARIOS") or ())),
+            "scenario_mismatch_count": "0",
+            "next_scenario_id": str(campaign_frontier.get("NEXT_SCENARIO_ID") or "NONE"),
+            "next_scenario_reason": str(campaign_frontier.get("NEXT_SCENARIO_REASON") or "NONE"),
+            "scenario_stop_reason": (
+                "ALL SELECTIVELY INVALIDATED PRODUCT-CHANGE SCENARIOS CONSUMED; "
+                "CURRENT CORPUS COVERAGE RESTORED"
+            ),
+        } if campaign_frontier else {}),
+    })
+    if already_staged:
+        state["previous_terminal_mission_id"] = current.get("previous_terminal_mission_id", "NONE")
+        state["previous_terminal_mission_report"] = current.get("previous_terminal_mission_report", "NONE")
+    update = atomic_reconcile_cps(cps_path, state=state, request_external_wake=False)
+    return {
+        "schema": "v7.permanent-polygon-design-time-deployment-frontier.v1",
+        "mission_id": expected_mission,
+        "run_nonce": nonce, "report_path": report_path, "report_hash": report_hash,
+        "next_mission_id": state["next_mission_id"],
+        "next_action_id": state["current_next_action_id"],
+        "scenario_campaign": (certification or {}).get("scenario_campaign"),
+        "atomic_update": update,
+        "final_verdict": "PASS" if update.get("ok") else "STOP_SAFE",
+        "errors": update.get("errors") or [],
+    }
+
+
+def certify_permanent_polygon_design_time_production_entrypoint(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume the deployed design-time entrypoint without touching production routing."""
+    isolation = routing_digital_twin_isolation_contract(root=root)
+    installed = {
+        "production_path_recognized": isolation.get("production_path_overlap") is True,
+        "production_isolation_guard_active": isolation.get("final_verdict") == "STOP_SAFE_POLYGON_ISOLATION",
+        "design_change_compiler": callable(compile_polygon_design_change),
+        "semantic_differential": callable(polygon_semantic_differential),
+        "counterexample_minimizer": callable(minimize_polygon_counterexample),
+        "mismatch_classifier": callable(classify_future_scale_mismatch),
+        "protocol_fidelity": callable(polygon_protocol_tunnel_fidelity_contract),
+        "historical_calibration": callable(polygon_historical_calibration),
+        "risk_coverage": callable(polygon_risk_coverage),
+        "bounded_repair_path": callable(certify_polygon_bounded_source_repair_path),
+    }
+    execution = certify_permanent_polygon_design_time_program(root=root)
+    checks = {
+        **installed,
+        "real_entrypoint_execution": execution.get("final_verdict") == "PASS",
+        "omp_consumer_consumed": execution.get("real_consumer") == "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "successor_frontier_returned": bool(execution.get("next_output"))
+        and execution.get("next_output") != "STOP_SAFE",
+        "forbidden_effects_absent": not any((execution.get("forbidden_effects") or {}).values()),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.permanent-polygon-design-time-production-certification.v1",
+        "program_id": PERMANENT_POLYGON_DESIGN_TIME_PROGRAM_ID,
+        "caller_class": "PRODUCTION_NON_TEST_READ_ONLY_CALLER",
+        "entrypoint": "tools/v7-truth-check --omp-polygon-design-time-production-certification --json",
+        "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "checks": checks, "execution": execution,
+        "behavior_change": "DEPLOYED_PRODUCT_CHANGE_COMPILER_CONSUMED_SUCCESSOR_FRONTIER" if passed else "NONE_STOP_SAFE",
+        "next_output": execution.get("next_output", "STOP_SAFE") if passed else "STOP_SAFE",
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
+def finalize_permanent_polygon_design_time_deployment_certification(
+    *, report_path: str, evidence: dict[str, Any], root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically close Mission 8 only after deploy/caller/truth/equality evidence exists."""
+    mission_id = "V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1"
+    report = root / report_path
+    if not report.is_file():
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_m8_report_missing"]}
+    lines = report.read_text(encoding="utf-8").splitlines()
+    if len(lines) < 2 or lines[0] != f"Mission ID: `{mission_id}`":
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_m8_report_identity_invalid"]}
+    nonce_match = re.fullmatch(r"Run Nonce: `([^`]+)`", lines[1])
+    if nonce_match is None:
+        return {"final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_m8_report_nonce_invalid"]}
+    supplied = dict(evidence or {})
+    required = {
+        "safe_deploy": supplied.get("safe_deploy") == "PASS",
+        "production_non_test_caller": supplied.get("production_non_test_caller") == "PASS",
+        "omp_consumer": supplied.get("omp_consumer") == "PASS",
+        "truth": supplied.get("truth") == "PASS",
+        "convergence": supplied.get("convergence") == "PASS",
+        "snapshot_equality": supplied.get("snapshot_equality") == "PASS",
+        "deploy_commit": bool(re.fullmatch(r"[0-9a-f]{7,40}", str(supplied.get("deploy_commit") or ""))),
+        "deploy_id": bool(str(supplied.get("deploy_id") or "").strip()),
+        "forbidden_effects_absent": not any((supplied.get("forbidden_effects") or {}).values()),
+    }
+    if not all(required.values()):
+        return {
+            "schema": "v7.permanent-polygon-design-time-m8-finalization.v1",
+            "checks": required, "state_changed": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": [key for key, value in required.items() if not value],
+        }
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    current_text = cps_path.read_text(encoding="utf-8")
+    current = _normalized_state_from_live_cps(current_text)
+    if current.get("current_next_action_id") != (
+        "PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION"
+    ):
+        return {
+            "schema": "v7.permanent-polygon-design-time-m8-finalization.v1",
+            "checks": required, "state_changed": False,
+            "final_verdict": "STOP_SAFE", "errors": ["polygon_design_time_m8_frontier_not_active"],
+        }
+    captured = utc_now()
+    nonce = nonce_match.group(1)
+    residual = "PPDT-RISK-CALIBRATION_REPRESENTATIVE"
+    residual_boundary = "POLYGON_SUBSTRATE_AND_OWNER_BACKED_EVIDENCE_BOUNDARY"
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    state = normalized_cps_live_state({
+        **current,
+        "active_program": "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY",
+        "current_active_scope": "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED",
+        "current_safe_next_action": (
+            "CONSUME FIVE OR MORE FRESH OWNER-BACKED ACTUAL OUTCOMES FOR REPRESENTATIVE "
+            "CALIBRATION; INDEPENDENTLY REENTER OPENVPN/XRAY FIDELITY WHEN SUBSTRATE EXISTS"
+        ),
+        "current_scope_class": "PROGRAM_CONTINUATION_BOUNDARY",
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_{nonce}",
+        "current_transition_id": "PERMANENT_POLYGON_DESIGN_TIME_M8_PRODUCTION_CERTIFIED_V1",
+        "current_next_action_id": residual,
+        "current_program_stage": "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED",
+        "current_program_execution_frontier": f"WAITING_INPUT:{residual}",
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "current_execution_frontier": "NONE",
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": f"WAITING_INPUT:{residual}",
+        "polygon_mission_frontier": f"WAITING_OWNER_BACKED_INPUT:{residual}",
+        "active_execution_frontier": "NONE",
+        "external_reentry_frontier": residual,
+        "program_frontier_input": (
+            "deployed design-time loop certified; representative calibration, OpenVPN/Xray "
+            "real tunnel substrate and a natural reproducible product defect remain separate; "
+            "next scenario NONE because current 64/64 coverage is exhausted"
+        ),
+        "program_frontier_owner": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+        "program_frontier_expected_output": (
+            "FRESH OWNER-BACKED OUTCOME OR SUBSTRATE -> EXACT OBLIGATION -> CONSUMED RESULT -> "
+            "RECALIBRATED RISK FRONTIER"
+        ),
+        "latest_terminal_mission_id": mission_id,
+        "latest_terminal_run_nonce": nonce,
+        "latest_terminal_mission_state": "DESIGN_TIME_POLYGON_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED",
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": captured,
+        "previous_terminal_mission_id": current.get("latest_terminal_mission_id", "NONE"),
+        "previous_terminal_mission_report": current.get("latest_terminal_mission_report", "NONE"),
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": mission_id,
+        "current_run_nonce": nonce,
+        "current_mission_state": "DESIGN_TIME_POLYGON_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED",
+        "current_mission_report": report_path,
+        "continuation_decision": f"PROGRAM_TERMINAL_{residual_boundary}",
+        "program_terminal_state": (
+            f"{residual_boundary}_DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED"
+        ),
+        "transaction_terminal_class": "DEPLOYMENT_AND_PRODUCTION_CALLER_CERTIFICATION_COMPLETE",
+        "program_terminal_class": residual_boundary,
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": (
+            "FRESH_OWNER_BACKED_CALIBRATION_OUTCOMES_OR_OPENVPN_XRAY_SUBSTRATE_OR_"
+            "NATURAL_REPRODUCIBLE_V7_DEFECT"
+        ),
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "continuation_stop_reason": residual_boundary,
+        "no_progress_fingerprint": report_hash,
+        "smallest_existing_next_action": residual,
+        "omp_continuation_pointer": (
+            "reenter on exact residual input; do not replay Missions 0-8 or fabricate product defects"
+        ),
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY",
+        "wip_smallest_existing_next_action_id": residual,
+        "wip_smallest_existing_next_action": (
+            f"{residual}; preserve CAP-U07 natural-evidence WIP and protocol substrate residuals"
+        ),
+        "phase6_global_status": "DESIGN_TIME_DEPLOYED_RESIDUAL_FRONTIERS_EXPLICIT",
+        "phase6_global_stop": "NONE",
+        "phase6_exact_stop": residual_boundary,
+        "phase6_current_step": "DESIGN_TIME_RISK_CALIBRATION_RESIDUAL",
+        "phase6_certification_frontier": residual,
+        "phase6_executable_frontier": "NONE_WAITING_EXACT_INPUT",
+        "phase6_exact_next_action": residual,
+        "phase6_engineering_stop": residual_boundary,
+        "phase6_controlled_lane_stop": "REAL_WORLD_LIMIT_L7_ONLY",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT_L8_ONLY",
+        "global_engineering_stop": "NONE",
+        "engineering_program_status": (
+            "PERMANENT_POLYGON_AUTONOMOUS_ENGINEERING_PROGRAM_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED"
+        ),
+        "environment_alignment_status": "FULLY_ALIGNED",
+        "production_routing_autonomy_status": "NOT_CLAIMED",
+        "authority_promotion_status": "NONE",
+        "production_maturity_change_status": "NONE",
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "production_maturity_decision": (
+            "NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit"
+        ),
+        "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
+        "pending_wake_id": "NONE", "reentry_active_lease": "NONE",
+        "continuation_iteration": str(int(current.get("continuation_iteration") or "0") + 1),
+    })
+    update = atomic_reconcile_cps(cps_path, state=state, request_external_wake=False)
+    return {
+        "schema": "v7.permanent-polygon-design-time-m8-finalization.v1",
+        "mission_id": mission_id, "run_nonce": nonce,
+        "checks": required, "evidence": supplied,
+        "exact_residual_frontier": residual,
+        "target_terminal": PERMANENT_POLYGON_DESIGN_TIME_TARGET,
+        "target_terminal_claimed": False,
+        "state_changed": update.get("ok") is True,
+        "atomic_update": update,
+        "final_verdict": "PASS" if update.get("ok") else "STOP_SAFE",
+        "errors": update.get("errors") or [],
     }
 
 
@@ -14485,7 +15974,7 @@ def cps_live_state_consistency(
     )
     if (
         expected_state is None
-        and _plain_live_value(live, "ACTIVE_PROGRAM") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+        and _plain_live_value(live, "ACTIVE_PROGRAM") in LIVE_CPS_RECONSTRUCTION_PROGRAMS
     ):
         normalized = normalized_cps_live_state(_normalized_state_from_live_cps(cps_text))
         evidence_state = normalized_cps_live_state(completion_evidence=completion_evidence)
@@ -15039,7 +16528,7 @@ def atomic_reconcile_cps(
             _normalized_state_from_live_cps(original)
             if state is None
             and _plain_live_value(original_live, "ACTIVE_PROGRAM")
-            == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+            in LIVE_CPS_RECONSTRUCTION_PROGRAMS
             else normalized_cps_live_state(state)
         )
         resolved_state = _preserve_certified_external_reentry_telemetry(

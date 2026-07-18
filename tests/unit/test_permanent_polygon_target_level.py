@@ -22,10 +22,14 @@ class PermanentPolygonTargetLevelTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        cls.target_state = cls.lib.permanent_polygon_target_level_terminal_state(
+            report="docs/reports/engineering/target-level-test.md", root=ROOT,
+        )
+        cls.target_cps = cls.lib.build_normalized_cps_document(cls.cps, cls.target_state)
 
     def test_target_terminal_rejects_stale_phase6_and_mission_frontiers(self):
-        live = self.lib._normalized_state_from_live_cps(self.cps)
-        rendered = self.lib.build_normalized_cps_document(self.cps, live)
+        live = self.target_state
+        rendered = self.target_cps
         stale = rendered.replace(
             "| `PHASE_6_CERTIFICATION_FRONTIER` | `NONE` |",
             "| `PHASE_6_CERTIFICATION_FRONTIER` | `STALE-CAP-U06` |",
@@ -103,7 +107,7 @@ class PermanentPolygonTargetLevelTest(unittest.TestCase):
 
     def test_program_terminal_suppresses_external_overlap(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
-            self.cps, "## 0. Authoritative Live Current State",
+            self.target_cps, "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
         result = self.lib._external_reentry_eligibility({

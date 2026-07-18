@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-18T16:01:52.314211+00:00
-Latest terminal Mission: `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1`
-Latest terminal Mission state: `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md`
+State captured: 2026-07-18T18:35:25+00:00
+Latest terminal Mission: `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1`
+Latest terminal Mission state: `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: Permanent Polygon target-level engineering validation is production-deployed, caller-consumed and aligned; production autonomy is not claimed.
 
@@ -13,13 +13,13 @@ Source: Permanent Polygon target-level engineering validation is production-depl
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-18T16:01:52.314211+00:00`
+Captured: `2026-07-18T18:35:25+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
-| `ACTIVE_PROGRAM` | `PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM` |
+| `ACTIVE_PROGRAM` | `PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM` |
 | `CURRENT_MODE` | `FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
@@ -28,35 +28,35 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` |
-| `CURRENT_ACTIVE_SCOPE` | `PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED` |
-| `CURRENT_SAFE_NEXT_ACTION` | `WAIT FOR A FRESH OWNER-BACKED L7/L8 OUTCOME OR A NEW OWNER-BACKED ENGINEERING OBLIGATION; DO NOT REPLAY CONSUMED CRITERIA` |
-| `CURRENT_SCOPE_CLASS` | `PROGRAM_COMPLETION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPOLY_M7_16AC4250675F` |
-| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS` |
-| `CURRENT_PROGRAM_STAGE` | `PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_ACTIVE_SCOPE` | `DESIGN_TIME_LOOP_DEPLOYMENT_AND_PRODUCTION_CALLER_CERTIFICATION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `SAFE DEPLOY DESIGN-TIME POLYGON ENTRYPOINT; RUN PRODUCTION NON-TEST CALLER, TRUTH, CONVERGENCE AND SNAPSHOT EQUALITY; THEN RETURN TO EXACT RISK FRONTIER` |
+| `CURRENT_SCOPE_CLASS` | `INTEGRATION_COMPLETION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPDT_M7_20260718T173004Z` |
+| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
+| `CURRENT_PROGRAM_STAGE` | `PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
 | `CURRENT_EXECUTION_FRONTIER` | `NONE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_REAL_WORLD_LIMIT` |
+| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED_L7_L8_REMAINDERS_SEPARATE` |
-| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `FRESH_OWNER_BACKED_L7_L8_OUTCOME_OR_NEW_ENGINEERING_OBLIGATION` |
-| `TRANSACTION_TERMINAL_CLASS` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `PROGRAM_TERMINAL_CLASS` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `NEXT_MISSION_FORMED` | `FALSE` |
-| `NEXT_MISSION_ID` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_READY` |
+| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE` |
+| `TRANSACTION_TERMINAL_CLASS` | `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `50` |
-| `CONTINUATION_STOP_REASON` | `TARGET_LEVEL_CERTIFIED; ONLY SEPARATE OWNER_BACKED L7_L8 REMAINDERS OR NEW INPUT CAN REOPEN` |
-| `NO_PROGRESS_FINGERPRINT` | `9bb5c1b7d067e12dbb2d0c612538280882c060db5c5ca9371cdd1f2d0ba40cd6` |
+| `CONTINUATION_ITERATION` | `54` |
+| `CONTINUATION_STOP_REASON` | `MISSION_8_DEPLOYMENT_AND_PRODUCTION_CALLER_TRUTH_REQUIRED` |
+| `NO_PROGRESS_FINGERPRINT` | `bc66c93406a3ade81a5d4fa3b7c9862297e4009144a08614770401a0d8ba1d6d` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `3` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -107,8 +107,8 @@ This section is the single live volatile current-state surface. Older production
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
 | `AEP_PHASE_6_STATUS` | `REAL_WORLD_LIMIT` |
 | `PHASE_6_CERTIFICATION_STATUS` | `ACTIVE_MULTI_LANE_CERTIFICATION; scenario, controlled, natural and Authority evidence remain non-interchangeable` |
-| `PHASE_6_CURRENT_STEP` | `TARGET_LEVEL_CERTIFIED_WAITING_FRESH_OWNER_BACKED_INPUT` |
-| `PHASE_6_CERTIFICATION_FRONTIER` | `NONE` |
+| `PHASE_6_CURRENT_STEP` | `DESIGN_TIME_POLYGON_DEPLOYMENT_CERTIFICATION` |
+| `PHASE_6_CERTIFICATION_FRONTIER` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
 | `PHASE_6_ACTIVE_ACTION_CLASS` | `single-user governed candidate failover` |
 | `PHASE_6_CURRENT_REAL_SITUATION` | `NONE; no fresh qualifying Candidate exists` |
 | `PHASE_6_CURRENT_CANDIDATE` | `NONE` |
@@ -125,12 +125,12 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6_CAPABILITY_ADVANCEMENT` | `NO_COMPLETION; CAP-U02/U05/U06/U07 wait for real evidence, CAP-U03/U04/U08/U09 remain dependency-blocked` |
 | `PHASE_6_PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; owner value remains 66.9/100 and Production Autonomy remains 0` |
 | `PHASE_6_PENDING_EXTERNAL_INPUT` | `new material owner-backed real outcome with a complete interpretation and Decision Trace/replay chain` |
-| `PHASE_6_EXACT_STOP` | `REAL_WORLD_LIMIT_L7_L8_ONLY` |
-| `PHASE_6_EXACT_NEXT_ACTION` | `NONE` |
+| `PHASE_6_EXACT_STOP` | `NONE` |
+| `PHASE_6_EXACT_NEXT_ACTION` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
 | `PHASE_6_REENTRY_CONDITIONS` | `FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION` |
 | `PHASE_7_UNLOCK_STATUS` | `ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE; PRODUCTION_AUTHORITY_EVOLUTION_LOCKED` |
 | `PHASE_6_STATUS` | `PHASE_6_PRODUCTION_CERTIFICATION_MULTI_LANE_ACTIVE` |
-| `PHASE_6_GLOBAL_STATUS` | `ENGINEERING_TARGET_LEVEL_CERTIFIED_L7_L8_REMAINDERS_SEPARATE` |
+| `PHASE_6_GLOBAL_STATUS` | `DESIGN_TIME_ENGINEERING_PROGRAM_ACTIVE_L7_L8_REMAINDERS_SEPARATE` |
 | `PHASE_6A_SCENARIO_STATUS` | `SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION; V1-V4 64/64 corpus covered` |
 | `PHASE_6A_SCENARIO_FRONTIER` | `NONE; no current owner-backed scenario obligation` |
 | `PHASE_6A_NEXT_SCENARIO_ID` | `NONE` |
@@ -142,13 +142,13 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6B_AUTHORITY_STATUS` | `CURRENT_POLICY_BOUNDED; NO_ACTION_SELECTED; NO_EXPANSION` |
 | `PHASE_6C_NATURAL_STATUS` | `WAITING_NATURAL_PRODUCTION_EVIDENCE` |
 | `PHASE_6C_NATURAL_REENTRY_CONDITION` | `new material non-synthetic natural outcome with complete situation, Decision Trace, feedback and learning chain` |
-| `PHASE_6_EXECUTABLE_FRONTIER` | `NONE` |
-| `PHASE_6_GLOBAL_STOP` | `REAL_WORLD_LIMIT` |
+| `PHASE_6_EXECUTABLE_FRONTIER` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
+| `PHASE_6_GLOBAL_STOP` | `NONE` |
 | `PHASE_7_ENGINEERING_EVOLUTION_STATUS` | `TARGET_LEVEL_CERTIFIED_WAITING_NEW_OWNER_BACKED_INPUT` |
 | `PHASE_7_PRODUCTION_AUTHORITY_STATUS` | `LOCKED_PENDING_QUALIFYING_REAL_WORLD_EVIDENCE` |
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
-| `CURRENT_COMPLETION_CONTRACT` | `PROGRAM_COMPLETION` |
+| `CURRENT_COMPLETION_CONTRACT` | `AUTOMATION_COMPLETION` |
 | `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
@@ -156,7 +156,7 @@ This section is the single live volatile current-state surface. Older production
 | `MANUAL_CONTINUE_OMP_FALLBACK` | `ACTIVE` |
 | `SCENARIO_COVERAGE_GENERATION` | `fssef_ba5b82b761463ac58dbf3d1c` |
 | `SCENARIO_COVERAGE_FINGERPRINT` | `ba5b82b761463ac58dbf3d1cf43ec3b144dfd5aa1aa0b8ed873f91f47278ee44` |
-| `SCENARIO_TARGET_LEVEL` | `PHASE6_MULTI_LANE_V4_OBLIGATION_DRIVEN` |
+| `SCENARIO_TARGET_LEVEL` | `PHASE6_MULTI_LANE_V4_OBLIGATION_DRIVEN_DESIGN_TIME_CURRENT` |
 | `SCENARIO_CORPUS_COUNT` | `64` |
 | `SCENARIO_ELIGIBLE_COUNT` | `0` |
 | `SCENARIO_COVERED_COUNT` | `64` |
@@ -172,29 +172,29 @@ This section is the single live volatile current-state surface. Older production
 | `ACTIVE_SCENARIO_CANDIDATE` | `NONE` |
 | `ACTIVE_SCENARIO_MISSION` | `NONE` |
 | `SCENARIO_BUDGET` | `10` |
-| `SCENARIO_STOP_REASON` | `ALL CURRENT OWNER-BACKED SCENARIO OBLIGATIONS COVERED` |
+| `SCENARIO_STOP_REASON` | `ALL SELECTIVELY INVALIDATED PRODUCT-CHANGE SCENARIOS CONSUMED; CURRENT CORPUS COVERAGE RESTORED` |
 | `FSSE_NEXT_ACTION` | `WAIT_FOR_FRESH_EXACT_CONTROLLED_WINDOW_OR_NEW_OWNER_BACKED_OBLIGATION` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_PPOLY_M7_16AC4250675F` |
-| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T16:01:52.314211+00:00` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_PPDT_M7_20260718T173004Z` |
+| `LATEST_TERMINAL_MISSION_STATE` | `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T18:35:25+00:00` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_PPOLY_M7_16AC4250675F` |
-| `CURRENT_MISSION_STATE` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` |
+| `CURRENT_MISSION_ID` | `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_PPDT_M7_20260718T173004Z` |
+| `CURRENT_MISSION_STATE` | `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -285,7 +285,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; no forced evidence generation or movement is authorized` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
@@ -303,20 +303,20 @@ This section is the single live volatile current-state surface. Older production
 | `DELEGATED_POLICY_STATE` | `APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN` |
 | `EXACT_REENTRY_TRIGGERS` | `FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION` |
 | `PRODUCTION_CAPABILITY_FRONTIER` | `NONE` |
-| `POLYGON_OBLIGATION_FRONTIER` | `NONE` |
-| `POLYGON_MISSION_FRONTIER` | `NONE_PROGRAM_TERMINAL` |
-| `ACTIVE_EXECUTION_FRONTIER` | `NONE` |
-| `EXTERNAL_REENTRY_FRONTIER` | `WAITING_FRESH_OWNER_BACKED_INPUT` |
-| `PHASE_6_ENGINEERING_STOP` | `TARGET_LEVEL_CERTIFIED` |
+| `POLYGON_OBLIGATION_FRONTIER` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
+| `POLYGON_MISSION_FRONTIER` | `ACTIVE:V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1` |
+| `ACTIVE_EXECUTION_FRONTIER` | `V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1` |
+| `EXTERNAL_REENTRY_FRONTIER` | `NONE_ACTIVE_LOCAL_DEPLOYMENT_TRANSACTION` |
+| `PHASE_6_ENGINEERING_STOP` | `NONE` |
 | `PHASE_6_CONTROLLED_LANE_STOP` | `REAL_WORLD_LIMIT_L7_ONLY` |
 | `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT_L8_ONLY` |
-| `GLOBAL_ENGINEERING_STOP` | `TARGET_LEVEL_CERTIFIED` |
-| `ENGINEERING_PROGRAM_STATUS` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `ENVIRONMENT_ALIGNMENT_STATUS` | `FULLY_ALIGNED` |
+| `GLOBAL_ENGINEERING_STOP` | `NONE` |
+| `ENGINEERING_PROGRAM_STATUS` | `PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_ACTIVE` |
+| `ENVIRONMENT_ALIGNMENT_STATUS` | `LOCAL_IMPLEMENTED_DEPLOYMENT_REQUIRED` |
 | `PRODUCTION_ROUTING_AUTONOMY_STATUS` | `NOT_CLAIMED` |
 | `AUTHORITY_PROMOTION_STATUS` | `NONE` |
 | `PRODUCTION_MATURITY_CHANGE_STATUS` | `NONE` |
-| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` |
+| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -328,7 +328,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-18T16:01:52.314211+00:00`
+Generated At: `2026-07-18T18:35:25+00:00`
 
 Runtime Authority: `NONE`
 
@@ -341,20 +341,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPOLY_M7_16AC4250675F` |
-| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPDT_M7_20260718T173004Z` |
+| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -362,8 +362,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | program terminal; reopen only for a fresh owner-backed L7/L8 outcome or new engineering obligation |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS` |
+| `OMP_CONTINUATION_POINTER` | complete Mission 8 deployment certification; then consume the exact calibration/risk frontier without replaying closed technical Missions |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -372,26 +372,26 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_PPOLY_M7_16AC4250675F` |
-| `current_transition_id` | `PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `smallest_existing_next_action_id` | `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS` |
+| `current_state_generation` | `cpsgen_V7_PPDT_M7_20260718T173004Z` |
+| `current_transition_id` | `PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1` |
+| `smallest_existing_next_action_id` | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
-| `latest_terminal_mission_state` | `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED` |
-| `previous_terminal_mission_id` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `latest_terminal_mission_id` | `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1` |
+| `latest_terminal_mission_state` | `DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `previous_terminal_mission_id` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` |
+| `current_primary_stop` | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY; GLOBAL_ENGINEERING_STOP_NONE` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `NO_INSIDE_APPROVED_POLICY` |
+| `authority_required_now` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation |
+| `smallest_existing_next_action` | PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION; preserve CAP-U07 natural-evidence WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -459,7 +459,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_V7_PPOLY_M7_16AC4250675F`; `PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS` | Action-class real-world evidence reentry; OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary |
+| `1` | `PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_PPDT_M7_20260718T173004Z`; `PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1` | new user-approved design-time product-engineering obligation; Missions 0-7 technical capabilities implemented or dynamically reused; deployment truth remains | `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION` | OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER | `NONE` | COMMIT -> SAFE_DEPLOY -> PRODUCTION NON-TEST CALLER -> TRUTH -> CONVERGENCE -> SNAPSHOT EQUALITY -> CALIBRATION/RISK SUCCESSOR |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -527,7 +527,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED`; current stop is `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.34`
+Version: `4.35`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` (`PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED`).
-Previous consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` (`PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED`).
+Latest consumed report: `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md` (`DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED`).
+Previous consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md` (`PERMANENT_POLYGON_PROACTIVE_MULTI_GENERATION_AUTONOMOUS_ENGINEERING_VALIDATION_TARGET_LEVEL_CERTIFIED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -49,6 +49,8 @@ V4.32 consumes the approved Routing Digital Twin Polygon Master Program through 
 V4.33 activates the certified Routing Digital Twin as the permanent Engineering Validation substrate consumed by OMP. Current unfinished capabilities, presently U02-U22, are only the first seed generation and never the permanent Polygon scope. After every bounded result, OMP derives the next owner-backed obligation from current capability gaps, new Missions, BDP Candidates and Intent Gaps, declared code/dependency/policy/owner changes, controlled or natural outcomes, action classes, product/topology/workload/scale changes, regressions, drift and bounded optimization targets. Capability-level dependency waits cannot hide independent criterion-level L1-L6 work. Each obligation carries minimum sufficient fidelity, source fingerprints, consumer, invalidation triggers, exact L7/L8 remainder and forbidden claims. Duplicate results are suppressed before re-execution; only declared dependencies are selectively invalidated. CPS remains the live frontier owner, BDP remains the gap/Candidate owner, existing component owners implement repairs, and normal safe-deploy/truth/convergence owners remain mandatory. The permanent Polygon creates no Runtime, Planner, owner, scheduler, queue, daemon, truth source, Authority or Production Maturity credit.
 
 V4.34 makes the permanent Polygon lifecycle executable across separate reentry turns. CPS owns criterion-generation records and compare-and-swap; OMP dispatches only explicit owner-backed executor mappings; `ACTIVE` begins only at executor entry; consumed results admit but never pre-start successors. Every successful external turn consumes its wake and materializes a distinct successor wake with monotonic timestamps. Source mismatch fails closed through the existing BDP Candidate and OMP repair admission path before returning to the same obligation. Independent criteria with available executors preempt a missing-adapter criterion; when none remain, the exact missing adapter becomes one deterministic BDP Candidate and admitted OMP repair Mission and can never fall through to an unrelated Phase6A path. Bounded soak, duplicate suppression, behavioral reachability and forbidden-effect checks remain mandatory. No new owner, planner, queue, scheduler, Runtime or truth source is created.
+
+V4.35 extends that same Permanent Polygon into the product design-time lifecycle. An owner-backed product objective or semantic source/policy/topology change is compiled through existing dependency bindings into exact affected Scenario obligations; baseline and proposed source snapshots execute through their native V7 owners and are compared by stable decisions, moves, terminals, invariant verdicts and forbidden effects. Reproducible mismatches are minimized and classified before BDP admission so Polygon model/harness/oracle/generator faults cannot become product repairs. Eligible V7 source repairs must return through tests, commit, `tools/v7-safe-deploy`, production non-test caller, truth/convergence and same/affected replay. Existing outcome/calibration owners feed risk coverage, and every coverage gap becomes an exact successor obligation. The Polygon and the product-development program therefore share one closed consumer loop; synthetic evidence grants no production confidence, Authority or Production Maturity credit, and no second Planner, Runtime, owner, scheduler, queue or truth source is created.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7835,8 +7837,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
-Resolved current next action: `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS`
+Resolved current stop: `NONE`
+Resolved current next action: `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8823,10 +8825,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
-Resolved current next action: `WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS`
-Latest consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md`
-Previous consumed report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md`
+Resolved current stop: `NONE`
+Resolved current next action: `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION`
+Latest consumed report: `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md`
+Previous consumed report: `docs/reports/engineering/2026-07-18_225207_permanent_polygon_target_level_final_certification.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

@@ -32,6 +32,19 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
             cls.cps,
             count=1,
         )
+        cls.fsse02_cps = re.sub(
+            r"(?m)^\| `SCENARIO_COVERED_COUNT` \| `[^`]+` \|$",
+            "| `SCENARIO_COVERED_COUNT` | `0` |", cls.fsse02_cps, count=1,
+        )
+        cls.fsse02_cps = re.sub(
+            r"(?m)^\| `SCENARIO_TARGET_LEVEL` \| `[^`]+` \|$",
+            "| `SCENARIO_TARGET_LEVEL` | `SAFETY_BASELINE_FOUNDATION_READY` |",
+            cls.fsse02_cps, count=1,
+        )
+        cls.fsse02_cps = re.sub(
+            r"(?m)^\| `LAST_SCENARIO_ID` \| `[^`]+` \|$",
+            "| `LAST_SCENARIO_ID` | `NONE` |", cls.fsse02_cps, count=1,
+        )
         cls.corpus = cls.lib.load_future_scale_scenario_corpus()
         cls.scenario = cls.corpus["scenarios"][0]
 
@@ -126,7 +139,13 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
 
     def test_16_stale_result_is_reselected(self):
         target = self.corpus["scenarios"][-1]
-        history = {target["SCENARIO_ID"]: {"result": "PASS", "scenario_fingerprint": "old"}}
+        history = {
+            row["SCENARIO_ID"]: {
+                "result": "PASS", "scenario_fingerprint": row["SCENARIO_FINGERPRINT"],
+            }
+            for row in self.corpus["scenarios"] if row["SCENARIO_ID"] != target["SCENARIO_ID"]
+        }
+        history[target["SCENARIO_ID"]] = {"result": "PASS", "scenario_fingerprint": "old"}
         result = self.lib.future_scale_scenario_frontier(self.fsse02_cps, result_history=history)
         self.assertEqual(result["NEXT_SCENARIO_ID"], target["SCENARIO_ID"])
 
@@ -184,7 +203,10 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertEqual(result["scenario_frontier"]["NEXT_SCENARIO_ID"], "NONE")
         self.assertEqual(
             result["executable_program_frontier"],
-            [],
+            [
+                "PHASE6_ENGINEERING:PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_"
+                "AND_PRODUCTION_CALLER_CERTIFICATION"
+            ],
         )
 
     def test_23_real_truth_check_entrypoint_exists(self):

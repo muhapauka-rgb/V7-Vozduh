@@ -24,15 +24,21 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-        cls.supply = cls.lib.permanent_polygon_obligation_supply(cls.cps, root=ROOT)
+        cls.target_state = cls.lib.permanent_polygon_target_level_terminal_state(
+            report="docs/reports/engineering/target-level-test.md", root=ROOT,
+        )
+        cls.target_cps = cls.lib.build_normalized_cps_document(cls.cps, cls.target_state)
+        cls.supply = cls.lib.permanent_polygon_obligation_supply(cls.target_cps, root=ROOT)
         cls.u06_obligation = next(
             row for row in cls.supply["obligations"]
             if row["criterion_id"] == cls.lib.PERMANENT_POLYGON_CAP_U06_CRITERION_ID
         )
         cls.u06_consumption = cls.lib.consume_permanent_polygon_obligation(
-            cls.u06_obligation, cps_text=cls.cps, root=ROOT,
+            cls.u06_obligation, cps_text=cls.target_cps, root=ROOT,
         )
-        cls.integration = cls.lib.execute_permanent_polygon_omp_integration(root=ROOT)
+        cls.integration = cls.lib.execute_permanent_polygon_omp_integration(
+            root=ROOT, cps_text=cls.target_cps,
+        )
 
     def test_generic_dispatch_executes_live_u06_owner_chain(self):
         first = self.u06_consumption
@@ -57,10 +63,9 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
         )
 
     def test_cps_registry_round_trip_and_legacy_migration(self):
-        record = self.integration["criterion_record"]
         rendered = self.lib.render_permanent_polygon_criterion_registry(
-            self.cps,
-            self.lib.merge_permanent_polygon_criterion_records(self.cps, [record]),
+            self.target_cps,
+            self.lib.merge_permanent_polygon_criterion_records(self.target_cps, []),
         )
         registry = self.lib.permanent_polygon_criterion_registry(rendered)
         self.assertEqual(registry["migration_state"], "DURABLE_REGISTRY_ACTIVE")

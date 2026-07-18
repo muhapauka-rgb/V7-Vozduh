@@ -37,13 +37,13 @@ class OmpDocumentIndexTest(unittest.TestCase):
     def test_live_dashboard_uses_authoritative_section_zero(self):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
-        self.assertEqual(operator["current_program"], "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM")
-        self.assertEqual(operator["current_step"], "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED")
-        self.assertEqual(operator["next_step"], "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS")
+        self.assertEqual(operator["current_program"], "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM")
+        self.assertEqual(operator["current_step"], "DESIGN_TIME_LOOP_DEPLOYMENT_AND_PRODUCTION_CALLER_CERTIFICATION")
+        self.assertEqual(operator["next_step"], "PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION")
         self.assertEqual(operator["next_scenario"], "NONE")
-        self.assertEqual(operator["current_stop"], "REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY")
-        self.assertEqual(operator["external_input_required"], "TRUE")
-        self.assertEqual(operator["omp_continuation_required"], "FALSE")
+        self.assertEqual(operator["current_stop"], "NONE")
+        self.assertEqual(operator["external_input_required"], "FALSE")
+        self.assertEqual(operator["omp_continuation_required"], "TRUE")
 
     def test_historical_dashboard_cannot_override_live_dashboard(self):
         response = self.admin_api.omp_dashboard_response()
@@ -55,8 +55,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_V7_PPOLY_M7_16AC4250675F")
-        self.assertEqual(response["current_transition_id"], "PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1")
+        self.assertEqual(response["current_state_generation"], "cpsgen_V7_PPDT_M7_20260718T173004Z")
+        self.assertEqual(response["current_transition_id"], "PERMANENT_POLYGON_DESIGN_TIME_M8_DEPLOYMENT_FRONTIER_V1")
 
     def test_polygon_master_program_has_no_volatile_activation_status(self):
         text = MASTER_PROGRAM.read_text(encoding="utf-8")

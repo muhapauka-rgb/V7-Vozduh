@@ -731,6 +731,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--omp-permanent-polygon-repair-return", action="store_true", help="Certify one isolated mismatch to BDP repair and same-obligation return cycle.")
     parser.add_argument("--omp-permanent-polygon-soak", action="store_true", help="Run the bounded 10-20 iteration no-mutation Permanent Polygon soak.")
     parser.add_argument("--permanent-polygon-soak-iterations", type=int, default=12)
+    parser.add_argument("--omp-polygon-design-time", action="store_true", help="Compile and consume one bounded product design/source change through the Permanent Polygon.")
+    parser.add_argument("--omp-polygon-design-time-stage-deploy", action="store_true", help="Atomically stage the design-time Polygon deployment-certification frontier in CPS.")
+    parser.add_argument("--omp-polygon-design-time-production-certification", action="store_true", help="Run the deployed design-time Polygon through a production non-test read-only caller.")
+    parser.add_argument("--polygon-change-json", default="", help="Inline JSON object or repository-relative JSON file for --omp-polygon-design-time.")
     parser.add_argument("--omp-high-fidelity-batch", action="store_true", help="Run one bounded FSSE-03 high-fidelity corpus batch through the existing scenario owner.")
     parser.add_argument("--scenario-budget", type=int, default=sync_lib.FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS, help="Bounded scenario count for FSSE-03 batch execution.")
     parser.add_argument("--high-fidelity-scenario", action="append", default=None, help="Select an exact scenario for a bounded FSSE-03 batch; repeat for more than one.")
@@ -756,6 +760,61 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_polygon_design_time_production_certification:
+        certification_root = Path("/opt/v7") if ROOT_DIR == Path("/usr/local") else ROOT_DIR
+        result = sync_lib.certify_permanent_polygon_design_time_production_entrypoint(
+            root=certification_root,
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"polygon_design_time_production_certification={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_polygon_design_time_stage_deploy:
+        if not args.mission_report:
+            result = {"final_verdict": "STOP_SAFE", "errors": ["mission_report_required"]}
+        else:
+            result = sync_lib.stage_permanent_polygon_design_time_deployment_frontier(
+                report_path=args.mission_report, root=ROOT_DIR,
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"polygon_design_time_stage_deploy={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_action={result.get('next_action_id', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_polygon_design_time:
+        change = None
+        if args.polygon_change_json:
+            candidate = Path(args.polygon_change_json)
+            try:
+                if candidate.is_absolute():
+                    raise ValueError("absolute_change_path_forbidden")
+                change = (
+                    json.loads((ROOT_DIR / candidate).read_text(encoding="utf-8"))
+                    if (ROOT_DIR / candidate).is_file()
+                    else json.loads(args.polygon_change_json)
+                )
+                if not isinstance(change, dict):
+                    raise ValueError("change_json_not_object")
+            except (OSError, ValueError) as exc:
+                result = {
+                    "schema": "v7.permanent-polygon-design-time-program-certification.v1",
+                    "final_verdict": "STOP_SAFE", "errors": [f"polygon_change_json_invalid:{exc}"],
+                }
+                print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) if args.json else "polygon_design_time=STOP_SAFE")
+                return 2
+        result = sync_lib.certify_permanent_polygon_design_time_program(
+            change, root=fsse_scenario_root(),
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"polygon_design_time={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"terminal={result.get('program_terminal', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_permanent_polygon_soak:
         result = sync_lib.run_permanent_polygon_bounded_soak(
             root=fsse_scenario_root(), iteration_budget=args.permanent_polygon_soak_iterations,

@@ -40,7 +40,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("cps_wip_global_context_divergence", self.validate(drift)["errors"])
 
     def test_03_operational_authority_with_authority_required_no_fails(self):
-        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |", "| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |", 1)
+        drift = self.cps.replace("| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY; no recommendation ready and no current action` |", "| `AUTHORITY_REQUIRED_NOW` | `YES_OUTSIDE_ACTIVE_POLICY` |", 1)
         self.assertIn("delegated_policy_live_operational_authority_required", self.delegated_validate(drift)["contradiction_ids"])
 
     def test_04_binding_certified_with_unresolved_cap_u01_drift_fails(self):
@@ -74,7 +74,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_08_active_wip_next_action_context_drift_fails(self):
         drift = self.cps.replace(
-            "| `smallest_existing_next_action` | WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome |",
+            "| `smallest_existing_next_action` | WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME; preserve CAP-U07 protected WIP |",
             "| `smallest_existing_next_action` | diagnose binding owner |",
             1,
         )
@@ -280,15 +280,15 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES")
-        self.assertIn("new material outcome", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
+        self.assertEqual(registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID"].strip("`"), "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME")
+        self.assertIn("WAIT_FOR_FRESH_QUALIFYING", registry["EXACT_CURRENT_SMALLEST_NEXT_ACTION"])
 
     def test_35_registry_continuation_pointer_is_exact_external_reentry(self):
         registry = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "### Registry Metadata And Truth Lifecycle", "### Active Protected Work In Progress"
         ))
-        self.assertIn("fresh controlled window", registry["OMP_CONTINUATION_POINTER"])
-        self.assertIn("natural outcome", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("exact owner-backed trigger", registry["OMP_CONTINUATION_POINTER"])
+        self.assertIn("stale scenario fields cannot reenter", registry["OMP_CONTINUATION_POINTER"])
 
     def test_36_wip_real_world_wait_is_lane_local(self):
         wip = self.lib._markdown_field_table(self.lib._markdown_section(
@@ -315,7 +315,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_41_sequence_head_binds_scenario_and_execution_class(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))
-        self.assertIn("WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES", row)
+        self.assertIn("WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME", row)
         self.assertIn("EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER", row)
         self.assertIn("| `REAL_WORLD_LIMIT` |", row)
 

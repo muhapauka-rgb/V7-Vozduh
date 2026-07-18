@@ -284,10 +284,10 @@ class AepPhase3AcceptanceAndPhase4ConsumptionTest(unittest.TestCase):
     def test_29_engineering_intent_requires_real_consumer_confirmation(self):
         self.assertFalse(self.reconcile(locked=True, implemented=True)["aep_phase4_consumed"])
 
-    def test_30_next_omp_action_is_next_generation_fsse_when_external_reentry_is_deferred(self):
+    def test_30_exhausted_fsse_has_no_synthetic_next_generation(self):
         self.assertEqual(
             self.reconcile(locked=True, implemented=True)["executable_program_frontier"],
-            ["V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1"],
+            ["SCENARIO_FRONTIER_EXHAUSTED"],
         )
 
     def test_31_real_consumer_proof_opens_phase5(self):

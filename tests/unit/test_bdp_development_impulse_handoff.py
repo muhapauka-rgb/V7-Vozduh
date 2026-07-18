@@ -170,8 +170,8 @@ class BdpDevelopmentImpulseHandoffTest(unittest.TestCase):
     def test_self_continuation_program_frontier_preempts_capability_bdp(self):
         result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["bdp_development_impulse_status"], "NOT_EVALUATED_PROGRAM_FRONTIER_PREEMPTS_CAPABILITY_GRAPH")
-        self.assertEqual(result["bdp_admission_decision"], "NONE")
+        self.assertEqual(result["bdp_development_impulse_status"], "NO_ACTION_REQUIRED")
+        self.assertEqual(result["bdp_admission_decision"], "MISSION_NOT_APPLICABLE")
         self.assertGreaterEqual(result["bdp_real_world_limit_intents_preserved"], 1)
 
 

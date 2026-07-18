@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.30`
+Version: `4.31`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`).
-Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md` (`PHASE6A_CURRENT_GENERATION_CERTIFIED_AND_NEXT_OBLIGATION_FRONTIER_MATERIALIZED`).
+Latest consumed report: `docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md` (`CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED`).
+Previous consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md` (`COMPREHENSIVE_ENGINEERING_EVOLUTION_ADVANCED_TO_EXACT_AUTHORITY_OR_REALITY_BOUNDARY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -41,6 +41,8 @@ V4.26 adds Future-Scale Scenario Engineering to the existing Engineering Polygon
 V4.29 corrects Phase 6 terminal semantics inside the existing Program Execution Reconciliation owner. Natural-production evidence wait is lane-local and cannot block independent Phase 6A scenario/future-scale work, Phase 6B controlled-production preparation where safe, or Phase 7 engineering continuous evolution. Evidence classes are criterion-specific and non-interchangeable. Production Authority evolution remains locked; no production action is selected or authorized by this correction.
 
 V4.30 extends the existing Phase 6A FSSE/OMP consumer with owner-backed obligation generations. A generation closes only under its exact source/dependency fingerprints; the next generation is derived from still-uncertified scenario-safe capability criteria, consumed in deterministic obligation order, and remains Engineering Evidence only. Intermediate CPS transitions inside one bounded serial continuation defer external wake creation until the invocation frontier is stable, preventing external reentry from consuming a mixed generation. No Runtime, routing, user, Authority or Production Maturity effect is granted.
+
+V4.31 makes the existing action-class owner separation machine-checkable in CPS. Engineering/scenario readiness, class-promotion certification, Authority recommendation, granted Authority, policy mutation and Runtime enablement are distinct states. Exhausted scenario projections cannot remain a live execution frontier, reports cannot become Authority truth, and an approve/reject question is legal only after current real-world evidence makes a durable exact recommendation ready. Otherwise OMP retains `GOVERNED_ONLY`, stops at `REAL_WORLD_LIMIT` and reenters only on a fresh qualifying controlled/natural outcome or a new owner-backed obligation.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7828,7 +7830,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
+Resolved current next action: `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8816,9 +8818,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES`
-Latest consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md`
-Previous consumed report: `docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md`
+Resolved current next action: `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME`
+Latest consumed report: `docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md`
+Previous consumed report: `docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

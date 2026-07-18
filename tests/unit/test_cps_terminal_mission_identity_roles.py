@@ -24,9 +24,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.latest = "V7_AEP_PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_ACTIVATION_V1"
-        cls.previous = "V7_OMP_FULL_INDEPENDENT_BACKGROUND_AUTOMATION_AND_FSSE04_PRODUCTION_CLOSURE_V1"
+        cls.latest = "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1"
+        cls.previous = "V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1"
         cls.transition = "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3"
+        cls.report_path = "docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md"
+        cls.run_nonce = "authority_20260718T005053_6f1a"
 
     def validate(self, cps=None, omp=None, root=ROOT):
         return self.lib.mission_role_consistency(
@@ -42,7 +44,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
     def temp_root_with_report(self, first, second):
         tmp = tempfile.TemporaryDirectory()
         root = Path(tmp.name)
-        report = root / "docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md"
+        report = root / self.report_path
         report.parent.mkdir(parents=True)
         report.write_text(f"{first}\n{second}\n", encoding="utf-8")
         return tmp, root
@@ -80,11 +82,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertEqual(self.validate(drift)["cps_header_identity_consistency"], "FAIL")
 
     def test_09_header_timestamp_predates_latest_start_fails(self):
-        drift = self.cps.replace("State captured: 2026-07-17T02:07:57.163357+00:00", "State captured: 2026-07-12T02:00:00+0700", 1)
+        drift = self.cps.replace("State captured: 2026-07-17T18:02:21+00:00", "State captured: 2026-07-12T02:00:00+0700", 1)
         self.assertEqual(self.validate(drift)["mission_timestamp_consistency"], "FAIL")
 
     def test_10_latest_report_header_id_mismatch_fails(self):
-        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", "Run Nonce: `V7_PHASE6_MULTI_LANE_A1DD11DE3AD3`")
+        tmp, root = self.temp_root_with_report("Mission ID: `OLD`", f"Run Nonce: `{self.run_nonce}`")
         try:
             self.assertIn("latest_terminal_report_mission_id_mismatch", self.validate(root=root)["mission_identity_contradiction_ids"])
         finally:
@@ -98,7 +100,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
             tmp.cleanup()
 
     def test_12_omp_latest_closure_pointer_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace(self.report_path, "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(omp=drift)["mission_report_pointer_consistency"], "FAIL")
 
     def test_13_omp_transition_input_pointer_mismatch_fails(self):
@@ -129,8 +131,8 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
 
     def test_19_operational_state_is_production_certified(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"))
-        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "NONE")
-        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION")
+        self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "REAL_WORLD_LIMIT")
+        self.assertEqual(live["CURRENT_ACTIVE_SCOPE"].strip("`"), "CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION")
         self.assertEqual(live["CURRENT_ACTION_CLASS_STATE"].strip("`"), "GOVERNED_ONLY")
 
     def test_20_no_candidate_packet_lease_barrier_apply_or_movement(self):
@@ -145,10 +147,10 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertIn("`CAP-U01`", result["cap_u01"])
         self.assertIn("`COMPLETE`", result["cap_u01"])
         self.assertIn("`CAP-U07`", result["active_capability"])
-        self.assertIn("`PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE`", result["sequence_position_1"])
+        self.assertIn("Action-class real-world evidence reentry", result["sequence_position_1"])
 
     def test_22_current_stop_is_live_reality_only(self):
-        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "NONE")
+        self.assertEqual(self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)["current_stop"], "REAL_WORLD_LIMIT")
 
     def test_23_omp_historical_isolation_remains_pass(self):
         self.assertEqual(self.lib.omp_live_state_consistency(self.cps, self.omp)["omp_historical_isolation"], "PASS")

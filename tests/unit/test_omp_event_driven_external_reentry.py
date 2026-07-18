@@ -61,6 +61,11 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             "current_next_action_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
             "current_safe_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
             "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "smallest_existing_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "wip_smallest_existing_next_action_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+            "wip_smallest_existing_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION; preserve CAP-U07 protected WIP",
+            "sequence_execution_class": "Phase 6A test scenario reentry",
+            "sequence_expected_output": "scenario result -> consumer -> next frontier",
             "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
             "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
             "program_terminal_state": "NONE_MULTI_LANE_FRONTIER_ACTIVE",
@@ -221,6 +226,8 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
                 "current_next_action_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
                 "current_safe_next_action": "EXECUTE PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
                 "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+                "wip_smallest_existing_next_action_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
+                "wip_smallest_existing_next_action": "EXECUTE PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY; preserve CAP-U07 protected WIP",
             })
             update = self.lib.atomic_reconcile_cps(
                 cps_path, state=state, request_external_wake=False,

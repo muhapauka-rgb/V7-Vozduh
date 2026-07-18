@@ -89,6 +89,12 @@ NORMALIZED_CPS_LIVE_STATE = {
     "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
     "current_action_class": "single-user governed candidate failover",
     "current_action_class_state": "GOVERNED_ONLY",
+    "action_class_certification_state": "REVALIDATION_REQUIRED",
+    "authority_recommendation_state": "AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+    "action_class_authority_state": "CURRENT_POLICY_BOUNDED_ONLY; CLASS_AUTHORITY_NOT_GRANTED; BOUNDED_AUTONOMY_NOT_GRANTED",
+    "authority_owner_verdict": "AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+    "delegated_policy_state": "APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN",
+    "exact_reentry_triggers": "FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME; NEW_OWNER_BACKED_OBLIGATION",
     "old_packets_reusable": "NO",
     "active_wip": "CAP-U07-LEARNING",
     "active_capability_id": "CAP-U07",
@@ -204,6 +210,12 @@ NORMALIZED_CPS_LIVE_STATE = {
     "aep_phase5_status": "COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES",
     "aep_phase6_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
     "phase6_global_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
+    "phase6_certification_status": "ACTIVE_MULTI_LANE_CERTIFICATION; evidence classes remain non-interchangeable",
+    "phase6_current_step": "PHASE_6A_SCENARIO_AND_FUTURE_SCALE_CERTIFICATION",
+    "phase6_certification_frontier": "PHASE6A_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+    "phase6_exact_stop": "NONE",
+    "phase6_exact_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+    "phase6_reentry_conditions": "fresh controlled window; new material natural outcome; new owner-backed obligation",
     "phase6a_scenario_status": "ACTIVE; PHASE6_MULTI_LANE_V1 6/6 CERTIFIED; PHASE6_MULTI_LANE_V2 1/6 consumed",
     "phase6a_scenario_frontier": "5 uncovered PHASE6_MULTI_LANE_V2 obligations",
     "phase6a_next_scenario_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
@@ -321,6 +333,78 @@ NORMALIZED_CPS_LIVE_STATE.update({
     "reentry_last_trigger_id": "8b56771e76ad9c311bbfaaafb6ea6674c6f61470a32e8311e59db8b9c33a057f",
     "reentry_last_trigger_at": "2026-07-17T17:00:59.273398+00:00",
     "reentry_last_invocation_id": "ompre_a5d5c35a6ce661715a66a840",
+})
+
+# Canonical projection after CPS semantic reconciliation and Authority decision.
+NORMALIZED_CPS_LIVE_STATE.update({
+    "state_captured": "2026-07-17T18:02:21+00:00",
+    "current_stop_condition": "REAL_WORLD_LIMIT",
+    "current_active_scope": "CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION",
+    "current_safe_next_action": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+    "current_scope_class": "INTEGRATION_COMPLETION",
+    "current_state_generation": "cpsgen_AUTHORITY_B681B2D50C27",
+    "current_transition_id": "CPS_SEMANTICS_AND_ACTION_CLASS_AUTHORITY_DECISION_RECONCILED_V1",
+    "current_next_action_id": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+    "current_program_execution_frontier": "NONE",
+    "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+    "program_terminal_state": "REAL_WORLD_LIMIT_CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+    "smallest_existing_next_action": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+    "omp_continuation_pointer": "Reenter only on one exact owner-backed trigger; stale scenario fields cannot reenter",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+    "wip_smallest_existing_next_action_id": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+    "wip_smallest_existing_next_action": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME; preserve CAP-U07 protected WIP",
+    "sequence_execution_class": "Action-class real-world evidence reentry",
+    "sequence_expected_output": "fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary",
+    "omp_continuation_required": "FALSE",
+    "external_input_required": "TRUE",
+    "external_input_type": "FRESH_QUALIFYING_CONTROLLED_WINDOW_OR_NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION",
+    "next_mission_formed": "FALSE", "next_mission_id": "NONE",
+    "continuation_stop_reason": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+    "no_progress_fingerprint": "b681b2d50c2708536b9d8a5b3db260e6b04bedc2f4eb54f9e4a24a53abc9dc63",
+    "current_action_class_state": "GOVERNED_ONLY",
+    "action_class_certification_state": "REVALIDATION_REQUIRED",
+    "authority_recommendation_state": "AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+    "action_class_authority_state": "CURRENT_POLICY_BOUNDED_ONLY; CLASS_AUTHORITY_NOT_GRANTED; BOUNDED_AUTONOMY_NOT_GRANTED",
+    "authority_owner_verdict": "AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+    "delegated_policy_state": "APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN",
+    "exact_reentry_triggers": "FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION",
+    "action_class_promotion_evaluation": "EVALUATED; AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+    "action_class_exact_missing_delta": "complete outcome-linked production Decision Trace and deterministic replay; representative current-class rollback and no-rollback evidence; materially varied closed outcomes consumed by representative Learning; fresh qualifying controlled or natural evidence",
+    "class_approval_ready": "NO; certification readiness is not recommendation readiness and Authority is not granted",
+    "authority_required_now": "NO_INSIDE_APPROVED_POLICY; no recommendation ready and no current action",
+    "phase6_certification_status": "ACTIVE_MULTI_LANE_CERTIFICATION; scenario, controlled, natural and Authority evidence remain non-interchangeable",
+    "phase6_current_step": "PHASE_6_REAL_WORLD_EVIDENCE_WAIT",
+    "phase6_certification_frontier": "NONE; PHASE_6A V1-V4 64/64 EXHAUSTED",
+    "phase6_exact_stop": "REAL_WORLD_LIMIT",
+    "phase6_exact_next_action": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+    "phase6_reentry_conditions": "FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION",
+    "phase6_global_status": "LANES_EXHAUSTED_WAITING_QUALIFYING_REAL_WORLD_EVIDENCE",
+    "phase6a_scenario_status": "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION; V1-V4 64/64 corpus covered",
+    "phase6a_scenario_frontier": "NONE; no current owner-backed scenario obligation",
+    "phase6a_next_scenario_id": "NONE",
+    "phase6a_next_action": "REENTER_ONLY_ON_NEW_OWNER_BACKED_OBLIGATION",
+    "phase6b_controlled_status": "CONTROLLED_PRODUCTION_READY_WHERE_SAFE; CLASS_RECOMMENDATION_NOT_READY; no Candidate, Packet or lease",
+    "phase6c_natural_status": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
+    "phase6_executable_frontier": "NONE", "phase6_global_stop": "REAL_WORLD_LIMIT",
+    "phase7_engineering_evolution_status": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE_ON_NEW_OBLIGATION",
+    "phase7_production_authority_status": "LOCKED_PENDING_QUALIFYING_REAL_WORLD_EVIDENCE",
+    "current_completion_contract": "INTEGRATION_COMPLETION",
+    "current_completion_verdict": "COMPLETE_CONSUMED",
+    "latest_terminal_mission_id": "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1",
+    "latest_terminal_run_nonce": "authority_20260718T005053_6f1a",
+    "latest_terminal_mission_state": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md",
+    "latest_terminal_mission_started_at": "2026-07-17T17:57:40+00:00",
+    "previous_terminal_mission_id": "V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_000059_comprehensive_phase6_phase7_autonomous_evolution_campaign.md",
+    "current_mission_id": "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1",
+    "current_run_nonce": "authority_20260718T005053_6f1a",
+    "current_mission_state": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+    "current_mission_report": "docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md",
+    "source_summary": "OMP reconciled CPS live semantics and produced an exact no-change Authority decision at the real-world boundary.",
+    "automatic_continue_omp_result": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+    "production_maturity_decision": "NO_CHANGE; 66.9/100; no qualifying maturity evidence",
+    "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
 })
 
 
@@ -888,6 +972,22 @@ def _replace_section_field(text: str, start: str, end: str, key: str, value: str
     return text.replace(section, updated, 1)
 
 
+def _upsert_section_field(text: str, start: str, end: str, key: str, value: str) -> str:
+    """Replace one canonical field or append a newly introduced owner field."""
+    section = _markdown_section(text, start, end)
+    if not section:
+        raise ValueError(f"section_missing:{start}")
+    prefix = f"| `{key}` |"
+    matches = [line for line in section.splitlines() if line.startswith(prefix)]
+    if len(matches) > 1:
+        raise ValueError(f"field_duplicate:{key}")
+    if matches:
+        updated = section.replace(matches[0], f"| `{key}` | {value} |", 1)
+    else:
+        updated = section.rstrip() + f"\n| `{key}` | {value} |\n\n"
+    return text.replace(section, updated, 1)
+
+
 def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]] = None) -> str:
     """Build all CPS live projections from one normalized terminal result."""
     state = normalized_cps_live_state(
@@ -1062,6 +1162,12 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "AEP_PHASE_4_STATUS": f"`{state['aep_phase4_status']}`",
         "AEP_PHASE_5_STATUS": f"`{state['aep_phase5_status']}`",
         "AEP_PHASE_6_STATUS": f"`{state['aep_phase6_status']}`",
+        "PHASE_6_CERTIFICATION_STATUS": f"`{state['phase6_certification_status']}`",
+        "PHASE_6_CURRENT_STEP": f"`{state['phase6_current_step']}`",
+        "PHASE_6_CERTIFICATION_FRONTIER": f"`{state['phase6_certification_frontier']}`",
+        "PHASE_6_EXACT_STOP": f"`{state['phase6_exact_stop']}`",
+        "PHASE_6_EXACT_NEXT_ACTION": f"`{state['phase6_exact_next_action']}`",
+        "PHASE_6_REENTRY_CONDITIONS": f"`{state['phase6_reentry_conditions']}`",
         "PHASE_6_GLOBAL_STATUS": f"`{state['phase6_global_status']}`",
         "PHASE_6A_SCENARIO_STATUS": f"`{state['phase6a_scenario_status']}`",
         "PHASE_6A_SCENARIO_FRONTIER": f"`{state['phase6a_scenario_frontier']}`",
@@ -1103,6 +1209,23 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     }
     for key, value in live_values.items():
         cps_text = _replace_section_field(
+            cps_text,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            key,
+            value,
+        )
+
+    semantic_live_values = {
+        "ACTION_CLASS_CERTIFICATION_STATE": f"`{state['action_class_certification_state']}`",
+        "AUTHORITY_RECOMMENDATION_STATE": f"`{state['authority_recommendation_state']}`",
+        "ACTION_CLASS_AUTHORITY_STATE": f"`{state['action_class_authority_state']}`",
+        "AUTHORITY_OWNER_VERDICT": f"`{state['authority_owner_verdict']}`",
+        "DELEGATED_POLICY_STATE": f"`{state['delegated_policy_state']}`",
+        "EXACT_REENTRY_TRIGGERS": f"`{state['exact_reentry_triggers']}`",
+    }
+    for key, value in semantic_live_values.items():
+        cps_text = _upsert_section_field(
             cps_text,
             "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
@@ -1209,7 +1332,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
     active_row = (
         f"| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `{state['active_capability_status']}` | "
         f"`{state['active_capability_progress']}` | {state['last_responsible_link']} | `REAL_WORLD_LIMIT` | "
-        f"WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES; preserve accepted U01 Learning evidence and recheck only after a new material outcome | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
+        f"{state['wip_smallest_existing_next_action']} | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
     )
     cps_text = cps_text.replace(active_rows[0], active_row, 1)
 
@@ -1540,7 +1663,7 @@ def delegated_policy_live_state_consistency(
         and (
             independent_program_frontier
             and "REAL_WORLD_LIMIT" in active_capability
-            and "WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES" in active_capability
+            and cap_action_token in active_capability
             or not independent_program_frontier
             and stop in active_capability
             and cap_action_token in active_capability
@@ -2462,6 +2585,263 @@ def comprehensive_phase6_phase7_campaign_reconciliation(
         "final_verdict": "PASS" if exact_boundary else "BOUNDED_CONTINUATION",
         "errors": [],
     }
+
+
+def action_class_authority_decision_reconciliation(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+    consumer_proven: bool = False,
+) -> dict[str, Any]:
+    """Reconcile CPS semantics and separate certification, recommendation and Authority."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    frontier = future_scale_scenario_frontier(cps_text, root=root)
+    identities = {
+        key: live.get(key, "`NONE`").strip("`")
+        for key in (
+            "PHASE_6_CURRENT_CANDIDATE", "PHASE_6_CURRENT_PACKET",
+            "PHASE_6_CURRENT_LEASE", "REENTRY_ACTIVE_LEASE", "PENDING_WAKE_ID",
+        )
+    }
+    identities_clear = all(value in {"", "NONE"} for value in identities.values())
+    frontier_exhausted = all((
+        frontier.get("final_verdict") == "PASS",
+        frontier.get("FRONTIER_EXHAUSTED") is True,
+        frontier.get("NEXT_SCENARIO_ID") == "NONE",
+        len(frontier.get("COVERED_SCENARIOS") or ()) == int(frontier.get("SCENARIO_CORPUS_COUNT") or 0),
+        not frontier.get("ELIGIBLE_SCENARIOS"),
+        not frontier.get("STALE_SCENARIOS"),
+        not frontier.get("BLOCKED_SCENARIOS"),
+    ))
+
+    common = {
+        "owner": "EXISTING_OMP_ACTION_CLASS_AND_EVIDENCE_OWNER",
+        "current_validity": "CURRENT",
+        "invalidation_trigger": "owner evidence changes or production safety regression",
+        "consumer": "OMP_AUTHORITY_RECOMMENDATION_OWNER",
+        "consumption_status": "CONSUMED_FOR_CURRENT_DECISION",
+    }
+    criteria_spec = (
+        ("implementation", "COMPLETE", "ENGINEERING_TEST_EVIDENCE", "tools/v7_sync_lib.py and changed-surface regression", "bounded governed evaluation", "class Authority or Runtime enablement", "NONE"),
+        ("integration", "COMPLETE_CONSUMED", "INTEGRATION_EVIDENCE", "OMP real reconciliation caller/consumer", "existing-owner governed path", "autonomous execution", "NONE"),
+        ("scenario correctness", "CERTIFIED", "ENGINEERING_SCENARIO_EVIDENCE", "Phase 6A V1-V4 64/64 corpus", "scenario correctness", "natural or Authority credit", "NONE"),
+        ("future-scale relevance", "CERTIFIED", "FUTURE_SCALE_CERTIFICATION", "10K/100+ and V1-V4 scenario evidence", "engineering scale relevance", "production scale Authority", "NONE"),
+        ("production execution path", "EXISTS_GOVERNED_ONLY", "HISTORICAL_AND_CURRENT_PRODUCTION_EVIDENCE", "CPS current-class outcome plus historical certifications", "governed execution under existing policy", "class-wide autonomy", "more representative current-class outcomes"),
+        ("exact Decision Trace", "PARTIAL", "CURRENT_CLASS_CONTROLLED_EVIDENCE", "PHASE_6_DECISION_CERTIFICATION_STATUS", "governed review", "class recommendation", "complete outcome-linked production Decision Trace"),
+        ("deterministic replay", "SCENARIO_CERTIFIED_PRODUCTION_PARTIAL", "MIXED_NON_INTERCHANGEABLE_EVIDENCE", "scenario replay plus incomplete production replay", "engineering correctness", "class recommendation", "production replay bound to each qualifying outcome"),
+        ("freshness", "CERTIFIED_AS_MANDATORY_GATE", "ENGINEERING_AND_GOVERNED_POLICY_EVIDENCE", "delegated policy fresh Candidate/Decision/Packet gates", "fresh governed action only", "reuse of historical packet", "fresh evidence on every action"),
+        ("packet/source/snapshot binding", "CERTIFIED", "CONTROLLED_PRODUCTION_EVIDENCE", "operation-scoped binding v2 certification", "fresh bound packet admission", "Authority expansion", "binding regression"),
+        ("serial lease", "CERTIFIED", "ENGINEERING_SCENARIO_EVIDENCE", "lease conflict and mixed-generation scenarios", "max concurrency 1", "parallel or batch execution", "lease regression"),
+        ("duplicate suppression", "CERTIFIED", "ENGINEERING_AND_REENTRY_EVIDENCE", "duplicate event/outcome scenarios and counters", "duplicate-safe governed processing", "broader concurrency", "duplicate suppression regression"),
+        ("anti-flap", "CERTIFIED_AS_GATE", "ENGINEERING_SCENARIO_EVIDENCE", "anti-flap and recovery oscillation scenarios", "mandatory stop-safe gate", "threshold reduction", "real anti-flap failure"),
+        ("blast radius", "CERTIFIED_MAX_ONE", "CONTROLLED_AND_SCENARIO_EVIDENCE", "single-user envelope and historical bounded outcomes", "max users 1", "batch or cohort expansion", "blast-radius violation"),
+        ("rollback readiness", "PARTIAL_CLASS_EVIDENCE", "CURRENT_CLASS_CONTROLLED_EVIDENCE", "PHASE_6_ROLLBACK_CERTIFICATION", "fresh packet rollback gate", "class recommendation", "representative rollback/no-rollback readiness"),
+        ("rollback production evidence", "ONE_UNIQUE_SUCCESS", "CONTROLLED_PRODUCTION_EVIDENCE", "one unique rollback success", "supporting evidence", "representative class certification", "additional materially distinct rollback outcome"),
+        ("no-rollback production evidence", "ONE_UNIQUE_SUCCESS", "CONTROLLED_PRODUCTION_EVIDENCE", "one unique verified no-rollback success", "supporting evidence", "representative class certification", "additional materially distinct no-rollback outcome"),
+        ("verification", "CERTIFIED_FOR_GOVERNED_PATH", "CONTROLLED_AND_ENGINEERING_EVIDENCE", "verified current-class outcome and scenario corpus", "mandatory post-action verification", "autonomous Runtime", "representative verification outcomes"),
+        ("containment/forward-fix", "SCENARIO_CERTIFIED", "ENGINEERING_SCENARIO_EVIDENCE", "partial visibility, forward-fix and circuit-breaker scenarios", "engineering safety readiness", "production credit", "qualifying production containment outcome"),
+        ("outcome closure", "PARTIAL_REPRESENTATIVE_SET", "CONTROLLED_PRODUCTION_EVIDENCE", "two unique material outcomes", "Learning input", "class recommendation", "more materially varied closed outcomes"),
+        ("Learning", "PARTIAL", "CONTROLLED_PRODUCTION_EVIDENCE", "HIGH success and MEDIUM rollback learning consumed", "advisory Learning", "Authority or maturity credit", "representative variation"),
+        ("representative Learning", "MISSING", "NATURAL_PRODUCTION_EVIDENCE_REQUIRED", "CAP-U07 protected WIP", "nothing beyond wait/reentry", "class recommendation", "materially varied real outcomes with full trace"),
+        ("controlled production evidence", "INSUFFICIENT_FOR_CLASS_RECOMMENDATION", "CONTROLLED_PRODUCTION_EVIDENCE", "current class unique outcomes", "governed-only operation", "class approval recommendation", "fresh qualifying controlled window and complete chain"),
+        ("natural production evidence", "INSUFFICIENT", "NATURAL_PRODUCTION_EVIDENCE", "Phase 6C current wait", "reentry when observed", "promotion or maturity now", "new material non-synthetic natural outcome"),
+        ("operator explainability", "READY_FOR_CURRENT_NO_CHANGE_DECISION", "ENGINEERING_EXPLANATION_EVIDENCE", "criterion audit and exact blockers", "explain no-change boundary", "approval request", "recommendation-ready evidence"),
+        ("Production Maturity", "NO_CHANGE_66_9", "PRODUCTION_MATURITY_OWNER_DECISION", "CPS maturity owner", "retain 66.9/100", "scenario or report credit", "qualifying controlled/natural evidence"),
+        ("current policy Authority", "APPROVED_BOUNDED_GOVERNED_ONLY", "AUTHORITY_POLICY", "dap_default_tier1_readonly", "one user, one serial transaction, all live gates", "self-expansion", "policy change or safety incident"),
+        ("class Authority", "NOT_GRANTED", "AUTHORITY_OWNER_DECISION", "CPS Authority state", "no class-wide execution", "retiring class approval", "recommendation-ready evidence plus operator decision"),
+        ("bounded autonomy Authority", "NOT_GRANTED", "AUTHORITY_OWNER_DECISION", "CPS Authority state", "no autonomous Runtime", "Runtime enablement", "class approval, policy update and later bounded-autonomy evidence"),
+    )
+    criterion_audit = []
+    for criterion, state, evidence_class, pointer, permits, does_not_permit, blocker in criteria_spec:
+        row = dict(common)
+        row.update({
+            "criterion": criterion, "state": state, "evidence_class": evidence_class,
+            "evidence_pointer": pointer, "what_it_permits": permits,
+            "what_it_does_not_permit": does_not_permit, "remaining_blocker": blocker,
+        })
+        criterion_audit.append(row)
+
+    exact_state = "GOVERNED_ONLY"
+    certification_state = "REVALIDATION_REQUIRED"
+    authority_verdict = "AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE"
+    recommendation_state = authority_verdict
+    blockers = [
+        "complete outcome-linked production Decision Trace and deterministic replay",
+        "representative current-class rollback and no-rollback evidence",
+        "materially varied closed outcomes consumed by representative Learning",
+        "fresh qualifying controlled or natural evidence",
+    ]
+    stale_fields = []
+    if frontier_exhausted and "PHASE6A_SCENARIO:" in live.get("PHASE_6_CERTIFICATION_FRONTIER", ""):
+        stale_fields.append("PHASE_6_CERTIFICATION_FRONTIER")
+    if frontier_exhausted and live.get("PHASE_6_EXACT_NEXT_ACTION", "").strip("`").startswith("EXECUTE PHASE6"):
+        stale_fields.append("PHASE_6_EXACT_NEXT_ACTION")
+    contradictory_fields = []
+    if "CERTIFIED_FOR_CLASS_APPROVAL" in live.get("PHASE_6B_CONTROLLED_STATUS", "") and live.get("CURRENT_ACTION_CLASS_STATE", "").strip("`") == "GOVERNED_ONLY":
+        contradictory_fields.append("PHASE_6B_CONTROLLED_STATUS_vs_CURRENT_ACTION_CLASS_STATE")
+
+    completion_gate = mission_completion_evidence_gate({
+        "MISSION_TYPE": "INTEGRATION",
+        "COMPLETION_CONTRACT": "INTEGRATION_COMPLETION",
+        "REAL_CALLER_PROVEN": True,
+        "CONSUMER_PROVEN": consumer_proven,
+        "BEHAVIOR_CHANGE_PROVEN": True,
+        "NEXT_OUTPUT_PROVEN": True,
+    })
+    return {
+        "schema": "v7.cps-semantic-action-class-authority-decision.v1",
+        "mission_id": "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1",
+        "completion_contract": "INTEGRATION_COMPLETION",
+        "target_terminal": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
+        "current_stop": "REAL_WORLD_LIMIT",
+        "phase6a_status": "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION",
+        "phase6b_status": "CONTROLLED_PRODUCTION_READY_WHERE_SAFE; CLASS_RECOMMENDATION_NOT_READY",
+        "phase6c_status": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
+        "phase7_engineering_status": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE",
+        "phase7_authority_status": "LOCKED_PENDING_QUALIFYING_REAL_WORLD_EVIDENCE",
+        "frontier_exhausted": frontier_exhausted,
+        "scenario_corpus_count": frontier.get("SCENARIO_CORPUS_COUNT"),
+        "scenario_covered_count": len(frontier.get("COVERED_SCENARIOS") or ()),
+        "active_identities": identities,
+        "active_identities_clear": identities_clear,
+        "current_action_class": "single-user governed candidate failover",
+        "exact_action_class_state": exact_state,
+        "action_class_certification_state": certification_state,
+        "authority_recommendation_state": recommendation_state,
+        "authority_owner_verdict": authority_verdict,
+        "granted_authority_state": "CURRENT_POLICY_BOUNDED_ONLY; CLASS_AUTHORITY_NOT_GRANTED; BOUNDED_AUTONOMY_NOT_GRANTED",
+        "delegated_policy_state": "APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN",
+        "criterion_audit": criterion_audit,
+        "remaining_blockers": blockers,
+        "operator_approval_required_now": False,
+        "operator_question": "NONE",
+        "exact_next_action": "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME",
+        "exact_reentry_conditions": [
+            "FRESH_ELIGIBLE_CONTROLLED_WINDOW",
+            "NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING",
+            "NEW_OWNER_BACKED_OBLIGATION",
+        ],
+        "stale_live_projections": stale_fields,
+        "contradictory_fields": contradictory_fields,
+        "completion_gate": completion_gate,
+        "production_maturity_decision": "NO_CHANGE_66_9",
+        "production_autonomy": 0,
+        "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
+        "packet_execution": "NONE", "restore_barrier_write": "NONE",
+        "rollback_apply": "NONE", "authority_impact": "NONE", "policy_impact": "NONE",
+        "final_verdict": "PASS" if frontier_exhausted and identities_clear else "STOP_SAFE",
+        "errors": [] if frontier_exhausted and identities_clear else ["current_state_not_at_exact_boundary"],
+    }
+
+
+def finalize_cps_semantic_authority_decision(
+    *,
+    report_path: str,
+    run_nonce: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Persist one semantically reconciled CPS projection without production effects."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    result = action_class_authority_decision_reconciliation(
+        cps_text, root=root, consumer_proven=True,
+    )
+    if result["final_verdict"] != "PASS" or result["completion_gate"]["completion_verdict"] != "COMPLETE_CONSUMED":
+        return {**result, "atomic_update": None}
+    fingerprint = hashlib.sha256(json.dumps({
+        "mission_id": result["mission_id"], "run_nonce": run_nonce,
+        "state": result["exact_action_class_state"],
+        "recommendation": result["authority_recommendation_state"],
+        "blockers": result["remaining_blockers"],
+    }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    same_terminal = state.get("latest_terminal_mission_id") == result["mission_id"]
+    started_at = state.get("latest_terminal_mission_started_at", utc_now()) if same_terminal else utc_now()
+    captured_at = state.get("state_captured", utc_now()) if same_terminal else utc_now()
+    previous_terminal_mission_id = (
+        state.get("previous_terminal_mission_id", "NONE")
+        if same_terminal else state["latest_terminal_mission_id"]
+    )
+    previous_terminal_mission_report = (
+        state.get("previous_terminal_mission_report", "NONE")
+        if same_terminal else state["latest_terminal_mission_report"]
+    )
+    state.update({
+        "state_captured": captured_at,
+        "current_stop_condition": "REAL_WORLD_LIMIT",
+        "current_active_scope": "CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION",
+        "current_safe_next_action": result["exact_next_action"],
+        "current_scope_class": "INTEGRATION_COMPLETION",
+        "current_state_generation": f"cpsgen_AUTHORITY_{fingerprint[:12].upper()}",
+        "current_transition_id": "CPS_SEMANTICS_AND_ACTION_CLASS_AUTHORITY_DECISION_RECONCILED_V1",
+        "current_next_action_id": result["exact_next_action"],
+        "current_program_execution_frontier": "NONE",
+        "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+        "program_terminal_state": f"REAL_WORLD_LIMIT_{result['target_terminal']}",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "FRESH_QUALIFYING_CONTROLLED_WINDOW_OR_NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION",
+        "next_mission_formed": "FALSE", "next_mission_id": "NONE",
+        "continuation_stop_reason": result["target_terminal"],
+        "no_progress_fingerprint": fingerprint,
+        "smallest_existing_next_action": result["exact_next_action"],
+        "omp_continuation_pointer": "Reenter only on one exact owner-backed trigger; stale scenario fields cannot reenter",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+        "wip_smallest_existing_next_action_id": result["exact_next_action"],
+        "wip_smallest_existing_next_action": f"{result['exact_next_action']}; preserve CAP-U07 protected WIP",
+        "sequence_execution_class": "Action-class real-world evidence reentry",
+        "sequence_expected_output": "fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary",
+        "current_action_class_state": result["exact_action_class_state"],
+        "action_class_certification_state": result["action_class_certification_state"],
+        "authority_recommendation_state": result["authority_recommendation_state"],
+        "action_class_authority_state": result["granted_authority_state"],
+        "authority_owner_verdict": result["authority_owner_verdict"],
+        "delegated_policy_state": result["delegated_policy_state"],
+        "exact_reentry_triggers": "; ".join(result["exact_reentry_conditions"]),
+        "action_class_promotion_evaluation": "EVALUATED; AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE",
+        "action_class_exact_missing_delta": "; ".join(result["remaining_blockers"]),
+        "class_approval_ready": "NO; certification readiness is not recommendation readiness and Authority is not granted",
+        "authority_required_now": "NO_INSIDE_APPROVED_POLICY; no recommendation ready and no current action",
+        "phase6_certification_status": "ACTIVE_MULTI_LANE_CERTIFICATION; scenario, controlled, natural and Authority evidence remain non-interchangeable",
+        "phase6_current_step": "PHASE_6_REAL_WORLD_EVIDENCE_WAIT",
+        "phase6_certification_frontier": "NONE; PHASE_6A V1-V4 64/64 EXHAUSTED",
+        "phase6_exact_stop": "REAL_WORLD_LIMIT",
+        "phase6_exact_next_action": result["exact_next_action"],
+        "phase6_reentry_conditions": "; ".join(result["exact_reentry_conditions"]),
+        "phase6_global_status": "LANES_EXHAUSTED_WAITING_QUALIFYING_REAL_WORLD_EVIDENCE",
+        "phase6a_scenario_status": "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION; V1-V4 64/64 corpus covered",
+        "phase6a_scenario_frontier": "NONE; no current owner-backed scenario obligation",
+        "phase6a_next_scenario_id": "NONE",
+        "phase6a_next_action": "REENTER_ONLY_ON_NEW_OWNER_BACKED_OBLIGATION",
+        "phase6b_controlled_status": "CONTROLLED_PRODUCTION_READY_WHERE_SAFE; CLASS_RECOMMENDATION_NOT_READY; no Candidate, Packet or lease",
+        "phase6c_natural_status": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
+        "phase6_executable_frontier": "NONE",
+        "phase6_global_stop": "REAL_WORLD_LIMIT",
+        "phase7_engineering_evolution_status": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE_ON_NEW_OBLIGATION",
+        "phase7_production_authority_status": "LOCKED_PENDING_QUALIFYING_REAL_WORLD_EVIDENCE",
+        "current_completion_contract": "INTEGRATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "current_execution_mission_id": "NONE", "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": result["mission_id"],
+        "latest_terminal_run_nonce": run_nonce,
+        "latest_terminal_mission_state": result["target_terminal"],
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": started_at,
+        "previous_terminal_mission_id": previous_terminal_mission_id,
+        "previous_terminal_mission_report": previous_terminal_mission_report,
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": result["mission_id"], "current_run_nonce": run_nonce,
+        "current_mission_state": result["target_terminal"], "current_mission_report": report_path,
+        "source_summary": "OMP reconciled CPS live semantics and produced an exact no-change Authority decision at the real-world boundary.",
+        "automatic_continue_omp_result": result["target_terminal"],
+        "production_maturity_decision": "NO_CHANGE; 66.9/100; no qualifying maturity evidence",
+        "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
+    })
+    atomic_update = atomic_reconcile_cps(cps_path, state=state, request_external_wake=False)
+    return {**result, "atomic_update": atomic_update, "decision_fingerprint": fingerprint}
 
 
 def finalize_comprehensive_phase6_phase7_campaign(
@@ -4004,6 +4384,24 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
         projected = key.upper()
         if projected in live:
             state[key] = _plain_live_value(live, projected)
+    registry = _markdown_field_table(_markdown_section(
+        cps_text, "### Registry Metadata And Truth Lifecycle",
+        "### Active Protected Work In Progress",
+    ))
+    wip = _markdown_field_table(_markdown_section(
+        cps_text, "### Active Protected Work In Progress",
+        "### Complete Or Locked Capability Records",
+    ))
+    # These owner fields are not duplicated in Section 0.  Reconstructing a
+    # transition from the live CPS must preserve them instead of inheriting the
+    # process's newer module defaults, otherwise a valid historical/active
+    # frontier is rewritten with a mismatched capability action.
+    state["wip_smallest_existing_next_action_id"] = _plain_live_value(
+        wip, "smallest_existing_next_action_id",
+    ) or _plain_live_value(registry, "EXACT_CURRENT_SMALLEST_NEXT_ACTION")
+    state["wip_smallest_existing_next_action"] = _plain_live_value(
+        wip, "smallest_existing_next_action",
+    )
     for key, suffix in (
         ("binding_stability", "; 22 post-deploy read-only cycles"),
         ("binding_schema", "; shared by preview, admission and low-level pre-mutation recheck"),

@@ -33,12 +33,12 @@ class OmpDocumentIndexTest(unittest.TestCase):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
         self.assertEqual(operator["current_program"], "FUTURE_SCALE_SCENARIO_ENGINEERING")
-        self.assertEqual(operator["current_step"], "PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION")
-        self.assertEqual(operator["next_step"], "PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY")
-        self.assertEqual(operator["next_scenario"], "PHASE6_LEARNING_EVIDENCE_NON_INTERCHANGEABILITY")
-        self.assertEqual(operator["current_stop"], "NONE")
-        self.assertEqual(operator["external_input_required"], "FALSE")
-        self.assertEqual(operator["omp_continuation_required"], "TRUE")
+        self.assertEqual(operator["current_step"], "CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION")
+        self.assertEqual(operator["next_step"], "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME")
+        self.assertEqual(operator["next_scenario"], "NONE")
+        self.assertEqual(operator["current_stop"], "REAL_WORLD_LIMIT")
+        self.assertEqual(operator["external_input_required"], "TRUE")
+        self.assertEqual(operator["omp_continuation_required"], "FALSE")
 
     def test_historical_dashboard_cannot_override_live_dashboard(self):
         response = self.admin_api.omp_dashboard_response()
@@ -50,8 +50,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_PHASE6_MULTI_LANE_A1DD11DE3AD3")
-        self.assertEqual(response["current_transition_id"], "PHASE6_MULTI_LANE_SCENARIO_CONSUMED_V1")
+        self.assertEqual(response["current_state_generation"], "cpsgen_AUTHORITY_B681B2D50C27")
+        self.assertEqual(response["current_transition_id"], "CPS_SEMANTICS_AND_ACTION_CLASS_AUTHORITY_DECISION_RECONCILED_V1")
 
 
 if __name__ == "__main__":

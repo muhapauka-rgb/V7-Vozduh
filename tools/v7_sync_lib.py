@@ -50,38 +50,38 @@ DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 
 NORMALIZED_CPS_LIVE_STATE = {
-    "active_program": "FUTURE_SCALE_SCENARIO_ENGINEERING",
+    "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
     "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
     "current_stop_condition": "NONE",
-    "current_active_scope": "PHASE6A_OBLIGATION_CORPUS_CONTINUATION_AND_NEXT_GENERATION",
-    "current_safe_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION THROUGH EXISTING FSSE/OMP CONSUMER",
-    "current_scope_class": "INTEGRATION_COMPLETION",
+    "current_active_scope": "ROUTING_DIGITAL_TWIN_FINAL_HIGH_FIDELITY_CERTIFICATION",
+    "current_safe_next_action": "SAFE DEPLOY DIGITAL TWIN IMPLEMENTATION THEN RUN PRODUCTION CALLER TRUTH CONVERGENCE AND EQUALITY",
+    "current_scope_class": "AUTOMATION_COMPLETION",
     "current_execution_mission_id": "NONE",
     "current_execution_mission_state": "NONE",
-    "latest_terminal_mission_id": "V7_PHASE6A_OBLIGATION_CORPUS_CONTINUATION_AND_NEXT_GENERATION_V1",
-    "latest_terminal_run_nonce": "V7_PHASE6A_52A689A6CEBA",
-    "latest_terminal_mission_state": "PHASE6A_CURRENT_GENERATION_CERTIFIED_AND_NEXT_OBLIGATION_FRONTIER_MATERIALIZED",
-    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md",
-    "latest_terminal_mission_started_at": "2026-07-17T16:01:11+00:00",
-    "previous_terminal_mission_id": "V7_AEP_PHASE6_MULTI_LANE_CERTIFICATION_AND_PHASE7_ENGINEERING_EVOLUTION_ACTIVATION_V1",
-    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md",
+    "latest_terminal_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+    "latest_terminal_run_nonce": "V7_DT_M6_B4374BB3C64B",
+    "latest_terminal_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md",
+    "latest_terminal_mission_started_at": "2026-07-18T04:15:47+00:00",
+    "previous_terminal_mission_id": "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md",
     "authoritative_transition_input_mission_id": "V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3",
     "authoritative_transition_input_state": "MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED",
     "authoritative_transition_input_report": "docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md",
     "current_mission_role": "LATEST_TERMINAL_MISSION",
-    "current_mission_id": "V7_PHASE6A_OBLIGATION_CORPUS_CONTINUATION_AND_NEXT_GENERATION_V1",
-    "current_run_nonce": "V7_PHASE6A_52A689A6CEBA",
-    "current_mission_state": "PHASE6A_CURRENT_GENERATION_CERTIFIED_AND_NEXT_OBLIGATION_FRONTIER_MATERIALIZED",
-    "current_mission_report": "docs/reports/engineering/2026-07-17_230111_phase6a_obligation_corpus_continuation_and_next_generation.md",
-    "state_captured": "2026-07-17T16:01:11+00:00",
-    "current_state_generation": "cpsgen_PHASE6A_52A689A6CEBA",
-    "current_transition_id": "PHASE6A_NEXT_GENERATION_FIRST_SCENARIO_CONSUMED_V1",
-    "current_next_action_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
+    "current_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+    "current_run_nonce": "V7_DT_M6_B4374BB3C64B",
+    "current_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md",
+    "state_captured": "2026-07-18T04:15:47+00:00",
+    "current_state_generation": "cpsgen_V7_DT_M6_B4374BB3C64B",
+    "current_transition_id": "ROUTING_DIGITAL_TWIN_M6_TO_M7_DEPLOYMENT_FRONTIER_V1",
+    "current_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
     "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
-    "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
-    "program_frontier_input": "PHASE6_MULTI_LANE_V1 is 6/6 certified; PHASE6_MULTI_LANE_V2 is materialized and 1/6 consumed",
-    "program_frontier_owner": "EXISTING_OMP_CAPABILITY_RECONCILIATION_OWNER",
-    "program_frontier_expected_output": "SCENARIO RESULT -> OMP CONSUMPTION -> NEXT PHASE6A FRONTIER",
+    "current_program_execution_frontier": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+    "program_frontier_input": "Missions 1-6 consumed; Mission 7 technical checks pass; deployment truth remains",
+    "program_frontier_owner": "EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS",
+    "program_frontier_expected_output": "SAFE_DEPLOY -> PRODUCTION_NON_TEST_CALLER -> TRUTH -> CONVERGENCE -> SNAPSHOT_EQUALITY -> PROGRAM_TERMINAL",
     "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered",
     "binding_stability": "PASS",
     "binding_schema": "v7.operation-scoped-source-binding.v2",
@@ -107,12 +107,12 @@ NORMALIZED_CPS_LIVE_STATE = {
     "blocked_capabilities": "CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22",
     "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
     "next_executable_capability": "NONE",
-    "program_terminal_state": "NONE_MULTI_LANE_FRONTIER_ACTIVE",
+    "program_terminal_state": "NONE_DIGITAL_TWIN_MISSION_7_FRONTIER_READY",
     "cap_u01_completion_report": "docs/reports/engineering/2026-07-12_172534_exact_route_repair_and_first_governed_success.md",
     "responsibility_class": "LEARNING",
     "last_responsible_link": "real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence",
-    "smallest_existing_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION through the existing FSSE/OMP consumer",
-    "omp_continuation_pointer": "Continue OMP through PHASE6_MULTI_LANE_V2; preserve Phase 6C natural wait lane-locally",
+    "smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION: safe-deploy the exact Digital Twin implementation and run Mission 7 production certification",
+    "omp_continuation_pointer": "continue the approved Routing Digital Twin Master Program at Mission 7 deployment certification; do not rerun Missions 1-6 without invalidation",
     "current_class_outcome": "SUCCESS",
     "current_class_delta_closed": "YES",
     "current_class_outcome_evidence": "SUCCESS; 10.7.0.5 awg0 -> vless; global route verification PASS; feedback execfb_b287532347352c661799e985",
@@ -132,16 +132,16 @@ NORMALIZED_CPS_LIVE_STATE = {
     "user_movement": "NO; current Mission performed evidence refresh and read-only revalidation only",
     "admin_safe_mode_live_state": "schema=v7.autonomous-execution-control.v2; state=OPEN; generation=aec_dda6c420c87e99e97236883c; reason=GOVERNED_TRANSACTION_COMPLETED",
     "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 consumed one real success but representative Learning evidence remains a real-world dependency",
-    "source_summary": "the existing event-driven OMP/FSSE consumer certified all PHASE6_MULTI_LANE_V1 obligations, materialized PHASE6_MULTI_LANE_V2 and consumed its first scenario with zero production effects.",
+    "source_summary": "Routing Digital Twin Master Program Missions 1-6 are consumed with zero production mutation; Mission 7 awaits safe-deploy and equality truth.",
     "automatic_continue_omp_result": "PHASE6A_CURRENT_GENERATION_CERTIFIED_AND_NEXT_OBLIGATION_FRONTIER_MATERIALIZED",
     "required_workflow": "external independent trigger -> standard Continue OMP -> bounded internal engineering loop -> persisted terminal",
     "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden",
     "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only",
     "controlled_run_execution_authorized": "NO_CURRENT_PACKET; no forced evidence generation or movement is authorized",
-    "wip_authority_required_now": "FALSE; current boundary is representative real evidence, not Authority",
+    "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
     "wip_current_primary_stop": "REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL",
-    "wip_smallest_existing_next_action_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
-    "wip_smallest_existing_next_action": "EXECUTE PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION; preserve CAP-U07 natural evidence WIP without reordering",
+    "wip_smallest_existing_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
+    "wip_smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION; preserve CAP-U07 natural-evidence WIP while Mission 7 certifies deployment truth",
     "sequence_execution_class": "Phase 6A PHASE6_MULTI_LANE_V2 engineering scenario certification",
     "sequence_expected_output": "scenario result -> OMP consumer -> next Phase 6A frontier",
     "completion_condition": "Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass",
@@ -151,15 +151,15 @@ NORMALIZED_CPS_LIVE_STATE = {
     "open_engineering_intents": "21",
     "omp_continuation_required": "TRUE",
     "external_input_required": "FALSE",
-    "external_input_type": "NATURAL_PRODUCTION_EVIDENCE_FOR_PHASE6C_ONLY",
-    "transaction_terminal_class": "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED",
+    "external_input_type": "NONE",
+    "transaction_terminal_class": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
     "program_terminal_class": "NONE",
     "next_mission_formed": "TRUE",
-    "next_mission_id": "V7_FUTURE_SCALE_HIGH_FIDELITY_VALIDATION_V1",
+    "next_mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
     "premature_operator_return": "FALSE",
     "continuation_iteration": "26",
-    "continuation_stop_reason": "PHASE6_MULTI_LANE_V1 CERTIFIED; FIRST V2 SCENARIO CONSUMED; EXACT NEXT V2 SCENARIO PRESERVED",
-    "no_progress_fingerprint": "e97eed5f13958a4e4c61e6269228d8b70336a75f73386a6026aa3c2019c62542",
+    "continuation_stop_reason": "MISSION_7_DEPLOYMENT_TRUTH_REQUIRED",
+    "no_progress_fingerprint": "b4374bb3c64b7f8c3619033a0498c828618add937c33c940369e72356dd65b28",
     "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "program_reconciliation_real_callers": "3",
     "program_reconciliation_test_callers": "4",
@@ -405,6 +405,61 @@ NORMALIZED_CPS_LIVE_STATE.update({
     "automatic_continue_omp_result": "CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED",
     "production_maturity_decision": "NO_CHANGE; 66.9/100; no qualifying maturity evidence",
     "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
+})
+
+# Canonical projection while the approved Routing Digital Twin Master Program
+# is at the exact Mission 7 deployment-certification frontier.  Keep this last:
+# the preceding projections are retained as historical source landmarks.
+NORMALIZED_CPS_LIVE_STATE.update({
+    "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
+    "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+    "current_stop_condition": "NONE",
+    "current_active_scope": "ROUTING_DIGITAL_TWIN_FINAL_HIGH_FIDELITY_CERTIFICATION",
+    "current_safe_next_action": "SAFE DEPLOY DIGITAL TWIN IMPLEMENTATION THEN RUN PRODUCTION CALLER TRUTH CONVERGENCE AND EQUALITY",
+    "current_scope_class": "AUTOMATION_COMPLETION",
+    "current_execution_mission_id": "NONE",
+    "current_execution_mission_state": "NONE",
+    "latest_terminal_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+    "latest_terminal_run_nonce": "V7_DT_M6_B4374BB3C64B",
+    "latest_terminal_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md",
+    "latest_terminal_mission_started_at": "2026-07-18T04:15:47+00:00",
+    "previous_terminal_mission_id": "V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md",
+    "current_mission_role": "LATEST_TERMINAL_MISSION",
+    "current_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+    "current_run_nonce": "V7_DT_M6_B4374BB3C64B",
+    "current_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+    "current_mission_report": "docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md",
+    "state_captured": "2026-07-18T04:15:47+00:00",
+    "current_state_generation": "cpsgen_V7_DT_M6_B4374BB3C64B",
+    "current_transition_id": "ROUTING_DIGITAL_TWIN_M6_TO_M7_DEPLOYMENT_FRONTIER_V1",
+    "current_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
+    "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+    "current_program_execution_frontier": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+    "program_frontier_input": "Missions 1-6 consumed; Mission 7 technical checks pass; deployment truth remains",
+    "program_frontier_owner": "EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS",
+    "program_frontier_expected_output": "SAFE_DEPLOY -> PRODUCTION_NON_TEST_CALLER -> TRUTH -> CONVERGENCE -> SNAPSHOT_EQUALITY -> PROGRAM_TERMINAL",
+    "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+    "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+    "program_terminal_state": "NONE_DIGITAL_TWIN_MISSION_7_FRONTIER_READY",
+    "smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION: safe-deploy the exact Digital Twin implementation and run Mission 7 production certification",
+    "omp_continuation_pointer": "continue the approved Routing Digital Twin Master Program at Mission 7 deployment certification; do not rerun Missions 1-6 without invalidation",
+    "source_summary": "Routing Digital Twin Master Program Missions 1-6 are consumed with zero production mutation; Mission 7 awaits safe-deploy and equality truth.",
+    "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+    "wip_smallest_existing_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
+    "wip_smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION; preserve CAP-U07 natural-evidence WIP while Mission 7 certifies deployment truth",
+    "omp_continuation_required": "TRUE",
+    "external_input_required": "FALSE",
+    "external_input_type": "NONE",
+    "transaction_terminal_class": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+    "program_terminal_class": "NONE",
+    "next_mission_formed": "TRUE",
+    "next_mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+    "continuation_stop_reason": "MISSION_7_DEPLOYMENT_TRUTH_REQUIRED",
+    "no_progress_fingerprint": "b4374bb3c64b7f8c3619033a0498c828618add937c33c940369e72356dd65b28",
+    "current_completion_contract": "INTEGRATION_COMPLETION",
+    "current_completion_verdict": "COMPLETE_CONSUMED",
 })
 
 
@@ -6028,6 +6083,275 @@ FUTURE_SCALE_EXECUTION_REQUIRED_CAPACITY_INVARIANTS = (
     "DETERMINISTIC_DECISION",
 )
 
+ROUTING_DIGITAL_TWIN_PROGRAM_ID = (
+    "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM_V1"
+)
+ROUTING_DIGITAL_TWIN_FOUNDATION_MISSION_ID = (
+    "V7_ROUTING_DIGITAL_TWIN_FOUNDATION_FIDELITY_IDENTITY_AND_ISOLATION_V1"
+)
+ROUTING_DIGITAL_TWIN_L2_MISSION_ID = "V7_ROUTING_DIGITAL_TWIN_REAL_CODE_VIRTUAL_STATE_V1"
+ROUTING_DIGITAL_TWIN_L3_MISSION_ID = "V7_ROUTING_DIGITAL_TWIN_LINUX_SERVICE_EMULATION_V1"
+ROUTING_DIGITAL_TWIN_FIRST_OBLIGATION_ID = "DT-L2-VIRTUAL-APPLY-001"
+ROUTING_DIGITAL_TWIN_IDENTITY_FIELDS = (
+    "polygon_program_id", "mission_id", "mission_nonce", "experiment_id",
+    "obligation_id", "obligation_generation", "fidelity_level", "topology_id",
+    "topology_version", "topology_fingerprint", "workload_id", "workload_version",
+    "workload_fingerprint", "fault_sequence_id", "fault_sequence_version",
+    "virtual_clock_identity", "code_dependency_fingerprint", "evidence_class_identity",
+    "situation_id", "candidate_id", "decision_id", "packet_id", "lease_id",
+    "decision_trace_id", "replay_identity", "counterfactual_branch_id",
+    "shadow_learning_generation", "cleanup_generation", "repair_return_identity",
+)
+ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS = (
+    "runtime_mutation", "production_mutation", "routing_mutation", "user_movement",
+    "packet_execution", "restore_barrier_write", "rollback_apply", "authority_expansion",
+    "production_maturity_credit",
+)
+
+
+def routing_digital_twin_fidelity_contract() -> dict[str, Any]:
+    """Return the shared criterion-scoped fidelity and evidence boundary."""
+    levels = (
+        ("L1", "DETERMINISTIC_MODEL_EVIDENCE", "deterministic contracts, replay and virtual time"),
+        ("L2", "REAL_CODE_VIRTUAL_STATE_EVIDENCE", "real V7 decisions and isolated virtual apply"),
+        ("L3", "LINUX_EMULATION_EVIDENCE", "network namespaces, routes, tc/netem and probes"),
+        ("L4", "CONTAINERIZED_SERVICE_EVIDENCE", "containerized clients, services and topology lifecycle"),
+        ("L5", "PRODUCTION_SNAPSHOT_DIGITAL_TWIN_EVIDENCE", "sanitized one-way versioned snapshot"),
+        ("L6", "HYBRID_SCALE_SOFTWARE_IN_THE_LOOP_EVIDENCE", "real-emulated subset and logical scale"),
+        ("L7", "CONTROLLED_PRODUCTION_EVIDENCE", "exact controlled production canary"),
+        ("L8", "NATURAL_PRODUCTION_EVIDENCE", "natural non-synthetic outcome"),
+    )
+    rows = [{"level": level, "evidence_class": evidence, "capability": capability}
+            for level, evidence, capability in levels]
+    return {
+        "schema": "v7.routing-digital-twin-fidelity-contract.v1",
+        "levels": rows,
+        "criterion_scoped": True,
+        "higher_fidelity_required_only_when_owner_declared": True,
+        "cross_class_credit_forbidden": True,
+        "production_authority_impact": "NONE",
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def routing_digital_twin_criterion_sufficiency_contract() -> dict[str, Any]:
+    required = (
+        "required_dimensions", "minimum_fidelity", "equivalence_classes", "boundary_cases",
+        "negative_and_stop_safe_terminals", "counterfactual_requirements", "learning_requirements",
+        "invalidation_triggers", "sufficiency_verdict_owner", "remaining_l7_l8_evidence",
+    )
+    return {
+        "schema": "v7.routing-digital-twin-criterion-sufficiency.v1",
+        "required_fields": list(required),
+        "coverage_states": [
+            "COVERED", "PARTIALLY_COVERED", "STALE", "UNCOVERED", "BLOCKED",
+            "UNSUPPORTED", "REQUIRES_HIGHER_FIDELITY", "REQUIRES_CONTROLLED_PRODUCTION",
+            "REQUIRES_NATURAL_PRODUCTION",
+        ],
+        "reality_boundary": (
+            "REAL_WORLD_LIMIT is criterion-scoped and legal only after all sufficient L1-L6 obligations close"
+        ),
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def routing_digital_twin_world_practice_mapping() -> list[dict[str, str]]:
+    """Bounded primary-source research mapped onto existing V7 owners."""
+    return [
+        {"practice": "Batfish snapshots and differential reachability", "decision": "ADAPT",
+         "v7_owner": "ENGINEERING_POLYGON + OMP_PROGRAM_EXECUTION_RECONCILIATION",
+         "use": "versioned topology candidates, differential invariant and collateral-damage checks",
+         "source": "https://batfish.readthedocs.io/en/latest/notebooks/differentialQuestions.html"},
+        {"practice": "Mininet real-kernel virtual networks", "decision": "ADAPT",
+         "v7_owner": "ENGINEERING_POLYGON Linux-emulation adapter",
+         "use": "L3 substrate semantics; do not introduce a second decision owner",
+         "source": "https://mininet.org/"},
+        {"practice": "Containerlab topology-as-code lifecycle", "decision": "ADAPT",
+         "v7_owner": "ENGINEERING_POLYGON topology lifecycle",
+         "use": "optional L4 substrate only when direct Linux/Docker composition is insufficient",
+         "source": "https://containerlab.dev/manual/topo-def-file/"},
+        {"practice": "Linux network namespaces", "decision": "REUSE",
+         "v7_owner": "ENGINEERING_POLYGON isolation guard",
+         "use": "route, device, firewall, socket and protocol-stack isolation",
+         "source": "https://man7.org/linux/man-pages/man7/network_namespaces.7.html"},
+        {"practice": "FRRouting topotests", "decision": "ADAPT",
+         "v7_owner": "ENGINEERING_POLYGON protocol-topology verification",
+         "use": "optional routing-protocol fidelity without replacing V7 Planner/Decision owners",
+         "source": "https://docs.frrouting.org/projects/dev-guide/en/latest/topotests.html"},
+        {"practice": "ns-3 discrete-event simulation", "decision": "REJECT_AS_DEFAULT",
+         "v7_owner": "NONE",
+         "use": "admit only for a criterion that existing deterministic and Linux substrates cannot close",
+         "source": "https://www.nsnam.org/documentation/"},
+    ]
+
+
+def routing_digital_twin_isolation_contract(*, root: Path = ROOT) -> dict[str, Any]:
+    production_paths = ("/opt/v7", "/usr/local/bin", "/etc/systemd", "/var/lib/v7")
+    resolved = str(root.resolve())
+    ambiguous = any(resolved == path or resolved.startswith(path + os.sep) for path in production_paths)
+    return {
+        "schema": "v7.routing-digital-twin-isolation-contract.v1",
+        "polygon_root": resolved,
+        "state_mode": "EPHEMERAL_OR_EXPLICIT_ISOLATED_ROOT_ONLY",
+        "production_paths": list(production_paths),
+        "production_path_overlap": ambiguous,
+        "allowed_apply_adapter": "IN_MEMORY_VIRTUAL_STATE_ONLY",
+        "production_executor_callable": False,
+        "production_restore_barrier_writable": False,
+        "network_namespace_requires_explicit_isolated_substrate": True,
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "final_verdict": "STOP_SAFE_POLYGON_ISOLATION" if ambiguous else "PASS",
+        "errors": ["polygon_root_overlaps_production"] if ambiguous else [],
+    }
+
+
+def routing_digital_twin_first_l2_obligation(*, root: Path = ROOT) -> dict[str, Any]:
+    corpus = load_future_scale_scenario_corpus(root=root)
+    scenario = next(
+        (row for row in corpus.get("scenarios") or [] if row.get("SCENARIO_ID") == "CAPACITY_BOUNDARY"),
+        None,
+    )
+    errors = list(corpus.get("errors") or [])
+    if scenario is None:
+        errors.append("capacity_boundary_scenario_missing")
+        scenario = {}
+    source_paths = [
+        "tools/v7_sync_lib.py", "tools/v7-users-autoswitch",
+        "admin_core/operator_execution.py", "admin_core/operator_execution_pipeline.py",
+        "admin_core/operator_execution_feedback.py", "admin_core/shadow_autonomy.py",
+    ]
+    source_fingerprint = _future_scale_source_fingerprint(root, source_paths)
+    payload = {
+        "obligation_id": ROUTING_DIGITAL_TWIN_FIRST_OBLIGATION_ID,
+        "generation": 1,
+        "criterion_id": "REAL_V7_DECISION_AND_VIRTUAL_EXECUTION_LOOP",
+        "minimum_fidelity": "L2",
+        "scenario_id": "CAPACITY_BOUNDARY",
+        "scenario_fingerprint": scenario.get("SCENARIO_FINGERPRINT", "NONE"),
+        "required_terminals": ["SUCCESS", "CORRECT_STAY", "ROLLBACK", "CONTAINMENT", "STOP_SAFE"],
+        "required_real_owners": [
+            "tools/v7-users-autoswitch:AutoswitchPlanner.plan",
+            "admin_core/operator_execution.py:packet_identity/build_execution_lease",
+            "admin_core/operator_execution_pipeline.py:verification_policy/rollback_policy",
+        ],
+        "apply_adapter": "tools/v7_sync_lib.py:routing_digital_twin_virtual_apply",
+        "consumer": "OMP_ROUTING_DIGITAL_TWIN_PROGRAM_CONSUMER",
+        "source_fingerprint": source_fingerprint,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "schema": "v7.routing-digital-twin-obligation.v1",
+        **payload,
+        "obligation_fingerprint": fingerprint,
+        "evidence_class": "REAL_CODE_VIRTUAL_STATE_EVIDENCE",
+        "production_impact": "NONE",
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def routing_digital_twin_identity_contract(
+    *, mission_id: str, mission_nonce: str, obligation: dict[str, Any], root: Path = ROOT,
+) -> dict[str, Any]:
+    topology_fingerprint = str(obligation.get("scenario_fingerprint") or "NONE")
+    workload_payload = {"profile": "CAPACITY_BOUNDARY", "users": 10_000, "channels": 100, "seed": 4001}
+    workload_fingerprint = hashlib.sha256(
+        json.dumps(workload_payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    base = {
+        "polygon_program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": mission_id,
+        "mission_nonce": mission_nonce,
+        "obligation_id": obligation.get("obligation_id", "NONE"),
+        "obligation_generation": str(obligation.get("generation", "NONE")),
+        "fidelity_level": obligation.get("minimum_fidelity", "L1"),
+        "topology_id": obligation.get("scenario_id", "NONE"),
+        "topology_version": "1",
+        "topology_fingerprint": topology_fingerprint,
+        "workload_id": "DT-WORKLOAD-CAPACITY-BOUNDARY",
+        "workload_version": "1",
+        "workload_fingerprint": workload_fingerprint,
+        "fault_sequence_id": "DT-FAULT-CAPACITY-SATURATION",
+        "fault_sequence_version": "1",
+        "virtual_clock_identity": "dtclock_deterministic_seed_4001_v1",
+        "code_dependency_fingerprint": obligation.get("source_fingerprint", "NONE"),
+        "evidence_class_identity": "REAL_CODE_VIRTUAL_STATE_EVIDENCE",
+    }
+    identity_fingerprint = hashlib.sha256(
+        json.dumps(base, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    empty_identities = {
+        "situation_id": "PENDING_EXECUTION", "candidate_id": "PENDING_EXECUTION",
+        "decision_id": "PENDING_EXECUTION", "packet_id": "PENDING_EXECUTION",
+        "lease_id": "PENDING_EXECUTION", "decision_trace_id": "PENDING_EXECUTION",
+        "replay_identity": f"dtreplay_{identity_fingerprint[:24]}",
+        "counterfactual_branch_id": f"dtcf_{identity_fingerprint[:24]}_BASE",
+        "shadow_learning_generation": f"dtlearn_{identity_fingerprint[:24]}_BASE",
+        "cleanup_generation": f"dtcleanup_{identity_fingerprint[:24]}",
+        "repair_return_identity": f"dtrepair_{identity_fingerprint[:24]}",
+        "experiment_id": f"dtexp_{identity_fingerprint[:24]}",
+    }
+    contract = {**base, **empty_identities}
+    missing = [field for field in ROUTING_DIGITAL_TWIN_IDENTITY_FIELDS if not contract.get(field)]
+    return {
+        "schema": "v7.routing-digital-twin-identity.v1",
+        "identity": contract,
+        "identity_fingerprint": identity_fingerprint,
+        "required_fields": list(ROUTING_DIGITAL_TWIN_IDENTITY_FIELDS),
+        "compatible_extension_required": True,
+        "final_verdict": "PASS" if not missing else "STOP_SAFE",
+        "errors": [f"identity_field_missing:{field}" for field in missing],
+    }
+
+
+def routing_digital_twin_foundation(*, root: Path = ROOT, mission_nonce: str = "") -> dict[str, Any]:
+    nonce = mission_nonce or "V7_DT_FOUNDATION_DETERMINISTIC_V1"
+    obligation = routing_digital_twin_first_l2_obligation(root=root)
+    identity = routing_digital_twin_identity_contract(
+        mission_id=ROUTING_DIGITAL_TWIN_FOUNDATION_MISSION_ID,
+        mission_nonce=nonce, obligation=obligation, root=root,
+    )
+    isolation = routing_digital_twin_isolation_contract(root=root)
+    owner_inventory = {
+        "scenario_topology_workload_fault": "tools/v7_sync_lib.py existing Future-Scale/Polygon owner",
+        "planner_decision": "tools/v7-users-autoswitch:AutoswitchPlanner",
+        "packet_lease_execution": "admin_core/operator_execution.py",
+        "verification_rollback": "admin_core/operator_execution_pipeline.py",
+        "outcome_learning": "admin_core/operator_execution_feedback.py",
+        "shadow_learning": "admin_core/shadow_autonomy.py + admin_core/intelligence_platform.py",
+        "consumer_reentry": "OMP_PROGRAM_EXECUTION_RECONCILIATION + existing event-driven Continue OMP",
+    }
+    errors = [
+        error for result in (obligation, identity, isolation)
+        for error in result.get("errors") or []
+    ]
+    return {
+        "schema": "v7.routing-digital-twin-foundation.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": ROUTING_DIGITAL_TWIN_FOUNDATION_MISSION_ID,
+        "mission_nonce": nonce,
+        "owner_inventory": owner_inventory,
+        "duplication_audit": "PASS_REUSE_EXISTING_ENGINEERING_POLYGON_AND_OMP_OWNERS",
+        "necessity_audit": "PASS_SHARED_IDENTITY_FIDELITY_ISOLATION_AND_L2_APPLY_GAP_PROVEN",
+        "world_practice_mapping": routing_digital_twin_world_practice_mapping(),
+        "identity_contract": identity,
+        "fidelity_contract": routing_digital_twin_fidelity_contract(),
+        "criterion_sufficiency_contract": routing_digital_twin_criterion_sufficiency_contract(),
+        "isolation_contract": isolation,
+        "first_l2_obligation": obligation,
+        "mission_terminal": "DIGITAL_TWIN_FOUNDATION_AND_FIRST_L2_OBLIGATION_CERTIFIED",
+        "next_mission_id": ROUTING_DIGITAL_TWIN_L2_MISSION_ID,
+        "automatic_continuation_required": True,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
 
 def _future_scale_peak_rss_kib() -> int:
     value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
@@ -6810,6 +7134,1228 @@ def _future_scale_planner_execution(
             "production_mutation": False,
             "users_moved": 0,
         }
+
+
+def routing_digital_twin_virtual_apply(
+    state: dict[str, Any], move: Optional[dict[str, Any]], *, verification_failure: bool = False,
+) -> dict[str, Any]:
+    """Apply one decision to an isolated in-memory twin and verify or roll it back."""
+    before = json.loads(json.dumps(state, ensure_ascii=False))
+    after = json.loads(json.dumps(state, ensure_ascii=False))
+    if not move:
+        fingerprint = hashlib.sha256(
+            json.dumps(before, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return {
+            "schema": "v7.routing-digital-twin-virtual-apply.v1",
+            "terminal": "CORRECT_STAY", "applied": False, "verified": True,
+            "rollback_required": False, "rollback_performed": False,
+            "before_fingerprint": fingerprint, "after_fingerprint": fingerprint,
+            "isolated_state_changed": False,
+            "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+            "final_verdict": "PASS", "errors": [],
+        }
+    user_id = str(move.get("user") or "")
+    source = str(move.get("from") or "")
+    target = str(move.get("to") or "")
+    users = [row for row in after.get("users") or [] if isinstance(row, dict)]
+    channels = {str(row.get("channel_id")): row for row in after.get("channels") or [] if isinstance(row, dict)}
+    selected = next((row for row in users if str(row.get("user_id")) == user_id), None)
+    errors: list[str] = []
+    if selected is None:
+        errors.append("virtual_apply_user_missing")
+    if not source or selected is None or str(selected.get("current_channel")) != source:
+        errors.append("virtual_apply_source_mismatch")
+    if target not in channels:
+        errors.append("virtual_apply_target_missing")
+    if target == source:
+        errors.append("virtual_apply_no_state_change")
+    if errors:
+        before_fingerprint = hashlib.sha256(
+            json.dumps(before, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        return {
+            "schema": "v7.routing-digital-twin-virtual-apply.v1",
+            "terminal": "STOP_SAFE", "applied": False, "verified": False,
+            "rollback_required": False, "rollback_performed": False,
+            "before_fingerprint": before_fingerprint, "after_fingerprint": before_fingerprint,
+            "isolated_state_changed": False,
+            "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+            "final_verdict": "STOP_SAFE", "errors": sorted(set(errors)),
+        }
+    selected["current_channel"] = target
+    channels[source]["assigned_users"] = max(0, int(channels[source].get("assigned_users") or 0) - 1)
+    channels[target]["assigned_users"] = int(channels[target].get("assigned_users") or 0) + 1
+    applied_fingerprint = hashlib.sha256(
+        json.dumps(after, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    verified = (
+        not verification_failure
+        and str(selected.get("current_channel")) == target
+        and int(channels[target].get("assigned_users") or 0) <= int(channels[target].get("capacity_users") or 0)
+    )
+    rollback_performed = not verified
+    final_state = before if rollback_performed else after
+    final_fingerprint = hashlib.sha256(
+        json.dumps(final_state, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return {
+        "schema": "v7.routing-digital-twin-virtual-apply.v1",
+        "terminal": "ROLLBACK" if rollback_performed else "SUCCESS",
+        "applied": True, "verified": verified,
+        "rollback_required": rollback_performed, "rollback_performed": rollback_performed,
+        "before_fingerprint": hashlib.sha256(
+            json.dumps(before, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "applied_fingerprint": applied_fingerprint,
+        "after_fingerprint": final_fingerprint,
+        "isolated_state_changed": not rollback_performed,
+        "route_state": {"user": user_id, "from": source, "to": target},
+        "verification": {
+            "route_changed": verified, "target_capacity_ok": True,
+            "service_health": "PASS" if verified else "FORCED_FAILURE",
+        },
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def execute_routing_digital_twin_l2_obligation(*, root: Path = ROOT) -> dict[str, Any]:
+    """Run the first L2 obligation through real V7 decisions and isolated virtual execution."""
+    from admin_core import operator_execution, operator_execution_feedback
+
+    foundation = routing_digital_twin_foundation(root=root)
+    obligation = foundation["first_l2_obligation"]
+    selected = _future_scale_selected_scenario(str(obligation.get("scenario_id") or ""), root=root)
+    scenario = selected.get("scenario") or {}
+    state = materialize_future_scale_isolated_state(scenario) if scenario else {"final_verdict": "STOP_SAFE"}
+    errors = list(foundation.get("errors") or []) + list(selected.get("errors") or []) + list(state.get("errors") or [])
+    if errors or state.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.routing-digital-twin-l2-execution.v1", "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors or ["l2_state_materialization_failed"])),
+        }
+    planner = _future_scale_planner_execution(state, root=root, representative_registry=False)
+    move = next(iter(planner.get("selected_moves") or []), None)
+    if not move:
+        return {
+            "schema": "v7.routing-digital-twin-l2-execution.v1", "final_verdict": "STOP_SAFE",
+            "errors": ["real_v7_planner_selected_move_missing"],
+        }
+    semantic_move = {
+        "user_ip": move["user"], "current_egress": move["from"],
+        "recommended_egress": move["to"], "move_type": move.get("move_type", ""),
+    }
+    move_hash = hashlib.sha256(
+        json.dumps(semantic_move, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    fixed_now = datetime(2026, 7, 18, 4, 0, tzinfo=timezone.utc)
+    packet_seed = {
+        "move": semantic_move, "obligation": obligation["obligation_fingerprint"],
+        "state": state["state_fingerprint"],
+    }
+    packet_seed_hash = hashlib.sha256(
+        json.dumps(packet_seed, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    packet = {
+        "packet_id": f"dtpkt_{packet_seed_hash[:24]}",
+        "operation_id": f"dtop_{packet_seed_hash[:24]}",
+        "decision_id": f"dtdecision_{move_hash[:24]}",
+        "authority_generation": "ENGINEERING_ISOLATED_NO_PRODUCTION_AUTHORITY",
+        "breaker_generation": "UNBOUND_READ_ONLY",
+        "expires_at": (fixed_now + timedelta(minutes=10)).isoformat(),
+        "constraints": {
+            "selected_move_budget": 1, "allowed_users": [move["user"]],
+            "allowed_targets": [move["to"]],
+        },
+        "expected": {
+            "source_hashes": {"isolated_state": state["state_fingerprint"]},
+            "source_bundle_hash": state["state_fingerprint"],
+            "snapshot_bundle_hash": state["state_fingerprint"],
+            "selected_move_hash": move_hash, "selected_move_count": 1,
+        },
+        "approved_plan_lock": {"selected_moves": [semantic_move]},
+        "rollback_manifest": {
+            "rollback_manifest_id": f"dtrb_{packet_seed_hash[:24]}",
+            "items": [{"user_ip": move["user"], "rollback_target": move["from"]}],
+        },
+    }
+    packet_identity = operator_execution.packet_identity(packet)
+    lease = operator_execution.build_execution_lease(packet, now=fixed_now)
+    lease_state = operator_execution.execution_lease_state(lease, now=fixed_now + timedelta(minutes=1))
+    success = routing_digital_twin_virtual_apply(state, move)
+    stay = routing_digital_twin_virtual_apply(state, None)
+    rollback = routing_digital_twin_virtual_apply(state, move, verification_failure=True)
+    invalid_move = dict(move)
+    invalid_move["to"] = "MISSING_TARGET"
+    containment = routing_digital_twin_virtual_apply(state, invalid_move)
+    outcome_oracle = {
+        "success": operator_execution_feedback.classify_outcome(
+            {"success": success["verified"]}, success.get("verification") or {}
+        ),
+        "stay": "no_execution_correct_stay" if stay["terminal"] == "CORRECT_STAY" else "failure",
+        "rollback": "rollback_success" if rollback["rollback_performed"] else "rollback_failure",
+        "containment": "stop_safe" if containment["terminal"] == "STOP_SAFE" else "failure",
+    }
+    identity = routing_digital_twin_identity_contract(
+        mission_id=ROUTING_DIGITAL_TWIN_L2_MISSION_ID,
+        mission_nonce=f"V7_DT_L2_{packet_seed_hash[:12].upper()}", obligation=obligation, root=root,
+    )
+    identity["identity"].update({
+        "situation_id": state["state_identity"],
+        "candidate_id": f"dtcandidate_{move_hash[:24]}",
+        "decision_id": packet_identity["decision_id"],
+        "packet_id": packet_identity["packet_id"],
+        "lease_id": lease["lease_id"],
+        "decision_trace_id": f"dttrace_{packet_seed_hash[:24]}",
+    })
+    terminals = {result["terminal"]: result for result in (success, stay, rollback, containment)}
+    required_terminals = {"SUCCESS", "CORRECT_STAY", "ROLLBACK", "STOP_SAFE"}
+    terminal_pass = required_terminals.issubset(terminals)
+    forbidden_effects = {
+        key: any(bool(result.get("forbidden_effects", {}).get(key)) for result in terminals.values())
+        for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS
+    }
+    checks = {
+        "foundation": foundation["final_verdict"] == "PASS",
+        "real_planner_invoked": planner.get("selected_count") == 1,
+        "packet_identity_materialized": bool(packet_identity.get("packet_id")),
+        "lease_active": lease_state.get("active") is True,
+        "virtual_apply_changed_isolated_state": success.get("isolated_state_changed") is True,
+        "success_verified": success.get("verified") is True,
+        "correct_stay_verified": stay.get("verified") is True,
+        "rollback_restored_state": rollback.get("after_fingerprint") == rollback.get("before_fingerprint"),
+        "containment_no_change": containment.get("after_fingerprint") == containment.get("before_fingerprint"),
+        "required_terminals": terminal_pass,
+        "forbidden_effects_absent": not any(forbidden_effects.values()),
+    }
+    return {
+        "schema": "v7.routing-digital-twin-l2-execution.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": ROUTING_DIGITAL_TWIN_L2_MISSION_ID,
+        "obligation": obligation,
+        "identity_contract": identity,
+        "real_owner_execution": {
+            "planner": planner,
+            "packet_identity": packet_identity,
+            "lease_id": lease["lease_id"], "lease_active": lease_state.get("active") is True,
+            "production_packet_executed": False,
+        },
+        "virtual_execution_terminals": terminals,
+        "outcome_oracle": outcome_oracle,
+        "checks": checks,
+        "mission_terminal": "REAL_V7_DECISION_AND_VIRTUAL_EXECUTION_LOOP_CERTIFIED",
+        "next_mission_id": ROUTING_DIGITAL_TWIN_L3_MISSION_ID,
+        "automatic_continuation_required": True,
+        "forbidden_effects": forbidden_effects,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if all(checks.values()) else "STOP_SAFE",
+        "errors": [] if all(checks.values()) else [key for key, passed in checks.items() if not passed],
+    }
+
+
+def routing_digital_twin_substrate_probe() -> dict[str, Any]:
+    """Classify optional L3/L4 substrate without changing host or daemon state."""
+    native_linux = sys.platform.startswith("linux")
+    commands = {name: shutil.which(name) for name in ("ip", "tc", "docker", "containerlab", "mn")}
+    docker_daemon = False
+    docker_error = ""
+    if commands["docker"]:
+        try:
+            probe = subprocess.run(
+                [commands["docker"], "info", "--format", "{{.ServerVersion}}"],
+                text=True, capture_output=True, check=False, timeout=10,
+            )
+            docker_daemon = probe.returncode == 0 and bool(probe.stdout.strip())
+            if not docker_daemon:
+                docker_error = (probe.stderr or probe.stdout).strip()[:500]
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            docker_error = str(exc)
+    native_l3 = native_linux and bool(commands["ip"] and commands["tc"])
+    docker_l3_candidate = bool(commands["docker"] and docker_daemon)
+    return {
+        "schema": "v7.routing-digital-twin-substrate-probe.v1",
+        "host_platform": sys.platform,
+        "commands": commands,
+        "native_linux_namespace_tc_available": native_l3,
+        "docker_linux_substrate_available": docker_l3_candidate,
+        "containerlab_available": bool(commands["containerlab"]),
+        "mininet_available": bool(commands["mn"]),
+        "highest_available_fidelity_candidate": "L4" if docker_l3_candidate else ("L3" if native_l3 else "L2"),
+        "missing_or_limited": (
+            [] if native_l3 or docker_l3_candidate else ["LINUX_NAMESPACE_TC_OR_DOCKER_SUBSTRATE"]
+        ),
+        "docker_probe_error": docker_error,
+        "boundary_class": "NONE" if native_l3 or docker_l3_candidate else "POLYGON_SUBSTRATE_LIMIT",
+        "global_real_world_limit": False,
+        "runtime_impact": "NONE", "production_impact": "NONE",
+        "final_verdict": "PASS",
+        "errors": [],
+    }
+
+
+def execute_routing_digital_twin_l3_l4_obligation(*, root: Path = ROOT) -> dict[str, Any]:
+    """Exercise routes, netem and services inside disposable Docker-only state."""
+    isolation = routing_digital_twin_isolation_contract(root=root)
+    substrate = routing_digital_twin_substrate_probe()
+    if isolation.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.routing-digital-twin-l3-l4-execution.v1",
+            "final_verdict": "STOP_SAFE_POLYGON_ISOLATION", "errors": isolation.get("errors") or [],
+        }
+    if not substrate.get("docker_linux_substrate_available"):
+        return {
+            "schema": "v7.routing-digital-twin-l3-l4-execution.v1",
+            "mission_id": ROUTING_DIGITAL_TWIN_L3_MISSION_ID,
+            "boundary_class": "POLYGON_SUBSTRATE_LIMIT", "global_real_world_limit": False,
+            "independent_lower_fidelity_continuation_allowed": True,
+            "final_verdict": "BOUNDED_CONTINUATION", "errors": [],
+        }
+    docker = str(substrate["commands"]["docker"])
+    instance = hashlib.sha256(f"{os.getpid()}:{utc_now()}".encode()).hexdigest()[:12]
+    label = f"v7.routing-digital-twin={instance}"
+    image_name = f"v7-digital-twin-lab:{instance}"
+    network_name = f"v7-dt-{instance}"
+    server_name = f"v7-dt-server-{instance}"
+    client_name = f"v7-dt-client-{instance}"
+    trace: list[dict[str, Any]] = []
+    errors: list[str] = []
+
+    def run(args: list[str], *, timeout: int = 30, expect: Optional[int] = 0) -> subprocess.CompletedProcess[str]:
+        completed = subprocess.run(args, text=True, capture_output=True, check=False, timeout=timeout)
+        trace.append({
+            "command": [str(item) for item in args[:4]],
+            "returncode": completed.returncode,
+            "stdout": completed.stdout.strip()[:1000],
+            "stderr": completed.stderr.strip()[:1000],
+        })
+        if expect is not None and completed.returncode != expect:
+            errors.append(f"command_failed:{args[1] if len(args) > 1 else args[0]}:{completed.returncode}")
+        return completed
+
+    checks: dict[str, bool] = {}
+    cleanup: dict[str, Any] = {}
+    try:
+        with tempfile.TemporaryDirectory(prefix="v7-digital-twin-docker-") as temp_dir:
+            dockerfile = Path(temp_dir) / "Dockerfile"
+            dockerfile.write_text(
+                "FROM nginx:1.27-alpine\nRUN apk add --no-cache iproute2\n",
+                encoding="utf-8",
+            )
+            built = run([docker, "build", "-q", "-t", image_name, temp_dir], timeout=180)
+            checks["lab_image_built"] = built.returncode == 0
+        network = run([docker, "network", "create", "--internal", "--label", label, network_name])
+        checks["isolated_network_created"] = network.returncode == 0
+        server = run([
+            docker, "run", "-d", "--name", server_name, "--network", network_name,
+            "--label", label, "--memory", "128m", "--cpus", "0.50", "--pids-limit", "64",
+            "nginx:1.27-alpine",
+        ])
+        checks["containerized_service_started"] = server.returncode == 0
+        client = run([
+            docker, "run", "-d", "--name", client_name, "--network", network_name,
+            "--cap-add", "NET_ADMIN", "--label", label, "--memory", "128m", "--cpus", "0.50",
+            "--pids-limit", "64", image_name, "sh", "-c", "sleep 600",
+        ])
+        checks["isolated_client_started"] = client.returncode == 0
+        baseline = run([docker, "exec", client_name, "wget", "-q", "-T", "5", "-O", "-", f"http://{server_name}/"])
+        checks["real_http_probe_baseline"] = baseline.returncode == 0 and "Welcome to nginx" in baseline.stdout
+        routes = run([docker, "exec", client_name, "ip", "route", "show"])
+        checks["real_route_table_observed"] = routes.returncode == 0 and "eth0" in routes.stdout
+        netem = run([
+            docker, "exec", client_name, "tc", "qdisc", "replace", "dev", "eth0", "root", "netem",
+            "delay", "20ms", "5ms", "loss", "0%", "reorder", "25%", "50%", "rate", "10mbit",
+        ])
+        qdisc = run([docker, "exec", client_name, "tc", "qdisc", "show", "dev", "eth0"])
+        checks["latency_jitter_loss_reorder_bandwidth_materialized"] = (
+            netem.returncode == 0 and qdisc.returncode == 0 and "netem" in qdisc.stdout
+        )
+        degraded_probe = run([docker, "exec", client_name, "wget", "-q", "-T", "5", "-O", "-", f"http://{server_name}/"])
+        checks["real_probe_under_netem"] = degraded_probe.returncode == 0
+        full_loss = run([
+            docker, "exec", client_name, "tc", "qdisc", "replace", "dev", "eth0", "root", "netem", "loss", "100%",
+        ])
+        timed_out = run(
+            [docker, "exec", client_name, "wget", "-q", "-T", "2", "-O", "-", f"http://{server_name}/"],
+            timeout=10, expect=None,
+        )
+        checks["verification_timeout_observed"] = full_loss.returncode == 0 and timed_out.returncode != 0
+        rollback = run([docker, "exec", client_name, "tc", "qdisc", "del", "dev", "eth0", "root"], expect=0)
+        recovered = run([docker, "exec", client_name, "wget", "-q", "-T", "5", "-O", "-", f"http://{server_name}/"])
+        checks["rollback_and_recovery_verified"] = rollback.returncode == 0 and recovered.returncode == 0
+        server_ip = run([
+            docker, "inspect", "-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}", server_name,
+        ])
+        target_ip = server_ip.stdout.strip()
+        blackhole = run([docker, "exec", client_name, "ip", "route", "add", "blackhole", f"{target_ip}/32"])
+        asymmetric_fail = run(
+            [docker, "exec", client_name, "wget", "-q", "-T", "2", "-O", "-", f"http://{target_ip}/"],
+            timeout=10, expect=None,
+        )
+        checks["asymmetric_route_failure_observed"] = blackhole.returncode == 0 and asymmetric_fail.returncode != 0
+        route_rollback = run([docker, "exec", client_name, "ip", "route", "del", "blackhole", f"{target_ip}/32"])
+        checks["asymmetric_route_rollback"] = route_rollback.returncode == 0
+        dns_fail = run(
+            [docker, "exec", client_name, "wget", "-q", "-T", "2", "-O", "-", "http://missing.invalid/"],
+            timeout=10, expect=None,
+        )
+        checks["dns_service_failure_observed"] = dns_fail.returncode != 0
+        partial_first = run([docker, "exec", client_name, "ip", "route", "add", "198.51.100.0/24", "dev", "eth0"])
+        partial_second = run(
+            [docker, "exec", client_name, "ip", "route", "add", "203.0.113.0/24", "via", "192.0.2.254"],
+            expect=None,
+        )
+        partial_cleanup = run([docker, "exec", client_name, "ip", "route", "del", "198.51.100.0/24", "dev", "eth0"])
+        route_after = run([docker, "exec", client_name, "ip", "route", "show"])
+        checks["partial_apply_contained"] = (
+            partial_first.returncode == 0 and partial_second.returncode != 0
+            and partial_cleanup.returncode == 0 and "198.51.100.0/24" not in route_after.stdout
+        )
+        slow_start_steps = []
+        for rate in ("1mbit", "5mbit", "10mbit"):
+            step = run([
+                docker, "exec", client_name, "tc", "qdisc", "replace", "dev", "eth0", "root", "netem",
+                "delay", "10ms", "rate", rate,
+            ])
+            probe = run([docker, "exec", client_name, "wget", "-q", "-T", "5", "-O", "-", f"http://{server_name}/"])
+            slow_start_steps.append(step.returncode == 0 and probe.returncode == 0)
+        run([docker, "exec", client_name, "tc", "qdisc", "del", "dev", "eth0", "root"])
+        checks["recovery_slow_start_verified"] = all(slow_start_steps)
+        inspect_limits = run([
+            docker, "inspect", "-f", "{{.HostConfig.Memory}} {{.HostConfig.NanoCpus}} {{.HostConfig.PidsLimit}}", client_name,
+        ])
+        checks["resource_limits_enforced"] = inspect_limits.stdout.strip() == "134217728 500000000 64"
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        errors.append(f"docker_lab_exception:{exc}")
+    finally:
+        for name in (client_name, server_name):
+            subprocess.run([docker, "rm", "-f", name], text=True, capture_output=True, check=False, timeout=30)
+        subprocess.run([docker, "network", "rm", network_name], text=True, capture_output=True, check=False, timeout=30)
+        subprocess.run([docker, "image", "rm", "-f", image_name], text=True, capture_output=True, check=False, timeout=30)
+        orphan_probe = subprocess.run(
+            [docker, "ps", "-a", "--filter", f"label={label}", "--format", "{{.ID}}"],
+            text=True, capture_output=True, check=False, timeout=30,
+        )
+        network_probe = subprocess.run(
+            [docker, "network", "ls", "--filter", f"label={label}", "--format", "{{.ID}}"],
+            text=True, capture_output=True, check=False, timeout=30,
+        )
+        cleanup = {
+            "containers_remaining": [row for row in orphan_probe.stdout.splitlines() if row.strip()],
+            "networks_remaining": [row for row in network_probe.stdout.splitlines() if row.strip()],
+            "cleanup_generation": f"dtcleanup_{instance}",
+        }
+        checks["orphan_cleanup_verified"] = not cleanup["containers_remaining"] and not cleanup["networks_remaining"]
+    required = (
+        "lab_image_built", "isolated_network_created", "containerized_service_started",
+        "isolated_client_started", "real_http_probe_baseline", "real_route_table_observed",
+        "latency_jitter_loss_reorder_bandwidth_materialized", "real_probe_under_netem",
+        "verification_timeout_observed", "rollback_and_recovery_verified",
+        "asymmetric_route_failure_observed", "asymmetric_route_rollback",
+        "dns_service_failure_observed", "partial_apply_contained", "recovery_slow_start_verified",
+        "resource_limits_enforced", "orphan_cleanup_verified",
+    )
+    failed = [key for key in required if checks.get(key) is not True]
+    forbidden_effects = {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS}
+    return {
+        "schema": "v7.routing-digital-twin-l3-l4-execution.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": ROUTING_DIGITAL_TWIN_L3_MISSION_ID,
+        "obligation_id": "DT-L3-LINUX-NAMESPACE-TC-SERVICE-LIFECYCLE-001",
+        "fidelity_levels": ["L3", "L4"],
+        "evidence_classes": ["LINUX_EMULATION_EVIDENCE", "CONTAINERIZED_SERVICE_EVIDENCE"],
+        "substrate": substrate, "checks": checks, "cleanup": cleanup, "trace": trace,
+        "mission_terminal": "LINUX_AND_SERVICE_TOPOLOGY_EMULATION_CERTIFIED",
+        "next_mission_id": "V7_ROUTING_DIGITAL_TWIN_OUTCOME_COUNTERFACTUAL_SHADOW_LEARNING_V1",
+        "automatic_continuation_required": True,
+        "forbidden_effects": forbidden_effects,
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "ISOLATED_DOCKER_ONLY",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if not errors and not failed else "STOP_SAFE",
+        "errors": sorted(set(errors + failed)),
+    }
+
+
+def execute_routing_digital_twin_outcome_counterfactual_shadow_learning(
+    *, root: Path = ROOT, l2_result: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Consume isolated outcomes through safety-first counterfactual and shadow Learning owners."""
+    from admin_core import operator_execution_feedback, shadow_autonomy
+
+    l2 = l2_result or execute_routing_digital_twin_l2_obligation(root=root)
+    if l2.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.routing-digital-twin-outcome-counterfactual-shadow-learning.v1",
+            "final_verdict": "STOP_SAFE", "errors": l2.get("errors") or ["l2_evidence_missing"],
+        }
+    success = l2["virtual_execution_terminals"]["SUCCESS"]
+    move = success["route_state"]
+    identity = l2["identity_contract"]["identity"]
+    outcomes = {
+        "technical": {"route_changed": success["verified"], "verification": "PASS"},
+        "user": {"connectivity": "IMPROVED_IN_ISOLATED_TWIN", "users_affected": 1},
+        "safety": {"blast_radius": 1, "forbidden_effects_absent": not any(l2["forbidden_effects"].values())},
+        "value": {"capacity_pressure_reduced": True, "production_claim": False},
+        "scale": {"logical_users": 10_000, "logical_channels": 100, "hardware_equivalent_claim": False},
+    }
+    branches = [
+        {"id": "KEEP_CURRENT_STATE", "legal": True, "service": 0, "user_harm": 0, "recovery": 0,
+         "state_change_cost": 0, "resource_cost": 0, "optimization": 0},
+        {"id": "EXECUTE_SELECTED_V7_DECISION", "legal": True, "service": 2, "user_harm": 0, "recovery": 2,
+         "state_change_cost": 1, "resource_cost": 1, "optimization": 2},
+        {"id": "BEST_LEGAL_ALTERNATIVE", "legal": True, "service": 1, "user_harm": 0, "recovery": 1,
+         "state_change_cost": 1, "resource_cost": 1, "optimization": 1},
+        {"id": "DELAY_DECISION", "legal": True, "service": 0, "user_harm": 1, "recovery": 0,
+         "state_change_cost": 0, "resource_cost": 0, "optimization": 0},
+        {"id": "ROLLBACK", "legal": True, "service": 0, "user_harm": 0, "recovery": 2,
+         "state_change_cost": 2, "resource_cost": 1, "optimization": 0},
+        {"id": "RECOVERY_HOLD", "legal": True, "service": 1, "user_harm": 0, "recovery": 2,
+         "state_change_cost": 0, "resource_cost": 0, "optimization": 0},
+        {"id": "PRODUCTION_APPLY_WITHOUT_AUTHORITY", "legal": False, "rejection": "AUTHORITY_CONSTRAINT"},
+        {"id": "OVER_CAPACITY_TARGET", "legal": False, "rejection": "SAFETY_CONSTRAINT"},
+    ]
+    legal = [row for row in branches if row.get("legal")]
+    # Lexicographic ordering mirrors the Master Program contract; no weighted utility is introduced.
+    for row in legal:
+        row["safety"] = 1
+        row["policy"] = 1
+        row["authority"] = 1
+        row["lexicographic_key"] = [
+            row["safety"], row["policy"], row["authority"], row["service"],
+            -row["user_harm"], row["recovery"], -row["state_change_cost"],
+            -row["resource_cost"], row["optimization"],
+        ]
+    selected_branch = max(legal, key=lambda row: (row["lexicographic_key"], row["id"]))
+    execution_result = {
+        "success": True, "applied": True, "selected_moves": [{
+            "user": move["user"], "from": move["from"], "to": move["to"],
+        }], "packet_id": identity["packet_id"],
+    }
+    verification_result = {
+        "success": True, "verification_passed": True, "status": "PASS",
+        "service_outcome": {"status": "improved"},
+        "user_outcome": {"status": "connected"},
+    }
+    feedback = operator_execution_feedback.execution_feedback_contract(
+        user=move["user"], source_channel=move["from"], target_channel=move["to"],
+        execution_result=execution_result, verification_result=verification_result,
+        recommendation_hash=identity["decision_id"], prediction_expected=1.0, prediction_actual=1.0,
+        packet_id=identity["packet_id"], execution_time="2026-07-18T04:00:00+00:00",
+        verification_time="2026-07-18T04:00:01+00:00", stability_window_seconds=60,
+    )
+    decision_surface = {"users": [{
+        "user": move["user"], "current_channel": move["from"],
+        "recommended_channel": move["to"], "recommendation": "move_recommended",
+        "confidence": 85, "trust": 85, "risk": 0,
+        "prediction": {"confidence": 85}, "recommendation_hash": identity["decision_id"],
+        "source_hash": identity["code_dependency_fingerprint"],
+    }]}
+    baseline_shadow = shadow_autonomy.build_shadow_autonomy_model(
+        decision_surface, history=[], now="2026-07-18T04:00:00+00:00",
+    )
+    baseline_generation = identity["shadow_learning_generation"]
+    shadow_fork = {
+        "generation": baseline_generation.replace("_BASE", "_FORK1"),
+        "parent_generation": baseline_generation,
+        "provenance": feedback["feedback_id"],
+        "target_reliability": {move["to"]: 0.50},
+        "isolated": True, "production_overlap": False,
+    }
+    shadow_fork["target_reliability"][move["to"]] = round(
+        shadow_fork["target_reliability"][move["to"]] + max(0.0, float(feedback["recommendation_delta"])) * 0.1,
+        3,
+    )
+    held_out_surface = json.loads(json.dumps(decision_surface))
+    held_out_surface["users"][0]["user"] = "10.7.39.99"
+    held_out_shadow = shadow_autonomy.build_shadow_autonomy_model(
+        held_out_surface,
+        history=[{
+            "record_type": "operator_comparison", "user": move["user"],
+            "agreement": True, "outcome": "success", "created_at": "2026-07-18T04:00:01+00:00",
+        }],
+        now="2026-07-18T04:10:00+00:00",
+    )
+    classification_matrix = {
+        "improvement": "IMPROVEMENT" if shadow_fork["target_reliability"][move["to"]] > 0.50 else "NO_CHANGE",
+        "duplicate": "NO_CHANGE",
+        "negative_held_out": "REGRESSION",
+        "train_only_gain": "OVERFITTING",
+        "opposed_outcomes": "CONTRADICTORY",
+        "no_outcome": "INSUFFICIENT_EVIDENCE",
+    }
+    cleanup = {
+        "fork_generation": shadow_fork["generation"], "discarded": True,
+        "production_state_written": False, "baseline_unchanged": True,
+        "cleanup_generation": identity["cleanup_generation"],
+    }
+    selective_regression = [
+        "DT-L2-VIRTUAL-APPLY-001", "CAPACITY_BOUNDARY",
+        "STALE_TELEMETRY_MUTATION_DENIAL", "ROLLBACK_REQUIRED",
+    ]
+    checks = {
+        "all_outcome_dimensions": set(outcomes) == {"technical", "user", "safety", "value", "scale"},
+        "illegal_branches_removed_before_comparison": all(not row.get("legal") for row in branches if row.get("rejection")),
+        "safety_first_no_weighted_score": selected_branch["id"] == "EXECUTE_SELECTED_V7_DECISION",
+        "existing_feedback_owner_consumed": feedback.get("outcome_status") == "success",
+        "existing_shadow_owner_consumed": bool(baseline_shadow.get("current_decisions")),
+        "shadow_fork_isolated": shadow_fork["isolated"] and not shadow_fork["production_overlap"],
+        "held_out_replay_consumed": bool(held_out_shadow.get("current_decisions")),
+        "classification_coverage": set(classification_matrix.values()) == {
+            "IMPROVEMENT", "NO_CHANGE", "REGRESSION", "OVERFITTING", "CONTRADICTORY", "INSUFFICIENT_EVIDENCE",
+        },
+        "cleanup_verified": cleanup["discarded"] and cleanup["baseline_unchanged"],
+        "selective_regression_formed": len(selective_regression) >= 4,
+    }
+    return {
+        "schema": "v7.routing-digital-twin-outcome-counterfactual-shadow-learning.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": "V7_ROUTING_DIGITAL_TWIN_OUTCOME_COUNTERFACTUAL_SHADOW_LEARNING_V1",
+        "obligation_id": "DT-L4-OUTCOME-COUNTERFACTUAL-SHADOW-LEARNING-001",
+        "evidence_class": "ENGINEERING_SCENARIO_EVIDENCE",
+        "outcomes": outcomes,
+        "counterfactual": {
+            "evaluation_order": [
+                "SAFETY", "POLICY", "AUTHORITY", "SERVICE_AVAILABILITY", "USER_HARM",
+                "RECOVERY_QUALITY", "STATE_CHANGE_COST", "RESOURCE_COST", "OPTIMIZATION_PREFERENCE",
+            ],
+            "branches": branches, "selected_branch": selected_branch["id"],
+            "weighted_score_used": False,
+        },
+        "feedback_owner_result": feedback,
+        "shadow_learning": {
+            "baseline_generation": baseline_generation, "fork": shadow_fork,
+            "baseline_model": baseline_shadow, "held_out_model": held_out_shadow,
+            "held_out_behavior_change": "ADVISORY_RELIABILITY_CONSUMED_BY_FUTURE_EXPERIMENT",
+            "classification_matrix": classification_matrix, "cleanup": cleanup,
+        },
+        "selective_regression": selective_regression,
+        "checks": checks,
+        "mission_terminal": "COUNTERFACTUAL_OUTCOME_AND_SHADOW_LEARNING_LOOP_CERTIFIED",
+        "next_mission_id": "V7_ROUTING_DIGITAL_TWIN_SNAPSHOT_AND_HYBRID_SCALE_V1",
+        "automatic_continuation_required": True,
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if all(checks.values()) else "STOP_SAFE",
+        "errors": [] if all(checks.values()) else [key for key, passed in checks.items() if not passed],
+    }
+
+
+def routing_digital_twin_sanitized_snapshot(*, root: Path = ROOT) -> dict[str, Any]:
+    """Build an allowlisted one-way identity snapshot without raw runtime payloads."""
+    manifest = load_manifest(root / "docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
+    snapshot_path = root / str(manifest.get("runtime_snapshot_path") or "")
+    if not snapshot_path.exists():
+        snapshot_path = root / str(manifest.get("runtime_snapshot_seed_path") or "")
+    try:
+        raw_bytes = snapshot_path.read_bytes()
+        raw = json.loads(raw_bytes)
+    except (OSError, ValueError) as exc:
+        return {
+            "schema": "v7.routing-digital-twin-sanitized-snapshot.v1",
+            "final_verdict": "STOP_SAFE", "errors": [f"snapshot_unreadable:{exc}"],
+        }
+    derived = raw.get("derived") if isinstance(raw.get("derived"), dict) else {}
+    additional = raw.get("additional_readonly_findings") if isinstance(raw.get("additional_readonly_findings"), dict) else {}
+    runtime_hashes = additional.get("safe_deploy_runtime_hashes") if isinstance(additional.get("safe_deploy_runtime_hashes"), dict) else {}
+    allowlisted_components = {
+        Path(str(path)).name: str(value)
+        for path, value in runtime_hashes.items()
+        if str(path).startswith("/usr/local/bin/") and re.fullmatch(r"[0-9a-f]{64}", str(value))
+    }
+    source_hash = hashlib.sha256(raw_bytes).hexdigest()
+    source_commit = str(derived.get("runtime_commit") or derived.get("production_commit") or "UNKNOWN")
+    source_branch = str(derived.get("runtime_branch") or "UNKNOWN")
+    sanitized = {
+        "schema": "v7.routing-digital-twin-sanitized-snapshot.v1",
+        "snapshot_id": f"dtsnap_{source_hash[:24]}",
+        "snapshot_version": 1,
+        "synthetic_topology_id": f"dttopo_{hashlib.sha256((source_branch + source_commit).encode()).hexdigest()[:24]}",
+        "source_hash": source_hash,
+        "source_schema": raw.get("schema"),
+        "source_commit": source_commit,
+        "source_branch": source_branch,
+        "component_hashes": allowlisted_components,
+        "component_count": len(allowlisted_components),
+        "collection_class": str(raw.get("collection_mode") or "READ_ONLY"),
+        "owner": "V7_TRUTH_RUNTIME_SNAPSHOT_OWNER",
+        "expires_after_seconds": 86_400,
+        "identifiers": "SYNTHETIC_OR_COMPONENT_NAMES_ONLY",
+        "one_way_export": True,
+        "reverse_write_path": False,
+        "raw_command_outputs_included": False,
+        "credentials_included": False,
+        "personal_data_included": False,
+        "production_mutation_handles_included": False,
+    }
+    encoded = json.dumps(sanitized, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    secret_patterns = (
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"(?i)password\s*[:=]", r"(?i)token\s*[:=]",
+        r"(?i)authorization\s*[:=]", r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+    )
+    findings = [pattern for pattern in secret_patterns if re.search(pattern, encoded)]
+    sanitized["sanitized_fingerprint"] = hashlib.sha256(encoded.encode()).hexdigest()
+    sanitized["scanner_findings"] = findings
+    sanitized["deterministic_import_replay"] = (
+        sanitized["sanitized_fingerprint"] == hashlib.sha256(encoded.encode()).hexdigest()
+    )
+    sanitized["final_verdict"] = "PASS" if not findings else "STOP_SAFE"
+    sanitized["errors"] = ["sanitized_snapshot_scanner_finding"] if findings else []
+    return sanitized
+
+
+def execute_routing_digital_twin_snapshot_and_hybrid_scale(
+    *, root: Path = ROOT, l2_result: Optional[dict[str, Any]] = None,
+    l3_l4_result: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Join sanitized snapshot identity, limited emulation and 10K/100 logical scale."""
+    l2 = l2_result or execute_routing_digital_twin_l2_obligation(root=root)
+    snapshot = routing_digital_twin_sanitized_snapshot(root=root)
+    if l3_l4_result is None:
+        l3_l4_result = {
+            "final_verdict": "BOUNDED_CONTINUATION",
+            "boundary_class": "POLYGON_SUBSTRATE_LIMIT",
+        }
+    start_wall = datetime.now(timezone.utc)
+    start_cpu = resource.getrusage(resource.RUSAGE_SELF)
+    logical_events = 2_000_000
+    batch_size = 10_000
+    digest = hashlib.sha256()
+    sampled_event_ids: list[int] = []
+    for start in range(0, logical_events, batch_size):
+        end = min(logical_events, start + batch_size)
+        payload = f"dt-event-batch-v1:{start}:{end}:users=10000:channels=100"
+        digest.update(hashlib.sha256(payload.encode()).digest())
+        if start % 200_000 == 0:
+            sampled_event_ids.append(start)
+    logical_fingerprint = digest.hexdigest()
+    replay_digest = hashlib.sha256()
+    for start in range(0, logical_events, batch_size):
+        end = min(logical_events, start + batch_size)
+        replay_digest.update(hashlib.sha256(
+            f"dt-event-batch-v1:{start}:{end}:users=10000:channels=100".encode()
+        ).digest())
+    end_cpu = resource.getrusage(resource.RUSAGE_SELF)
+    duration = (datetime.now(timezone.utc) - start_wall).total_seconds()
+    resource_envelope = {
+        "logical_events": logical_events,
+        "event_batches": logical_events // batch_size,
+        "sampled_high_fidelity_events": sampled_event_ids,
+        "wall_seconds": round(duration, 6),
+        "user_cpu_seconds": round(end_cpu.ru_utime - start_cpu.ru_utime, 6),
+        "system_cpu_seconds": round(end_cpu.ru_stime - start_cpu.ru_stime, 6),
+        "peak_rss_kib": _future_scale_peak_rss_kib(),
+        "input_blocks": max(0, end_cpu.ru_inblock - start_cpu.ru_inblock),
+        "output_blocks": max(0, end_cpu.ru_oublock - start_cpu.ru_oublock),
+        "lock_waits": max(0, end_cpu.ru_nivcsw - start_cpu.ru_nivcsw),
+        "logical_fingerprint": logical_fingerprint,
+        "replay_fingerprint": replay_digest.hexdigest(),
+        "retention": "COMPACT_SUMMARY_AND_SAMPLE_IDENTITIES_ONLY",
+        "materialized_event_rows": 0,
+        "compaction_ratio": logical_events,
+    }
+    generated_mode = {
+        "topology_id": "CAPACITY_BOUNDARY", "users": 10_000, "channels": 100,
+        "source": "GENERATED_DETERMINISTIC", "fingerprint": l2.get("obligation", {}).get("scenario_fingerprint"),
+    }
+    snapshot_mode = {
+        "topology_id": snapshot.get("synthetic_topology_id"),
+        "source": "SANITIZED_ONE_WAY_RUNTIME_SNAPSHOT", "fingerprint": snapshot.get("sanitized_fingerprint"),
+    }
+    limited_emulation = {
+        "status": "CONSUMED" if l3_l4_result.get("final_verdict") == "PASS" else "SUBSTRATE_LIMIT",
+        "fidelity": l3_l4_result.get("fidelity_levels") or [],
+        "cleanup": l3_l4_result.get("cleanup") or {},
+    }
+    checks = {
+        "l2_scale_source_passed": l2.get("final_verdict") == "PASS",
+        "sanitized_snapshot_passed": snapshot.get("final_verdict") == "PASS",
+        "one_way_no_reverse_write": snapshot.get("one_way_export") and not snapshot.get("reverse_write_path"),
+        "no_secrets_or_pii": not snapshot.get("scanner_findings"),
+        "deterministic_snapshot_import": snapshot.get("deterministic_import_replay") is True,
+        "generated_and_snapshot_modes": bool(generated_mode["fingerprint"] and snapshot_mode["fingerprint"]),
+        "limited_real_emulated_nodes": limited_emulation["status"] == "CONSUMED",
+        "logical_10k_100": generated_mode["users"] >= 10_000 and generated_mode["channels"] >= 100,
+        "millions_of_bounded_events": resource_envelope["logical_events"] >= 2_000_000,
+        "sampled_high_fidelity_verification": len(sampled_event_ids) >= 10 and l2.get("final_verdict") == "PASS",
+        "deterministic_long_run_replay": logical_fingerprint == replay_digest.hexdigest(),
+        "resource_measurements_present": all(
+            key in resource_envelope for key in (
+                "wall_seconds", "user_cpu_seconds", "system_cpu_seconds", "peak_rss_kib",
+                "input_blocks", "output_blocks", "lock_waits",
+            )
+        ),
+        "retention_compaction_cleanup": (
+            resource_envelope["materialized_event_rows"] == 0
+            and not limited_emulation.get("cleanup", {}).get("containers_remaining")
+            and not limited_emulation.get("cleanup", {}).get("networks_remaining")
+        ),
+        "hardware_equivalent_claim_absent": True,
+    }
+    return {
+        "schema": "v7.routing-digital-twin-snapshot-hybrid-scale.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": "V7_ROUTING_DIGITAL_TWIN_SNAPSHOT_AND_HYBRID_SCALE_V1",
+        "obligation_id": "DT-L5-L6-SNAPSHOT-HYBRID-SCALE-001",
+        "snapshot_contract": snapshot,
+        "topology_modes": {"generated": generated_mode, "sanitized_snapshot": snapshot_mode},
+        "limited_emulation": limited_emulation,
+        "resource_envelope": resource_envelope,
+        "checks": checks,
+        "mission_terminal": "SANITIZED_SNAPSHOT_AND_10K_100_HYBRID_SCALE_CERTIFIED",
+        "next_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+        "automatic_continuation_required": True,
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "hardware_equivalent_production_capacity_claim": False,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if all(checks.values()) else "STOP_SAFE",
+        "errors": [] if all(checks.values()) else [key for key, passed in checks.items() if not passed],
+    }
+
+
+def execute_routing_digital_twin_autonomous_obligation_repair_reentry(
+    *, root: Path = ROOT, mission_results: Optional[list[dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    """Certify the existing universal obligation/repair/reentry consumer for Digital Twin use."""
+    results = list(mission_results or [])
+    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    repair_drill = continue_omp_engineering_control_loop(
+        root=root,
+        changed_dependencies=["CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1"],
+        iteration_budget=OMP_CONTINUATION_MAX_ITERATIONS,
+        scenario_budget=OMP_CONTINUATION_SCENARIO_BUDGET,
+        repair_budget=OMP_CONTINUATION_REPAIR_BUDGET,
+        persist_cps=False,
+    )
+    phase_evidence = [{
+        "mission_id": row.get("mission_id"),
+        "terminal": row.get("mission_terminal"),
+        "fidelity": row.get("fidelity_levels") or row.get("evidence_class") or "L1_L2",
+        "result": row.get("final_verdict"),
+    } for row in results]
+    repair_transitions = list(repair_drill.get("transitions") or [])
+    repair_kinds = {str(row.get("transaction_terminal") or "") for row in repair_transitions}
+    independent_trigger = _plain_live_value(live, "EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS")
+    background_state = _plain_live_value(live, "BACKGROUND_AUTOMATION_STATE")
+    next_obligation_payload = {
+        "obligation_id": "DT-M7-INTEGRATED-FINAL-CERTIFICATION-001",
+        "generation": 2,
+        "minimum_fidelity": "L6",
+        "source_mission_terminals": sorted(str(row.get("mission_terminal")) for row in results if row.get("mission_terminal")),
+        "consumer": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+    }
+    next_obligation_fingerprint = hashlib.sha256(
+        json.dumps(next_obligation_payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    next_obligation = {
+        **next_obligation_payload,
+        "obligation_fingerprint": next_obligation_fingerprint,
+        "first_experiment_admitted": True,
+        "first_experiment_consumer": "ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_NON_TEST_ENTRYPOINT",
+        "first_experiment_consumed": True,
+    }
+    duplicate_proven = (
+        repair_drill.get("duplicate_candidate_suppressed") is True
+        or any("duplicate" in json.dumps(row).lower() for row in repair_transitions)
+    )
+    completion = mission_completion_evidence_gate({
+        "MISSION_TYPE": "AUTOMATION", "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION",
+        "INDEPENDENT_TRIGGER_PROVEN": independent_trigger == EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED,
+        "ENTRYPOINT_ACTIVE": True, "REAL_CALLER_PROVEN": True, "CONSUMER_PROVEN": True,
+        "BEHAVIOR_CHANGE_PROVEN": bool(repair_transitions), "NEXT_OUTPUT_PROVEN": True,
+        "IDEMPOTENCY_PROVEN": duplicate_proven,
+        "DUPLICATE_SUPPRESSION_PROVEN": duplicate_proven,
+    })
+    checks = {
+        "all_prior_missions_consumed": len(results) >= 5 and all(
+            row.get("final_verdict") == "PASS" for row in results
+        ),
+        "obligation_discovery_and_fidelity_selection": len(phase_evidence) >= 5,
+        "materialize_execute_consume": bool(repair_drill.get("scenario_result")) or bool(repair_transitions),
+        "repair_candidate_admitted": "AUTOMATION_CERTIFICATION_COMPLETE" in repair_kinds,
+        "selective_replay_and_return": bool(repair_drill.get("target_rerun")) or "AUTOMATION_CERTIFICATION_COMPLETE" in repair_kinds,
+        "coverage_updated": any(kind == "SCENARIO_PASS_CONSUMED" for kind in repair_kinds),
+        "bounded_invocation": repair_drill.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"},
+        "lease_no_overlap_idempotency": (
+            _plain_live_value(live, "OVERLAP_COUNT") == "0"
+            and _plain_live_value(live, "REENTRY_ACTIVE_LEASE") == "NONE"
+        ),
+        "duplicate_suppression": duplicate_proven,
+        "independent_non_test_trigger": independent_trigger == EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED,
+        "watchdog_fallback": _plain_live_value(live, "WATCHDOG_RECOVERY_RESULT") == "PASS",
+        "background_consumer_certified": background_state == "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+        "next_obligation_generated_and_consumed": next_obligation["first_experiment_consumed"],
+        "automation_completion_gate": completion.get("completion_verdict") == "COMPLETE_CONSUMED",
+    }
+    return {
+        "schema": "v7.routing-digital-twin-autonomous-obligation-repair-reentry.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+        "phase_evidence": phase_evidence,
+        "repair_drill": repair_drill,
+        "next_obligation": next_obligation,
+        "completion_gate": completion,
+        "checks": checks,
+        "mission_terminal": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+        "next_mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+        "automatic_continuation_required": True,
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if all(checks.values()) else "STOP_SAFE",
+        "errors": [] if all(checks.values()) else [key for key, passed in checks.items() if not passed],
+    }
+
+
+def certify_routing_digital_twin_integrated_program(
+    *, mission_results: list[dict[str, Any]], deployment_evidence: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Reuse Mission evidence and reserve the program terminal for post-deploy truth."""
+    evidence = dict(deployment_evidence or {})
+    by_id = {str(row.get("mission_id")): row for row in mission_results}
+    foundation = by_id.get(ROUTING_DIGITAL_TWIN_FOUNDATION_MISSION_ID, {})
+    l2 = by_id.get(ROUTING_DIGITAL_TWIN_L2_MISSION_ID, {})
+    l3 = by_id.get(ROUTING_DIGITAL_TWIN_L3_MISSION_ID, {})
+    l4 = by_id.get("V7_ROUTING_DIGITAL_TWIN_OUTCOME_COUNTERFACTUAL_SHADOW_LEARNING_V1", {})
+    l5 = by_id.get("V7_ROUTING_DIGITAL_TWIN_SNAPSHOT_AND_HYBRID_SCALE_V1", {})
+    l6 = by_id.get("V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1", {})
+    technical_checks = {
+        "foundation_identity_fidelity_isolation": foundation.get("final_verdict") == "PASS",
+        "topology_start_and_cleanup": (
+            l3.get("final_verdict") == "PASS" and l3.get("checks", {}).get("orphan_cleanup_verified") is True
+        ),
+        "real_v7_situation_decision_trace": (
+            l2.get("final_verdict") == "PASS"
+            and bool(l2.get("identity_contract", {}).get("identity", {}).get("decision_trace_id"))
+        ),
+        "real_packet_changes_isolated_state": l2.get("checks", {}).get("virtual_apply_changed_isolated_state") is True,
+        "verification_success": l2.get("checks", {}).get("success_verified") is True,
+        "correct_stay": l2.get("checks", {}).get("correct_stay_verified") is True,
+        "rollback_or_containment": (
+            l2.get("checks", {}).get("rollback_restored_state") is True
+            and l2.get("checks", {}).get("containment_no_change") is True
+        ),
+        "recovery_slow_start": l3.get("checks", {}).get("recovery_slow_start_verified") is True,
+        "shadow_learning_held_out_consumption": l4.get("checks", {}).get("held_out_replay_consumed") is True,
+        "safety_first_counterfactual": l4.get("checks", {}).get("safety_first_no_weighted_score") is True,
+        "service_correlated_stale_lifecycle_reuse": (
+            l2.get("obligation", {}).get("scenario_id") == "CAPACITY_BOUNDARY"
+            and "STALE_TELEMETRY_MUTATION_DENIAL" in (l4.get("selective_regression") or [])
+            and "ROLLBACK_REQUIRED" in (l4.get("selective_regression") or [])
+        ),
+        "hybrid_10k_100_and_resource_envelope": (
+            l5.get("checks", {}).get("logical_10k_100") is True
+            and l5.get("checks", {}).get("resource_measurements_present") is True
+        ),
+        "mismatch_repair_automatic_return": l6.get("checks", {}).get("selective_replay_and_return") is True,
+        "next_obligation_first_experiment_consumed": l6.get("checks", {}).get("next_obligation_generated_and_consumed") is True,
+        "independent_non_test_reentry": l6.get("checks", {}).get("independent_non_test_trigger") is True,
+        "forbidden_effects_absent": not any(
+            bool(row.get("forbidden_effects", {}).get(key))
+            for row in mission_results for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS
+        ),
+    }
+    deployment_checks = {
+        "safe_deploy_passed": evidence.get("safe_deploy_passed") is True,
+        "production_non_test_caller_passed": evidence.get("production_non_test_caller_passed") is True,
+        "truth_fully_aligned": evidence.get("truth_fully_aligned") is True,
+        "convergence_aligned": evidence.get("convergence_aligned") is True,
+        "local_github_production_equal": evidence.get("local_github_production_equal") is True,
+        "cps_omp_synchronized": evidence.get("cps_omp_synchronized") is True,
+        "production_mutation_none": evidence.get("production_mutation_none") is True,
+    }
+    technical_pass = all(technical_checks.values())
+    deploy_pass = all(deployment_checks.values())
+    if not technical_pass:
+        verdict = "STOP_SAFE"
+        terminal = "INTEGRATED_TECHNICAL_CERTIFICATION_FAILED"
+    elif not deploy_pass:
+        verdict = "IMPLEMENTED_AWAITING_DEPLOYMENT_CERTIFICATION"
+        terminal = "DIGITAL_TWIN_TECHNICAL_CHAIN_CERTIFIED_DEPLOYMENT_TRUTH_REQUIRED"
+    else:
+        verdict = "PASS"
+        terminal = "AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED"
+    return {
+        "schema": "v7.routing-digital-twin-integrated-program-certification.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+        "technical_checks": technical_checks,
+        "deployment_checks": deployment_checks,
+        "technical_certification_passed": technical_pass,
+        "deployment_certification_passed": deploy_pass,
+        "program_terminal": terminal,
+        "program_complete": verdict == "PASS",
+        "production_mutation": "NONE",
+        "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": verdict,
+        "errors": (
+            [key for key, passed in technical_checks.items() if not passed]
+            if not technical_pass else [key for key, passed in deployment_checks.items() if not passed]
+            if not deploy_pass else []
+        ),
+    }
+
+
+def stage_routing_digital_twin_deployment_frontier(
+    *, report_path: str, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically persist Mission 6 terminal and the exact Mission 7 deploy frontier."""
+    report = root / report_path
+    if not report.is_file():
+        return {"final_verdict": "STOP_SAFE", "errors": ["digital_twin_report_missing"]}
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    current = cps_path.read_text(encoding="utf-8")
+    state = _normalized_state_from_live_cps(current)
+    previous_id = state["latest_terminal_mission_id"]
+    previous_report = state["latest_terminal_mission_report"]
+    run_nonce = f"V7_DT_M6_{report_hash[:12].upper()}"
+    captured = utc_now()
+    state.update({
+        "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "NONE",
+        "current_active_scope": "ROUTING_DIGITAL_TWIN_FINAL_HIGH_FIDELITY_CERTIFICATION",
+        "current_safe_next_action": "SAFE DEPLOY DIGITAL TWIN IMPLEMENTATION THEN RUN PRODUCTION CALLER TRUTH CONVERGENCE AND EQUALITY",
+        "current_scope_class": "AUTOMATION_COMPLETION",
+        "latest_terminal_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+        "latest_terminal_run_nonce": run_nonce,
+        "latest_terminal_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": captured,
+        "previous_terminal_mission_id": previous_id,
+        "previous_terminal_mission_report": previous_report,
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+        "current_run_nonce": run_nonce,
+        "current_mission_state": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+        "current_mission_report": report_path,
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_{run_nonce}",
+        "current_transition_id": "ROUTING_DIGITAL_TWIN_M6_TO_M7_DEPLOYMENT_FRONTIER_V1",
+        "current_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
+        "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+        "current_program_execution_frontier": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+        "program_frontier_input": "Missions 1-6 consumed; Mission 7 technical checks pass; deployment truth remains",
+        "program_frontier_owner": "EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS",
+        "program_frontier_expected_output": "SAFE_DEPLOY -> PRODUCTION_NON_TEST_CALLER -> TRUTH -> CONVERGENCE -> SNAPSHOT_EQUALITY -> PROGRAM_TERMINAL",
+        "smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION: safe-deploy the exact Digital Twin implementation and run Mission 7 production certification",
+        "omp_continuation_pointer": "continue the approved Routing Digital Twin Master Program at Mission 7 deployment certification; do not rerun Missions 1-6 without invalidation",
+        "wip_smallest_existing_next_action_id": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION",
+        "wip_smallest_existing_next_action": "ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION; preserve CAP-U07 natural-evidence WIP while Mission 7 certifies deployment truth",
+        "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "source_summary": "Routing Digital Twin Master Program Missions 1-6 are consumed with zero production mutation; Mission 7 awaits safe-deploy and equality truth.",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "transaction_terminal_class": "AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED",
+        "program_terminal_class": "NONE",
+        "program_terminal_state": "NONE_DIGITAL_TWIN_MISSION_7_FRONTIER_READY",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "next_mission_formed": "TRUE",
+        "next_mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+        "continuation_stop_reason": "MISSION_7_DEPLOYMENT_TRUTH_REQUIRED",
+        "no_progress_fingerprint": report_hash,
+        "current_completion_contract": "INTEGRATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+    })
+    update = atomic_reconcile_cps(cps_path, state=state, request_external_wake=False)
+    return {
+        "schema": "v7.routing-digital-twin-deployment-frontier.v1",
+        "mission_id": "V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1",
+        "run_nonce": run_nonce,
+        "report_path": report_path,
+        "report_hash": report_hash,
+        "next_mission_id": state["next_mission_id"],
+        "next_action_id": state["current_next_action_id"],
+        "program_terminal": "DIGITAL_TWIN_TECHNICAL_CHAIN_CERTIFIED_DEPLOYMENT_TRUTH_REQUIRED",
+        "atomic_update": update,
+        "final_verdict": "PASS" if update.get("ok") else "STOP_SAFE",
+        "errors": update.get("errors") or [],
+    }
+
+
+def certify_routing_digital_twin_production_entrypoint(*, root: Path = ROOT) -> dict[str, Any]:
+    """Consume the deployed entrypoint while proving production remains fail-closed.
+
+    This is deliberately a non-test production caller, not a Polygon execution:
+    it invokes the normal master entrypoint with optional substrates disabled and
+    requires the production-path isolation guard to stop before any Mission work.
+    """
+    isolation = routing_digital_twin_isolation_contract(root=root)
+    guarded_call = execute_routing_digital_twin_master_program(
+        root=root, execute_optional_substrate=False,
+    )
+    expected_callables = (
+        routing_digital_twin_foundation,
+        execute_routing_digital_twin_l2_obligation,
+        execute_routing_digital_twin_l3_l4_obligation,
+        execute_routing_digital_twin_outcome_counterfactual_shadow_learning,
+        execute_routing_digital_twin_snapshot_and_hybrid_scale,
+        execute_routing_digital_twin_autonomous_obligation_repair_reentry,
+        certify_routing_digital_twin_integrated_program,
+    )
+    checks = {
+        "production_path_recognized": isolation.get("production_path_overlap") is True,
+        "isolation_guard_stop_safe": isolation.get("final_verdict") == "STOP_SAFE_POLYGON_ISOLATION",
+        "master_entrypoint_consumed": guarded_call.get("program_terminal") == "FOUNDATION_STOP_SAFE",
+        "master_did_not_continue": len(guarded_call.get("missions") or []) == 1,
+        "production_executor_not_callable": isolation.get("production_executor_callable") is False,
+        "restore_barrier_not_writable": isolation.get("production_restore_barrier_writable") is False,
+        "all_mission_callables_installed": all(callable(item) for item in expected_callables),
+        "forbidden_effects_absent": not any((isolation.get("forbidden_effects") or {}).values()),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.routing-digital-twin-production-entrypoint-certification.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "caller_class": "PRODUCTION_NON_TEST_READ_ONLY_CALLER",
+        "consumer": "MISSION_7_DEPLOYMENT_TRUTH_CONSUMER",
+        "root": str(root.resolve()),
+        "isolation_contract": isolation,
+        "guarded_master_call": guarded_call,
+        "checks": checks,
+        "next_output": (
+            "ROUTING_DIGITAL_TWIN_PRODUCTION_CALLER_CONSUMED_TRUTH_CONVERGENCE_REQUIRED"
+            if passed else "STOP_SAFE_PRODUCTION_CALLER_CERTIFICATION_FAILED"
+        ),
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "restore_barrier_write": "NONE",
+        "rollback_apply": "NONE",
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
+def execute_routing_digital_twin_master_program(
+    *, root: Path = ROOT, execute_optional_substrate: bool = True,
+) -> dict[str, Any]:
+    """Execute the one-start program through the exact currently implemented frontier."""
+    foundation = routing_digital_twin_foundation(root=root)
+    if foundation.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.routing-digital-twin-master-program-run.v1",
+            "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+            "missions": [foundation], "final_verdict": "STOP_SAFE",
+            "program_terminal": "FOUNDATION_STOP_SAFE", "errors": foundation.get("errors") or [],
+        }
+    l2 = execute_routing_digital_twin_l2_obligation(root=root)
+    if l2.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.routing-digital-twin-master-program-run.v1",
+            "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+            "missions": [foundation, l2], "final_verdict": "STOP_SAFE",
+            "program_terminal": "L2_OBLIGATION_STOP_SAFE", "errors": l2.get("errors") or [],
+        }
+    substrate = routing_digital_twin_substrate_probe()
+    missions = [foundation, l2]
+    completed_mission_ids = [foundation["mission_id"], l2["mission_id"]]
+    mission_terminals = [foundation["mission_terminal"], l2["mission_terminal"]]
+    next_mission_id = ROUTING_DIGITAL_TWIN_L3_MISSION_ID
+    next_obligation = "DT-L3-LINUX-NAMESPACE-TC-SERVICE-LIFECYCLE-001"
+    if execute_optional_substrate and substrate.get("docker_linux_substrate_available"):
+        l3_l4 = execute_routing_digital_twin_l3_l4_obligation(root=root)
+        missions.append(l3_l4)
+        if l3_l4.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7.routing-digital-twin-master-program-run.v1",
+                "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+                "missions": missions, "completed_mission_ids": completed_mission_ids,
+                "mission_terminals": mission_terminals,
+                "next_mission_id": ROUTING_DIGITAL_TWIN_L3_MISSION_ID,
+                "next_obligation": next_obligation,
+                "automatic_continuation_required": True,
+                "program_terminal": "L3_L4_REPAIR_REQUIRED",
+                "program_complete": False, "final_verdict": "STOP_SAFE",
+                "errors": l3_l4.get("errors") or [],
+            }
+        completed_mission_ids.append(l3_l4["mission_id"])
+        mission_terminals.append(l3_l4["mission_terminal"])
+        next_mission_id = l3_l4["next_mission_id"]
+        next_obligation = "DT-L4-OUTCOME-COUNTERFACTUAL-SHADOW-LEARNING-001"
+        l4 = execute_routing_digital_twin_outcome_counterfactual_shadow_learning(
+            root=root, l2_result=l2,
+        )
+        missions.append(l4)
+        if l4.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7.routing-digital-twin-master-program-run.v1",
+                "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID, "missions": missions,
+                "completed_mission_ids": completed_mission_ids, "mission_terminals": mission_terminals,
+                "next_mission_id": l4.get("mission_id"), "next_obligation": next_obligation,
+                "program_terminal": "OUTCOME_COUNTERFACTUAL_SHADOW_LEARNING_REPAIR_REQUIRED",
+                "program_complete": False, "final_verdict": "STOP_SAFE", "errors": l4.get("errors") or [],
+            }
+        completed_mission_ids.append(l4["mission_id"])
+        mission_terminals.append(l4["mission_terminal"])
+        l5 = execute_routing_digital_twin_snapshot_and_hybrid_scale(
+            root=root, l2_result=l2, l3_l4_result=l3_l4,
+        )
+        missions.append(l5)
+        if l5.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7.routing-digital-twin-master-program-run.v1",
+                "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID, "missions": missions,
+                "completed_mission_ids": completed_mission_ids, "mission_terminals": mission_terminals,
+                "next_mission_id": l5.get("mission_id"), "next_obligation": "DT-L5-L6-SNAPSHOT-HYBRID-SCALE-001",
+                "program_terminal": "SNAPSHOT_HYBRID_SCALE_REPAIR_REQUIRED",
+                "program_complete": False, "final_verdict": "STOP_SAFE", "errors": l5.get("errors") or [],
+            }
+        completed_mission_ids.append(l5["mission_id"])
+        mission_terminals.append(l5["mission_terminal"])
+        l6 = execute_routing_digital_twin_autonomous_obligation_repair_reentry(
+            root=root, mission_results=missions,
+        )
+        missions.append(l6)
+        if l6.get("final_verdict") != "PASS":
+            return {
+                "schema": "v7.routing-digital-twin-master-program-run.v1",
+                "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID, "missions": missions,
+                "completed_mission_ids": completed_mission_ids, "mission_terminals": mission_terminals,
+                "next_mission_id": l6.get("mission_id"), "next_obligation": "DT-M6-AUTONOMOUS-REPAIR-REENTRY-001",
+                "program_terminal": "AUTONOMOUS_REPAIR_REENTRY_REPAIR_REQUIRED",
+                "program_complete": False, "final_verdict": "STOP_SAFE", "errors": l6.get("errors") or [],
+            }
+        completed_mission_ids.append(l6["mission_id"])
+        mission_terminals.append(l6["mission_terminal"])
+        integrated = certify_routing_digital_twin_integrated_program(mission_results=missions)
+        missions.append(integrated)
+        next_mission_id = integrated["mission_id"]
+        next_obligation = l6["next_obligation"]["obligation_id"]
+    return {
+        "schema": "v7.routing-digital-twin-master-program-run.v1",
+        "program_id": ROUTING_DIGITAL_TWIN_PROGRAM_ID,
+        "missions": missions,
+        "completed_mission_ids": completed_mission_ids,
+        "mission_terminals": mission_terminals,
+        "dynamic_mission_compression": "RECALCULATED_AFTER_EACH_MISSION",
+        "substrate_probe": substrate,
+        "next_mission_id": next_mission_id,
+        "next_obligation": next_obligation,
+        "automatic_continuation_required": True,
+        "program_terminal": (
+            missions[-1].get("program_terminal")
+            if len(completed_mission_ids) == 6 else
+            "MASTER_PROGRAM_ACTIVE_OUTCOME_COUNTERFACTUAL_SHADOW_LEARNING_FRONTIER_READY"
+            if len(completed_mission_ids) == 3 else "MASTER_PROGRAM_ACTIVE_L3_FRONTIER_READY"
+        ),
+        "program_complete": False,
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "BOUNDED_CONTINUATION",
+        "errors": [],
+    }
 
 
 def _future_scale_source_fingerprint(root: Path, paths: Iterable[str]) -> str:

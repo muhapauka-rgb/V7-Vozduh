@@ -723,6 +723,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--continue-omp-scenarios", type=int, default=sync_lib.OMP_CONTINUATION_SCENARIO_BUDGET)
     parser.add_argument("--continue-omp-repairs", type=int, default=sync_lib.OMP_CONTINUATION_REPAIR_BUDGET)
     parser.add_argument("--omp-scenario-execution", default="", metavar="SCENARIO_ID", help="Run one bounded read-only Future-Scale Polygon scenario through existing V7 owners.")
+    parser.add_argument("--omp-routing-digital-twin-program", action="store_true", help="Run the one-start Routing Digital Twin Master Program through its exact safe frontier.")
+    parser.add_argument("--omp-routing-digital-twin-stage-deploy", action="store_true", help="Atomically persist the Mission 6 terminal and Mission 7 deployment-certification frontier.")
+    parser.add_argument("--omp-routing-digital-twin-production-certification", action="store_true", help="Consume the deployed Digital Twin entrypoint and prove production-path isolation without Polygon execution.")
     parser.add_argument("--omp-high-fidelity-batch", action="store_true", help="Run one bounded FSSE-03 high-fidelity corpus batch through the existing scenario owner.")
     parser.add_argument("--scenario-budget", type=int, default=sync_lib.FUTURE_SCALE_HIGH_FIDELITY_MAX_SCENARIOS, help="Bounded scenario count for FSSE-03 batch execution.")
     parser.add_argument("--high-fidelity-scenario", action="append", default=None, help="Select an exact scenario for a bounded FSSE-03 batch; repeat for more than one.")
@@ -748,6 +751,36 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_routing_digital_twin_production_certification:
+        result = sync_lib.certify_routing_digital_twin_production_entrypoint(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"digital_twin_production_certification={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_routing_digital_twin_stage_deploy:
+        if not args.mission_report:
+            result = {"final_verdict": "STOP_SAFE", "errors": ["mission_report_required"]}
+        else:
+            result = sync_lib.stage_routing_digital_twin_deployment_frontier(
+                report_path=args.mission_report, root=ROOT_DIR,
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"digital_twin_stage_deploy={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_mission={result.get('next_mission_id', 'NONE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.omp_routing_digital_twin_program:
+        result = sync_lib.execute_routing_digital_twin_master_program(root=fsse_scenario_root())
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"digital_twin_program={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"terminal={result.get('program_terminal', 'STOP_SAFE')}")
+            print(f"next_mission={result.get('next_mission_id', 'NONE')}")
+        return 0 if result.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"} else 2
     if args.continue_omp:
         result = sync_lib.continue_omp_engineering_control_loop(
             root=fsse_scenario_root(), changed_dependencies=args.continue_omp_change,

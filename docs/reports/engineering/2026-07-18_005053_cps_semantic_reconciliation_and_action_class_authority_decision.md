@@ -104,4 +104,13 @@ A stale scenario field cannot trigger reentry. After qualifying evidence, the ex
 - Packet execution, restore-barrier write, rollback apply: `NONE`.
 - Authority granted/policy change/Production Maturity change: `NONE/NONE/NO_CHANGE`.
 
-Commit, safe-deploy ID and final production truth/convergence are recorded in the delivery closure after this evidence report is committed.
+## Delivery closure
+
+- Primary commit/GitHub: `6b60632a95b591cdd12e08a81afee8eadedd3c9a` / `Updatesystem`.
+- Safe deploy: `deploy-z8-14-Updatesystem-6b60632-20260718T101126`.
+- Exact deployed delta: `tools/v7_sync_lib.py`, `tools/v7-truth-check`; post-deploy delta `0`.
+- Deployed SHA-256: `a11426458cc4f5c0544cad08da330239db260b1c1e22a9807d074abb77ea3163`, `7f209d1a4f5baff1a7f4f45904ec09a4a82e56d219e6aec0be7440d4d25cbf20`.
+- Deployed entrypoint exposes `--omp-cps-semantic-authority-finalize`.
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`, no blockers/warnings.
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`; local/GitHub/production commit equal.
+- Deploy safety: no autoswitch apply, routing mutation, user movement, restore-barrier mutation, policy or Planner change; no service restart required.

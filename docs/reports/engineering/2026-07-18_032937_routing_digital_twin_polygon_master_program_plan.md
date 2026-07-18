@@ -8,6 +8,9 @@ Verdict: `MASTER_PROGRAM_PLAN_MATERIALIZED`.
 - Added one-start Master Program law: Missions 1-7 are automatically linked internal OMP stages, not seven user prompts.
 - Separated Mission terminals from the Program terminal.
 - Added cross-Mission identity, criterion-scoped coverage sufficiency, safety-first counterfactual, isolated shadow Learning, repair-return and one-way sanitized snapshot contracts.
+- Removed volatile activation state from the plan; CPS alone owns active/paused/terminal/waiting state.
+- Added dynamic Mission compression for already-consumed or partially closed stages.
+- Added substrate degradation: missing L3/L4 infrastructure cannot stop independent lower-fidelity work or become `REAL_WORLD_LIMIT`.
 - Preserved existing ownership: OMP executes, AEP is strategic owner, BDP handles gaps, existing FSSE owns Polygon behavior, CPS owns volatile state.
 - Added the plan to the operator file memo and document-index regression.
 
@@ -19,7 +22,7 @@ Verdict: `MASTER_PROGRAM_PLAN_MATERIALIZED`.
 
 ## Verification
 
-- OMP document-index tests: `3/3 PASS`.
+- OMP document-index and Master Program law tests: `5/5 PASS`.
 - `git diff --check`: `PASS`.
 - Runtime/routing/user/packet/Authority/Production Maturity effects: `NONE`.
 - Deploy required: `NO`; documentation and document-index expectation only.

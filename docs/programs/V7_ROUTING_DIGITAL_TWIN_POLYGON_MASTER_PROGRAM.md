@@ -1,6 +1,10 @@
 # V7 Routing Digital Twin Polygon Master Program
 
-Status: `APPROVED_EXECUTION_PLAN_NOT_ACTIVE`
+Status: `APPROVED_EXECUTION_PLAN`
+
+Activation state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+
+This file must not be used to determine whether the Master Program is active, paused, terminal or waiting.
 
 Program ID: `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM_V1`
 
@@ -76,6 +80,38 @@ EVENT_DRIVEN_CONTINUATION_REQUESTED = TRUE
 Failure to make the legal next automatic transition is `AUTOMATION_BREAK`. It must be routed through existing BDP -> Candidate -> OMP repair lifecycle and then return to this program.
 
 Mission 6 certifies the universal autonomous obligation/reentry loop. Basic automatic handoff is mandatory from Mission 1 onward.
+
+### 2.1 Dynamic Mission Compression
+
+The seven Missions define required capability stages, not mandatory empty execution containers.
+
+After every Mission, OMP must recalculate the exact remaining criteria.
+
+If a later Mission is already fully closed by valid consumed evidence:
+
+- do not execute it ceremonially;
+- record `MISSION_NOT_REQUIRED_ALREADY_CONSUMED`;
+- preserve its evidence, identity and completion contract;
+- continue to the next remaining Mission.
+
+If a Mission is partially closed, reduce its scope to the exact remaining criteria.
+
+Missions may be merged only when owner, completion contract, isolation, verification, identity and terminal semantics remain explicit. Mission compression cannot weaken evidence class separation, skip a real consumer, convert a Mission terminal into a Program terminal, or bypass automatic continuation.
+
+### 2.2 Substrate Degradation Law
+
+Absence of one fidelity substrate must not stop independent lower-fidelity or logically equivalent work.
+
+If namespaces, tc/netem, containers, privileged networking or external infrastructure are unavailable, OMP must:
+
+1. prove the exact missing substrate and owner;
+2. continue every independent L1/L2, model, identity, workload, outcome, counterfactual, shadow Learning and logical-scale criterion;
+3. use the highest honest available fidelity without overstating its evidence class;
+4. persist the exact blocked higher-fidelity criterion and reentry condition;
+5. continue every other independent Mission criterion;
+6. stop the whole program only when no independent owner-backed criterion can continue.
+
+A missing L3/L4 substrate is `POLYGON_SUBSTRATE_LIMIT`, not `REAL_WORLD_LIMIT`. It becomes `POLYGON_EXTERNAL_INFRASTRUCTURE_REQUIRED` or `POLYGON_SUBSTRATE_AUTHORITY_REQUIRED` only when all independent work is exhausted and the exact remaining criterion cannot proceed without that external substrate or Authority.
 
 ## 3. Program And Mission Terminal Separation
 

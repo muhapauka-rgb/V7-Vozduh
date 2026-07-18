@@ -4,8 +4,12 @@ from pathlib import Path
 import unittest
 
 
+ROOT = Path(__file__).resolve().parents[2]
+MASTER_PROGRAM = ROOT / "docs/programs/V7_ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM.md"
+
+
 def load_admin_api():
-    path = Path(__file__).resolve().parents[2] / "admin" / "v7-admin-api"
+    path = ROOT / "admin" / "v7-admin-api"
     loader = importlib.machinery.SourceFileLoader("v7_admin_api_omp_document_index_test", str(path))
     spec = importlib.util.spec_from_loader(loader.name, loader)
     module = importlib.util.module_from_spec(spec)
@@ -53,6 +57,19 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("B2 -> B3", rendered)
         self.assertEqual(response["current_state_generation"], "cpsgen_AUTHORITY_B681B2D50C27")
         self.assertEqual(response["current_transition_id"], "CPS_SEMANTICS_AND_ACTION_CLASS_AUTHORITY_DECISION_RECONCILED_V1")
+
+    def test_polygon_master_program_has_no_volatile_activation_status(self):
+        text = MASTER_PROGRAM.read_text(encoding="utf-8")
+        self.assertIn("Status: `APPROVED_EXECUTION_PLAN`", text)
+        self.assertIn("Activation state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`", text)
+        self.assertNotIn("APPROVED_EXECUTION_PLAN_NOT_ACTIVE", text)
+
+    def test_polygon_master_program_preserves_compression_and_substrate_continuation(self):
+        text = MASTER_PROGRAM.read_text(encoding="utf-8")
+        self.assertIn("### 2.1 Dynamic Mission Compression", text)
+        self.assertIn("`MISSION_NOT_REQUIRED_ALREADY_CONSUMED`", text)
+        self.assertIn("### 2.2 Substrate Degradation Law", text)
+        self.assertIn("A missing L3/L4 substrate is `POLYGON_SUBSTRATE_LIMIT`, not `REAL_WORLD_LIMIT`", text)
 
 
 if __name__ == "__main__":

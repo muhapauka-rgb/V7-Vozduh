@@ -49,8 +49,14 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
         successor = self.integration["next_mission_start"]
         self.assertEqual(successor["mission_state"], "ADMITTED_READY_FOR_DISPATCH")
         self.assertNotEqual(successor["mission_state"], "IN_PROGRESS")
-        self.assertEqual(self.integration["mission_id"], "V7_POLYGON_CAP_U11_DECISION_EXPLAINABILITY_CONSUMER_MATRIX_V1")
-        self.assertEqual(self.integration["next_obligation"]["capability_id"], "CAP-U04")
+        self.assertEqual(
+            self.integration["mission_id"],
+            self.lib.permanent_polygon_mission_id_for_obligation(self.supply["next_obligation"]),
+        )
+        self.assertNotEqual(
+            self.integration["next_obligation"]["obligation_id"],
+            self.supply["next_obligation"]["obligation_id"],
+        )
 
     def test_cps_registry_round_trip_and_legacy_migration(self):
         record = self.integration["criterion_record"]

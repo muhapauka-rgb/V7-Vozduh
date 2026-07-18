@@ -1,5 +1,5 @@
-Mission ID: `V7_POLYGON_CAP_U11_DECISION_EXPLAINABILITY_CONSUMER_MATRIX_V1`
-Run Nonce: `V7_PPOLY_9A48B6E069E2`
+Mission ID: `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1`
+Run Nonce: `V7_PPOLY_FA88A8E1E275`
 
 # Permanent Polygon Autonomous Program Closure
 
@@ -9,7 +9,7 @@ Status: `IMPLEMENTED_CONSUMED_LOCAL_PRODUCTION_DEPLOY_PENDING`
 
 - Generic CPS-frontier dispatch replaced the CAP-U05-only branch.
 - CAP-U06 Recovery Admission consumed the existing B8, B9, B10 and A5 read-only owners at Engineering L3.
-- CAP-U02 Movement Protection, CAP-U10 Observability and CAP-U11 Decision Explainability were consumed through separate reentry processes; the next CAP-U04 Mission is `ADMITTED_READY_FOR_DISPATCH`, never falsely pre-started.
+- CAP-U02 Movement Protection, CAP-U10 Observability, CAP-U11 Decision Explainability and CAP-U04 Authority Boundary were consumed through separate reentry processes; the next CAP-U07 Mission is `ADMITTED_READY_FOR_DISPATCH`, never falsely pre-started.
 - CPS now owns a durable criterion-generation registry with source, obligation and result fingerprints, consumer verification, fidelity, experiment identity, terminals, invalidation triggers and exact L7/L8 remainder.
 - All ten permanent modernization source categories have normalized owner-backed adapters and deterministic source identities.
 - CPS atomic persistence now has generation compare-and-swap; new wakes reset stale lifecycle timestamps and enforce monotonic chronology.
@@ -37,7 +37,7 @@ Status: `IMPLEMENTED_CONSUMED_LOCAL_PRODUCTION_DEPLOY_PENDING`
 
 ## Current exact frontier
 
-- Consumed engineering criteria: CAP-U02, CAP-U03, CAP-U05, CAP-U06, CAP-U10 and CAP-U11 records/legacy migration evidence.
-- Exact next obligation: `POLYGON-CAP-U04-AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX-G1`.
-- Exact next Mission: `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1`.
+- Consumed engineering criteria: CAP-U02, CAP-U03, CAP-U04, CAP-U05, CAP-U06, CAP-U10 and CAP-U11 records/legacy migration evidence.
+- Exact next obligation: `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1`.
+- Exact next Mission: `V7_POLYGON_CAP_U07_SHADOW_LEARNING_REPRESENTATION_MATRIX_V1`.
 - Production deploy, production caller/reentry, truth, convergence and local/GitHub/production equality remain mandatory before production certification.

@@ -18,6 +18,7 @@ Engineering reports do not need one row per report. Their directory is represent
 | Program | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` | Current volatile program snapshot: current step, blockers, produced capability, next safe action, progress, and operator-facing state. | Current Program State | Current OMP state or production/program status changes. |
 | Program | `docs/programs/V7_IMPLEMENTATION_BACKLOG.md` | Existing implementation backlog and actionable capability list. | Implementation Backlog | Backlog item status or capability ownership changes. |
 | Program | `docs/programs/V7_IMPLEMENTATION_PROGRAM.md` | Implementation program rules and handoff from architecture to code. | Implementation Program | Implementation lifecycle rules change. |
+| Program | `docs/programs/V7_ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM.md` | Supporting Master Program plan for autonomous L1-L6 Routing Digital Twin evolution through seven automatically linked OMP Missions; OMP remains execution owner and CPS remains live state. | Existing OMP / FSSE Polygon owners | Polygon fidelity, identity, isolation, autonomous handoff, repair-return, evidence, or certification plan changes. |
 | Canonical | `docs/reference/V7_CANONICAL_REFERENCE.md` | Highest-level canonical reference and durable truth hierarchy. | Canonical Reference | Durable canonical rules or cross-document truth hierarchy changes. |
 | Canonical | `docs/reference/SYSTEM_MAP.md` | Owner map: where responsibilities live and which component owns each concept. | SYSTEM_MAP | Owner mapping, responsibility routing, or canonical location changes. |
 | Runtime | `docs/reference/V7_RUNTIME_MODEL.md` | Runtime contracts: fail-closed behavior, live gates, execution safety, freshness, rollback, verification, and runtime limits. | Runtime Model | Runtime contract, gate, or safety invariant changes. |
@@ -50,4 +51,3 @@ Engineering reports do not need one row per report. Their directory is represent
 - It should point to owners, not duplicate their full contents.
 - If a new file becomes important enough that the operator must remember it, add one row here.
 - If a file is superseded, keep the row and say what replaced it.
-

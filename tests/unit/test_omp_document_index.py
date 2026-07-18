@@ -25,6 +25,7 @@ class OmpDocumentIndexTest(unittest.TestCase):
 
         self.assertIn("docs/programs/OPERATIONAL_MATURITY_PROGRAM.md", paths)
         self.assertIn("docs/programs/V7_CURRENT_PROGRAM_STATE.md", paths)
+        self.assertIn("docs/programs/V7_ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM.md", paths)
         self.assertIn("docs/reference/SYSTEM_MAP.md", paths)
         self.assertIn("docs/reference/V7_CANONICAL_REFERENCE.md", paths)
         self.assertEqual(index.get("source"), "docs/reference/V7_OPERATOR_FILE_MEMO.md")

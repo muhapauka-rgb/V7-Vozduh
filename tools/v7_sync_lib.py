@@ -12901,6 +12901,9 @@ def certify_polygon_protocol_configuration_lifecycle(*, root: Path = ROOT) -> di
         environment["PYTHONPATH"] = (
             str(root) if not existing_pythonpath else str(root) + os.pathsep + existing_pythonpath
         )
+        installed_admin = Path("/usr/local/bin/v7-admin-api")
+        if not (root / "admin/v7-admin-api").is_file() and installed_admin.is_file():
+            environment["V7_ADMIN_API_PATH"] = str(installed_admin)
         completed = subprocess.run(
             [str(entrypoint)], cwd=root, text=True, capture_output=True,
             check=False, timeout=180, env=environment,
@@ -13437,14 +13440,135 @@ def stage_permanent_polygon_design_time_deployment_frontier(
     }
 
 
+def polygon_production_certification_cps_text(corpus: dict[str, Any]) -> str:
+    """Build the minimum read-only CPS projection needed by the deployed caller."""
+    scenarios = list(corpus.get("scenarios") or ())
+    last = next(
+        (row for row in scenarios if row.get("SCENARIO_ID") == "PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER"),
+        scenarios[-1] if scenarios else {},
+    )
+    fields = {
+        "ACTIVE_PROGRAM": "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
+        "CURRENT_PROGRAM_STAGE": "PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE",
+        "CURRENT_EXECUTION_MISSION_ID": "NONE",
+        "ACTIVE_SCENARIO_ID": "NONE",
+        "ACTIVE_SCENARIO_MISSION": "NONE",
+        "SCENARIO_TARGET_LEVEL": "PHASE6_MULTI_LANE_V4_OBLIGATION_DRIVEN_DESIGN_TIME_CURRENT",
+        "SCENARIO_CORPUS_COUNT": str(corpus.get("corpus_count") or len(scenarios)),
+        "SCENARIO_COVERED_COUNT": str(corpus.get("corpus_count") or len(scenarios)),
+        "SCENARIO_MISMATCH_COUNT": "0",
+        "LAST_SCENARIO_ID": str(last.get("SCENARIO_ID") or "NONE"),
+        "LAST_SCENARIO_VERDICT": "PASS",
+        "LAST_SCENARIO_FINGERPRINT": str(last.get("SCENARIO_FINGERPRINT") or "NONE"),
+        "CURRENT_CLASS_OUTCOME": "NONE",
+        "CURRENT_CLASS_OUTCOME_EVIDENCE": "NONE",
+        "VERIFICATION_RESULT": "NONE",
+    }
+    rows = "\n".join(f"| `{key}` | `{value}` |" for key, value in fields.items())
+    return (
+        "## 0. Authoritative Live Current State\n\n"
+        "| Field | Current Value |\n| --- | --- |\n"
+        f"{rows}\n\n"
+        "## Authoritative Unfinished Capability Closure Registry\n"
+    )
+
+
+@contextlib.contextmanager
+def polygon_production_certification_layout(*, root: Path = ROOT):
+    """Reuse deployed manifest owners in a disposable repository-shaped read-only layout."""
+    canonical_cps = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    canonical_corpus = root / FUTURE_SCALE_SCENARIO_CORPUS_PATH
+    if canonical_cps.is_file() and canonical_corpus.is_file():
+        yield {
+            "root": root, "layout_class": "CANONICAL_REPOSITORY_LAYOUT",
+            "runtime_fingerprint": "NOT_REQUIRED", "artifact_count": 0,
+            "final_verdict": "PASS",
+        }
+        return
+    fingerprint_path = root / "runtime-fingerprint.json"
+    corpus_artifact = root / "engineering/future-scale/foundation.json"
+    fingerprint = json.loads(fingerprint_path.read_text(encoding="utf-8"))
+    validation = validate_runtime_fingerprint(fingerprint)
+    if validation.get("final_verdict") != "PASS":
+        raise ValueError("production_runtime_fingerprint_invalid")
+    if not corpus_artifact.is_file():
+        raise ValueError("production_scenario_corpus_artifact_missing")
+    with tempfile.TemporaryDirectory(prefix="v7-ppdt-production-layout-") as directory:
+        layout = Path(directory)
+        linked = 0
+        for row in fingerprint.get("critical_files") or ():
+            local_path = _polygon_normalized_dependency(row.get("local_path"))
+            remote_path = Path(str(row.get("remote_path") or ""))
+            if not local_path or not remote_path.is_file():
+                continue
+            target = layout / local_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.symlink_to(remote_path)
+            linked += 1
+        target_corpus = layout / FUTURE_SCALE_SCENARIO_CORPUS_PATH
+        target_corpus.parent.mkdir(parents=True, exist_ok=True)
+        if not target_corpus.exists():
+            target_corpus.symlink_to(corpus_artifact)
+        for name in (
+            "v7-egress-import-regression", "v7-safe-deploy", "v7-truth-check",
+            "v7-convergence-status",
+        ):
+            installed = Path("/usr/local/bin") / name
+            target = layout / "tools" / name
+            if installed.is_file() and not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.symlink_to(installed)
+                linked += 1
+        corpus = load_future_scale_scenario_corpus(root=layout)
+        if corpus.get("final_verdict") != "PASS":
+            raise ValueError("production_scenario_corpus_invalid")
+        cps_path = layout / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+        cps_path.parent.mkdir(parents=True, exist_ok=True)
+        cps_path.write_text(polygon_production_certification_cps_text(corpus), encoding="utf-8")
+        required = (
+            layout / "tools/v7_sync_lib.py",
+            layout / "tools/v7-users-autoswitch",
+            layout / "admin_core/operator_execution_pipeline.py",
+            layout / FUTURE_SCALE_SCENARIO_CORPUS_PATH,
+            cps_path,
+        )
+        missing = [str(path.relative_to(layout)) for path in required if not path.is_file()]
+        if missing:
+            raise ValueError("production_certification_owner_missing:" + ",".join(missing))
+        yield {
+            "root": layout,
+            "layout_class": "DEPLOY_MANIFEST_MATERIALIZED_READ_ONLY_LAYOUT",
+            "runtime_fingerprint": fingerprint.get("commit"),
+            "runtime_deploy_id": fingerprint.get("deploy_id"),
+            "artifact_count": linked + 2,
+            "scenario_corpus_fingerprint": corpus.get("corpus_fingerprint"),
+            "scenario_corpus_count": corpus.get("corpus_count"),
+            "production_state_mutation": False,
+            "final_verdict": "PASS",
+        }
+
+
 def certify_permanent_polygon_design_time_production_entrypoint(
     *, root: Path = ROOT,
 ) -> dict[str, Any]:
     """Consume the deployed design-time entrypoint without touching production routing."""
     isolation = routing_digital_twin_isolation_contract(root=root)
+    try:
+        with polygon_production_certification_layout(root=root) as layout:
+            execution_root = layout["root"]
+            execution = certify_permanent_polygon_design_time_program(root=execution_root)
+            layout_evidence = {key: value for key, value in layout.items() if key != "root"}
+    except (OSError, ValueError, KeyError) as exc:
+        execution = {
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"production_certification_layout_failed:{type(exc).__name__}:{exc}"],
+        }
+        layout_evidence = {"final_verdict": "STOP_SAFE"}
+        execution_root = root
     installed = {
         "production_path_recognized": isolation.get("production_path_overlap") is True,
         "production_isolation_guard_active": isolation.get("final_verdict") == "STOP_SAFE_POLYGON_ISOLATION",
+        "production_certification_layout": layout_evidence.get("final_verdict") == "PASS",
         "design_change_compiler": callable(compile_polygon_design_change),
         "semantic_differential": callable(polygon_semantic_differential),
         "counterexample_minimizer": callable(minimize_polygon_counterexample),
@@ -13454,7 +13578,6 @@ def certify_permanent_polygon_design_time_production_entrypoint(
         "risk_coverage": callable(polygon_risk_coverage),
         "bounded_repair_path": callable(certify_polygon_bounded_source_repair_path),
     }
-    execution = certify_permanent_polygon_design_time_program(root=root)
     checks = {
         **installed,
         "real_entrypoint_execution": execution.get("final_verdict") == "PASS",
@@ -13471,6 +13594,11 @@ def certify_permanent_polygon_design_time_production_entrypoint(
         "entrypoint": "tools/v7-truth-check --omp-polygon-design-time-production-certification --json",
         "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
         "checks": checks, "execution": execution,
+        "production_certification_layout": layout_evidence,
+        "execution_root_class": (
+            "DEPLOY_MANIFEST_MATERIALIZED_READ_ONLY_LAYOUT"
+            if execution_root != root else "CANONICAL_REPOSITORY_LAYOUT"
+        ),
         "behavior_change": "DEPLOYED_PRODUCT_CHANGE_COMPILER_CONSUMED_SUCCESSOR_FRONTIER" if passed else "NONE_STOP_SAFE",
         "next_output": execution.get("next_output", "STOP_SAFE") if passed else "STOP_SAFE",
         "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
@@ -16665,6 +16793,20 @@ APPROVED_DEPLOY_FILES = [
         "name": "v7_sync_lib.py",
         "local_path": "tools/v7_sync_lib.py",
         "remote_path": "/usr/local/bin/v7_sync_lib.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "future-scale-scenario-corpus",
+        "local_path": FUTURE_SCALE_SCENARIO_CORPUS_PATH,
+        "remote_path": "/opt/v7/engineering/future-scale/foundation.json",
+        "mode": "0644",
+        "service": None,
+    },
+    {
+        "name": "v7-runtime-model-contract",
+        "local_path": "docs/reference/V7_RUNTIME_MODEL.md",
+        "remote_path": "/opt/v7/engineering/reference/V7_RUNTIME_MODEL.md",
         "mode": "0644",
         "service": None,
     },

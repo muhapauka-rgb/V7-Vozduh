@@ -238,6 +238,35 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
             self.assertEqual(live["environment_alignment_status"], "FULLY_ALIGNED")
             self.assertEqual(live["production_maturity_change_status"], "NONE")
 
+    def test_production_layout_reuses_runtime_fingerprint_and_canonical_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory)
+            corpus_artifact = runtime / "engineering/future-scale/foundation.json"
+            corpus_artifact.parent.mkdir(parents=True)
+            corpus_artifact.symlink_to(ROOT / self.lib.FUTURE_SCALE_SCENARIO_CORPUS_PATH)
+            rows = []
+            for local_path in (
+                "tools/v7_sync_lib.py", "tools/v7-users-autoswitch",
+                "admin_core/operator_execution_pipeline.py",
+                "docs/reference/V7_RUNTIME_MODEL.md",
+            ):
+                rows.append({
+                    "local_path": local_path,
+                    "remote_path": str(ROOT / local_path),
+                    "sha256": "a" * 64,
+                })
+            (runtime / "runtime-fingerprint.json").write_text(json.dumps({
+                "schema": "v7-runtime-fingerprint/v1", "commit": "b" * 40,
+                "deploy_id": "deploy-test", "critical_files": rows,
+                "snapshot_subsystem": {"refresh_cli": "none", "required_files": ["none"]},
+            }), encoding="utf-8")
+            with self.lib.polygon_production_certification_layout(root=runtime) as layout:
+                self.assertEqual(layout["final_verdict"], "PASS")
+                self.assertEqual(layout["layout_class"], "DEPLOY_MANIFEST_MATERIALIZED_READ_ONLY_LAYOUT")
+                cps = (layout["root"] / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+                self.assertIn("SCENARIO_COVERED_COUNT` | `64", cps)
+                self.assertTrue((layout["root"] / "docs/reference/V7_RUNTIME_MODEL.md").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

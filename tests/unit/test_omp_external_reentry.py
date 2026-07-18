@@ -64,6 +64,7 @@ class OmpExternalReentryTest(unittest.TestCase):
             "sequence_expected_output": "scenario result -> consumer -> next frontier",
             "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
             "omp_automation_level": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
+            "current_completion_contract": "INTEGRATION_COMPLETION",
         })
         result = self.lib.atomic_reconcile_cps(cps_path, state=active_state)
         self.assertTrue(result["ok"], result)

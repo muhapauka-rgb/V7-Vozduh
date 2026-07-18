@@ -36,7 +36,10 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
             self.cps, "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
-        self.assertTrue(live["PHASE_6_CERTIFICATION_FRONTIER"].strip("`").startswith("NONE"))
+        self.assertEqual(
+            live["PHASE_6_CERTIFICATION_FRONTIER"].strip("`"),
+            "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+        )
         self.assertFalse(live["PHASE_6_EXACT_NEXT_ACTION"].strip("`").startswith("EXECUTE PHASE6"))
 
     def test_phase6a_exhausted_semantics_have_no_next_scenario(self):
@@ -70,7 +73,7 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
             "## Authoritative Unfinished Capability Closure Registry",
         ))
         self.assertIn("CAP-U07", live["PROTECTED_CAPABILITY_WIP"])
-        self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "FALSE")
+        self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
 
     def test_reentry_requires_fresh_owner_backed_input(self):
         self.assertEqual(self.result["exact_next_action"], "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME")

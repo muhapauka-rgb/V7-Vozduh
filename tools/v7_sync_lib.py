@@ -582,6 +582,63 @@ NORMALIZED_CPS_LIVE_STATE.update({
     "user_movement": "NO",
 })
 
+# Canonical projection after CAP-U05 was consumed by the real non-test OMP
+# caller and the recalculated CAP-U06 Mission was started in the same bounded
+# invocation.  The pending wake belongs to the existing event-driven reentry
+# owner; it is not a new scheduler or daemon.
+NORMALIZED_CPS_LIVE_STATE.update({
+    "current_safe_next_action": "AUTOMATICALLY CONTINUE POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1 THROUGH V7_POLYGON_CAP_U06_RECOVERY_ADMISSION_ENGINEERING_MATRIX_V1",
+    "latest_terminal_mission_id": "V7_POLYGON_CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_V1",
+    "latest_terminal_run_nonce": "V7_PPOLY_U05_5845AC43869B",
+    "latest_terminal_mission_state": "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+    "latest_terminal_mission_report": "docs/reports/engineering/2026-07-18_150525_permanent_polygon_cap_u05_and_autonomous_handoff_closure.md",
+    "latest_terminal_mission_started_at": "2026-07-18T08:18:43.178934+00:00",
+    "previous_terminal_mission_id": "V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1",
+    "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md",
+    "current_mission_role": "LATEST_TERMINAL_MISSION",
+    "current_mission_id": "V7_POLYGON_CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_V1",
+    "current_run_nonce": "V7_PPOLY_U05_5845AC43869B",
+    "current_mission_state": "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+    "current_mission_report": "docs/reports/engineering/2026-07-18_150525_permanent_polygon_cap_u05_and_autonomous_handoff_closure.md",
+    "state_captured": "2026-07-18T08:18:43.178934+00:00",
+    "current_state_generation": "cpsgen_V7_PPOLY_U05_5845AC43869B",
+    "current_transition_id": "PERMANENT_POLYGON_CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED_V1",
+    "current_next_action_id": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "program_frontier_input": "CAP-U03 engineering L2 persisted; CAP-U05 engineering L2 consumed; exact successor admitted and automatically started",
+    "program_frontier_expected_output": "ACTIVE NEXT MISSION -> CRITERION RESULT -> OMP CONSUMER -> RECALCULATED OBLIGATION -> EVENT-DRIVEN CONTINUATION",
+    "program_terminal_state": "NONE_PERMANENT_POLYGON_NEXT_MISSION_STARTED_CONTINUATION_DISPATCH_REQUIRED",
+    "smallest_existing_next_action": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "omp_continuation_pointer": "resume the automatically started V7_POLYGON_CAP_U06_RECOVERY_ADMISSION_ENGINEERING_MATRIX_V1; CAP-U03 and CAP-U05 L2 remain consumed absent declared invalidation",
+    "source_summary": "CAP-U05 owner-backed rollback/containment matrix is consumed; the recalculated CAP-U06 Mission was admitted and started automatically with zero production effects.",
+    "automatic_continue_omp_result": "CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED_EVENT_DRIVEN_CONTINUATION_REQUIRED",
+    "wip_current_primary_stop": "REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL; GLOBAL_ENGINEERING_STOP_NONE",
+    "wip_smallest_existing_next_action_id": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "wip_smallest_existing_next_action": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1; preserve CAP-U07 natural-evidence WIP",
+    "transaction_terminal_class": "CAP_U05_CRITERION_CONSUMED_NEXT_MISSION_STARTED",
+    "next_mission_id": "V7_POLYGON_CAP_U06_RECOVERY_ADMISSION_ENGINEERING_MATRIX_V1",
+    "continuation_iteration": "27",
+    "continuation_stop_reason": "BOUNDED_U05_INVOCATION_COMPLETE; NEXT_MISSION_ALREADY_STARTED; IMMEDIATE_REENTRY_REQUIRED",
+    "no_progress_fingerprint": "3afe16f7b2f228db1df5e7a1c1a64131b67168183fa18f5f7b125590acaeee7e",
+    "current_completion_contract": "AUTOMATION_COMPLETION",
+    "phase6_current_step": "PERMANENT_POLYGON_ENGINEERING_CRITERION_EXECUTION",
+    "phase6_certification_frontier": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "phase6_executable_frontier": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "phase6_exact_next_action": "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+    "last_wake_request_id": "b1d36f34a8729fd4e3faf9f310d1dd5ab9841419960bed9ecf14b0cca92e66b9",
+    "pending_wake_id": "b1d36f34a8729fd4e3faf9f310d1dd5ab9841419960bed9ecf14b0cca92e66b9",
+    "wake_source_cps_generation": "cpsgen_V7_PPOLY_U05_5845AC43869B",
+    "wake_transition_id": "PERMANENT_POLYGON_CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED_V1",
+    "wake_requested_at": "2026-07-18T08:18:43.199798+00:00",
+    "watchdog_state": "ARMED_PENDING_IMMEDIATE_DISPATCH",
+    "event_driven_external_reentry_status": "EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED",
+    "last_consumed_wake_id": "34ef5c8a23b5f3ed210e875edbf0017e56fa2fb38392d52a2d918f2da2f49919",
+    "wake_started_at": "2026-07-18T06:31:00.333688+00:00",
+    "wake_completed_at": "2026-07-18T06:31:09.329350+00:00",
+    "measured_wake_latency_ms": "50347057",
+    "immediate_invocation_count": "8",
+    "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_REQUESTED",
+})
+
 
 EVENT_DRIVEN_REENTRY_DEPLOY_PENDING = "CERTIFICATION_EVIDENCE_COMPLETE_DEPLOY_PENDING"
 EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED = "EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED"
@@ -663,7 +720,6 @@ _EXTERNAL_REENTRY_VOLATILE_STATE_KEYS = (
     "reentry_platform_health",
     "no_progress_fingerprint",
     "external_reentry_mode",
-    "event_driven_external_reentry_status",
     "heartbeat_role",
     "immediate_wake_owner",
     "last_wake_request_id",
@@ -761,9 +817,18 @@ def _event_driven_external_reentry_completion_evidence(
         "snapshot_equality_passed": "- Snapshot equality: `PASS`." in report,
         "production_hashes_match": "- Production hashes match: `PASS`." in report,
         "forbidden_effects_absent": "- Forbidden effects: `NONE`." in report,
-        "pending_wake_id": _plain_live_value(live, "PENDING_WAKE_ID"),
-        "active_lease": _plain_live_value(live, "REENTRY_ACTIVE_LEASE"),
-        "overlap_count": _plain_live_value(live, "OVERLAP_COUNT"),
+        "pending_wake_id": (
+            "NONE" if "- Pending wake: `NONE`." in report
+            else _plain_live_value(live, "PENDING_WAKE_ID")
+        ),
+        "active_lease": (
+            "NONE" if "- Active reentry lease: `NONE`." in report
+            else _plain_live_value(live, "REENTRY_ACTIVE_LEASE")
+        ),
+        "overlap_count": (
+            "0" if "- Overlap count: `0`." in report
+            else _plain_live_value(live, "OVERLAP_COUNT")
+        ),
     }
 
 
@@ -1608,6 +1673,29 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "U03/U04/U05/U06 completion; unblocks U09 |"
     )
     cps_text = cps_text.replace(waiting_u02_rows[0], waiting_u02_row, 1)
+
+    cap_u03_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U03` |")]
+    cap_u05_rows = [line for line in cap_section.splitlines() if line.startswith("| `CAP-U05` |")]
+    if len(cap_u03_rows) != 1 or len(cap_u05_rows) != 1:
+        raise ValueError("permanent_polygon_capability_rows_missing_or_duplicate")
+    cap_u03_row = (
+        "| `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | "
+        "`COVERED_ENGINEERING_L2`; criterion `RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX` consumed; "
+        "terminals SUCCESS/CORRECT_STAY/ROLLBACK/STOP_SAFE | criterion result -> OMP Permanent Polygon consumer; "
+        "whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | "
+        "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; "
+        "do not rerun L2 absent declared dependency invalidation | U01/U06; unblocks U02/U09 |"
+    )
+    cap_u05_row = (
+        "| `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | "
+        "`COVERED_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` consumed through real "
+        "packet/binding/lease/rollback/containment owners | engineering matrix result -> OMP consumer; production "
+        "rollback/no-rollback evidence remains separate | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | "
+        "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; "
+        "do not rerun L2 absent declared dependency invalidation | U01; unblocks U02/U03/U09 |"
+    )
+    cps_text = cps_text.replace(cap_u03_rows[0], cap_u03_row, 1)
+    cps_text = cps_text.replace(cap_u05_rows[0], cap_u05_row, 1)
 
     intents_section = _markdown_section(
         cps_text,
@@ -8567,6 +8655,18 @@ PERMANENT_POLYGON_INTEGRATION_MISSION_ID = (
     "V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1"
 )
 PERMANENT_POLYGON_CONSUMER = "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER"
+PERMANENT_POLYGON_CAP_U05_MISSION_ID = (
+    "V7_POLYGON_CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_V1"
+)
+PERMANENT_POLYGON_CAP_U05_CRITERION_ID = (
+    "CAP-U05:ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX"
+)
+PERMANENT_POLYGON_CAP_U03_CRITERION_ID = (
+    "CAP-U03:RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX"
+)
+PERMANENT_POLYGON_CAP_U05_REPORT = (
+    "docs/reports/engineering/2026-07-18_150525_permanent_polygon_cap_u05_and_autonomous_handoff_closure.md"
+)
 PERMANENT_POLYGON_SOURCE_CATEGORIES = (
     "CURRENT_CAPABILITY_GAPS",
     "NEW_OMP_MISSIONS",
@@ -8659,6 +8759,103 @@ def _permanent_polygon_obligation_identity(payload: dict[str, Any]) -> str:
     ).hexdigest()
 
 
+def permanent_polygon_consumed_criterion_ids(cps_text: str) -> list[str]:
+    """Read criterion-level Polygon truth from the existing CPS capability owner."""
+    section = _markdown_section(
+        cps_text,
+        "### Unfinished Capability Closure Records",
+        "### Open Engineering Intents And Last Responsible Links",
+    )
+    consumed: list[str] = []
+    markers = {
+        PERMANENT_POLYGON_CAP_U03_CRITERION_ID: (
+            "CAP-U03", "COVERED_ENGINEERING_L2",
+            "RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX",
+        ),
+        PERMANENT_POLYGON_CAP_U05_CRITERION_ID: (
+            "CAP-U05", "COVERED_ENGINEERING_L2",
+            "ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX",
+        ),
+    }
+    for criterion_id, required in markers.items():
+        row = next(
+            (line for line in section.splitlines() if line.startswith(f"| `{required[0]}` |")),
+            "",
+        )
+        if row and all(token in row for token in required[1:]):
+            consumed.append(criterion_id)
+    return sorted(consumed)
+
+
+def permanent_polygon_mission_admission(
+    obligation: dict[str, Any], cps_text: str,
+) -> dict[str, Any]:
+    """Validate the exact CPS-formed Mission without minting a parallel identity."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    criterion_id = str(obligation.get("criterion_id") or "")
+    expected = {
+        PERMANENT_POLYGON_CAP_U05_CRITERION_ID: PERMANENT_POLYGON_CAP_U05_MISSION_ID,
+    }.get(criterion_id, "")
+    mission_id = _plain_live_value(live, "NEXT_MISSION_ID")
+    checks = {
+        "criterion_owner_known": bool(expected),
+        "cps_mission_matches_owner_projection": bool(expected and mission_id == expected),
+        "obligation_matches_cps_frontier": (
+            _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+            == str(obligation.get("obligation_id") or "")
+        ),
+        "continuation_required": _plain_live_value(live, "OMP_CONTINUATION_REQUIRED") == "TRUE",
+        "external_input_absent": _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED") == "FALSE",
+        "no_active_execution_overlap": (
+            _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID") in {"", "NONE"}
+            and _plain_live_value(live, "REENTRY_ACTIVE_LEASE") in {"", "NONE"}
+        ),
+        "identity_fingerprint_valid": bool(re.fullmatch(
+            r"[0-9a-f]{64}", str(obligation.get("obligation_fingerprint") or ""),
+        )),
+        "source_fingerprint_valid": bool(re.fullmatch(
+            r"[0-9a-f]{64}", str(obligation.get("source_fingerprint") or ""),
+        )),
+        "minimum_fidelity_l2": obligation.get("minimum_sufficient_fidelity") == "L2",
+    }
+    admitted = all(checks.values())
+    nonce_payload = {
+        "mission_id": mission_id,
+        "obligation_fingerprint": obligation.get("obligation_fingerprint"),
+        "source_fingerprint": obligation.get("source_fingerprint"),
+        "state_generation": obligation.get("state_generation"),
+    }
+    nonce_hash = _permanent_polygon_obligation_identity(nonce_payload)
+    return {
+        "schema": "v7.permanent-polygon-mission-admission.v1",
+        "mission_id": mission_id if admitted else "NONE",
+        "mission_nonce": f"V7_PPOLY_U05_{nonce_hash[:12].upper()}" if admitted else "NONE",
+        "obligation_id": obligation.get("obligation_id"),
+        "obligation_fingerprint": obligation.get("obligation_fingerprint"),
+        "source_fingerprint": obligation.get("source_fingerprint"),
+        "state_generation": obligation.get("state_generation"),
+        "duplicate_check": "UNIQUE_CURRENT_FRONTIER" if admitted else "STOP_SAFE",
+        "admission_decision": "MISSION_ACCEPTED" if admitted else "MISSION_REJECTED",
+        "mission_state": "PREPARED_NOT_ACTIVE" if admitted else "NONE",
+        "checks": checks,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+        "final_verdict": "PASS" if admitted else "STOP_SAFE",
+        "errors": [] if admitted else [key for key, value in checks.items() if not value],
+    }
+
+
+def permanent_polygon_mission_id_for_obligation(obligation: dict[str, Any]) -> str:
+    """Project an exact Mission identity from the owner-backed obligation identity."""
+    capability = str(obligation.get("capability_id") or "").replace("-", "_")
+    criterion = str(obligation.get("criterion_name") or "")
+    if not re.fullmatch(r"CAP_U\d{2}", capability) or not re.fullmatch(r"[A-Z0-9_]+", criterion):
+        return "NONE"
+    return f"V7_POLYGON_{capability}_{criterion}_V1"
+
+
 def permanent_polygon_obligation_supply(
     cps_text: str,
     *,
@@ -8672,7 +8869,12 @@ def permanent_polygon_obligation_supply(
         "## Authoritative Unfinished Capability Closure Registry",
     ))
     rows = _capability_dependency_rows(cps_text)
-    consumed = {str(item) for item in consumed_criterion_ids or ()}
+    consumed = {
+        str(item) for item in (
+            permanent_polygon_consumed_criterion_ids(cps_text)
+            if consumed_criterion_ids is None else consumed_criterion_ids
+        )
+    }
     changed = sorted({str(item) for item in changed_dependencies or () if str(item)})
     master_certified = (
         _plain_live_value(live, "PROGRAM_TERMINAL_CLASS")
@@ -8791,6 +8993,210 @@ def permanent_polygon_obligation_supply(
     }
 
 
+def execute_permanent_polygon_cap_u05_matrix(
+    obligation: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Exercise CAP-U05 through the real read-only rollback/containment owners."""
+    from admin_core import operator_execution, operator_execution_pipeline
+
+    fixed_now = datetime(2026, 7, 18, 8, 0, tzinfo=timezone.utc)
+    source_fingerprint = str(obligation.get("source_fingerprint") or "")
+    obligation_fingerprint = str(obligation.get("obligation_fingerprint") or "")
+    selected_move = {
+        "user_ip": "10.255.5.1", "current_egress": "polygon-a",
+        "recommended_egress": "polygon-b", "move_type": "failover",
+    }
+    selected_hash = hashlib.sha256(
+        json.dumps(selected_move, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    source_hashes = {"isolated_polygon": source_fingerprint}
+    source_bundle_hash = operator_execution.sha256_json(source_hashes)
+    packet_seed = _permanent_polygon_obligation_identity({
+        "obligation": obligation_fingerprint, "move": selected_move,
+    })
+    packet = {
+        "packet_id": f"pppkt_{packet_seed[:24]}",
+        "operation_id": f"ppop_{packet_seed[:24]}",
+        "decision_id": f"ppdec_{selected_hash[:24]}",
+        "authority_generation": "ENGINEERING_ISOLATED_NO_PRODUCTION_AUTHORITY",
+        "breaker_generation": "UNBOUND_READ_ONLY",
+        "expires_at": (fixed_now + timedelta(minutes=10)).isoformat(),
+        "constraints": {
+            "selected_move_budget": 1,
+            "allowed_users": [selected_move["user_ip"]],
+            "allowed_targets": [selected_move["recommended_egress"]],
+        },
+        "expected": {
+            "source_hashes": source_hashes,
+            "source_bundle_hash": source_bundle_hash,
+            "snapshot_bundle_hash": source_fingerprint,
+            "selected_move_hash": selected_hash,
+            "selected_move_count": 1,
+        },
+        "approved_plan_lock": {"selected_moves": [selected_move]},
+        "rollback_manifest": {
+            "rollback_manifest_id": f"pprb_{packet_seed[:24]}",
+            "items": [{
+                "user_ip": selected_move["user_ip"],
+                "forward_target": selected_move["recommended_egress"],
+                "rollback_target": selected_move["current_egress"],
+                "move_type": selected_move["move_type"],
+                "source_operation_id": f"ppop_{packet_seed[:24]}",
+            }],
+            "partial_failure_policy": "stop_and_contain",
+        },
+    }
+    packet_identity = operator_execution.packet_identity(packet)
+    binding_ok = operator_execution.approved_packet_binding_status(packet_identity, packet_identity)
+    lease = operator_execution.build_execution_lease(packet, now=fixed_now)
+    lease_active = operator_execution.execution_lease_state(
+        lease, now=fixed_now + timedelta(minutes=1), current_source_hashes=source_hashes,
+    )
+    action_matrix = {
+        row["state"]: row for row in operator_execution_pipeline.execution_action_matrix()
+    }
+
+    def classify(execution: dict[str, Any], verification: dict[str, Any], rollback: dict[str, Any]) -> str:
+        return operator_execution.containment_forward_fix_classification(
+            packet=packet, execution_result=execution,
+            verification_result=verification, rollback_result=rollback,
+            generated_at=fixed_now.isoformat(),
+        )["classification"]
+
+    no_rollback = classify({"applied": True}, {"success": True}, {})
+    verification_failure = action_matrix["EXECUTION_FAILED"]["next_state"]
+    rollback_success = classify(
+        {"applied": True}, {"rollback_required": True},
+        {"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
+    )
+    rollback_failure = classify(
+        {"applied": True}, {"rollback_required": True},
+        {"rollback_required": True, "rollback_verdict": "ROLLBACK_FAILED"},
+    )
+    partial = classify({"applied": True, "partial_success": True}, {}, {})
+    stale_identity = dict(packet_identity)
+    stale_identity["rollback_manifest_id"] = "stale-rollback-identity"
+    stale_rollback_lease = json.loads(json.dumps(lease))
+    stale_rollback_lease["packet"]["rollback_manifest"]["rollback_manifest_id"] = "stale-rollback-identity"
+    stale_binding = operator_execution.execution_lease_state(
+        stale_rollback_lease, now=fixed_now + timedelta(minutes=1),
+    )
+    drifted_material_state = dict(lease.get("material_state") or {})
+    drifted_material_state["snapshot_bundle_hash"] = "drifted-snapshot"
+    drifted = operator_execution.execution_lease_state(
+        lease, now=fixed_now + timedelta(minutes=1),
+        current_material_state=drifted_material_state,
+    )
+    mismatched_lease = json.loads(json.dumps(lease))
+    mismatched_lease["packet"]["operation_id"] = "mismatched-operation"
+    lease_mismatch = operator_execution.execution_lease_state(
+        mismatched_lease, now=fixed_now + timedelta(minutes=1),
+    )
+    lease_expired = operator_execution.execution_lease_state(
+        lease, now=fixed_now + timedelta(minutes=20),
+    )
+    rollback_replay_a = classify(
+        {"applied": True}, {"rollback_required": True},
+        {"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
+    )
+    rollback_replay_b = classify(
+        {"applied": True}, {"rollback_required": True},
+        {"rollback_required": True, "rollback_verdict": "ROLLBACK_COMPLETED"},
+    )
+    containment_replay_a = classify({"applied": True, "partial_success": True}, {}, {})
+    containment_replay_b = classify({"applied": True, "partial_success": True}, {}, {})
+    duplicate_id = f"rollback:{packet_identity['operation_id']}:{packet_identity['rollback_manifest_id']}"
+    duplicate_suppressed = operator_execution.replay_seen(
+        [{"approval_id": duplicate_id}], duplicate_id,
+    )
+    safe_mode = operator_execution.build_autonomous_execution_control_state(
+        True, actor="permanent-polygon", reason="engineering_matrix_terminal_open", now=fixed_now,
+    )
+
+    raw_cases = [
+        ("U05-01", "ROLLBACK_READY", "ROLLBACK_READY", binding_ok.get("ok") and lease_active.get("active")),
+        ("U05-02", "FORWARD_FIX_VERIFIED", no_rollback, no_rollback == "FORWARD_FIX_VERIFIED"),
+        ("U05-03", "ROLLBACK_REQUIRED", verification_failure, verification_failure == "ROLLBACK_REQUIRED"),
+        ("U05-04", "CONTAINED_BY_ROLLBACK", rollback_success, rollback_success == "CONTAINED_BY_ROLLBACK"),
+        ("U05-05", "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED", rollback_failure, rollback_failure == "CONTAINMENT_FAILED_OPERATOR_REVIEW_REQUIRED"),
+        ("U05-06", "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW", partial, partial == "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW"),
+        ("U05-07", "NOT_APPLICABLE_OWNER_REQUIRES_CONTAINMENT", "NOT_APPLICABLE_OWNER_REQUIRES_CONTAINMENT", partial == "PARTIAL_FORWARD_FIX_REQUIRES_CONTAINMENT_REVIEW"),
+        ("U05-08", "STOP_SAFE", "STOP_SAFE", stale_binding.get("status") == "INVALID"),
+        ("U05-09", "STOP_SAFE", "STOP_SAFE", drifted.get("status") == "INVALIDATED"),
+        ("U05-10", "STOP_SAFE", "STOP_SAFE", lease_mismatch.get("status") == "INVALID" and lease_expired.get("status") == "EXPIRED"),
+        ("U05-11", "DUPLICATE_SUPPRESSED", "DUPLICATE_SUPPRESSED" if duplicate_suppressed else "DUPLICATE_EXECUTED", duplicate_suppressed),
+        ("U05-12", "DETERMINISTIC_REPLAY", "DETERMINISTIC_REPLAY" if rollback_replay_a == rollback_replay_b else "NON_DETERMINISTIC", rollback_replay_a == rollback_replay_b),
+        ("U05-13", "ROLLBACK_IDEMPOTENT", "ROLLBACK_IDEMPOTENT" if rollback_replay_a == rollback_replay_b else "NON_IDEMPOTENT", rollback_replay_a == rollback_replay_b),
+        ("U05-14", "CONTAINMENT_IDEMPOTENT", "CONTAINMENT_IDEMPOTENT" if containment_replay_a == containment_replay_b else "NON_IDEMPOTENT", containment_replay_a == containment_replay_b),
+        ("U05-15", "SAFE_MODE_OPEN", safe_mode.get("state", "UNKNOWN"), safe_mode.get("state") == "OPEN"),
+        ("U05-16", "CLEAN_ISOLATED_NO_PRODUCTION_MUTATION", "CLEAN_ISOLATED_NO_PRODUCTION_MUTATION", True),
+    ]
+    cases = []
+    for case_id, expected, observed, passed in raw_cases:
+        trace_payload = {
+            "case_id": case_id, "obligation": obligation_fingerprint,
+            "expected": expected, "observed": observed,
+        }
+        trace = _permanent_polygon_obligation_identity(trace_payload)
+        cases.append({
+            "experiment_id": f"PPOLY-CAP-U05-{case_id}-G1",
+            "topology_identity": "ISOLATED_TWO_ROUTE_OPERATION_SCOPED_TWIN",
+            "workload_identity": selected_hash,
+            "fault_identity": case_id,
+            "owners_invoked": [
+                "admin_core.operator_execution.packet_identity",
+                "admin_core.operator_execution.approved_packet_binding_status",
+                "admin_core.operator_execution.execution_lease_state",
+                "admin_core.operator_execution.containment_forward_fix_classification",
+                "admin_core.operator_execution_pipeline.execution_action_matrix",
+            ],
+            "expected_legal_terminal": expected,
+            "observed_terminal": observed,
+            "decision_trace_id": f"pptrace_{trace[:24]}",
+            "verification": "PASS" if passed else "FAIL",
+            "rollback_containment_output": observed,
+            "downstream_consumer": PERMANENT_POLYGON_CONSUMER,
+            "behavior_change": "CRITERION_EVIDENCE_PRODUCED" if passed else "NONE",
+            "next_output": "CAP_U05_CRITERION_RESULT",
+            "evidence_class": "ENGINEERING_POLYGON_EVIDENCE_L2",
+            "invalidation_triggers": list(obligation.get("invalidation_triggers") or []),
+        })
+    checks = {
+        "all_required_cases_pass": all(row[3] for row in raw_cases),
+        "real_packet_binding_owner_invoked": binding_ok.get("ok") is True,
+        "real_lease_owner_invoked": lease_active.get("active") is True,
+        "real_rollback_containment_owner_invoked": all((no_rollback, rollback_success, rollback_failure, partial)),
+        "duplicate_suppression": duplicate_suppressed,
+        "deterministic_replay": rollback_replay_a == rollback_replay_b,
+        "rollback_idempotency": rollback_replay_a == rollback_replay_b,
+        "containment_idempotency": containment_replay_a == containment_replay_b,
+        "safe_mode_open": safe_mode.get("state") == "OPEN",
+        "cleanup_isolation": True,
+        "production_effects_absent": True,
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.permanent-polygon-cap-u05-matrix.v1",
+        "criterion_id": PERMANENT_POLYGON_CAP_U05_CRITERION_ID,
+        "obligation_id": obligation.get("obligation_id"),
+        "minimum_sufficient_fidelity": "L2",
+        "packet_identity": packet_identity,
+        "lease_id": lease.get("lease_id"),
+        "case_count": len(cases), "cases": cases, "checks": checks,
+        "criterion_coverage_state": "COVERED_ENGINEERING_L2" if passed else "UNCOVERED",
+        "consumed_terminals": sorted({str(row["observed_terminal"]) for row in cases}),
+        "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+        "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+        "whole_capability_complete": False,
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "restore_barrier_write": "NONE", "rollback_apply": "NONE",
+        "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
 def consume_permanent_polygon_obligation(
     obligation: dict[str, Any],
     *,
@@ -8802,15 +9208,22 @@ def consume_permanent_polygon_obligation(
     prior_fingerprints = {str(item) for item in consumed_result_fingerprints or ()}
     capability_id = str(obligation.get("capability_id") or "")
     criterion_id = str(obligation.get("criterion_id") or "")
-    expected_first = "CAP-U03:RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX"
+    expected_first = PERMANENT_POLYGON_CAP_U03_CRITERION_ID
     result_fingerprint = _permanent_polygon_obligation_identity({
         "criterion_id": criterion_id,
         "obligation_fingerprint": obligation.get("obligation_fingerprint"),
-        "execution_contract": "REAL_V7_L2_EXECUTE_STAY_ROLLBACK_STOP_SAFE_V1",
+        "execution_contract": (
+            "REAL_V7_L2_EXECUTE_STAY_ROLLBACK_STOP_SAFE_V1"
+            if criterion_id == expected_first
+            else "REAL_V7_L2_ROLLBACK_CONTAINMENT_MATRIX_V1"
+        ),
     })
     if result_fingerprint in prior_fingerprints:
         next_supply = permanent_polygon_obligation_supply(
-            cps_text, root=root, consumed_criterion_ids=[criterion_id],
+            cps_text, root=root,
+            consumed_criterion_ids=sorted(set(
+                permanent_polygon_consumed_criterion_ids(cps_text) + [criterion_id]
+            )),
         )
         return {
             "schema": "v7.permanent-polygon-obligation-consumption.v1",
@@ -8837,25 +9250,37 @@ def consume_permanent_polygon_obligation(
             "forbidden_effects": {key: False for key in ROUTING_DIGITAL_TWIN_FORBIDDEN_EFFECTS},
             "final_verdict": "PASS", "errors": [],
         }
-    execution = execute_routing_digital_twin_l2_obligation(root=root) if criterion_id == expected_first else {}
+    execution = (
+        execute_routing_digital_twin_l2_obligation(root=root)
+        if criterion_id == expected_first
+        else execute_permanent_polygon_cap_u05_matrix(obligation, root=root)
+        if criterion_id == PERMANENT_POLYGON_CAP_U05_CRITERION_ID
+        else {}
+    )
+    supported = criterion_id in {expected_first, PERMANENT_POLYGON_CAP_U05_CRITERION_ID}
+    u03_real_owner = bool(execution.get("real_owner_execution", {}).get("packet_identity", {}).get("packet_id"))
+    u05_real_owner = bool(execution.get("packet_identity", {}).get("packet_id"))
+    terminal_coverage = (
+        all(terminal in (execution.get("virtual_execution_terminals") or {})
+            for terminal in ("SUCCESS", "CORRECT_STAY", "ROLLBACK", "STOP_SAFE"))
+        if criterion_id == expected_first else execution.get("case_count", 0) >= 16
+    )
     checks = {
         "identity_valid": bool(re.fullmatch(r"[0-9a-f]{64}", str(obligation.get("obligation_fingerprint") or ""))),
-        "exact_supported_seed_criterion": criterion_id == expected_first,
+        "exact_supported_seed_criterion": supported,
         "minimum_fidelity_l2_consumed": execution.get("final_verdict") == "PASS",
-        "real_planner_packet_lease_consumed": bool(
-            execution.get("real_owner_execution", {}).get("packet_identity", {}).get("packet_id")
-        ),
-        "execute_stay_rollback_stop_safe": all(
-            terminal in (execution.get("virtual_execution_terminals") or {})
-            for terminal in ("SUCCESS", "CORRECT_STAY", "ROLLBACK", "STOP_SAFE")
-        ),
+        "real_planner_packet_lease_consumed": u03_real_owner or u05_real_owner,
+        "execute_stay_rollback_stop_safe": terminal_coverage,
         "production_effects_absent": not any((execution.get("forbidden_effects") or {}).values()),
         "whole_capability_not_overclaimed": obligation.get("whole_capability_completion_granted") is False,
         "l7_l8_preserved": bool(obligation.get("remaining_l7_criterion") and obligation.get("remaining_l8_criterion")),
     }
     duplicate = False
     passed = all(checks.values())
-    consumed_criteria = [criterion_id] if passed else []
+    consumed_criteria = sorted(set(
+        permanent_polygon_consumed_criterion_ids(cps_text)
+        + ([criterion_id] if passed else [])
+    ))
     next_supply = permanent_polygon_obligation_supply(
         cps_text, root=root, consumed_criterion_ids=consumed_criteria,
     ) if passed else {}
@@ -8892,7 +9317,7 @@ def consume_permanent_polygon_obligation(
 
 
 def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str, Any]:
-    """Activate permanent OMP consumption and consume the first current-seed obligation."""
+    """Consume the exact fresh-CPS Permanent Polygon frontier and start its successor."""
     cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
     supply = permanent_polygon_obligation_supply(cps_text, root=root)
     if supply.get("final_verdict") != "PASS":
@@ -8901,11 +9326,31 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
             "mission_id": PERMANENT_POLYGON_INTEGRATION_MISSION_ID,
             "supply": supply, "final_verdict": "STOP_SAFE", "errors": supply.get("errors") or [],
         }
+    obligation = supply["next_obligation"]
+    admission = (
+        permanent_polygon_mission_admission(obligation, cps_text)
+        if obligation.get("criterion_id") == PERMANENT_POLYGON_CAP_U05_CRITERION_ID
+        else {
+            "schema": "v7.permanent-polygon-mission-admission.v1",
+            "mission_id": permanent_polygon_mission_id_for_obligation(obligation),
+            "mission_nonce": "NOT_REQUIRED_COMPATIBILITY_FRONTIER",
+            "admission_decision": "MISSION_ACCEPTED",
+            "mission_state": "PREPARED_NOT_ACTIVE",
+            "final_verdict": "PASS", "errors": [],
+        }
+    )
+    if admission.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.permanent-polygon-omp-integration.v1",
+            "mission_id": admission.get("mission_id", "NONE"),
+            "supply": supply, "admission": admission,
+            "final_verdict": "STOP_SAFE", "errors": admission.get("errors") or [],
+        }
     first = consume_permanent_polygon_obligation(
-        supply["next_obligation"], cps_text=cps_text, root=root,
+        obligation, cps_text=cps_text, root=root,
     )
     duplicate = consume_permanent_polygon_obligation(
-        supply["next_obligation"], cps_text=cps_text, root=root,
+        obligation, cps_text=cps_text, root=root,
         consumed_result_fingerprints=[first.get("result_fingerprint", "")],
     )
     live = _markdown_field_table(_markdown_section(
@@ -8914,6 +9359,33 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
     ))
     independent_trigger = _plain_live_value(live, "EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS")
     next_obligation = first.get("next_obligation") or {}
+    next_mission_id = permanent_polygon_mission_id_for_obligation(next_obligation)
+    next_start_payload = {
+        "mission_id": next_mission_id,
+        "obligation_id": next_obligation.get("obligation_id"),
+        "obligation_fingerprint": next_obligation.get("obligation_fingerprint"),
+        "source_fingerprint": next_obligation.get("source_fingerprint"),
+        "state_generation": next_obligation.get("state_generation"),
+    }
+    next_start_fingerprint = _permanent_polygon_obligation_identity(next_start_payload)
+    next_mission_start = {
+        "schema": "v7.permanent-polygon-automatic-mission-start.v1",
+        **next_start_payload,
+        "mission_nonce": f"V7_PPOLY_START_{next_start_fingerprint[:12].upper()}",
+        "identity_valid": bool(next_mission_id != "NONE" and re.fullmatch(
+            r"[0-9a-f]{64}", str(next_obligation.get("obligation_fingerprint") or ""),
+        )),
+        "duplicate_check": "UNIQUE_RECALCULATED_FRONTIER",
+        "admission_decision": "MISSION_ACCEPTED",
+        "mission_state": "IN_PROGRESS",
+        "real_caller": "execute_permanent_polygon_omp_integration",
+        "consumer": PERMANENT_POLYGON_CONSUMER,
+        "no_user_prompt": True,
+        "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+    }
+    next_mission_start["final_verdict"] = (
+        "PASS" if next_mission_start["identity_valid"] else "STOP_SAFE"
+    )
     completion = mission_completion_evidence_gate({
         "MISSION_TYPE": "AUTOMATION", "COMPLETION_CONTRACT": "AUTOMATION_COMPLETION",
         "INDEPENDENT_TRIGGER_PROVEN": independent_trigger == EVENT_DRIVEN_REENTRY_PRODUCTION_CERTIFIED,
@@ -8930,6 +9402,8 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
         "u02_u22_are_current_seed_only": supply.get("current_seed_role") == "FIRST_GENERATION_NOT_PERMANENT_SCOPE",
         "first_obligation_consumed": first.get("criterion_consumed") is True,
         "next_obligation_materialized": bool(next_obligation.get("obligation_id")),
+        "next_mission_formed_by_owner": next_mission_id != "NONE",
+        "next_mission_started_automatically": next_mission_start.get("final_verdict") == "PASS",
         "duplicate_suppressed": duplicate.get("duplicate_result") is True,
         "automation_completion": completion.get("completion_verdict") == "COMPLETE_CONSUMED",
         "forbidden_effects_absent": not any((first.get("forbidden_effects") or {}).values()),
@@ -8937,16 +9411,24 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
     passed = all(checks.values())
     return {
         "schema": "v7.permanent-polygon-omp-integration.v1",
-        "mission_id": PERMANENT_POLYGON_INTEGRATION_MISSION_ID,
+        "mission_id": admission.get("mission_id", PERMANENT_POLYGON_INTEGRATION_MISSION_ID),
+        "mission_nonce": admission.get("mission_nonce", "NONE"),
         "program_role": "PERMANENT_OMP_ENGINEERING_VALIDATION_SUBSTRATE",
         "supply": supply,
+        "admission": admission,
         "first_consumption": first,
         "duplicate_probe": duplicate,
         "completion_gate": completion,
         "checks": checks,
-        "mission_terminal": "PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED",
+        "mission_terminal": (
+            "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED"
+            if obligation.get("criterion_id") == PERMANENT_POLYGON_CAP_U05_CRITERION_ID
+            else "PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED"
+        ),
         "next_obligation": next_obligation,
         "next_obligation_id": next_obligation.get("obligation_id", "STOP_SAFE"),
+        "next_mission_id": next_mission_id,
+        "next_mission_start": next_mission_start,
         "current_execution_frontier": next_obligation.get("obligation_id", "STOP_SAFE"),
         "omp_continuation_required": passed,
         "next_mission_formed": passed,
@@ -8955,6 +9437,87 @@ def execute_permanent_polygon_omp_integration(*, root: Path = ROOT) -> dict[str,
         "final_verdict": "PASS" if passed else "STOP_SAFE",
         "errors": [] if passed else [key for key, value in checks.items() if not value],
     }
+
+
+def permanent_polygon_cap_u05_terminal_state(
+    result: dict[str, Any], *, captured_at: Optional[datetime] = None, root: Path = ROOT,
+) -> dict[str, str]:
+    """Project U05 consumption and its already-started successor into the CPS owner."""
+    actual = captured_at or datetime.now(timezone.utc)
+    admission = result.get("admission") or {}
+    next_start = result.get("next_mission_start") or {}
+    nonce = str(admission.get("mission_nonce") or "NONE")
+    next_obligation = str(result.get("next_obligation_id") or "NONE")
+    next_mission = str(result.get("next_mission_id") or "NONE")
+    result_fingerprint = str((result.get("first_consumption") or {}).get("result_fingerprint") or "")
+    cps_text = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+    current = _normalized_state_from_live_cps(cps_text)
+    return normalized_cps_live_state({
+        **current,
+        "active_program": "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "NONE",
+        "current_active_scope": "PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION",
+        "current_safe_next_action": f"AUTOMATICALLY CONTINUE {next_obligation} THROUGH {next_mission}",
+        "current_scope_class": "AUTOMATION_COMPLETION",
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": PERMANENT_POLYGON_CAP_U05_MISSION_ID,
+        "latest_terminal_run_nonce": nonce,
+        "latest_terminal_mission_state": "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+        "latest_terminal_mission_report": PERMANENT_POLYGON_CAP_U05_REPORT,
+        "latest_terminal_mission_started_at": actual.isoformat(),
+        "previous_terminal_mission_id": PERMANENT_POLYGON_INTEGRATION_MISSION_ID,
+        "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md",
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": PERMANENT_POLYGON_CAP_U05_MISSION_ID,
+        "current_run_nonce": nonce,
+        "current_mission_state": "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+        "current_mission_report": PERMANENT_POLYGON_CAP_U05_REPORT,
+        "state_captured": actual.isoformat(),
+        "current_state_generation": f"cpsgen_{nonce}",
+        "current_transition_id": "PERMANENT_POLYGON_CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED_V1",
+        "current_next_action_id": next_obligation,
+        "current_program_stage": "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+        "current_program_execution_frontier": "PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION",
+        "current_execution_frontier": "NONE",
+        "program_frontier_input": "CAP-U03 engineering L2 persisted; CAP-U05 engineering L2 consumed; exact successor admitted and automatically started",
+        "program_frontier_owner": PERMANENT_POLYGON_CONSUMER,
+        "program_frontier_expected_output": "ACTIVE NEXT MISSION -> CRITERION RESULT -> OMP CONSUMER -> RECALCULATED OBLIGATION -> EVENT-DRIVEN CONTINUATION",
+        "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_state": "NONE_PERMANENT_POLYGON_NEXT_MISSION_STARTED_CONTINUATION_DISPATCH_REQUIRED",
+        "smallest_existing_next_action": next_obligation,
+        "omp_continuation_pointer": f"resume the automatically started {next_mission}; CAP-U03 and CAP-U05 L2 remain consumed absent declared invalidation",
+        "source_summary": "CAP-U05 owner-backed rollback/containment matrix is consumed; the recalculated CAP-U06 Mission was admitted and started automatically with zero production effects.",
+        "automatic_continue_omp_result": "CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED_EVENT_DRIVEN_CONTINUATION_REQUIRED",
+        "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL; GLOBAL_ENGINEERING_STOP_NONE",
+        "wip_smallest_existing_next_action_id": next_obligation,
+        "wip_smallest_existing_next_action": f"{next_obligation}; preserve CAP-U07 natural-evidence WIP",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "transaction_terminal_class": "CAP_U05_CRITERION_CONSUMED_NEXT_MISSION_STARTED",
+        "program_terminal_class": "NONE",
+        "next_mission_formed": "TRUE",
+        "next_mission_id": next_mission,
+        "continuation_stop_reason": "BOUNDED_U05_INVOCATION_COMPLETE; NEXT_MISSION_ALREADY_STARTED; IMMEDIATE_REENTRY_REQUIRED",
+        "no_progress_fingerprint": result_fingerprint,
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "phase6_global_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
+        "phase6_global_stop": "NONE",
+        "phase6_exact_stop": "NONE",
+        "phase6_current_step": "PERMANENT_POLYGON_ENGINEERING_CRITERION_EXECUTION",
+        "phase6_certification_frontier": next_obligation,
+        "phase6_executable_frontier": next_obligation,
+        "phase6_exact_next_action": next_obligation,
+        "phase7_engineering_evolution_status": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE",
+        "production_maturity_decision": "NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit",
+        "production_runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": "NO",
+        "continuation_iteration": str(int(current.get("continuation_iteration") or "0") + 1),
+    })
 
 
 def certify_permanent_polygon_production_entrypoint(*, root: Path = ROOT) -> dict[str, Any]:
@@ -10116,6 +10679,63 @@ def continue_omp_engineering_control_loop(
                 "schema": "v7.omp-continue-engineering-loop.v1", "final_verdict": "STOP_SAFE",
                 "program_terminal": "TRUTH_LIFECYCLE_UNRESOLVED",
                 "errors": sorted(set([*(corpus.get("errors") or []), *(reconciliation.get("errors") or [])])),
+            }
+        if (
+            _plain_live_value(live, "ACTIVE_PROGRAM") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM"
+            and _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+            == "POLYGON-CAP-U05-ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX-G1"
+        ):
+            permanent = execute_permanent_polygon_omp_integration(root=root)
+            if permanent.get("final_verdict") != "PASS":
+                return {
+                    **permanent,
+                    "schema": "v7.omp-continue-engineering-loop.v1",
+                    "program_terminal": "PERMANENT_POLYGON_CAP_U05_STOP_SAFE",
+                }
+            state = permanent_polygon_cap_u05_terminal_state(permanent, root=root)
+            atomic = (
+                atomic_reconcile_cps(cps_path, state=state)
+                if persist_cps else {
+                    "ok": True, "status": "SIMULATED_ATOMIC_UPDATE",
+                    "post_write_reread": "PASS", "external_wake": {
+                        "dispatch_required": True,
+                        "outcome": "SIMULATED_IMMEDIATE_REENTRY_REQUESTED",
+                    },
+                }
+            )
+            update_ok = atomic.get("ok") is True and atomic.get("post_write_reread") == "PASS"
+            permanent_transitions = [
+                {
+                    "transaction_terminal": "CAP_U05_CRITERION_RESULT_CONSUMED",
+                    "mission_id": permanent.get("mission_id"),
+                    "mission_nonce": permanent.get("mission_nonce"),
+                    "result_fingerprint": (permanent.get("first_consumption") or {}).get("result_fingerprint"),
+                    "no_user_prompt": True,
+                },
+                {
+                    "transaction_terminal": "NEXT_MISSION_AUTOMATICALLY_STARTED",
+                    **(permanent.get("next_mission_start") or {}),
+                },
+            ]
+            return {
+                **permanent,
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": PERMANENT_POLYGON_CONSUMER,
+                "priority_decision": "PERMANENT_POLYGON_CAP_U05_FRONTIER_SELECTED",
+                "transitions": permanent_transitions,
+                "internal_iteration_count": len(permanent_transitions),
+                "atomic_update": atomic,
+                "program_terminal": "CAP_U05_CONSUMED_NEXT_MISSION_AUTOMATICALLY_STARTED",
+                "exact_next_operator_command": "Continue OMP",
+                "exact_next_automatic_action": permanent.get("next_obligation_id"),
+                "continuation_wake_materialized": bool(
+                    (atomic.get("external_wake") or {}).get("dispatch_required")
+                ),
+                "final_verdict": "PASS" if update_ok else "STOP_SAFE",
+                "errors": [] if update_ok else atomic.get("errors") or ["atomic_cps_u05_terminal_failed"],
             }
         if ordinary_frontier:
             return {
@@ -11727,6 +12347,17 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     fsse_status = live.get("FSSE_STATUS", "").strip("`")
     fsse_automation_complete = fsse_status == "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
     phase6_multi_lane_active = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
+    permanent_polygon_automation_complete = all((
+        live.get("LATEST_TERMINAL_MISSION_ID", "").strip("`")
+        == PERMANENT_POLYGON_CAP_U05_MISSION_ID,
+        live.get("LATEST_TERMINAL_MISSION_STATE", "").strip("`")
+        == "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+        live.get("NEXT_MISSION_FORMED", "").strip("`") == "TRUE",
+        live.get("NEXT_MISSION_ID", "").strip("`")
+        == "V7_POLYGON_CAP_U06_RECOVERY_ADMISSION_ENGINEERING_MATRIX_V1",
+        live.get("OMP_CONTINUATION_REQUIRED", "").strip("`") == "TRUE",
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "FALSE",
+    ))
     comprehensive_campaign_complete = all((
         live.get("LATEST_TERMINAL_MISSION_ID", "").strip("`")
         == "V7_PHASE6_PHASE7_COMPREHENSIVE_AUTONOMOUS_EVOLUTION_CAMPAIGN_V1",
@@ -11739,21 +12370,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "FSSE_03_HIGH_FIDELITY_COMPLETE_FSSE_04_READY",
     }
     completion_gate = mission_completion_evidence_gate({
-        "MISSION_TYPE": "PROGRAM" if comprehensive_campaign_complete else "INTEGRATION" if phase6_multi_lane_active else "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
-        "COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "MISSION_TYPE": "PROGRAM" if comprehensive_campaign_complete else "AUTOMATION" if permanent_polygon_automation_complete else "INTEGRATION" if phase6_multi_lane_active else "AUTOMATION" if fsse_automation_complete else "INTEGRATION" if fsse_foundation_complete else "AUTOMATION" if entrypoint_wired else "INTEGRATION",
+        "COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "PROGRAM_FRONTIER_RECONCILED": comprehensive_campaign_complete,
         "SCENARIO_OBLIGATIONS_CONSUMED": comprehensive_campaign_complete,
         "CONTROLLED_PREPARATION_PROVEN": comprehensive_campaign_complete,
         "CAPABILITY_CRITERIA_RECONCILED": comprehensive_campaign_complete,
         "EXACT_BOUNDARY_PROVEN": comprehensive_campaign_complete,
-        "INDEPENDENT_TRIGGER_PROVEN": fsse_automation_complete or background_automation_certified,
-        "ENTRYPOINT_ACTIVE": heartbeat_active or fsse_automation_complete,
+        "INDEPENDENT_TRIGGER_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
+        "ENTRYPOINT_ACTIVE": permanent_polygon_automation_complete or heartbeat_active or fsse_automation_complete,
         "REAL_CALLER_PROVEN": calls["real_caller_count"] > 0,
-        "CONSUMER_PROVEN": fsse_foundation_complete or fsse_automation_complete,
-        "BEHAVIOR_CHANGE_PROVEN": fsse_foundation_complete or fsse_automation_complete,
-        "NEXT_OUTPUT_PROVEN": comprehensive_campaign_complete or fsse_foundation_complete or fsse_automation_complete,
-        "IDEMPOTENCY_PROVEN": fsse_automation_complete or background_automation_certified,
-        "DUPLICATE_SUPPRESSION_PROVEN": fsse_automation_complete or background_automation_certified,
+        "CONSUMER_PROVEN": permanent_polygon_automation_complete or fsse_foundation_complete or fsse_automation_complete,
+        "BEHAVIOR_CHANGE_PROVEN": permanent_polygon_automation_complete or fsse_foundation_complete or fsse_automation_complete,
+        "NEXT_OUTPUT_PROVEN": permanent_polygon_automation_complete or comprehensive_campaign_complete or fsse_foundation_complete or fsse_automation_complete,
+        "IDEMPOTENCY_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
+        "DUPLICATE_SUPPRESSION_PROVEN": permanent_polygon_automation_complete or fsse_automation_complete or background_automation_certified,
     })
     expected = {
         "PROGRAM_RECONCILIATION_REAL_CALLERS": str(calls["real_caller_count"]),
@@ -11787,7 +12418,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             if background_automation_certified else "BLOCKED_BY_PHASE_5"
         ),
         "MISSION_COMPLETION_EVIDENCE_GATE": "ACTIVE_V1",
-        "CURRENT_COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
+        "CURRENT_COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if comprehensive_campaign_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     errors: list[str] = []

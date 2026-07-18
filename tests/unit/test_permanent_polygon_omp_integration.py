@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -21,8 +22,51 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-        cls.supply = cls.lib.permanent_polygon_obligation_supply(cls.cps, root=ROOT)
-        cls.integration_result = cls.lib.execute_permanent_polygon_omp_integration(root=ROOT)
+        cls.live_supply = cls.lib.permanent_polygon_obligation_supply(cls.cps, root=ROOT)
+        pre_u05_state = cls.lib.normalized_cps_live_state({
+            "current_safe_next_action": "EXECUTE THE EXACT CAP-U05 ROLLBACK CONTAINMENT ENGINEERING MATRIX OBLIGATION THROUGH THE PERMANENT POLYGON CONSUMER",
+            "current_state_generation": "cpsgen_V7_PPOLY_PRE_U05_TEST",
+            "current_transition_id": "PERMANENT_POLYGON_PRODUCTION_CERTIFIED_CAP_U05_FRONTIER_V1",
+            "current_next_action_id": "POLYGON-CAP-U05-ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX-G1",
+            "latest_terminal_mission_id": cls.lib.PERMANENT_POLYGON_INTEGRATION_MISSION_ID,
+            "latest_terminal_run_nonce": "V7_PPOLY_G1_TEST",
+            "latest_terminal_mission_state": "PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED",
+            "latest_terminal_mission_report": "docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md",
+            "current_mission_id": cls.lib.PERMANENT_POLYGON_INTEGRATION_MISSION_ID,
+            "current_run_nonce": "V7_PPOLY_G1_TEST",
+            "current_mission_state": "PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED",
+            "current_mission_report": "docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md",
+            "previous_terminal_mission_id": "V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1",
+            "previous_terminal_mission_report": "docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md",
+            "current_completion_contract": "INTEGRATION_COMPLETION",
+            "next_mission_id": cls.lib.PERMANENT_POLYGON_CAP_U05_MISSION_ID,
+            "pending_wake_id": "NONE",
+            "last_wake_request_id": "NONE",
+            "wake_source_cps_generation": "NONE",
+            "wake_transition_id": "NONE",
+            "wake_requested_at": "NONE",
+            "watchdog_state": "ARMED_HEARTBEAT_FALLBACK",
+        })
+        pre_u05 = cls.lib.build_normalized_cps_document(
+            cls.cps, pre_u05_state,
+        ).replace(
+            "`COVERED_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` consumed",
+            "`READY_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` pending",
+            1,
+        )
+        cls.pre_u05_root_context = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls.pre_u05_root_context.cleanup)
+        cls.pre_u05_root = Path(cls.pre_u05_root_context.name)
+        (cls.pre_u05_root / "docs/programs").mkdir(parents=True)
+        (cls.pre_u05_root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").write_text(
+            pre_u05, encoding="utf-8",
+        )
+        cls.supply = cls.lib.permanent_polygon_obligation_supply(
+            pre_u05, root=cls.pre_u05_root,
+        )
+        cls.integration_result = cls.lib.execute_permanent_polygon_omp_integration(
+            root=cls.pre_u05_root,
+        )
 
     def test_01_permanent_contract_reuses_existing_owners(self):
         contract = self.lib.permanent_polygon_applicability_contract()
@@ -44,20 +88,22 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertEqual(self.supply["current_seed_capability_ids"][0], "CAP-U02")
         self.assertEqual(self.supply["current_seed_capability_ids"][-1], "CAP-U22")
 
-    def test_04_first_obligation_is_criterion_scoped_not_capability_completion(self):
+    def test_04_current_obligation_is_criterion_scoped_not_capability_completion(self):
         obligation = self.supply["next_obligation"]
-        self.assertEqual(obligation["capability_id"], "CAP-U03")
+        self.assertEqual(obligation["capability_id"], "CAP-U05")
         self.assertEqual(obligation["minimum_sufficient_fidelity"], "L2")
         self.assertFalse(obligation["whole_capability_completion_granted"])
         self.assertEqual(obligation["criterion_dependency_scope"], "INDEPENDENT_ENGINEERING_CRITERION")
 
-    def test_05_first_obligation_consumes_real_v7_l2_path(self):
+    def test_05_u05_obligation_consumes_real_owner_backed_matrix(self):
         first = self.integration_result["first_consumption"]
         self.assertEqual(first["final_verdict"], "PASS", first.get("errors"))
         self.assertTrue(first["criterion_consumed"])
         self.assertEqual(first["criterion_coverage_state"], "COVERED_ENGINEERING_L2")
         self.assertTrue(first["checks"]["real_planner_packet_lease_consumed"])
-        self.assertTrue(first["checks"]["execute_stay_rollback_stop_safe"])
+        self.assertEqual(first["execution"]["case_count"], 16)
+        self.assertTrue(first["execution"]["checks"]["rollback_idempotency"])
+        self.assertTrue(first["execution"]["checks"]["containment_idempotency"])
 
     def test_06_l7_l8_and_whole_capability_remain_open(self):
         first = self.integration_result["first_consumption"]
@@ -65,13 +111,15 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertEqual(first["remaining_l7_criterion"], "CONTROLLED_PRODUCTION_FIELD_VALIDITY")
         self.assertEqual(first["remaining_l8_criterion"], "NATURAL_PRODUCTION_REPRESENTATIVENESS")
 
-    def test_07_next_obligation_is_materialized(self):
+    def test_07_next_obligation_is_materialized_and_started(self):
         self.assertEqual(
             self.integration_result["next_obligation_id"],
-            "POLYGON-CAP-U05-ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX-G1",
+            "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
         )
         self.assertTrue(self.integration_result["next_mission_formed"])
         self.assertTrue(self.integration_result["omp_continuation_required"])
+        self.assertEqual(self.integration_result["next_mission_start"]["mission_state"], "IN_PROGRESS")
+        self.assertEqual(self.integration_result["next_mission_start"]["final_verdict"], "PASS")
 
     def test_08_duplicate_is_suppressed_without_reexecution(self):
         duplicate = self.integration_result["duplicate_probe"]
@@ -83,7 +131,7 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertEqual(self.integration_result["completion_gate"]["completion_verdict"], "COMPLETE_CONSUMED")
         self.assertEqual(
             self.integration_result["mission_terminal"],
-            "PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED",
+            "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
         )
 
     def test_10_forbidden_effects_are_absent(self):
@@ -145,6 +193,21 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         rejected = self.lib._preserve_certified_external_reentry_telemetry(state, live)
         self.assertEqual(rejected["current_state_generation"], state["current_state_generation"])
         self.assertEqual(rejected["immediate_invocation_count"], state["immediate_invocation_count"])
+
+    def test_15_u03_persisted_criterion_is_not_reexecuted(self):
+        consumed = self.lib.permanent_polygon_consumed_criterion_ids(self.cps)
+        self.assertIn("CAP-U03:RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX", consumed)
+        self.assertIn("CAP-U05:ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX", consumed)
+        self.assertEqual(self.live_supply["next_obligation"]["capability_id"], "CAP-U06")
+
+    def test_16_u05_admission_uses_exact_cps_mission_identity(self):
+        admission = self.integration_result["admission"]
+        self.assertEqual(admission["admission_decision"], "MISSION_ACCEPTED")
+        self.assertEqual(
+            admission["mission_id"],
+            "V7_POLYGON_CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_V1",
+        )
+        self.assertEqual(admission["duplicate_check"], "UNIQUE_CURRENT_FRONTIER")
 
 
 if __name__ == "__main__":

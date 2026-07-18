@@ -54,6 +54,12 @@ The first Mission closes only after:
 
 Mission terminal: `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED`.
 
+## Autonomous Handoff Closure
+
+Every consumed criterion must atomically produce and consume the next legal transition. `NEXT_MISSION_FORMED` alone is incomplete. The same bounded invocation must start the recalculated Mission when safe; otherwise it must materialize a deterministic immediate event-driven wake for the existing Codex Automation Platform consumer. Heartbeat is watchdog fallback only. A terminal combination of continuation required, no external input, formed Mission, no active execution and no pending/consumed wake is `AUTOMATION_BREAK`.
+
+CAP-U03 and CAP-U05 engineering L2 criteria are persistent criterion truth and are not rerun without a declared dependency fingerprint invalidation. Their controlled and natural production criteria remain separate and cannot be closed by Polygon evidence.
+
 ## Safety
 
 Production packet execution, routing mutation, user movement, restore-barrier write, rollback apply, Runtime enablement, Authority expansion and Production Maturity credit are forbidden. Production deploy remains exclusively owned by `tools/v7-safe-deploy`.

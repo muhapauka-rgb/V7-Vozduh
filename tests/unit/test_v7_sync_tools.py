@@ -49,18 +49,22 @@ class V7SyncToolsTest(unittest.TestCase):
 
     def test_cps_consistency_rejects_stop_generation_and_stale_surface_divergence(self):
         cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-        stop_drift = cps.replace(
-            "| `current_primary_stop` | `REAL_WORLD_LIMIT` |",
-            "| `current_primary_stop` | `STOP_SAFE` |",
-            1,
+        stop_drift = self.lib._replace_section_field(
+            cps,
+            "### Active Protected Work In Progress",
+            "### Complete Or Locked Capability Records",
+            "current_primary_stop",
+            "`STOP_SAFE`",
         )
         result = self.lib.cps_live_state_consistency(stop_drift)
         self.assertIn("cps_wip_global_context_divergence", result["errors"])
 
-        generation_drift = cps.replace(
-            "| `current_state_generation` | `cpsgen_AUTHORITY_B681B2D50C27` |",
-            "| `current_state_generation` | `stale_generation` |",
-            1,
+        generation_drift = self.lib._replace_section_field(
+            cps,
+            "### Active Protected Work In Progress",
+            "### Complete Or Locked Capability Records",
+            "current_state_generation",
+            "`stale_generation`",
         )
         result = self.lib.cps_live_state_consistency(generation_drift)
         self.assertIn("cps_generation_divergence", result["errors"])

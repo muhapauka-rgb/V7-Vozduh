@@ -37,13 +37,13 @@ class OmpDocumentIndexTest(unittest.TestCase):
     def test_live_dashboard_uses_authoritative_section_zero(self):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
-        self.assertEqual(operator["current_program"], "FUTURE_SCALE_SCENARIO_ENGINEERING")
-        self.assertEqual(operator["current_step"], "CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION")
-        self.assertEqual(operator["next_step"], "WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME")
+        self.assertEqual(operator["current_program"], "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM")
+        self.assertEqual(operator["current_step"], "PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION")
+        self.assertEqual(operator["next_step"], "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1")
         self.assertEqual(operator["next_scenario"], "NONE")
-        self.assertEqual(operator["current_stop"], "REAL_WORLD_LIMIT")
-        self.assertEqual(operator["external_input_required"], "TRUE")
-        self.assertEqual(operator["omp_continuation_required"], "FALSE")
+        self.assertEqual(operator["current_stop"], "NONE")
+        self.assertEqual(operator["external_input_required"], "FALSE")
+        self.assertEqual(operator["omp_continuation_required"], "TRUE")
 
     def test_historical_dashboard_cannot_override_live_dashboard(self):
         response = self.admin_api.omp_dashboard_response()
@@ -55,8 +55,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_AUTHORITY_B681B2D50C27")
-        self.assertEqual(response["current_transition_id"], "CPS_SEMANTICS_AND_ACTION_CLASS_AUTHORITY_DECISION_RECONCILED_V1")
+        self.assertTrue(response["current_state_generation"].startswith("cpsgen_V7_REENTRY_COMPLETE_"))
+        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_COMPLETED_V1")
 
     def test_polygon_master_program_has_no_volatile_activation_status(self):
         text = MASTER_PROGRAM.read_text(encoding="utf-8")

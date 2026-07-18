@@ -39,14 +39,15 @@ Program terminal: `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFI
 ## Deployment Certification
 
 - Implementation commit: `c070ddbbc73ff160fde5adac439585f93226b57f`.
-- Production-caller correction commit and final deployed source: `ca46d2bc8b63401d364c5b1b572fd1f02d47ebe3`.
-- Safe deploys: `deploy-z8-14-Updatesystem-c070ddb-20260718T112645`; `deploy-z8-14-Updatesystem-ca46d2b-20260718T112844`.
+- Production-caller correction commit and first fully aligned deployed source: `ca46d2bc8b63401d364c5b1b572fd1f02d47ebe3`.
+- Atomic Mission 7 CPS/OMP terminal commit: `8492ec377a6de6e25db806841680109cbc8c35f4`.
+- Safe deploys: `deploy-z8-14-Updatesystem-c070ddb-20260718T112645`; `deploy-z8-14-Updatesystem-ca46d2b-20260718T112844`; `deploy-z8-14-Updatesystem-8492ec3-20260718T113431`.
 - Deploy manifests: `PASS`; changed production files were limited to `tools/v7_sync_lib.py` and `tools/v7-truth-check`, followed by the one-file caller correction in `tools/v7-truth-check`.
 - Production non-test caller: `PASS`; consumer `MISSION_7_DEPLOYMENT_TRUTH_CONSUMER`; next output `ROUTING_DIGITAL_TWIN_PRODUCTION_CALLER_CONSUMED_TRUTH_CONVERGENCE_REQUIRED`.
 - Production isolation guard: `STOP_SAFE_POLYGON_ISOLATION` before Mission execution; all forbidden effects absent.
 - `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`.
 - `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`.
-- Local/GitHub/production commit: `ca46d2bc8b63401d364c5b1b572fd1f02d47ebe3`; deploy delta mismatches: `0`.
+- Local/GitHub/production certification commit: `8492ec377a6de6e25db806841680109cbc8c35f4`; deploy delta mismatches: `0`.
 
 ## Research Mapping
 

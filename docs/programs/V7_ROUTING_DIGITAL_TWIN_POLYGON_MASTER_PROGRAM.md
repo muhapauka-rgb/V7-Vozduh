@@ -501,7 +501,7 @@ Completion contract: `AUTOMATION_COMPLETION`.
 
 After each generation the existing owner must search:
 
-- unfinished capability criteria U02-U22;
+- current unfinished capability criteria, presently U02-U22 as `CURRENT_SEED_GENERATION` rather than a permanent scope boundary;
 - uncovered or stale fidelity requirements;
 - situation, action, topology, workload, service, fault, recovery and rollback classes;
 - policy and Authority-boundary interactions;
@@ -513,6 +513,8 @@ After each generation the existing owner must search:
 An obligation must include owner-backed criterion, sufficient fidelity, deterministic identities, topology, workload, fault/time sequence, real code entrypoint, legal outcomes, metrics, counterfactual/Learning requirements, evidence class, consumer, invalidation trigger and forbidden claims.
 
 Synthetic cases created only to increase a count are forbidden.
+
+After Master Program certification, the Polygon remains a permanent OMP Engineering Validation substrate. It does not reopen Missions 1-7 and does not select modernization work independently. OMP supplies admitted owner-backed work; BDP supplies reproducible gaps and Candidates; CPS owns the live exact obligation; the Polygon supplies criterion-scoped execution, evidence, mismatch repair return and selective replay. Every future OMP Mission must pass an applicability and minimum-sufficient-fidelity decision. Controlled and natural production remain separate L7/L8 lanes and cannot stop independent L1-L6 work.
 
 ## 15. Testing And Certification
 

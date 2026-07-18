@@ -244,7 +244,15 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
 
     def test_52_exhausted_multi_lane_accepts_exact_program_terminal(self):
         cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
-        state = self.lib.normalized_cps_live_state({"current_program_execution_frontier": "NONE"})
+        state = self.lib.normalized_cps_live_state({
+            "current_program_execution_frontier": "NONE",
+            "omp_continuation_required": "FALSE",
+            "external_input_required": "TRUE",
+            "external_input_type": "FRESH_OWNER_BACKED_INPUT",
+            "program_terminal_class": "REAL_WORLD_LIMIT",
+            "program_terminal_state": "REAL_WORLD_LIMIT_EXACT_PROGRAM_TERMINAL",
+            "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+        })
         normalized = self.lib.build_normalized_cps_document(cps, state)
         result = self.lib.capability_dependency_consistency(normalized)
         self.assertEqual(result["final_verdict"], "PASS", result["errors"])

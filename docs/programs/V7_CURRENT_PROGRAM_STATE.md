@@ -2,24 +2,24 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-18T04:30:53+00:00
-Latest terminal Mission: `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1`
-Latest terminal Mission state: `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED`
-Latest terminal Mission report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md`
+State captured: 2026-07-18T06:01:07.226259+00:00
+Latest terminal Mission: `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1`
+Latest terminal Mission state: `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: Routing Digital Twin Master Program Missions 1-7 are consumed; production caller, truth, convergence and equality passed with zero production mutation.
+Source: Permanent Polygon OMP consumer is locally active; CAP-U03 L2 criterion consumed; CAP-U05 exact next obligation awaits deployment certification.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-18T04:30:53+00:00`
+Captured: `2026-07-18T06:01:07.226259+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
-| `ACTIVE_PROGRAM` | `ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM` |
+| `ACTIVE_PROGRAM` | `PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM` |
 | `CURRENT_MODE` | `FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE` |
 | `ARCHITECTURE_STATE` | `STAGE_1_ACCEPTED_AND_LOCKED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
@@ -28,35 +28,35 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
-| `CURRENT_ACTIVE_SCOPE` | `ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM_COMPLETE` |
-| `CURRENT_SAFE_NEXT_ACTION` | `WAIT FOR A FRESH QUALIFYING CONTROLLED OR NATURAL OUTCOME OR A NEW OWNER-BACKED OBLIGATION` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_ACTIVE_SCOPE` | `PERMANENT_POLYGON_OMP_CONSUMER_DEPLOYMENT_CERTIFICATION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `SAFE DEPLOY PERMANENT POLYGON CONSUMER THEN RUN PRODUCTION CALLER TRUTH CONVERGENCE AND EQUALITY` |
 | `CURRENT_SCOPE_CLASS` | `AUTOMATION_COMPLETION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_DT_M7_CA46D2BC` |
-| `CURRENT_TRANSITION_ID` | `ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_CERTIFIED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_8673DA5414B4` |
+| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `PERMANENT_POLYGON_DEPLOYMENT_CERTIFICATION` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
 | `CURRENT_EXECUTION_FRONTIER` | `NONE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_REAL_WORLD_LIMIT` |
+| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` |
-| `TRANSACTION_TERMINAL_CLASS` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `PROGRAM_TERMINAL_CLASS` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `NEXT_MISSION_FORMED` | `FALSE` |
-| `NEXT_MISSION_ID` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_PERMANENT_POLYGON_DEPLOYMENT_CERTIFICATION_READY` |
+| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE` |
+| `TRANSACTION_TERMINAL_CLASS` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `V7_PERMANENT_POLYGON_DEPLOYMENT_CERTIFICATION_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `26` |
-| `CONTINUATION_STOP_REASON` | `ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_CERTIFIED_AND_PROTECTED_REAL_WORLD_BOUNDARY_RESTORED` |
-| `NO_PROGRESS_FINGERPRINT` | `49bbdf7ef4adeec0c98b482d0f40905fb19f8c9f7f85aa9aebeab0c5c4e0faf9` |
+| `CONTINUATION_STOP_REASON` | `DEPLOYMENT_TRUTH_REQUIRED_BEFORE_CAP_U05_CONTINUATION` |
+| `NO_PROGRESS_FINGERPRINT` | `ef721171fbb6ff40a2c17645bafd9b15938c3149c4b2898776c8578ca7f63174` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `3` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -64,12 +64,12 @@ This section is the single live volatile current-state surface. Older production
 | `HEARTBEAT_STATUS` | `ACTIVE` |
 | `AUTOMATION_ENABLED` | `TRUE` |
 | `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE` |
-| `HEARTBEAT_LAST_WAKEUP_ID` | `hb_8b56771e76ad9c311bbfaaafb6ea6674` |
-| `HEARTBEAT_LAST_EVENT_ID` | `8b56771e76ad9c311bbfaaafb6ea6674c6f61470a32e8311e59db8b9c33a057f` |
-| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_8B56771E76AD` |
+| `HEARTBEAT_LAST_WAKEUP_ID` | `hb_8673da5414b41e6e9e7f2ae1221cc04b` |
+| `HEARTBEAT_LAST_EVENT_ID` | `8673da5414b41e6e9e7f2ae1221cc04b2f7217cbcfe37bc65cce44ca9e7ec8ab` |
+| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_8673DA5414B4` |
 | `HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT` | `e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950` |
-| `HEARTBEAT_LAST_DECISION` | `REENTRY_FAILED_SAFE` |
-| `HEARTBEAT_LAST_RUN_AT` | `2026-07-17T17:01:02.795041+00:00` |
+| `HEARTBEAT_LAST_DECISION` | `REENTRY_COMPLETED` |
+| `HEARTBEAT_LAST_RUN_AT` | `2026-07-18T06:01:07.226259+00:00` |
 | `BACKGROUND_AUTOMATION_STATE` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `EXTERNAL_REENTRY_OWNER` | `CODEX_AUTOMATION_PLATFORM` |
 | `EXTERNAL_REENTRY_SCHEDULE` | `FREQ=MINUTELY;INTERVAL=30` |
@@ -80,28 +80,28 @@ This section is the single live volatile current-state surface. Older production
 | `IMMEDIATE_WAKE_OWNER` | `CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL` |
 | `LAST_WAKE_REQUEST_ID` | `955f743af7a1c179722f6ba3a6d4212f9431aad0e4d79ec472e8337828a47416` |
 | `LAST_DISPATCHED_WAKE_ID` | `955f743af7a1c179722f6ba3a6d4212f9431aad0e4d79ec472e8337828a47416` |
-| `LAST_CONSUMED_WAKE_ID` | `8b56771e76ad9c311bbfaaafb6ea6674c6f61470a32e8311e59db8b9c33a057f` |
+| `LAST_CONSUMED_WAKE_ID` | `8673da5414b41e6e9e7f2ae1221cc04b2f7217cbcfe37bc65cce44ca9e7ec8ab` |
 | `PENDING_WAKE_ID` | `NONE` |
 | `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_9D9A2DECBE3B` |
 | `WAKE_TRANSITION_ID` | `EXTERNAL_REENTRY_FAILED_SAFE_V1` |
 | `WAKE_REQUESTED_AT` | `2026-07-17T16:31:53.275970+00:00` |
 | `WAKE_DISPATCHED_AT` | `2026-07-16T09:11:42+00:00` |
-| `WAKE_STARTED_AT` | `2026-07-17T17:00:59.273398+00:00` |
-| `WAKE_COMPLETED_AT` | `2026-07-17T17:10:15+00:00` |
-| `MEASURED_WAKE_LATENCY_MS` | `1745997` |
+| `WAKE_STARTED_AT` | `2026-07-18T06:01:03.131594+00:00` |
+| `WAKE_COMPLETED_AT` | `2026-07-18T06:01:07.226259+00:00` |
+| `MEASURED_WAKE_LATENCY_MS` | `48549855` |
 | `WRITER_BLOCKING_TIME_MS` | `3571.323` |
-| `WATCHDOG_STATE` | `PENDING_WATCHDOG_RECOVERY` |
+| `WATCHDOG_STATE` | `ARMED_FALLBACK_ONLY` |
 | `WATCHDOG_FALLBACK_COUNT` | `2` |
 | `WATCHDOG_RECOVERY_RESULT` | `PASS` |
-| `IMMEDIATE_INVOCATION_COUNT` | `7` |
+| `IMMEDIATE_INVOCATION_COUNT` | `8` |
 | `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `1` |
 | `OVERLAP_COUNT` | `0` |
-| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `EXACT_BOUNDARY_AFTER_FAILED_SAFE_WAKE_RECOVERY` |
+| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_COMPLETED` |
 | `REENTRY_ACTIVE_LEASE` | `NONE` |
-| `REENTRY_LAST_COMPLETED_ID` | `NONE` |
-| `REENTRY_LAST_TRIGGER_ID` | `8b56771e76ad9c311bbfaaafb6ea6674c6f61470a32e8311e59db8b9c33a057f` |
-| `REENTRY_LAST_TRIGGER_AT` | `2026-07-17T17:00:59.273398+00:00` |
-| `REENTRY_LAST_INVOCATION_ID` | `ompre_a5d5c35a6ce661715a66a840` |
+| `REENTRY_LAST_COMPLETED_ID` | `ompre_b7460dbe439bb6200f55b63a` |
+| `REENTRY_LAST_TRIGGER_ID` | `8673da5414b41e6e9e7f2ae1221cc04b2f7217cbcfe37bc65cce44ca9e7ec8ab` |
+| `REENTRY_LAST_TRIGGER_AT` | `2026-07-18T06:01:03.131594+00:00` |
+| `REENTRY_LAST_INVOCATION_ID` | `ompre_b7460dbe439bb6200f55b63a` |
 | `REENTRY_PLATFORM_HEALTH` | `PASS` |
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
@@ -177,24 +177,24 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_DT_M7_CA46D2BC` |
-| `LATEST_TERMINAL_MISSION_STATE` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T04:30:53+00:00` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_PPOLY_G1_AFF54CAFC78D` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T05:54:08+00:00` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
-| `CURRENT_RUN_NONCE` | `V7_DT_M7_CA46D2BC` |
-| `CURRENT_MISSION_STATE` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` |
+| `CURRENT_MISSION_ID` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `CURRENT_RUN_NONCE` | `V7_PPOLY_G1_AFF54CAFC78D` |
+| `CURRENT_MISSION_STATE` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY; no current action and Authority remains unchanged` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -234,7 +234,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEARNING_RESULT` | `LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic` |
 | `PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
@@ -285,7 +285,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; no forced evidence generation or movement is authorized` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; current boundary is FSSE-04 engineering integration only` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED; CAP-U01 certified from exact repair through governed SUCCESS, verification, learning and final OPEN` |
@@ -313,7 +313,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-18T04:30:53+00:00`
+Generated At: `2026-07-18T06:01:07.226259+00:00`
 
 Runtime Authority: `NONE`
 
@@ -326,20 +326,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_DT_M7_CA46D2BC` |
-| `CURRENT_TRANSITION_ID` | `ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_CERTIFIED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_8673DA5414B4` |
+| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -347,8 +347,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | event-driven OMP reenters only on a fresh qualifying controlled or natural outcome or a new owner-backed obligation |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` |
+| `OMP_CONTINUATION_POINTER` | deploy and certify the permanent Polygon consumer, then continue at the exact CAP-U05 obligation without rerunning CAP-U03 |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -357,26 +357,26 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_DT_M7_CA46D2BC` |
-| `current_transition_id` | `ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_CERTIFIED_V1` |
-| `smallest_existing_next_action_id` | `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` |
+| `current_state_generation` | `cpsgen_V7_REENTRY_COMPLETE_8673DA5414B4` |
+| `current_transition_id` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `smallest_existing_next_action_id` | `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
-| `latest_terminal_mission_state` | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
-| `previous_terminal_mission_id` | `V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1` |
+| `latest_terminal_mission_id` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `latest_terminal_mission_state` | `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED` |
+| `previous_terminal_mission_id` | `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT` |
+| `current_primary_stop` | `REAL_WORLD_LIMIT_NATURAL_EVIDENCE_LANE_LOCAL` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `NO_INSIDE_APPROVED_POLICY; no current action and Authority remains unchanged` |
+| `authority_required_now` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION; preserve CAP-U07 protected WIP |
+| `smallest_existing_next_action` | PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION; preserve CAP-U05 exact next obligation and CAP-U07 natural-evidence WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -411,7 +411,7 @@ The following joined table is the normalized live record. `Last link` represents
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `49.0`; owner-backed | rollback preview/readiness -> production verification/rollback terminal outcome | production evidence; `STOP_SAFE` when unavailable | exercise exact rollback/no-rollback contract inside admitted U01 run | U01; unblocks U02/U03/U09 |
 | `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `78.0`; owner-backed | B8/B9/B10 read-only output -> Runtime Eligibility production consumer | runtime integration/evidence | after U01 certification, production-certify recovery consumption when real candidate exists | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
-| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS produced HIGH learning but representative real outcome evidence remains insufficient` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence | `REAL_WORLD_LIMIT` | WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION; preserve CAP-U07 protected WIP | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
+| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS produced HIGH learning but representative real outcome evidence remains insufficient` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence | `REAL_WORLD_LIMIT` | PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION; preserve CAP-U05 exact next obligation and CAP-U07 natural-evidence WIP | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
 | `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `66.9`; maturity owner | certified work/outcomes -> maturity decision toward 100% | production outcome/certification | consume U01 certification/outcome; keep score owner-controlled | U01/U03-U07; unblocks U09 |
 | `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `0.0`; maturity owner | bounded governed outcomes + authority -> autonomous Runtime consumer | authority/runtime/production evidence; `STOP_SAFE` | certify bounded autonomy only after U01-U08 closure evidence | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
 | `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `67/63/35` | read-only surfaces -> complete operator/runtime diagnostic consumption | integration/coverage | verify exact controlled-run gate/outcome visibility after U01 | U01/U03/U05; unblocks U11/U14 |
@@ -444,7 +444,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_V7_DT_M7_CA46D2BC`; `ROUTING_DIGITAL_TWIN_MASTER_PROGRAM_CERTIFIED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION` | Action-class real-world evidence reentry; NONE_PROGRAM_TERMINAL | `REAL_WORLD_LIMIT` | fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_REENTRY_COMPLETE_8673DA5414B4`; `EXTERNAL_REENTRY_COMPLETED_V1` | Permanent sources registered; CAP-U03 engineering L2 consumed; CAP-U05 next obligation materialized; deployment truth remains | `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION` | EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS | `NONE` | SAFE_DEPLOY -> PRODUCTION_NON_TEST_CALLER -> TRUTH -> CONVERGENCE -> EQUALITY -> ACTIVATE_CAP_U05_FRONTIER |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -512,7 +512,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED`; current stop is `REAL_WORLD_LIMIT`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `PERMANENT_POLYGON_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

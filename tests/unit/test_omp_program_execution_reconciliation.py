@@ -157,8 +157,8 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         self.assertEqual(self.reconcile(), self.reconcile())
 
     def test_29_cps_receives_program_frontier(self):
-        self.assertIn("V7_CPS_SEMANTIC_RECONCILIATION_AND_ACTION_CLASS_AUTHORITY_DECISION_V1", self.sources["cps"])
-        self.assertIn("CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED", self.sources["cps"])
+        self.assertIn("V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1", self.sources["cps"])
+        self.assertIn("PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED", self.sources["cps"])
         self.assertIn("CURRENT_PROGRAM_EXECUTION_FRONTIER` | `SAFE_DEPLOY_CURRENT_CANONICAL_HEAD", self.sources["cps"])
         self.assertNotIn("global program frontier is OMP_REAL_CONSUMER_ACTIVATION", self.sources["cps"])
 

@@ -23,6 +23,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
+        cls.state = cls.lib.normalized_cps_live_state()
 
     def validate(self, omp):
         return self.lib.omp_live_state_consistency(self.cps, omp)
@@ -62,15 +63,15 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("OMP_CURRENT_POINTER_MISMATCH", self.validate(drift)["errors"])
 
     def test_06_current_stop_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current stop: `REAL_WORLD_LIMIT`", "Resolved current stop: `STOP_SAFE`", 1)
+        drift = self.omp.replace(f"Resolved current stop: `{self.state['current_stop_condition']}`", "Resolved current stop: `STOP_SAFE`", 1)
         self.assertIn("omp_current_stop_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_07_current_next_action_mismatch_fails(self):
-        drift = self.omp.replace("Resolved current next action: `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
+        drift = self.omp.replace(f"Resolved current next action: `{self.state['current_next_action_id']}`", "Resolved current next action: `DIAGNOSE_BINDING`", 1)
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace("docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md", "docs/reports/engineering/stale.md")
+        drift = self.omp.replace(self.state["latest_terminal_mission_report"], "docs/reports/engineering/stale.md")
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):
@@ -100,8 +101,8 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         cps_result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertIn("`COMPLETE`", cps_result["cap_u01"])
         self.assertIn("`CAP-U07`", cps_result["active_capability"])
-        self.assertIn("`REAL_WORLD_LIMIT`", cps_result["sequence_position_1"])
-        self.assertIn("WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME", cps_result["sequence_position_1"])
+        self.assertIn(f"`{self.state['current_stop_condition']}`", cps_result["sequence_position_1"])
+        self.assertIn(self.state["current_next_action_id"], cps_result["sequence_position_1"])
 
     def test_15_mission_identity_guard_remains_pass(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
@@ -124,7 +125,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):
         good = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)
         self.assertEqual(good["final_verdict"], "PASS")
-        drift = self.omp.replace("Resolved current stop: `REAL_WORLD_LIMIT`", "Resolved current stop: `STOP_SAFE`", 1)
+        drift = self.omp.replace(f"Resolved current stop: `{self.state['current_stop_condition']}`", "Resolved current stop: `STOP_SAFE`", 1)
         bad = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=drift)
         self.assertEqual(bad["final_verdict"], "NO-GO")
 

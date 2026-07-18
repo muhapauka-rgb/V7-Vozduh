@@ -10,8 +10,8 @@ Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 ## Result
 
 Technical verdict: `PASS`.
-Current terminal: `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED_DEPLOYMENT_TRUTH_REQUIRED`.
-Final Mission terminal is reserved for safe deploy, production non-test caller, truth, convergence and equality.
+Current terminal: `PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED`.
+Deployment, production non-test caller, truth, convergence and equality are consumed.
 
 ## Discovery And Reuse
 
@@ -49,7 +49,11 @@ Final Mission terminal is reserved for safe deploy, production non-test caller, 
 - Broad CPS/OMP/FSSE/Digital Twin regression: `310/310 PASS`.
 - Compile/static validation: `PASS`.
 - Local production-shaped non-test consumer: `PASS`; exact next obligation `POLYGON-CAP-U05-ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX-G1`.
-- Production deploy/caller/truth/convergence: `PENDING`.
+- Production deploy: `PASS`; commit `d02c93279d8d71b8f56ff39bedecb2b164bf14f4`; deploy `deploy-z8-14-Updatesystem-d02c932-20260718T132544`; only `tools/v7_sync_lib.py` and `tools/v7-truth-check` changed.
+- Production non-test caller: `PASS`; `PERMANENT_POLYGON_PRODUCTION_CALLER_CONSUMED_TRUTH_REQUIRED` consumed.
+- Truth: `FULLY_ALIGNED`; local, GitHub and production commit `d02c93279d8d71b8f56ff39bedecb2b164bf14f4`.
+- Convergence: `ALIGNED`; deploy delta mismatches `0`.
+- Exact next output: `POLYGON-CAP-U05-ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX-G1`.
 
 ## Effects
 

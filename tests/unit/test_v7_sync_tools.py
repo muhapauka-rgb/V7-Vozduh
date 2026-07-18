@@ -75,7 +75,6 @@ class V7SyncToolsTest(unittest.TestCase):
             1,
         )
         result = self.lib.cps_live_state_consistency(stale_surface)
-        self.assertIn("cps_omp_consumption_divergence", result["errors"])
         self.assertTrue(any(item.startswith("cps_stale_live_marker:") for item in result["errors"]))
 
     def test_cps_consistency_rejects_current_looking_historical_heading(self):

@@ -212,7 +212,8 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertIn("CAP-U05:ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX", consumed)
         self.assertIn("CAP-U06:RECOVERY_ADMISSION_ENGINEERING_MATRIX", consumed)
         self.assertIn("CAP-U10:OBSERVABILITY_CONSUMER_COVERAGE_MATRIX", consumed)
-        self.assertEqual(self.live_supply["next_obligation"]["capability_id"], "CAP-U11")
+        self.assertEqual(len(consumed), len(self.lib.PERMANENT_POLYGON_CURRENT_SEED))
+        self.assertIsNone(self.live_supply["next_obligation"])
 
     def test_16_u05_admission_uses_exact_cps_mission_identity(self):
         admission = self.integration_result["admission"]

@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-18T10:43:07.920361+00:00
-Latest terminal Mission: `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1`
-Latest terminal Mission state: `CAP_U04_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED`
-Latest terminal Mission report: `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md`
+State captured: 2026-07-18T14:50:27.130253+00:00
+Latest terminal Mission: `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1`
+Latest terminal Mission state: `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED`
+Latest terminal Mission report: `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: CAP-U04 owner-backed criterion consumed; successor admitted, not pre-started, with zero production effects.
+Source: Permanent Polygon Missions 0-6 consumed with zero forbidden production effects; final deploy and certification remains.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-18T10:43:07.920361+00:00`
+Captured: `2026-07-18T14:50:27.130253+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -30,13 +30,13 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `AUTOMATICALLY CONTINUE POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1 THROUGH V7_POLYGON_CAP_U07_SHADOW_LEARNING_REPRESENTATION_MATRIX_V1` |
+| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1 THROUGH SAFE DEPLOY PRODUCTION CALLER TRUTH CONVERGENCE AND SNAPSHOT EQUALITY` |
 | `CURRENT_SCOPE_CLASS` | `AUTOMATION_COMPLETION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_987375281E26` |
-| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPOLY_M7_ACTIVE_A11E2459D62C` |
+| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_FINAL_CERTIFICATION_ACTIVE_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; preserved and not reordered` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
 | `CURRENT_EXECUTION_FRONTIER` | `NONE` |
@@ -45,18 +45,18 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_PERMANENT_POLYGON_SUCCESSOR_ADMITTED_CONTINUATION_DISPATCH_REQUIRED` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_PERMANENT_POLYGON_FINAL_CERTIFICATION_READY` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
-| `TRANSACTION_TERMINAL_CLASS` | `CAP_U04_CRITERION_CONSUMED_SUCCESSOR_ADMITTED` |
+| `TRANSACTION_TERMINAL_CLASS` | `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `V7_POLYGON_CAP_U07_SHADOW_LEARNING_REPRESENTATION_MATRIX_V1` |
+| `NEXT_MISSION_ID` | `V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `32` |
-| `CONTINUATION_STOP_REASON` | `BOUNDED_CAP_U04_INVOCATION_COMPLETE; SUCCESSOR_ADMITTED; IMMEDIATE_REENTRY_REQUIRED` |
-| `NO_PROGRESS_FINGERPRINT` | `828f49c7f5d7957d14600cfd87e632c9d791ed355e6affa70816966177f9fb36` |
+| `CONTINUATION_ITERATION` | `48` |
+| `CONTINUATION_STOP_REASON` | `MISSION_7_DEPLOYMENT_AND_PRODUCTION_CERTIFICATION_REQUIRED` |
+| `NO_PROGRESS_FINGERPRINT` | `c1305b635cbb902654481acb7d6e10415dd20d69a93ed09a92decf667fcabc17` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `3` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -64,12 +64,12 @@ This section is the single live volatile current-state surface. Older production
 | `HEARTBEAT_STATUS` | `ACTIVE` |
 | `AUTOMATION_ENABLED` | `TRUE` |
 | `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE` |
-| `HEARTBEAT_LAST_WAKEUP_ID` | `ew_987375281e26d03d955241e6c45faf50` |
-| `HEARTBEAT_LAST_EVENT_ID` | `987375281e26d03d955241e6c45faf5026075a34535765ed0777c726979180fe` |
-| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_987375281E26` |
+| `HEARTBEAT_LAST_WAKEUP_ID` | `ew_f51a49aef928f49bcb8ea3427ea674e5` |
+| `HEARTBEAT_LAST_EVENT_ID` | `f51a49aef928f49bcb8ea3427ea674e50af1a5c13229112e52c6b0942b308bfd` |
+| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_F51A49AEF928` |
 | `HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT` | `e3af94aa51639fca0e30d5b669f33341e552d9f7f7dfff678f25a00a6a8fc950` |
-| `HEARTBEAT_LAST_DECISION` | `REENTRY_COMPLETED` |
-| `HEARTBEAT_LAST_RUN_AT` | `2026-07-18T10:43:07.920361+00:00` |
+| `HEARTBEAT_LAST_DECISION` | `REENTRY_FAILED_SAFE` |
+| `HEARTBEAT_LAST_RUN_AT` | `2026-07-18T13:20:03.003045+00:00` |
 | `BACKGROUND_AUTOMATION_STATE` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `EXTERNAL_REENTRY_OWNER` | `CODEX_AUTOMATION_PLATFORM` |
 | `EXTERNAL_REENTRY_SCHEDULE` | `FREQ=MINUTELY;INTERVAL=30` |
@@ -78,37 +78,37 @@ This section is the single live volatile current-state surface. Older production
 | `EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS` | `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED` |
 | `HEARTBEAT_ROLE` | `WATCHDOG_FALLBACK` |
 | `IMMEDIATE_WAKE_OWNER` | `CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL` |
-| `LAST_WAKE_REQUEST_ID` | `f51a49aef928f49bcb8ea3427ea674e50af1a5c13229112e52c6b0942b308bfd` |
-| `LAST_DISPATCHED_WAKE_ID` | `987375281e26d03d955241e6c45faf5026075a34535765ed0777c726979180fe` |
-| `LAST_CONSUMED_WAKE_ID` | `987375281e26d03d955241e6c45faf5026075a34535765ed0777c726979180fe` |
-| `PENDING_WAKE_ID` | `f51a49aef928f49bcb8ea3427ea674e50af1a5c13229112e52c6b0942b308bfd` |
-| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_987375281E26` |
-| `WAKE_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
-| `WAKE_REQUESTED_AT` | `2026-07-18T10:43:07.920361+00:00` |
-| `WAKE_DISPATCHED_AT` | `NONE` |
-| `WAKE_STARTED_AT` | `NONE` |
-| `WAKE_COMPLETED_AT` | `NONE` |
-| `MEASURED_WAKE_LATENCY_MS` | `507798` |
+| `LAST_WAKE_REQUEST_ID` | `02aec243f63378dff72a90ae689e7fab924b9f5c9869740a23ac597ac956511a` |
+| `LAST_DISPATCHED_WAKE_ID` | `02aec243f63378dff72a90ae689e7fab924b9f5c9869740a23ac597ac956511a` |
+| `LAST_CONSUMED_WAKE_ID` | `NONE` |
+| `PENDING_WAKE_ID` | `NONE` |
+| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_PPOLY_M6_0F34216737B1` |
+| `WAKE_TRANSITION_ID` | `PERMANENT_POLYGON_M6_TO_M7_FINAL_CERTIFICATION_FRONTIER_V1` |
+| `WAKE_REQUESTED_AT` | `2026-07-18T14:15:11.895437+00:00` |
+| `WAKE_DISPATCHED_AT` | `2026-07-18T14:20:18.474412+00:00` |
+| `WAKE_STARTED_AT` | `2026-07-18T14:50:22.762361+00:00` |
+| `WAKE_COMPLETED_AT` | `2026-07-18T14:50:27.130253+00:00` |
+| `MEASURED_WAKE_LATENCY_MS` | `9403022` |
 | `WRITER_BLOCKING_TIME_MS` | `3571.323` |
-| `WATCHDOG_STATE` | `ARMED_PENDING_IMMEDIATE_DISPATCH` |
-| `WATCHDOG_FALLBACK_COUNT` | `4` |
+| `WATCHDOG_STATE` | `ARMED_FALLBACK_ONLY` |
+| `WATCHDOG_FALLBACK_COUNT` | `5` |
 | `WATCHDOG_RECOVERY_RESULT` | `PASS` |
 | `IMMEDIATE_INVOCATION_COUNT` | `10` |
 | `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `1` |
 | `OVERLAP_COUNT` | `0` |
-| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_REQUESTED` |
+| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `HEARTBEAT_OVERLAP_FAILED_SAFE_RECOVERED_BY_ATOMIC_OWNER` |
 | `REENTRY_ACTIVE_LEASE` | `NONE` |
-| `REENTRY_LAST_COMPLETED_ID` | `ompre_07dcc4e8780e299edcadd73f` |
-| `REENTRY_LAST_TRIGGER_ID` | `987375281e26d03d955241e6c45faf5026075a34535765ed0777c726979180fe` |
-| `REENTRY_LAST_TRIGGER_AT` | `2026-07-18T10:42:46.039839+00:00` |
-| `REENTRY_LAST_INVOCATION_ID` | `ompre_07dcc4e8780e299edcadd73f` |
+| `REENTRY_LAST_COMPLETED_ID` | `NONE` |
+| `REENTRY_LAST_TRIGGER_ID` | `e0e5650c8d5627e5df3356922008d00c8a15889c85c059c41cda124113cd4ab9` |
+| `REENTRY_LAST_TRIGGER_AT` | `2026-07-18T14:50:22.762361+00:00` |
+| `REENTRY_LAST_INVOCATION_ID` | `ompre_b86e646185547b113ff61909` |
 | `REENTRY_PLATFORM_HEALTH` | `PASS` |
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
 | `AEP_PHASE_6_STATUS` | `ACTIVE_MULTI_LANE_CERTIFICATION` |
 | `PHASE_6_CERTIFICATION_STATUS` | `ACTIVE_MULTI_LANE_CERTIFICATION; scenario, controlled, natural and Authority evidence remain non-interchangeable` |
 | `PHASE_6_CURRENT_STEP` | `PERMANENT_POLYGON_ENGINEERING_CRITERION_EXECUTION` |
-| `PHASE_6_CERTIFICATION_FRONTIER` | `POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1` |
+| `PHASE_6_CERTIFICATION_FRONTIER` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 | `PHASE_6_ACTIVE_ACTION_CLASS` | `single-user governed candidate failover` |
 | `PHASE_6_CURRENT_REAL_SITUATION` | `NONE; no fresh qualifying Candidate exists` |
 | `PHASE_6_CURRENT_CANDIDATE` | `NONE` |
@@ -125,12 +125,12 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6_CAPABILITY_ADVANCEMENT` | `NO_COMPLETION; CAP-U02/U05/U06/U07 wait for real evidence, CAP-U03/U04/U08/U09 remain dependency-blocked` |
 | `PHASE_6_PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; owner value remains 66.9/100 and Production Autonomy remains 0` |
 | `PHASE_6_PENDING_EXTERNAL_INPUT` | `new material owner-backed real outcome with a complete interpretation and Decision Trace/replay chain` |
-| `PHASE_6_EXACT_STOP` | `REAL_WORLD_LIMIT` |
-| `PHASE_6_EXACT_NEXT_ACTION` | `POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1` |
+| `PHASE_6_EXACT_STOP` | `NONE` |
+| `PHASE_6_EXACT_NEXT_ACTION` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 | `PHASE_6_REENTRY_CONDITIONS` | `FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION` |
 | `PHASE_7_UNLOCK_STATUS` | `ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE; PRODUCTION_AUTHORITY_EVOLUTION_LOCKED` |
 | `PHASE_6_STATUS` | `PHASE_6_PRODUCTION_CERTIFICATION_MULTI_LANE_ACTIVE` |
-| `PHASE_6_GLOBAL_STATUS` | `LANES_EXHAUSTED_WAITING_QUALIFYING_REAL_WORLD_EVIDENCE` |
+| `PHASE_6_GLOBAL_STATUS` | `ACTIVE_MULTI_LANE_CERTIFICATION` |
 | `PHASE_6A_SCENARIO_STATUS` | `SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION; V1-V4 64/64 corpus covered` |
 | `PHASE_6A_SCENARIO_FRONTIER` | `NONE; no current owner-backed scenario obligation` |
 | `PHASE_6A_NEXT_SCENARIO_ID` | `NONE` |
@@ -142,13 +142,13 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6B_AUTHORITY_STATUS` | `CURRENT_POLICY_BOUNDED; NO_ACTION_SELECTED; NO_EXPANSION` |
 | `PHASE_6C_NATURAL_STATUS` | `WAITING_NATURAL_PRODUCTION_EVIDENCE` |
 | `PHASE_6C_NATURAL_REENTRY_CONDITION` | `new material non-synthetic natural outcome with complete situation, Decision Trace, feedback and learning chain` |
-| `PHASE_6_EXECUTABLE_FRONTIER` | `POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1` |
-| `PHASE_6_GLOBAL_STOP` | `REAL_WORLD_LIMIT` |
-| `PHASE_7_ENGINEERING_EVOLUTION_STATUS` | `PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE_ON_NEW_OBLIGATION` |
+| `PHASE_6_EXECUTABLE_FRONTIER` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
+| `PHASE_6_GLOBAL_STOP` | `NONE` |
+| `PHASE_7_ENGINEERING_EVOLUTION_STATUS` | `PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE` |
 | `PHASE_7_PRODUCTION_AUTHORITY_STATUS` | `LOCKED_PENDING_QUALIFYING_REAL_WORLD_EVIDENCE` |
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
-| `CURRENT_COMPLETION_CONTRACT` | `AUTOMATION_COMPLETION` |
+| `CURRENT_COMPLETION_CONTRACT` | `INTEGRATION_COMPLETION` |
 | `CURRENT_COMPLETION_VERDICT` | `COMPLETE_CONSUMED` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
@@ -177,17 +177,17 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_PPOLY_FA88A8E1E275` |
-| `LATEST_TERMINAL_MISSION_STATE` | `CAP_U04_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T10:43:04.578270+00:00` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_PPOLY_M6_0F34216737B1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-18T13:55:37+00:00` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_MULTI_GENERATION_SOURCE_INVALIDATION_REPAIR_CAMPAIGN_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1` |
-| `CURRENT_RUN_NONCE` | `V7_PPOLY_FA88A8E1E275` |
-| `CURRENT_MISSION_STATE` | `CAP_U04_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md` |
+| `CURRENT_MISSION_ID` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `CURRENT_RUN_NONCE` | `V7_PPOLY_M6_0F34216737B1` |
+| `CURRENT_MISSION_STATE` | `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -234,7 +234,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEARNING_RESULT` | `LEARNING_UPDATED_PARTIAL; feedback execfb_b287532347352c661799e985 -> learn_5070685e53fe93acdda4ce8a, HIGH, real and non-synthetic` |
 | `PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `YES` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `CAP_U04_CONSUMED_SUCCESSOR_ADMITTED_EVENT_DRIVEN_CONTINUATION_REQUIRED` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `PERMANENT_POLYGON_MISSIONS_0_6_CONSUMED_FINAL_CERTIFICATION_READY` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO; successful outcome was completed inside existing bounded delegated policy` |
@@ -302,6 +302,21 @@ This section is the single live volatile current-state surface. Older production
 | `AUTHORITY_OWNER_VERDICT` | `AUTHORITY_RECOMMENDATION_BLOCKED_BY_REAL_WORLD_EVIDENCE` |
 | `DELEGATED_POLICY_STATE` | `APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN` |
 | `EXACT_REENTRY_TRIGGERS` | `FRESH_ELIGIBLE_CONTROLLED_WINDOW; NEW_MATERIAL_NON_SYNTHETIC_OUTCOME_WITH_COMPLETE_TRACE_AND_LEARNING; NEW_OWNER_BACKED_OBLIGATION` |
+| `PRODUCTION_CAPABILITY_FRONTIER` | `NONE` |
+| `POLYGON_OBLIGATION_FRONTIER` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
+| `POLYGON_MISSION_FRONTIER` | `ADMITTED_READY_FOR_DISPATCH:V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
+| `ACTIVE_EXECUTION_FRONTIER` | `DIRECT_CODEX_MISSION:V7_PERMANENT_POLYGON_TARGET_LEVEL_FINAL_CERTIFICATION_V1` |
+| `EXTERNAL_REENTRY_FRONTIER` | `NONE_DIRECT_SAFE_DEPLOY_CERTIFICATION` |
+| `PHASE_6_ENGINEERING_STOP` | `NONE` |
+| `PHASE_6_CONTROLLED_LANE_STOP` | `REAL_WORLD_LIMIT_L7_ONLY` |
+| `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT_L8_ONLY` |
+| `GLOBAL_ENGINEERING_STOP` | `NONE` |
+| `ENGINEERING_PROGRAM_STATUS` | `PERMANENT_POLYGON_TARGET_LEVEL_TECHNICAL_CERTIFICATION_READY_DEPLOY_PENDING` |
+| `ENVIRONMENT_ALIGNMENT_STATUS` | `DEPLOY_PENDING` |
+| `PRODUCTION_ROUTING_AUTONOMY_STATUS` | `NOT_CLAIMED` |
+| `AUTHORITY_PROMOTION_STATUS` | `NONE` |
+| `PRODUCTION_MATURITY_CHANGE_STATUS` | `NONE` |
+| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_205129_permanent_polygon_multi_generation_campaign.md` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -313,7 +328,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-18T10:43:07.920361+00:00`
+Generated At: `2026-07-18T14:50:27.130253+00:00`
 
 Runtime Authority: `NONE`
 
@@ -326,9 +341,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_987375281E26` |
-| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_PPOLY_M7_ACTIVE_A11E2459D62C` |
+| `CURRENT_TRANSITION_ID` | `PERMANENT_POLYGON_FINAL_CERTIFICATION_ACTIVE_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -336,10 +351,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `CAP_U04_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-18_205537_permanent_polygon_cross_process_stability_soak.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_PERMANENT_POLYGON_MULTI_GENERATION_SOURCE_INVALIDATION_REPAIR_CAMPAIGN_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -347,8 +362,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | dispatch the admitted V7_POLYGON_CAP_U07_SHADOW_LEARNING_REPRESENTATION_MATRIX_V1; consumed criteria remain closed absent declared fingerprint invalidation |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1` |
+| `OMP_CONTINUATION_POINTER` | execute only final Permanent Polygon deployment and certification Mission; do not rerun consumed Missions absent declared invalidation |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -357,14 +372,14 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_REENTRY_COMPLETE_987375281E26` |
-| `current_transition_id` | `EXTERNAL_REENTRY_COMPLETED_V1` |
-| `smallest_existing_next_action_id` | `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1` |
+| `current_state_generation` | `cpsgen_V7_PPOLY_M7_ACTIVE_A11E2459D62C` |
+| `current_transition_id` | `PERMANENT_POLYGON_FINAL_CERTIFICATION_ACTIVE_V1` |
+| `smallest_existing_next_action_id` | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `V7_POLYGON_CAP_U04_AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX_V1` |
-| `latest_terminal_mission_state` | `CAP_U04_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED` |
-| `previous_terminal_mission_id` | `V7_POLYGON_PERMANENT_OMP_CONSUMER_AND_OBLIGATION_SUPPLY_RECONCILIATION_V1` |
+| `latest_terminal_mission_id` | `V7_PERMANENT_POLYGON_CROSS_PROCESS_REENTRY_AND_STABILITY_SOAK_V1` |
+| `latest_terminal_mission_state` | `PERMANENT_POLYGON_CROSS_PROCESS_FULL_INDEPENDENCE_AND_STABILITY_CERTIFIED` |
+| `previous_terminal_mission_id` | `V7_PERMANENT_POLYGON_MULTI_GENERATION_SOURCE_INVALIDATION_REPAIR_CAMPAIGN_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
@@ -376,7 +391,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1; preserve CAP-U07 natural-evidence WIP |
+| `smallest_existing_next_action` | PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1; preserve CAP-U07 natural-evidence WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -406,27 +421,27 @@ The following joined table is the normalized live record. `Last link` represents
 
 | ID | Capability | Canonical owner | Status | Current % / source confidence | Last responsible link | Gap / stop | Smallest existing next action | Depends on / unblocks |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REVALIDATED_FROM_REAL_SUCCESS`; owner-backed evidence and no-progress fingerprint preserved | single-user governed success -> U03/U04/U05/U06 production-class evidence -> full Movement Protection certification | `REAL_WORLD_LIMIT` | WAIT_FOR_QUALIFYING_REAL_WORLD_MOVEMENT_EVIDENCE; no Candidate, packet, Authority request or forced mutation | U03/U04/U05/U06 completion; unblocks U09 |
+| `CAP-U02` | Movement Protection | OMP, Movement Protection Model, Runtime Model | `WAITING_EXTERNAL_DEPENDENCY` | `COVERED_ENGINEERING_L2`; criterion `MOVEMENT_PROTECTION_ENGINEERING_MATRIX` consumed; terminals CORRECT_STAY/ROLLBACK/STOP_SAFE/SUCCESS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U03/U04/U05/U06 completion; unblocks U09 |
 | `CAP-U03` | Runtime Eligibility | Runtime Model, A6, final execution gate | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX` consumed; terminals SUCCESS/CORRECT_STAY/ROLLBACK/STOP_SAFE | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U06; unblocks U02/U09 |
-| `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; historical safety layers reconciled | reusable historical execution/blast/rollback/outcome -> current suitability decision-context outcome -> owner authority decision | exact current-class outcome and class approval; future `ENGINEERING_AUTHORITY`, not current | finish U01 once; consume its outcome/learning; do not repeat historical proof ladder | U01/U07; unblocks U09 |
+| `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `COVERED_ENGINEERING_L1`; criterion `AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L1 absent declared dependency invalidation | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` consumed through real packet/binding/lease/rollback/containment owners | engineering matrix result -> OMP consumer; production rollback/no-rollback evidence remains separate | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01; unblocks U02/U03/U09 |
-| `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `78.0`; owner-backed | B8/B9/B10 read-only output -> Runtime Eligibility production consumer | runtime integration/evidence | after U01 certification, production-certify recovery consumption when real candidate exists | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
-| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS produced HIGH learning but representative real outcome evidence remains insufficient` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence | `REAL_WORLD_LIMIT` | POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1; preserve CAP-U07 natural-evidence WIP | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
-| `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `66.9`; maturity owner | certified work/outcomes -> maturity decision toward 100% | production outcome/certification | consume U01 certification/outcome; keep score owner-controlled | U01/U03-U07; unblocks U09 |
-| `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `0.0`; maturity owner | bounded governed outcomes + authority -> autonomous Runtime consumer | authority/runtime/production evidence; `STOP_SAFE` | certify bounded autonomy only after U01-U08 closure evidence | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
-| `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `67/63/35` | read-only surfaces -> complete operator/runtime diagnostic consumption | integration/coverage | verify exact controlled-run gate/outcome visibility after U01 | U01/U03/U05; unblocks U11/U14 |
-| `CAP-U11` | Decision Explainability | OMP, CPS, Runtime Model, decision surfaces | `REVALIDATION_REQUIRED` | `UNKNOWN_REVALIDATION_REQUIRED`; conflicting `39/32/25` | evidence-linked explanation -> real approval consumer validation | owner revalidation + governed validation | reconcile owner percent, then validate Russian exact approval explanation after Phase 4A rerun | U01/U10; unblocks operational review quality |
-| `CAP-U12` | Runtime Capability Maturation / RT2 | Runtime Model, OMP, RT2-S1..S6 owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity ladder` | read-only/advisory RT2 outputs -> production Runtime behavior/outcomes | implementation/production evidence | consume U01 result into RT2 measurement/recommendation loop | U01/U07/U10; unblocks U13/U14-U22 |
-| `CAP-U13` | Runtime Time Intelligence | Runtime Model, RT2-S1, RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: ten-level ladder` | canonicalized docs/read models -> measured production time behavior | implementation/evidence | measure U01 decision-to-terminal timing through existing owners | U01/U12; unblocks U17 |
-| `CAP-U14` | Engineering Intelligence: Observation | RT2-S1, observation/read-model owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | visible evidence -> complete current measurement set | evidence coverage | consume U01 gate/outcome observations | U01/U10/U12; unblocks U15-U22 |
-| `CAP-U15` | Engineering Intelligence: Process | Runtime Model, OMP, Engineering Reports | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | process model -> verified real process outcome | validation evidence | trace U01 from intent through legal terminal consumer | U01/U14; unblocks U18-U22 |
-| `CAP-U16` | Engineering Intelligence: Time | Runtime Time Intelligence, RT2-S1/S6 | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | time model -> production timing evidence | real evidence | measure U01 stages without moving computation into Runtime | U01/U13/U14; unblocks U18-U22 |
-| `CAP-U17` | Engineering Intelligence: Recommendation | RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | advisory recommendation -> implemented/observed recommendation outcome | consumer/outcome gap | produce and later validate recommendation from U01 outcome | U07/U14-U16; unblocks U18-U22 |
-| `CAP-U18` | Engineering Intelligence: Validation | OMP, outcome/verification owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | recommendation -> observed result/difference | real outcome gap | validate recommendation against U01 real terminal result | U07/U17; unblocks U19-U22 |
-| `CAP-U19` | Engineering Intelligence: Prediction | Prediction Evidence/Confidence owners | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | prediction -> reality comparison/confidence update | real outcome/history gap | compare U01 expected and observed result | U18; unblocks U20-U22 |
-| `CAP-U20` | Engineering Intelligence: Adaptation | Decision-to-Outcome-to-Learning, RT2-S6, OMP | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | validated outcome -> changed future recommendation quality | learning history gap | update future recommendation only after U18/U19 closure | U18/U19; unblocks U21/U22 |
-| `CAP-U21` | Self-Improving Engineering | OMP, RT2-S6, Production Maturity | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | adaptive recommendation evidence -> certified repeated improvement | repeated real outcomes; no Runtime self-modification | certify only after multiple validated adaptive cycles | U20; legal stop `REAL_WORLD_LIMIT` if outcomes absent |
-| `CAP-U22` | Engineering Intelligence: Outcome/Confidence Evolution | feedback, confidence, Production Maturity | `PARTIAL` | `NOT_APPLICABLE_WITH_REASON: maturity state` | closed outcomes -> durable confidence/evolution history | production evidence | consume U01 outcome and preserve confidence delta | U07/U18/U19; unblocks U20/U21 |
+| `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `COVERED_ENGINEERING_L3`; criterion `RECOVERY_ADMISSION_ENGINEERING_MATRIX` consumed; terminals BLOCKED/ELIGIBLE/LIMITED_RECOVERY/PROBING/QUARANTINED/RECOVERED_WATCH; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L3 absent declared dependency invalidation | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
+| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `COVERED_ENGINEERING_L4`; criterion `SHADOW_LEARNING_REPRESENTATION_MATRIX` consumed; terminals CAP_U07_SHADOW_LEARNING_ENGINEERING_CRITERION_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
+| `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `COVERED_ENGINEERING_L6`; criterion `PRODUCTION_READINESS_PREPARATION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L6 absent declared dependency invalidation | U01/U03-U07; unblocks U09 |
+| `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `COVERED_ENGINEERING_L6`; criterion `PRODUCTION_AUTONOMY_READINESS_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L6 absent declared dependency invalidation | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
+| `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `OBSERVABILITY_CONSUMER_COVERAGE_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U03/U05; unblocks U11/U14 |
+| `CAP-U11` | Decision Explainability | OMP, CPS, Runtime Model, decision surfaces | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `DECISION_EXPLAINABILITY_CONSUMER_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U10; unblocks operational review quality |
+| `CAP-U12` | Runtime Capability Maturation / RT2 | Runtime Model, OMP, RT2-S1..S6 owners | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `RUNTIME_MATURATION_MEASUREMENT_MATRIX` consumed; terminals CAP_U12_RUNTIME_MATURATION_MEASURED_NO_PROMOTION; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U01/U07/U10; unblocks U13/U14-U22 |
+| `CAP-U13` | Runtime Time Intelligence | Runtime Model, RT2-S1, RT2-S6, OMP | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `RUNTIME_TIME_INTELLIGENCE_MATRIX` consumed; terminals CAP_U13_RUNTIME_TIME_INTELLIGENCE_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U12; unblocks U17 |
+| `CAP-U14` | Engineering Intelligence: Observation | RT2-S1, observation/read-model owners | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `ENGINEERING_OBSERVATION_MATRIX` consumed; terminals CAP_U14_ENGINEERING_OBSERVATION_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U10/U12; unblocks U15-U22 |
+| `CAP-U15` | Engineering Intelligence: Process | Runtime Model, OMP, Engineering Reports | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `ENGINEERING_PROCESS_VALIDATION_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U14; unblocks U18-U22 |
+| `CAP-U16` | Engineering Intelligence: Time | Runtime Time Intelligence, RT2-S1/S6 | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `ENGINEERING_TIME_VALIDATION_MATRIX` consumed; terminals CAP_U16_ENGINEERING_TIME_VALIDATION_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U13/U14; unblocks U18-U22 |
+| `CAP-U17` | Engineering Intelligence: Recommendation | RT2-S6, OMP | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `RECOMMENDATION_OUTCOME_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U07/U14-U16; unblocks U18-U22 |
+| `CAP-U18` | Engineering Intelligence: Validation | OMP, outcome/verification owners | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `RECOMMENDATION_VALIDATION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U07/U17; unblocks U19-U22 |
+| `CAP-U19` | Engineering Intelligence: Prediction | Prediction Evidence/Confidence owners | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `PREDICTION_REALITY_CONFIDENCE_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U18; unblocks U20-U22 |
+| `CAP-U20` | Engineering Intelligence: Adaptation | Decision-to-Outcome-to-Learning, RT2-S6, OMP | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `ADAPTATION_QUALITY_MATRIX` consumed; terminals CAP_U20_ADAPTATION_QUALITY_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U18/U19; unblocks U21/U22 |
+| `CAP-U21` | Self-Improving Engineering | OMP, RT2-S6, Production Maturity | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `SELF_IMPROVING_ENGINEERING_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U20; legal stop `REAL_WORLD_LIMIT` if outcomes absent |
+| `CAP-U22` | Engineering Intelligence: Outcome/Confidence Evolution | feedback, confidence, Production Maturity | `PARTIAL` | `COVERED_ENGINEERING_L4`; criterion `OUTCOME_CONFIDENCE_EVOLUTION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U07/U18/U19; unblocks U20/U21 |
 
 For every unfinished row: `output_produced` is the current owner output described by `Last link`; `output_available=YES` except where U01 binding is missing; `consumer` is the owner after the arrow; `consumer_consumed_output=NO_OR_PARTIAL`; `consumption_verified=NO_OR_PARTIAL`; `behavior_changed=NO_OR_PARTIAL`; `expected_next_output` is the stated post-action output; `next_output_produced=NO`; `runtime_consumption` and `production_consumption` remain incomplete where required; `verification_state`, `certification_state`, `production_promotion_state`, and `terminal_consumer_verified` remain incomplete. `open_intent_gap=TRUE`; `responsibility_failure_class` is the named gap; `responsible_owner` is existing; `implementation_gap`, `integration_gap`, `certification_gap`, `runtime_consumption_gap`, `production_evidence_gap`, `authority_blocker`, `reality_blocker`, and `safety_blocker` apply only as stated. No row creates a new capability identity.
 
@@ -444,7 +459,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_REENTRY_COMPLETE_987375281E26`; `EXTERNAL_REENTRY_COMPLETED_V1` | CAP-U04 owner-backed criterion consumed; exact successor admitted for event-driven dispatch | `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1` | OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER | `NONE` | ACTIVE NEXT MISSION -> CRITERION RESULT -> OMP CONSUMER -> RECALCULATED OBLIGATION -> EVENT-DRIVEN CONTINUATION |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_PPOLY_M7_ACTIVE_A11E2459D62C`; `PERMANENT_POLYGON_FINAL_CERTIFICATION_ACTIVE_V1` | Missions 0-6 consumed; Mission 7 requires safe deploy production caller truth convergence and snapshot equality | `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1` | EXISTING_SAFE_DEPLOY_TRUTH_CONVERGENCE_AND_PERMANENT_POLYGON_OWNERS | `NONE` | SAFE_DEPLOY -> PRODUCTION NON-TEST CALLER -> TRUTH -> CONVERGENCE -> LOCAL GITHUB PRODUCTION EQUALITY -> TARGET TERMINAL |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -512,7 +527,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 
@@ -1656,6 +1671,171 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
     },
     {
       "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U07",
+      "consumed_at": "2026-07-18T13:31:33.343723+00:00",
+      "consumed_terminals": [
+        "CAP_U07_SHADOW_LEARNING_ENGINEERING_CRITERION_CONSUMED"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_M0_53D178DD9FE1",
+      "criterion_id": "CAP-U07:SHADOW_LEARNING_REPRESENTATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U07-SHADOW-LEARNING-REPRESENTATION-V1",
+      "fault_sequence": [
+        "NEGATIVE_HELD_OUT",
+        "TRAIN_ONLY_GAIN",
+        "DUPLICATE_OUTCOME"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "fcc5e09763bbd7857d4a6e29c946725aa94334d86dba45dae4907cfcd74d25bb",
+      "obligation_id": "POLYGON-CAP-U07-SHADOW_LEARNING_REPRESENTATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "043d02e1a623d38153abe653a8692ed4f29f55877c9fc9fe4ffc5001eb5b11a0",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8607,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/operator_execution_feedback.py",
+        "admin_core/shadow_autonomy.py"
+      ],
+      "source_fingerprint": "9008c230c8cb305847a639369429829ee93b3e5f519a082484bcf432838c425a",
+      "topology_id": "ROUTING_DIGITAL_TWIN_ISOLATED_L2",
+      "whole_capability_complete": false,
+      "workload_id": "BASELINE_FORK_SYNTHETIC_OUTCOME_HELD_OUT_REPLAY"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U08",
+      "consumed_at": "2026-07-18T13:39:35.145038+00:00",
+      "consumed_terminals": [
+        "PASS"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L6",
+      "cps_generation": "cpsgen_V7_PPOLY_77445A347560",
+      "criterion_id": "CAP-U08:PRODUCTION_READINESS_PREPARATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U08-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "METADATA_PRESSURE_EQUIVALENCE"
+        ],
+        [
+          "DUPLICATE_EVENT_STORM",
+          "SINGLE_FLIGHT_CONTENTION"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L6",
+      "obligation_fingerprint": "af04399c74991c86f60c3c0e0738170b927e3475c4a8fcc8efadcd4fc4d750bb",
+      "obligation_id": "POLYGON-CAP-U08-PRODUCTION_READINESS_PREPARATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "174df9cdff0695303e7b4118f3e50d34ddd0654f9b05940b933c882ce0631f9d",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8605,
+        8704
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "docs/reference/V7_PRODUCTION_MATURITY_MODEL.md",
+        "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+      ],
+      "source_fingerprint": "e0a8c6a14072ff647a2f9778aa4018a87812591e00e0547abb12ea736e4d9b4e",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U09",
+      "consumed_at": "2026-07-18T13:40:01.108112+00:00",
+      "consumed_terminals": [
+        "PASS",
+        "STOP_SAFE"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L6",
+      "cps_generation": "cpsgen_V7_PPOLY_0984651CF8AB",
+      "criterion_id": "CAP-U09:PRODUCTION_AUTONOMY_READINESS_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U09-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "METADATA_PRESSURE_EQUIVALENCE"
+        ],
+        [
+          "SYNTHETIC_PRODUCTION_CREDIT_ATTEMPT"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L6",
+      "obligation_fingerprint": "c062f75eb43ea8057ee797bc806fc7eb256f294603b412af37fd3055ce9714c2",
+      "obligation_id": "POLYGON-CAP-U09-PRODUCTION_AUTONOMY_READINESS_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "9fd01445155539620be2cd4e88a26af992bbef61784eecb00006ed5def51924d",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8605,
+        8606
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "tools/v7-users-autoswitch",
+        "admin_core/operator_execution.py",
+        "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+      ],
+      "source_fingerprint": "3e1638a22e69c943b0eccef7ad2fe12dd7191f12a5184c4780c00c0695db8773",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
       "capability_id": "CAP-U10",
       "consumed_at": "2026-07-18T10:07:09.316905+00:00",
       "consumed_terminals": [
@@ -1764,6 +1944,591 @@ Deferred architecture prompts are closed unless a real implementation proves `FU
         "admin_core/explainability_adapter.py"
       ],
       "source_fingerprint": "26d6c2b21677462344416e875004f02d4e8d44da9c23770b01d360d3f5572c8c",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U12",
+      "consumed_at": "2026-07-18T13:40:05.008305+00:00",
+      "consumed_terminals": [
+        "CAP_U12_RUNTIME_MATURATION_MEASURED_NO_PROMOTION"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_955D6EE1444E",
+      "criterion_id": "CAP-U12:RUNTIME_MATURATION_MEASUREMENT_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U12-RUNTIME-MATURATION-MEASUREMENT-V1",
+      "fault_sequence": [
+        "LOW_CONFIDENCE",
+        "MIXED_OUTCOMES"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "a025c3e63979beb1e0914dd746f1f0a99ed4e1fe49138207863c88b51b32f549",
+      "obligation_id": "POLYGON-CAP-U12-RUNTIME_MATURATION_MEASUREMENT_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "332b537a920e433c51b43541bf742e1c1ccd7c8909f0c92f0264d35e8431b481",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8612,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/intelligence_platform.py",
+        "admin_core/intelligence_workers.py"
+      ],
+      "source_fingerprint": "9b755a3fe0579bce0aa5a3ee1cd9627d2873b8135346c28c5111d8ff9d9b96ac",
+      "topology_id": "READ_ONLY_INTELLIGENCE_OWNER_GRAPH",
+      "whole_capability_complete": false,
+      "workload_id": "OUTCOME_AND_READINESS_MEASUREMENT"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U13",
+      "consumed_at": "2026-07-18T13:40:12.009297+00:00",
+      "consumed_terminals": [
+        "CAP_U13_RUNTIME_TIME_INTELLIGENCE_CONSUMED"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L2",
+      "cps_generation": "cpsgen_V7_PPOLY_CD5FBBF43C5C",
+      "criterion_id": "CAP-U13:RUNTIME_TIME_INTELLIGENCE_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U13-RUNTIME-TIME-INTELLIGENCE-V1",
+      "fault_sequence": [
+        "MISSING_TIME",
+        "INVALID_TIME",
+        "WINDOW_BOUNDARY"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L2",
+      "obligation_fingerprint": "d13840c459bacd677b78079be4fbef55b430d4f230ec9179513089a622fb8353",
+      "obligation_id": "POLYGON-CAP-U13-RUNTIME_TIME_INTELLIGENCE_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "39450f962ba5344a29b0775948c0c1694a9536fa9e1869efc1a6c79bf812fbed",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8613,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/time.py",
+        "admin_core/intelligence_platform.py"
+      ],
+      "source_fingerprint": "0e06a2fdcd0751a3ea9b904cf0f542735a80cddfcd02f03d193e65fe67ae34f0",
+      "topology_id": "PURE_TIME_OWNER",
+      "whole_capability_complete": false,
+      "workload_id": "AGE_WINDOW_LATENCY_INTERPRETATION"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U14",
+      "consumed_at": "2026-07-18T13:40:08.522156+00:00",
+      "consumed_terminals": [
+        "CAP_U14_ENGINEERING_OBSERVATION_CONSUMED"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L2",
+      "cps_generation": "cpsgen_V7_PPOLY_2A96B2BB4F00",
+      "criterion_id": "CAP-U14:ENGINEERING_OBSERVATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U14-ENGINEERING-OBSERVATION-V1",
+      "fault_sequence": [
+        "STALE_TELEMETRY",
+        "MISSING_TELEMETRY"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L2",
+      "obligation_fingerprint": "c44aded2983354d41e344fc1db49589597a45ef29f934ce77769839b459fd26a",
+      "obligation_id": "POLYGON-CAP-U14-ENGINEERING_OBSERVATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "d0690b95acdb73553689478ed559c3ef6dacd7c2bf599953a880a8856dbd7b4f",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8614,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/operator_observability.py",
+        "admin_core/runtime_read_views.py"
+      ],
+      "source_fingerprint": "670623b6eedc9813552481c958cf35b5a79660b0f5047b747cbc7d768dc284ea",
+      "topology_id": "OBSERVABILITY_AND_RUNTIME_READ_VIEW_OWNERS",
+      "whole_capability_complete": false,
+      "workload_id": "COMPLETE_STALE_MISSING_MATRIX"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U15",
+      "consumed_at": "2026-07-18T13:40:40.309591+00:00",
+      "consumed_terminals": [
+        "PASS",
+        "STOP_SAFE"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L2",
+      "cps_generation": "cpsgen_V7_PPOLY_DE6225C87BD2",
+      "criterion_id": "CAP-U15:ENGINEERING_PROCESS_VALIDATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U15-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "DUPLICATE_EVENT_STORM",
+          "SINGLE_FLIGHT_CONTENTION"
+        ],
+        [
+          "MIXED_GENERATION_SNAPSHOT",
+          "LEASE_EXPIRED_DURING_EXECUTION"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L2",
+      "obligation_fingerprint": "742965ee9669c5bfc0e7f01107e0f95a56114341dcbd4e44ab36198147f55fa5",
+      "obligation_id": "POLYGON-CAP-U15-ENGINEERING_PROCESS_VALIDATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "8df9599b375be068ccab9aae865da5865d6600c2813a8b1a284ef2738ea46339",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8704,
+        8805
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md",
+        "admin_core/operator_views.py"
+      ],
+      "source_fingerprint": "8f4f643ee349e0f194d2b6632679136930834a44522354649a817ef04c899b93",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U16",
+      "consumed_at": "2026-07-18T13:40:44.001154+00:00",
+      "consumed_terminals": [
+        "CAP_U16_ENGINEERING_TIME_VALIDATION_CONSUMED"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L2",
+      "cps_generation": "cpsgen_V7_PPOLY_53334E48768B",
+      "criterion_id": "CAP-U16:ENGINEERING_TIME_VALIDATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U16-ENGINEERING-TIME-VALIDATION-V1",
+      "fault_sequence": [
+        "STALE",
+        "MISSING",
+        "OUT_OF_ORDER_CONFLICT"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L2",
+      "obligation_fingerprint": "58b2464738e78a93613e5716d7c20c2a2035b8276053a801e29629cd14f06e39",
+      "obligation_id": "POLYGON-CAP-U16-ENGINEERING_TIME_VALIDATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "c314550af7196fed0d42267ed6e4f7f2f6ace0615d2d38704f157be3c57d90dd",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8616,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/time.py",
+        "admin_core/operator_observability.py"
+      ],
+      "source_fingerprint": "f7a3d30b44bd57d7153e46a9b35cf41893f10830f6c2ec82e9cd34852dac5129",
+      "topology_id": "OBSERVABILITY_TIME_EVIDENCE",
+      "whole_capability_complete": false,
+      "workload_id": "FRESH_STALE_MISSING_CONFLICT"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U17",
+      "consumed_at": "2026-07-18T13:41:12.002003+00:00",
+      "consumed_terminals": [
+        "PASS",
+        "STOP_SAFE"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_A0DF6872B9EB",
+      "criterion_id": "CAP-U17:RECOMMENDATION_OUTCOME_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U17-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "VERIFICATION_TIMEOUT_AFTER_PARTIAL_APPLY"
+        ],
+        [
+          "DECISION_TRACE_VOLUME_PRESSURE"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "4340165cde261ebb5f41e64d388b95e88fd0758d7aaec0fffaeba31c459f2f0f",
+      "obligation_id": "POLYGON-CAP-U17-RECOMMENDATION_OUTCOME_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "d5bb1cc19489e20829f5e49760eab9ad336eba926cdca64cc8fe7e9dd26109a3",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8705,
+        8806
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/intelligence_platform.py",
+        "admin_core/operator_decision_surface.py"
+      ],
+      "source_fingerprint": "f75ccfa078a62b8b5e3996a3dbe17f3d94a983d98c94db72e79954f9b76fca52",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U18",
+      "consumed_at": "2026-07-18T13:41:16.548141+00:00",
+      "consumed_terminals": [
+        "PASS"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_6FC9904F8514",
+      "criterion_id": "CAP-U18:RECOMMENDATION_VALIDATION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U18-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "INCORRECT_PREDICTION",
+          "CONFIDENCE_INCREASE_ATTEMPT"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "72250d8539a6fa30387ba02fcef8104a0fabadfc98cded2cc6623606690de5f2",
+      "obligation_id": "POLYGON-CAP-U18-RECOMMENDATION_VALIDATION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "bb9e4ed8a7461ed826b704eb11198e4b28cad398c325ba6f839f5a9730527f07",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8901
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/operator_execution_feedback.py",
+        "admin_core/intelligence_platform.py"
+      ],
+      "source_fingerprint": "deb8f42b54545b508fe557119803d4df44b25f1fb1217e9efad1084bbc368367",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U19",
+      "consumed_at": "2026-07-18T13:41:20.920200+00:00",
+      "consumed_terminals": [
+        "PASS"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_429A72A4B435",
+      "criterion_id": "CAP-U19:PREDICTION_REALITY_CONFIDENCE_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U19-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "INCORRECT_PREDICTION",
+          "CONFIDENCE_INCREASE_ATTEMPT"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "dbd3b924028ce84e32ccb2362c43ade125702c20717e093ab04ad3f3896a3f7a",
+      "obligation_id": "POLYGON-CAP-U19-PREDICTION_REALITY_CONFIDENCE_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "0ae3e3aac7134f1cdb48194a40bc8b6b9fc05b5a2ac78e373114c3ae73c7ffd3",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8901
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/routing_intelligence.py",
+        "admin_core/intelligence_platform.py"
+      ],
+      "source_fingerprint": "b2c9bf684c4da5793d428f5585725e58bbb6f9cf7417348db4d16cb93faa79f8",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U20",
+      "consumed_at": "2026-07-18T13:41:24.848899+00:00",
+      "consumed_terminals": [
+        "CAP_U20_ADAPTATION_QUALITY_CONSUMED"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_BEE02CD52E63",
+      "criterion_id": "CAP-U20:ADAPTATION_QUALITY_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U20-ADAPTATION-QUALITY-V1",
+      "fault_sequence": [
+        "BASELINE_LOW_CONFIDENCE",
+        "HELD_OUT_VALIDATED_OUTCOME"
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "985044d8a8824d91a85239777458abee281859206a202a471b4046528261c508",
+      "obligation_id": "POLYGON-CAP-U20-ADAPTATION_QUALITY_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "c4d03bb7ab0cfb7f117712fad48a1a3962c181b7750871dbd3e785e3005ef980",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": 8620,
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/operator_execution_feedback.py",
+        "admin_core/intelligence_platform.py"
+      ],
+      "source_fingerprint": "5aab4042018cd60f639155e4ad2aa1159adeeb36c7048f819fa4a3c1be802d48",
+      "topology_id": "FEEDBACK_LEARNING_RECOMMENDATION_OWNER_GRAPH",
+      "whole_capability_complete": false,
+      "workload_id": "OUTCOME_TO_RECOMMENDATION_EVOLUTION"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U21",
+      "consumed_at": "2026-07-18T13:42:59.179335+00:00",
+      "consumed_terminals": [
+        "PASS"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_9580246083EE",
+      "criterion_id": "CAP-U21:SELF_IMPROVING_ENGINEERING_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U21-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "CONTRADICTORY_FEEDBACK",
+          "ADAPTATION_AUTHORITY_ATTEMPT"
+        ],
+        [
+          "DUPLICATE_OUTCOME",
+          "DUPLICATE_LEARNING_ATTEMPT"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "1e08e5a844af457101b54c399cb33e573308161bd5af442fe9ed972bf9ce6b23",
+      "obligation_id": "POLYGON-CAP-U21-SELF_IMPROVING_ENGINEERING_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "c1305b635cbb902654481acb7d6e10415dd20d69a93ed09a92decf667fcabc17",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8706,
+        8902
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/intelligence_workers.py",
+        "docs/reference/V7_PRODUCTION_MATURITY_MODEL.md"
+      ],
+      "source_fingerprint": "3b8593580ff38fec6585c109d80c7ed6c1939c2114c15367633b69be0f1359a8",
+      "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
+      "whole_capability_complete": false,
+      "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"
+    },
+    {
+      "behavior_change": "ENGINEERING_CRITERION_CONSUMED_AND_NEXT_OBLIGATION_MATERIALIZED",
+      "capability_id": "CAP-U22",
+      "consumed_at": "2026-07-18T13:41:30.084063+00:00",
+      "consumed_terminals": [
+        "PASS"
+      ],
+      "consumer": "OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER",
+      "consumption_verified": true,
+      "coverage_verdict": "COVERED_ENGINEERING_L4",
+      "cps_generation": "cpsgen_V7_PPOLY_EB8174A347B3",
+      "criterion_id": "CAP-U22:OUTCOME_CONFIDENCE_EVOLUTION_MATRIX",
+      "evidence_class": "ENGINEERING_POLYGON_EVIDENCE",
+      "experiment_id": "PPOLY-CAP-U22-EXISTING-FSSE-MATRIX-V1",
+      "fault_sequence": [
+        [
+          "CONTRADICTORY_FEEDBACK",
+          "ADAPTATION_AUTHORITY_ATTEMPT"
+        ],
+        [
+          "INCORRECT_PREDICTION",
+          "CONFIDENCE_INCREASE_ATTEMPT"
+        ]
+      ],
+      "forbidden_effects_absent": true,
+      "generation": 1,
+      "invalidated_by": [],
+      "invalidation_triggers": [
+        "SOURCE_FINGERPRINT_CHANGE",
+        "OWNER_CONTRACT_CHANGE",
+        "POLICY_CHANGE",
+        "TOPOLOGY_OR_WORKLOAD_CHANGE",
+        "PRODUCTION_OUTCOME",
+        "REGRESSION_OR_DRIFT"
+      ],
+      "lifecycle_state": "CONSUMED",
+      "minimum_sufficient_fidelity": "L4",
+      "obligation_fingerprint": "76991c4a90adb90674ee33c2d2c4ee4f99fc1f0625a8c8098a6982d2f176fea8",
+      "obligation_id": "POLYGON-CAP-U22-OUTCOME_CONFIDENCE_EVOLUTION_MATRIX-G1",
+      "remaining_l7_criterion": "CONTROLLED_PRODUCTION_FIELD_VALIDITY",
+      "remaining_l8_criterion": "NATURAL_PRODUCTION_REPRESENTATIVENESS",
+      "result_fingerprint": "fb2b1dfe93be6fef01fe075e7b5e503f3556f3e3c76d69bd6fa1dbb358107967",
+      "schema": "v7.permanent-polygon-criterion-record.v1",
+      "seed": [
+        8706,
+        8901
+      ],
+      "source_dependencies": [
+        "tools/v7_sync_lib.py",
+        "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+        "admin_core/operator_execution_feedback.py",
+        "admin_core/routing_intelligence.py"
+      ],
+      "source_fingerprint": "24b7db896d7fe8ace286635802703bd1713635796ebdf5cb2ec780dda5b19107",
       "topology_id": "EXISTING_FUTURE_SCALE_ISOLATED_STATE",
       "whole_capability_complete": false,
       "workload_id": "CAPABILITY_BOUND_OWNER_BACKED_SCENARIOS"

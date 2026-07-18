@@ -3,7 +3,15 @@ Run Nonce: `V7_PPOLY_FA88A8E1E275`
 
 # Permanent Polygon Autonomous Program Closure
 
-Status: `FULLY_ALIGNED_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_PRODUCTION_CERTIFIED`
+Status: `PERMANENT_POLYGON_AUTONOMOUS_ENGINEERING_PROGRAM_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED`
+
+Environment alignment: `FULLY_ALIGNED`
+
+Production routing autonomy: `NOT_CLAIMED`
+
+Authority promotion: `NONE`
+
+Production Maturity change: `NONE`
 
 ## Result
 

@@ -41,6 +41,7 @@ class OmpExternalReentryTest(unittest.TestCase):
         cps_path = self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
         active_state = dict(self.lib.NORMALIZED_CPS_LIVE_STATE)
         active_state.update({
+            "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
             "current_state_generation": "cpsgen_V7_BACKGROUND_AUTOMATION_CERTIFIED_928718904BCD",
             "current_transition_id": "EXTERNAL_REENTRY_TWO_RUN_CERTIFIED_V1",
             "current_stop_condition": "NONE",

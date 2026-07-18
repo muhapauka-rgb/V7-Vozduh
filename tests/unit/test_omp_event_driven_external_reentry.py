@@ -54,6 +54,7 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
     def state(self, **overrides):
         state = dict(self.lib.NORMALIZED_CPS_LIVE_STATE)
         state.update({
+            "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
             "state_captured": self.now.isoformat(),
             "current_state_generation": "cpsgen_EVENT_REENTRY_TEST_001",
             "current_transition_id": "EVENT_REENTRY_TEST_TRANSITION_V1",
@@ -226,16 +227,8 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
             current = cps_path.read_text(encoding="utf-8")
             state = self.lib._normalized_state_from_live_cps(current)
-            state.update({
-                "scenario_covered_count": "48",
-                "scenario_eligible_count": "4",
-                "next_scenario_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-                "current_next_action_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-                "current_safe_next_action": "EXECUTE PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-                "current_program_execution_frontier": "PHASE6A_SCENARIO:PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-                "wip_smallest_existing_next_action_id": "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-                "wip_smallest_existing_next_action": "EXECUTE PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY; preserve CAP-U07 protected WIP",
-            })
+            progressed_iteration = str(int(state["continuation_iteration"]) + 1)
+            state.update({"continuation_iteration": progressed_iteration})
             update = self.lib.atomic_reconcile_cps(
                 cps_path, state=state, request_external_wake=False,
             )
@@ -260,11 +253,7 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
             self.cps.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
-        self.assertEqual(live["SCENARIO_COVERED_COUNT"].strip("`"), "48")
-        self.assertEqual(
-            live["NEXT_SCENARIO_ID"].strip("`"),
-            "PHASE6V2_PARTIAL_RECOVERY_ROLLBACK_NOT_READY",
-        )
+        self.assertEqual(live["CONTINUATION_ITERATION"].strip("`"), "28")
 
     def test_failed_dispatch_is_recovered_once_by_watchdog(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())

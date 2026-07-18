@@ -45,17 +45,15 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
         self.assertTrue(execution["checks"]["real_b10_owner_consumed"])
         self.assertFalse(any(execution["forbidden_effects"].values()))
 
-    def test_successor_is_admitted_and_not_false_started(self):
+    def test_consumed_seed_delegates_to_reachable_program_stage_without_reexecution(self):
         successor = self.integration["next_mission_start"]
         self.assertEqual(successor["mission_state"], "ADMITTED_READY_FOR_DISPATCH")
         self.assertNotEqual(successor["mission_state"], "IN_PROGRESS")
+        self.assertEqual(self.integration["final_verdict"], "PASS")
+        self.assertIsNone(self.supply["next_obligation"])
         self.assertEqual(
-            self.integration["mission_id"],
-            self.lib.permanent_polygon_mission_id_for_obligation(self.supply["next_obligation"]),
-        )
-        self.assertNotEqual(
-            self.integration["next_obligation"]["obligation_id"],
-            self.supply["next_obligation"]["obligation_id"],
+            self.integration["first_consumption"]["state"],
+            "NOT_REEXECUTED_ALL_CURRENT_SEED_CRITERIA_CONSUMED",
         )
 
     def test_cps_registry_round_trip_and_legacy_migration(self):
@@ -86,17 +84,24 @@ class PermanentPolygonAutonomousProgramTest(unittest.TestCase):
         self.assertEqual(len({row["source_fingerprint"] for row in events}), len(events))
         self.assertTrue(all(row["owner"] and row["applicability"] in {"APPLICABLE", "NOT_APPLICABLE"} for row in events))
 
-    def test_executable_work_preempts_missing_adapter_without_hiding_gap(self):
-        eligible = [row for row in self.supply["obligations"] if not row["consumed"]]
-        self.assertTrue(any(row["executor_available"] is False for row in eligible))
-        self.assertTrue(self.supply["next_obligation"]["executor_available"])
-        self.assertGreater(self.supply["executable_eligible_obligation_count"], 0)
+    def test_current_seed_is_fully_consumed_and_all_owner_adapters_exist(self):
+        self.assertTrue(all(row["consumed"] for row in self.supply["obligations"]))
+        self.assertTrue(all(row["executor_available"] for row in self.supply["obligations"]))
+        self.assertEqual(self.supply["executable_eligible_obligation_count"], 0)
 
     def test_missing_adapter_routes_to_exact_bdp_repair_mission(self):
-        unsupported = next(
+        implemented = next(
             row for row in self.supply["obligations"]
             if row["criterion_id"] == "CAP-U12:RUNTIME_MATURATION_MEASUREMENT_MATRIX"
         )
+        self.assertTrue(implemented["executor_available"])
+        unsupported = dict(implemented)
+        unsupported.update({
+            "capability_id": "CAP-U99",
+            "criterion_id": "CAP-U99:UNMAPPED_OWNER_ADAPTER",
+            "obligation_id": "POLYGON-CAP-U99-UNMAPPED_OWNER_ADAPTER-G1",
+            "executor_available": False,
+        })
         result = self.lib.route_permanent_polygon_executor_gap(unsupported)
         self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION", result.get("errors"))
         self.assertEqual(result["program_terminal"], "PERMANENT_POLYGON_EXECUTOR_REPAIR_MISSION_ADMITTED")

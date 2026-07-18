@@ -23,7 +23,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.state = cls.lib.normalized_cps_live_state()
+        cls.state = cls.lib._normalized_state_from_live_cps(cls.cps)
 
     def validate(self, omp):
         return self.lib.omp_live_state_consistency(self.cps, omp)

@@ -38,7 +38,7 @@ class CpsSemanticActionClassAuthorityDecisionTest(unittest.TestCase):
         ))
         self.assertEqual(
             live["PHASE_6_CERTIFICATION_FRONTIER"].strip("`"),
-            "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
+            "PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1",
         )
         self.assertFalse(live["PHASE_6_EXACT_NEXT_ACTION"].strip("`").startswith("EXECUTE PHASE6"))
 

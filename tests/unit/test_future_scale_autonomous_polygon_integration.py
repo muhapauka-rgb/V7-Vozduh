@@ -195,8 +195,10 @@ class FutureScaleAutonomousPolygonIntegrationTest(unittest.TestCase):
             path = Path(tmp) / "CPS.md"
             path.write_text((ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"), encoding="utf-8")
             state = self.lib.normalized_cps_live_state({
+                "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
                 "current_state_generation": "cpsgen_FSSE04_TEST_TRANSITION",
                 "current_transition_id": "FSSE04_TEST_TRANSITION",
+                "current_completion_contract": "INTEGRATION_COMPLETION",
                 "no_progress_fingerprint": "a" * 64,
             })
             result = self.lib.atomic_reconcile_cps(path, state=state)

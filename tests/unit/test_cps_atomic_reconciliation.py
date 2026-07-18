@@ -24,13 +24,19 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.state = cls.lib.normalized_cps_live_state()
+        cls.state = cls.lib._normalized_state_from_live_cps(cls.cps)
 
     def validate(self, text):
         return self.lib.cps_live_state_consistency(text, root=ROOT, omp_text=self.omp)
 
     def delegated_validate(self, text):
         return self.lib.delegated_policy_live_state_consistency(text, self.omp)
+
+    def validate_expected(self, text):
+        return self.lib.cps_live_state_consistency(
+            text, root=ROOT, omp_text=self.omp,
+            verify_external=False, expected_state=self.state,
+        )
 
     def test_01_binding_pass_with_binding_diagnosis_fails(self):
         drift = self.cps.replace("`NO_CURRENT_PACKET;", "`READ_ONLY_BINDING_DIAGNOSIS_ONLY;", 1)
@@ -51,8 +57,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("delegated_policy_live_operational_authority_required", self.delegated_validate(drift)["contradiction_ids"])
 
     def test_04_binding_certified_with_unresolved_cap_u01_drift_fails(self):
-        drift = self.cps.replace("PARTIAL_REAL_OUTCOME_CONSUMED; exact U01 SUCCESS", "bundle drifted twice", 1)
-        result = self.validate(drift)
+        drift = self.cps.replace("`COVERED_ENGINEERING_L4`; criterion", "bundle drifted twice; criterion", 1)
+        result = self.validate_expected(drift)
         self.assertIn("cps_active_capability_unresolved_binding_drift", result["errors"])
 
     def test_05_fresh_scope_with_reusable_packet_fails(self):
@@ -306,16 +312,16 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_37_program_stage_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_PROGRAM_STAGE", "`STALE`")
-        result = self.validate(drift)
+        result = self.validate_expected(drift)
         self.assertEqual(result["current_state_derived_projection_consistency"], "FAIL")
 
     def test_38_program_frontier_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "CURRENT_PROGRAM_EXECUTION_FRONTIER", "`HEARTBEAT_DEPLOY`")
-        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+        self.assertEqual(self.validate_expected(drift)["current_state_derived_projection_consistency"], "FAIL")
 
     def test_39_fsse_status_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "FSSE_STATUS", "`FSSE_01_NOT_ADMITTED`")
-        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+        self.assertEqual(self.validate_expected(drift)["current_state_derived_projection_consistency"], "FAIL")
 
     def test_40_next_scenario_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "NEXT_SCENARIO_ID", "`HEALTHY_BASELINE_SMALL`")

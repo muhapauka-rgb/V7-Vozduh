@@ -39,7 +39,7 @@ class OmpDocumentIndexTest(unittest.TestCase):
         operator = response["operator_view"]
         self.assertEqual(operator["current_program"], "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM")
         self.assertEqual(operator["current_step"], "PERMANENT_POLYGON_CAPABILITY_CLOSURE_GENERATION")
-        self.assertEqual(operator["next_step"], "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1")
+        self.assertEqual(operator["next_step"], "PERMANENT-POLYGON-TARGET-LEVEL-FINAL-CERTIFICATION-G1")
         self.assertEqual(operator["next_scenario"], "NONE")
         self.assertEqual(operator["current_stop"], "NONE")
         self.assertEqual(operator["external_input_required"], "FALSE")
@@ -55,8 +55,8 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertTrue(response["current_state_generation"].startswith("cpsgen_V7_REENTRY_COMPLETE_"))
-        self.assertEqual(response["current_transition_id"], "EXTERNAL_REENTRY_COMPLETED_V1")
+        self.assertTrue(response["current_state_generation"].startswith("cpsgen_V7_PPOLY_M7_ACTIVE_"))
+        self.assertEqual(response["current_transition_id"], "PERMANENT_POLYGON_FINAL_CERTIFICATION_ACTIVE_V1")
 
     def test_polygon_master_program_has_no_volatile_activation_status(self):
         text = MASTER_PROGRAM.read_text(encoding="utf-8")

@@ -1,6 +1,12 @@
 # V7 Certified Autonomous Behaviour Gap Register
 
 Status: `AEP_PHASE_3_GAP_REGISTER_ACCEPTED_LOCKED`
+
+## Lifecycle Annotation
+
+Classification: `HISTORICAL_TERMINAL_SNAPSHOT`
+
+The identities, findings and evidence below remain locked historical certification evidence. The former real-consumer gap was later closed by `AEP_PHASE_4_STATUS=COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` and the natural reentry criterion was later closed by `AEP_PHASE_5_STATUS=COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES`. Current live continuation, frontier and program status are owned only by CPS and OMP; this historical register must not be used as current state.
 Program: `docs/programs/V7_AUTONOMOUS_EVOLUTION_PROGRAM.md`
 Phase: `Phase 3 - Certified Autonomous Behaviour Gap Register`
 Execution Mission: `V7_AEP_PHASE_3_CERTIFIED_AUTONOMOUS_BEHAVIOUR_GAP_REGISTER_V1`

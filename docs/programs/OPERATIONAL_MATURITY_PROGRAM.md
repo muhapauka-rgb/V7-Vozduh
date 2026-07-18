@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` (`AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED`).
-Previous consumed report: `docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md` (`CPS_FULLY_RECONCILED_AND_EXACT_ACTION_CLASS_AUTHORITY_DECISION_PRODUCED`).
+Latest consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` (`AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED`).
+Previous consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md` (`AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED`; Mission 6 terminal within the same Master Program evidence chain).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7831,8 +7831,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8819,10 +8819,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `ROUTING_DIGITAL_TWIN_SAFE_DEPLOY_AND_PRODUCTION_CERTIFICATION`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_FRESH_QUALIFYING_CONTROLLED_OR_NATURAL_OUTCOME_OR_NEW_OWNER_BACKED_OBLIGATION`
 Latest consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md`
-Previous consumed report: `docs/reports/engineering/2026-07-18_005053_cps_semantic_reconciliation_and_action_class_authority_decision.md`
+Previous consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

@@ -1,5 +1,5 @@
-Mission ID: `V7_ROUTING_DIGITAL_TWIN_AUTONOMOUS_OBLIGATION_REPAIR_REENTRY_V1`
-Run Nonce: `V7_DT_M6_B4374BB3C64B`
+Mission ID: `V7_AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFICATION_V1`
+Run Nonce: `V7_DT_M7_CA46D2BC`
 
 # Routing Digital Twin Polygon Master Program Execution
 
@@ -18,10 +18,10 @@ Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 | Outcome, counterfactual and shadow Learning | `COUNTERFACTUAL_OUTCOME_AND_SHADOW_LEARNING_LOOP_CERTIFIED` |
 | L5/L6 snapshot and hybrid scale | `SANITIZED_SNAPSHOT_AND_10K_100_HYBRID_SCALE_CERTIFIED` |
 | Autonomous obligation, repair and reentry | `AUTONOMOUS_POLYGON_OBLIGATION_REPAIR_AND_REENTRY_LOOP_CERTIFIED` |
+| Final integrated deployment certification | `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED` |
 
-Mission 7 technical gate: `PASS`.
-Current exact terminal: `DIGITAL_TWIN_TECHNICAL_CHAIN_CERTIFIED_DEPLOYMENT_TRUTH_REQUIRED`.
-Program terminal is not yet emitted; it requires safe-deploy, production non-test caller, truth, convergence and local/GitHub/production equality.
+Mission 7 technical and deployment gates: `PASS`.
+Program terminal: `AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED`.
 
 ## Consumed Evidence
 
@@ -35,6 +35,18 @@ Program terminal is not yet emitted; it requires safe-deploy, production non-tes
 - Hybrid logical scale: `10,000` users, `100` channels, `2,000,000` compacted deterministic event identities; replay fingerprint equal; no hardware-equivalent capacity claim.
 - Existing BDP/OMP repair drill: selective invalidation -> scenario consumption -> Candidate admission/duplicate suppression -> target/affected replay -> automatic return: `PASS`.
 - Existing independent event-driven reentry and watchdog fallback: production-certified and consumed.
+
+## Deployment Certification
+
+- Implementation commit: `c070ddbbc73ff160fde5adac439585f93226b57f`.
+- Production-caller correction commit and final deployed source: `ca46d2bc8b63401d364c5b1b572fd1f02d47ebe3`.
+- Safe deploys: `deploy-z8-14-Updatesystem-c070ddb-20260718T112645`; `deploy-z8-14-Updatesystem-ca46d2b-20260718T112844`.
+- Deploy manifests: `PASS`; changed production files were limited to `tools/v7_sync_lib.py` and `tools/v7-truth-check`, followed by the one-file caller correction in `tools/v7-truth-check`.
+- Production non-test caller: `PASS`; consumer `MISSION_7_DEPLOYMENT_TRUTH_CONSUMER`; next output `ROUTING_DIGITAL_TWIN_PRODUCTION_CALLER_CONSUMED_TRUTH_CONVERGENCE_REQUIRED`.
+- Production isolation guard: `STOP_SAFE_POLYGON_ISOLATION` before Mission execution; all forbidden effects absent.
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`.
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`.
+- Local/GitHub/production commit: `ca46d2bc8b63401d364c5b1b572fd1f02d47ebe3`; deploy delta mismatches: `0`.
 
 ## Research Mapping
 
@@ -57,6 +69,4 @@ Production Maturity impact: `NO_CHANGE`.
 
 ## Next
 
-Commit and safe-deploy the exact implementation, run the production non-test caller, truth/convergence and equality checks, then atomically emit only:
-
-`AUTONOMOUS_HIGH_FIDELITY_ROUTING_DIGITAL_TWIN_POLYGON_CERTIFIED`.
+The Master Program is complete. OMP returns to the preserved capability boundary and reenters only on a fresh qualifying controlled/natural outcome or a new owner-backed obligation.

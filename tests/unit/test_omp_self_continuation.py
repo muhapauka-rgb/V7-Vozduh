@@ -37,6 +37,9 @@ class OmpSelfContinuationTest(unittest.TestCase):
             "CONTINUATION_ITERATION": "2",
             "CONTINUATION_STOP_REASON": "NONE",
             "NO_PROGRESS_FINGERPRINT": "a" * 64,
+            "CURRENT_EXECUTION_MISSION_ID": "NONE",
+            "PENDING_WAKE_ID": "b" * 64,
+            "REENTRY_ACTIVE_LEASE": "NONE",
         }
         values.update(overrides)
         rows = "\n".join(f"| `{key}` | `{value}` |" for key, value in values.items())
@@ -87,7 +90,7 @@ class OmpSelfContinuationTest(unittest.TestCase):
 
     def test_omp_contains_canonical_contract(self):
         text = OMP.read_text(encoding="utf-8")
-        self.assertIn("Version: `4.33`", text)
+        self.assertIn("Version: `4.34`", text)
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("Engineering Polygon Scenario Supply Consumption Rule", text)
         self.assertIn("Proactive Verification Input Consumption Rule", text)
@@ -103,7 +106,12 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertEqual(result["omp_continuation_required"], "TRUE")
         self.assertEqual(result["external_input_required"], "FALSE")
         self.assertEqual(result["external_input_type"], "NONE")
-        self.assertEqual(result["continuation_iteration"], "27")
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            CPS.read_text(encoding="utf-8"),
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(result["continuation_iteration"], live["CONTINUATION_ITERATION"].strip("`"))
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):
         cps = CPS.read_text(encoding="utf-8")

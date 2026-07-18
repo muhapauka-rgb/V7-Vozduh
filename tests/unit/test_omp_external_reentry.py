@@ -70,7 +70,7 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertTrue(result["ok"], result)
         self.lease = self.root / "reentry.lease.json"
         self.evidence = self.root / "evidence.jsonl"
-        self.now = datetime(2026, 7, 15, 18, 0, tzinfo=timezone.utc)
+        self.now = datetime(2026, 7, 18, 9, 0, tzinfo=timezone.utc)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -84,7 +84,7 @@ class OmpExternalReentryTest(unittest.TestCase):
             "exact_next_operator_command": "Continue OMP", "errors": [],
         }
 
-    def run_reentry(self, event_time="2026-07-15T17:59:00Z", **overrides):
+    def run_reentry(self, event_time="2026-07-18T08:59:00Z", **overrides):
         return self.lib.heartbeat_program_reentry(
             event_time=event_time, root=self.root, execute_continue_omp=True,
             continue_runner=self.fake_runner, lease_path=self.lease,

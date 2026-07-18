@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import re
 import tempfile
 import unittest
 
@@ -53,6 +54,14 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
             "`COVERED_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` consumed",
             "`READY_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` pending",
             1,
+        )
+        pre_u05 = re.sub(
+            re.escape(cls.lib.PERMANENT_POLYGON_CRITERION_REGISTRY_BEGIN)
+            + r".*?"
+            + re.escape(cls.lib.PERMANENT_POLYGON_CRITERION_REGISTRY_END),
+            "",
+            pre_u05,
+            flags=re.DOTALL,
         )
         cls.pre_u05_root_context = tempfile.TemporaryDirectory()
         cls.addClassCleanup(cls.pre_u05_root_context.cleanup)
@@ -111,14 +120,17 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertEqual(first["remaining_l7_criterion"], "CONTROLLED_PRODUCTION_FIELD_VALIDITY")
         self.assertEqual(first["remaining_l8_criterion"], "NATURAL_PRODUCTION_REPRESENTATIVENESS")
 
-    def test_07_next_obligation_is_materialized_and_started(self):
+    def test_07_next_obligation_is_materialized_and_admitted_not_prestarted(self):
         self.assertEqual(
             self.integration_result["next_obligation_id"],
             "POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1",
         )
         self.assertTrue(self.integration_result["next_mission_formed"])
         self.assertTrue(self.integration_result["omp_continuation_required"])
-        self.assertEqual(self.integration_result["next_mission_start"]["mission_state"], "IN_PROGRESS")
+        self.assertEqual(
+            self.integration_result["next_mission_start"]["mission_state"],
+            "ADMITTED_READY_FOR_DISPATCH",
+        )
         self.assertEqual(self.integration_result["next_mission_start"]["final_verdict"], "PASS")
 
     def test_08_duplicate_is_suppressed_without_reexecution(self):
@@ -131,7 +143,7 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         self.assertEqual(self.integration_result["completion_gate"]["completion_verdict"], "COMPLETE_CONSUMED")
         self.assertEqual(
             self.integration_result["mission_terminal"],
-            "CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED",
+            "CAP_U05_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED",
         )
 
     def test_10_forbidden_effects_are_absent(self):
@@ -198,7 +210,9 @@ class PermanentPolygonOmpIntegrationTest(unittest.TestCase):
         consumed = self.lib.permanent_polygon_consumed_criterion_ids(self.cps)
         self.assertIn("CAP-U03:RUNTIME_ELIGIBILITY_EXECUTE_STAY_STOP_SAFE_MATRIX", consumed)
         self.assertIn("CAP-U05:ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX", consumed)
-        self.assertEqual(self.live_supply["next_obligation"]["capability_id"], "CAP-U06")
+        self.assertIn("CAP-U06:RECOVERY_ADMISSION_ENGINEERING_MATRIX", consumed)
+        self.assertIn("CAP-U10:OBSERVABILITY_CONSUMER_COVERAGE_MATRIX", consumed)
+        self.assertEqual(self.live_supply["next_obligation"]["capability_id"], "CAP-U11")
 
     def test_16_u05_admission_uses_exact_cps_mission_identity(self):
         admission = self.integration_result["admission"]

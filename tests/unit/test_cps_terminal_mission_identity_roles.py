@@ -24,7 +24,7 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
         cls.omp = OMP.read_text(encoding="utf-8")
-        cls.state = cls.lib.normalized_cps_live_state()
+        cls.state = cls.lib._normalized_state_from_live_cps(cls.cps)
         cls.latest = cls.state["latest_terminal_mission_id"]
         cls.previous = cls.state["previous_terminal_mission_id"]
         cls.transition = cls.state["authoritative_transition_input_mission_id"]

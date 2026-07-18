@@ -164,7 +164,9 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
 
     def test_atomic_writer_can_defer_wake_inside_serial_continuation(self):
         result = self.lib.atomic_reconcile_cps(
-            self.cps, state=self.state(), request_external_wake=False,
+            self.cps,
+            state=self.state(reentry_active_lease="omplease_" + "a" * 24),
+            request_external_wake=False,
         )
         self.assertTrue(result["ok"], result)
         self.assertFalse(result["external_wake"]["dispatch_required"])
@@ -181,15 +183,17 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
     def test_dispatch_lifecycle_is_atomic_and_duplicate_safe(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
-        dispatched = self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now)
+        occurred_at = datetime.fromisoformat(write["external_wake"]["requested_at"])
+        dispatched = self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=occurred_at)
         self.assertEqual(dispatched["outcome"], "IMMEDIATE_REENTRY_DISPATCHED")
-        duplicate = self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now)
+        duplicate = self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=occurred_at)
         self.assertEqual(duplicate["outcome"], "IMMEDIATE_REENTRY_ALREADY_DISPATCHED")
 
     def test_immediate_dispatch_invokes_standard_consumer_once(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
-        self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now)
+        occurred_at = datetime.fromisoformat(write["external_wake"]["requested_at"])
+        self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=occurred_at)
         result = self.lib.heartbeat_program_reentry(
             event_time=self.now.isoformat(), event_identity_override=event_id,
             event_source_kind="IMMEDIATE_THREAD_SIGNAL", execute_continue_omp=True,
@@ -212,7 +216,10 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
         self.lib.event_driven_wake_lifecycle(
-            self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now,
+            self.cps,
+            event_id=event_id,
+            phase="DISPATCHED",
+            occurred_at=datetime.fromisoformat(write["external_wake"]["requested_at"]),
         )
 
         def progressing_runner(root):
@@ -262,7 +269,12 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
     def test_failed_dispatch_is_recovered_once_by_watchdog(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
-        failed = self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="FAILED", occurred_at=self.now)
+        failed = self.lib.event_driven_wake_lifecycle(
+            self.cps,
+            event_id=event_id,
+            phase="FAILED",
+            occurred_at=datetime.fromisoformat(write["external_wake"]["requested_at"]),
+        )
         self.assertEqual(failed["outcome"], "IMMEDIATE_REENTRY_FAILED_SAFE")
         recovered = self.lib.heartbeat_program_reentry(
             event_time=self.now.isoformat(), execute_continue_omp=True,
@@ -276,7 +288,12 @@ class OmpEventDrivenExternalReentryTest(unittest.TestCase):
     def test_dispatched_pending_wake_makes_watchdog_noop(self):
         write = self.lib.atomic_reconcile_cps(self.cps, state=self.state())
         event_id = write["external_wake"]["event_id"]
-        self.lib.event_driven_wake_lifecycle(self.cps, event_id=event_id, phase="DISPATCHED", occurred_at=self.now)
+        self.lib.event_driven_wake_lifecycle(
+            self.cps,
+            event_id=event_id,
+            phase="DISPATCHED",
+            occurred_at=datetime.fromisoformat(write["external_wake"]["requested_at"]),
+        )
         watchdog = self.lib.heartbeat_program_reentry(
             event_time=self.now.isoformat(), execute_continue_omp=True,
             continue_runner=self.fake_runner, root=self.root,

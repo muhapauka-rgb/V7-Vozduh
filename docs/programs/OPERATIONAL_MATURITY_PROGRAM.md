@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.33`
+Version: `4.34`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,7 +13,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-18_150525_permanent_polygon_cap_u05_and_autonomous_handoff_closure.md` (`CAP_U05_ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX_CONSUMED_AND_NEXT_MISSION_STARTED`).
+Latest consumed report: `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md` (`CAP_U11_CRITERION_CONSUMED_AND_SUCCESSOR_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md` (`PERMANENT_POLYGON_OMP_CONSUMER_ACTIVE_AND_FIRST_CAPABILITY_OBLIGATION_CONSUMED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
@@ -47,6 +47,8 @@ V4.31 makes the existing action-class owner separation machine-checkable in CPS.
 V4.32 consumes the approved Routing Digital Twin Polygon Master Program through the existing Engineering Polygon, FSSE, BDP and OMP owners. One non-test entrypoint performs dynamic Mission compression, criterion-scoped fidelity selection, cross-Mission identity, isolated virtual apply, optional disposable Linux/Docker topology emulation, safety-first counterfactual evaluation, shadow Learning fork/held-out replay/cleanup, sanitized one-way snapshot import, hybrid logical scale, existing repair/reentry and exact next-obligation production. Missing privileged substrate is `POLYGON_SUBSTRATE_LIMIT`, never a global `REAL_WORLD_LIMIT`, while independent criteria remain executable. The integrated program terminal is reserved for post-deploy caller, truth, convergence and local/GitHub/production equality. No production packet, route, user, restore barrier, rollback, Authority or Production Maturity mutation is permitted.
 
 V4.33 activates the certified Routing Digital Twin as the permanent Engineering Validation substrate consumed by OMP. Current unfinished capabilities, presently U02-U22, are only the first seed generation and never the permanent Polygon scope. After every bounded result, OMP derives the next owner-backed obligation from current capability gaps, new Missions, BDP Candidates and Intent Gaps, declared code/dependency/policy/owner changes, controlled or natural outcomes, action classes, product/topology/workload/scale changes, regressions, drift and bounded optimization targets. Capability-level dependency waits cannot hide independent criterion-level L1-L6 work. Each obligation carries minimum sufficient fidelity, source fingerprints, consumer, invalidation triggers, exact L7/L8 remainder and forbidden claims. Duplicate results are suppressed before re-execution; only declared dependencies are selectively invalidated. CPS remains the live frontier owner, BDP remains the gap/Candidate owner, existing component owners implement repairs, and normal safe-deploy/truth/convergence owners remain mandatory. The permanent Polygon creates no Runtime, Planner, owner, scheduler, queue, daemon, truth source, Authority or Production Maturity credit.
+
+V4.34 makes the permanent Polygon lifecycle executable across separate reentry turns. CPS owns criterion-generation records and compare-and-swap; OMP dispatches only explicit owner-backed executor mappings; `ACTIVE` begins only at executor entry; consumed results admit but never pre-start successors. Every successful external turn consumes its wake and materializes a distinct successor wake with monotonic timestamps. Source mismatch fails closed through the existing BDP Candidate and OMP repair admission path before returning to the same obligation. Independent criteria with available executors preempt a missing-adapter criterion; when none remain, the exact missing adapter becomes one deterministic BDP Candidate and admitted OMP repair Mission and can never fall through to an unrelated Phase6A path. Bounded soak, duplicate suppression, behavioral reachability and forbidden-effect checks remain mandatory. No new owner, planner, queue, scheduler, Runtime or truth source is created.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7834,7 +7836,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1`
+Resolved current next action: `POLYGON-CAP-U04-AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX-G1`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8822,9 +8824,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `POLYGON-CAP-U06-RECOVERY_ADMISSION_ENGINEERING_MATRIX-G1`
-Latest consumed report: `docs/reports/engineering/2026-07-18_150525_permanent_polygon_cap_u05_and_autonomous_handoff_closure.md`
-Previous consumed report: `docs/reports/engineering/2026-07-18_111217_routing_digital_twin_master_program_execution.md`
+Resolved current next action: `POLYGON-CAP-U04-AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX-G1`
+Latest consumed report: `docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md`
+Previous consumed report: `docs/reports/engineering/2026-07-18_125408_permanent_polygon_omp_consumer_integration.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

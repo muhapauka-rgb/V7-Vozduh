@@ -18,6 +18,18 @@ def load_cli_module():
 
 
 class AutonomyTrustEvidenceInventoryCliTest(unittest.TestCase):
+    def test_terminal_observation_is_absent_when_route_verification_was_not_requested(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "operator-execution-lease.json").write_text(
+                json.dumps({"status": "EXECUTION_FINISHED"}), encoding="utf-8",
+            )
+
+            row = module.terminal_execution_observation(state_dir, verify_routes=False)
+
+        self.assertIsNone(row)
+
     def test_live_packet_discovery_binds_genuine_candidate_identity(self):
         module = load_cli_module()
         payload = {

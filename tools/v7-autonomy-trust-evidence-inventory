@@ -169,6 +169,8 @@ def discover_live_packet_preview(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def terminal_execution_observation(state_dir: Path, *, verify_routes: bool = False) -> dict[str, Any] | None:
+    if not verify_routes:
+        return None
     lease_path = state_dir / "operator-execution-lease.json"
     lease = read_json(lease_path, {})
     if not isinstance(lease, dict) or lease.get("status") != "EXECUTION_FINISHED":

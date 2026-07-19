@@ -13693,7 +13693,7 @@ def finalize_permanent_polygon_design_time_deployment_certification(
         "current_active_scope": "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED",
         "current_safe_next_action": (
             "CONSUME FIVE OR MORE FRESH OWNER-BACKED ACTUAL OUTCOMES FOR REPRESENTATIVE "
-            "CALIBRATION; INDEPENDENTLY REENTER OPENVPN/XRAY FIDELITY WHEN SUBSTRATE EXISTS"
+            "CALIBRATION; INDEPENDENTLY REENTER VLESS/XRAY FIDELITY WHEN SUBSTRATE EXISTS"
         ),
         "current_scope_class": "PROGRAM_CONTINUATION_BOUNDARY",
         "state_captured": captured,
@@ -13711,7 +13711,7 @@ def finalize_permanent_polygon_design_time_deployment_certification(
         "active_execution_frontier": "NONE",
         "external_reentry_frontier": residual,
         "program_frontier_input": (
-            "deployed design-time loop certified; representative calibration, OpenVPN/Xray "
+            "deployed design-time loop certified; representative calibration, VLESS/Xray "
             "real tunnel substrate and a natural reproducible product defect remain separate; "
             "next scenario NONE because current 64/64 coverage is exhausted"
         ),
@@ -13741,7 +13741,7 @@ def finalize_permanent_polygon_design_time_deployment_certification(
         "omp_continuation_required": "FALSE",
         "external_input_required": "TRUE",
         "external_input_type": (
-            "FRESH_OWNER_BACKED_CALIBRATION_OUTCOMES_OR_OPENVPN_XRAY_SUBSTRATE_OR_"
+            "FRESH_OWNER_BACKED_CALIBRATION_OUTCOMES_OR_VLESS_XRAY_SUBSTRATE_OR_"
             "NATURAL_REPRODUCIBLE_V7_DEFECT"
         ),
         "next_mission_formed": "FALSE",

@@ -415,6 +415,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
                 max_users=10,
                 emergency_failover_autonomy=True,
+                service_matrix_lock_timeout_sec=5,
             )
         finally:
             module.subprocess.run = original_run
@@ -422,6 +423,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(captured["timeout"], 360)
         self.assertEqual(result["timeout_seconds"], 360)
         self.assertIn("--emergency-failover-autonomy", captured["command"])
+        timeout_index = captured["command"].index("--service-matrix-lock-timeout-sec")
+        self.assertEqual(captured["command"][timeout_index + 1], "5")
 
     def test_l3_restore_barrier_preflight_reset_archives_completed_lock_when_lease_inactive(self):
         module = load_cli_module()

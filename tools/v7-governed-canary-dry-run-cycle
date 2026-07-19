@@ -1024,6 +1024,7 @@ def run_autoswitch_apply(
     snapshot_bundle_hash: str = "",
     execution_control_file: str = "",
     emergency_failover_autonomy: bool = False,
+    service_matrix_lock_timeout_sec: int = 90,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     command = [
@@ -1043,6 +1044,8 @@ def run_autoswitch_apply(
         "--apply",
         "--verify",
         "--allow-pre-planner-refresh-with-apply",
+        "--service-matrix-lock-timeout-sec",
+        str(max(1, min(int(service_matrix_lock_timeout_sec or 90), 90))),
         "--pretty",
     ]
     if user:
@@ -2187,6 +2190,7 @@ def _execute_governed_transaction_with_guards_inner(
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
+        service_matrix_lock_timeout_sec=5 if engineering_authority else 90,
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})

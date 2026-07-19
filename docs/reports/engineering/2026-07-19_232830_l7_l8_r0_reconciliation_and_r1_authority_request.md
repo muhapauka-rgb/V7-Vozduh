@@ -73,6 +73,24 @@ R1 preparation effects: production apply `NONE`; routing mutation `NONE`; user m
 
 The R1 request permits no action by itself. Only an unexpired exact R2 verdict may admit one transaction, and the approval must be atomically consumed with fresh Candidate, Packet, lease and transaction identity.
 
+## R1 implementation, deploy and consumption
+
+R1 packet/CPS/OMP commit: `119507672d78a8bede8671a6fb57f0ca734f0513`.
+
+Safe deploy ID: `deploy-z8-14-Updatesystem-1195076-20260719T234136`.
+
+Deploy manifest delta: only `tools/v7_sync_lib.py`.
+
+Local and deployed SHA-256: `8372d7eb698877011a0c5e94a3acfac9c2eca75388199c70ae237737bfd0ca27`.
+
+The fresh production non-test caller consumed the real current CPS through deployed `omp_functional_footprint_consistency` and proved that `L7_L8_R2_INDEPENDENT_AUTHORITY_DECISION_PENDING` remains a Phase 6 integration stage with `INTEGRATION_COMPLETION`; the historical `AEP_PHASE_6_STATUS` / `CURRENT_COMPLETION_CONTRACT` mismatch does not recur. Expected copied-runtime source-layout scan residuals were not used as completion evidence.
+
+Focused packet, functional-footprint and full atomic-CPS suites: `PASS`.
+
+Post-deploy `tools/v7-truth-check --all --json`: `PASS`; zero CPS contradictions; exact next action `DECIDE_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_engauth_r1_33cc5e04f86c20ff0607f7db`.
+
+Post-deploy `tools/v7-convergence-status --json`: `PASS / ALIGNED`; local, GitHub and production commit `119507672d78a8bede8671a6fb57f0ca734f0513`; deploy delta empty.
+
 ## Exact next action
 
 The independent Authority owner must return exactly one of:

@@ -9984,6 +9984,101 @@ def _l7_l8_opportunity_class(record: dict[str, Any]) -> str:
     return "NO_CANDIDATE"
 
 
+def _l7_l8_passport_matches_expected(passport: dict[str, Any], expected: dict[str, Any]) -> bool:
+    id_fields = ("operation_id", "feedback_id", "decision_id", "packet_id", "recommendation_id", "learning_record_id")
+    supplied_ids = [(key, _text(expected.get(key))) for key in id_fields if expected.get(key)]
+    if supplied_ids and any(passport.get(key) == value for key, value in supplied_ids):
+        return True
+    dimensions = [
+        not expected.get("user") or passport.get("user") == _text(expected.get("user")),
+        not expected.get("source_channel") or passport.get("source_channel") == _text(expected.get("source_channel")),
+        not expected.get("target_channel") or passport.get("target_channel") == _text(expected.get("target_channel")),
+        not expected.get("terminal_class") or passport.get("terminal_class") == _text(expected.get("terminal_class")).upper(),
+    ]
+    return not supplied_ids and all(dimensions) and any(expected.get(key) for key in ("user", "source_channel", "target_channel", "terminal_class"))
+
+
+def _l7_l8_certification_passport(expected: dict[str, Any], generated_at: str) -> dict[str, Any] | None:
+    owner_report = _text(expected.get("owner_report"))
+    operation_id = _text(expected.get("operation_id"))
+    feedback_id = _text(expected.get("feedback_id"))
+    if not owner_report or not (operation_id or feedback_id):
+        return None
+    evidence_class = _text(expected.get("evidence_class"), "CONTROLLED_PRODUCTION").upper()
+    if evidence_class not in {"CONTROLLED_PRODUCTION", "NATURAL_PRODUCTION"}:
+        return None
+    user = _text(expected.get("user"))
+    source = _text(expected.get("source_channel"))
+    target = _text(expected.get("target_channel"))
+    terminal = _text(expected.get("terminal_class"), "UNKNOWN").upper()
+    observed_at = _text(expected.get("outcome_observed_at"))
+    identity = _l7_l8_hash([operation_id or feedback_id, user, source, target], "outpass_")
+    temporal = {
+        "accepted_request": bool(expected.get("accepted_request", True)),
+        "actual_activation": bool(expected.get("actual_activation", True)),
+        "immediate_verification": bool(expected.get("immediate_verification")),
+        "delayed_5m_observation": bool(expected.get("delayed_5m_observation")),
+        "delayed_1h_observation": bool(expected.get("delayed_1h_observation")),
+        "steady_state_terminal": bool(expected.get("steady_state_terminal")),
+    }
+    replay = {
+        "decision_trace_id": _text(expected.get("decision_trace_id")),
+        "input_snapshot_identity": _text(expected.get("input_snapshot_identity")),
+        "expected_terminal": _text(expected.get("expected_terminal")),
+        "actual_terminal": terminal,
+        "intent_drift_class": _text(expected.get("intent_drift_class"), "UNRESOLVED_EXPECTED_TERMINAL"),
+        "approved_exception_id": _text(expected.get("approved_exception_id")),
+    }
+    core = {
+        "material_identity": identity,
+        "provenance": [{"record_index": None, "source": owner_report, "projection": "existing_certification_history_owner"}],
+        "evidence_class": evidence_class,
+        "terminal_class": terminal,
+        "user": user,
+        "source_channel": source,
+        "target_channel": target,
+        "outcome_observed_at": observed_at,
+    }
+    core_missing = [field for field in L7_L8_PASSPORT_CORE_FIELDS if not _l7_l8_present(core[field])]
+    temporal_missing = [field for field in L7_L8_TEMPORAL_FIELDS if not temporal[field]]
+    replay_missing = [field for field in L7_L8_REPLAY_FIELDS if not _l7_l8_present(replay[field])]
+    freshness = _l7_l8_freshness(observed_at, generated_at)
+    return {
+        "schema_version": "v7.l7-l8.outcome-evidence-passport.v1",
+        **core,
+        "operation_id": operation_id,
+        "feedback_id": feedback_id,
+        "decision_id": _text(expected.get("decision_id")),
+        "packet_id": _text(expected.get("packet_id")),
+        "recommendation_id": _text(expected.get("recommendation_id")),
+        "learning_record_id": _text(expected.get("learning_record_id")),
+        "source_paths": [owner_report],
+        "record_indexes": [],
+        "record_count": 0,
+        "certification_projection_count": 1,
+        "freshness": freshness,
+        "temporal_verification": temporal,
+        "replay_contract": {
+            **replay,
+            "deterministic_replay_fingerprint": _l7_l8_hash({"identity": identity, "trace": replay["decision_trace_id"], "snapshot": replay["input_snapshot_identity"], "expected": replay["expected_terminal"], "actual": terminal}, "outreplay_"),
+        },
+        "completeness": {
+            "core_complete": not core_missing,
+            "temporal_complete": not temporal_missing,
+            "replay_complete": not replay_missing,
+            "missing_core_fields": core_missing,
+            "missing_temporal_fields": temporal_missing,
+            "missing_replay_fields": replay_missing,
+        },
+        "eligibility": "SUPPORTING_ONLY_INCOMPLETE",
+        "consumption": {
+            "learning_record_consumed": bool(expected.get("learning_record_id")),
+            "action_class_reconciliation_consumed": True,
+            "omp_program_consumed": True,
+        },
+    }
+
+
 def build_l7_l8_outcome_evidence_program(
     decision_records: list[dict[str, Any]] | None = None,
     *,
@@ -10126,6 +10221,14 @@ def build_l7_l8_outcome_evidence_program(
             },
         })
 
+    for expected in expected_material_outcomes or []:
+        if any(_l7_l8_passport_matches_expected(passport, expected) for passport in passports):
+            continue
+        certification_passport = _l7_l8_certification_passport(expected, generated)
+        if certification_passport:
+            passports.append(certification_passport)
+    passports.sort(key=lambda row: row["material_identity"])
+
     expected_reconciliation = []
     matched_passport_ids: set[str] = set()
     for index, expected in enumerate(expected_material_outcomes or []):
@@ -10138,19 +10241,7 @@ def build_l7_l8_outcome_evidence_program(
         expected_target = _text(expected.get("target_channel"))
         expected_terminal = _text(expected.get("terminal_class")).upper()
 
-        def matches(passport: dict[str, Any]) -> bool:
-            supplied_ids = [(key, value) for key, value in expected_ids.items() if value]
-            if supplied_ids and any(passport.get(key) == value for key, value in supplied_ids):
-                return True
-            dimensions = [
-                not expected_user or passport.get("user") == expected_user,
-                not expected_source or passport.get("source_channel") == expected_source,
-                not expected_target or passport.get("target_channel") == expected_target,
-                not expected_terminal or passport.get("terminal_class") == expected_terminal,
-            ]
-            return not supplied_ids and all(dimensions) and any((expected_user, expected_source, expected_target, expected_terminal))
-
-        matched = next((passport for passport in passports if matches(passport)), None)
+        matched = next((passport for passport in passports if _l7_l8_passport_matches_expected(passport, expected)), None)
         if matched:
             matched_passport_ids.add(matched["material_identity"])
         expected_reconciliation.append({
@@ -10180,6 +10271,19 @@ def build_l7_l8_outcome_evidence_program(
             "record_indexes": item["record_indexes"],
             "source_paths": sorted(item["source_paths"]),
         })
+    denominator_ids = {row["opportunity_id"] for row in denominator_rows}
+    for passport in passports:
+        if passport.get("certification_projection_count") != 1 or passport["material_identity"] in denominator_ids:
+            continue
+        class_counts["ACTION"] += 1
+        denominator_rows.append({
+            "opportunity_id": passport["material_identity"],
+            "opportunity_class": "ACTION",
+            "observed_classes": ["ACTION"],
+            "record_indexes": [],
+            "source_paths": passport["source_paths"],
+            "projection": "existing_certification_history_owner",
+        })
 
     eligible_passports = [row for row in passports if row["eligibility"] == "ELIGIBLE_FOR_CALIBRATION"]
     immutable_set = sorted(row["material_identity"] for row in eligible_passports)
@@ -10207,7 +10311,7 @@ def build_l7_l8_outcome_evidence_program(
         "schema_version": "v7.l7-l8.production-evidence-authority-evolution-program.v1",
         "generated_at": generated,
         "owner": "admin_core.autonomy_trust_acceleration existing evidence inventory read owner",
-        "target_terminal": "CURRENT_L7_L8_PRODUCTION_EVIDENCE_RECONCILED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED",
+        "target_terminal": "CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED",
         "mission_results": {
             "M1": {
                 "status": "COMPLETE_CONSUMED" if not expected_missing else "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS",
@@ -10254,7 +10358,7 @@ def build_l7_l8_outcome_evidence_program(
             "allowed_verdicts": ["RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL", "RETAIN_CURRENT_SCOPE", "RECOMMEND_NARROW_SCOPE", "HOLD_GOVERNED_ONLY", "FREEZE", "DEMOTE", "INSUFFICIENT_EVIDENCE"],
             "recommendation_is_not_mutation": True,
         },
-        "program_terminal": "CURRENT_L7_L8_PRODUCTION_EVIDENCE_RECONCILED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED",
+        "program_terminal": "CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED",
         "next_reentry_condition": next_event,
         "read_only": True,
         "new_truth_source_created": False,

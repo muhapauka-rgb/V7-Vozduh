@@ -568,6 +568,38 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["current_action_class_reconciliation"]["missing_count"], 0)
         self.assertTrue(model["outcome_evidence_passports"][0]["consumption"]["action_class_reconciliation_consumed"])
 
+    def test_l7_l8_reuses_certification_history_for_missing_raw_owner_identity(self):
+        model = accel.build_l7_l8_outcome_evidence_program(
+            [],
+            expected_material_outcomes=[{
+                "operation_id": "runtime_autoswitch_certified",
+                "feedback_id": "execfb_certified",
+                "learning_record_id": "learn_certified",
+                "user": "10.7.0.5",
+                "source_channel": "awg0",
+                "target_channel": "vless",
+                "terminal_class": "SUCCESS",
+                "evidence_class": "CONTROLLED_PRODUCTION",
+                "outcome_observed_at": "2026-07-12T10:23:36+00:00",
+                "immediate_verification": True,
+                "owner_report": "docs/reports/engineering/certified.md",
+            }],
+            generated_at="2026-07-19T05:00:00+00:00",
+        )
+
+        self.assertEqual(model["current_action_class_reconciliation"]["matched_count"], 1)
+        passport = model["outcome_evidence_passports"][0]
+        self.assertEqual(passport["eligibility"], "SUPPORTING_ONLY_INCOMPLETE")
+        self.assertEqual(passport["certification_projection_count"], 1)
+        self.assertTrue(passport["completeness"]["core_complete"])
+        self.assertFalse(passport["completeness"]["temporal_complete"])
+        self.assertFalse(passport["completeness"]["replay_complete"])
+        self.assertEqual(model["opportunity_denominator"]["counts"]["ACTION"], 1)
+        self.assertEqual(
+            model["program_terminal"],
+            "CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED",
+        )
+
     def test_knowledge_quality_read_model_is_deterministic_and_read_only(self):
         first = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")
         second = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")

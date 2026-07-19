@@ -889,6 +889,84 @@ def controlled_certification_cleanup_selection(
     }
 
 
+def controlled_engineering_authority_selection(
+    *,
+    request: dict[str, Any],
+    users: list[dict[str, Any]],
+    egress: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Project the exact approved R2 subject into the existing decision surface."""
+    blockers: list[str] = []
+    subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    condition = request.get("controlled_condition") if isinstance(request.get("controlled_condition"), dict) else {}
+    user = str(subject.get("user_ip") or "")
+    source = str(scope.get("source_egress") or "")
+    target = str(scope.get("target_egress") or "")
+    user_rows = [row for row in users if str(row.get("ip") or "") == user]
+    source_rows = [row for row in egress if str(row.get("id") or "") == source]
+    target_rows = [row for row in egress if str(row.get("id") or "") == target]
+    if len(user_rows) != 1:
+        blockers.append("engineering_authority_user_registry_identity_not_unique")
+    if len(source_rows) != 1:
+        blockers.append("engineering_authority_source_registry_identity_not_unique")
+    if len(target_rows) != 1:
+        blockers.append("engineering_authority_target_registry_identity_not_unique")
+    user_row = user_rows[0] if len(user_rows) == 1 else {}
+    source_row = source_rows[0] if len(source_rows) == 1 else {}
+    target_row = target_rows[0] if len(target_rows) == 1 else {}
+    if subject.get("certification_user") is not True or subject.get("ordinary_customer") is not False:
+        blockers.append("engineering_authority_subject_class_invalid")
+    if str(user_row.get("certification_user") or "").lower() not in {"1", "true", "yes"}:
+        blockers.append("engineering_authority_subject_not_registered_certification_user")
+    if str(user_row.get("current") or "") != source:
+        blockers.append("engineering_authority_subject_not_on_exact_source")
+    if str(source_row.get("controlled_certification_source") or "").lower() not in {"1", "true", "yes"}:
+        blockers.append("engineering_authority_source_not_controlled_certification_source")
+    if str(source_row.get("enabled") or "1").lower() in {"1", "true", "yes"}:
+        blockers.append("engineering_authority_controlled_source_not_activated")
+    if str(target_row.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+        blockers.append("engineering_authority_target_not_enabled")
+    if target != "vless" or str(target_row.get("interface") or "") != str(scope.get("target_interface") or ""):
+        blockers.append("engineering_authority_target_binding_invalid")
+    if str(source_row.get("interface") or "") != str(scope.get("source_interface") or ""):
+        blockers.append("engineering_authority_source_interface_mismatch")
+    if str(condition.get("name") or "") != "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION":
+        blockers.append("engineering_authority_condition_not_exact")
+    unrelated = [
+        str(row.get("ip") or "") for row in users
+        if str(row.get("current") or "") == source and str(row.get("ip") or "") != user
+    ]
+    if unrelated:
+        blockers.append("engineering_authority_source_has_unrelated_users")
+    source_hash = operator_execution.sha256_json({
+        "request_id": request.get("request_id"),
+        "contract_hash": request.get("contract_hash"),
+        "user_row": user_row,
+        "source_row": source_row,
+        "target_row": target_row,
+    })
+    return {
+        "schema_version": "v7.controlled-engineering-authority-selection.v1",
+        "selection_status": "SELECTED" if not blockers else "STOP_SAFE",
+        "blockers": blockers,
+        "selected_candidate": {
+            "user": user,
+            "source": source,
+            "target": target,
+            "evidence_value": 1,
+            "suitability_score": 100.0,
+            "confidence": 100.0,
+            "risk": 0.0,
+        } if not blockers else {},
+        "source_hash": source_hash,
+        "evidence_class": "CONTROLLED_PRODUCTION",
+        "authority_scope": "EXACT_ONE_USE_R2_CONTRACT",
+        "ordinary_customer_used": False,
+        "max_users": 1,
+    }
+
+
 def decision_records(state_dir: Path, event_dir: Path, audit_dir: Path) -> list[dict[str, Any]]:
     paths = [
         event_dir / "switch-history.jsonl",
@@ -1973,6 +2051,17 @@ def _execute_governed_transaction_with_guards_inner(
 ) -> dict[str, Any]:
     delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
     engineering_authority_request_file = str(getattr(args, "engineering_authority_request_file", "") or "")
+    engineering_authority_request: dict[str, Any] = {}
+    if engineering_authority_request_file:
+        engineering_authority_request = read_json(Path(engineering_authority_request_file), {})
+        request_validation = operator_execution.validate_engineering_authority_request(
+            engineering_authority_request,
+            decision=str(getattr(args, "engineering_authority_decision", "") or ""),
+            expected_request_id=str(getattr(args, "engineering_authority_request_id", "") or ""),
+            expected_contract_hash=str(getattr(args, "engineering_authority_contract_hash", "") or ""),
+        )
+        if not request_validation.get("ok"):
+            return transaction_stop("engineering_authority_request_invalid", validation=request_validation)
     setup_request = getattr(args, "_certification_setup_request", None)
     setup_mode = isinstance(setup_request, dict) and bool(setup_request)
     cleanup_request = getattr(args, "_certification_cleanup_request", None)
@@ -2023,6 +2112,7 @@ def _execute_governed_transaction_with_guards_inner(
     a4_goal_directed_selection = {}
     certification_setup_selection = {}
     certification_cleanup_selection = {}
+    engineering_authority_selection = {}
     if setup_mode:
         certification_setup_selection = controlled_certification_setup_selection(
             users=users,
@@ -2050,6 +2140,19 @@ def _execute_governed_transaction_with_guards_inner(
                 certification_cleanup_selection=certification_cleanup_selection,
             )
         surface = merge_a4_gap_candidate_into_surface(surface, certification_cleanup_selection)
+    elif engineering_authority_request:
+        engineering_authority_selection = controlled_engineering_authority_selection(
+            request=engineering_authority_request,
+            users=users,
+            egress=egress,
+        )
+        if engineering_authority_selection.get("selection_status") != "SELECTED":
+            return transaction_stop(
+                "CONTROLLED_ENGINEERING_AUTHORITY_CANDIDATE_NOT_ADMITTED",
+                engineering_authority_selection=engineering_authority_selection,
+                planner_observe=planner_observe,
+            )
+        surface = merge_a4_gap_candidate_into_surface(surface, engineering_authority_selection)
     if required_a4_candidate_keys is not None:
         a4_goal_directed_selection = select_a4_gap_reducing_candidate(
             surface=surface,
@@ -2107,9 +2210,8 @@ def _execute_governed_transaction_with_guards_inner(
             return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
         if engineering_authority_request_file:
             try:
-                request = read_json(Path(engineering_authority_request_file), {})
                 engineering_authority = operator_execution.engineering_authority_binding_from_preview(
-                    request,
+                    engineering_authority_request,
                     packet_preview,
                     decision=str(getattr(args, "engineering_authority_decision", "") or ""),
                     expected_request_id=str(getattr(args, "engineering_authority_request_id", "") or ""),
@@ -2347,6 +2449,7 @@ def _execute_governed_transaction_with_guards_inner(
         "a4_goal_directed_selection": a4_goal_directed_selection,
         "certification_setup_selection": certification_setup_selection,
         "certification_cleanup_selection": certification_cleanup_selection,
+        "engineering_authority_selection": engineering_authority_selection,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,

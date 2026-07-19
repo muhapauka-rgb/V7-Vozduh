@@ -31,6 +31,41 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(active["emergency_failover_autonomy"])
         self.assertEqual(active["service_matrix_lock_timeout_sec"], 5)
 
+    def test_exact_engineering_authority_projects_only_bound_controlled_candidate(self):
+        module = load_cli_module()
+        request = {
+            "request_id": "engauth_r1_test",
+            "contract_hash": "contract-test",
+            "subject": {"user_ip": "10.7.0.16", "certification_user": True, "ordinary_customer": False},
+            "scope": {
+                "source_egress": "controlled-source", "source_interface": "wg-test",
+                "target_egress": "vless", "target_interface": "tun0",
+            },
+            "controlled_condition": {"name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION"},
+        }
+        selected = module.controlled_engineering_authority_selection(
+            request=request,
+            users=[{"ip": "10.7.0.16", "current": "controlled-source", "certification_user": "1"}],
+            egress=[
+                {"id": "controlled-source", "interface": "wg-test", "enabled": "0", "controlled_certification_source": "1"},
+                {"id": "vless", "interface": "tun0", "enabled": "1"},
+            ],
+        )
+        unsafe = module.controlled_engineering_authority_selection(
+            request=request,
+            users=[{"ip": "10.7.0.16", "current": "controlled-source", "certification_user": "1"}],
+            egress=[
+                {"id": "controlled-source", "interface": "wg-test", "enabled": "1", "controlled_certification_source": "1"},
+                {"id": "vless", "interface": "tun0", "enabled": "1"},
+            ],
+        )
+
+        self.assertEqual(selected["selection_status"], "SELECTED")
+        self.assertEqual(selected["selected_candidate"]["user"], "10.7.0.16")
+        self.assertEqual(selected["selected_candidate"]["target"], "vless")
+        self.assertEqual(unsafe["selection_status"], "STOP_SAFE")
+        self.assertIn("engineering_authority_controlled_source_not_activated", unsafe["blockers"])
+
     def test_controlled_setup_keeps_operator_packet_approval_contract(self):
         module = load_cli_module()
         admission = {"authority": {"authority_basis": "OPERATOR_ENGINEERING_AUTHORITY"}}

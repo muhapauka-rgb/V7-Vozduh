@@ -86,3 +86,18 @@ Exact next Mission:
 `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_M1_OUTCOME_EVIDENCE_PASSPORT_AND_OPPORTUNITY_DENOMINATOR_V1`
 
 M0 final verdict: `PASS_CURRENT_EVIDENCE_RECONCILED_EXACT_M1_M3_RESIDUALS_ADMITTED`.
+
+## Deployment and verification evidence
+
+- implementation commit: `be847d2750ca689aa440df8fce6cd0e1cec98b4c`;
+- safe deploy: `deploy-z8-14-Updatesystem-be847d2-20260719T110439`;
+- manifest delta: only `tools/v7_sync_lib.py` changed; every other deployable path matched production;
+- deployed SHA-256: `f90c22c2fa91e82d4e381222b7aa1ecf73e3b94c136a87411ddeee7cb8af876e`;
+- service restart: `NONE`;
+- production safety manifest: apply/routing/user/policy/restore-barrier effects all `false`;
+- production non-test deployed-owner consumer returned `active_program=L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM`, `current_next_action_id=L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`, `current_program_execution_frontier=READY:L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`, `current_stop_condition=NONE`, `omp_continuation_required=TRUE`, `external_input_required=FALSE`;
+- the generic production `--omp-program-reconciliation` entrypoint stopped safely because copied runtime does not contain `/usr/local/docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md`; no effect occurred and this general source-layout limitation is not used as M0 evidence;
+- focused atomic CPS, mission-role, OMP pointer, dependency, capability and dashboard suites: `PASS`;
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`, zero CPS contradictions;
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`;
+- local, GitHub and production runtime commit at verification: `be847d2750ca689aa440df8fce6cd0e1cec98b4c`.

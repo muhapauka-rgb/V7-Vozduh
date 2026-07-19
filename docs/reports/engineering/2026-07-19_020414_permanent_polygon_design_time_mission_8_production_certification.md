@@ -13,14 +13,14 @@ The existing Permanent Polygon is now connected to the product design-time lifec
 
 | Evidence | Result |
 | --- | --- |
-| Final deployed commit | `a37d2648e4b4e23564dec4be6670c956b80ca618` |
-| Final deploy ID | `deploy-z8-14-Updatesystem-a37d264-20260719T085707` |
+| Final binary deploy commit | `09ae6c072beee06a924e882cd359fc399971eab9` |
+| Final binary deploy ID | `deploy-z8-14-Updatesystem-09ae6c0-20260719T090954` |
 | Deploy owner | `tools/v7-safe-deploy` |
 | Final deploy delta | `tools/v7_sync_lib.py` only |
 | Service/timer changes | `NONE` |
 | Production state mutation | `NONE` |
 
-The closure required three bounded safe-deploy iterations. `f815e2500873c01978738cf6432557ef9f44ef8e` deployed the implementation but exposed that `/opt/v7` is a copied-runtime layout rather than a Git checkout. `a059c37375c37dbe2d3300cd0278531c485f9779` added the read-only production certification corpus and runtime-model artifact, then correctly stopped on protocol-entrypoint and repair-owner resolution. `a37d2648e4b4e23564dec4be6670c956b80ca618` reused deployed runtime fingerprint ownership and the canonical production admin entrypoint; no forbidden effect was used to remove either stop.
+The closure required four bounded safe-deploy iterations. `f815e2500873c01978738cf6432557ef9f44ef8e` deployed the implementation but exposed that `/opt/v7` is a copied-runtime layout rather than a Git checkout. `a059c37375c37dbe2d3300cd0278531c485f9779` added the read-only production certification corpus and runtime-model artifact, then correctly stopped on protocol-entrypoint and repair-owner resolution. `a37d2648e4b4e23564dec4be6670c956b80ca618` reused deployed runtime fingerprint ownership and the canonical production admin entrypoint. `09ae6c072beee06a924e882cd359fc399971eab9` corrected the exact protocol residual after production evidence proved OpenVPN locally available. No forbidden effect was used to remove any stop.
 
 ## Production caller and consumer evidence
 
@@ -48,12 +48,11 @@ The deployed caller compiled the actual deployed product-source change, selectiv
 | `tools/v7-truth-check --all --json` | `PASS` |
 | Truth convergence status | `FULLY_ALIGNED` |
 | `tools/v7-convergence-status --json` | `PASS / ALIGNED` |
-| Local commit | `a37d2648e4b4e23564dec4be6670c956b80ca618` |
-| GitHub `origin/Updatesystem` | `a37d2648e4b4e23564dec4be6670c956b80ca618` |
-| Production runtime fingerprint | `a37d2648e4b4e23564dec4be6670c956b80ca618` |
+| Binary-certification snapshot equality | local = GitHub = production = `09ae6c072beee06a924e882cd359fc399971eab9` |
+| CPS/OMP closure snapshot equality | `PASS`; exact self-referential commit is owned by current truth/convergence output |
 | Truth/convergence blockers | `NONE` |
 
-These values describe the deployed implementation certification snapshot. The following documentation-only CPS/OMP closure commit must itself pass the normal provenance refresh and the same equality checks before the final handoff.
+The CPS/OMP documentation closure is published only through the normal safe-deploy provenance refresh and must pass the same equality checks before handoff. Its commit is deliberately not hardcoded in the report that participates in that commit; `tools/v7-truth-check --all --json` remains the exact identity owner.
 
 ## Evidence boundaries
 

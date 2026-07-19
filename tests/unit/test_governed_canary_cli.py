@@ -5,6 +5,7 @@ import hashlib
 import argparse
 import tempfile
 import unittest
+from unittest import mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -65,6 +66,71 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(selection["ordinary_customer_used"])
         self.assertEqual(ordinary["selection_status"], "STOP_SAFE")
         self.assertIn("identity_not_in_durable_legacy_certification_pool", ordinary["blockers"])
+
+    def test_controlled_cleanup_admits_only_exact_certification_pre_state(self):
+        module = load_cli_module()
+        selected = module.controlled_certification_cleanup_selection(
+            users=[{
+                "ip": "10.7.0.16", "current": "controlled-source", "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[
+                {"id": "controlled-source", "enabled": "1", "controlled_certification_source": "1"},
+                {"id": "vless", "enabled": "1"},
+            ],
+            user="10.7.0.16",
+            source="controlled-source",
+            target="vless",
+        )
+        drifted = module.controlled_certification_cleanup_selection(
+            users=[{
+                "ip": "10.7.0.16", "current": "vless", "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[
+                {"id": "controlled-source", "enabled": "1", "controlled_certification_source": "1"},
+                {"id": "vless", "enabled": "1"},
+            ],
+            user="10.7.0.16",
+            source="controlled-source",
+            target="vless",
+        )
+
+        self.assertEqual(selected["selection_status"], "SELECTED")
+        self.assertEqual(selected["authority_scope"], "RESTORE_EXACT_APPROVED_PRE_STATE")
+        self.assertEqual(selected["evidence_class"], "ENGINEERING_CLEANUP")
+        self.assertEqual(drifted["selection_status"], "STOP_SAFE")
+        self.assertIn("cleanup_user_not_on_registered_rollback_source", drifted["blockers"])
+
+    def test_controlled_cleanup_requires_prior_one_use_authority_consumption(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            request_file = root / "request.json"
+            request_file.write_text("{}", encoding="utf-8")
+            args = argparse.Namespace(
+                confirm_controlled_certification_cleanup="CLEANUP_CONTROLLED_CERTIFICATION_CONDITION_APPROVED",
+                engineering_authority_request_file=str(request_file),
+                engineering_authority_decision="APPROVE_ONCE_AS_SCOPED",
+                engineering_authority_request_id="engauth_r1_test",
+                engineering_authority_contract_hash="hash-test",
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "validate_engineering_authority_request",
+                return_value={"ok": True, "request_id": "engauth_r1_test"},
+            ), mock.patch.object(module.operator_execution, "read_audit_records", return_value=[]):
+                result = module.cleanup_controlled_certification_condition(
+                    args,
+                    state_dir=root,
+                    event_dir=root,
+                    snapshot_root=root,
+                    audit_dir=root,
+                    lease_file=root / "lease.json",
+                )
+
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "controlled_certification_cleanup_before_authority_consumption")
 
     def test_due_delayed_observation_is_owner_store_backed_and_idempotent(self):
         module = load_cli_module()

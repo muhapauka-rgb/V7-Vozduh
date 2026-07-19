@@ -58,6 +58,16 @@ Production snapshot после deploy:
 - controlled source `enabled`;
 - Safe Mode `OPEN`.
 
+## Финальная верификация
+
+- Runtime/controlled-owner focused suite: `249 PASS`.
+- CPS/OMP atomic identity and pointer suite: `131 PASS`.
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`.
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`.
+- Local/GitHub: `ac61c609879d48713890d44e67e3fa10f9e1b852`.
+- Production runtime snapshot: `88ec9ab1e2009de6454fe465f033b84b7957bd1a`.
+- Exact delta: четыре report/CPS/OMP файла, классификация `DOCS_ONLY_MISMATCH`, deployment required `false`; все runtime binary hashes совпадают с authoritative source.
+
 ## Автоматизация и legal terminal
 
 Пользовательское подтверждение не переиспользовалось. Именно standing policy `engrepair_fe6a2c49ae391f397330274a` автоматически создало fresh v3 с новыми Request, Packet, operation, lease и nonce.

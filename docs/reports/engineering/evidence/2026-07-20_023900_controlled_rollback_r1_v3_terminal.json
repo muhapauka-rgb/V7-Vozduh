@@ -45,6 +45,18 @@
     "fresh_v4_automatically_admitted": false,
     "stop_reason": "SAME_BLOCKER_FINGERPRINT_RECURRED_AFTER_REPAIR"
   },
+  "final_verification": {
+    "cps_tests_passed": 131,
+    "truth_final_verdict": "PASS",
+    "truth_convergence_status": "FULLY_ALIGNED",
+    "convergence_final_verdict": "PASS",
+    "convergence_status": "ALIGNED",
+    "local_commit": "ac61c609879d48713890d44e67e3fa10f9e1b852",
+    "github_commit": "ac61c609879d48713890d44e67e3fa10f9e1b852",
+    "production_runtime_commit": "88ec9ab1e2009de6454fe465f033b84b7957bd1a",
+    "commit_delta_classification": "DOCS_ONLY_MISMATCH",
+    "runtime_binary_hashes_match": true
+  },
   "authority_expanded": false,
   "production_maturity_changed": false
 }

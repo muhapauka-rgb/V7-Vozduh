@@ -496,6 +496,37 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.assertEqual(replay["atomic_update"]["status"], "ALREADY_APPLIED_NO_CHANGE")
             self.assertEqual(cps_path.read_text(encoding="utf-8"), before_replay)
 
+            stale = before_replay.replace(
+                "| `L7_L8_AE_EXACT_MISSING_CELLS` | `natural_production_present; rollback_and_no_rollback_present` |",
+                "| `L7_L8_AE_EXACT_MISSING_CELLS` | `eligible_passports_at_least_5; material_variation_present; natural_production_present; rollback_and_no_rollback_present` |",
+            ).replace(
+                "| `L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET` | `outset_dynamic_floor; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS` |",
+                "| `L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET` | `outset_stale; eligible passports 1; CONTROLLED_PRODUCTION SUCCESS` |",
+            )
+            self.assertNotEqual(stale, before_replay)
+            cps_path.write_text(stale, encoding="utf-8")
+
+            repaired = self.lib.finalize_polygon_driven_l7_evidence_acquisition(
+                report_path=relative_report,
+                run_nonce=run_nonce,
+                root=root,
+            )
+            self.assertEqual(repaired["final_verdict"], "PASS", repaired)
+            self.assertFalse(repaired.get("idempotent_replay", False))
+            repaired_live = self.lib._markdown_field_table(self.lib._markdown_section(
+                cps_path.read_text(encoding="utf-8"),
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(
+                repaired_live["L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET"].strip("`"),
+                "outset_dynamic_floor; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS",
+            )
+            self.assertEqual(
+                repaired_live["L7_L8_AE_EXACT_MISSING_CELLS"].strip("`"),
+                "natural_production_present; rollback_and_no_rollback_present",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

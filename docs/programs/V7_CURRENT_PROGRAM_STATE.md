@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-19T13:51:27+00:00
+State captured: 2026-07-19T16:11:32+00:00
 Latest terminal Mission: `V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_CALIBRATION_FLOOR_V1`
 Latest terminal Mission state: `POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md`
@@ -13,7 +13,7 @@ Source: Polygon consumed four additional real bounded L7 outcomes, closed the fi
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-19T13:51:27+00:00`
+Captured: `2026-07-19T16:11:32+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -54,7 +54,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `63` |
+| `CONTINUATION_ITERATION` | `64` |
 | `CONTINUATION_STOP_REASON` | `CALIBRATION_FLOOR_CONSUMED; ROLLBACK_CONDITION_AUTHORITY_BOUND; NATURAL_L8_CAPTURE_READY` |
 | `NO_PROGRESS_FINGERPRINT` | `9d274b448ef0377e7a94b949d77d6256b85d1cd5b20fd44ad24a055a3d9b8edf` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
@@ -181,7 +181,7 @@ This section is the single live volatile current-state surface. Older production
 | `LATEST_TERMINAL_RUN_NONCE` | `V7_L7_FLOOR_20260719T114247Z` |
 | `LATEST_TERMINAL_MISSION_STATE` | `POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY` |
 | `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-19T13:51:27+00:00` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-07-19T16:11:32+00:00` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_V1` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
 | `CURRENT_MISSION_ID` | `V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_CALIBRATION_FLOOR_V1` |
@@ -210,21 +210,21 @@ This section is the single live volatile current-state surface. Older production
 | `L7_L8_AE_M0_STATUS` | `COMPLETE_CONSUMED_READ_ONLY` |
 | `L7_L8_AE_M0_REPORT` | `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md` |
 | `L7_L8_AE_M0_PRODUCTION_SNAPSHOT_AT` | `2026-07-19T03:49:23.561249+00:00` |
-| `L7_L8_AE_MATERIAL_OUTCOMES` | `ONE NEW ELIGIBLE CONTROLLED OUTCOME: runtime_autoswitch_3fbda1bafa1cd40b251555b0 / outpass_57779380ae119a2932498de8 / 10.0.0.3 awg3->vless SUCCESS; historical supporting outcomes preserved` |
-| `L7_L8_AE_DUPLICATE_DECISION` | `PASS; 18 transitive owner records collapsed to one material Passport; cross-process identity is stable` |
-| `L7_L8_AE_CLOSURE_PROJECTION_STATUS` | `COMPLETE_CONSUMED_FOR_NEW_OUTCOME; activation, verification, feedback, Learning, lease observation and replay bound` |
+| `L7_L8_AE_MATERIAL_OUTCOMES` | `FIVE ELIGIBLE CONTROLLED PASSPORTS: outpass_1f9c6c5e9f7246388d981052; outpass_5542ff7606b4688f6868d72f; outpass_57779380ae119a2932498de8; outpass_c1fcd2ee3841cf4c5a558d12; outpass_df9caafb1663e8f8677c9a20` |
+| `L7_L8_AE_DUPLICATE_DECISION` | `PASS; five eligible material Passports preserve distinct deterministic identities; cross-process identity is stable` |
+| `L7_L8_AE_CLOSURE_PROJECTION_STATUS` | `COMPLETE_CONSUMED_FOR_FIVE_ELIGIBLE_CONTROLLED_PASSPORTS; activation, immediate/5m/1h/steady-state, feedback, Learning, lease observation and replay bound` |
 | `L7_L8_AE_OPPORTUNITY_DENOMINATOR_STATUS` | `COMPLETE_CONSUMED_CURRENT_BOUNDED_SNAPSHOT_AT_2026-07-19T07:37:28Z; 8473 stable identities: ACTION 3, MISSED 1, NO_CANDIDATE 8469` |
-| `L7_L8_AE_M1_RESIDUAL` | `ONE NEW ELIGIBLE CONTROLLED PASSPORT CONSUMED; older supporting passports retain exact gaps` |
-| `L7_L8_AE_M2_RESIDUAL` | `ONE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS` |
-| `L7_L8_AE_M3_RESIDUAL` | `ONE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual SUCCESS and NO_DRIFT PASS` |
-| `L7_L8_AE_M4_M8_STATUS` | `M4 ONE REAL CONTROLLED OUTCOME COMPLETE THEN EXACT ENGINEERING_AUTHORITY BOUNDARY; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT` |
-| `L7_L8_AE_CURRENT_CYCLE_REPORT` | `docs/reports/engineering/2026-07-19_073700_polygon_driven_l7_controlled_evidence_acquisition.md` |
-| `L7_L8_AE_CURRENT_CYCLE_TERMINAL` | `POLYGON_DRIVEN_L7_CONTROLLED_OUTCOME_CONSUMED_NEXT_CONTROLLED_CONDITION_REQUIRES_ENGINEERING_AUTHORITY_AND_L8_CAPTURE_READY` |
-| `L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET` | `outset_a30d20db4837099f36706414; eligible passports 1; CONTROLLED_PRODUCTION SUCCESS` |
+| `L7_L8_AE_M1_RESIDUAL` | `FIVE ELIGIBLE CONTROLLED PASSPORTS CONSUMED; supporting historical rows preserve exact gaps` |
+| `L7_L8_AE_M2_RESIDUAL` | `FIVE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS` |
+| `L7_L8_AE_M3_RESIDUAL` | `FIVE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual terminal and NO_DRIFT PASS` |
+| `L7_L8_AE_M4_M8_STATUS` | `M4 CALIBRATION FLOOR COMPLETE; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT` |
+| `L7_L8_AE_CURRENT_CYCLE_REPORT` | `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md` |
+| `L7_L8_AE_CURRENT_CYCLE_TERMINAL` | `POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY` |
+| `L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET` | `outset_428a4e2ff440ed64bde5cb56; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS` |
 | `L7_L8_AE_AUTHORITY_RECOMMENDATION` | `INSUFFICIENT_EVIDENCE; current GOVERNED_ONLY scope retained; M8 independent approval not opened` |
-| `L7_L8_AE_EXACT_MISSING_CELLS` | `eligible_passports_at_least_5; material_variation_present; natural_production_present; rollback_and_no_rollback_present` |
-| `L7_L8_AE_NEXT_REENTRY` | `REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY; alternatively reenter on a fresh genuine Candidate or qualifying natural event` |
-| `L7_L8_AE_FORBIDDEN_EFFECTS` | `PASS; deploy effects NONE; exactly one separately admitted one-user controlled transaction completed; rollback apply NONE; daemon/timer enablement NONE; Authority impact NONE; Production Maturity NO_CHANGE_66_9` |
+| `L7_L8_AE_EXACT_MISSING_CELLS` | `natural_production_present; rollback_and_no_rollback_present` |
+| `L7_L8_AE_NEXT_REENTRY` | `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY` |
+| `L7_L8_AE_FORBIDDEN_EFFECTS` | `PASS; deploy effects NONE; five separately admitted serial one-user controlled transactions complete; deliberate rollback apply NONE; daemon/timer enablement NONE; Authority impact NONE; Production Maturity NO_CHANGE_66_9` |
 | `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
 | `COMPLETE_ROUTING_LIFECYCLE_DEPLOY` | `commit 167fcb96465aaecba6e4611299422dae1f6e1f5c; deploy-z8-14-Updatesystem-167fcb9-20260711T201042; truth FULLY_ALIGNED` |
 | `ROUTING_READINESS_STATE` | `PASS_CANDIDATE_SCOPED; global inventory diagnostics are advisory_only and no longer cross-scope blockers` |
@@ -332,7 +332,7 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT` |
 | `GLOBAL_ENGINEERING_STOP` | `ENGINEERING_AUTHORITY` |
 | `ENGINEERING_PROGRAM_STATUS` | `POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY` |
-| `ENVIRONMENT_ALIGNMENT_STATUS` | `FULLY_ALIGNED` |
+| `ENVIRONMENT_ALIGNMENT_STATUS` | `PENDING_POST_COMMIT_TRUTH_CONVERGENCE` |
 | `PRODUCTION_ROUTING_AUTONOMY_STATUS` | `NOT_CLAIMED` |
 | `AUTHORITY_PROMOTION_STATUS` | `NONE` |
 | `PRODUCTION_MATURITY_CHANGE_STATUS` | `NONE` |
@@ -348,7 +348,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-19T13:51:27+00:00`
+Generated At: `2026-07-19T16:11:32+00:00`
 
 Runtime Authority: `NONE`
 

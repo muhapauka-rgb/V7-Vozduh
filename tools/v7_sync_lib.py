@@ -1613,6 +1613,34 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
             value,
         )
 
+    optional_l7_l8_projection_fields = {
+        "l7_l8_ae_material_outcomes": "L7_L8_AE_MATERIAL_OUTCOMES",
+        "l7_l8_ae_duplicate_decision": "L7_L8_AE_DUPLICATE_DECISION",
+        "l7_l8_ae_closure_projection_status": "L7_L8_AE_CLOSURE_PROJECTION_STATUS",
+        "l7_l8_ae_opportunity_denominator_status": "L7_L8_AE_OPPORTUNITY_DENOMINATOR_STATUS",
+        "l7_l8_ae_m1_residual": "L7_L8_AE_M1_RESIDUAL",
+        "l7_l8_ae_m2_residual": "L7_L8_AE_M2_RESIDUAL",
+        "l7_l8_ae_m3_residual": "L7_L8_AE_M3_RESIDUAL",
+        "l7_l8_ae_m4_m8_status": "L7_L8_AE_M4_M8_STATUS",
+        "l7_l8_ae_current_cycle_report": "L7_L8_AE_CURRENT_CYCLE_REPORT",
+        "l7_l8_ae_current_cycle_terminal": "L7_L8_AE_CURRENT_CYCLE_TERMINAL",
+        "l7_l8_ae_immutable_eligibility_set": "L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET",
+        "l7_l8_ae_authority_recommendation": "L7_L8_AE_AUTHORITY_RECOMMENDATION",
+        "l7_l8_ae_exact_missing_cells": "L7_L8_AE_EXACT_MISSING_CELLS",
+        "l7_l8_ae_next_reentry": "L7_L8_AE_NEXT_REENTRY",
+        "l7_l8_ae_forbidden_effects": "L7_L8_AE_FORBIDDEN_EFFECTS",
+    }
+    for state_key, field_name in optional_l7_l8_projection_fields.items():
+        if state_key not in state:
+            continue
+        cps_text = _replace_section_field(
+            cps_text,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            field_name,
+            f"`{state[state_key]}`",
+        )
+
     semantic_live_values = {
         "ACTION_CLASS_CERTIFICATION_STATE": f"`{state['action_class_certification_state']}`",
         "AUTHORITY_RECOMMENDATION_STATE": f"`{state['authority_recommendation_state']}`",
@@ -3580,6 +3608,35 @@ def finalize_polygon_driven_l7_calibration_floor(
     state = _normalized_state_from_live_cps(cps_path.read_text(encoding="utf-8"))
     missing_text = "; ".join(missing_cells)
     passport_text = "; ".join(passport_ids)
+    current_projection = {
+        "material_outcomes": f"FIVE ELIGIBLE CONTROLLED PASSPORTS: {passport_text}",
+        "duplicate_decision": (
+            "PASS; five eligible material Passports preserve distinct deterministic identities; "
+            "cross-process identity is stable"
+        ),
+        "closure_projection_status": (
+            "COMPLETE_CONSUMED_FOR_FIVE_ELIGIBLE_CONTROLLED_PASSPORTS; activation, immediate/5m/1h/steady-state, "
+            "feedback, Learning, lease observation and replay bound"
+        ),
+        "m1_residual": "FIVE ELIGIBLE CONTROLLED PASSPORTS CONSUMED; supporting historical rows preserve exact gaps",
+        "m2_residual": "FIVE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS",
+        "m3_residual": "FIVE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual terminal and NO_DRIFT PASS",
+        "m4_m8_status": (
+            "M4 CALIBRATION FLOOR COMPLETE; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; "
+            "M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT"
+        ),
+        "immutable_eligibility_set": (
+            f"{values['Eligibility set']}; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS"
+        ),
+        "authority_recommendation": (
+            "INSUFFICIENT_EVIDENCE; current GOVERNED_ONLY scope retained; M8 independent approval not opened"
+        ),
+        "forbidden_effects": (
+            "PASS; deploy effects NONE; five separately admitted serial one-user controlled transactions complete; "
+            "deliberate rollback apply NONE; daemon/timer enablement NONE; Authority impact NONE; "
+            "Production Maturity NO_CHANGE_66_9"
+        ),
+    }
     fingerprint = hashlib.sha256(json.dumps({
         "mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
         "run_nonce": run_nonce,
@@ -3600,6 +3657,20 @@ def finalize_polygon_driven_l7_calibration_floor(
         state.get("no_progress_fingerprint") == fingerprint,
         state.get("current_next_action_id") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
         state.get("phase6b_controlled_frontier") == "AUTHORITY_BOUND:DELIBERATE_CONTROLLED_ROLLBACK_CONDITION",
+        state.get("l7_l8_ae_material_outcomes") == current_projection["material_outcomes"],
+        state.get("l7_l8_ae_duplicate_decision") == current_projection["duplicate_decision"],
+        state.get("l7_l8_ae_closure_projection_status") == current_projection["closure_projection_status"],
+        state.get("l7_l8_ae_m1_residual") == current_projection["m1_residual"],
+        state.get("l7_l8_ae_m2_residual") == current_projection["m2_residual"],
+        state.get("l7_l8_ae_m3_residual") == current_projection["m3_residual"],
+        state.get("l7_l8_ae_m4_m8_status") == current_projection["m4_m8_status"],
+        state.get("l7_l8_ae_current_cycle_report") == report_path,
+        state.get("l7_l8_ae_current_cycle_terminal") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        state.get("l7_l8_ae_immutable_eligibility_set") == current_projection["immutable_eligibility_set"],
+        state.get("l7_l8_ae_authority_recommendation") == current_projection["authority_recommendation"],
+        state.get("l7_l8_ae_exact_missing_cells") == missing_text,
+        state.get("l7_l8_ae_next_reentry") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        state.get("l7_l8_ae_forbidden_effects") == current_projection["forbidden_effects"],
     ))
     if already_applied:
         consistency = mission_role_consistency(
@@ -3738,17 +3809,20 @@ def finalize_polygon_driven_l7_calibration_floor(
         "production_maturity_change_status": "NONE",
         "current_completion_contract": "INTEGRATION_COMPLETION",
         "current_completion_verdict": "COMPLETE_CONSUMED",
-        "l7_l8_ae_material_outcomes": f"FIVE ELIGIBLE CONTROLLED PASSPORTS: {passport_text}",
-        "l7_l8_ae_m1_residual": "FIVE ELIGIBLE CONTROLLED PASSPORTS CONSUMED; supporting historical rows preserve exact gaps",
-        "l7_l8_ae_m2_residual": "FIVE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS",
-        "l7_l8_ae_m3_residual": "FIVE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual terminal and NO_DRIFT PASS",
-        "l7_l8_ae_m4_m8_status": "M4 CALIBRATION FLOOR COMPLETE; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT",
+        "l7_l8_ae_material_outcomes": current_projection["material_outcomes"],
+        "l7_l8_ae_duplicate_decision": current_projection["duplicate_decision"],
+        "l7_l8_ae_closure_projection_status": current_projection["closure_projection_status"],
+        "l7_l8_ae_m1_residual": current_projection["m1_residual"],
+        "l7_l8_ae_m2_residual": current_projection["m2_residual"],
+        "l7_l8_ae_m3_residual": current_projection["m3_residual"],
+        "l7_l8_ae_m4_m8_status": current_projection["m4_m8_status"],
         "l7_l8_ae_current_cycle_report": report_path,
         "l7_l8_ae_current_cycle_terminal": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
-        "l7_l8_ae_immutable_eligibility_set": f"{values['Eligibility set']}; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS",
-        "l7_l8_ae_authority_recommendation": "INSUFFICIENT_EVIDENCE; current GOVERNED_ONLY scope retained; M8 independent approval not opened",
+        "l7_l8_ae_immutable_eligibility_set": current_projection["immutable_eligibility_set"],
+        "l7_l8_ae_authority_recommendation": current_projection["authority_recommendation"],
         "l7_l8_ae_exact_missing_cells": missing_text,
         "l7_l8_ae_next_reentry": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "l7_l8_ae_forbidden_effects": current_projection["forbidden_effects"],
         "pending_wake_id": "NONE",
         "reentry_active_lease": "NONE",
         "reentry_platform_health": "PASS",
@@ -5611,6 +5685,26 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
         projected = field_aliases.get(key, key.upper())
         if projected in live:
             state[key] = _plain_live_value(live, projected)
+    optional_l7_l8_projection_fields = {
+        "l7_l8_ae_material_outcomes": "L7_L8_AE_MATERIAL_OUTCOMES",
+        "l7_l8_ae_duplicate_decision": "L7_L8_AE_DUPLICATE_DECISION",
+        "l7_l8_ae_closure_projection_status": "L7_L8_AE_CLOSURE_PROJECTION_STATUS",
+        "l7_l8_ae_opportunity_denominator_status": "L7_L8_AE_OPPORTUNITY_DENOMINATOR_STATUS",
+        "l7_l8_ae_m1_residual": "L7_L8_AE_M1_RESIDUAL",
+        "l7_l8_ae_m2_residual": "L7_L8_AE_M2_RESIDUAL",
+        "l7_l8_ae_m3_residual": "L7_L8_AE_M3_RESIDUAL",
+        "l7_l8_ae_m4_m8_status": "L7_L8_AE_M4_M8_STATUS",
+        "l7_l8_ae_current_cycle_report": "L7_L8_AE_CURRENT_CYCLE_REPORT",
+        "l7_l8_ae_current_cycle_terminal": "L7_L8_AE_CURRENT_CYCLE_TERMINAL",
+        "l7_l8_ae_immutable_eligibility_set": "L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET",
+        "l7_l8_ae_authority_recommendation": "L7_L8_AE_AUTHORITY_RECOMMENDATION",
+        "l7_l8_ae_exact_missing_cells": "L7_L8_AE_EXACT_MISSING_CELLS",
+        "l7_l8_ae_next_reentry": "L7_L8_AE_NEXT_REENTRY",
+        "l7_l8_ae_forbidden_effects": "L7_L8_AE_FORBIDDEN_EFFECTS",
+    }
+    for state_key, field_name in optional_l7_l8_projection_fields.items():
+        if field_name in live:
+            state[state_key] = _plain_live_value(live, field_name)
     captured = re.search(r"^Captured:\s*`([^`]+)`$", live_section, re.MULTILINE)
     if captured:
         state["state_captured"] = captured.group(1)

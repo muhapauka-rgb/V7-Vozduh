@@ -13038,6 +13038,7 @@ def polygon_ci_failure_repair_frontier(
     step: str,
     run_id: str,
     head_sha: str,
+    certification_state_generation: str = "",
 ) -> dict[str, Any]:
     """Route a failing semantic gate through the existing BDP -> OMP consumer."""
     metadata = {
@@ -13055,6 +13056,19 @@ def polygon_ci_failure_repair_frontier(
         errors.append("ci_failure_log_empty")
     if metadata["head_sha"] and not re.fullmatch(r"[0-9a-fA-F]{7,64}", metadata["head_sha"]):
         errors.append("ci_failure_head_sha_invalid")
+    if certification_state_generation:
+        certification_live = _markdown_field_table(_markdown_section(
+            cps_text,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        if not re.fullmatch(r"prod-[0-9a-f]{40}", certification_state_generation):
+            errors.append("ci_failure_certification_runtime_generation_invalid")
+        if (
+            certification_live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+            != "PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE"
+        ):
+            errors.append("ci_failure_certification_seam_not_owner_authorized")
     log_fingerprint = hashlib.sha256(str(log_text or "").encode("utf-8")).hexdigest()
     signatures = _polygon_ci_failure_signatures(log_text)
     mismatch_results = [
@@ -13118,10 +13132,19 @@ def polygon_ci_failure_repair_frontier(
             if signature["mismatch_class"] == "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT"
             else "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING"
         )
-        frontiers.append(
-            bdp_development_impulse_from_cps(cps_text, engineering_gaps=[gap])
-            if not errors else {}
-        )
+        if errors:
+            frontiers.append({})
+        elif certification_state_generation:
+            frontiers.append(bdp_development_impulse_handoff({
+                "state_generation": certification_state_generation,
+                "discovery_economy_decision": "DISCOVERY_NOT_REQUIRED_REUSE_EVIDENCE",
+                "engineering_gaps": [gap],
+                "real_world_limit_intents": 0,
+            }))
+        else:
+            frontiers.append(
+                bdp_development_impulse_from_cps(cps_text, engineering_gaps=[gap])
+            )
     accepted = all((
         not errors,
         bool(frontiers),
@@ -13140,6 +13163,11 @@ def polygon_ci_failure_repair_frontier(
     return {
         "schema": "v7.polygon-ci-failure-repair-frontier.v1",
         "source_evidence": {**metadata, "log_sha256": log_fingerprint},
+        "state_binding": (
+            "DEPLOYED_RUNTIME_FINGERPRINT_CERTIFICATION_SEAM"
+            if certification_state_generation else "FRESH_FULL_CPS"
+        ),
+        "certification_state_generation": certification_state_generation or "NONE",
         "classification": signatures,
         "mismatch_classification": mismatch_results,
         "repair_frontier_status": "OMP_REPAIR_FRONTIER_MATERIALIZED" if accepted else "STOP_SAFE",
@@ -14593,6 +14621,113 @@ def certify_permanent_polygon_design_time_production_entrypoint(
         "next_output": execution.get("next_output", "STOP_SAFE") if passed else "STOP_SAFE",
         "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
         "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
+def certify_polygon_ci_failure_repair_production_entrypoint(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume the deployed CI-failure -> BDP -> OMP path through a real caller."""
+    historical_log = (
+        "AssertionError: functional_footprint_mismatch:AEP_PHASE_6_STATUS\n"
+        "AssertionError: polygon_design_time_m8_frontier_not_active\n"
+    )
+    try:
+        with polygon_production_certification_layout(root=root) as layout:
+            execution_root = layout["root"]
+            cps_text = (
+                execution_root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            ).read_text(encoding="utf-8")
+            runtime_generation = "prod-" + str(
+                layout.get("runtime_fingerprint") or "unknown"
+            )[:40]
+            first = polygon_ci_failure_repair_frontier(
+                cps_text=cps_text,
+                log_text=historical_log,
+                workflow="V7 Polygon Design-Time Engineering",
+                job="semantic-selective-gate",
+                step="Compile and test the design-time loop",
+                run_id="29682110261",
+                head_sha="7ab18749",
+                certification_state_generation=runtime_generation,
+            )
+            replay = polygon_ci_failure_repair_frontier(
+                cps_text=cps_text,
+                log_text=historical_log,
+                workflow="V7 Polygon Design-Time Engineering",
+                job="semantic-selective-gate",
+                step="Compile and test the design-time loop",
+                run_id="29682110299",
+                head_sha="7ab18749",
+                certification_state_generation=runtime_generation,
+            )
+            layout_evidence = {key: value for key, value in layout.items() if key != "root"}
+    except (OSError, ValueError, KeyError) as exc:
+        first = {
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"production_certification_layout_failed:{type(exc).__name__}:{exc}"],
+        }
+        replay = {"candidate_instance_ids": []}
+        layout_evidence = {"final_verdict": "STOP_SAFE"}
+
+    failure_classes = {
+        row.get("failure_class") for row in first.get("classification") or ()
+    }
+    candidate_ids = list(first.get("candidate_instance_ids") or ())
+    mission_ids = list(first.get("mission_ids") or ())
+    checks = {
+        "production_certification_layout": layout_evidence.get("final_verdict") == "PASS",
+        "runtime_fingerprint_bound": bool(
+            str(layout_evidence.get("runtime_fingerprint") or "").strip()
+            and first.get("state_binding")
+            == "DEPLOYED_RUNTIME_FINGERPRINT_CERTIFICATION_SEAM"
+        ),
+        "runtime_deploy_bound": bool(
+            str(layout_evidence.get("runtime_deploy_id") or "").strip()
+        ),
+        "real_entrypoint_execution": first.get("final_verdict") == "PASS",
+        "omp_candidate_admission_consumed": first.get("real_consumer") == "OMP_CANDIDATE_ADMISSION",
+        "two_distinct_repair_frontiers": len(set(candidate_ids)) == 2 and len(set(mission_ids)) == 2,
+        "product_and_harness_defects_separated": failure_classes == {
+            "PRODUCT_SEMANTIC_REGRESSION", "STALE_SOURCE_DEPENDENCY_BINDING",
+        },
+        "repeated_failure_identity_deterministic": (
+            candidate_ids == list(replay.get("candidate_instance_ids") or ())
+        ),
+        "successor_frontier_returned": (
+            first.get("next_output")
+            == "EXECUTE_ADMITTED_OMP_REPAIR_MISSIONS_THEN_REPLAY_SAME_GATE"
+        ),
+        "forbidden_effects_absent": not any(
+            (first.get("forbidden_effects") or {}).values()
+        ),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.polygon-ci-failure-repair-production-certification.v1",
+        "caller_class": "PRODUCTION_NON_TEST_READ_ONLY_CALLER",
+        "entrypoint": (
+            "tools/v7-truth-check "
+            "--omp-polygon-ci-failure-repair-production-certification --json"
+        ),
+        "consumer": "OMP_CANDIDATE_ADMISSION",
+        "checks": checks,
+        "execution": first,
+        "deterministic_replay_candidate_instance_ids": replay.get("candidate_instance_ids") or [],
+        "production_certification_layout": layout_evidence,
+        "behavior_change": (
+            "DEPLOYED_RED_SEMANTIC_GATE_CONSUMED_AS_TWO_DETERMINISTIC_OMP_REPAIR_FRONTIERS"
+            if passed else "NONE_STOP_SAFE"
+        ),
+        "next_output": first.get("next_output", "STOP_SAFE") if passed else "STOP_SAFE",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
         "final_verdict": "PASS" if passed else "STOP_SAFE",
         "errors": [] if passed else [key for key, value in checks.items() if not value],
     }

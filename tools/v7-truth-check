@@ -735,6 +735,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--permanent-polygon-soak-iterations", type=int, default=12)
     parser.add_argument("--omp-polygon-design-time", action="store_true", help="Compile and consume one bounded product design/source change through the Permanent Polygon.")
     parser.add_argument("--omp-polygon-ci-failure-repair-frontier", action="store_true", help="Classify one failing Polygon CI gate and route it through existing BDP/OMP owners.")
+    parser.add_argument("--omp-polygon-ci-failure-repair-production-certification", action="store_true", help="Consume the deployed CI-failure repair frontier through a production non-test read-only caller.")
     parser.add_argument("--omp-polygon-design-time-stage-deploy", action="store_true", help="Atomically stage the design-time Polygon deployment-certification frontier in CPS.")
     parser.add_argument("--omp-polygon-design-time-production-certification", action="store_true", help="Run the deployed design-time Polygon through a production non-test read-only caller.")
     parser.add_argument("--polygon-change-json", default="", help="Inline JSON object or repository-relative JSON file for --omp-polygon-design-time.")
@@ -769,6 +770,17 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.omp_polygon_ci_failure_repair_production_certification:
+        certification_root = Path("/opt/v7") if ROOT_DIR == Path("/usr/local") else ROOT_DIR
+        result = sync_lib.certify_polygon_ci_failure_repair_production_entrypoint(
+            root=certification_root,
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"polygon_ci_failure_repair_production_certification={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_polygon_ci_failure_repair_frontier:
         try:
             log_path = Path(args.ci_failure_log)

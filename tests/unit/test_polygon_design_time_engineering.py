@@ -153,6 +153,41 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
         self.assertIn("v7-polygon-design-time-failure-repair-frontier", workflow)
         self.assertNotIn("continue-on-error", workflow)
 
+    def test_ci_failure_repair_has_deployable_production_caller(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory)
+            corpus_artifact = runtime / "engineering/future-scale/foundation.json"
+            corpus_artifact.parent.mkdir(parents=True)
+            corpus_artifact.symlink_to(ROOT / self.lib.FUTURE_SCALE_SCENARIO_CORPUS_PATH)
+            rows = []
+            for local_path in (
+                "tools/v7_sync_lib.py", "tools/v7-users-autoswitch",
+                "admin_core/operator_execution_pipeline.py",
+            ):
+                rows.append({
+                    "local_path": local_path,
+                    "remote_path": str(ROOT / local_path),
+                    "sha256": "a" * 64,
+                })
+            (runtime / "runtime-fingerprint.json").write_text(json.dumps({
+                "schema": "v7-runtime-fingerprint/v1", "commit": "b" * 40,
+                "deploy_id": "deploy-test", "critical_files": rows,
+                "snapshot_subsystem": {"refresh_cli": "none", "required_files": ["none"]},
+                "authority": {
+                    "canonical_deploy_tool": "tools/v7-safe-deploy",
+                    "canonical_status_command": "tools/v7-convergence-status",
+                    "canonical_truth_gate": "tools/v7-truth-check",
+                },
+            }), encoding="utf-8")
+            result = self.lib.certify_polygon_ci_failure_repair_production_entrypoint(
+                root=runtime,
+            )
+            self.assertEqual(result["final_verdict"], "PASS", result.get("errors"))
+            self.assertEqual(result["consumer"], "OMP_CANDIDATE_ADMISSION")
+            self.assertEqual(len(result["execution"]["candidate_instance_ids"]), 2)
+            self.assertTrue(result["checks"]["repeated_failure_identity_deterministic"])
+            self.assertFalse(any(result["execution"]["forbidden_effects"].values()))
+
     def test_calibration_changes_risk_frontier(self):
         records = [
             {"record_id": str(index), "predicted": "PASS", "actual": "PASS", "confidence": 0.9, "owner_backed": True}

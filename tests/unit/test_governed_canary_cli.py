@@ -19,6 +19,22 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            event_dir = Path(tmp)
+            (event_dir / "telegram-sentinel-20260719.jsonl").write_text(
+                json.dumps({"kind": "natural-sentinel"}) + "\n",
+                encoding="utf-8",
+            )
+            (event_dir / "service-matrix-refresh-20260719.jsonl").write_text(
+                json.dumps({"kind": "service-matrix"}) + "\n",
+                encoding="utf-8",
+            )
+            rows = module.event_rows(event_dir, 5000)
+
+        self.assertEqual({row["kind"] for row in rows}, {"natural-sentinel", "service-matrix"})
+
     def test_read_only_surface_gets_controlled_execution_source_binding(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

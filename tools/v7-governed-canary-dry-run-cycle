@@ -119,16 +119,31 @@ def default_audit_dir(state_dir: Path) -> Path:
     return state_dir.parent / "audit"
 
 
-def event_rows(event_dir: Path, limit: int) -> list[dict[str, Any]]:
+def event_source_paths(event_dir: Path) -> list[Path]:
     paths = [
         event_dir / "telegram-sentinel.jsonl",
         event_dir / "service-matrix.jsonl",
         event_dir / "quality-regressions.jsonl",
         event_dir / "events.jsonl",
+        event_dir / "l3-wake-events.jsonl",
+        event_dir / "service-failure-events.jsonl",
+        event_dir / "runtime-wake-events.jsonl",
+        event_dir / "governance-lifecycle.jsonl",
     ]
+    for pattern in ("telegram-sentinel-*.jsonl", "service-matrix-refresh-*.jsonl"):
+        try:
+            paths.extend(sorted(event_dir.glob(pattern))[-3:])
+        except OSError:
+            pass
+    return list(dict.fromkeys(paths))
+
+
+def event_rows(event_dir: Path, limit: int) -> list[dict[str, Any]]:
+    paths = event_source_paths(event_dir)
+    per_source_limit = max(100, int(limit) // max(1, len(paths)))
     rows: list[dict[str, Any]] = []
     for path in paths:
-        rows.extend(read_jsonl_family(path, limit=limit))
+        rows.extend(read_jsonl_family(path, limit=per_source_limit))
     return rows[-max(0, int(limit)):]
 
 

@@ -10376,6 +10376,214 @@ def build_l7_l8_outcome_evidence_program(
     }
 
 
+def build_polygon_driven_l7_l8_evidence_acquisition(
+    evidence_program: dict[str, Any],
+    *,
+    users: list[dict[str, Any]] | None = None,
+    egress: list[dict[str, Any]] | None = None,
+    packet_preview: dict[str, Any] | None = None,
+    delegated_policy: dict[str, Any] | None = None,
+    owner_capture_sources: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Turn L7 waiting into active, owner-bound opportunity engineering.
+
+    The projection is deliberately read-only.  It reuses the current evidence,
+    registry, delegated-policy and packet owners to decide whether one bounded
+    controlled transaction is already legal, which exact preparation gap must
+    be repaired, or which deliberate production condition requires independent
+    Engineering Authority.  Natural L8 evidence is never manufactured; its
+    existing owner capture chain is audited so the next real event is consumed.
+    """
+    program = evidence_program if isinstance(evidence_program, dict) else {}
+    registry_users = [row for row in (users or []) if isinstance(row, dict)]
+    registry_egress = [row for row in (egress or []) if isinstance(row, dict)]
+    preview = packet_preview if isinstance(packet_preview, dict) else {}
+    policy = delegated_policy if isinstance(delegated_policy, dict) else {}
+    sources = [row for row in (owner_capture_sources or []) if isinstance(row, dict)]
+
+    immutable = program.get("immutable_eligibility_set") or {}
+    missing_cells = sorted({_text(value) for value in immutable.get("missing_coverage_cells") or [] if _text(value)})
+    controlled_missing = "controlled_production_present" in missing_cells
+    natural_missing = "natural_production_present" in missing_cells
+    priorities = (
+        "controlled_production_present",
+        "complete_temporal_and_replay",
+        "rollback_and_no_rollback_present",
+        "material_variation_present",
+        "eligible_passports_at_least_5",
+    )
+    selected_l7_cell = next((cell for cell in priorities if cell in missing_cells), "NONE")
+
+    certification_users = sorted({
+        _text(row.get("ip") or row.get("user_ip") or row.get("user"))
+        for row in registry_users
+        if _truthy(row.get("certification_user"))
+        and _truthy(row.get("enabled", True))
+        and _text(row.get("ip") or row.get("user_ip") or row.get("user"))
+    })
+    controlled_sources = []
+    for row in registry_egress:
+        if not _truthy(row.get("controlled_certification_source")):
+            continue
+        controlled_sources.append({
+            "source_id": _text(row.get("id") or row.get("interface")),
+            "interface": _text(row.get("interface")),
+            "certification_group": _text(row.get("certification_group")),
+            "enabled": _truthy(row.get("enabled", True)),
+            "state": _text(row.get("state")),
+        })
+    active_controlled_sources = [row for row in controlled_sources if row["enabled"]]
+
+    candidate_users = sorted({_text(value) for value in preview.get("allowed_users") or [] if _text(value)})
+    candidate_targets = sorted({_text(value) for value in preview.get("allowed_targets") or [] if _text(value)})
+    candidate_ready = (
+        preview.get("status") == "PACKET_PREVIEW_READY"
+        and bool(preview.get("operation_id"))
+        and bool(preview.get("packet_id"))
+        and bool(preview.get("selected_move_hash"))
+        and bool(candidate_users)
+        and len(candidate_users) == 1
+    )
+    candidate_certification_scoped = candidate_ready and set(candidate_users).issubset(set(certification_users))
+    policy_ready = (
+        policy.get("policy_state") == "APPROVED"
+        and policy.get("current_mode") == "DELEGATED_AUTONOMY"
+        and int(policy.get("max_users_per_action") or 0) == 1
+        and int(policy.get("max_concurrent_transactions") or 0) == 1
+        and policy.get("candidate_selection") == "EXISTING_PLANNER_ONLY"
+        and policy.get("candidate_identity") == "FRESH_ONLY"
+        and policy.get("packet_reuse") == "FORBIDDEN"
+        and policy.get("self_expansion_allowed") is False
+    )
+
+    if not controlled_missing:
+        l7_verdict = "CONTROLLED_PRODUCTION_CELL_ALREADY_CLOSED"
+        l7_stop = "NONE"
+    elif candidate_ready and candidate_certification_scoped and policy_ready:
+        l7_verdict = "READY_EXISTING_POLICY_BOUNDED_TRANSACTION"
+        l7_stop = "NONE"
+    elif not certification_users or not active_controlled_sources:
+        l7_verdict = "ENGINEERING_AUTHORITY_REQUIRED_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION"
+        l7_stop = "ENGINEERING_AUTHORITY"
+    elif not candidate_ready:
+        l7_verdict = "POLYGON_SCENARIO_PREPARATION_REQUIRED"
+        l7_stop = "NONE"
+    elif not candidate_certification_scoped:
+        l7_verdict = "OWNER_AUTHORIZED_CERTIFICATION_CANDIDATE_REQUIRED"
+        l7_stop = "ENGINEERING_AUTHORITY"
+    elif not policy_ready:
+        l7_verdict = "EXISTING_DELEGATED_POLICY_ADMISSION_FAILED"
+        l7_stop = "ENGINEERING_AUTHORITY"
+    else:  # pragma: no cover - defensive exhaustiveness
+        l7_verdict = "STOP_SAFE_UNCLASSIFIED_CONTROLLED_OPPORTUNITY"
+        l7_stop = "STOP_SAFE"
+
+    capture_roles = {
+        "NATURAL_EVENT_DETECTION": False,
+        "DECISION_TRACE_AND_SNAPSHOT": False,
+        "OUTCOME_AND_FEEDBACK": False,
+        "ROLLBACK_OR_NO_ROLLBACK": False,
+        "LEARNING_AND_REPLAY": False,
+    }
+    source_rows = []
+    for source in sources:
+        role = _text(source.get("owner_role")).upper()
+        exists = bool(source.get("exists"))
+        readable = bool(source.get("readable", exists))
+        records_read = int(source.get("records_read") or 0)
+        source_rows.append({
+            "path": _text(source.get("path")),
+            "owner_role": role,
+            "exists": exists,
+            "readable": readable,
+            "records_read": records_read,
+        })
+        if role in capture_roles and exists and readable:
+            if role == "NATURAL_EVENT_DETECTION":
+                capture_roles[role] = capture_roles[role] or records_read > 0
+            else:
+                capture_roles[role] = True
+    l8_capture_gaps = sorted(role for role, ready in capture_roles.items() if not ready)
+    l8_capture_verdict = "READY_FOR_NEXT_NATURAL_EVENT" if not l8_capture_gaps else "OWNER_CAPTURE_REPAIR_REQUIRED"
+    l8_stop = "REAL_WORLD_LIMIT" if not l8_capture_gaps and natural_missing else "NONE"
+
+    if l8_capture_gaps:
+        exact_next_action = f"REPAIR_EXISTING_L8_CAPTURE_CONSUMER:{l8_capture_gaps[0]}"
+        global_engineering_stop = "NONE"
+    elif l7_verdict == "READY_EXISTING_POLICY_BOUNDED_TRANSACTION":
+        exact_next_action = "EXECUTE_ONE_FRESH_OWNER_AUTHORIZED_BOUNDED_CONTROLLED_TRANSACTION"
+        global_engineering_stop = "NONE"
+    elif l7_stop == "ENGINEERING_AUTHORITY":
+        exact_next_action = "REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY"
+        global_engineering_stop = "ENGINEERING_AUTHORITY"
+    elif controlled_missing:
+        exact_next_action = "PREPARE_NEXT_OWNER_BOUND_POLYGON_CONTROLLED_OPPORTUNITY"
+        global_engineering_stop = "NONE"
+    else:
+        exact_next_action = "WAIT_FOR_NEXT_NATURAL_EVENT_WITH_CAPTURE_CHAIN_READY"
+        global_engineering_stop = l8_stop
+
+    return {
+        "schema_version": "v7.polygon-driven-l7-l8-evidence-acquisition.v1",
+        "owner": "existing OMP Polygon consumer over Controlled Production and production evidence owners",
+        "evidence_program_fingerprint": _text(immutable.get("fingerprint")),
+        "exact_missing_coverage_cells": missing_cells,
+        "selected_highest_value_l7_cell": selected_l7_cell,
+        "l7_controlled_lane": {
+            "verdict": l7_verdict,
+            "stop": l7_stop,
+            "certification_users": certification_users,
+            "controlled_sources": controlled_sources,
+            "active_controlled_source_count": len(active_controlled_sources),
+            "candidate": {
+                "ready": candidate_ready,
+                "packet_id": _text(preview.get("packet_id")),
+                "operation_id": _text(preview.get("operation_id")),
+                "selected_move_hash": _text(preview.get("selected_move_hash")),
+                "users": candidate_users,
+                "targets": candidate_targets,
+                "certification_scoped": candidate_certification_scoped,
+            },
+            "delegated_policy_admitted": policy_ready,
+            "ordinary_customer_used_to_manufacture_evidence": False,
+            "real_production_outcome_required": True,
+        },
+        "l8_natural_lane": {
+            "verdict": l8_capture_verdict,
+            "stop": l8_stop,
+            "natural_event_manufactured": False,
+            "capture_roles": capture_roles,
+            "capture_gaps": l8_capture_gaps,
+            "owner_sources": source_rows,
+        },
+        "mission_results": {
+            "P0_EXACT_GAP_SELECTION": "COMPLETE_CONSUMED",
+            "P1_POLYGON_SCENARIO_SELECTION": "COMPLETE_CONSUMED",
+            "P2_CERTIFICATION_POOL_DECISION": l7_verdict,
+            "P3_L8_CAPTURE_READINESS": l8_capture_verdict,
+            "P4_CONTROLLED_TRANSACTION": "READY" if l7_verdict == "READY_EXISTING_POLICY_BOUNDED_TRANSACTION" else "CONDITIONAL_TERMINAL",
+            "P5_NATURAL_EVIDENCE": "EVENT_DRIVEN_CAPTURE_READY" if not l8_capture_gaps else "CAPTURE_REPAIR_REQUIRED",
+            "P6_CALIBRATION": _text(((program.get("mission_results") or {}).get("M6") or {}).get("status")),
+            "P7_AUTHORITY_RECOMMENDATION": _text(((program.get("mission_results") or {}).get("M7") or {}).get("authority_recommendation")),
+        },
+        "global_engineering_stop": global_engineering_stop,
+        "exact_next_action": exact_next_action,
+        "read_only": True,
+        "new_truth_source_created": False,
+        "new_storage_created": False,
+        "synthetic_production_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "rollback_apply_executed": False,
+        "daemon_or_timer_enabled": False,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _decision_outcome_learning_from_trust(trust_evolution_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     summary = _first_item(trust_evolution_snapshot)
     model = summary.get("decision_outcome_learning") if isinstance(summary.get("decision_outcome_learning"), dict) else {}

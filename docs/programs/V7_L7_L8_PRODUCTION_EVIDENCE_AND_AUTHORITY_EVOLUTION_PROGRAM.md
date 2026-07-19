@@ -101,6 +101,17 @@ Primary sources:
 - Evidence class is determined by situation and trigger provenance, not by whether the affected subject is labelled an ordinary or certification user.
 - One material outcome may have exactly one primary L7/L8 evidence class. A controlled execution arising from a natural incident must preserve both attributes but cannot receive duplicate L7 and L8 credit.
 
+### Polygon-driven evidence opportunity law
+
+The Polygon eliminates avoidable evidence waiting; it does not upgrade simulation into production evidence.
+
+- When an exact L7 cell is missing, the existing OMP/Polygon consumer must actively select the highest-value missing cell, build the safest reproducible condition, resolve the existing Controlled Production owner and certification pool, prepare a fresh Situation, Decision Trace, Candidate, Packet, verification and rollback contract, and carry the opportunity to the production boundary.
+- A real L7 Outcome Evidence Passport is earned only by an owner-authorized bounded production transaction and its real verification/rollback/no-rollback closure. Scenario or dry-run output remains Engineering Evidence.
+- An ordinary customer must never be moved solely to manufacture evidence. A genuine independently justified production Candidate may use an ordinary customer only inside the already-approved delegated policy. Deliberate certification conditions require an existing owner-authorized certification user and source contract.
+- Missing certification users, a disabled certification source, or a deliberate fault/degradation outside current policy must produce the exact `ENGINEERING_AUTHORITY` boundary. The Polygon must still complete every independent preparation and capture-readiness criterion before returning that boundary.
+- L8 incidents remain natural and cannot be created. The Polygon must nevertheless audit and repair existing passive event discovery, Situation/Trace/snapshot binding, outcome, rollback/no-rollback, Learning and replay consumption so the next natural event is completely captured.
+- A generic `WAIT_FOR_QUALIFYING_L7_L8_OWNER_BACKED_EVIDENCE` is illegal while L7 opportunity preparation or L8 capture-consumer repair can continue safely.
+
 ### Production opportunity denominator
 
 Every qualifying opportunity must enter an append-only opportunity projection, including `ACTION`, `STAY`, `STOP_SAFE`, blocked, missed, superseded and no-candidate windows. Selection criteria and exclusion reasons are required. Promotion analysis must use both consumed outcomes and the opportunity denominator so positive-only evidence cannot create survivorship bias.
@@ -192,8 +203,8 @@ Missions are capability stages, not ceremonial containers. After every Mission, 
 
 - Mission 0 is mandatory and read-only.
 - Missions 1-3 execute only for exact residuals proven by Mission 0. Their acceptance criteria are mandatory, but separate execution containers are not.
-- Mission 4 is event-driven and may start only on a legal controlled opportunity.
-- Mission 5 is passive/event-driven and may start only on a qualifying natural event.
+- Mission 4 opportunity engineering starts whenever an exact L7 cell is missing. Its real transaction substage starts only on a legal owner-authorized controlled opportunity.
+- Mission 5 capture-readiness audit starts whenever an exact L8 cell is missing. Its evidence-consumption substage remains passive/event-driven and starts only on a qualifying natural event.
 - Mission 6 may perform calibration only when enough owner-backed Outcome Evidence Passports exist for meaningful analysis. Otherwise it emits the exact missing coverage cells and an immutable `INSUFFICIENT_EVIDENCE` eligibility set.
 - Mission 7 may start only after Mission 6 emits one immutable eligibility set, including an insufficient set.
 - Mission 8 may start only after Mission 7 returns `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`; otherwise it terminates as `MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT`.
@@ -233,19 +244,23 @@ Completion: each current material outcome either replays deterministically or ca
 
 ### Mission 4 — L7 controlled field-validity acquisition
 
-Activation condition: `LEGAL_CONTROLLED_OPPORTUNITY_EXISTS_AND_EXACT_L7_CELL_IS_MISSING`.
+Opportunity-engineering activation condition: `EXACT_L7_CELL_IS_MISSING`.
 
-Use existing Controlled Production Certification only when it can legally create the exact missing L7 evidence. Never move an ordinary customer solely to manufacture certification evidence. An ordinary customer may participate only when a genuine qualifying production need exists and the action is independently justified inside the approved delegated policy. Designated certification users may be used only through their existing owner-authorized controlled-production contract. Evidence class follows situation/trigger provenance and cannot be double-counted. No fake incident, fake success, bypassed owner or expanded Authority is allowed.
+Production-transaction activation condition: `LEGAL_OWNER_AUTHORIZED_CONTROLLED_OPPORTUNITY_EXISTS_AND_EXACT_L7_CELL_IS_MISSING`.
 
-Completion: a fresh safe governed controlled outcome reaches a complete Outcome Evidence Passport, temporal verification, Learning, replay, Production Maturity decision and OMP consumer; otherwise terminate at the exact owner/substrate/Authority blocker without manufacturing evidence.
+Use the existing Polygon to select the exact missing coverage cell and prepare the highest-value safe reproducible situation through existing Situation, Decision Trace, Candidate, Packet, Controlled Production, Verification and Rollback owners. Use existing Controlled Production Certification only when it can legally create the exact missing L7 evidence. Never move an ordinary customer solely to manufacture certification evidence. An ordinary customer may participate only when a genuine qualifying production need exists and the action is independently justified inside the approved delegated policy. Designated certification users may be used only through their existing owner-authorized controlled-production contract. Evidence class follows situation/trigger provenance and cannot be double-counted. No fake incident, fake success, bypassed owner or expanded Authority is allowed.
+
+Completion: a fresh safe governed controlled outcome reaches a complete Outcome Evidence Passport, temporal verification, Learning, replay, Production Maturity decision and OMP consumer; otherwise every safe preparation criterion is consumed and the Mission terminates at the exact owner/substrate/Authority blocker without manufacturing evidence. `ENGINEERING_AUTHORITY_REQUIRED_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION` is a legal conditional terminal, not permission to relabel an ordinary customer or mutate the pool.
 
 ### Mission 5 — L8 natural representativeness capture
 
-Activation condition: `QUALIFYING_NATURAL_EVENT_OBSERVED_BY_EXISTING_OWNER`.
+Capture-readiness activation condition: `EXACT_L8_CELL_IS_MISSING`.
 
-Extend the existing event/wake/outcome consumer path so qualifying natural events are passively and durably captured without synthetic triggering or forced user movement. Record both selected and non-selected opportunities and apply the same completeness contract.
+Evidence-consumption activation condition: `QUALIFYING_NATURAL_EVENT_OBSERVED_BY_EXISTING_OWNER`.
 
-Completion: fresh natural outcomes are consumed as L8 only when complete; missing opportunity coverage and natural diversity remain explicit; no controlled result is relabelled natural.
+Audit and, where necessary, extend the existing event/wake/outcome consumer path so its actual producer filenames and partitions are discovered and qualifying natural events are passively and durably captured without synthetic triggering or forced user movement. Record both selected and non-selected opportunities and apply the same completeness contract.
+
+Completion: the existing capture chain proves event discovery, Situation/Trace/snapshot, outcome, rollback/no-rollback, Learning and replay readiness before waiting. Fresh natural outcomes are consumed as L8 only when complete; missing opportunity coverage and natural diversity remain explicit; no controlled result is relabelled natural.
 
 ### Mission 6 — Coverage, calibration and representative Learning
 
@@ -323,7 +338,7 @@ The cycle terminal does not assert L7 sufficiency, L8 sufficiency, class approva
 - direct Production Maturity score change;
 - relabelling synthetic, scenario, historical or controlled evidence as natural production evidence.
 
-## Exact next Mission after plan approval
+## Initial Mission after plan approval
 
 `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_M0_CURRENT_STATE_RECONCILIATION_V1`
 

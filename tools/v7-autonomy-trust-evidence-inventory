@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -90,17 +91,61 @@ def default_audit_dir(state_dir: Path) -> Path:
     return state_dir.parent / "audit"
 
 
-def event_rows(event_dir: Path, limit: int = 5000) -> list[dict[str, Any]]:
+def event_source_paths(event_dir: Path) -> list[Path]:
     paths = [
         event_dir / "telegram-sentinel.jsonl",
         event_dir / "service-matrix.jsonl",
         event_dir / "quality-regressions.jsonl",
         event_dir / "events.jsonl",
+        event_dir / "l3-wake-events.jsonl",
+        event_dir / "service-failure-events.jsonl",
+        event_dir / "runtime-wake-events.jsonl",
+        event_dir / "governance-lifecycle.jsonl",
     ]
+    for pattern in ("telegram-sentinel-*.jsonl", "service-matrix-refresh-*.jsonl"):
+        try:
+            paths.extend(sorted(event_dir.glob(pattern))[-3:])
+        except OSError:
+            pass
+    return list(dict.fromkeys(paths))
+
+
+def event_rows(event_dir: Path, limit: int = 5000) -> list[dict[str, Any]]:
+    paths = event_source_paths(event_dir)
+    per_source_limit = max(100, int(limit) // max(1, len(paths)))
     rows: list[dict[str, Any]] = []
     for path in paths:
-        rows.extend(read_jsonl_family(path, limit=limit))
+        rows.extend(read_jsonl_family(path, limit=per_source_limit))
     return rows[-max(1, int(limit)):]
+
+
+def discover_live_packet_preview(args: argparse.Namespace) -> dict[str, Any]:
+    command = Path(__file__).with_name("v7-governed-canary-dry-run-cycle")
+    argv = [
+        str(command),
+        "--state-dir", str(args.state_dir),
+        "--event-dir", str(args.event_dir),
+        "--max-users", "1",
+        "--skip-planner-observe",
+    ]
+    if args.snapshot_root:
+        argv.extend(["--snapshot-root", str(args.snapshot_root)])
+    if args.audit_dir:
+        argv.extend(["--audit-dir", str(args.audit_dir)])
+    try:
+        completed = subprocess.run(argv, text=True, capture_output=True, timeout=240, check=False)
+        payload = json.loads(completed.stdout)
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        return {"status": "LIVE_PACKET_DISCOVERY_FAILED", "error": str(exc), "packet_preview": {}}
+    return {
+        "status": "LIVE_PACKET_DISCOVERED" if isinstance(payload.get("packet_preview"), dict) else "LIVE_PACKET_NOT_AVAILABLE",
+        "exit_code": completed.returncode,
+        "stop_reason": payload.get("stop_reason"),
+        "packet_preview": payload.get("packet_preview") or {},
+        "runtime_mutation_performed": bool(payload.get("runtime_mutation_performed")),
+        "apply_executed": bool(payload.get("apply_executed")),
+        "users_moved": int(payload.get("users_moved") or 0),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -115,6 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delegated-autonomy-policy-only", action="store_true")
     parser.add_argument("--delegated-autonomy-eligibility-only", action="store_true")
     parser.add_argument("--l7-l8-authority-evolution-only", action="store_true")
+    parser.add_argument("--polygon-driven-l7-l8-acquisition-only", action="store_true")
+    parser.add_argument("--discover-live-packet-preview", action="store_true")
     parser.add_argument(
         "--expected-material-outcome",
         action="append",
@@ -163,6 +210,7 @@ def main(argv=None) -> int:
             })
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     events = event_rows(event_dir)
+    natural_event_paths = event_source_paths(event_dir)
     expected_material_outcomes = []
     for raw in args.expected_material_outcome:
         try:
@@ -185,6 +233,57 @@ def main(argv=None) -> int:
             expected_material_outcomes=expected_material_outcomes,
             generated_at=payload.get("generated_at"),
         )
+    live_packet_discovery = {"status": "NOT_REQUESTED", "packet_preview": {}}
+    if args.discover_live_packet_preview:
+        live_packet_discovery = discover_live_packet_preview(args)
+    capture_sources = [
+        {
+            "path": str(event_dir),
+            "owner_role": "NATURAL_EVENT_DETECTION",
+            "exists": any(path.exists() for path in natural_event_paths),
+            "readable": True,
+            "records_read": len(events),
+        },
+        {
+            "path": ";".join(str(path) for path in audit_paths),
+            "owner_role": "DECISION_TRACE_AND_SNAPSHOT",
+            "exists": any(path.exists() for path in audit_paths),
+            "readable": True,
+            "records_read": len(decision_records),
+        },
+        {
+            "path": ";".join(str(path) for path in feedback_paths),
+            "owner_role": "OUTCOME_AND_FEEDBACK",
+            "exists": any(path.exists() for path in feedback_paths),
+            "readable": True,
+            "records_read": len(decision_records),
+        },
+        {
+            "path": ";".join(str(path) for path in rollback_paths + [event_dir / "switch-history.jsonl", state_dir / "closure-records.jsonl"]),
+            "owner_role": "ROLLBACK_OR_NO_ROLLBACK",
+            "exists": any(path.exists() for path in rollback_paths + [event_dir / "switch-history.jsonl", state_dir / "closure-records.jsonl"]),
+            "readable": True,
+            "records_read": len(decision_records),
+        },
+        {
+            "path": str(state_dir / "runtime-trust.jsonl"),
+            "owner_role": "LEARNING_AND_REPLAY",
+            "exists": (state_dir / "runtime-trust.jsonl").exists(),
+            "readable": True,
+            "records_read": len(read_jsonl_family(state_dir / "runtime-trust.jsonl")),
+        },
+    ]
+    payload["polygon_driven_l7_l8_evidence_acquisition"] = autonomy_trust_acceleration.build_polygon_driven_l7_l8_evidence_acquisition(
+        payload.get("l7_l8_authority_evolution_program") or {},
+        users=users,
+        egress=egress,
+        packet_preview=live_packet_discovery.get("packet_preview") or {},
+        delegated_policy=autonomy_trust_acceleration.build_delegated_autonomy_policy_preview(),
+        owner_capture_sources=capture_sources,
+    )
+    payload["polygon_driven_l7_l8_evidence_acquisition"]["live_packet_discovery"] = {
+        key: value for key, value in live_packet_discovery.items() if key != "packet_preview"
+    }
     payload["inputs"] = {
         "state_dir": str(state_dir),
         "event_dir": str(event_dir),
@@ -241,6 +340,8 @@ def main(argv=None) -> int:
         payload = payload["action_class_runtime_enablement"]["delegated_autonomy_runtime_eligibility"]
     if args.l7_l8_authority_evolution_only:
         payload = payload["l7_l8_authority_evolution_program"]
+    if args.polygon_driven_l7_l8_acquisition_only:
+        payload = payload["polygon_driven_l7_l8_evidence_acquisition"]
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
     return 0
 

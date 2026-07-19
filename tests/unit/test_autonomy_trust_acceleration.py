@@ -4286,6 +4286,103 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(model["new_storage_created"])
         self.assertFalse(model["new_truth_source_created"])
 
+    def test_polygon_driven_l7_lane_admits_only_certification_scoped_fresh_candidate(self):
+        evidence = {
+            "immutable_eligibility_set": {
+                "fingerprint": "outset_test",
+                "missing_coverage_cells": ["controlled_production_present", "natural_production_present"],
+            },
+            "mission_results": {"M6": {"status": "INSUFFICIENT_EVIDENCE"}, "M7": {"authority_recommendation": "INSUFFICIENT_EVIDENCE"}},
+        }
+        sources = [
+            {"owner_role": role, "path": role, "exists": True, "readable": True, "records_read": 1}
+            for role in (
+                "NATURAL_EVENT_DETECTION",
+                "DECISION_TRACE_AND_SNAPSHOT",
+                "OUTCOME_AND_FEEDBACK",
+                "ROLLBACK_OR_NO_ROLLBACK",
+                "LEARNING_AND_REPLAY",
+            )
+        ]
+        model = accel.build_polygon_driven_l7_l8_evidence_acquisition(
+            evidence,
+            users=[{"ip": "10.0.0.9", "enabled": "1", "certification_user": "1"}],
+            egress=[{"id": "cert-source", "enabled": "1", "controlled_certification_source": "1", "certification_group": "single"}],
+            packet_preview={
+                "status": "PACKET_PREVIEW_READY",
+                "packet_id": "pkt-1",
+                "operation_id": "op-1",
+                "selected_move_hash": "move-1",
+                "allowed_users": ["10.0.0.9"],
+                "allowed_targets": ["awg3"],
+            },
+            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            owner_capture_sources=sources,
+        )
+
+        self.assertEqual(model["l7_controlled_lane"]["verdict"], "READY_EXISTING_POLICY_BOUNDED_TRANSACTION")
+        self.assertEqual(model["exact_next_action"], "EXECUTE_ONE_FRESH_OWNER_AUTHORIZED_BOUNDED_CONTROLLED_TRANSACTION")
+        self.assertEqual(model["l8_natural_lane"]["verdict"], "READY_FOR_NEXT_NATURAL_EVENT")
+        self.assertFalse(model["runtime_mutation_performed"])
+
+    def test_polygon_driven_l7_lane_does_not_relabel_ordinary_customer_as_certification_user(self):
+        evidence = {
+            "immutable_eligibility_set": {
+                "fingerprint": "outset_test",
+                "missing_coverage_cells": ["controlled_production_present", "natural_production_present"],
+            }
+        }
+        sources = [
+            {"owner_role": role, "path": role, "exists": True, "readable": True, "records_read": 1}
+            for role in (
+                "NATURAL_EVENT_DETECTION",
+                "DECISION_TRACE_AND_SNAPSHOT",
+                "OUTCOME_AND_FEEDBACK",
+                "ROLLBACK_OR_NO_ROLLBACK",
+                "LEARNING_AND_REPLAY",
+            )
+        ]
+        model = accel.build_polygon_driven_l7_l8_evidence_acquisition(
+            evidence,
+            users=[{"ip": "10.0.0.2", "enabled": "1"}],
+            egress=[{"id": "cert-source", "enabled": "0", "controlled_certification_source": "1"}],
+            packet_preview={
+                "status": "PACKET_PREVIEW_READY",
+                "packet_id": "pkt-ordinary",
+                "operation_id": "op-ordinary",
+                "selected_move_hash": "move-ordinary",
+                "allowed_users": ["10.0.0.2"],
+                "allowed_targets": ["awg3"],
+            },
+            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            owner_capture_sources=sources,
+        )
+
+        self.assertEqual(model["l7_controlled_lane"]["stop"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(model["global_engineering_stop"], "ENGINEERING_AUTHORITY")
+        self.assertFalse(model["l7_controlled_lane"]["ordinary_customer_used_to_manufacture_evidence"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_polygon_driven_l8_capture_repair_preempts_external_wait(self):
+        evidence = {
+            "immutable_eligibility_set": {
+                "fingerprint": "outset_test",
+                "missing_coverage_cells": ["controlled_production_present", "natural_production_present"],
+            }
+        }
+        model = accel.build_polygon_driven_l7_l8_evidence_acquisition(
+            evidence,
+            users=[],
+            egress=[],
+            packet_preview={},
+            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            owner_capture_sources=[],
+        )
+
+        self.assertEqual(model["l8_natural_lane"]["verdict"], "OWNER_CAPTURE_REPAIR_REQUIRED")
+        self.assertEqual(model["global_engineering_stop"], "NONE")
+        self.assertTrue(model["exact_next_action"].startswith("REPAIR_EXISTING_L8_CAPTURE_CONSUMER:"))
+
 
 if __name__ == "__main__":
     unittest.main()

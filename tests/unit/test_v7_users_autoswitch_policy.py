@@ -240,6 +240,49 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(result["direct_rollback_invoked"])
         self.assertEqual(run.call_args.args[0], ["v7-egress-set-state", "1", "enabled", "--apply"])
 
+    def test_controlled_verifier_reads_runtime_registry_and_lifecycle_flags_without_snapshot_overlay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=1 table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            state = json.loads((state_dir / "v7-state.json").read_text(encoding="utf-8"))
+            state["users"] = [{"ip": "10.7.0.16", "current": "vless", "table": "1014", "enabled": "1"}]
+            (state_dir / "v7-state.json").write_text(json.dumps(state), encoding="utf-8")
+            (state_dir / "egress.registry").write_text(
+                "id=1 interface=v7one enabled=0 state=enabled role=GLOBAL_FAST controlled_certification_source=1\n"
+                "id=vless interface=tun0 enabled=1 state=enabled role=GLOBAL_FAST\n",
+                encoding="utf-8",
+            )
+            (state_dir / "egress-flags.state").write_text("1_state=maintenance\n", encoding="utf-8")
+            args = self.args_for(root, [
+                "--emergency-failover-autonomy",
+                "--controlled-verifier-contention",
+                "--max-selected-moves", "1",
+                "--user", "10.7.0.16",
+                "--source-egress", "1",
+                "--target-egress", "vless",
+                "--approved-packet-id", "packet",
+                "--approved-operation-id", "operation",
+                "--approved-selected-move-hash", "move",
+                "--approved-authority-generation", "authority",
+                "--approved-breaker-generation", "breaker",
+                "--approved-source-bundle-hash", "source-bundle",
+                "--approved-snapshot-bundle-hash", "snapshot-bundle",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {"user_ip": "10.7.0.16", "current_egress": "1", "recommended_egress": "vless"}
+            scope = planner._exact_controlled_verifier_scope([move])
+
+        self.assertTrue(scope["ok"])
+        self.assertEqual(scope["reasons"], [])
+        self.assertEqual(scope["fresh_user_source"], "1")
+        self.assertFalse(scope["source_enabled"])
+        self.assertEqual(scope["source_state"], "maintenance")
+
     def test_execution_control_open_denies_apply_without_changing_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

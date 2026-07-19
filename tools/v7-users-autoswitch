@@ -773,7 +773,12 @@ class AutoswitchPlanner:
         for field in required_bindings:
             if not str(getattr(self.args, field, "") or ""):
                 reasons.append(f"controlled_verifier_{field}_missing")
-        fresh_users = {row.ip: row for row in self._load_users()}
+        # The exact controlled verifier must use the mutable runtime registry
+        # directly.  self.state is a diagnostic snapshot and can legitimately
+        # lag a just-completed certification setup; merging it through
+        # _load_users() would let stale snapshot fields override current owner
+        # truth during the final pre-apply gate.
+        fresh_users = {row.ip: row for row in self._load_runtime_registry_users()}
         fresh_egress = self._load_egress()
         user = fresh_users.get(requested_user)
         source = fresh_egress.get(requested_source)
@@ -4271,6 +4276,53 @@ class AutoswitchPlanner:
             ))
         return users
 
+    def _load_runtime_registry_users(self) -> list[User]:
+        """Read exact mutable user assignment truth without snapshot overlay."""
+        org_users = self._org_user_map()
+        users: list[User] = []
+        for row in parse_registry(self.state_dir / "users.registry"):
+            ip = str(row.get("ip", ""))
+            if not SAFE_IP_RE.match(ip):
+                continue
+            group = str(
+                row.get("group")
+                or row.get("org")
+                or row.get("organization")
+                or org_users.get(ip)
+                or self.org_policy.get("default_group")
+                or "default"
+            )
+            users.append(User(
+                ip=ip,
+                current=str(row.get("current", "")),
+                table=str(row.get("table", "")),
+                enabled=str(row.get("enabled", "1")) == "1",
+                group=group,
+                raw=dict(row),
+            ))
+        return users
+
+    def _load_operational_egress_states(self) -> dict[str, str]:
+        """Read dynamic egress state from the existing lifecycle owner."""
+        states: dict[str, str] = {}
+        path = self.state_dir / "egress-flags.state"
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except FileNotFoundError:
+            return states
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if not key.endswith("_state"):
+                continue
+            egress_id = key[:-len("_state")].strip()
+            state = value.strip().lower()
+            if egress_id and state in {"enabled", "maintenance", "disabled", "down"}:
+                states[egress_id] = state
+        return states
+
     def _org_user_map(self) -> dict[str, str]:
         mapping: dict[str, str] = {}
         explicit = self.org_policy.get("user_groups") or {}
@@ -4283,6 +4335,7 @@ class AutoswitchPlanner:
 
     def _load_egress(self) -> dict[str, Egress]:
         registry_rows = parse_registry(self.state_dir / "egress.registry")
+        operational_states = self._load_operational_egress_states()
         state_egress = self.state.get("egress") if isinstance(self.state.get("egress"), dict) else {}
         ids = sorted({str(row.get("id", "")) for row in registry_rows if row.get("id")} | set(state_egress.keys()))
         meta_all = self.org_policy.get("egress") or {}
@@ -4300,7 +4353,7 @@ class AutoswitchPlanner:
                 id=egress_id,
                 interface=str(meta.get("interface") or reg.get("interface") or live.get("interface") or ""),
                 enabled=str(reg.get("enabled", meta.get("enabled", "1"))) == "1" and not bool_value(meta.get("disabled")),
-                state=str(meta.get("state") or reg.get("state") or "enabled"),
+                state=str(operational_states.get(egress_id) or meta.get("state") or reg.get("state") or "enabled"),
                 role=roles[0] if roles else "GLOBAL_FAST",
                 roles=roles or ["GLOBAL_FAST"],
                 priority=to_int(meta.get("priority") or reg.get("priority") or 50, 50),
@@ -6711,7 +6764,9 @@ class AutoswitchPlanner:
         expires_at = str(lock.get("expires_at") or restore_barrier.get("clearance_expires_at") or "")
         if expires_at and parse_ts(expires_at) <= time.time():
             reasons.append("approved_plan_lock_expired")
-        users_by_ip = {user.ip: user for user in self._load_users()}
+        # Approved execution identity is checked against the mutable registry,
+        # not the lagging diagnostic snapshot used by ordinary planning.
+        users_by_ip = {user.ip: user for user in self._load_runtime_registry_users()}
         for move in selected:
             user = users_by_ip.get(move["user_ip"])
             if user is None:

@@ -42,6 +42,207 @@ Current CPS truth at plan creation:
 
 The terms `L7` and `L8` in this program are evidence-fidelity levels. They are not autonomy-ladder levels and must never be displayed or consumed as such.
 
+## Detailed continuation roadmap from the current calibration floor
+
+This roadmap is a dependency and consumer map, not a second live-state owner and not a fixed ceremonial queue. CPS continues to own activation, the exact next action and every legal terminal. The stages below must be dynamically compressed after every consumed result. A stage that is already closed by current owner-backed evidence becomes `MISSION_NOT_REQUIRED_ALREADY_CONSUMED`; a partially closed stage shrinks to its exact residual.
+
+Current owner-backed starting evidence:
+
+- five eligible L7 controlled Passports in immutable set `outset_428a4e2ff440ed64bde5cb56`;
+- immediate, 5m, 1h, steady-state and deterministic replay complete for the current set;
+- controlled-production presence and material-variation floor consumed;
+- exact remaining coverage cells: `rollback_and_no_rollback_present` and `natural_production_present`;
+- M6 and M7 remain `INSUFFICIENT_EVIDENCE`;
+- current action class remains `GOVERNED_ONLY`;
+- Production Maturity remains owner-recorded at `66.9/100`, Production Autonomy remains `0`;
+- the L7 controlled lane stops at `ENGINEERING_AUTHORITY` for one deliberate rollback condition;
+- the L8 natural lane is passively capture-ready and stops only at its lane-local `REAL_WORLD_LIMIT`.
+
+The current calibration floor does not prove representative sufficiency. Closing one missing cell does not automatically justify class approval, bounded autonomy, Runtime enablement or a Production Maturity increase.
+
+### Roadmap stage R0 — Canonical evidence-projection reconciliation
+
+Before an Authority request is dispatched, reconcile all current and legacy L7/L8 CPS projections against the latest consumed Passport set, report, opportunity denominator and M6/M7 verdict. This is a fail-closed pre-dispatch guard inside the current frontier, not a repetition of historical Mission 0.
+
+Required reconciliation includes the current material-outcome summary, Passport count, immutable eligibility-set identity, M1-M7 residuals, current-cycle report and terminal, exact missing cells, next reentry, forbidden effects and Authority recommendation. A legacy field that still describes the earlier one-Passport cycle must be updated or explicitly labelled historical; it must not remain machine-readable as current truth.
+
+Completion:
+
+- Section 0 and every current L7/L8 projection identify the same five-Passport set and the same two residual cells;
+- no historical one-Passport set can be selected by a current consumer;
+- truth and convergence pass without any production, Runtime, routing, user, Authority or maturity effect.
+
+### Roadmap stage R1 — Exact controlled rollback-condition Authority packet
+
+Prepare one independently reviewable Engineering Authority request for the exact missing L7 rollback-diversity cell. Polygon may select and validate the safest high-value design-time scenario, but the request must bind the existing Controlled Production Certification owner and must not create a reusable execution packet or lease before fresh admission.
+
+The request packet must contain:
+
+- exact action class and evidence cell;
+- existing certification-user/source contract and the selected subject class;
+- one named failure or verification condition and why it is the smallest sufficient condition;
+- maximum one user and one serial transaction;
+- exact source, target, protocol/channel and policy generation boundaries;
+- preconditions, freshness gates and source-binding fingerprints;
+- expected Situation, Decision Trace, alternatives and rollback trigger;
+- STOP_SAFE, abort, containment and cleanup conditions;
+- before/after, immediate, 5m, 1h and steady-state verification contract;
+- expected Passport fields, replay and Learning consumers;
+- short validity window, expiry, one-use identity and prohibition on implicit renewal;
+- explicit statement that rollback-failure injection, ordinary-customer experimentation, broader fault injection, Authority expansion and Runtime enablement are excluded.
+
+Completion: the independent Authority owner can return exactly `APPROVE_ONCE_AS_SCOPED`, `APPROVE_WITH_NARROWER_SCOPE`, `DENY`, or `EXPIRED`. Preparation itself performs no production mutation.
+
+### Roadmap stage R2 — Independent Authority decision and branch
+
+An approval is valid only for the exact R1 contract. General deploy consent, historical production approval, chat approval, an existing delegated policy or a previous experiment cannot substitute for this Engineering Authority decision.
+
+Branches:
+
+- `APPROVE_ONCE_AS_SCOPED` — continue to fresh production admission;
+- `APPROVE_WITH_NARROWER_SCOPE` — rebuild every affected precondition and hash before admission;
+- `DENY` — preserve `GOVERNED_ONLY`, record the exact reason and recalculate alternative safe L7 opportunities;
+- `EXPIRED` or source/policy/topology drift — invalidate the request and return to R1;
+- ambiguity or owner disagreement — `STOP_SAFE`.
+
+Approval of this experiment is not class approval and cannot be reused as standing fault-injection Authority.
+
+### Roadmap stage R3 — Fresh controlled-production admission
+
+After a valid R2 approval, reread CPS, policy, Authority, Safe Mode, certification-user eligibility, topology, source binding and rollback readiness. Only then create a fresh Situation, interpretation, Decision Trace, Candidate, Packet and serial execution lease through their existing owners.
+
+Design-time Polygon replay, dry-run and counterfactuals must run before the production boundary and remain Engineering Evidence. Admission must prove:
+
+- the exact approved condition is still reproducible and necessary;
+- the selected certification user is owner-authorized and no ordinary customer is used solely for evidence;
+- the current route and rollback target are known and fresh;
+- apply, verification, rollback, containment and cleanup owners are reachable;
+- duplicate or stale Candidate, Packet, lease and approval identities fail closed;
+- any condition outside the approved contract returns to R1/R2 instead of self-expanding scope.
+
+Completion: exactly one fresh bounded transaction is admitted, or the stage terminates without mutation at the exact failed gate.
+
+### Roadmap stage R4 — One bounded real rollback transaction
+
+Execute the admitted transaction only through the existing Controlled Production owner. The approved condition must exercise the real production decision, apply, verification and rollback owners; a simulation cannot earn L7 credit.
+
+Runtime contract:
+
+1. establish and persist the pre-state;
+2. activate only the exact approved controlled condition;
+3. execute at most one user and one serial transaction;
+4. require terminal activation acknowledgement;
+5. evaluate the pre-registered verification condition;
+6. invoke rollback only when the real owner-defined trigger is satisfied;
+7. verify restoration of user, route and service state;
+8. close the lease, packet, restore-barrier and operation identities through their existing owners;
+9. clean up the deliberate condition;
+10. finish in Admin Safe Mode `OPEN`, otherwise enter the existing fail-safe/incident path.
+
+Rollback success is the intended evidence target. Deliberately causing rollback itself to fail is outside this stage and requires a separate higher-risk Authority decision. If the trigger does not occur, the outcome is recorded honestly as no-rollback and the target cell remains open. If rollback fails or state becomes ambiguous, no optimistic evidence is granted; the action class is held or frozen according to the existing safety owner.
+
+### Roadmap stage R5 — Outcome Passport, temporal closure, replay and Learning
+
+The real transaction must produce one deterministic material Outcome Evidence Passport, not multiple evidence credits for its projections. The Passport must prove the correctness of the rollback decision, not merely the presence of a rollback command.
+
+Required closure:
+
+- exact cause and trigger provenance;
+- actual activation state and expected-versus-actual comparison;
+- unique operation, Candidate, Packet, lease, restore and rollback identities;
+- absence of double apply, duplicate rollback and stale-owner consumption;
+- immediate restoration and service verification;
+- delayed 5m, 1h and criterion-defined steady-state observations;
+- drift/exception classification;
+- deterministic replay from the bound snapshot;
+- Learning consumption and an owner-backed changed recommendation or explicit no-change;
+- invalidation bindings for later source, policy, topology, protocol, owner or verification changes.
+
+Production Learning remains advisory/shadow until independently approved. It may route a reproducible defect or improvement through BDP -> Candidate -> OMP -> implementation -> tests -> safe deploy -> production caller -> affected replay, but it may not directly mutate production thresholds, confidence floors, policy, Authority, user scope or Runtime enablement.
+
+Completion: the Passport becomes eligible only after every required horizon closes. A later contradiction suspends or invalidates the affected criterion without erasing history.
+
+### Roadmap stage R6 — M6 recalibration and representativeness decision
+
+Freeze a new immutable eligibility set and rerun M6 over the complete opportunity denominator. The calculation must include negative evidence, selected and non-selected opportunities, action/stay/STOP_SAFE decisions, dependence between Passports and diversity across result, rollback/no-rollback, failure class, source/target, protocol/channel, subject, confidence and time.
+
+Five Passports remain only a floor. One successful rollback may close `rollback_and_no_rollback_present`, but M6 must decide whether material correlation or a newly exposed coverage gap still makes the class insufficient. No synthetic score or manual Production Maturity edit is allowed.
+
+Completion: M6 emits one immutable eligibility set, the exact remaining cells and an owner-backed Learning/calibration decision.
+
+### Roadmap stage R7 — M7 Authority recommendation and automatic next frontier
+
+M7 consumes only the immutable R6 set and emits exactly one existing verdict: `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`, `RETAIN_CURRENT_SCOPE`, `RECOMMEND_NARROW_SCOPE`, `HOLD_GOVERNED_ONLY`, `FREEZE`, `DEMOTE_ACTION_CLASS`, or `INSUFFICIENT_EVIDENCE`.
+
+Branching law:
+
+- another safe controlled L7 cell remains — return to the smallest R1 preparation for that exact cell;
+- only natural representativeness remains — controlled lane becomes complete for the current matrix while L8 stays passively capture-ready;
+- `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL` — activate R8;
+- narrow, hold, freeze or demote — route the recommendation to the independent policy/Authority owner; the evidence producer performs no mutation;
+- insufficient evidence — retain `GOVERNED_ONLY` and exact reentry conditions.
+
+No repeated experiment is run ceremonially after its exact cell is consumed.
+
+### Roadmap stage R8 — Independent class-approval review
+
+This is existing Mission 8 and activates only after `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`. Prepare an immutable independent review packet containing the evidence set, opportunity denominator, calibration uncertainty, negative outcomes, approved action class, blast radius, source/target families, expiry, cooldown, rollback/demotion rules, Runtime-disabled state and dissenting/insufficient cells.
+
+The independent owner may approve, narrow, hold, reject or request more evidence. Approval is a separate Authority event; this program cannot infer it from the recommendation.
+
+### Roadmap stage R9 — Conditional bounded-autonomy certification program
+
+R9 is outside the current L7/L8 evidence program and must not activate unless R8 produces an independently approved class decision and CPS admits a new owner-backed program. It must reuse the existing Runtime, policy, verification, rollback, Learning, Production Maturity and OMP owners.
+
+The future bounded-autonomy certification must begin Runtime-disabled and prove, progressively:
+
+- advisory/shadow decision agreement;
+- fresh Candidate/Packet/lease and operation-scoped binding on every action;
+- one-user serial canary scope before any broader class envelope;
+- freshness, confidence, net-benefit, anti-flap and cooldown gates;
+- rollback/no-rollback and containment authority for the exact class;
+- circuit breaker, kill switch, Safe Mode and operator observability;
+- no self-expansion of users, concurrency, source/target family, failure class or policy generation;
+- complete Outcome Passports, temporal verification, replay and Learning for every material action and no-action opportunity.
+
+Completion can only recommend `CERTIFIED_FOR_BOUNDED_AUTONOMY`; it cannot enable Runtime by itself.
+
+### Roadmap stage R10 — Explicit policy and Runtime enablement
+
+Runtime automation may start only after a separate existing-owner approval binds the exact certified class, policy generation, blast radius, expiry, rollback/demotion rules and enablement mechanism. Code/config changes must pass tests, `tools/v7-safe-deploy`, a fresh non-test production caller, affected Polygon replay, truth, convergence and local/GitHub/production alignment.
+
+Initial enablement remains canary-bounded and reversible. Any stale binding, regression, unexplained mismatch, unsafe drift, rollback defect or evidence invalidation must automatically narrow, hold, freeze or disable the affected class through existing owners.
+
+### Roadmap stage R11 — Production-autonomy evolution by action class
+
+Production Autonomy is not a single global switch. Each action class evolves separately through representative real outcomes, natural-event evidence, negative cases, incident recovery, rollback/no-rollback diversity, drift handling, operator effectiveness and sustained observability. Expansion of users, concurrency, failure classes or source/target families requires a new evidence matrix and independent Authority decision.
+
+Production Maturity may increase only through its existing owner after real implementation, deployment, caller consumption, production outcomes, calibration and Authority decisions. Neither Polygon coverage nor one approved action class can directly produce `100%` or `PRODUCTION_AUTONOMY_CERTIFIED`.
+
+### Permanent parallel lane A — L8 natural-event capture and consumption
+
+Polygon must not manufacture an L8 event. It must keep the existing passive capture chain continuously ready and measurable across event discovery, Situation, Decision Trace, snapshots, selected/non-selected opportunity, `ACTION`, `STAY`, `STOP_SAFE`, `MISSED`, blocked and no-candidate classification, outcome, temporal observations, replay and Learning.
+
+Every qualifying natural event immediately enters the R5-R7 evidence consumer path. A lost, incomplete or misclassified event is an engineering defect and must automatically create the smallest BDP/OMP repair frontier through the last responsible existing owner. It is not a reason to create a second event store, watcher or queue.
+
+### Permanent parallel lane B — Polygon-driven engineering and automation
+
+The Permanent Polygon continuously derives owner-backed design-time obligations from capability gaps, code/dependency/policy/topology changes, CI failures, production mismatches, invalidations, controlled outcomes and natural outcomes. It may model failure, recovery, rollback, STOP_SAFE, counterfactuals, scale and protocol behavior, and it must return reproducible defects through the existing BDP -> Candidate -> OMP -> repair -> tests -> safe deploy -> production caller -> same/affected replay loop.
+
+Repeated safe manual preparation, capture, Passport completion, delayed observation, replay, recalibration and repair-routing steps must become candidates for automation through the same owner-backed lifecycle. Authority grant, deliberate production degradation, natural-event creation and silent policy expansion are never automatable side effects. The end of every consumed stage must atomically produce the next exact frontier or a legal lane-local terminal.
+
+### Roadmap-wide legal terminals
+
+- `STOP_SAFE` — ambiguous or unsafe current state;
+- `ENGINEERING_AUTHORITY` — exact deliberate controlled condition or engineering permission is missing;
+- `OPERATIONAL_AUTHORITY` — an actual production/policy operation exceeds the current execution contract;
+- `REAL_WORLD_LIMIT_NATURAL_LANE` — L8 capture is complete and only a genuine natural event is missing;
+- `INSUFFICIENT_EVIDENCE` — current evidence was consumed but does not justify progression;
+- `HOLD_GOVERNED_ONLY`, `FREEZE`, `RECOMMEND_NARROW_SCOPE`, `DEMOTE_ACTION_CLASS` — exact M7 safety/Authority terminals;
+- `MISSION_NOT_REQUIRED_ALREADY_CONSUMED` — current owner-backed evidence already closes the stage.
+
+No lane-local terminal may be reported as a global stop while independent Polygon engineering, repair, L7 preparation, L8 capture repair, evidence consumption or canonical reconciliation can safely continue.
+
 ## Discover, reuse, extend, implement decision
 
 ### Reuse unchanged
@@ -340,8 +541,8 @@ The cycle terminal does not assert L7 sufficiency, L8 sufficiency, class approva
 - direct Production Maturity score change;
 - relabelling synthetic, scenario, historical or controlled evidence as natural production evidence.
 
-## Initial Mission after plan approval
+## Historical initial Mission and current next action
 
-`V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_M0_CURRENT_STATE_RECONCILIATION_V1`
+Historical initial Mission `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_M0_CURRENT_STATE_RECONCILIATION_V1` is `COMPLETE_CONSUMED_READ_ONLY` and must not be rerun ceremonially.
 
-It is audit-only and read-only. It must shrink itself to the exact residual already not provided by the existing source inventory, Certification Passport and action-class reconciliation.
+At this plan revision, the current CPS next action is `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY`. R0 is its mandatory fail-closed canonical pre-dispatch reconciliation; R1 is the exact Authority-request preparation. CPS remains the sole owner of any later activation or change to that frontier.

@@ -259,6 +259,11 @@ def main(argv=None) -> int:
     event_dir = Path(args.event_dir)
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
+    # Run the nested live dry-run before loading the large evidence corpus so
+    # the parent and child processes do not retain both full inventories at once.
+    live_packet_discovery = {"status": "NOT_REQUESTED", "packet_preview": {}}
+    if args.discover_live_packet_preview:
+        live_packet_discovery = discover_live_packet_preview(args)
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     runtime_state = read_json(state_dir / "v7-state.json", {})
@@ -320,9 +325,6 @@ def main(argv=None) -> int:
             expected_material_outcomes=expected_material_outcomes,
             generated_at=payload.get("generated_at"),
         )
-    live_packet_discovery = {"status": "NOT_REQUESTED", "packet_preview": {}}
-    if args.discover_live_packet_preview:
-        live_packet_discovery = discover_live_packet_preview(args)
     capture_sources = [
         {
             "path": str(event_dir),

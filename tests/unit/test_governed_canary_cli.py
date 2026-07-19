@@ -113,6 +113,48 @@ class GovernedCanaryCliTest(unittest.TestCase):
             self.assertTrue(rows[-1]["delayed_1h_observation"])
             self.assertFalse(rows[-1]["runtime_mutation_performed"])
 
+    def test_due_delayed_observation_reuses_operation_closure_as_missing_trace_identity(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                "id=vless interface=tun0 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "user-10.7.0.16.assign").write_text("egress=vless\n", encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb-operation-trace",
+                "packet_id": "pkt-operation-trace",
+                "decision_id": "execfb-operation-trace",
+                "decision_trace_id": "",
+                "input_snapshot_identity": "snapshot-operation-trace",
+                "closure_reference": "govexec_operation_trace",
+                "user": "10.7.0.16",
+                "source_channel": "awg3",
+                "target_channel": "vless",
+                "terminal_outcome_classification": "SUCCESS",
+                "outcome_observed_at": "2026-07-19T00:00:00+00:00",
+                "selected_moves": [{"user": "10.7.0.16", "from": "awg3", "to": "vless"}],
+                "evidence_class": "CONTROLLED_PRODUCTION",
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            module.scoped_user_route_check = lambda _state, _user: {
+                "passed": True, "returncode": 0, "reason": "unit",
+            }
+
+            result = module.materialize_due_delayed_observations(
+                state_dir,
+                now=datetime(2026, 7, 19, 1, 1, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual(result["observations_written"], 1)
+            self.assertEqual(result["written"][0]["decision_trace_id"], "govexec_operation_trace")
+
     def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -170,7 +170,12 @@ def materialize_due_delayed_observations(
         packet_id = str(row.get("packet_id") or "")
         lease_matches = packet_id and packet_id == str(lease_identity.get("packet_id") or "")
         snapshot_identity = str(row.get("input_snapshot_identity") or "")
-        decision_trace_id = str(row.get("decision_trace_id") or row.get("decision_id") or "")
+        decision_trace_id = str(
+            row.get("decision_trace_id")
+            or row.get("closure_reference")
+            or row.get("decision_id")
+            or ""
+        )
         if lease_matches:
             snapshot_identity = snapshot_identity or str(
                 lease_identity.get("snapshot_bundle_hash") or lease_expected.get("snapshot_bundle_hash") or ""
@@ -1277,7 +1282,7 @@ def materialize_governed_transaction_feedback(
             closure_reference=str(operation.get("operation_id") or packet.get("operation_id") or packet_id),
             packet_id=packet_id,
             evidence_class=evidence_class,
-            decision_trace_id=str(packet.get("decision_id") or ""),
+            decision_trace_id=str(packet.get("decision_id") or packet.get("operation_id") or ""),
             input_snapshot_identity=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
             expected_terminal=terminal_outcome_classification,
         )

@@ -213,7 +213,7 @@ This section is the single live volatile current-state surface. Older production
 | `L7_L8_AE_MATERIAL_OUTCOMES` | `2 UNIQUE CURRENT-CLASS OUTCOMES BY OPERATION ID; ROLLBACK_SUCCESS runtime_autoswitch_592807059b2ddf3fd06becfc; SUCCESS runtime_autoswitch_fdec02d549a290a0bc1991a4` |
 | `L7_L8_AE_DUPLICATE_DECISION` | `PASS; cross-record projections collapsed by stable material identity; four unique passports retained and both CPS material identities matched exactly` |
 | `L7_L8_AE_CLOSURE_PROJECTION_STATUS` | `COMPLETE_CONSUMED_SUPPORTING_ONLY; both 10.7.0.5 awg0->vless CPS identities bound through existing Certification History owners; two different 10.7.0.17 projections remain separate supporting evidence` |
-| `L7_L8_AE_OPPORTUNITY_DENOMINATOR_STATUS` | `COMPLETE_CONSUMED_CURRENT_SNAPSHOT; 13473 stable identities: ACTION 4, BLOCKED 3, MISSED 5000, NO_CANDIDATE 8466, STAY 0, STOP_SAFE 0` |
+| `L7_L8_AE_OPPORTUNITY_DENOMINATOR_STATUS` | `COMPLETE_CONSUMED_CURRENT_SNAPSHOT_AT_2026-07-19T05:22:33.926757+00:00; 13473 stable identities: ACTION 4, BLOCKED 2, MISSED 5000, NO_CANDIDATE 8467, STAY 0, STOP_SAFE 0; one classification changed since the 05:04 snapshot without changing total coverage or terminal` |
 | `L7_L8_AE_M1_RESIDUAL` | `CLOSED_CURRENT_CYCLE; four stable passports, provenance, evidence/terminal class, completeness, freshness, eligibility, consumption and opportunity denominator consumed` |
 | `L7_L8_AE_M2_RESIDUAL` | `CONSUMED_EXACT_RESIDUAL; 0 temporally complete; delayed 5m/1h and steady-state observations absent; raw projections also lack immediate verification` |
 | `L7_L8_AE_M3_RESIDUAL` | `CONSUMED_EXACT_RESIDUAL; 0 replay-complete; Decision Trace ID, bound input snapshot identity and expected terminal absent` |

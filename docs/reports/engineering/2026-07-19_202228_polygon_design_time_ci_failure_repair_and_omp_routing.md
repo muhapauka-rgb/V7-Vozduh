@@ -45,12 +45,25 @@ Production Authority: `NONE`
 
 ## Финальная сертификация
 
-Implementation commit: `PENDING_FINAL_COMMIT`
-Safe deploy: `PENDING`
-Production non-test caller: `PENDING`
-GitHub exact updated workflow: `PENDING`
-Truth: `PENDING`
-Convergence: `PENDING`
-Local/GitHub/production snapshot: `PENDING`
+Implementation commits: `37d466f5a214cd6edfa886ce4c5f5035c0a737fd`, `d8816ae97e882715b7f4c207f6cd0e26fe2e3386`
 
-Final legal terminal: `PENDING_POST_COMMIT_DEPLOY_CALLER_AND_ALIGNMENT`
+Safe deploy: `PASS`, `deploy-z8-14-Updatesystem-d8816ae-20260719T213950`; manifest изменил только `tools/v7_sync_lib.py` и `tools/v7-truth-check`, service restart не требовался.
+
+Production non-test caller: `PASS`; deployed entrypoint `--omp-polygon-ci-failure-repair-production-certification` связал выполнение с runtime fingerprint `d8816ae9`, вызвал `OMP_CANDIDATE_ADMISSION`, получил два раздельных deterministic frontier и exact next output `EXECUTE_ADMITTED_OMP_REPAIR_MISSIONS_THEN_REPLAY_SAME_GATE`.
+
+GitHub exact updated workflow: `PASS`, run `29690733762`; semantic-selective gate, forbidden-effects verification и evidence upload зелёные, failure handler законно пропущен.
+
+Tests: полный repository suite `1487/1487 PASS`; актуальный design-time suite `17/17 PASS`; truth-check suite `25/25 PASS`.
+
+Truth: `PASS / FULLY_ALIGNED`; Convergence: `PASS / ALIGNED`; deploy delta mismatches: `0`; local/GitHub/production implementation snapshot: `d8816ae97e882715b7f4c207f6cd0e26fe2e3386`.
+
+## Текущий законный frontier продукта
+
+CI defect и его автономная OMP-маршрутизация закрыты. Это не закрывает целиком L7/L8 и не повышает Authority или Production Maturity.
+
+- L7 controlled lane: `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY`;
+- L8 natural lane: passive capture ready, qualifying natural event не создаётся искусственно;
+- CAP-U07: `PARTIAL`, protected WIP сохранён;
+- Runtime/routing/user/packet/restore-barrier/rollback apply: `NONE`.
+
+Final legal terminal: `EXACT_RED_GATE_REPAIRED_CI_FAILURE_ROUTED_TO_OMP_PRODUCTION_CALLER_CERTIFIED_AND_FULLY_ALIGNED`

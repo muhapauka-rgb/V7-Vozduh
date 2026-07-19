@@ -156,7 +156,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
     def test_19_stale_current_looking_fields_are_zero(self):
         self.assertEqual(self.validate(self.cps)["stale_live_projection_count"], 0)
 
-    def test_20_no_packet_lease_barrier_apply_or_user_movement(self):
+    def test_20_no_current_packet_or_lease_and_completed_bounded_effect_is_explicit(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
@@ -164,8 +164,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(live["CONTROLLED_RUN_AUTHORITY_GENERATION"].strip("`"), "POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED")
         self.assertTrue(live["CONTROLLED_RUN_ROLLBACK_MANIFEST"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("NONE"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
+        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("ONE_BOUNDED_CONTROLLED_TRANSACTION_COMPLETE"))
+        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES; exactly one owner-authorized bounded controlled user movement"))
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_21_approved_policy_with_packet_approval_required_fails(self):

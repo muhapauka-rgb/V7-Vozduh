@@ -1,0 +1,50 @@
+{
+  "schema": "v7.controlled-rollback-r1-v3-terminal.v1",
+  "request_id": "engauth_r1_5ecff8aa38fd049d142a030a",
+  "request_contract_hash": "5ecff8aa38fd049d142a030a4d6e72269ce1767d245aa6b265d22558ca2cbd22",
+  "request_consumed_once": true,
+  "packet_id": "pkt_preview_132c81677ac5ab56b38ef8a7",
+  "operation_id": "govdry_2461ff1a39082df93931c814",
+  "transaction_nonce": "fa06763fb1a6a2b09e124c8a9c652d984bc15b1085fea333",
+  "terminal": "CONSUMED_STOP_SAFE_BEFORE_APPLY",
+  "apply_executed": false,
+  "users_moved": 0,
+  "rollback_attempted": false,
+  "l7_evidence_created": false,
+  "blocker_reasons": [
+    "approved_plan_lock_incident_source_mismatch",
+    "approved_plan_lock_user_source_mismatch"
+  ],
+  "blocker_fingerprint": "d5a3338f8023562d9d803231eaf035d99d13c6aea0eaa528c552650b6a06cad1",
+  "controlled_verifier_subreasons": [
+    "controlled_verifier_source_not_deliberately_unavailable",
+    "controlled_verifier_user_not_on_source"
+  ],
+  "exact_cleanup": {
+    "final_verdict": "CONTROLLED_CERTIFICATION_CLEANUP_COMPLETE",
+    "evidence_class": "ENGINEERING_CLEANUP_NOT_L7_EVIDENCE",
+    "certification_user": "10.7.0.16",
+    "restored_initial_egress": "vless",
+    "controlled_source_restored": true,
+    "safe_mode": "OPEN"
+  },
+  "repair": {
+    "commit": "88ec9ab1e2009de6454fe465f033b84b7957bd1a",
+    "deploy_id": "deploy-z8-14-Updatesystem-88ec9ab-20260720T023152",
+    "production_binary_sha256": "6137f9cd482cec992e669f55efba998d54b3c43ff707e4b3baf0f229a63f30db",
+    "tests_passed": 249,
+    "manifest_changed_runtime_files": [
+      "tools/v7-users-autoswitch"
+    ],
+    "forbidden_deploy_effects": false
+  },
+  "automatic_continuation": {
+    "standing_policy_id": "engrepair_fe6a2c49ae391f397330274a",
+    "prior_approval_reused": false,
+    "fresh_v3_was_automatically_admitted": true,
+    "fresh_v4_automatically_admitted": false,
+    "stop_reason": "SAME_BLOCKER_FINGERPRINT_RECURRED_AFTER_REPAIR"
+  },
+  "authority_expanded": false,
+  "production_maturity_changed": false
+}

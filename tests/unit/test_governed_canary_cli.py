@@ -915,6 +915,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertNotEqual(result.get("stop_reason"), "autonomous_execution_control_denied_pre_lease")
         self.assertEqual(result["safe_mode_final_state"], "OPEN")
+        rebound_envelope = result["l3_plan_run"]["payload"]["safety"]["atomic_execution_envelope"]
+        self.assertTrue(rebound_envelope["envelope_id"].startswith("aee_"))
+        self.assertEqual(rebound_envelope["selected_move_count"], 1)
 
     def test_controlled_certification_scope_requires_both_existing_owner_markers(self):
         module = load_cli_module()

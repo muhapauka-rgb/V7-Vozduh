@@ -1501,6 +1501,12 @@ def attach_l3_operation_scoped_binding(
     atomic["source_bundle_hash"] = str(binding.get("source_bundle_hash") or "")
     atomic["snapshot_bundle_hash"] = str(binding.get("snapshot_bundle_hash") or "")
     atomic["operation_scoped_binding"] = binding
+    rebound = operator_execution.selected_moves_from_plan(plan)
+    atomic["envelope_id"] = str(rebound.get("atomic_execution_envelope_id") or "")
+    atomic["envelope_hash"] = str(rebound.get("atomic_execution_envelope_hash") or "")
+    atomic["runtime_snapshot_hash"] = str(rebound.get("runtime_snapshot_hash") or "")
+    atomic["selected_move_hash"] = str(rebound.get("selected_move_hash") or "")
+    atomic["selected_move_count"] = int(rebound.get("selected_move_count") or 0)
     return binding
 
 

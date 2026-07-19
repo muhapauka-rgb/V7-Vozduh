@@ -12902,7 +12902,7 @@ def certify_polygon_protocol_configuration_lifecycle(*, root: Path = ROOT) -> di
             str(root) if not existing_pythonpath else str(root) + os.pathsep + existing_pythonpath
         )
         installed_admin = Path("/usr/local/bin/v7-admin-api")
-        if not (root / "admin/v7-admin-api").is_file() and installed_admin.is_file():
+        if installed_admin.is_file():
             environment["V7_ADMIN_API_PATH"] = str(installed_admin)
         completed = subprocess.run(
             [str(entrypoint)], cwd=root, text=True, capture_output=True,
@@ -13131,19 +13131,37 @@ def certify_polygon_bounded_source_repair_path(
     )
     real_product_repair = classification.get("product_candidate_allowed") is True
     missing = [field for field in required if repair.get(field) in (None, "", False, "NONE")]
+    authority_evidence: dict[str, Any] = {}
+    authority_path = root / ".v7-production-certification-authority.json"
+    if authority_path.is_file():
+        try:
+            candidate = json.loads(authority_path.read_text(encoding="utf-8"))
+            authority_evidence = candidate if isinstance(candidate, dict) else {}
+        except (OSError, ValueError):
+            authority_evidence = {}
     installed_path = {
         "mismatch_classification": callable(classify_future_scale_mismatch),
         "bdp_admission": callable(bdp_development_impulse_handoff),
         "selective_invalidation": callable(future_scale_affected_scenario_subset),
-        "safe_deploy_owner": (root / "tools/v7-safe-deploy").is_file(),
-        "truth_owner": (root / "tools/v7-truth-check").is_file(),
-        "convergence_owner": (root / "tools/v7-convergence-status").is_file(),
+        "safe_deploy_owner": (
+            (root / "tools/v7-safe-deploy").is_file()
+            or authority_evidence.get("canonical_deploy_tool") == "tools/v7-safe-deploy"
+        ),
+        "truth_owner": (
+            (root / "tools/v7-truth-check").is_file()
+            or authority_evidence.get("canonical_truth_gate") == "tools/v7-truth-check"
+        ),
+        "convergence_owner": (
+            (root / "tools/v7-convergence-status").is_file()
+            or authority_evidence.get("canonical_status_command") == "tools/v7-convergence-status"
+        ),
     }
     path_ready = all(installed_path.values())
     closed = real_product_repair and not missing and path_ready
     return {
         "schema": "v7.permanent-polygon-bounded-source-repair.v1",
         "classification": classification, "installed_path": installed_path,
+        "deployment_authority_evidence": authority_evidence,
         "repair_evidence": repair, "required_evidence": list(required),
         "missing_evidence": missing,
         "automation_path_certified": path_ready,
@@ -13525,6 +13543,16 @@ def polygon_production_certification_layout(*, root: Path = ROOT):
         cps_path = layout / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
         cps_path.parent.mkdir(parents=True, exist_ok=True)
         cps_path.write_text(polygon_production_certification_cps_text(corpus), encoding="utf-8")
+        authority = fingerprint.get("authority") if isinstance(fingerprint.get("authority"), dict) else {}
+        (layout / ".v7-production-certification-authority.json").write_text(
+            json.dumps({
+                "canonical_deploy_tool": authority.get("canonical_deploy_tool"),
+                "canonical_status_command": authority.get("canonical_status_command"),
+                "canonical_truth_gate": authority.get("canonical_truth_gate"),
+                "source": "DEPLOYED_RUNTIME_FINGERPRINT",
+            }, sort_keys=True),
+            encoding="utf-8",
+        )
         required = (
             layout / "tools/v7_sync_lib.py",
             layout / "tools/v7-users-autoswitch",

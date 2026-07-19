@@ -259,6 +259,11 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
                 "schema": "v7-runtime-fingerprint/v1", "commit": "b" * 40,
                 "deploy_id": "deploy-test", "critical_files": rows,
                 "snapshot_subsystem": {"refresh_cli": "none", "required_files": ["none"]},
+                "authority": {
+                    "canonical_deploy_tool": "tools/v7-safe-deploy",
+                    "canonical_status_command": "tools/v7-convergence-status",
+                    "canonical_truth_gate": "tools/v7-truth-check",
+                },
             }), encoding="utf-8")
             with self.lib.polygon_production_certification_layout(root=runtime) as layout:
                 self.assertEqual(layout["final_verdict"], "PASS")
@@ -266,6 +271,8 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
                 cps = (layout["root"] / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
                 self.assertIn("SCENARIO_COVERED_COUNT` | `64", cps)
                 self.assertTrue((layout["root"] / "docs/reference/V7_RUNTIME_MODEL.md").is_file())
+                repair = self.lib.certify_polygon_bounded_source_repair_path(root=layout["root"])
+                self.assertEqual(repair["final_verdict"], "PASS")
 
 
 if __name__ == "__main__":

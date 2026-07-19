@@ -1441,6 +1441,24 @@ def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: di
     }
 
 
+def packet_materialization_authority(
+    *,
+    delegated_mode: bool,
+    setup_mode: bool,
+    delegated_admission: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Return only authority contracts understood by the canonical packet owner.
+
+    Controlled-certification setup is explicitly operator-authorized and keeps
+    the packet owner's existing dual-confirmation contract.  It must not be
+    mislabeled as delegated autonomy merely to share the same execution path.
+    """
+    if delegated_mode and not setup_mode:
+        authority = delegated_admission.get("authority")
+        return authority if isinstance(authority, dict) and authority else None
+    return None
+
+
 def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
@@ -1850,7 +1868,11 @@ def _execute_governed_transaction_with_guards_inner(
             ttl_seconds=args.ttl_seconds,
             breaker_generation=str(preflight_control.get("generation") or ""),
             require_execution_binding=True,
-            delegated_policy_authority=(delegated_admission.get("authority") if (delegated_mode or setup_mode) else None),
+            delegated_policy_authority=packet_materialization_authority(
+                delegated_mode=delegated_mode,
+                setup_mode=setup_mode,
+                delegated_admission=delegated_admission,
+            ),
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))

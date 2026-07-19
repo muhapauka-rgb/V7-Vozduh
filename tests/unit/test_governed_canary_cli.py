@@ -19,6 +19,24 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_controlled_setup_keeps_operator_packet_approval_contract(self):
+        module = load_cli_module()
+        admission = {"authority": {"authority_basis": "OPERATOR_ENGINEERING_AUTHORITY"}}
+
+        setup_authority = module.packet_materialization_authority(
+            delegated_mode=False,
+            setup_mode=True,
+            delegated_admission=admission,
+        )
+        delegated_authority = module.packet_materialization_authority(
+            delegated_mode=True,
+            setup_mode=False,
+            delegated_admission={"authority": {"authority_basis": "DELEGATED_AUTONOMY_POLICY"}},
+        )
+
+        self.assertIsNone(setup_authority)
+        self.assertEqual(delegated_authority["authority_basis"], "DELEGATED_AUTONOMY_POLICY")
+
     def test_controlled_setup_admits_only_historical_dedicated_identity_and_empty_source(self):
         module = load_cli_module()
         selection = module.controlled_certification_setup_selection(

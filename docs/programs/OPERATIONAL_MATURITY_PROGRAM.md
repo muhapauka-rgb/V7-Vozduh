@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.43`
+Version: `4.44`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-19_232830_l7_l8_r0_reconciliation_and_r1_authority_request.md` (`R1_EXACT_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_PREPARED`).
-Previous consumed report: `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md` (`POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY`).
+Latest consumed report: `docs/reports/engineering/2026-07-20_011000_l7_l8_r2_consumed_stop_safe_and_r1_v2_reissue.md` (`R2_CONSUMED_STOP_SAFE_BEFORE_APPLY_R1_V2_REQUEST_PREPARED`).
+Previous consumed report: `docs/reports/engineering/2026-07-19_232830_l7_l8_r0_reconciliation_and_r1_authority_request.md` (`R1_EXACT_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_PREPARED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -67,6 +67,8 @@ V4.41 consumes the Polygon-driven L7 calibration floor without converting it int
 V4.42 closes the notification-only failure gap in the existing design-time Polygon workflow. A failed `semantic-selective-gate` remains red, while its exact workflow/job/step/run/head/log fingerprint is classified and routed through the existing mismatch classifier, BDP Reality Gate and `OMP_CANDIDATE_ADMISSION`. Each distinct producer-consumer defect becomes its own deterministic repair frontier, so product regressions cannot absorb harness/binding defects and repeated runs retain stable identity. The GitHub artifact is engineering evidence, never a registry or live truth owner; CPS remains authoritative. Replaying the already-consumed L7 calibration finalizer with the exact same Mission/report/nonce/generation is also an idempotent `ALREADY_APPLIED_NO_CHANGE`; a conflicting identity still fails closed. The handler creates no watcher, queue, daemon, Runtime, routing, user, Authority or Production Maturity effect and never weakens, skips or converts the failed gate to green.
 
 V4.43 consumes the mandatory R0 canonical projection reconciliation and prepares one exact R1 Engineering Authority request for the remaining controlled rollback-diversity cell. The packet binds one designated certification user, the existing controlled WireGuard source, one vless target, one serial transaction, a real source-failure Candidate, the existing service-matrix lifecycle/verifier, the normal verifier-triggered rollback branch, complete restoration, temporal verification, Passport, replay, Learning and M6/M7 consumers. Its hash, expiry and one-use law prevent implicit renewal or scope drift. Preparation grants no production mutation: R2 remains an independent `ENGINEERING_AUTHORITY` terminal and only its exact unexpired verdict may activate R3.
+
+V4.44 consumes the exact one-use R2 as `STOP_SAFE_BEFORE_APPLY`, without treating governance admission, setup or cleanup as an L7 material outcome. The approval, Packet and lease are non-reusable. The two last-responsible binding defects are repaired through their existing owners and safely deployed: all controlled execution gates use the approved `EMERGENCY_FAILOVER` class, and the low-level control decision rereads the canonical selected-move hash after approved-lock rehydration. Exact cleanup restores the designated certification subject and remains Engineering Evidence only. Because the rollback/no-rollback cell is still open, OMP prepares a new independently decidable R1 v2 contract; no retry, production mutation, Authority expansion or maturity credit follows from this program update.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7854,8 +7856,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `DECIDE_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_engauth_r1_33cc5e04f86c20ff0607f7db`
-Resolved packet: `engauth_r1_33cc5e04f86c20ff0607f7db`; preparation-only, unconsumed, expires `2026-07-20T03:30:00+07:00`
+Resolved current next action: `DECIDE_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_engauth_r1_f89460c18394f8fee79c9724`
+Resolved packet: `engauth_r1_f89460c18394f8fee79c9724`; preparation-only, unconsumed, expires `2026-07-20T05:10:00+07:00`; prior request is consumed and non-reusable
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8842,9 +8844,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `DECIDE_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_engauth_r1_33cc5e04f86c20ff0607f7db`
-Latest consumed report: `docs/reports/engineering/2026-07-19_232830_l7_l8_r0_reconciliation_and_r1_authority_request.md`
-Previous consumed report: `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md`
+Resolved current next action: `DECIDE_CONTROLLED_ROLLBACK_AUTHORITY_REQUEST_engauth_r1_f89460c18394f8fee79c9724`
+Latest consumed report: `docs/reports/engineering/2026-07-20_011000_l7_l8_r2_consumed_stop_safe_and_r1_v2_reissue.md`
+Previous consumed report: `docs/reports/engineering/2026-07-19_232830_l7_l8_r0_reconciliation_and_r1_authority_request.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

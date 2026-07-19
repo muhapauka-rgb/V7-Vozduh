@@ -554,8 +554,10 @@ The effects below are forbidden unless CPS explicitly activates the applicable M
 - direct Production Maturity score change;
 - relabelling synthetic, scenario, historical or controlled evidence as natural production evidence.
 
-## Historical initial Mission and current next action
+## Historical execution milestone and live-state ownership
 
 Historical initial Mission `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_M0_CURRENT_STATE_RECONCILIATION_V1` is `COMPLETE_CONSUMED_READ_ONLY` and must not be rerun ceremonially.
 
-At this plan revision, the current CPS next action is `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY`. R0 is its mandatory fail-closed canonical pre-dispatch reconciliation; R1 is the exact Authority-request preparation. CPS remains the sole owner of any later activation or change to that frontier.
+The first exact R1 request was independently approved and its one-use R2 was consumed. The admitted transaction stopped safely before forward apply, created no L7 material outcome and cannot be retried under that approval. Its responsible execution-control bindings were repaired and safely deployed, exact cleanup restored the certification subject, and a distinct R1 v2 request was prepared for a new independent decision. This is a historical milestone, not live scheduling state.
+
+CPS remains the sole owner of the current request, activation state, frontier and exact next action. This plan must not be used to infer that R2, R3 or R4 is currently authorized.

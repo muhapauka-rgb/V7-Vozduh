@@ -1,0 +1,81 @@
+{
+  "schema_version": "v7.controlled-rollback-r2-consumed-stop-safe-evidence.v1",
+  "captured_at": "2026-07-20T01:10:00+07:00",
+  "request_id": "engauth_r1_33cc5e04f86c20ff0607f7db",
+  "contract_hash": "33cc5e04f86c20ff0607f7dbde8c86267e89ff5f91d87a1503b9b6e80bf13016",
+  "decision": "APPROVE_ONCE_AS_SCOPED",
+  "consumption": {
+    "record_type": "engineering_authority_consumed",
+    "record_hash": "c7fa115988379056d6af77cbedde5a167ecbc5389c3d5e217c7a66ed7a714ba7",
+    "created_at": "2026-07-19T18:01:25.134518+00:00",
+    "operation_id": "govdry_fee4612f0d70d26f573b6589",
+    "packet_id": "pkt_preview_90ee9b46e1247a1ba8c56313",
+    "execution_lease_id": "execlease_08682ad481af6e9bef0ca604",
+    "one_use": true,
+    "retry_allowed": false
+  },
+  "transaction_terminal": {
+    "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+    "transaction_status": "STOP_SAFE",
+    "terminal_reason": "autonomous_execution_control_stop_safe",
+    "apply_executed": false,
+    "runtime_mutation_performed": false,
+    "users_moved": 0,
+    "verification_result": "NOT_RUN",
+    "rollback_attempted": false,
+    "rollback_result": "NOT_REQUIRED",
+    "l7_outcome_passport_created": false,
+    "l7_evidence_earned": false
+  },
+  "stop_safe_blockers": [
+    "execution_control_action_class_mismatch",
+    "execution_control_selected_move_hash_mismatch"
+  ],
+  "bound_identity": {
+    "user": "10.7.0.16",
+    "source": "wireguard-1779454504-c43409",
+    "target": "vless",
+    "approved_action_class": "single-user governed candidate failover",
+    "runtime_verifier_action_class": "EMERGENCY_FAILOVER",
+    "approved_selected_move_hash": "ec18bc6e0b9109fe76b5f4bc468859d1e2c4cbf5e61e402c3a9d3482cc2b537e",
+    "runtime_pre_rehydration_selected_move_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "condition_owner_result": {
+    "service_matrix_refresh_status": "LOCK_TIMEOUT",
+    "refresh_acquired_lock": false,
+    "refresh_elapsed_sec": 5.019,
+    "registered_verifier_trigger_reached": false
+  },
+  "cleanup": {
+    "final_verdict": "CONTROLLED_CERTIFICATION_CLEANUP_COMPLETE",
+    "evidence_class": "ENGINEERING_CLEANUP_NOT_L7_EVIDENCE",
+    "user": "10.7.0.16",
+    "restored_egress": "vless",
+    "route_table_1014": "default dev tun0 scope link",
+    "controlled_source_state": "enabled",
+    "safe_mode": "OPEN",
+    "users_moved": 1,
+    "rollback_attempted": false
+  },
+  "repairs": {
+    "commit": "c299dbf3acd912aa10fc78b04d8379bb63fc9504",
+    "deploy_id": "deploy-z8-14-Updatesystem-c299dbf-20260720T010811",
+    "changed_runtime_owners": [
+      "tools/v7-users-autoswitch",
+      "tools/v7-governed-canary-dry-run-cycle"
+    ],
+    "tests_passed": 245,
+    "production_execution_retried": false
+  },
+  "production_artifact_hashes": {
+    "/tmp/v7-r4-main.json": "d48b61d2b0949a44a5e8905c09f753cd02c490a1a3190b06c0955da4dc7d5102",
+    "/tmp/v7-r4-cleanup.json": "a88bf5d2c7efd3c472fd211b51b7d5d4a3486aba43e26348e7004863d7535117",
+    "/tmp/v7-r4-refresh.json": "7fb872b477c2938097470e79ba81568c04401b05fe01b67339cb082b90fa02db"
+  },
+  "next_request": {
+    "request_id": "engauth_r1_f89460c18394f8fee79c9724",
+    "contract_hash": "f89460c18394f8fee79c97244cb875fbbded2c14d8d46948b499e986ad270c22",
+    "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+    "previous_request_reuse_forbidden": true
+  }
+}

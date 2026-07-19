@@ -28,8 +28,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertFalse(inactive["emergency_failover_autonomy"])
         self.assertEqual(inactive["service_matrix_lock_timeout_sec"], 90)
+        self.assertFalse(inactive["controlled_verifier_contention"])
         self.assertTrue(active["emergency_failover_autonomy"])
         self.assertEqual(active["service_matrix_lock_timeout_sec"], 5)
+        self.assertTrue(active["controlled_verifier_contention"])
         self.assertEqual(module.controlled_engineering_action_class({}), "USER_SWITCH")
         self.assertEqual(
             module.controlled_engineering_action_class({"request_id": "engauth_r1_test"}),
@@ -70,6 +72,38 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(selected["selected_candidate"]["target"], "vless")
         self.assertEqual(unsafe["selection_status"], "STOP_SAFE")
         self.assertIn("engineering_authority_controlled_source_not_activated", unsafe["blockers"])
+
+    def test_distinct_engineering_requests_produce_distinct_packet_and_operation_identities(self):
+        module = load_cli_module()
+        users = [{"ip": "10.7.0.16", "current": "controlled-source", "certification_user": "1"}]
+        egress = [
+            {"id": "controlled-source", "interface": "wg-test", "enabled": "0", "controlled_certification_source": "1"},
+            {"id": "vless", "interface": "tun0", "enabled": "1"},
+        ]
+
+        def preview(request_id):
+            request = {
+                "request_id": request_id,
+                "contract_hash": "contract-" + request_id,
+                "subject": {"user_ip": "10.7.0.16", "certification_user": True, "ordinary_customer": False},
+                "scope": {
+                    "source_egress": "controlled-source", "source_interface": "wg-test",
+                    "target_egress": "vless", "target_interface": "tun0",
+                },
+                "controlled_condition": {"name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION"},
+            }
+            selection = module.controlled_engineering_authority_selection(request=request, users=users, egress=egress)
+            surface = module.merge_a4_gap_candidate_into_surface({}, selection)
+            surface["controlled_execution_source_hashes"] = {"request": selection["source_hash"]}
+            surface["controlled_execution_snapshot_bundle_hash"] = "snapshot-test"
+            return module.operator_execution_pipeline.governed_canary_knowledge_gated_dry_run_cycle(
+                events=[], decision_surface=surface, max_users=1,
+            )["packet_preview"]
+
+        first = preview("engauth_r1_first")
+        second = preview("engauth_r1_second")
+        self.assertNotEqual(first["packet_id"], second["packet_id"])
+        self.assertNotEqual(first["operation_id"], second["operation_id"])
 
     def test_controlled_setup_keeps_operator_packet_approval_contract(self):
         module = load_cli_module()

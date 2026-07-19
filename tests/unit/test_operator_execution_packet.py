@@ -20,6 +20,7 @@ from admin_core.operator_execution import (
     create_execution_lease_from_packet,
     create_execution_lease_from_preview,
     engineering_authority_binding_from_preview,
+    engineering_authority_repair_continuation_policy_hash,
     execute_packet,
     execution_lease_state,
     extract_packet_preview,
@@ -38,6 +39,7 @@ from admin_core.operator_execution import (
     sha256_file,
     sha256_json,
     write_execution_lease,
+    validate_engineering_authority_repair_continuation,
 )
 
 
@@ -685,6 +687,101 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 expected_request_id=request["request_id"],
                 expected_contract_hash=request["contract_hash"],
             )
+
+    def test_repair_continuation_policy_issues_fresh_one_use_decision_only_after_verified_preapply_stop(self):
+        request = self.engineering_authority_request()
+        request.update({
+            "program_id": "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1",
+            "action_class": "single-user governed candidate failover",
+            "current_commit": "repair-commit",
+        })
+        request["subject"].update({"user_ip": "10.7.0.16"})
+        request["scope"].update({
+            "max_material_outcomes": 1,
+            "source_egress": "controlled-source",
+            "source_interface": "wg-test",
+            "source_protocol": "wireguard",
+            "target_interface": "tun0",
+            "target_protocol": "vless",
+        })
+        request["controlled_condition"].update({
+            "rollback_failure_injection": False,
+            "direct_rollback_invocation_for_evidence": False,
+        })
+        exact_scope = {
+            "program_id": request["program_id"],
+            "action_class": request["action_class"],
+            "evidence_cell": request["evidence_cell"],
+            "user_ip": "10.7.0.16",
+            "certification_user": True,
+            "ordinary_customer": False,
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "max_material_outcomes": 1,
+            "source_egress": "controlled-source",
+            "source_interface": "wg-test",
+            "source_protocol": "wireguard",
+            "target_egress": "vless",
+            "target_interface": "tun0",
+            "target_protocol": "vless",
+            "policy_id": request["scope"]["policy_id"],
+            "policy_scope_hash": request["scope"]["policy_scope_hash"],
+            "controlled_condition": request["controlled_condition"]["name"],
+            "rollback_failure_injection": False,
+            "direct_rollback_invocation_for_evidence": False,
+        }
+        policy = {
+            "schema": "v7.controlled-rollback-repair-continuation-policy.v1",
+            "status": "APPROVED_EXACT_SCOPE_REPAIR_CONTINUATION",
+            "allowed_decision": "APPROVE_ONCE_AS_SCOPED",
+            "fresh_request_required": True,
+            "approval_reuse_allowed": False,
+            "background_runtime_allowed": False,
+            "self_expansion_allowed": False,
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "exact_scope": exact_scope,
+        }
+        policy_hash = engineering_authority_repair_continuation_policy_hash(policy)
+        policy["policy_hash"] = policy_hash
+        policy["policy_id"] = "engrepair_" + policy_hash[:24]
+        request["previous_consumed_request"] = {
+            "request_id": "engauth_r1_consumed",
+            "terminal": "CONSUMED_STOP_SAFE_BEFORE_APPLY",
+            "apply_executed": False,
+            "users_moved": 0,
+            "rollback_attempted": False,
+            "cleanup_result": "PASS_EXACT_PRESTATE_RESTORED",
+            "blocker_fingerprint": "blocker-new",
+            "repair_commit": "repair-commit",
+            "repair_deploy_id": "deploy-repair",
+            "repair_tests_passed": True,
+            "truth_convergence_aligned": True,
+            "reuse_forbidden": True,
+        }
+        request["automatic_reissue"] = {
+            "policy_id": policy["policy_id"],
+            "policy_hash": policy["policy_hash"],
+            "previous_request_id": "engauth_r1_consumed",
+            "fresh_request": True,
+            "reuses_previous_approval": False,
+            "prior_repaired_blocker_fingerprints": [],
+        }
+        request.pop("request_id", None)
+        request.pop("contract_hash", None)
+        contract_hash = sha256_json(request)
+        request["contract_hash"] = contract_hash
+        request["request_id"] = "engauth_r1_" + contract_hash[:24]
+
+        allowed = validate_engineering_authority_repair_continuation(policy, request)
+        request["automatic_reissue"]["prior_repaired_blocker_fingerprints"] = ["blocker-new"]
+        denied = validate_engineering_authority_repair_continuation(policy, request)
+
+        self.assertTrue(allowed["ok"])
+        self.assertEqual(allowed["decision"], "APPROVE_ONCE_AS_SCOPED")
+        self.assertFalse(allowed["approval_reused"])
+        self.assertFalse(denied["ok"])
+        self.assertIn("engineering_authority_repair_same_blocker_recurred", denied["errors"])
 
     def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
         with tempfile.TemporaryDirectory() as tmp:

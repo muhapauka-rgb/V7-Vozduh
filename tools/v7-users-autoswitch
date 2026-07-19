@@ -741,6 +741,185 @@ class AutoswitchPlanner:
         self._routing_intelligence_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
         self._active_execution_control: dict[str, Any] = {}
 
+    def _exact_controlled_verifier_scope(self, selected_moves: list[dict[str, Any]]) -> dict[str, Any]:
+        requested_user = str(getattr(self.args, "user", "") or "").strip()
+        requested_source = str(getattr(self.args, "source_egress", "") or "").strip()
+        requested_target = str(getattr(self.args, "target_egress", "") or "").strip()
+        reasons: list[str] = []
+        if not bool_value(getattr(self.args, "controlled_verifier_contention", False)):
+            reasons.append("controlled_verifier_contention_not_requested")
+        if not bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
+            reasons.append("controlled_verifier_requires_emergency_failover")
+        if to_int(getattr(self.args, "max_selected_moves", 0), 0) != 1:
+            reasons.append("controlled_verifier_max_users_must_be_one")
+        if len(selected_moves) != 1:
+            reasons.append("controlled_verifier_exact_move_required")
+        move = selected_moves[0] if len(selected_moves) == 1 else {}
+        if requested_user != str(move.get("user_ip") or ""):
+            reasons.append("controlled_verifier_user_scope_mismatch")
+        if requested_source != str(move.get("current_egress") or ""):
+            reasons.append("controlled_verifier_source_scope_mismatch")
+        if requested_target != str(move.get("recommended_egress") or ""):
+            reasons.append("controlled_verifier_target_scope_mismatch")
+        required_bindings = (
+            "approved_packet_id",
+            "approved_operation_id",
+            "approved_selected_move_hash",
+            "approved_authority_generation",
+            "approved_breaker_generation",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
+        )
+        for field in required_bindings:
+            if not str(getattr(self.args, field, "") or ""):
+                reasons.append(f"controlled_verifier_{field}_missing")
+        fresh_users = {row.ip: row for row in self._load_users()}
+        fresh_egress = self._load_egress()
+        user = fresh_users.get(requested_user)
+        source = fresh_egress.get(requested_source)
+        target = fresh_egress.get(requested_target)
+        if user is None or not user.enabled:
+            reasons.append("controlled_verifier_user_missing_or_disabled")
+        else:
+            raw_user = next((row for row in parse_registry(self.state_dir / "users.registry") if str(row.get("ip") or "") == requested_user), {})
+            if str(user.current) != requested_source:
+                reasons.append("controlled_verifier_user_not_on_source")
+            if str(raw_user.get("certification_user") or "").lower() not in {"1", "true", "yes"}:
+                reasons.append("controlled_verifier_user_not_certification_user")
+        raw_source = next((row for row in parse_registry(self.state_dir / "egress.registry") if str(row.get("id") or "") == requested_source), {})
+        if source is None:
+            reasons.append("controlled_verifier_source_missing")
+        else:
+            if str(raw_source.get("controlled_certification_source") or "").lower() not in {"1", "true", "yes"}:
+                reasons.append("controlled_verifier_source_not_certification_source")
+            if source.enabled or str(source.state).lower() not in {"maintenance", "disabled", "down"}:
+                reasons.append("controlled_verifier_source_not_deliberately_unavailable")
+        if target is None or not target.enabled:
+            reasons.append("controlled_verifier_target_not_enabled")
+        return {
+            "schema_version": "v7.controlled-verifier-scope.v1",
+            "ok": not reasons,
+            "reasons": sorted(set(reasons)),
+            "user": requested_user,
+            "source": requested_source,
+            "target": requested_target,
+            "fresh_user_source": str(user.current) if user is not None else "",
+            "source_enabled": bool(source.enabled) if source is not None else None,
+            "source_state": str(source.state) if source is not None else "",
+        }
+
+    def _activate_controlled_verifier_contention(self, move: dict[str, Any], operation_id: str) -> dict[str, Any]:
+        scope = self._exact_controlled_verifier_scope([move])
+        source = str(move.get("current_egress") or "")
+        safe_operation = re.sub(r"[^A-Za-z0-9_.-]", "_", str(operation_id or "controlled"))[:80]
+        marker = self.state_dir / f"controlled-verifier-lock-{safe_operation}.json"
+        output = self.state_dir / f"controlled-verifier-refresh-{safe_operation}.log"
+        try:
+            marker.unlink(missing_ok=True)
+        except OSError:
+            pass
+        if not scope.get("ok"):
+            restore = subprocess.run(
+                ["v7-egress-set-state", source, "enabled", "--apply"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=180,
+            ) if source else subprocess.CompletedProcess([], 2, stdout="missing source\n")
+            return {
+                "schema_version": "v7.controlled-verifier-contention.v1",
+                "ok": False,
+                "status": "STOP_SAFE_SCOPE_INVALID",
+                "scope": scope,
+                "source_restore_rc": restore.returncode,
+                "source_restore_output": (restore.stdout or "")[-2000:],
+            }
+        handle = output.open("w", encoding="utf-8")
+        try:
+            proc = subprocess.Popen(
+                [
+                    "v7-service-matrix-refresh-all",
+                    "--state-dir", str(self.state_dir),
+                    "--event-dir", str(self.event_dir),
+                    "--summary-file", str(self.state_dir / f"controlled-verifier-summary-{safe_operation}.json"),
+                    "--lock-timeout-sec", "5",
+                    "--lock-acquired-marker", str(marker),
+                ],
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                text=True,
+                start_new_session=True,
+            )
+        except OSError as exc:
+            handle.close()
+            restore = subprocess.run(
+                ["v7-egress-set-state", source, "enabled", "--apply"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=180,
+            )
+            return {
+                "schema_version": "v7.controlled-verifier-contention.v1",
+                "ok": False,
+                "status": "STOP_SAFE_LIFECYCLE_START_FAILED",
+                "scope": scope,
+                "error": f"{type(exc).__name__}:{exc}",
+                "source_restore_rc": restore.returncode,
+                "source_restore_output": (restore.stdout or "")[-2000:],
+                "direct_rollback_invoked": False,
+                "runtime_automation_enabled": False,
+            }
+        marker_payload: dict[str, Any] = {}
+        deadline = time.time() + 12
+        while time.time() < deadline:
+            marker_payload = read_json(marker, {})
+            if (
+                marker_payload.get("owner") == "tools/v7-service-matrix-refresh-all"
+                and to_int(marker_payload.get("pid"), 0) == proc.pid
+            ):
+                break
+            if proc.poll() is not None:
+                break
+            time.sleep(0.05)
+        handle.close()
+        acquired = (
+            marker_payload.get("owner") == "tools/v7-service-matrix-refresh-all"
+            and to_int(marker_payload.get("pid"), 0) == proc.pid
+        )
+        if not acquired and proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+        restore = subprocess.run(
+            ["v7-egress-set-state", source, "enabled", "--apply"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+        return {
+            "schema_version": "v7.controlled-verifier-contention.v1",
+            "ok": bool(acquired and restore.returncode == 0),
+            "status": "ACTIVE" if acquired and restore.returncode == 0 else "STOP_SAFE_ACTIVATION_FAILED",
+            "scope": scope,
+            "refresh_pid": proc.pid,
+            "refresh_running": proc.poll() is None,
+            "lock_marker": marker_payload,
+            "lock_marker_path": str(marker),
+            "refresh_output_path": str(output),
+            "source_restore_rc": restore.returncode,
+            "source_restore_output": (restore.stdout or "")[-2000:],
+            "direct_rollback_invoked": False,
+            "runtime_automation_enabled": False,
+        }
+
     def _execution_action_class(self, move_type: str = "") -> str:
         text = str(move_type or "").lower()
         if "recover" in text or "reconnect" in text:
@@ -6511,9 +6690,14 @@ class AutoswitchPlanner:
             reasons.append("approved_plan_lock_source_scope_mismatch")
         if requested_target and locked_targets != [requested_target]:
             reasons.append("approved_plan_lock_target_scope_mismatch")
+        controlled_verifier_scope = self._exact_controlled_verifier_scope(selected)
         incident_source_continuity = self._l3_active_incident_source_context()
         incident_source = str(incident_source_continuity.get("incident_source") or "")
-        if bool_value(incident_source_continuity.get("active")) and locked_sources != [incident_source]:
+        if (
+            bool_value(incident_source_continuity.get("active"))
+            and locked_sources != [incident_source]
+            and not controlled_verifier_scope.get("ok")
+        ):
             reasons.append("approved_plan_lock_incident_source_mismatch")
         committed_identity = self._committed_apply_identity_validation(
             restore_barrier,
@@ -6527,7 +6711,7 @@ class AutoswitchPlanner:
         expires_at = str(lock.get("expires_at") or restore_barrier.get("clearance_expires_at") or "")
         if expires_at and parse_ts(expires_at) <= time.time():
             reasons.append("approved_plan_lock_expired")
-        users_by_ip = {user.ip: user for user in self.users}
+        users_by_ip = {user.ip: user for user in self._load_users()}
         for move in selected:
             user = users_by_ip.get(move["user_ip"])
             if user is None:
@@ -6566,6 +6750,7 @@ class AutoswitchPlanner:
                 "selected_targets": locked_targets,
                 "committed_apply_identity": committed_identity,
                 "incident_source_continuity": incident_source_continuity,
+                "controlled_verifier_scope": controlled_verifier_scope,
             }
         return {
             "present": True,
@@ -8864,6 +9049,14 @@ class AutoswitchPlanner:
                     row["route_verification_expected_egress"] = target
                 service_verify = None
                 if verify.returncode == 0 and emergency_mode:
+                    controlled_condition = None
+                    if bool_value(getattr(self.args, "controlled_verifier_contention", False)):
+                        controlled_condition = self._activate_controlled_verifier_contention(move, operation_id)
+                        row["controlled_verifier_condition"] = controlled_condition
+                    # The normal verifier remains the sole rollback trigger.  A
+                    # failed condition activation must never be converted into
+                    # an artificial verifier failure merely to manufacture the
+                    # desired rollback terminal.
                     service_verify = self._verify_emergency_required_services(move)
                     row["service_verify_rc"] = service_verify.returncode
                     row["service_verify_output"] = service_verify.stdout[-4000:]
@@ -9901,6 +10094,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--pre-planner-refresh-timeout-sec", type=int, default=20)
     parser.add_argument("--service-matrix-lock-timeout-sec", type=int, default=DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS)
+    parser.add_argument(
+        "--controlled-verifier-contention",
+        action="store_true",
+        help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
+    )
     parser.add_argument(
         "--allow-pre-planner-refresh-with-apply",
         action="store_true",

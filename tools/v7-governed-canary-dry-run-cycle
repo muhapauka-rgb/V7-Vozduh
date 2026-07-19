@@ -1152,6 +1152,7 @@ def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) 
     return {
         "emergency_failover_autonomy": active,
         "service_matrix_lock_timeout_sec": 5 if active else 90,
+        "controlled_verifier_contention": active,
     }
 
 
@@ -1179,6 +1180,7 @@ def run_autoswitch_apply(
     execution_control_file: str = "",
     emergency_failover_autonomy: bool = False,
     service_matrix_lock_timeout_sec: int = 90,
+    controlled_verifier_contention: bool = False,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     command = [
@@ -1226,6 +1228,8 @@ def run_autoswitch_apply(
         command.extend(["--execution-control-file", execution_control_file])
     if emergency_failover_autonomy:
         command.insert(1, "--emergency-failover-autonomy")
+    if controlled_verifier_contention:
+        command.insert(1, "--controlled-verifier-contention")
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout_seconds)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -2056,11 +2060,26 @@ def _execute_governed_transaction_with_guards_inner(
     delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
     engineering_authority_request_file = str(getattr(args, "engineering_authority_request_file", "") or "")
     engineering_authority_request: dict[str, Any] = {}
+    engineering_authority_decision = str(getattr(args, "engineering_authority_decision", "") or "")
+    engineering_authority_decision_provenance: dict[str, Any] = {}
     if engineering_authority_request_file:
         engineering_authority_request = read_json(Path(engineering_authority_request_file), {})
+        repair_policy_file = str(getattr(args, "engineering_authority_repair_continuation_policy_file", "") or "")
+        if not engineering_authority_decision and repair_policy_file:
+            repair_policy = read_json(Path(repair_policy_file), {})
+            engineering_authority_decision_provenance = operator_execution.validate_engineering_authority_repair_continuation(
+                repair_policy,
+                engineering_authority_request,
+            )
+            if not engineering_authority_decision_provenance.get("ok"):
+                return transaction_stop(
+                    "engineering_authority_repair_continuation_denied",
+                    validation=engineering_authority_decision_provenance,
+                )
+            engineering_authority_decision = str(engineering_authority_decision_provenance.get("decision") or "")
         request_validation = operator_execution.validate_engineering_authority_request(
             engineering_authority_request,
-            decision=str(getattr(args, "engineering_authority_decision", "") or ""),
+            decision=engineering_authority_decision,
             expected_request_id=str(getattr(args, "engineering_authority_request_id", "") or ""),
             expected_contract_hash=str(getattr(args, "engineering_authority_contract_hash", "") or ""),
         )
@@ -2217,10 +2236,12 @@ def _execute_governed_transaction_with_guards_inner(
                 engineering_authority = operator_execution.engineering_authority_binding_from_preview(
                     engineering_authority_request,
                     packet_preview,
-                    decision=str(getattr(args, "engineering_authority_decision", "") or ""),
+                    decision=engineering_authority_decision,
                     expected_request_id=str(getattr(args, "engineering_authority_request_id", "") or ""),
                     expected_contract_hash=str(getattr(args, "engineering_authority_contract_hash", "") or ""),
                 )
+                if engineering_authority_decision_provenance:
+                    engineering_authority["decision_provenance"] = engineering_authority_decision_provenance
             except Exception as exc:
                 return transaction_stop("engineering_authority_binding_failed", cycle=cycle, error=str(exc))
     else:
@@ -2856,6 +2877,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--engineering-authority-decision", default="")
     parser.add_argument("--engineering-authority-request-id", default="")
     parser.add_argument("--engineering-authority-contract-hash", default="")
+    parser.add_argument("--engineering-authority-repair-continuation-policy-file", default="")
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--restore-barrier-file", default="")

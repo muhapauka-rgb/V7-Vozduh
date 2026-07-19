@@ -197,6 +197,49 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner.finalize_operation(plan)
         return plan
 
+    def test_controlled_verifier_lifecycle_start_failure_restores_source_without_direct_rollback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=1 table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                "id=1 interface=v7one enabled=0 state=maintenance role=GLOBAL_FAST controlled_certification_source=1\n"
+                "id=vless interface=tun0 enabled=1 state=enabled role=GLOBAL_FAST\n",
+                encoding="utf-8",
+            )
+            args = self.args_for(root, [
+                "--emergency-failover-autonomy",
+                "--controlled-verifier-contention",
+                "--max-selected-moves", "1",
+                "--user", "10.7.0.16",
+                "--source-egress", "1",
+                "--target-egress", "vless",
+                "--approved-packet-id", "packet",
+                "--approved-operation-id", "operation",
+                "--approved-selected-move-hash", "move",
+                "--approved-authority-generation", "authority",
+                "--approved-breaker-generation", "breaker",
+                "--approved-source-bundle-hash", "source-bundle",
+                "--approved-snapshot-bundle-hash", "snapshot-bundle",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {"user_ip": "10.7.0.16", "current_egress": "1", "recommended_egress": "vless"}
+            with mock.patch.object(self.tool.subprocess, "Popen", side_effect=OSError("lifecycle unavailable")), mock.patch.object(
+                self.tool.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess([], 0, stdout="source restored"),
+            ) as run:
+                result = planner._activate_controlled_verifier_contention(move, "operation")
+
+        self.assertEqual(result["status"], "STOP_SAFE_LIFECYCLE_START_FAILED")
+        self.assertFalse(result["ok"])
+        self.assertFalse(result["direct_rollback_invoked"])
+        self.assertEqual(run.call_args.args[0], ["v7-egress-set-state", "1", "enabled", "--apply"])
+
     def test_execution_control_open_denies_apply_without_changing_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

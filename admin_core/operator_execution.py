@@ -96,6 +96,7 @@ C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA = "v7.c5-rollback-operational-compen
 ENGINEERING_AUTHORITY_REQUEST_SCHEMA = "v7.controlled-rollback-condition-engineering-authority-request.v1"
 ENGINEERING_AUTHORITY_BINDING_SCHEMA = "v7.engineering-authority-binding.v1"
 ENGINEERING_AUTHORITY_APPROVAL = "APPROVE_ONCE_AS_SCOPED"
+ENGINEERING_AUTHORITY_REPAIR_CONTINUATION_POLICY_SCHEMA = "v7.controlled-rollback-repair-continuation-policy.v1"
 
 
 class PacketError(ValueError):
@@ -487,6 +488,121 @@ def engineering_authority_request_hash(request):
     canonical.pop("request_id", None)
     canonical.pop("contract_hash", None)
     return sha256_json(canonical)
+
+
+def engineering_authority_repair_continuation_policy_hash(policy):
+    canonical = copy.deepcopy(policy if isinstance(policy, dict) else {})
+    canonical.pop("policy_id", None)
+    canonical.pop("policy_hash", None)
+    return sha256_json(canonical)
+
+
+def _engineering_authority_exact_scope(payload):
+    payload = payload if isinstance(payload, dict) else {}
+    subject = payload.get("subject") if isinstance(payload.get("subject"), dict) else {}
+    scope = payload.get("scope") if isinstance(payload.get("scope"), dict) else {}
+    condition = payload.get("controlled_condition") if isinstance(payload.get("controlled_condition"), dict) else {}
+    return {
+        "program_id": str(payload.get("program_id") or ""),
+        "action_class": str(payload.get("action_class") or ""),
+        "evidence_cell": str(payload.get("evidence_cell") or ""),
+        "user_ip": str(subject.get("user_ip") or ""),
+        "certification_user": subject.get("certification_user") is True,
+        "ordinary_customer": subject.get("ordinary_customer") is True,
+        "max_users": as_int(scope.get("max_users"), 0),
+        "max_concurrent_transactions": as_int(scope.get("max_concurrent_transactions"), 0),
+        "max_material_outcomes": as_int(scope.get("max_material_outcomes"), 0),
+        "source_egress": str(scope.get("source_egress") or ""),
+        "source_interface": str(scope.get("source_interface") or ""),
+        "source_protocol": str(scope.get("source_protocol") or ""),
+        "target_egress": str(scope.get("target_egress") or ""),
+        "target_interface": str(scope.get("target_interface") or ""),
+        "target_protocol": str(scope.get("target_protocol") or ""),
+        "policy_id": str(scope.get("policy_id") or ""),
+        "policy_scope_hash": str(scope.get("policy_scope_hash") or ""),
+        "controlled_condition": str(condition.get("name") or payload.get("controlled_condition") or ""),
+        "rollback_failure_injection": bool(condition.get("rollback_failure_injection")),
+        "direct_rollback_invocation_for_evidence": bool(condition.get("direct_rollback_invocation_for_evidence")),
+    }
+
+
+def validate_engineering_authority_repair_continuation(policy, request, *, now=None):
+    """Resolve a fresh one-use decision after a repaired pre-apply STOP_SAFE."""
+    now = now or utc_now()
+    errors: list[str] = []
+    policy = policy if isinstance(policy, dict) else {}
+    request = request if isinstance(request, dict) else {}
+    policy_hash = str(policy.get("policy_hash") or "")
+    policy_id = str(policy.get("policy_id") or "")
+    if policy.get("schema") != ENGINEERING_AUTHORITY_REPAIR_CONTINUATION_POLICY_SCHEMA:
+        errors.append("engineering_authority_repair_policy_schema_invalid")
+    if engineering_authority_repair_continuation_policy_hash(policy) != policy_hash:
+        errors.append("engineering_authority_repair_policy_hash_mismatch")
+    if policy_id != f"engrepair_{policy_hash[:24]}":
+        errors.append("engineering_authority_repair_policy_identity_mismatch")
+    if policy.get("status") != "APPROVED_EXACT_SCOPE_REPAIR_CONTINUATION":
+        errors.append("engineering_authority_repair_policy_not_approved")
+    if policy.get("allowed_decision") != ENGINEERING_AUTHORITY_APPROVAL:
+        errors.append("engineering_authority_repair_policy_decision_invalid")
+    if policy.get("fresh_request_required") is not True or policy.get("approval_reuse_allowed") is not False:
+        errors.append("engineering_authority_repair_policy_freshness_invalid")
+    if policy.get("background_runtime_allowed") is not False or policy.get("self_expansion_allowed") is not False:
+        errors.append("engineering_authority_repair_policy_runtime_scope_invalid")
+    if as_int(policy.get("max_users"), 0) != 1 or as_int(policy.get("max_concurrent_transactions"), 0) != 1:
+        errors.append("engineering_authority_repair_policy_blast_radius_invalid")
+
+    automatic = request.get("automatic_reissue") if isinstance(request.get("automatic_reissue"), dict) else {}
+    if str(automatic.get("policy_id") or "") != policy_id or str(automatic.get("policy_hash") or "") != policy_hash:
+        errors.append("engineering_authority_repair_policy_request_binding_mismatch")
+    if automatic.get("fresh_request") is not True or automatic.get("reuses_previous_approval") is not False:
+        errors.append("engineering_authority_repair_request_not_fresh")
+    expected_scope = policy.get("exact_scope") if isinstance(policy.get("exact_scope"), dict) else {}
+    actual_scope = _engineering_authority_exact_scope(request)
+    if actual_scope != expected_scope:
+        errors.append("engineering_authority_repair_exact_scope_mismatch")
+    if actual_scope.get("ordinary_customer") or not actual_scope.get("certification_user"):
+        errors.append("engineering_authority_repair_subject_invalid")
+    if actual_scope.get("rollback_failure_injection") or actual_scope.get("direct_rollback_invocation_for_evidence"):
+        errors.append("engineering_authority_repair_condition_expanded")
+
+    previous = request.get("previous_consumed_request") if isinstance(request.get("previous_consumed_request"), dict) else {}
+    if str(previous.get("request_id") or "") != str(automatic.get("previous_request_id") or ""):
+        errors.append("engineering_authority_repair_previous_request_binding_mismatch")
+    if str(previous.get("request_id") or "") == str(request.get("request_id") or ""):
+        errors.append("engineering_authority_repair_request_identity_reused")
+    if previous.get("reuse_forbidden") is not True:
+        errors.append("engineering_authority_repair_previous_reuse_not_forbidden")
+    if str(previous.get("terminal") or "") != "CONSUMED_STOP_SAFE_BEFORE_APPLY":
+        errors.append("engineering_authority_repair_previous_terminal_invalid")
+    if previous.get("apply_executed") is not False or as_int(previous.get("users_moved"), -1) != 0:
+        errors.append("engineering_authority_repair_previous_apply_present")
+    if previous.get("rollback_attempted") is not False:
+        errors.append("engineering_authority_repair_previous_rollback_present")
+    if str(previous.get("cleanup_result") or "") != "PASS_EXACT_PRESTATE_RESTORED":
+        errors.append("engineering_authority_repair_cleanup_not_proven")
+    if not str(previous.get("blocker_fingerprint") or ""):
+        errors.append("engineering_authority_repair_blocker_fingerprint_missing")
+    if not str(previous.get("repair_commit") or "") or not str(previous.get("repair_deploy_id") or ""):
+        errors.append("engineering_authority_repair_deploy_proof_missing")
+    if previous.get("repair_tests_passed") is not True or previous.get("truth_convergence_aligned") is not True:
+        errors.append("engineering_authority_repair_verification_missing")
+    if str(previous.get("repair_commit") or "") != str(request.get("current_commit") or ""):
+        errors.append("engineering_authority_repair_commit_binding_mismatch")
+    prior_fingerprints = {str(value) for value in (automatic.get("prior_repaired_blocker_fingerprints") or []) if str(value)}
+    if str(previous.get("blocker_fingerprint") or "") in prior_fingerprints:
+        errors.append("engineering_authority_repair_same_blocker_recurred")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "decision": ENGINEERING_AUTHORITY_APPROVAL if not errors else "",
+        "decision_provenance": "USER_APPROVED_EXACT_SCOPE_REPAIR_CONTINUATION_POLICY" if not errors else "DENIED",
+        "policy_id": policy_id,
+        "policy_hash": policy_hash,
+        "request_id": str(request.get("request_id") or ""),
+        "evaluated_at": now.isoformat(),
+        "approval_reused": False,
+        "fresh_one_use_request_required": True,
+    }
 
 
 def validate_engineering_authority_request(
@@ -2340,6 +2456,11 @@ def execute_packet(
                     "engineering_authority_request_id": engineering_request_id,
                     "engineering_authority_contract_hash": engineering_authority.get("contract_hash", ""),
                     "engineering_authority_decision": engineering_authority.get("decision", ""),
+                    "engineering_authority_decision_provenance": copy.deepcopy(
+                        engineering_authority.get("decision_provenance")
+                        if isinstance(engineering_authority.get("decision_provenance"), dict)
+                        else {}
+                    ),
                     "transaction_nonce": engineering_authority.get("transaction_nonce", ""),
                     "approval_id": approval_id,
                     "packet_id": packet.get("packet_id", ""),

@@ -2094,11 +2094,14 @@ def _preview_packet_for_candidate(
         "decision_reason": "single_user_governed_candidate_failover",
     }
     decision_id = "decision_commit_" + stable_hash(decision_commit_payload)[:24]
+    candidate_source_hashes = candidate.get("source_hashes") if isinstance(candidate.get("source_hashes"), dict) else {}
+    recommendation_hash = candidate.get("recommendation_hash") or candidate_source_hashes.get("recommendation_hash", "")
+    source_hash = candidate.get("source_hash") or candidate_source_hashes.get("source_hash", "")
     payload = {
         "cycle_id": cycle_id,
         **semantic_payload,
-        "recommendation_hash": candidate.get("recommendation_hash", ""),
-        "source_hash": candidate.get("source_hash", ""),
+        "recommendation_hash": recommendation_hash,
+        "source_hash": source_hash,
         "created_at": now,
     }
     packet_id = "pkt_preview_" + stable_hash({"packet": payload})[:24]

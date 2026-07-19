@@ -160,6 +160,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checker", default=default_checker_path())
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
+    parser.add_argument(
+        "--lock-acquired-marker",
+        default="",
+        help="Write an owner-backed marker after this lifecycle invocation acquires the writer lock.",
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -171,6 +176,16 @@ def main() -> int:
     rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
     try:
         with service_matrix_writer_lock(state_dir, int(args.lock_timeout_sec)):
+            if args.lock_acquired_marker:
+                write_json_atomic(Path(args.lock_acquired_marker), {
+                    "schema_version": "v7.service-matrix-lock-acquisition.v1",
+                    "owner": "tools/v7-service-matrix-refresh-all",
+                    "pid": os.getpid(),
+                    "acquired_at": now_iso(),
+                    "lock_path": str(state_dir / "service-matrix.lock"),
+                    "runtime_behavior_changed": False,
+                    "users_moved": False,
+                })
             results = [run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir) for row in rows]
             payload = {
                 "schema_version": 1,

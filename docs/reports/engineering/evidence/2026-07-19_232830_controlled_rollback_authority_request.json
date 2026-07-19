@@ -1,0 +1,139 @@
+{
+  "schema": "v7.controlled-rollback-condition-engineering-authority-request.v1",
+  "program_id": "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1",
+  "roadmap_stage": "R1",
+  "mission_id": "V7_L7_L8_CONTROLLED_ROLLBACK_CONDITION_AUTHORITY_REQUEST_R1_V1",
+  "request_id": "engauth_r1_33cc5e04f86c20ff0607f7db",
+  "contract_hash": "33cc5e04f86c20ff0607f7dbde8c86267e89ff5f91d87a1503b9b6e80bf13016",
+  "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+  "created_at": "2026-07-19T23:28:30+07:00",
+  "expires_at": "2026-07-20T03:30:00+07:00",
+  "decision_set": [
+    "APPROVE_ONCE_AS_SCOPED",
+    "APPROVE_WITH_NARROWER_SCOPE",
+    "DENY",
+    "EXPIRED"
+  ],
+  "action_class": "single-user governed candidate failover",
+  "evidence_cell": "rollback_and_no_rollback_present",
+  "evidence_target": "one real verifier-triggered ROLLBACK_SUCCESS plus the existing no-rollback outcomes",
+  "subject": {
+    "user_ip": "10.7.0.16",
+    "table": "1014",
+    "certification_user": true,
+    "certification_group": "polygon-l7-canary",
+    "ordinary_customer": false,
+    "initial_egress": "vless",
+    "initial_registry_row_sha256": "70f90409b5c73ac642efd0157d96301d7907a449347852315046f3d317a848e2"
+  },
+  "scope": {
+    "max_users": 1,
+    "max_concurrent_transactions": 1,
+    "max_material_outcomes": 1,
+    "source_egress": "wireguard-1779454504-c43409",
+    "source_interface": "v7e06a394c478",
+    "source_protocol": "wireguard",
+    "source_registry_row_sha256": "a24f5db3da2b705d8a2d0a213b7e9bb0820a9aab20c3aed6d5936121e2302044",
+    "target_egress": "vless",
+    "target_interface": "tun0",
+    "target_protocol": "vless",
+    "required_services": [
+      "google",
+      "telegram"
+    ],
+    "policy_id": "dap_default_tier1_readonly",
+    "policy_scope_hash": "f610dbd87f9d8e5b63d69538138340ace04c9799ac42ebedd205206eee9f723e",
+    "source_owner": "tools/v7-egress-set-state",
+    "assignment_and_runtime_owner": "tools/v7-users-autoswitch -> tools/runtime-support/v7-user-switch",
+    "verification_owner": "tools/v7-users-autoswitch._verify_routes_for_apply + tools/v7-service-matrix-test",
+    "rollback_owner": "tools/v7-users-autoswitch.apply rollback branch",
+    "service_matrix_lifecycle_owner": "tools/v7-service-matrix-refresh-all"
+  },
+  "controlled_condition": {
+    "name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION",
+    "smallest_sufficient_reason": "The controlled source creates a genuine one-user failover Candidate; one bounded existing-owner service-matrix refresh contention makes the normal verifier return a real lock-timeout failure, which must be observed by the normal Runtime rollback decision instead of calling rollback directly.",
+    "preparation": [
+      "Move only 10.7.0.16 from vless to the controlled certification source through the existing assignment owner; classify this setup movement as ENGINEERING_SETUP_NOT_EVIDENCE.",
+      "Mark the existing source certification scope for only 10.7.0.16 through tools/v7-egress-set-state.",
+      "Prove source, target, route, service, capacity, Safe Mode, restore barrier and rollback readiness before opening the incident."
+    ],
+    "activation": [
+      "Mark only wireguard-1779454504-c43409 maintenance through tools/v7-egress-set-state --controlled-certification.",
+      "Require the normal planner to select exactly 10.7.0.16 and exactly target vless; every other selection is STOP_SAFE.",
+      "Start one normal tools/v7-service-matrix-refresh-all lifecycle invocation so the real service-matrix lock is held during the bounded verifier window.",
+      "After terminal forward-route acknowledgement to vless and before the verifier timeout, restore wireguard-1779454504-c43409 to enabled through tools/v7-egress-set-state so the registered rollback destination is healthy.",
+      "Let tools/v7-service-matrix-test independently return service_matrix_lock_timeout and let tools/v7-users-autoswitch decide whether rollback is required."
+    ],
+    "registered_rollback_trigger": "required_service_verify_timeout after successful bounded forward apply and exact selected-user route acknowledgement",
+    "expected_terminal": "ROLLBACK_SUCCESS",
+    "honest_alternative_terminal": "SUCCESS_OR_NO_ROLLBACK_RECORDED_WITH_CELL_REMAINING_OPEN_IF_THE_REGISTERED_TRIGGER_DOES_NOT_OCCUR",
+    "direct_rollback_invocation_for_evidence": false,
+    "rollback_failure_injection": false
+  },
+  "freshness_and_binding_gates": [
+    "CPS still names rollback_and_no_rollback_present and this exact request as the controlled-lane frontier.",
+    "Request is unexpired and has not been consumed.",
+    "Local, GitHub and production commit/runtime snapshot remain aligned.",
+    "Certification-user, source, target, policy, topology and owner identities match this contract; any semantic drift returns to R1/R2.",
+    "Admin Safe Mode is OPEN and no real customer recovery, conflicting incident, active lease or restore-barrier operation exists.",
+    "The controlled source and vless target pass fresh route and required-service checks before deliberate activation.",
+    "A fresh Situation, Decision Trace, Candidate, Packet, approval identity, serial lease and transaction nonce are atomically bound before apply.",
+    "Duplicate consumption, changed subject/source/target/condition or partial binding fails closed."
+  ],
+  "stop_safe_abort_containment_cleanup": [
+    "Abort before setup or apply on any stale binding, non-vless target, ordinary-user selection, capacity/quality regression, active production recovery, Authority ambiguity or cleanup-owner failure.",
+    "Real customer recovery preempts the certification run and receives the service-matrix/Runtime resources.",
+    "If apply state becomes ambiguous or rollback fails, enter the existing fail-safe/incident path and grant no optimistic evidence.",
+    "Release any service-matrix lifecycle operation, restore the controlled source enabled, restore 10.7.0.16 to its initial vless assignment, verify table 1014 and required services, close lease/packet/restore identities, and finish Admin Safe Mode OPEN.",
+    "Preserve append-only evidence even when the intended trigger or terminal is not reached."
+  ],
+  "verification_contract": {
+    "before": "registry, route table 1014, route-get, source/target interface, google/telegram, policy/topology fingerprints, Safe Mode, lease and restore readiness",
+    "terminal_activation_acknowledgement": "10.7.0.16 route table 1014 and route-get use tun0/vless after the exact admitted apply",
+    "immediate": "normal verifier failure provenance, rollback decision, rollback apply identity, restored route to v7e06a394c478, source health and service safety",
+    "post_cleanup": "10.7.0.16 restored to initial vless assignment; source enabled; no other user changed; Admin Safe Mode OPEN",
+    "delayed_5m": "route, registry, services, source state, no duplicate apply/rollback and no unresolved lease/restore state",
+    "delayed_1h": "same plus intent-drift and incident/exception review",
+    "steady_state": "criterion-defined sustained restoration and no later regression"
+  },
+  "passport_and_consumers": {
+    "required_terminal_class": "ROLLBACK_SUCCESS",
+    "required_fields": "Situation, canonical snapshot, Decision Trace, alternatives including STAY, Candidate, Packet, approval, lease, operation, activation, verifier failure provenance, rollback, cleanup, immediate/5m/1h/steady-state, expected-versus-actual, replay and Learning",
+    "material_identity": "one production transaction produces at most one material Outcome Evidence Passport",
+    "consumers": [
+      "Outcome Evidence Passport",
+      "deterministic production replay",
+      "Learning/B13",
+      "M6 immutable eligibility-set recalibration",
+      "M7 action-class Authority recommendation",
+      "criterion-scoped CAP-U02/U03/U04/U05/U06/U07/U08/U09 reconciliation",
+      "CPS/OMP exact next frontier"
+    ]
+  },
+  "one_use_law": {
+    "approval_use_limit": 1,
+    "implicit_renewal": false,
+    "retry_under_same_approval": false,
+    "approval_consumption": "atomic with fresh Candidate, Packet, serial lease and transaction nonce",
+    "changed_binding_requires_new_request": true
+  },
+  "excluded_effects": [
+    "ordinary-customer experimentation",
+    "more than one selected user",
+    "more than one serial transaction",
+    "rollback-failure injection",
+    "fault injection outside the named source and verifier condition",
+    "Authority or blast-radius expansion",
+    "class approval or Production Maturity increase",
+    "daemon/timer or background Runtime enablement",
+    "natural-evidence relabelling",
+    "implicit retry or approval renewal"
+  ],
+  "current_commit": "06519280c5c5d2dc0836d81dd9efece3d1a1c334",
+  "current_eligibility_set": "outset_428a4e2ff440ed64bde5cb56",
+  "current_eligible_passports": 5,
+  "current_missing_cells": [
+    "natural_production_present",
+    "rollback_and_no_rollback_present"
+  ]
+}

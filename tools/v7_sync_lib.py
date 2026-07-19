@@ -17114,6 +17114,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
         "SPLIT_L7_AUTHORITY_L8_NATURAL_BOUNDARY",
         "L7_CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_L8_BOUNDARY",
+        "L7_L8_R2_INDEPENDENT_AUTHORITY_DECISION_PENDING",
     }
     permanent_records = permanent_polygon_criterion_registry(cps_text).get("records") or []
     permanent_polygon_automation_complete = all((

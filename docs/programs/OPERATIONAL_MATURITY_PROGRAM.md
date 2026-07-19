@@ -7839,8 +7839,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_AND_PRODUCTION_CALLER_CERTIFICATION`
+Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
+Resolved current next action: `PPDT-RISK-CALIBRATION_REPRESENTATIVE`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.

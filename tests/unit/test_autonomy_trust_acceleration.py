@@ -4123,5 +4123,94 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(second_cert["apply_executed"])
 
 
+    def test_l7_l8_passport_deduplicates_existing_owner_records_and_closes_m1_m3_contract(self):
+        operation_id = "runtime_autoswitch_material_1"
+        base = {
+            "_v7_evidence_source_path": "/opt/v7/egress/state/execution-events.jsonl",
+            "audit_reference": operation_id,
+            "feedback_id": "execfb_material_1",
+            "decision_id": "execfb_material_1",
+            "packet_id": "packet_material_1",
+            "recommendation_id": "recommendation_material_1",
+            "user": "10.7.0.5",
+            "source_channel": "awg0",
+            "target_channel": "vless",
+            "outcome_observed_at": "2026-07-19T00:00:00+00:00",
+            "outcome_quality": {
+                "outcome_quality": "SUCCESS",
+                "terminal_outcome_classification": "SUCCESS",
+            },
+            "execution_outcome": {"success": True, "applied": True},
+            "verification_result": {"verification_passed": True},
+            "stability_window_seconds": 3600,
+            "decision_trace_id": "trace_material_1",
+            "input_snapshot_identity": "snapshot_material_1",
+            "expected_terminal": "SUCCESS",
+            "learning_record": {"learning_record_id": "learn_material_1"},
+        }
+        duplicate = {
+            **base,
+            "_v7_evidence_source_path": "/opt/v7/egress/state/closure-records.jsonl",
+            "schema_version": "v7.execution-feedback-closure.v1",
+            "closure_state": "CLOSED",
+        }
+
+        model = accel.build_l7_l8_outcome_evidence_program(
+            [base, duplicate],
+            generated_at="2026-07-19T01:00:00+00:00",
+        )
+
+        self.assertEqual(model["mission_results"]["M1"]["status"], "COMPLETE_CONSUMED")
+        self.assertEqual(len(model["outcome_evidence_passports"]), 1)
+        passport = model["outcome_evidence_passports"][0]
+        self.assertEqual(passport["record_count"], 2)
+        self.assertEqual(passport["operation_id"], operation_id)
+        self.assertEqual(passport["evidence_class"], "CONTROLLED_PRODUCTION")
+        self.assertTrue(passport["completeness"]["core_complete"])
+        self.assertTrue(passport["completeness"]["temporal_complete"])
+        self.assertTrue(passport["completeness"]["replay_complete"])
+        self.assertEqual(passport["eligibility"], "ELIGIBLE_FOR_CALIBRATION")
+        self.assertEqual(model["opportunity_denominator"]["counts"]["ACTION"], 1)
+        self.assertFalse(model["runtime_mutation_performed"])
+        self.assertFalse(model["authority_expanded"])
+        self.assertEqual(model["users_moved"], 0)
+
+    def test_l7_l8_program_records_exact_temporal_and_replay_residuals(self):
+        model = accel.build_l7_l8_outcome_evidence_program([{
+            "_v7_evidence_source_path": "/opt/v7/events/switch-history.jsonl",
+            "operation": {"operation_id": "runtime_autoswitch_incomplete", "terminal_state": "APPLIED"},
+            "selected_moves": [{"user_ip": "10.7.0.5", "current_egress": "awg0", "recommended_egress": "vless"}],
+            "outcome_status": "success",
+            "created_at": "2026-07-19T00:00:00+00:00",
+        }])
+
+        passport = model["outcome_evidence_passports"][0]
+        self.assertIn("accepted_request", passport["completeness"]["missing_temporal_fields"])
+        self.assertIn("delayed_5m_observation", passport["completeness"]["missing_temporal_fields"])
+        self.assertIn("decision_trace_id", passport["completeness"]["missing_replay_fields"])
+        self.assertEqual(model["mission_results"]["M6"]["status"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(model["mission_results"]["M7"]["authority_recommendation"], "INSUFFICIENT_EVIDENCE")
+        self.assertEqual(model["mission_results"]["M8"]["status"], "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT")
+
+    def test_l7_l8_opportunity_denominator_preserves_non_action_terminals(self):
+        records = [
+            {"decision_id": "stay-1", "action": "STAY", "user": "u1", "channel": "awg0"},
+            {"decision_id": "stop-1", "terminal_state": "STOP_SAFE", "user": "u2", "channel": "awg1"},
+            {"decision_id": "blocked-1", "status": "BLOCKED", "user": "u3", "channel": "awg2"},
+            {"recommendation_id": "missed-1", "user": "u4", "channel": "awg3"},
+            {"decision_id": "none-1", "reason": "NO_SAFE_CANDIDATE", "user": "u5"},
+        ]
+        model = accel.build_l7_l8_outcome_evidence_program(records)
+        counts = model["opportunity_denominator"]["counts"]
+        self.assertEqual(counts["STAY"], 1)
+        self.assertEqual(counts["STOP_SAFE"], 1)
+        self.assertEqual(counts["BLOCKED"], 1)
+        self.assertEqual(counts["MISSED"], 1)
+        self.assertEqual(counts["NO_CANDIDATE"], 1)
+        self.assertEqual(counts["ACTION"], 0)
+        self.assertFalse(model["new_storage_created"])
+        self.assertFalse(model["new_truth_source_created"])
+
+
 if __name__ == "__main__":
     unittest.main()

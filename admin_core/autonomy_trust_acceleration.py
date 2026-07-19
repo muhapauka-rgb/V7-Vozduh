@@ -9781,6 +9781,439 @@ def build_decision_outcome_closure(
     }
 
 
+L7_L8_PASSPORT_CORE_FIELDS = (
+    "material_identity",
+    "provenance",
+    "evidence_class",
+    "terminal_class",
+    "user",
+    "source_channel",
+    "target_channel",
+    "outcome_observed_at",
+)
+
+L7_L8_TEMPORAL_FIELDS = (
+    "accepted_request",
+    "actual_activation",
+    "immediate_verification",
+    "delayed_5m_observation",
+    "delayed_1h_observation",
+    "steady_state_terminal",
+)
+
+L7_L8_REPLAY_FIELDS = (
+    "decision_trace_id",
+    "input_snapshot_identity",
+    "expected_terminal",
+    "actual_terminal",
+    "intent_drift_class",
+)
+
+
+def _l7_l8_maps(record: dict[str, Any]) -> list[dict[str, Any]]:
+    maps = [record]
+    for key in (
+        "operation", "execution_outcome", "verification_result", "rollback_result",
+        "outcome_quality", "learning_record", "metadata", "decision_trace",
+        "input_snapshot", "temporal_verification", "observation_windows",
+    ):
+        value = record.get(key)
+        if isinstance(value, dict):
+            maps.append(value)
+    return maps
+
+
+def _l7_l8_first(record: dict[str, Any], *aliases: str) -> Any:
+    for mapping in _l7_l8_maps(record):
+        for alias in aliases:
+            value = mapping.get(alias)
+            if value not in (None, "", [], {}):
+                return value
+    return ""
+
+
+def _l7_l8_ids(record: dict[str, Any]) -> dict[str, str]:
+    audit_reference = _text(_l7_l8_first(record, "audit_reference", "source_operation_id"))
+    operation_id = _text(_l7_l8_first(record, "operation_id"))
+    if not operation_id and audit_reference.startswith("runtime_autoswitch_"):
+        operation_id = audit_reference
+    learning = record.get("learning_record") if isinstance(record.get("learning_record"), dict) else {}
+    return {
+        "operation_id": operation_id,
+        "feedback_id": _text(_l7_l8_first(record, "feedback_id")),
+        "decision_id": _text(_l7_l8_first(record, "decision_id")),
+        "packet_id": _text(_l7_l8_first(record, "packet_id", "approval_packet_id")),
+        "recommendation_id": _text(_l7_l8_first(record, "recommendation_id", "recommendation_hash", "proposal_id")),
+        "learning_record_id": _text(learning.get("learning_record_id") or _l7_l8_first(record, "learning_record_id", "learning_id")),
+    }
+
+
+def _l7_l8_move(record: dict[str, Any]) -> tuple[str, str, str]:
+    move = next(iter(intelligence_workers._selected_move_rows(record)), {})
+    user = _text(
+        intelligence_workers._user_from_row(move)
+        or intelligence_workers._user_from_row(record)
+        or _l7_l8_first(record, "user")
+    )
+    source = _text(
+        move.get("from") or move.get("source") or move.get("current_egress")
+        or _l7_l8_first(record, "source_channel", "from", "current_egress")
+    )
+    target = _text(
+        intelligence_workers._channel_from_row(move)
+        or _l7_l8_first(record, "target_channel", "to", "recommended_egress", "channel", "egress")
+    )
+    return user, source, target
+
+
+def _l7_l8_hash(payload: Any, prefix: str) -> str:
+    stable = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return prefix + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24]
+
+
+def _l7_l8_record_identity(record: dict[str, Any]) -> str:
+    ids = _l7_l8_ids(record)
+    user, source, target = _l7_l8_move(record)
+    owner_identity = ids["operation_id"] or ids["feedback_id"] or ids["decision_id"] or ids["packet_id"] or ids["recommendation_id"]
+    if owner_identity:
+        return _l7_l8_hash([owner_identity, user, source, target], "outpass_")
+    observed = _text(_l7_l8_first(record, "outcome_observed_at", "verification_time", "execution_time", "closure_timestamp", "created_at", "timestamp", "ts"))
+    terminal = _text(_l7_l8_first(record, "terminal_outcome_classification", "outcome_quality", "outcome_status", "terminal_state", "result"))
+    return _l7_l8_hash([user, source, target, observed, terminal], "outpass_")
+
+
+def _l7_l8_explicit_execution(record: dict[str, Any]) -> bool:
+    execution = record.get("execution_outcome") if isinstance(record.get("execution_outcome"), dict) else {}
+    quality = record.get("outcome_quality") if isinstance(record.get("outcome_quality"), dict) else {}
+    terminal = _text(
+        quality.get("outcome_quality")
+        or _l7_l8_first(record, "terminal_outcome_classification", "outcome_status", "terminal_state")
+    ).upper()
+    return bool(
+        execution.get("applied")
+        or execution.get("success")
+        or record.get("applied")
+        or terminal in {"SUCCESS", "PARTIAL_SUCCESS", "FAILED", "ROLLBACK_SUCCESS", "ROLLBACK_FAILURE"}
+    )
+
+
+def _l7_l8_evidence_class(records: list[dict[str, Any]]) -> str:
+    text = " ".join(
+        " ".join([
+            _text(_l7_l8_first(record, "evidence_class", "production_evidence_class", "execution_mode", "operation_type", "schema_version")),
+            _l7_l8_ids(record)["operation_id"],
+            _text(record.get("_v7_evidence_source_path")),
+        ])
+        for record in records
+    ).upper()
+    if "SYNTHETIC" in text or "SHADOW" in text or "TEST" in text:
+        return "SYNTHETIC_OR_TEST"
+    if "NATURAL" in text:
+        return "NATURAL_PRODUCTION"
+    if any(_l7_l8_explicit_execution(record) for record in records) and (
+        "RUNTIME_AUTOSWITCH" in text
+        or any(_l7_l8_ids(record)["operation_id"].startswith("runtime_autoswitch_") for record in records)
+    ):
+        return "CONTROLLED_PRODUCTION"
+    if any(_l7_l8_explicit_execution(record) for record in records):
+        return "REAL_PRODUCTION_CLASS_UNRESOLVED"
+    return "NON_EXECUTED_OR_UNKNOWN"
+
+
+def _l7_l8_terminal(records: list[dict[str, Any]]) -> str:
+    for record in reversed(records):
+        quality = record.get("outcome_quality") if isinstance(record.get("outcome_quality"), dict) else {}
+        value = (
+            quality.get("outcome_quality")
+            or _l7_l8_first(record, "terminal_outcome_classification", "outcome_quality", "outcome_status", "terminal_state", "result")
+        )
+        text = _text(value).upper()
+        if text and text not in {"UNKNOWN", "NONE"}:
+            return text
+    return "UNKNOWN"
+
+
+def _l7_l8_time(records: list[dict[str, Any]], *aliases: str) -> str:
+    values = [_text(_l7_l8_first(record, *aliases)) for record in records]
+    return max((value for value in values if value), default="")
+
+
+def _l7_l8_present(value: Any) -> bool:
+    return value not in (None, "", [], {}, False)
+
+
+def _l7_l8_freshness(observed_at: str, generated_at: str, *, max_age_seconds: int = 2_592_000) -> dict[str, Any]:
+    def parse(value: str) -> datetime | None:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+
+    observed = parse(observed_at)
+    generated = parse(generated_at)
+    if observed is None or generated is None:
+        return {"state": "UNKNOWN", "age_seconds": None, "max_age_seconds": max_age_seconds}
+    age = max(0, int((generated - observed).total_seconds()))
+    return {
+        "state": "FRESH" if age <= max_age_seconds else "STALE",
+        "age_seconds": age,
+        "max_age_seconds": max_age_seconds,
+    }
+
+
+def _l7_l8_opportunity_class(record: dict[str, Any]) -> str:
+    text = " ".join(
+        _text(_l7_l8_first(record, key))
+        for key in ("action", "decision", "disposition", "status", "result", "reason", "terminal_state", "outcome_status")
+    ).upper()
+    if _l7_l8_explicit_execution(record):
+        return "ACTION"
+    if "STOP_SAFE" in text or "STOP SAFE" in text or "SELF_STOP" in text:
+        return "STOP_SAFE"
+    if any(token in text for token in ("BLOCKED", "DENIED", "REJECTED", "INELIGIBLE", "QUARANTINED")):
+        return "BLOCKED"
+    if any(token in text for token in ("NO_CANDIDATE", "NO CANDIDATE", "NO_SAFE_CANDIDATE")):
+        return "NO_CANDIDATE"
+    if any(token in text for token in ("STAY", "KEEP_CURRENT", "NO_ACTION", "WAIT")):
+        return "STAY"
+    if _l7_l8_first(record, "recommendation_id", "recommendation_hash", "proposal_id", "selected_move", "selected_moves"):
+        return "MISSED"
+    return "NO_CANDIDATE"
+
+
+def build_l7_l8_outcome_evidence_program(
+    decision_records: list[dict[str, Any]] | None = None,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Consume current production evidence for L7/L8 without creating a new truth owner.
+
+    This is a deterministic projection over the existing event, outcome,
+    feedback, closure and certification owners. It implements the exact shared
+    read-model residual for Missions 1-3 and lets Missions 4-8 reach their legal
+    event-driven or evidence-insufficient terminals.
+    """
+    generated = generated_at or datetime.now(timezone.utc).isoformat()
+    records = [row for row in (decision_records or []) if isinstance(row, dict)]
+    grouped: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    opportunities: dict[str, dict[str, Any]] = {}
+    for index, record in enumerate(records):
+        identity = _l7_l8_record_identity(record)
+        grouped.setdefault(identity, []).append((index, record))
+        item = opportunities.setdefault(identity, {
+            "opportunity_id": identity,
+            "classes": set(),
+            "record_indexes": [],
+            "source_paths": set(),
+        })
+        item["classes"].add(_l7_l8_opportunity_class(record))
+        item["record_indexes"].append(index)
+        source_path = _text(record.get("_v7_evidence_source_path") or record.get("evidence_source"))
+        if source_path:
+            item["source_paths"].add(source_path)
+
+    passports: list[dict[str, Any]] = []
+    for identity, indexed in sorted(grouped.items()):
+        group_records = [record for _index, record in indexed]
+        if not any(_l7_l8_explicit_execution(record) for record in group_records):
+            continue
+        ids = {key: "" for key in ("operation_id", "feedback_id", "decision_id", "packet_id", "recommendation_id", "learning_record_id")}
+        for record in group_records:
+            for key, value in _l7_l8_ids(record).items():
+                if value and not ids[key]:
+                    ids[key] = value
+        move_rows = [_l7_l8_move(record) for record in group_records]
+        user = next((row[0] for row in move_rows if row[0]), "")
+        source = next((row[1] for row in move_rows if row[1]), "")
+        target = next((row[2] for row in move_rows if row[2]), "")
+        observed_at = _l7_l8_time(group_records, "outcome_observed_at", "verification_time", "closure_timestamp", "completed_at", "created_at", "timestamp", "ts")
+        terminal = _l7_l8_terminal(group_records)
+        evidence_class = _l7_l8_evidence_class(group_records)
+        source_paths = sorted({
+            _text(record.get("_v7_evidence_source_path") or record.get("evidence_source"))
+            for record in group_records
+            if record.get("_v7_evidence_source_path") or record.get("evidence_source")
+        })
+        provenance = [{"record_index": index, "source": _text(record.get("_v7_evidence_source_path") or record.get("evidence_source") or "existing_decision_record")} for index, record in indexed]
+
+        accepted = bool(ids["packet_id"] or ids["recommendation_id"] or any(_l7_l8_first(record, "accepted_at", "approval_timestamp", "approval_id") for record in group_records))
+        activated = any(_l7_l8_explicit_execution(record) for record in group_records)
+        immediate = any(
+            _l7_l8_first(record, "verification_result", "verification_passed", "post_action_verification", "verification_time")
+            for record in group_records
+        )
+        stability_seconds = max((int(as_float(_l7_l8_first(record, "stability_window_seconds"), 0.0)) for record in group_records), default=0)
+        delayed_5m = stability_seconds >= 300 or any(_l7_l8_first(record, "delayed_5m_observation", "observation_5m") for record in group_records)
+        delayed_1h = stability_seconds >= 3600 or any(_l7_l8_first(record, "delayed_1h_observation", "observation_1h") for record in group_records)
+        steady = delayed_1h and terminal != "UNKNOWN"
+        temporal = {
+            "accepted_request": accepted,
+            "actual_activation": activated,
+            "immediate_verification": immediate,
+            "delayed_5m_observation": delayed_5m,
+            "delayed_1h_observation": delayed_1h,
+            "steady_state_terminal": steady,
+        }
+        decision_trace_id = next((_text(_l7_l8_first(record, "decision_trace_id")) for record in group_records if _l7_l8_first(record, "decision_trace_id")), "")
+        input_snapshot_identity = next((_text(_l7_l8_first(record, "input_snapshot_identity", "input_snapshot_id", "runtime_snapshot_hash", "snapshot_fingerprint")) for record in group_records if _l7_l8_first(record, "input_snapshot_identity", "input_snapshot_id", "runtime_snapshot_hash", "snapshot_fingerprint")), "")
+        expected_terminal = next((_text(_l7_l8_first(record, "expected_terminal")) for record in group_records if _l7_l8_first(record, "expected_terminal")), "")
+        approved_exception = next((_text(_l7_l8_first(record, "approved_exception_id", "exception_id")) for record in group_records if _l7_l8_first(record, "approved_exception_id", "exception_id")), "")
+        if not expected_terminal:
+            intent_drift = "UNRESOLVED_EXPECTED_TERMINAL"
+        elif expected_terminal.upper() == terminal.upper():
+            intent_drift = "NO_DRIFT"
+        elif approved_exception:
+            intent_drift = "APPROVED_EXCEPTION"
+        else:
+            intent_drift = "UNAPPROVED_INTENT_DRIFT"
+        replay = {
+            "decision_trace_id": decision_trace_id,
+            "input_snapshot_identity": input_snapshot_identity,
+            "expected_terminal": expected_terminal,
+            "actual_terminal": terminal,
+            "intent_drift_class": intent_drift,
+            "approved_exception_id": approved_exception,
+        }
+        core = {
+            "material_identity": identity,
+            "provenance": provenance,
+            "evidence_class": evidence_class,
+            "terminal_class": terminal,
+            "user": user,
+            "source_channel": source,
+            "target_channel": target,
+            "outcome_observed_at": observed_at,
+        }
+        core_missing = [field for field in L7_L8_PASSPORT_CORE_FIELDS if not _l7_l8_present(core[field])]
+        temporal_missing = [field for field in L7_L8_TEMPORAL_FIELDS if not temporal[field]]
+        replay_missing = [field for field in L7_L8_REPLAY_FIELDS if not _l7_l8_present(replay[field])]
+        replay_fingerprint = _l7_l8_hash({"identity": identity, "trace": decision_trace_id, "snapshot": input_snapshot_identity, "expected": expected_terminal, "actual": terminal}, "outreplay_")
+        freshness = _l7_l8_freshness(observed_at, generated)
+        eligible = (
+            not core_missing
+            and not temporal_missing
+            and not replay_missing
+            and evidence_class in {"CONTROLLED_PRODUCTION", "NATURAL_PRODUCTION"}
+            and freshness["state"] == "FRESH"
+        )
+        passports.append({
+            "schema_version": "v7.l7-l8.outcome-evidence-passport.v1",
+            **core,
+            **ids,
+            "source_paths": source_paths,
+            "record_indexes": [index for index, _record in indexed],
+            "record_count": len(indexed),
+            "freshness": freshness,
+            "temporal_verification": temporal,
+            "replay_contract": {**replay, "deterministic_replay_fingerprint": replay_fingerprint},
+            "completeness": {
+                "core_complete": not core_missing,
+                "temporal_complete": not temporal_missing,
+                "replay_complete": not replay_missing,
+                "missing_core_fields": core_missing,
+                "missing_temporal_fields": temporal_missing,
+                "missing_replay_fields": replay_missing,
+            },
+            "eligibility": "ELIGIBLE_FOR_CALIBRATION" if eligible else "INELIGIBLE_EXACT_GAPS_RECORDED",
+            "consumption": {
+                "learning_record_consumed": bool(ids["learning_record_id"]),
+                "action_class_reconciliation_consumed": True,
+                "omp_program_consumed": True,
+            },
+        })
+
+    denominator_rows = []
+    class_counts = {name: 0 for name in ("ACTION", "STAY", "STOP_SAFE", "BLOCKED", "MISSED", "NO_CANDIDATE")}
+    class_precedence = ("ACTION", "STOP_SAFE", "BLOCKED", "STAY", "MISSED", "NO_CANDIDATE")
+    for identity, item in sorted(opportunities.items()):
+        final_class = next(name for name in class_precedence if name in item["classes"])
+        class_counts[final_class] += 1
+        denominator_rows.append({
+            "opportunity_id": identity,
+            "opportunity_class": final_class,
+            "observed_classes": sorted(item["classes"]),
+            "record_indexes": item["record_indexes"],
+            "source_paths": sorted(item["source_paths"]),
+        })
+
+    eligible_passports = [row for row in passports if row["eligibility"] == "ELIGIBLE_FOR_CALIBRATION"]
+    immutable_set = sorted(row["material_identity"] for row in eligible_passports)
+    immutable_fingerprint = _l7_l8_hash(immutable_set, "outset_")
+    evidence_classes = sorted({row["evidence_class"] for row in eligible_passports})
+    terminal_classes = sorted({row["terminal_class"] for row in eligible_passports})
+    coverage_cells = {
+        "eligible_passports_at_least_5": len(eligible_passports) >= 5,
+        "controlled_production_present": "CONTROLLED_PRODUCTION" in evidence_classes,
+        "natural_production_present": "NATURAL_PRODUCTION" in evidence_classes,
+        "rollback_and_no_rollback_present": any("ROLLBACK" in value for value in terminal_classes) and any("ROLLBACK" not in value for value in terminal_classes),
+        "material_variation_present": len({(row["user"], row["source_channel"], row["target_channel"]) for row in eligible_passports}) >= 2,
+        "complete_temporal_and_replay": bool(eligible_passports) and all(row["completeness"]["temporal_complete"] and row["completeness"]["replay_complete"] for row in eligible_passports),
+    }
+    missing_cells = sorted(name for name, passed in coverage_cells.items() if not passed)
+    calibration_verdict = "CALIBRATION_SET_SUFFICIENT" if not missing_cells else "INSUFFICIENT_EVIDENCE"
+    authority_verdict = "HOLD_GOVERNED_ONLY" if calibration_verdict == "CALIBRATION_SET_SUFFICIENT" else "INSUFFICIENT_EVIDENCE"
+    next_event = (
+        "independent Authority approval review"
+        if authority_verdict == "RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL"
+        else "new qualifying owner-backed controlled or natural production outcome closing the exact missing coverage cells"
+    )
+    return {
+        "schema_version": "v7.l7-l8.production-evidence-authority-evolution-program.v1",
+        "generated_at": generated,
+        "owner": "admin_core.autonomy_trust_acceleration existing evidence inventory read owner",
+        "target_terminal": "CURRENT_L7_L8_PRODUCTION_EVIDENCE_RECONCILED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED",
+        "mission_results": {
+            "M1": {"status": "COMPLETE_CONSUMED", "passport_count": len(passports), "opportunity_count": len(denominator_rows)},
+            "M2": {"status": "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS", "temporally_complete": sum(1 for row in passports if row["completeness"]["temporal_complete"])},
+            "M3": {"status": "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS", "replay_complete": sum(1 for row in passports if row["completeness"]["replay_complete"])},
+            "M4": {"status": "EVENT_DRIVEN_BOUNDARY", "qualifying_controlled_passports": sum(1 for row in passports if row["evidence_class"] == "CONTROLLED_PRODUCTION" and row["eligibility"] == "ELIGIBLE_FOR_CALIBRATION"), "evidence_manufactured": False},
+            "M5": {"status": "EVENT_DRIVEN_BOUNDARY", "qualifying_natural_passports": sum(1 for row in passports if row["evidence_class"] == "NATURAL_PRODUCTION" and row["eligibility"] == "ELIGIBLE_FOR_CALIBRATION"), "evidence_manufactured": False},
+            "M6": {"status": calibration_verdict, "immutable_eligibility_set_fingerprint": immutable_fingerprint, "eligible_passports": len(eligible_passports), "missing_coverage_cells": missing_cells, "learning_result": "OWNER_BACKED_NO_CHANGE_INSUFFICIENT_EVIDENCE" if missing_cells else "OWNER_BACKED_CALIBRATION_SET_CONSUMED"},
+            "M7": {"status": "COMPLETE_CONSUMED", "authority_recommendation": authority_verdict, "authority_mutation_performed": False},
+            "M8": {"status": "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT" if authority_verdict != "RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL" else "READY_FOR_INDEPENDENT_AUTHORITY_BOUNDARY", "authority_mutation_performed": False},
+        },
+        "outcome_evidence_passports": passports,
+        "opportunity_denominator": {
+            "definition": "append-only projection through existing event/outcome/certification owners; not an independent registry, watcher, database or queue",
+            "counts": class_counts,
+            "rows": denominator_rows[:100],
+            "rows_total": len(denominator_rows),
+        },
+        "immutable_eligibility_set": {
+            "passport_ids": immutable_set,
+            "fingerprint": immutable_fingerprint,
+            "evidence_classes": evidence_classes,
+            "terminal_classes": terminal_classes,
+            "coverage_cells": coverage_cells,
+            "missing_coverage_cells": missing_cells,
+        },
+        "authority_recommendation": {
+            "verdict": authority_verdict,
+            "scope_narrowing_supported": True,
+            "allowed_verdicts": ["RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL", "RETAIN_CURRENT_SCOPE", "RECOMMEND_NARROW_SCOPE", "HOLD_GOVERNED_ONLY", "FREEZE", "DEMOTE", "INSUFFICIENT_EVIDENCE"],
+            "recommendation_is_not_mutation": True,
+        },
+        "program_terminal": "CURRENT_L7_L8_PRODUCTION_EVIDENCE_RECONCILED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED",
+        "next_reentry_condition": next_event,
+        "read_only": True,
+        "new_truth_source_created": False,
+        "new_storage_created": False,
+        "synthetic_evidence_created": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "rollback_apply_executed": False,
+        "daemon_or_timer_enabled": False,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+    }
+
+
 def _decision_outcome_learning_from_trust(trust_evolution_snapshot: dict[str, Any] | None) -> dict[str, Any]:
     summary = _first_item(trust_evolution_snapshot)
     model = summary.get("decision_outcome_learning") if isinstance(summary.get("decision_outcome_learning"), dict) else {}
@@ -12265,6 +12698,10 @@ def build_acceleration_inventory(
         generated_at=generated,
     )
     decision_outcome_closure = build_decision_outcome_closure(decision_records or [], generated_at=generated)
+    l7_l8_authority_evolution_program = build_l7_l8_outcome_evidence_program(
+        decision_records or [],
+        generated_at=generated,
+    )
     recovery_admission = build_recovery_admission(
         decision_surface,
         freshness_actionability=freshness_actionability,
@@ -12367,6 +12804,7 @@ def build_acceleration_inventory(
     routing_foundation_partial = {
         "service_user_sla_fit": service_user_sla_fit,
         "decision_outcome_closure": decision_outcome_closure,
+        "l7_l8_authority_evolution_program": l7_l8_authority_evolution_program,
         "decision_outcome_learning": decision_outcome_learning,
         "recovery_admission": recovery_admission,
         "anti_flapping": anti_flapping,
@@ -12670,6 +13108,7 @@ def build_acceleration_inventory(
         "service_user_sla_fit": service_user_sla_fit,
         "action_class_freshness_windows": action_class_freshness_windows,
         "decision_outcome_closure": decision_outcome_closure,
+        "l7_l8_authority_evolution_program": l7_l8_authority_evolution_program,
         "decision_outcome_learning": decision_outcome_learning,
         "decision_effectiveness": decision_outcome_learning.get("effectiveness", {}),
         "suitability_effectiveness_expansion": suitability_effectiveness_expansion,

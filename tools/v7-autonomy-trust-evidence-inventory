@@ -114,6 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--action-class-runtime-only", action="store_true")
     parser.add_argument("--delegated-autonomy-policy-only", action="store_true")
     parser.add_argument("--delegated-autonomy-eligibility-only", action="store_true")
+    parser.add_argument("--l7-l8-authority-evolution-only", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -149,7 +150,11 @@ def main(argv=None) -> int:
     rollback_paths = [event_dir / "rollback-history.jsonl"]
     decision_records = []
     for path in audit_paths + feedback_paths + rollback_paths:
-        decision_records.extend(read_jsonl_family(path))
+        for row in read_jsonl_family(path):
+            decision_records.append({
+                **row,
+                "_v7_evidence_source_path": str(path),
+            })
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     events = event_rows(event_dir)
     payload = autonomy_trust_acceleration.build_acceleration_inventory(
@@ -213,6 +218,8 @@ def main(argv=None) -> int:
         payload = payload["action_class_runtime_enablement"]["delegated_autonomy_policy_preview"]
     if args.delegated_autonomy_eligibility_only:
         payload = payload["action_class_runtime_enablement"]["delegated_autonomy_runtime_eligibility"]
+    if args.l7_l8_authority_evolution_only:
+        payload = payload["l7_l8_authority_evolution_program"]
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
     return 0
 

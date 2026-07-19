@@ -7398,6 +7398,8 @@ class AutoswitchPlanner:
         approved_envelope_id = str(restore_barrier.get("approved_atomic_execution_envelope_id") or "")
         approved_envelope_hash = str(restore_barrier.get("approved_atomic_execution_envelope_hash") or "")
         approved_source_bundle_hash = str(restore_barrier.get("approved_source_bundle_hash") or "")
+        approved_snapshot_bundle_hash = str(restore_barrier.get("approved_snapshot_bundle_hash") or "")
+        approved_source_hashes = restore_barrier.get("approved_source_hashes") or {}
         expected_count = None
         if "clearance_expected_selected_moves" in restore_barrier:
             expected_count = to_int(restore_barrier.get("clearance_expected_selected_moves"), 0)
@@ -7471,6 +7473,51 @@ class AutoswitchPlanner:
                 "current_selected_moves_count": len(selected),
                 "approved_selected_moves_count": expected_count if expected_count is not None else len(selected),
                 "approved_plan_lock_identity_source": "approved_preview_packet",
+            }
+        operation_scoped = (
+            isinstance(approved_source_hashes, dict)
+            and set(approved_source_hashes) == set(operation_scoped_binding.SOURCE_KEYS)
+        )
+        if operation_scoped:
+            if len(selected) != 1:
+                return {
+                    "clearance_generation_ok": False,
+                    "clearance_generation_reason": "restore_barrier_operation_scoped_binding_requires_one_move",
+                    "current_selected_moves_count": len(selected),
+                }
+            binding = operation_scoped_binding.read_binding(
+                state_dir=self.state_dir,
+                snapshot_root=self.intelligence_snapshot_root,
+                selected=selected[0],
+            )
+            binding_reasons = []
+            if binding.get("status") != "BOUND":
+                binding_reasons.append("operation_scoped_binding_not_bound")
+            if dict(binding.get("source_hashes") or {}) != dict(approved_source_hashes):
+                binding_reasons.append("operation_scoped_source_hashes_mismatch")
+            if str(binding.get("source_bundle_hash") or "") != approved_source_bundle_hash:
+                binding_reasons.append("operation_scoped_source_bundle_hash_mismatch")
+            if str(binding.get("snapshot_bundle_hash") or "") != approved_snapshot_bundle_hash:
+                binding_reasons.append("operation_scoped_snapshot_bundle_hash_mismatch")
+            if binding_reasons:
+                return {
+                    "clearance_generation_ok": False,
+                    "clearance_generation_reason": "restore_barrier_operation_scoped_binding_mismatch",
+                    "operation_scoped_binding_reasons": binding_reasons,
+                    "operation_scoped_binding": binding,
+                }
+            return {
+                "clearance_generation_ok": True,
+                "clearance_generation_reason": "restore_barrier_clearance_operation_scoped_binding_match",
+                "current_generation_id": current_generation,
+                "approved_generation_id": approved_generation,
+                "current_selected_moves_hash": selected_hash,
+                "approved_selected_moves_hash": approved_hash or selected_hash,
+                "current_selected_moves_count": len(selected),
+                "approved_selected_moves_count": expected_count if expected_count is not None else len(selected),
+                "approved_atomic_execution_envelope_id": approved_envelope_id,
+                "approved_atomic_execution_envelope_hash": approved_envelope_hash,
+                "operation_scoped_binding": binding,
             }
         current_envelope = self._atomic_execution_envelope(
             selected_hash,

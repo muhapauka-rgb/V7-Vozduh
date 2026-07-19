@@ -222,7 +222,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
     def test_apply_binds_control_window_to_approved_packet_operation_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self.write_fixture(root)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
             args = self.args_for(root, [
                 "--apply", "--no-verify", "--max-selected-moves", "1",
                 "--approved-operation-id", "packet-operation-id",
@@ -5461,6 +5464,57 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 0)
         self.assertEqual(plan["apply_result"]["reason"], "approved_plan_lock_selected_moves_missing")
         self.assertEqual(plan["apply_result"]["unsafe_blocker"], "approved_plan_lock_snapshot_gate_stop_required")
+
+    def test_restore_clearance_reuses_exact_operation_scoped_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            args = self.args_for(root, ["--mode", "guarded", "--target-egress", "vless", "--max-selected-moves", "1"])
+            planner = self.tool.AutoswitchPlanner(args)
+            planner.plan()
+            selected = [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+            }]
+            selected_hash = self.tool.sha256_json(selected)
+            source_hashes = {
+                "users_registry": "users-semantic",
+                "egress_registry": "egress-semantic",
+                "runtime_state": "runtime-semantic",
+                "candidate_suitability": "candidate-semantic",
+            }
+            bundle_hash = self.tool.sha256_json(source_hashes)
+            barrier = {
+                "generation_token": "operation-scoped-unit-test",
+                "clearance_expires_at": "2999-01-01T00:00:00+00:00",
+                "clearance_generation_id": planner.generation["planner_generation_id"],
+                "approved_selected_moves_hash": selected_hash,
+                "clearance_expected_selected_moves": 1,
+                "approved_atomic_execution_envelope_id": "aee_semantic",
+                "approved_atomic_execution_envelope_hash": "semantic-envelope-hash",
+                "approved_source_hashes": source_hashes,
+                "approved_source_bundle_hash": bundle_hash,
+                "approved_snapshot_bundle_hash": bundle_hash,
+            }
+            original_binding = self.tool.operation_scoped_binding.read_binding
+            try:
+                self.tool.operation_scoped_binding.read_binding = lambda **kwargs: {
+                    "status": "BOUND",
+                    "source_hashes": source_hashes,
+                    "source_bundle_hash": bundle_hash,
+                    "snapshot_bundle_hash": bundle_hash,
+                }
+                result = planner._restore_clearance_generation_check(barrier, selected, selected_hash)
+            finally:
+                self.tool.operation_scoped_binding.read_binding = original_binding
+
+        self.assertTrue(result["clearance_generation_ok"], result)
+        self.assertEqual(
+            result["clearance_generation_reason"],
+            "restore_barrier_clearance_operation_scoped_binding_match",
+        )
 
     def test_missing_approved_snapshot_is_explicit_unsafe_blocker(self):
         with tempfile.TemporaryDirectory() as tmp:

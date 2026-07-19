@@ -1000,6 +1000,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(apply_calls[0]["operation_id"], result["operation_id"])
         self.assertEqual(apply_calls[0]["selected_move_hash"], result["selected_move_hash"])
         self.assertTrue(apply_calls[0]["authority_generation"])
+        self.assertTrue(apply_calls[0]["source_bundle_hash"])
+        self.assertEqual(apply_calls[0]["snapshot_bundle_hash"], "l3-snapshot-bundle")
         self.assertEqual(barrier["packet_id"], apply_calls[0]["packet_id"])
         self.assertEqual(barrier["operation_id"], apply_calls[0]["operation_id"])
         locked_move = barrier["approved_plan_lock"]["selected_moves"][0]

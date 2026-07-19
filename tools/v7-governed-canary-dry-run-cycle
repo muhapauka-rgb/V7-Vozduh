@@ -1702,6 +1702,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
         breaker_generation=str(packet_identity.get("breaker_generation") or ""),
+        source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
+        snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
         emergency_failover_autonomy=True,
     )

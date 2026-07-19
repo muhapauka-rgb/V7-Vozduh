@@ -9811,15 +9811,27 @@ L7_L8_REPLAY_FIELDS = (
 
 
 def _l7_l8_maps(record: dict[str, Any]) -> list[dict[str, Any]]:
-    maps = [record]
-    for key in (
+    maps: list[dict[str, Any]] = []
+    queue = [record]
+    seen: set[int] = set()
+    nested_keys = (
         "operation", "execution_outcome", "verification_result", "rollback_result",
         "outcome_quality", "learning_record", "metadata", "decision_trace",
         "input_snapshot", "temporal_verification", "observation_windows",
-    ):
-        value = record.get(key)
-        if isinstance(value, dict):
-            maps.append(value)
+        "packet", "source_preview", "decision_commit", "semantic_fields",
+        "expected", "immutable_packet_identity", "checks", "approved_plan_lock",
+    )
+    while queue:
+        mapping = queue.pop(0)
+        marker = id(mapping)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        maps.append(mapping)
+        for key in nested_keys:
+            value = mapping.get(key)
+            if isinstance(value, dict):
+                queue.append(value)
     return maps
 
 
@@ -9880,6 +9892,72 @@ def _l7_l8_record_identity(record: dict[str, Any]) -> str:
     observed = _text(_l7_l8_first(record, "outcome_observed_at", "verification_time", "execution_time", "closure_timestamp", "created_at", "timestamp", "ts"))
     terminal = _text(_l7_l8_first(record, "terminal_outcome_classification", "outcome_quality", "outcome_status", "terminal_state", "result"))
     return _l7_l8_hash([user, source, target, observed, terminal], "outpass_")
+
+
+def _l7_l8_identity_tokens(record: dict[str, Any]) -> set[str]:
+    tokens = {value for value in _l7_l8_ids(record).values() if value}
+    for mapping in _l7_l8_maps(record):
+        for key in (
+            "operation_id", "source_operation_id", "audit_reference", "closure_reference",
+            "feedback_id", "decision_id", "packet_id", "approval_packet_id",
+            "recommendation_id", "recommendation_hash", "proposal_id",
+            "learning_record_id", "learning_id",
+        ):
+            value = _text(mapping.get(key))
+            if value:
+                tokens.add(value)
+    return tokens
+
+
+def _l7_l8_connected_identities(records: list[dict[str, Any]]) -> list[str]:
+    """Collapse transitive projections of one material outcome across owners."""
+    parents = list(range(len(records)))
+
+    def find(index: int) -> int:
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parents[right_root] = left_root
+
+    token_owner: dict[str, int] = {}
+    record_tokens: list[set[str]] = []
+    for index, record in enumerate(records):
+        tokens = _l7_l8_identity_tokens(record)
+        record_tokens.append(tokens)
+        for token in tokens:
+            if token in token_owner:
+                union(index, token_owner[token])
+            else:
+                token_owner[token] = index
+
+    groups: dict[int, list[int]] = {}
+    for index in range(len(records)):
+        groups.setdefault(find(index), []).append(index)
+    identities = ["" for _record in records]
+    for indexes in groups.values():
+        tokens = sorted({token for index in indexes for token in record_tokens[index]})
+        if not tokens:
+            for index in indexes:
+                identities[index] = _l7_l8_record_identity(records[index])
+            continue
+        canonical = next((token for token in tokens if token.startswith("runtime_autoswitch_")), "")
+        canonical = canonical or next((token for token in tokens if token.startswith("pkt_")), "")
+        canonical = canonical or next((token for token in tokens if token.startswith("govdry_")), "")
+        canonical = canonical or tokens[0]
+        moves = [_l7_l8_move(records[index]) for index in indexes]
+        user = next((move[0] for move in moves if move[0]), "")
+        source = next((move[1] for move in moves if move[1]), "")
+        target = next((move[2] for move in moves if move[2]), "")
+        identity = _l7_l8_hash([canonical, user, source, target], "outpass_")
+        for index in indexes:
+            identities[index] = identity
+    return identities
 
 
 def _l7_l8_explicit_execution(record: dict[str, Any]) -> bool:
@@ -10094,10 +10172,11 @@ def build_l7_l8_outcome_evidence_program(
     """
     generated = generated_at or datetime.now(timezone.utc).isoformat()
     records = [row for row in (decision_records or []) if isinstance(row, dict)]
+    connected_identities = _l7_l8_connected_identities(records)
     grouped: dict[str, list[tuple[int, dict[str, Any]]]] = {}
     opportunities: dict[str, dict[str, Any]] = {}
     for index, record in enumerate(records):
-        identity = _l7_l8_record_identity(record)
+        identity = connected_identities[index]
         grouped.setdefault(identity, []).append((index, record))
         item = opportunities.setdefault(identity, {
             "opportunity_id": identity,

@@ -50,6 +50,39 @@ class AutonomyTrustEvidenceInventoryCliTest(unittest.TestCase):
         self.assertTrue(result["genuine_production_candidate"])
         self.assertTrue(result["packet_preview"]["_v7_genuine_production_candidate"])
 
+    def test_terminal_observation_consumes_finished_lease_and_live_route_verification(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text("ip=10.0.0.3 current=vless enabled=1\n", encoding="utf-8")
+            (state_dir / "operator-execution-lease.json").write_text(json.dumps({
+                "status": "EXECUTION_FINISHED",
+                "operation_id": "runtime_autoswitch_observed",
+                "packet_id": "pkt_observed",
+                "finished_at": "2026-07-19T00:00:00+00:00",
+                "immutable_packet_identity": {
+                    "operation_id": "govdry_observed",
+                    "packet_id": "pkt_observed",
+                    "decision_id": "decision_observed",
+                    "snapshot_bundle_hash": "snapshot_observed",
+                    "user": "10.0.0.3",
+                    "source": "awg3",
+                    "target": "vless",
+                },
+            }), encoding="utf-8")
+            original = module.subprocess.run
+            module.subprocess.run = lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, "OK", "")
+            try:
+                row = module.terminal_execution_observation(state_dir, verify_routes=True)
+            finally:
+                module.subprocess.run = original
+
+        self.assertEqual(row["evidence_class"], "CONTROLLED_PRODUCTION")
+        self.assertTrue(row["verification_result"]["verification_passed"])
+        self.assertTrue(row["delayed_1h_observation"])
+        self.assertEqual(row["decision_trace_id"], "decision_observed")
+        self.assertEqual(row["input_snapshot_identity"], "snapshot_observed")
+
     def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

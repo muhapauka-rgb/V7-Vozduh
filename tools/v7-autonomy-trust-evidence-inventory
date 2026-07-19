@@ -12,6 +12,7 @@ import gzip
 import json
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -165,6 +166,68 @@ def discover_live_packet_preview(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def terminal_execution_observation(state_dir: Path, *, verify_routes: bool = False) -> dict[str, Any] | None:
+    lease_path = state_dir / "operator-execution-lease.json"
+    lease = read_json(lease_path, {})
+    if not isinstance(lease, dict) or lease.get("status") != "EXECUTION_FINISHED":
+        return None
+    identity = lease.get("immutable_packet_identity") if isinstance(lease.get("immutable_packet_identity"), dict) else {}
+    user = str(identity.get("user") or "")
+    source = str(identity.get("source") or "")
+    target = str(identity.get("target") or "")
+    if not user or not target:
+        return None
+    current = ""
+    for row in read_registry(state_dir / "users.registry"):
+        if str(row.get("ip") or row.get("user_ip") or "") == user:
+            current = str(row.get("current") or row.get("egress") or "")
+            break
+    route_check = {"requested": verify_routes, "passed": False, "returncode": None}
+    if verify_routes:
+        try:
+            completed = subprocess.run(["v7-user-route-check"], text=True, capture_output=True, timeout=180, check=False)
+            route_check = {"requested": True, "passed": completed.returncode == 0, "returncode": completed.returncode}
+        except (OSError, subprocess.TimeoutExpired):
+            route_check = {"requested": True, "passed": False, "returncode": None}
+    finished_raw = str(lease.get("finished_at") or "")
+    try:
+        finished = datetime.fromisoformat(finished_raw.replace("Z", "+00:00"))
+    except ValueError:
+        finished = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    elapsed = max(0, int((now - finished).total_seconds()))
+    current_matches = current == target
+    verified = current_matches and route_check["passed"]
+    packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    return {
+        "schema_version": "v7.l7-l8.terminal-execution-observation.v1",
+        "_v7_evidence_source_path": f"{lease_path}+users.registry+v7-user-route-check",
+        "evidence_class": "CONTROLLED_PRODUCTION",
+        "operation_id": str(lease.get("operation_id") or identity.get("operation_id") or ""),
+        "source_operation_id": str(identity.get("operation_id") or ""),
+        "packet_id": str(lease.get("packet_id") or identity.get("packet_id") or ""),
+        "decision_id": str(identity.get("decision_id") or packet.get("decision_id") or ""),
+        "user": user,
+        "source_channel": source,
+        "target_channel": target,
+        "outcome_observed_at": now.isoformat(),
+        "execution_outcome": {"applied": True, "success": verified},
+        "verification_result": {"verification_passed": verified, "current_channel": current, "route_check": route_check},
+        "stability_window_seconds": elapsed if verified else 0,
+        "delayed_5m_observation": verified and elapsed >= 300,
+        "delayed_1h_observation": verified and elapsed >= 3600,
+        "decision_trace_id": str(identity.get("decision_id") or packet.get("decision_id") or ""),
+        "input_snapshot_identity": str(identity.get("snapshot_bundle_hash") or packet.get("snapshot_bundle_hash") or ""),
+        "expected_terminal": "SUCCESS",
+        "terminal_outcome_classification": "SUCCESS" if verified else "REGRESSION_REQUIRED",
+        "observation_owner": "existing execution lease, users registry and v7-user-route-check owners",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Read-only V7 autonomy trust evidence inventory.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -179,6 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--l7-l8-authority-evolution-only", action="store_true")
     parser.add_argument("--polygon-driven-l7-l8-acquisition-only", action="store_true")
     parser.add_argument("--discover-live-packet-preview", action="store_true")
+    parser.add_argument("--verify-terminal-execution-observation", action="store_true")
     parser.add_argument(
         "--expected-material-outcome",
         action="append",
@@ -225,6 +289,12 @@ def main(argv=None) -> int:
                 **row,
                 "_v7_evidence_source_path": str(path),
             })
+    terminal_observation = terminal_execution_observation(
+        state_dir,
+        verify_routes=args.verify_terminal_execution_observation,
+    )
+    if terminal_observation:
+        decision_records.append(terminal_observation)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     events = event_rows(event_dir)
     natural_event_paths = event_source_paths(event_dir)
@@ -311,6 +381,7 @@ def main(argv=None) -> int:
         "decision_records_read": len(decision_records),
         "shadow_history_records_read": len(shadow_history),
         "event_records_read": len(events),
+        "terminal_execution_observation_consumed": bool(terminal_observation),
     }
     if args.knowledge_quality_only:
         payload = payload["knowledge_quality_read_model"]

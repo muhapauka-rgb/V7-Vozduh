@@ -4250,6 +4250,44 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(model["authority_expanded"])
         self.assertEqual(model["users_moved"], 0)
 
+    def test_l7_l8_passport_collapses_transitive_runtime_packet_and_feedback_identities(self):
+        records = [
+            {
+                "operation_id": "runtime_autoswitch_material_bridge",
+                "selected_moves": [{"user_ip": "10.0.0.3", "from": "awg3", "to": "vless"}],
+                "outcome_status": "success",
+                "created_at": "2026-07-19T00:00:00+00:00",
+            },
+            {
+                "operation_id": "govdry_material_bridge",
+                "closure_reference": "runtime_autoswitch_material_bridge",
+                "packet_id": "pkt_material_bridge",
+                "user": "10.0.0.3",
+                "source_channel": "awg3",
+                "target_channel": "vless",
+                "execution_outcome": {"applied": True, "success": True},
+                "terminal_outcome_classification": "SUCCESS",
+                "outcome_observed_at": "2026-07-19T00:00:01+00:00",
+            },
+            {
+                "feedback_id": "execfb_material_bridge",
+                "packet_id": "pkt_material_bridge",
+                "user": "10.0.0.3",
+                "source_channel": "awg3",
+                "target_channel": "vless",
+                "learning_record": {"learning_record_id": "learn_material_bridge"},
+                "execution_outcome": {"applied": True, "success": True},
+                "terminal_outcome_classification": "SUCCESS",
+                "outcome_observed_at": "2026-07-19T00:00:01+00:00",
+            },
+        ]
+
+        model = accel.build_l7_l8_outcome_evidence_program(records)
+
+        self.assertEqual(len(model["outcome_evidence_passports"]), 1)
+        self.assertEqual(model["outcome_evidence_passports"][0]["record_count"], 3)
+        self.assertEqual(model["outcome_evidence_passports"][0]["learning_record_id"], "learn_material_bridge")
+
     def test_l7_l8_program_records_exact_temporal_and_replay_residuals(self):
         model = accel.build_l7_l8_outcome_evidence_program([{
             "_v7_evidence_source_path": "/opt/v7/events/switch-history.jsonl",

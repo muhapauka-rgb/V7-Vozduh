@@ -42,7 +42,7 @@ Remaining cells are exactly `eligible_passports_at_least_5`, `material_variation
 ## Verification and deployment
 
 - Focused regression: `201 tests`, PASS.
-- Production code deploys: `20b0df5261ab768c3a25554e329e5deb1e832818` / `deploy-z8-14-Updatesystem-20b0df5-20260719T134934`; finalizer `6d708c79daaaddeb4eb0031716c01599e7d88c8e` / `deploy-z8-14-Updatesystem-6d708c7-20260719T140652`.
-- Latest deploy delta: only `tools/v7_sync_lib.py` and `tools/v7-truth-check`; blockers none; systemd/routing/user/packet/restore-barrier/rollback/Authority/maturity effects none.
+- Production code deploys: `20b0df5261ab768c3a25554e329e5deb1e832818` / `deploy-z8-14-Updatesystem-20b0df5-20260719T134934`; finalizer `6d708c79daaaddeb4eb0031716c01599e7d88c8e` / `deploy-z8-14-Updatesystem-6d708c7-20260719T140652`; atomic CPS/OMP terminal `5a3973e4bcd1476ba643209787c5bd72c695731c` / `deploy-z8-14-Updatesystem-5a3973e-20260719T144828`.
+- Deploy deltas were limited to declared allowlisted owner files; blockers none; systemd/routing/user/packet/restore-barrier/rollback/Authority/maturity deploy effects none.
 - The one user movement above was the separately admitted real controlled-production transaction, not a deploy effect. It remained inside the approved one-user/one-transaction delegated policy.
-- Final truth, convergence and local/GitHub/production equality: `PENDING_FINAL_CPS_COMMIT`.
+- Final truth: `PASS / FULLY_ALIGNED`; convergence: `PASS / ALIGNED`; local, GitHub and production commit/runtime snapshot equality: `PASS`; deploy-delta mismatches: none.

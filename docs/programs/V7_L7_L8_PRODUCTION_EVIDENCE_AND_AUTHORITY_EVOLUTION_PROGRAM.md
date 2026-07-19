@@ -24,11 +24,11 @@ The closed chain is:
 
 `QUALIFYING PRODUCTION OPPORTUNITY -> SITUATION AND PRE-SNAPSHOT -> INTERPRETATION -> DECISION TRACE + PREDICTION + ALTERNATIVES -> CANDIDATE -> PACKET -> LEASE/AUTHORITY -> APPLY OR SAFE NO-ACTION -> TERMINAL ACTIVATION ACKNOWLEDGEMENT -> IMMEDIATE + DELAYED + STEADY-STATE VERIFICATION -> ROLLBACK/NO-ROLLBACK -> OUTCOME PASSPORT -> LEARNING + REPLAY -> CALIBRATION/REPRESENTATIVENESS -> PRODUCTION MATURITY DECISION -> AUTHORITY RECOMMENDATION -> CPS/OMP NEXT FRONTIER`
 
-## Current boundary
+## Historical initial boundary
 
 The Permanent Polygon is a completed design-time engineering substrate with explicit residuals. It remains a parallel permanent producer and must not be rerun ceremonially. Its L1-L6 engineering evidence cannot close L7 controlled production field validity or L8 natural production representativeness.
 
-Current CPS truth at plan creation:
+Historical CPS truth at initial plan creation:
 
 - action class: `single-user governed candidate failover`;
 - action-class state: `GOVERNED_ONLY`;
@@ -66,10 +66,13 @@ Before an Authority request is dispatched, reconcile all current and legacy L7/L
 
 Required reconciliation includes the current material-outcome summary, Passport count, immutable eligibility-set identity, M1-M7 residuals, current-cycle report and terminal, exact missing cells, next reentry, forbidden effects and Authority recommendation. A legacy field that still describes the earlier one-Passport cycle must be updated or explicitly labelled historical; it must not remain machine-readable as current truth.
 
+R0 must repair the last responsible projection producer or consumer binding, not merely edit the rendered CPS snapshot. Current L7/L8 fields must be derived from the latest immutable eligibility set and its owner-backed outcome/passport records. Focused regression tests must prove that a new CPS generation cannot recreate a current-looking one-Passport, two-outcome or four-gap projection after the five-Passport set has been consumed.
+
 Completion:
 
 - Section 0 and every current L7/L8 projection identify the same five-Passport set and the same two residual cells;
 - no historical one-Passport set can be selected by a current consumer;
+- the producing owner and its regression tests prevent the stale projection from returning in a later generation;
 - truth and convergence pass without any production, Runtime, routing, user, Authority or maturity effect.
 
 ### Roadmap stage R1 — Exact controlled rollback-condition Authority packet
@@ -107,6 +110,8 @@ Branches:
 
 Approval of this experiment is not class approval and cannot be reused as standing fault-injection Authority.
 
+The one-use approval must be atomically consumed at admission together with its exact approval identity, Candidate, Packet, serial lease and transaction nonce. A consumed approval cannot admit a retry or second transaction. Any changed subject, source, target, condition, policy/topology fingerprint or execution identity requires a new R1/R2 decision; duplicate consumption and partial binding fail closed.
+
 ### Roadmap stage R3 — Fresh controlled-production admission
 
 After a valid R2 approval, reread CPS, policy, Authority, Safe Mode, certification-user eligibility, topology, source binding and rollback readiness. Only then create a fresh Situation, interpretation, Decision Trace, Candidate, Packet and serial execution lease through their existing owners.
@@ -125,6 +130,8 @@ Completion: exactly one fresh bounded transaction is admitted, or the stage term
 ### Roadmap stage R4 — One bounded real rollback transaction
 
 Execute the admitted transaction only through the existing Controlled Production owner. The approved condition must exercise the real production decision, apply, verification and rollback owners; a simulation cannot earn L7 credit.
+
+The controlled condition must test the real verification-to-rollback decision. It must not invoke rollback directly merely to manufacture the required terminal. The condition is introduced through its approved existing owner; the normal production verifier must independently observe the resulting state and decide whether the registered rollback trigger is satisfied. Wherever the existing architecture permits, failure-condition provenance and restoration verification must be confirmed by an owner-backed observation source independent of the injection mechanism so the result is not a tautological oracle.
 
 Runtime contract:
 
@@ -170,6 +177,8 @@ Five Passports remain only a floor. One successful rollback may close `rollback_
 
 Completion: M6 emits one immutable eligibility set, the exact remaining cells and an owner-backed Learning/calibration decision.
 
+Every new Passport and M6 set must trigger criterion-scoped capability reconciliation for `CAP-U02`, `CAP-U03`, `CAP-U04`, `CAP-U05`, `CAP-U06`, `CAP-U07`, `CAP-U08`, `CAP-U09` and only those `CAP-U10`-`CAP-U22` criteria whose owner/dependency bindings prove a genuine effect. The consumer must preserve unaffected criteria and must never advance an unrelated whole capability merely because one shared evidence cell closed.
+
 ### Roadmap stage R7 — M7 Authority recommendation and automatic next frontier
 
 M7 consumes only the immutable R6 set and emits exactly one existing verdict: `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`, `RETAIN_CURRENT_SCOPE`, `RECOMMEND_NARROW_SCOPE`, `HOLD_GOVERNED_ONLY`, `FREEZE`, `DEMOTE_ACTION_CLASS`, or `INSUFFICIENT_EVIDENCE`.
@@ -192,7 +201,9 @@ The independent owner may approve, narrow, hold, reject or request more evidence
 
 ### Roadmap stage R9 — Conditional bounded-autonomy certification program
 
-R9 is outside the current L7/L8 evidence program and must not activate unless R8 produces an independently approved class decision and CPS admits a new owner-backed program. It must reuse the existing Runtime, policy, verification, rollback, Learning, Production Maturity and OMP owners.
+Conditional future Program ID: `V7_ACTION_CLASS_BOUNDED_AUTONOMY_CERTIFICATION_PROGRAM_V1`.
+
+R9 is outside the current L7/L8 evidence program and must not activate unless R8 produces an independently approved class decision and CPS separately creates or activates that distinct owner-backed program identity. It must not continue invisibly under `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1`. The future program must reuse the existing Runtime, policy, verification, rollback, Learning, Production Maturity and OMP owners.
 
 The future bounded-autonomy certification must begin Runtime-disabled and prove, progressively:
 
@@ -530,7 +541,9 @@ The current evidence-cycle terminal may be emitted only when:
 
 The cycle terminal does not assert L7 sufficiency, L8 sufficiency, class approval, Authority expansion, bounded autonomy or permanent-program completion. When Mission 7 returns `INSUFFICIENT_EVIDENCE`, `HOLD_GOVERNED_ONLY` or another non-promotion verdict with open evidence cells, CPS must retain an event-driven program state and exact reentry conditions.
 
-## Forbidden effects without separate authorization
+## Effects forbidden by this plan alone
+
+The effects below are forbidden unless CPS explicitly activates the applicable Mission substage and an exact existing-owner policy/Authority contract independently authorizes them. For roadmap stage R4, only the current unexpired, one-use, R2-approved controlled-production contract may authorize the exact apply, verification-triggered rollback and required owner writes inside its scope. The plan text, a recommendation, a deploy approval or completion of an earlier stage is never execution Authority.
 
 - Runtime apply or routing mutation;
 - ordinary-user movement or forced natural incidents;

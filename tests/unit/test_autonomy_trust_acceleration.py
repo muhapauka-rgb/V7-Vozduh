@@ -4363,6 +4363,46 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(model["l7_controlled_lane"]["ordinary_customer_used_to_manufacture_evidence"])
         self.assertEqual(model["users_moved"], 0)
 
+    def test_polygon_driven_l7_lane_admits_genuine_policy_candidate_without_relabelling_user(self):
+        evidence = {
+            "immutable_eligibility_set": {
+                "fingerprint": "outset_test",
+                "missing_coverage_cells": ["controlled_production_present", "natural_production_present"],
+            }
+        }
+        sources = [
+            {"owner_role": role, "path": role, "exists": True, "readable": True, "records_read": 1}
+            for role in (
+                "NATURAL_EVENT_DETECTION",
+                "DECISION_TRACE_AND_SNAPSHOT",
+                "OUTCOME_AND_FEEDBACK",
+                "ROLLBACK_OR_NO_ROLLBACK",
+                "LEARNING_AND_REPLAY",
+            )
+        ]
+        model = accel.build_polygon_driven_l7_l8_evidence_acquisition(
+            evidence,
+            users=[{"ip": "10.0.0.2", "enabled": "1"}],
+            egress=[{"id": "cert-source", "enabled": "0", "controlled_certification_source": "1"}],
+            packet_preview={
+                "status": "PACKET_PREVIEW_READY",
+                "packet_id": "pkt-genuine",
+                "operation_id": "op-genuine",
+                "selected_move_hash": "move-genuine",
+                "allowed_users": ["10.0.0.2"],
+                "allowed_targets": ["awg3"],
+                "_v7_genuine_production_candidate": True,
+                "_v7_candidate_reason_summary": ["best available channel has higher advisory suitability"],
+            },
+            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            owner_capture_sources=sources,
+        )
+
+        self.assertEqual(model["l7_controlled_lane"]["verdict"], "READY_EXISTING_POLICY_BOUNDED_TRANSACTION")
+        self.assertTrue(model["l7_controlled_lane"]["candidate"]["genuine_production_need"])
+        self.assertFalse(model["l7_controlled_lane"]["candidate"]["certification_scoped"])
+        self.assertFalse(model["l7_controlled_lane"]["ordinary_customer_used_to_manufacture_evidence"])
+
     def test_polygon_driven_l8_capture_repair_preempts_external_wait(self):
         evidence = {
             "immutable_eligibility_set": {

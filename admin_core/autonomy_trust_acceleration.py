@@ -10445,6 +10445,7 @@ def build_polygon_driven_l7_l8_evidence_acquisition(
         and len(candidate_users) == 1
     )
     candidate_certification_scoped = candidate_ready and set(candidate_users).issubset(set(certification_users))
+    candidate_genuine_production_need = candidate_ready and _truthy(preview.get("_v7_genuine_production_candidate"))
     policy_ready = (
         policy.get("policy_state") == "APPROVED"
         and policy.get("current_mode") == "DELEGATED_AUTONOMY"
@@ -10459,10 +10460,10 @@ def build_polygon_driven_l7_l8_evidence_acquisition(
     if not controlled_missing:
         l7_verdict = "CONTROLLED_PRODUCTION_CELL_ALREADY_CLOSED"
         l7_stop = "NONE"
-    elif candidate_ready and candidate_certification_scoped and policy_ready:
+    elif candidate_ready and policy_ready and (candidate_certification_scoped or candidate_genuine_production_need):
         l7_verdict = "READY_EXISTING_POLICY_BOUNDED_TRANSACTION"
         l7_stop = "NONE"
-    elif not certification_users or not active_controlled_sources:
+    elif not candidate_genuine_production_need and (not certification_users or not active_controlled_sources):
         l7_verdict = "ENGINEERING_AUTHORITY_REQUIRED_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION"
         l7_stop = "ENGINEERING_AUTHORITY"
     elif not candidate_ready:
@@ -10543,6 +10544,8 @@ def build_polygon_driven_l7_l8_evidence_acquisition(
                 "users": candidate_users,
                 "targets": candidate_targets,
                 "certification_scoped": candidate_certification_scoped,
+                "genuine_production_need": candidate_genuine_production_need,
+                "reason_summary": [_text(value) for value in preview.get("_v7_candidate_reason_summary") or [] if _text(value)],
             },
             "delegated_policy_admitted": policy_ready,
             "ordinary_customer_used_to_manufacture_evidence": False,

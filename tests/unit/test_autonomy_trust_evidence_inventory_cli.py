@@ -1,6 +1,8 @@
 import importlib.machinery
 import importlib.util
+import argparse
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +18,38 @@ def load_cli_module():
 
 
 class AutonomyTrustEvidenceInventoryCliTest(unittest.TestCase):
+    def test_live_packet_discovery_binds_genuine_candidate_identity(self):
+        module = load_cli_module()
+        payload = {
+            "stop_reason": "AUTHORITY_BOUNDARY",
+            "packet_preview": {
+                "status": "PACKET_PREVIEW_READY",
+                "allowed_users": ["10.0.0.2"],
+                "allowed_targets": ["awg3"],
+            },
+            "candidate": {
+                "execution_candidate": True,
+                "review_required": False,
+                "user": "10.0.0.2",
+                "recommended_channel": "awg3",
+                "reason_summary": ["higher suitability"],
+            },
+        }
+        original = module.subprocess.run
+        module.subprocess.run = lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, json.dumps(payload), "")
+        try:
+            result = module.discover_live_packet_preview(argparse.Namespace(
+                state_dir="/state",
+                event_dir="/events",
+                snapshot_root="",
+                audit_dir="",
+            ))
+        finally:
+            module.subprocess.run = original
+
+        self.assertTrue(result["genuine_production_candidate"])
+        self.assertTrue(result["packet_preview"]["_v7_genuine_production_candidate"])
+
     def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

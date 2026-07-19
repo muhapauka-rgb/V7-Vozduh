@@ -137,11 +137,28 @@ def discover_live_packet_preview(args: argparse.Namespace) -> dict[str, Any]:
         payload = json.loads(completed.stdout)
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
         return {"status": "LIVE_PACKET_DISCOVERY_FAILED", "error": str(exc), "packet_preview": {}}
+    packet_preview = dict(payload.get("packet_preview") or {})
+    candidate = payload.get("candidate") if isinstance(payload.get("candidate"), dict) else {}
+    allowed_users = {str(value) for value in packet_preview.get("allowed_users") or []}
+    allowed_targets = {str(value) for value in packet_preview.get("allowed_targets") or []}
+    candidate_user = str(candidate.get("user") or "")
+    candidate_target = str(candidate.get("recommended_channel") or "")
+    reason_summary = [str(value) for value in candidate.get("reason_summary") or [] if str(value)]
+    genuine_production_candidate = (
+        bool(candidate.get("execution_candidate"))
+        and not bool(candidate.get("review_required"))
+        and candidate_user in allowed_users
+        and candidate_target in allowed_targets
+        and bool(reason_summary)
+    )
+    packet_preview["_v7_genuine_production_candidate"] = genuine_production_candidate
+    packet_preview["_v7_candidate_reason_summary"] = reason_summary
     return {
         "status": "LIVE_PACKET_DISCOVERED" if isinstance(payload.get("packet_preview"), dict) else "LIVE_PACKET_NOT_AVAILABLE",
         "exit_code": completed.returncode,
         "stop_reason": payload.get("stop_reason"),
-        "packet_preview": payload.get("packet_preview") or {},
+        "packet_preview": packet_preview,
+        "genuine_production_candidate": genuine_production_candidate,
         "runtime_mutation_performed": bool(payload.get("runtime_mutation_performed")),
         "apply_executed": bool(payload.get("apply_executed")),
         "users_moved": int(payload.get("users_moved") or 0),

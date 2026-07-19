@@ -1670,6 +1670,10 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         action_class="EMERGENCY_FAILOVER",
         expected_generation=str(packet_identity.get("breaker_generation") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
+        selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
+        source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
+        snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
+        max_users=requested_max_users,
     )
     if not pre_apply_control.get("allowed_forward_mutation"):
         terminal = operator_execution.finish_execution_lease(

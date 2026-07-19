@@ -525,6 +525,49 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["users_moved"], 0)
         self.assertFalse(model["new_truth_source_created"])
 
+    def test_l7_l8_action_class_reconciliation_does_not_consume_unmatched_cps_identity(self):
+        record = {
+            "operation": {"operation_id": "runtime_autoswitch_owner_record", "terminal_state": "APPLIED"},
+            "selected_moves": [{"user_ip": "10.7.0.17", "current_egress": "vless", "recommended_egress": "awg3"}],
+            "outcome_status": "success",
+            "created_at": "2026-07-19T00:00:00+00:00",
+        }
+        model = accel.build_l7_l8_outcome_evidence_program(
+            [record],
+            expected_material_outcomes=[{
+                "operation_id": "runtime_autoswitch_cps_current",
+                "user": "10.7.0.5",
+                "source_channel": "awg0",
+                "target_channel": "vless",
+                "terminal_class": "SUCCESS",
+            }],
+        )
+
+        reconciliation = model["current_action_class_reconciliation"]
+        self.assertTrue(reconciliation["expected_contract_provided"])
+        self.assertEqual(reconciliation["matched_count"], 0)
+        self.assertEqual(reconciliation["missing_count"], 1)
+        self.assertEqual(reconciliation["rows"][0]["status"], "NOT_FOUND_IN_CURRENT_OWNER_READ_SET")
+        self.assertFalse(model["outcome_evidence_passports"][0]["consumption"]["action_class_reconciliation_consumed"])
+        self.assertEqual(model["mission_results"]["M1"]["status"], "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS")
+
+    def test_l7_l8_action_class_reconciliation_consumes_exact_cps_identity(self):
+        operation_id = "runtime_autoswitch_exact_cps_identity"
+        record = {
+            "operation": {"operation_id": operation_id, "terminal_state": "APPLIED"},
+            "selected_moves": [{"user_ip": "10.7.0.5", "current_egress": "awg0", "recommended_egress": "vless"}],
+            "outcome_status": "success",
+            "created_at": "2026-07-19T00:00:00+00:00",
+        }
+        model = accel.build_l7_l8_outcome_evidence_program(
+            [record],
+            expected_material_outcomes=[{"operation_id": operation_id}],
+        )
+
+        self.assertEqual(model["current_action_class_reconciliation"]["matched_count"], 1)
+        self.assertEqual(model["current_action_class_reconciliation"]["missing_count"], 0)
+        self.assertTrue(model["outcome_evidence_passports"][0]["consumption"]["action_class_reconciliation_consumed"])
+
     def test_knowledge_quality_read_model_is_deterministic_and_read_only(self):
         first = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")
         second = accel.build_knowledge_quality_read_model(generated_at="2026-06-24T00:00:00+00:00")

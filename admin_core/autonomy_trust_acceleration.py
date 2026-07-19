@@ -9987,6 +9987,7 @@ def _l7_l8_opportunity_class(record: dict[str, Any]) -> str:
 def build_l7_l8_outcome_evidence_program(
     decision_records: list[dict[str, Any]] | None = None,
     *,
+    expected_material_outcomes: list[dict[str, Any]] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Consume current production evidence for L7/L8 without creating a new truth owner.
@@ -10125,6 +10126,47 @@ def build_l7_l8_outcome_evidence_program(
             },
         })
 
+    expected_reconciliation = []
+    matched_passport_ids: set[str] = set()
+    for index, expected in enumerate(expected_material_outcomes or []):
+        expected_ids = {
+            key: _text(expected.get(key))
+            for key in ("operation_id", "feedback_id", "decision_id", "packet_id", "recommendation_id", "learning_record_id")
+        }
+        expected_user = _text(expected.get("user"))
+        expected_source = _text(expected.get("source_channel"))
+        expected_target = _text(expected.get("target_channel"))
+        expected_terminal = _text(expected.get("terminal_class")).upper()
+
+        def matches(passport: dict[str, Any]) -> bool:
+            supplied_ids = [(key, value) for key, value in expected_ids.items() if value]
+            if supplied_ids and any(passport.get(key) == value for key, value in supplied_ids):
+                return True
+            dimensions = [
+                not expected_user or passport.get("user") == expected_user,
+                not expected_source or passport.get("source_channel") == expected_source,
+                not expected_target or passport.get("target_channel") == expected_target,
+                not expected_terminal or passport.get("terminal_class") == expected_terminal,
+            ]
+            return not supplied_ids and all(dimensions) and any((expected_user, expected_source, expected_target, expected_terminal))
+
+        matched = next((passport for passport in passports if matches(passport)), None)
+        if matched:
+            matched_passport_ids.add(matched["material_identity"])
+        expected_reconciliation.append({
+            "expected_index": index,
+            **expected_ids,
+            "user": expected_user,
+            "source_channel": expected_source,
+            "target_channel": expected_target,
+            "terminal_class": expected_terminal,
+            "status": "MATCHED_EXISTING_OWNER_PASSPORT" if matched else "NOT_FOUND_IN_CURRENT_OWNER_READ_SET",
+            "matched_material_identity": matched["material_identity"] if matched else "",
+        })
+    if expected_material_outcomes:
+        for passport in passports:
+            passport["consumption"]["action_class_reconciliation_consumed"] = passport["material_identity"] in matched_passport_ids
+
     denominator_rows = []
     class_counts = {name: 0 for name in ("ACTION", "STAY", "STOP_SAFE", "BLOCKED", "MISSED", "NO_CANDIDATE")}
     class_precedence = ("ACTION", "STOP_SAFE", "BLOCKED", "STAY", "MISSED", "NO_CANDIDATE")
@@ -10160,13 +10202,21 @@ def build_l7_l8_outcome_evidence_program(
         if authority_verdict == "RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL"
         else "new qualifying owner-backed controlled or natural production outcome closing the exact missing coverage cells"
     )
+    expected_missing = sum(1 for row in expected_reconciliation if row["status"] != "MATCHED_EXISTING_OWNER_PASSPORT")
     return {
         "schema_version": "v7.l7-l8.production-evidence-authority-evolution-program.v1",
         "generated_at": generated,
         "owner": "admin_core.autonomy_trust_acceleration existing evidence inventory read owner",
         "target_terminal": "CURRENT_L7_L8_PRODUCTION_EVIDENCE_RECONCILED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED",
         "mission_results": {
-            "M1": {"status": "COMPLETE_CONSUMED", "passport_count": len(passports), "opportunity_count": len(denominator_rows)},
+            "M1": {
+                "status": "COMPLETE_CONSUMED" if not expected_missing else "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS",
+                "passport_count": len(passports),
+                "opportunity_count": len(denominator_rows),
+                "expected_material_outcomes": len(expected_reconciliation),
+                "expected_material_outcomes_matched": len(expected_reconciliation) - expected_missing,
+                "expected_material_outcomes_missing": expected_missing,
+            },
             "M2": {"status": "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS", "temporally_complete": sum(1 for row in passports if row["completeness"]["temporal_complete"])},
             "M3": {"status": "COMPLETE_CONSUMED_WITH_EXACT_RESIDUALS", "replay_complete": sum(1 for row in passports if row["completeness"]["replay_complete"])},
             "M4": {"status": "EVENT_DRIVEN_BOUNDARY", "qualifying_controlled_passports": sum(1 for row in passports if row["evidence_class"] == "CONTROLLED_PRODUCTION" and row["eligibility"] == "ELIGIBLE_FOR_CALIBRATION"), "evidence_manufactured": False},
@@ -10176,6 +10226,14 @@ def build_l7_l8_outcome_evidence_program(
             "M8": {"status": "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT" if authority_verdict != "RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL" else "READY_FOR_INDEPENDENT_AUTHORITY_BOUNDARY", "authority_mutation_performed": False},
         },
         "outcome_evidence_passports": passports,
+        "current_action_class_reconciliation": {
+            "expected_contract_provided": bool(expected_material_outcomes),
+            "expected_count": len(expected_reconciliation),
+            "matched_count": len(expected_reconciliation) - expected_missing,
+            "missing_count": expected_missing,
+            "rows": expected_reconciliation,
+            "consumer_gap": "NONE" if not expected_missing else "CURRENT_CPS_MATERIAL_OUTCOMES_NOT_FOUND_IN_CURRENT_OWNER_READ_SET",
+        },
         "opportunity_denominator": {
             "definition": "append-only projection through existing event/outcome/certification owners; not an independent registry, watcher, database or queue",
             "counts": class_counts,

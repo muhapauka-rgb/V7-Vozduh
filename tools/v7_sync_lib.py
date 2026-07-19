@@ -7834,6 +7834,8 @@ def future_scale_scenario_frontier(
             or current_program_stage == "PERMANENT_POLYGON_TARGET_LEVEL_CERTIFIED"
             or current_program_stage == "PERMANENT_POLYGON_DESIGN_TIME_DEPLOYMENT_CERTIFICATION_ACTIVE"
             or current_program_stage == "DESIGN_TIME_LOOP_IMPLEMENTED_EXACT_RESIDUAL_FRONTIER_MATERIALIZED"
+            or current_program_stage == "SPLIT_L7_AUTHORITY_L8_NATURAL_BOUNDARY"
+            or current_program_stage == "L7_CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_L8_BOUNDARY"
         )
         and declared_covered_count >= legacy_corpus_count
         and live.get("SCENARIO_MISMATCH_COUNT", "").strip("`") == "0"

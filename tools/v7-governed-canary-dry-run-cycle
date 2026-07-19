@@ -1068,6 +1068,15 @@ def autoswitch_apply_timeout_seconds(max_users: int) -> int:
     return min(900, max(90, 60 + users * 30))
 
 
+def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) -> dict[str, Any]:
+    """Activate the existing bounded verifier only for an exact R2 binding."""
+    active = bool(engineering_authority)
+    return {
+        "emergency_failover_autonomy": active,
+        "service_matrix_lock_timeout_sec": 5 if active else 90,
+    }
+
+
 def run_autoswitch_apply(
     *,
     state_dir: Path,
@@ -2271,7 +2280,7 @@ def _execute_governed_transaction_with_guards_inner(
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
-        service_matrix_lock_timeout_sec=5 if engineering_authority else 90,
+        **controlled_engineering_apply_options(engineering_authority),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})

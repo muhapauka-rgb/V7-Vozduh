@@ -20,6 +20,17 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_exact_engineering_authority_activates_existing_bounded_service_verifier(self):
+        module = load_cli_module()
+
+        inactive = module.controlled_engineering_apply_options({})
+        active = module.controlled_engineering_apply_options({"request_id": "engauth_r1_test"})
+
+        self.assertFalse(inactive["emergency_failover_autonomy"])
+        self.assertEqual(inactive["service_matrix_lock_timeout_sec"], 90)
+        self.assertTrue(active["emergency_failover_autonomy"])
+        self.assertEqual(active["service_matrix_lock_timeout_sec"], 5)
+
     def test_controlled_setup_keeps_operator_packet_approval_contract(self):
         module = load_cli_module()
         admission = {"authority": {"authority_basis": "OPERATOR_ENGINEERING_AUTHORITY"}}

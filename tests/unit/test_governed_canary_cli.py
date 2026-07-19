@@ -545,6 +545,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "envelope_id": "aee-l3",
                     "envelope_hash": "aee-l3-hash",
                     "source_bundle_hash": "l3-source-bundle",
+                    "source_bundle": {
+                        "source_hashes": {
+                            "users_registry": "users-hash",
+                            "egress_registry": "egress-hash",
+                        },
+                    },
                     "snapshot_bundle_hash": "l3-snapshot-bundle",
                 },
                 "restore_barrier": {
@@ -859,7 +865,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "l3_production_validation_confirmation_required")
         self.assertFalse(result["apply_executed"])
 
-    def test_l3_production_validation_open_breaker_stops_before_lease(self):
+    def test_l3_production_validation_open_breaker_creates_one_operation_window(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -869,17 +875,50 @@ class GovernedCanaryCliTest(unittest.TestCase):
             args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
             state = module.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="incident")
             Path(args.execution_control_file).write_text(json.dumps(state), encoding="utf-8")
-            result = module.execute_l3_production_validation(
-                args,
-                state_dir=root / "state",
-                event_dir=root / "events",
-                snapshot_root=root / "state" / "intelligence",
-                audit_dir=root / "audit",
-                lease_file=root / "state" / "operator-execution-lease.json",
+            original_plan = module.run_l3_production_validation_plan
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+
+        self.assertNotEqual(result.get("stop_reason"), "autonomous_execution_control_denied_pre_lease")
+        self.assertEqual(result["safe_mode_final_state"], "OPEN")
+
+    def test_controlled_certification_scope_requires_both_existing_owner_markers(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.16 current=vless enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=controlled enabled=0 controlled_certification_source=1\n",
+                encoding="utf-8",
             )
 
-        self.assertEqual(result["stop_reason"], "autonomous_execution_control_denied_pre_lease")
-        self.assertFalse(result["apply_executed"])
+            admitted = module.controlled_certification_evidence_scope(
+                state, user="10.7.0.16", source="controlled"
+            )
+            denied = module.controlled_certification_evidence_scope(
+                state, user="10.7.0.17", source="controlled"
+            )
+
+        self.assertTrue(admitted)
+        self.assertFalse(denied)
 
     def test_l3_production_validation_routes_through_pipeline_before_apply(self):
         module = load_cli_module()

@@ -1459,20 +1459,26 @@ def packet_materialization_authority(
     return None
 
 
-def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+def controlled_certification_evidence_scope(state_dir: Path, *, user: str, source: str) -> bool:
+    users = {str(row.get("ip") or ""): row for row in read_registry(state_dir / "users.registry")}
+    sources = {str(row.get("id") or ""): row for row in read_registry(state_dir / "egress.registry")}
+    user_row = users.get(str(user or ""), {})
+    source_row = sources.get(str(source or ""), {})
+    return (
+        str(user_row.get("certification_user") or "").lower() in {"1", "true", "yes"}
+        and str(source_row.get("controlled_certification_source") or "").lower() in {"1", "true", "yes"}
+    )
+
+
+def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_max_users = max(1, int(args.max_users))
 
     control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
-    preflight_control = operator_execution.autonomous_execution_control_decision(
-        control_file,
-        mutation_kind="forward",
-        action_class="EMERGENCY_FAILOVER",
-        operation_id="l3-production-validation",
-    )
-    if not preflight_control.get("allowed_forward_mutation"):
-        return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+    initial_control = operator_execution.autonomous_execution_control_state(control_file)
+    if not initial_control.get("valid") or initial_control.get("state") not in {"OPEN", "CLOSED"}:
+        return transaction_stop("autonomous_execution_control_invalid_pre_lease", execution_control=initial_control)
 
     existing_lease = operator_execution.load_execution_lease(lease_file)
     existing_state = operator_execution.execution_lease_state(existing_lease)
@@ -1520,16 +1526,82 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
             authorized_l3_budget=authorized_budget,
         )
 
-    try:
-        packet = operator_execution.packet_from_plan(
-            plan,
-            approval_author=args.approval_author,
-            approval_reviewer=args.approval_reviewer,
-            ttl_seconds=args.ttl_seconds,
-            breaker_generation=str(preflight_control.get("generation") or ""),
+    if initial_control.get("state") == "OPEN":
+        selected = operator_execution.selected_moves_from_plan(plan)
+        auto_window_blockers = []
+        if requested_max_users != 1 or int(selected.get("selected_move_count") or 0) != 1:
+            auto_window_blockers.append("l3_auto_window_requires_exactly_one_user")
+        for field in ("selected_move_hash", "source_bundle_hash", "snapshot_bundle_hash"):
+            if not str(selected.get(field) or ""):
+                auto_window_blockers.append(f"l3_auto_window_{field}_missing")
+        if auto_window_blockers:
+            return transaction_stop(
+                "l3_operation_scoped_control_binding_incomplete",
+                blockers=auto_window_blockers,
+                selected_move_count=int(selected.get("selected_move_count") or 0),
+            )
+        controlled_window = operator_execution.build_autonomous_execution_control_state(
+            False,
+            actor=str(args.approval_author or "operator"),
+            reason="l3_production_validation_one_operation_window",
+            operation_id="l3-production-validation-pending",
+            selected_move_hash=str(selected.get("selected_move_hash") or ""),
+            action_class="EMERGENCY_FAILOVER",
+            source_bundle_hash=str(selected.get("source_bundle_hash") or ""),
+            snapshot_bundle_hash=str(selected.get("snapshot_bundle_hash") or ""),
+            max_users=1,
         )
+        try:
+            packet = operator_execution.packet_from_plan(
+                plan,
+                approval_author=args.approval_author,
+                approval_reviewer=args.approval_reviewer,
+                ttl_seconds=args.ttl_seconds,
+                breaker_generation=str(controlled_window.get("generation") or ""),
+            )
+        except Exception as exc:
+            return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
+        controlled_window["operation_id"] = str(packet.get("operation_id") or "")
+        operator_execution.write_json_atomic(control_file, controlled_window)
+        args._l3_controlled_window_generation = str(controlled_window.get("generation") or "")
+        args._l3_controlled_window_operation_id = str(controlled_window.get("operation_id") or "")
+        preflight_control = operator_execution.autonomous_execution_control_decision(
+            control_file,
+            mutation_kind="forward",
+            action_class="EMERGENCY_FAILOVER",
+            expected_generation=str(controlled_window.get("generation") or ""),
+            operation_id=str(packet.get("operation_id") or ""),
+            selected_move_hash=str((packet.get("expected") or {}).get("selected_move_hash") or ""),
+            source_bundle_hash=str((packet.get("expected") or {}).get("source_bundle_hash") or ""),
+            snapshot_bundle_hash=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
+            max_users=1,
+        )
+        if not preflight_control.get("allowed_forward_mutation"):
+            return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+    else:
+        preflight_control = operator_execution.autonomous_execution_control_decision(
+            control_file,
+            mutation_kind="forward",
+            action_class="EMERGENCY_FAILOVER",
+            operation_id="l3-production-validation",
+        )
+        if not preflight_control.get("allowed_forward_mutation"):
+            return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
+        try:
+            packet = operator_execution.packet_from_plan(
+                plan,
+                approval_author=args.approval_author,
+                approval_reviewer=args.approval_reviewer,
+                ttl_seconds=args.ttl_seconds,
+                breaker_generation=str(preflight_control.get("generation") or ""),
+            )
+        except Exception as exc:
+            return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
+
+    try:
+        packet_identity = operator_execution.packet_identity(packet)
     except Exception as exc:
-        return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
+        return transaction_stop("l3_packet_identity_invalid", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
 
     constraints = l3_packet_constraints_ok(
         packet,
@@ -1554,7 +1626,6 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     user = users[0] if users else ""
     target = targets[0] if targets else ""
     source = sources[0] if sources else ""
-    packet_identity = operator_execution.packet_identity(packet)
     lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
@@ -1646,6 +1717,30 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
     capability_state = l3_learning.get("capability_state") if isinstance(l3_learning.get("capability_state"), dict) else {}
     production_proof_quality = l3_production_validation_proof_quality(apply_run, apply_payload)
     production_proven = bool(capability_state.get("production_proven")) and bool(production_proof_quality.get("ok"))
+    verification_passed = bool(results) and all(
+        int(row.get("verify_rc", 1)) == 0
+        and (row.get("service_verify_rc") is None or int(row.get("service_verify_rc", 1)) == 0)
+        for row in results
+        if isinstance(row, dict)
+    )
+    rollback_attempted = any(bool(row.get("rollback_attempted")) for row in results if isinstance(row, dict))
+    controlled_evidence = controlled_certification_evidence_scope(state_dir, user=user, source=source)
+    feedback_materialization = (
+        materialize_governed_transaction_feedback(
+            state_dir=state_dir,
+            packet=packet,
+            operation=operation,
+            apply_result=apply_result,
+            user=user,
+            source=source,
+            target=target,
+            rollback_attempted=rollback_attempted,
+            verification_passed=verification_passed,
+            evidence_class="CONTROLLED_PRODUCTION",
+        )
+        if controlled_evidence
+        else {"materialized": False, "reason": "not_controlled_certification_scope"}
+    )
     return {
         "schema_version": "v7.l3-production-validation-execution.v1",
         "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",
@@ -1667,13 +1762,11 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "runtime_mutation_performed": bool(apply_result.get("applied")),
         "restore_barrier_written_now": bool((clearance_result.get("clearance_result") or {}).get("ok")),
         "apply_executed": bool(apply_result.get("applied")),
-        "verification_result": "PASS" if results and all(
-            int(row.get("verify_rc", 1)) == 0
-            and (row.get("service_verify_rc") is None or int(row.get("service_verify_rc", 1)) == 0)
-            for row in results
-            if isinstance(row, dict)
-        ) else ("NOT_RUN" if not results else "FAIL"),
+        "verification_result": "PASS" if verification_passed else ("NOT_RUN" if not results else "FAIL"),
+        "rollback_attempted": rollback_attempted,
         "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED"),
+        "controlled_certification_evidence": controlled_evidence,
+        "feedback_materialization": feedback_materialization,
         "production_proof_quality": production_proof_quality,
         "l3_learning_closure": l3_learning,
         "capability_state": capability_state,
@@ -1697,6 +1790,35 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
     }
+
+
+def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+    args._l3_controlled_window_generation = ""
+    args._l3_controlled_window_operation_id = ""
+    result: dict[str, Any] = {}
+    try:
+        result = _execute_l3_production_validation_inner(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        return result
+    finally:
+        generation = str(getattr(args, "_l3_controlled_window_generation", "") or "")
+        operation_id = str(getattr(args, "_l3_controlled_window_operation_id", "") or "")
+        if generation and operation_id:
+            finalization = operator_execution.finalize_autonomous_execution_control_window(
+                Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE)),
+                actor="l3-production-validation-finalizer",
+                reason=str(result.get("final_verdict") or result.get("stop_reason") or "l3_production_validation_complete"),
+                expected_generation=generation,
+                operation_id=operation_id,
+            )
+            result["controlled_window_finalization"] = finalization
+            result["safe_mode_final_state"] = str((finalization.get("after") or {}).get("state") or "")
 
 
 def _execute_governed_transaction_with_guards_inner(

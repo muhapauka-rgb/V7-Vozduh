@@ -5123,10 +5123,13 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
     rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
     if len(rows) == 1:
         cells = [cell.strip() for cell in rows[0].strip().strip("|").split("|")]
-        if len(cells) >= 7 and state["current_program_execution_frontier"] not in {"", "NONE"}:
+        if len(cells) >= 7:
             state["program_frontier_input"] = cells[2]
-            state["program_frontier_owner"] = cells[4]
             state["program_frontier_expected_output"] = cells[6]
+            if state["current_program_execution_frontier"] not in {"", "NONE"}:
+                state["program_frontier_owner"] = cells[4]
+            elif "; " in cells[4]:
+                state["sequence_execution_class"], state["program_frontier_owner"] = cells[4].rsplit("; ", 1)
     return state
 
 

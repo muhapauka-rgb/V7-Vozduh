@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.37`
+Version: `4.38`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md` (`M0_CURRENT_STATE_RECONCILIATION_COMPLETE_CONSUMED`).
-Previous consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md` (`DESIGN_TIME_POLYGON_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED`).
+Latest consumed report: `docs/reports/engineering/2026-07-19_050438_l7_l8_evidence_cycle_program_completion.md` (`CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED`).
+Previous consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md` (`M0_CURRENT_STATE_RECONCILIATION_COMPLETE_CONSUMED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -55,6 +55,8 @@ V4.35 extends that same Permanent Polygon into the product design-time lifecycle
 V4.36 records production deployment and real caller/consumer certification of that design-time loop. Exhaustion of the current dependency-bound Scenario corpus is not the target terminal: OMP must materialize the exact owner-backed calibration, protocol-substrate or natural-defect residual, must not ceremonially replay closed Missions, and must reenter only when that exact input exists. Production caller certification grants no production routing autonomy, Authority promotion or Production Maturity credit.
 
 V4.37 activates the approved L7/L8 Production Evidence and Authority Evolution program through CPS and consumes mandatory read-only Mission 0. Existing production inventory, closure, observation, feedback, Learning, Decision Trace, replay, Production Maturity and Authority owners were reconciled before extension. The source-level inventory is reusable, but its aggregate closure rows do not carry a stable current-action-class material identity and cannot bind the two CPS outcomes to their exact operation, temporal, interpretation and replay records. OMP therefore admits only the exact residual Mission 1 record-level Outcome Evidence Passport and opportunity-denominator extension through existing owners; Missions 2 and 3 remain conditional residuals, and event-driven L7/L8 acquisition remains forbidden until its legal activation condition exists. This activation grants no routing, Runtime, user movement, Authority or Production Maturity effect.
+
+V4.38 consumes the complete current L7/L8 evidence cycle through existing production event, outcome, Certification History, feedback, Learning, replay, Production Maturity, Authority and OMP owners. M1 binds both CPS material outcomes to four stable supporting-only passports and a 13,473-identity opportunity denominator; M2 and M3 preserve exact temporal and replay residuals; M4 and M5 remain legal event-driven boundaries without manufactured evidence; M6 emits immutable insufficient set `outset_4f53cda18c2baa0c0354bb5f`; M7 consumes `INSUFFICIENT_EVIDENCE`; M8 is not required by that verdict. The current evidence cycle is terminal and reenters only on qualifying owner-backed evidence closing an exact missing cell. This terminal does not claim L7 sufficiency, L8 representativeness, class approval, Authority expansion, autonomous Runtime or Production Maturity increase.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7841,8 +7843,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_QUALIFYING_L7_L8_OWNER_BACKED_EVIDENCE`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8829,10 +8831,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`
-Latest consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md`
-Previous consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `WAIT_FOR_QUALIFYING_L7_L8_OWNER_BACKED_EVIDENCE`
+Latest consumed report: `docs/reports/engineering/2026-07-19_050438_l7_l8_evidence_cycle_program_completion.md`
+Previous consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

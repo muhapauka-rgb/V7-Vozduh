@@ -201,12 +201,14 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
         self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")
         self.assertEqual(result["scenario_frontier"]["NEXT_SCENARIO_ID"], "NONE")
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            sources["cps"], "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        controlled_frontier = live["PHASE_6B_CONTROLLED_FRONTIER"].strip("`")
         self.assertEqual(
             result["executable_program_frontier"],
-            [
-                "PHASE6_ENGINEERING:PERMANENT_POLYGON_DESIGN_TIME_SAFE_DEPLOY_"
-                "AND_PRODUCTION_CALLER_CERTIFICATION"
-            ],
+            [f"PHASE6_ENGINEERING:{controlled_frontier}"],
         )
 
     def test_23_real_truth_check_entrypoint_exists(self):

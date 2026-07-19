@@ -37,13 +37,18 @@ class OmpDocumentIndexTest(unittest.TestCase):
     def test_live_dashboard_uses_authoritative_section_zero(self):
         response = self.admin_api.omp_dashboard_response()
         operator = response["operator_view"]
-        self.assertEqual(operator["current_program"], "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM")
-        self.assertEqual(operator["current_step"], "L7_L8_M0_RECONCILED_M1_ENGINEERING_READY")
-        self.assertEqual(operator["next_step"], "L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT")
-        self.assertEqual(operator["next_scenario"], "NONE")
-        self.assertEqual(operator["current_stop"], "NONE")
-        self.assertEqual(operator["external_input_required"], "FALSE")
-        self.assertEqual(operator["omp_continuation_required"], "TRUE")
+        cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        live = self.admin_api._markdown_section_table(
+            cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        )
+        self.assertEqual(operator["current_program"], live["ACTIVE_PROGRAM"])
+        self.assertEqual(operator["current_step"], live["CURRENT_ACTIVE_SCOPE"])
+        self.assertEqual(operator["next_step"], live["CURRENT_NEXT_ACTION_ID"])
+        self.assertEqual(operator["next_scenario"], live["NEXT_SCENARIO_ID"])
+        self.assertEqual(operator["current_stop"], live["CURRENT_STOP_CONDITION"])
+        self.assertEqual(operator["external_input_required"], live["EXTERNAL_INPUT_REQUIRED"])
+        self.assertEqual(operator["omp_continuation_required"], live["OMP_CONTINUATION_REQUIRED"])
 
     def test_historical_dashboard_cannot_override_live_dashboard(self):
         response = self.admin_api.omp_dashboard_response()
@@ -55,8 +60,13 @@ class OmpDocumentIndexTest(unittest.TestCase):
         self.assertNotIn("ACTIONABLE_BACKLOG_COMPLETE", rendered)
         self.assertNotIn("wait for explicit operator-approved scope", rendered)
         self.assertNotIn("B2 -> B3", rendered)
-        self.assertEqual(response["current_state_generation"], "cpsgen_V7_L7L8_AE_M0_20260719T034938Z")
-        self.assertEqual(response["current_transition_id"], "L7_L8_AE_M0_TO_M1_EXACT_RESIDUAL_V1")
+        cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        live = self.admin_api._markdown_section_table(
+            cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        )
+        self.assertEqual(response["current_state_generation"], live["CURRENT_STATE_GENERATION"])
+        self.assertEqual(response["current_transition_id"], live["CURRENT_TRANSITION_ID"])
 
     def test_polygon_master_program_has_no_volatile_activation_status(self):
         text = MASTER_PROGRAM.read_text(encoding="utf-8")

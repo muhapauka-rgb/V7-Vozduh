@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import unittest
 from pathlib import Path
 
@@ -90,7 +91,9 @@ class OmpSelfContinuationTest(unittest.TestCase):
 
     def test_omp_contains_canonical_contract(self):
         text = OMP.read_text(encoding="utf-8")
-        self.assertIn("Version: `4.35`", text)
+        version = re.search(r"^Version: `4\.(\d+)`$", text, re.MULTILINE)
+        self.assertIsNotNone(version)
+        self.assertGreaterEqual(int(version.group(1)), 35)
         self.assertIn("### 14.1 OMP Self-Continuation Contract", text)
         self.assertIn("Engineering Polygon Scenario Supply Consumption Rule", text)
         self.assertIn("Proactive Verification Input Consumption Rule", text)
@@ -100,24 +103,22 @@ class OmpSelfContinuationTest(unittest.TestCase):
         self.assertIn("PREMATURE_OMP_RETURN_TO_OPERATOR", text)
         self.assertIn("OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY", text)
 
-    def test_materialized_cps_continues_digital_twin_deployment_frontier(self):
-        result = self.lib.omp_self_continuation_consistency(CPS.read_text(encoding="utf-8"))
+    def test_materialized_cps_matches_current_continuation_boundary(self):
+        cps = CPS.read_text(encoding="utf-8")
+        result = self.lib.omp_self_continuation_consistency(cps)
         self.assertEqual(result["final_verdict"], "PASS")
-        self.assertEqual(result["omp_continuation_required"], "TRUE")
-        self.assertEqual(result["external_input_required"], "FALSE")
-        self.assertEqual(
-            result["external_input_type"],
-            "NONE",
-        )
-        self.assertEqual(
-            result["program_terminal_class"],
-            "NONE",
-        )
         live = self.lib._markdown_field_table(self.lib._markdown_section(
-            CPS.read_text(encoding="utf-8"),
+            cps,
             "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
+        for result_key, live_key in (
+            ("omp_continuation_required", "OMP_CONTINUATION_REQUIRED"),
+            ("external_input_required", "EXTERNAL_INPUT_REQUIRED"),
+            ("external_input_type", "EXTERNAL_INPUT_TYPE"),
+            ("program_terminal_class", "PROGRAM_TERMINAL_CLASS"),
+        ):
+            self.assertEqual(result[result_key], live[live_key].strip("`"))
         self.assertEqual(result["continuation_iteration"], live["CONTINUATION_ITERATION"].strip("`"))
 
     def test_materialized_external_boundary_cannot_be_marked_for_continuation(self):

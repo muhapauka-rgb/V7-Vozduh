@@ -12015,7 +12015,7 @@ def run_permanent_polygon_multi_generation_campaign(*, root: Path = ROOT) -> dic
             "## Authoritative Unfinished Capability Closure Registry",
         )), "PROGRAM_TERMINAL_CLASS")
         == PERMANENT_POLYGON_TARGET_LEVEL_TERMINAL
-    )
+    ) or (root / "docs/reports/engineering/V7_PERMANENT_POLYGON_AUTONOMOUS_PROGRAM_CLOSURE.md").is_file()
     repair = certify_permanent_polygon_repair_return_cycle(root=root)
     substrate = routing_digital_twin_substrate_probe()
     lower_fidelity = execute_routing_digital_twin_l2_obligation(root=root)
@@ -14113,6 +14113,7 @@ def stage_permanent_polygon_design_time_deployment_frontier(
         "production_routing_autonomy_status": "NOT_CLAIMED",
         "authority_promotion_status": "NONE",
         "production_maturity_change_status": "NONE",
+        "aep_phase6_status": "REAL_WORLD_LIMIT",
         "current_completion_contract": "AUTOMATION_COMPLETION",
         "current_completion_verdict": "COMPLETE_CONSUMED",
         "production_maturity_decision": "NO_CHANGE; Engineering Polygon evidence grants no Production Maturity credit",

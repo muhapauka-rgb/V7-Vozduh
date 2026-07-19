@@ -217,6 +217,17 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
             cps_path.parent.mkdir(parents=True)
             report_path.parent.mkdir(parents=True)
             cps_path.write_text(self.cps, encoding="utf-8")
+            stage_report = report_path.parent / "stage.md"
+            stage_report.write_text(
+                "Mission ID: `V7_PERMANENT_POLYGON_RISK_COVERAGE_AND_FEEDBACK_GENERATION_V1`\n"
+                "Run Nonce: `V7_PPDT_TEST_REOPEN`\n",
+                encoding="utf-8",
+            )
+            stage = self.lib.stage_permanent_polygon_design_time_deployment_frontier(
+                report_path="docs/reports/engineering/stage.md", root=root,
+                certification={"final_verdict": "PASS", "scenario_campaign": {}},
+            )
+            self.assertEqual(stage["final_verdict"], "PASS", stage.get("errors"))
             report_path.write_text(
                 "Mission ID: `V7_PERMANENT_POLYGON_DESIGN_TIME_CI_DEPLOY_AND_E2E_CERTIFICATION_V1`\n"
                 "Run Nonce: `V7_PPDT_M8_TEST`\n",

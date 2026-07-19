@@ -70,10 +70,11 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("cps_generation_divergence", result["errors"])
 
         stale_surface = cps.replace(
-            "`NO_CURRENT_EXECUTION; synthetic or forced outcomes are forbidden`",
+            "`NO_CURRENT_EXECUTION; no fresh genuine Candidate; deliberate condition requires Engineering Authority`",
             "`READ_ONLY_BINDING_DIAGNOSIS_ONLY`",
             1,
         )
+        self.assertNotEqual(stale_surface, cps)
         result = self.lib.cps_live_state_consistency(stale_surface)
         self.assertTrue(any(item.startswith("cps_stale_live_marker:") for item in result["errors"]))
 

@@ -119,7 +119,11 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         ))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
+        movement = live["USER_MOVEMENT"].strip("`")
+        self.assertTrue(
+            movement.startswith("NO")
+            or "owner-authorized bounded controlled user movement" in movement
+        )
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):

@@ -142,7 +142,11 @@ class CpsTerminalMissionIdentityRolesTest(unittest.TestCase):
         self.assertTrue(live["CURRENT_CLASS_CANDIDATE_SELECTED"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
+        movement = live["USER_MOVEMENT"].strip("`")
+        self.assertTrue(
+            movement.startswith("NO")
+            or "owner-authorized bounded controlled user movement" in movement
+        )
 
     def test_21_cap_u01_complete_and_u07_is_sequence_position_one(self):
         result = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=self.omp)

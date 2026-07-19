@@ -4461,6 +4461,48 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["global_engineering_stop"], "NONE")
         self.assertTrue(model["exact_next_action"].startswith("REPAIR_EXISTING_L8_CAPTURE_CONSUMER:"))
 
+    def test_polygon_driven_l7_continues_after_presence_cell_for_count_and_variation(self):
+        evidence = {
+            "immutable_eligibility_set": {
+                "fingerprint": "outset_one_controlled",
+                "missing_coverage_cells": [
+                    "eligible_passports_at_least_5",
+                    "material_variation_present",
+                    "natural_production_present",
+                ],
+            },
+            "mission_results": {
+                "M6": {"status": "INSUFFICIENT_EVIDENCE"},
+                "M7": {"authority_recommendation": "INSUFFICIENT_EVIDENCE"},
+            },
+        }
+        sources = [
+            {"owner_role": role, "path": role, "exists": True, "readable": True, "records_read": 1}
+            for role in (
+                "NATURAL_EVENT_DETECTION",
+                "DECISION_TRACE_AND_SNAPSHOT",
+                "OUTCOME_AND_FEEDBACK",
+                "ROLLBACK_OR_NO_ROLLBACK",
+                "LEARNING_AND_REPLAY",
+            )
+        ]
+
+        model = accel.build_polygon_driven_l7_l8_evidence_acquisition(
+            evidence,
+            users=[],
+            egress=[{"id": "cert-source", "enabled": "0", "controlled_certification_source": "1"}],
+            packet_preview={},
+            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            owner_capture_sources=sources,
+        )
+
+        self.assertEqual(model["selected_highest_value_l7_cell"], "material_variation_present")
+        self.assertEqual(
+            model["l7_controlled_lane"]["verdict"],
+            "ENGINEERING_AUTHORITY_REQUIRED_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION",
+        )
+        self.assertEqual(model["global_engineering_stop"], "ENGINEERING_AUTHORITY")
+
 
 if __name__ == "__main__":
     unittest.main()

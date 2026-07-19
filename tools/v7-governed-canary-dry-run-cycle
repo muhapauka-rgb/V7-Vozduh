@@ -13,9 +13,13 @@ from __future__ import annotations
 import argparse
 import copy
 import gzip
+import ipaddress
 import json
+import os
 import subprocess
 import sys
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +64,171 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n")
+
+
+def scoped_user_route_check(state_dir: Path, user: str) -> dict[str, Any]:
+    """Reuse v7-user-route-check against exactly one registry identity."""
+    rows = [
+        line for line in (state_dir / "users.registry").read_text(encoding="utf-8").splitlines()
+        if line.startswith(f"ip={user} ")
+    ]
+    if len(rows) != 1:
+        return {"passed": False, "returncode": None, "reason": "user_registry_identity_not_unique"}
+    with tempfile.TemporaryDirectory(prefix="v7-route-check-") as tmp:
+        scoped = Path(tmp)
+        (scoped / "users.registry").write_text(rows[0] + "\n", encoding="utf-8")
+        for name in ("egress.registry", f"user-{user}.assign"):
+            source = state_dir / name
+            if source.exists():
+                (scoped / name).symlink_to(source)
+        env = dict(os.environ)
+        env["V7_STATE_DIR"] = str(scoped)
+        try:
+            completed = subprocess.run(
+                ["v7-user-route-check"], text=True, capture_output=True,
+                timeout=180, check=False, env=env,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {"passed": False, "returncode": None, "reason": str(exc)}
+    return {
+        "passed": completed.returncode == 0,
+        "returncode": completed.returncode,
+        "reason": "exact_user_route_verified" if completed.returncode == 0 else "exact_user_route_verification_failed",
+        "output_tail": completed.stdout[-2000:],
+    }
+
+
+def materialize_due_delayed_observations(
+    state_dir: Path,
+    *,
+    max_observations: int = 10,
+    minimum_age_seconds: int = 3600,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Append verified delayed observations through the existing outcome store."""
+    now = now or datetime.now(timezone.utc)
+    event_path = state_dir / "execution-events.jsonl"
+    records = read_jsonl_family(event_path, limit=10000)
+    lease = read_json(state_dir / "operator-execution-lease.json", {})
+    lease_identity = lease.get("immutable_packet_identity") if isinstance(lease.get("immutable_packet_identity"), dict) else {}
+    lease_packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    lease_expected = lease_packet.get("expected") if isinstance(lease_packet.get("expected"), dict) else {}
+    existing_ids = {
+        str(row.get("delayed_observation_id") or "")
+        for row in records if row.get("delayed_observation_id")
+    }
+    registry = {str(row.get("ip") or ""): row for row in read_registry(state_dir / "users.registry")}
+    candidates: dict[str, dict[str, Any]] = {}
+    for row in records:
+        if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
+            continue
+        terminal = str(row.get("terminal_outcome_classification") or "").upper()
+        if terminal != "SUCCESS":
+            continue
+        packet_id = str(row.get("packet_id") or "")
+        feedback_id = str(row.get("feedback_id") or "")
+        identity = packet_id or feedback_id
+        if not identity:
+            continue
+        candidates[identity] = row
+
+    written = []
+    skipped = []
+    for identity, row in sorted(candidates.items()):
+        if len(written) >= max(1, int(max_observations)):
+            break
+        user = str(row.get("user") or "")
+        source = str(row.get("source_channel") or "")
+        target = str(row.get("target_channel") or "")
+        observed_raw = str(row.get("outcome_observed_at") or row.get("created_at") or "")
+        try:
+            observed = datetime.fromisoformat(observed_raw.replace("Z", "+00:00"))
+        except ValueError:
+            skipped.append({"identity": identity, "reason": "outcome_time_invalid"})
+            continue
+        elapsed = max(0, int((now - observed).total_seconds()))
+        observation_id = "delobs_" + operator_execution.sha256_json({
+            "identity": identity, "window": "1h", "terminal": "SUCCESS",
+        })[:24]
+        if observation_id in existing_ids:
+            skipped.append({"identity": identity, "reason": "already_materialized"})
+            continue
+        if elapsed < minimum_age_seconds:
+            skipped.append({"identity": identity, "reason": "not_due", "elapsed_seconds": elapsed})
+            continue
+        current = str((registry.get(user) or {}).get("current") or "")
+        route = scoped_user_route_check(state_dir, user)
+        if current != target or not route.get("passed"):
+            skipped.append({
+                "identity": identity,
+                "reason": "steady_state_not_verified",
+                "current": current,
+                "target": target,
+                "route_check": route,
+            })
+            continue
+        packet_id = str(row.get("packet_id") or "")
+        lease_matches = packet_id and packet_id == str(lease_identity.get("packet_id") or "")
+        snapshot_identity = str(row.get("input_snapshot_identity") or "")
+        decision_trace_id = str(row.get("decision_trace_id") or row.get("decision_id") or "")
+        if lease_matches:
+            snapshot_identity = snapshot_identity or str(
+                lease_identity.get("snapshot_bundle_hash") or lease_expected.get("snapshot_bundle_hash") or ""
+            )
+            decision_trace_id = decision_trace_id or str(
+                lease_identity.get("decision_id") or lease_packet.get("decision_id") or ""
+            )
+        if not snapshot_identity or not decision_trace_id:
+            skipped.append({"identity": identity, "reason": "replay_identity_missing"})
+            continue
+        delayed = {
+            "schema_version": "v7.execution-delayed-observation.v1",
+            "delayed_observation_id": observation_id,
+            "feedback_id": str(row.get("feedback_id") or ""),
+            "packet_id": packet_id,
+            "decision_id": str(row.get("decision_id") or decision_trace_id),
+            "decision_trace_id": decision_trace_id,
+            "input_snapshot_identity": snapshot_identity,
+            "closure_reference": str(row.get("closure_reference") or ""),
+            "recommendation_id": str(row.get("recommendation_id") or ""),
+            "user": user,
+            "source_channel": source,
+            "target_channel": target,
+            "selected_moves": row.get("selected_moves") or [{"user": user, "from": source, "to": target}],
+            "evidence_class": str(row.get("evidence_class") or "CONTROLLED_PRODUCTION"),
+            "execution_outcome": {"applied": True, "success": True},
+            "verification_result": {"verification_passed": True, "current_channel": current, "route_check": route},
+            "terminal_outcome_classification": "SUCCESS",
+            "expected_terminal": "SUCCESS",
+            "outcome_status": "success",
+            "outcome_observed_at": now.isoformat(),
+            "stability_window_seconds": elapsed,
+            "delayed_5m_observation": True,
+            "delayed_1h_observation": True,
+            "steady_state_terminal": True,
+            "observation_owner": "admin_core.operator_execution_feedback + v7-user-route-check",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "apply_executed": False,
+            "users_moved": 0,
+        }
+        append_jsonl(event_path, delayed)
+        existing_ids.add(observation_id)
+        written.append(delayed)
+    return {
+        "schema_version": "v7.execution-delayed-observation-consumer.v1",
+        "final_verdict": "PASS",
+        "observations_written": len(written),
+        "written": written,
+        "skipped": skipped,
+        "owner_store": str(event_path),
+        "new_store_created": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+    }
 
 
 def read_registry(path: Path) -> list[dict[str, str]]:
@@ -584,6 +753,74 @@ def merge_a4_gap_candidate_into_surface(surface: dict[str, Any], selection: dict
     return out
 
 
+def controlled_certification_setup_selection(
+    *,
+    users: list[dict[str, Any]],
+    egress: list[dict[str, Any]],
+    user: str,
+    source: str,
+) -> dict[str, Any]:
+    """Admit one historical dedicated identity for bounded pool preparation."""
+    blockers: list[str] = []
+    try:
+        address = ipaddress.ip_address(user)
+        legacy_pool = ipaddress.ip_network("10.7.0.16/28")
+        extended_pool = ipaddress.ip_network("10.7.0.32/27")
+        if address not in legacy_pool and address not in extended_pool:
+            blockers.append("identity_not_in_durable_legacy_certification_pool")
+    except ValueError:
+        blockers.append("certification_user_ip_invalid")
+    user_rows = [row for row in users if str(row.get("ip") or "") == user]
+    source_rows = [row for row in egress if str(row.get("id") or "") == source]
+    if len(user_rows) != 1:
+        blockers.append("certification_user_registry_identity_not_unique")
+    if len(source_rows) != 1:
+        blockers.append("controlled_source_registry_identity_not_unique")
+    user_row = user_rows[0] if len(user_rows) == 1 else {}
+    source_row = source_rows[0] if len(source_rows) == 1 else {}
+    if str(user_row.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+        blockers.append("certification_user_not_enabled")
+    current = str(user_row.get("current") or "")
+    if not current or current == source:
+        blockers.append("certification_user_not_on_distinct_restorable_source")
+    if str(source_row.get("controlled_certification_source") or "").lower() not in {"1", "true", "yes"}:
+        blockers.append("target_not_existing_controlled_certification_source")
+    if str(source_row.get("enabled") or "").lower() not in {"1", "true", "yes"}:
+        blockers.append("controlled_certification_source_not_enabled")
+    unrelated = [
+        str(row.get("ip") or "") for row in users
+        if str(row.get("current") or "") == source and str(row.get("ip") or "") != user
+    ]
+    if unrelated:
+        blockers.append("controlled_source_has_other_assigned_users")
+    source_hash = operator_execution.sha256_json({
+        "user": user,
+        "current": current,
+        "source": source,
+        "user_row": user_row,
+        "source_row": source_row,
+    })
+    return {
+        "schema_version": "v7.controlled-certification-setup-selection.v1",
+        "selection_status": "SELECTED" if not blockers else "STOP_SAFE",
+        "blockers": blockers,
+        "selected_candidate": {
+            "user": user,
+            "source": current,
+            "target": source,
+            "evidence_value": 0,
+            "suitability_score": 100.0,
+            "confidence": 100.0,
+            "risk": 0.0,
+        } if not blockers else {},
+        "source_hash": source_hash,
+        "evidence_class": "ENGINEERING_SETUP",
+        "ordinary_customer_used": False,
+        "authority_scope": "ONE_EXISTING_DEDICATED_IDENTITY_TO_ONE_EXISTING_CONTROLLED_SOURCE",
+        "max_users": 1,
+    }
+
+
 def decision_records(state_dir: Path, event_dir: Path, audit_dir: Path) -> list[dict[str, Any]]:
     paths = [
         event_dir / "switch-history.jsonl",
@@ -944,6 +1181,7 @@ def materialize_governed_transaction_feedback(
     target: str,
     rollback_attempted: bool,
     verification_passed: bool,
+    evidence_class: str = "CONTROLLED_PRODUCTION",
 ) -> dict[str, Any]:
     if not apply_result.get("applied"):
         return {
@@ -1038,6 +1276,10 @@ def materialize_governed_transaction_feedback(
             audit_reference=packet_id,
             closure_reference=str(operation.get("operation_id") or packet.get("operation_id") or packet_id),
             packet_id=packet_id,
+            evidence_class=evidence_class,
+            decision_trace_id=str(packet.get("decision_id") or ""),
+            input_snapshot_identity=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
+            expected_terminal=terminal_outcome_classification,
         )
         records = operator_execution_feedback.materialized_feedback_records(contract)
         append_jsonl(state_dir / "execution-events.jsonl", records["outcome"])
@@ -1451,7 +1693,9 @@ def _execute_governed_transaction_with_guards_inner(
     blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, Any]:
     delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
-    if not delegated_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
+    setup_request = getattr(args, "_certification_setup_request", None)
+    setup_mode = isinstance(setup_request, dict) and bool(setup_request)
+    if not delegated_mode and not setup_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
     if int(args.max_users) != 1:
         return transaction_stop("transaction_max_users_must_be_one")
@@ -1489,11 +1733,25 @@ def _execute_governed_transaction_with_guards_inner(
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     planner_observe = {"skipped": True}
-    if not args.skip_planner_observe:
+    if not args.skip_planner_observe and not setup_mode:
         planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, 1)
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves, replace_existing=True)
     a4_goal_directed_selection = {}
+    certification_setup_selection = {}
+    if setup_mode:
+        certification_setup_selection = controlled_certification_setup_selection(
+            users=users,
+            egress=egress,
+            user=str(setup_request.get("user") or ""),
+            source=str(setup_request.get("source") or ""),
+        )
+        if certification_setup_selection.get("selection_status") != "SELECTED":
+            return transaction_stop(
+                "CONTROLLED_CERTIFICATION_SETUP_NOT_ADMITTED",
+                certification_setup_selection=certification_setup_selection,
+            )
+        surface = merge_a4_gap_candidate_into_surface(surface, certification_setup_selection)
     if required_a4_candidate_keys is not None:
         a4_goal_directed_selection = select_a4_gap_reducing_candidate(
             surface=surface,
@@ -1518,13 +1776,33 @@ def _execute_governed_transaction_with_guards_inner(
         max_users=1,
     )
     packet_preview = cycle.get("packet_preview") if isinstance(cycle.get("packet_preview"), dict) else {}
+    if setup_mode:
+        packet_preview["_v7_evidence_class"] = "ENGINEERING_SETUP"
+        packet_preview["_v7_certification_setup"] = certification_setup_selection
     if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
         return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
 
     preview_identity = operator_execution.preview_packet_identity(packet_preview)
     delegated_admission = {}
     approved_identity = {}
-    if delegated_mode:
+    if setup_mode:
+        delegated_admission = {
+            "schema_version": "v7.controlled-certification-setup-authority.v1",
+            "allowed": True,
+            "blockers": [],
+            "authority": {
+                "authority_basis": "OPERATOR_ENGINEERING_AUTHORITY",
+                "engineering_authority_source": "EXPLICIT_POLYGON_L7_MISSION_CONTINUATION",
+                "action_class": "single-user governed candidate failover",
+                "max_users_per_transaction": 1,
+                "max_concurrent_transactions": 1,
+                "candidate_identity": "FRESH_ONLY",
+                "packet_reuse": "FORBIDDEN",
+                "self_expansion_allowed": False,
+                "scope": certification_setup_selection.get("authority_scope"),
+            },
+        }
+    elif delegated_mode:
         delegated_admission = bounded_delegated_policy_admission(packet_preview, cycle)
         if not delegated_admission.get("allowed"):
             return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
@@ -1538,7 +1816,7 @@ def _execute_governed_transaction_with_guards_inner(
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     controlled_window = operator_execution.build_autonomous_execution_control_state(
         False,
-        actor=(str((delegated_admission.get("authority") or {}).get("policy_id") or "delegated-policy") if delegated_mode else str(args.approval_author or "operator")),
+        actor=(str((delegated_admission.get("authority") or {}).get("policy_id") or (delegated_admission.get("authority") or {}).get("authority_basis") or "delegated-policy") if (delegated_mode or setup_mode) else str(args.approval_author or "operator")),
         reason="governed_one_operation_window",
         operation_id=str(packet_preview.get("operation_id") or ""),
         selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
@@ -1572,12 +1850,12 @@ def _execute_governed_transaction_with_guards_inner(
             ttl_seconds=args.ttl_seconds,
             breaker_generation=str(preflight_control.get("generation") or ""),
             require_execution_binding=True,
-            delegated_policy_authority=(delegated_admission.get("authority") if delegated_mode else None),
+            delegated_policy_authority=(delegated_admission.get("authority") if (delegated_mode or setup_mode) else None),
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
 
-    approved_materialized_identity = dict(preview_identity if delegated_mode else approved_identity)
+    approved_materialized_identity = dict(preview_identity if (delegated_mode or setup_mode) else approved_identity)
     approved_materialized_identity["breaker_generation"] = str(preflight_control.get("generation") or "")
     packet_binding = operator_execution.approved_packet_binding_status(
         operator_execution.packet_identity(packet),
@@ -1710,6 +1988,7 @@ def _execute_governed_transaction_with_guards_inner(
         target=target,
         rollback_attempted=rollback_attempted,
         verification_passed=verification_passed,
+        evidence_class="ENGINEERING_SETUP" if setup_mode else "CONTROLLED_PRODUCTION",
     )
     return {
         "schema_version": "v7.governed-execution-transaction.v1",
@@ -1747,10 +2026,71 @@ def _execute_governed_transaction_with_guards_inner(
         "cycle": cycle,
         "planner_observe": planner_observe,
         "a4_goal_directed_selection": a4_goal_directed_selection,
+        "certification_setup_selection": certification_setup_selection,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
+    }
+
+
+def prepare_controlled_certification_condition(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    if args.confirm_controlled_certification_condition != "PREPARE_CONTROLLED_CERTIFICATION_CONDITION_APPROVED":
+        return transaction_stop("controlled_certification_condition_confirmation_required")
+    if int(args.max_users) != 1:
+        return transaction_stop("controlled_certification_condition_max_users_must_be_one")
+    transaction_args = copy.copy(args)
+    transaction_args._certification_setup_request = {
+        "user": str(args.certification_user or ""),
+        "source": str(args.certification_source or ""),
+    }
+    transaction_args.skip_planner_observe = True
+    transaction_args.execute_bounded_delegated_transaction = False
+    transaction = execute_governed_transaction_with_guards(
+        transaction_args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        audit_dir=audit_dir,
+        lease_file=lease_file,
+    )
+    if transaction.get("final_verdict") != "GOVERNED_TRANSACTION_COMPLETED" or transaction.get("verification_result") != "PASS":
+        return {
+            **transaction_stop("controlled_certification_setup_transaction_failed"),
+            "setup_transaction": transaction,
+        }
+    marker_command = [
+        "v7-egress-set-state", str(args.certification_source), "certification-scope",
+        "--certification-users", str(args.certification_user),
+        "--certification-group", "polygon-l7-canary", "--apply",
+    ]
+    marker = subprocess.run(marker_command, text=True, capture_output=True, timeout=180, check=False)
+    route = scoped_user_route_check(state_dir, str(args.certification_user))
+    passed = marker.returncode == 0 and route.get("passed")
+    return {
+        "schema_version": "v7.controlled-certification-condition-preparation.v1",
+        "final_verdict": "CONTROLLED_CERTIFICATION_CONDITION_PREPARED" if passed else "STOP_SAFE",
+        "setup_transaction": transaction,
+        "marker_owner": "v7-egress-set-state certification-scope",
+        "marker_returncode": marker.returncode,
+        "marker_output": marker.stdout[-3000:],
+        "route_verification": route,
+        "certification_user": str(args.certification_user),
+        "controlled_source": str(args.certification_source),
+        "evidence_class": "ENGINEERING_SETUP_NOT_L7_EVIDENCE",
+        "ordinary_customer_used": False,
+        "users_moved": 1,
+        "runtime_mutation_performed": True,
+        "authority_expanded_beyond_exact_setup": False,
+        "daemon_or_timer_enabled": False,
     }
 
 
@@ -2019,6 +2359,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--execute-a4-bounded-evidence-collection", action="store_true")
     parser.add_argument("--confirm-a4-bounded-evidence-collection", default="")
     parser.add_argument("--max-evidence-outcomes", type=int, default=0)
+    parser.add_argument("--materialize-due-delayed-observations", action="store_true")
+    parser.add_argument("--confirm-delayed-observations", default="")
+    parser.add_argument("--max-delayed-observations", type=int, default=10)
+    parser.add_argument("--prepare-controlled-certification-condition", action="store_true")
+    parser.add_argument("--confirm-controlled-certification-condition", default="")
+    parser.add_argument("--certification-user", default="")
+    parser.add_argument("--certification-source", default="")
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--restore-barrier-file", default="")
@@ -2049,6 +2396,32 @@ def main(argv=None) -> int:
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    if args.prepare_controlled_certification_condition:
+        result = prepare_controlled_certification_condition(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "CONTROLLED_CERTIFICATION_CONDITION_PREPARED" else 2
+    if args.materialize_due_delayed_observations:
+        if args.confirm_delayed_observations != "MATERIALIZE_VERIFIED_DELAYED_OBSERVATIONS_APPROVED":
+            result = {
+                "schema_version": "v7.execution-delayed-observation-consumer.v1",
+                "final_verdict": "STOP_SAFE",
+                "errors": ["explicit_delayed_observation_confirmation_required"],
+                "observations_written": 0,
+            }
+        else:
+            result = materialize_due_delayed_observations(
+                state_dir,
+                max_observations=max(1, int(args.max_delayed_observations)),
+            )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.execute_a4_bounded_evidence_collection:
         result = execute_a4_bounded_evidence_collection(
             args,

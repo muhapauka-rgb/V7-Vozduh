@@ -19,6 +19,82 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_controlled_setup_admits_only_historical_dedicated_identity_and_empty_source(self):
+        module = load_cli_module()
+        selection = module.controlled_certification_setup_selection(
+            users=[{"ip": "10.7.0.16", "current": "vless", "enabled": "1"}],
+            egress=[{
+                "id": "controlled-source",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.7.0.16",
+            source="controlled-source",
+        )
+        ordinary = module.controlled_certification_setup_selection(
+            users=[{"ip": "10.0.0.2", "current": "vless", "enabled": "1"}],
+            egress=[{
+                "id": "controlled-source",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.0.0.2",
+            source="controlled-source",
+        )
+
+        self.assertEqual(selection["selection_status"], "SELECTED")
+        self.assertEqual(selection["evidence_class"], "ENGINEERING_SETUP")
+        self.assertFalse(selection["ordinary_customer_used"])
+        self.assertEqual(ordinary["selection_status"], "STOP_SAFE")
+        self.assertIn("identity_not_in_durable_legacy_certification_pool", ordinary["blockers"])
+
+    def test_due_delayed_observation_is_owner_store_backed_and_idempotent(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                "id=vless interface=tun0 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "user-10.7.0.16.assign").write_text("egress=vless\n", encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb-delayed",
+                "packet_id": "pkt-delayed",
+                "decision_id": "decision-delayed",
+                "decision_trace_id": "decision-delayed",
+                "input_snapshot_identity": "snapshot-delayed",
+                "closure_reference": "runtime-delayed",
+                "user": "10.7.0.16",
+                "source_channel": "awg3",
+                "target_channel": "vless",
+                "terminal_outcome_classification": "SUCCESS",
+                "outcome_observed_at": "2026-07-19T00:00:00+00:00",
+                "selected_moves": [{"user": "10.7.0.16", "from": "awg3", "to": "vless"}],
+                "evidence_class": "CONTROLLED_PRODUCTION",
+            }
+            (state_dir / "execution-events.jsonl").write_text(
+                json.dumps(outcome) + "\n", encoding="utf-8",
+            )
+            module.scoped_user_route_check = lambda _state, _user: {
+                "passed": True, "returncode": 0, "reason": "unit",
+            }
+            now = datetime(2026, 7, 19, 1, 1, tzinfo=timezone.utc)
+
+            first = module.materialize_due_delayed_observations(state_dir, now=now)
+            second = module.materialize_due_delayed_observations(state_dir, now=now)
+
+            self.assertEqual(first["observations_written"], 1)
+            self.assertEqual(second["observations_written"], 0)
+            rows = [json.loads(line) for line in (state_dir / "execution-events.jsonl").read_text().splitlines()]
+            self.assertEqual(rows[-1]["schema_version"], "v7.execution-delayed-observation.v1")
+            self.assertTrue(rows[-1]["delayed_1h_observation"])
+            self.assertFalse(rows[-1]["runtime_mutation_performed"])
+
     def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

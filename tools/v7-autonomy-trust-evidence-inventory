@@ -10,8 +10,10 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -185,7 +187,25 @@ def terminal_execution_observation(state_dir: Path, *, verify_routes: bool = Fal
     route_check = {"requested": verify_routes, "passed": False, "returncode": None}
     if verify_routes:
         try:
-            completed = subprocess.run(["v7-user-route-check"], text=True, capture_output=True, timeout=180, check=False)
+            with tempfile.TemporaryDirectory(prefix="v7-route-check-") as tmp:
+                scoped = Path(tmp)
+                selected = [
+                    line for line in (state_dir / "users.registry").read_text(encoding="utf-8").splitlines()
+                    if line.startswith(f"ip={user} ")
+                ]
+                if len(selected) != 1:
+                    raise OSError("user_registry_identity_not_unique")
+                (scoped / "users.registry").write_text(selected[0] + "\n", encoding="utf-8")
+                for name in ("egress.registry", f"user-{user}.assign"):
+                    source_path = state_dir / name
+                    if source_path.exists():
+                        (scoped / name).symlink_to(source_path)
+                env = dict(os.environ)
+                env["V7_STATE_DIR"] = str(scoped)
+                completed = subprocess.run(
+                    ["v7-user-route-check"], text=True, capture_output=True,
+                    timeout=180, check=False, env=env,
+                )
             route_check = {"requested": True, "passed": completed.returncode == 0, "returncode": completed.returncode}
         except (OSError, subprocess.TimeoutExpired):
             route_check = {"requested": True, "passed": False, "returncode": None}
@@ -199,10 +219,12 @@ def terminal_execution_observation(state_dir: Path, *, verify_routes: bool = Fal
     current_matches = current == target
     verified = current_matches and route_check["passed"]
     packet = lease.get("packet") if isinstance(lease.get("packet"), dict) else {}
+    source_preview = lease.get("source_preview") if isinstance(lease.get("source_preview"), dict) else {}
+    evidence_class = str(source_preview.get("_v7_evidence_class") or "CONTROLLED_PRODUCTION")
     return {
         "schema_version": "v7.l7-l8.terminal-execution-observation.v1",
         "_v7_evidence_source_path": f"{lease_path}+users.registry+v7-user-route-check",
-        "evidence_class": "CONTROLLED_PRODUCTION",
+        "evidence_class": evidence_class,
         "operation_id": str(lease.get("operation_id") or identity.get("operation_id") or ""),
         "source_operation_id": str(identity.get("operation_id") or ""),
         "packet_id": str(lease.get("packet_id") or identity.get("packet_id") or ""),

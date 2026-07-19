@@ -409,6 +409,10 @@ def execution_feedback_contract(
     execution_time: str = "",
     verification_time: str = "",
     stability_window_seconds: int = 0,
+    evidence_class: str = "",
+    decision_trace_id: str = "",
+    input_snapshot_identity: str = "",
+    expected_terminal: str = "",
 ) -> dict[str, Any]:
     execution_result = execution_result if isinstance(execution_result, dict) else {}
     verification_result = verification_result if isinstance(verification_result, dict) else {}
@@ -472,6 +476,10 @@ def execution_feedback_contract(
         "packet_id": packet_id or str(execution_result.get("packet_id") or verification_result.get("packet_id") or ""),
         "recommendation_id": recommendation_hash,
         "stability_window_seconds": int(stability_window_seconds or 0),
+        "evidence_class": str(evidence_class or ""),
+        "decision_trace_id": str(decision_trace_id or ""),
+        "input_snapshot_identity": str(input_snapshot_identity or ""),
+        "expected_terminal": str(expected_terminal or terminal_classification),
         "runtime_mutation_performed": False,
         "new_truth_sources_created": False,
     }
@@ -514,6 +522,10 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
             "outcome_status": contract.get("outcome_status", "unknown"),
         }),
         "stability_window_seconds": int(contract.get("stability_window_seconds") or 0),
+        "evidence_class": contract.get("evidence_class", ""),
+        "decision_trace_id": contract.get("decision_trace_id", ""),
+        "input_snapshot_identity": contract.get("input_snapshot_identity", ""),
+        "expected_terminal": contract.get("expected_terminal", ""),
         "created_at": utc_now(),
     }
     return {

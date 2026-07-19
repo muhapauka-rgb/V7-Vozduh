@@ -104,7 +104,13 @@ STATE
 tmp="${REG}.tmp.$$"
 awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
   $0 ~ "^ip=" ip " " {
-    print "ip=" ip " current=" egress " table=" table " enabled=1"
+    if ($0 ~ / current=[^ ]+/) sub(/ current=[^ ]+/, " current=" egress)
+    else $0 = $0 " current=" egress
+    if ($0 ~ / table=[^ ]+/) sub(/ table=[^ ]+/, " table=" table)
+    else $0 = $0 " table=" table
+    if ($0 ~ / enabled=[^ ]+/) sub(/ enabled=[^ ]+/, " enabled=1")
+    else $0 = $0 " enabled=1"
+    print
     next
   }
   { print }

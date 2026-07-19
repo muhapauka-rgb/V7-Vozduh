@@ -9984,6 +9984,8 @@ def _l7_l8_evidence_class(records: list[dict[str, Any]]) -> str:
         ])
         for record in records
     ).upper()
+    if "ENGINEERING_SETUP" in text or "CERTIFICATION_SETUP" in text:
+        return "ENGINEERING_SETUP_NOT_EVIDENCE"
     if "SYNTHETIC" in text or "SHADOW" in text or "TEST" in text:
         return "SYNTHETIC_OR_TEST"
     if "NATURAL" in text:
@@ -10482,7 +10484,14 @@ def build_polygon_driven_l7_l8_evidence_acquisition(
 
     immutable = program.get("immutable_eligibility_set") or {}
     missing_cells = sorted({_text(value) for value in immutable.get("missing_coverage_cells") or [] if _text(value)})
-    controlled_missing = "controlled_production_present" in missing_cells
+    l7_acquirable_cells = {
+        "controlled_production_present",
+        "complete_temporal_and_replay",
+        "rollback_and_no_rollback_present",
+        "material_variation_present",
+        "eligible_passports_at_least_5",
+    }
+    controlled_missing = bool(l7_acquirable_cells.intersection(missing_cells))
     natural_missing = "natural_production_present" in missing_cells
     priorities = (
         "controlled_production_present",
@@ -10537,7 +10546,7 @@ def build_polygon_driven_l7_l8_evidence_acquisition(
     )
 
     if not controlled_missing:
-        l7_verdict = "CONTROLLED_PRODUCTION_CELL_ALREADY_CLOSED"
+        l7_verdict = "ALL_CURRENT_L7_ACQUIRABLE_CELLS_CLOSED"
         l7_stop = "NONE"
     elif candidate_ready and policy_ready and (candidate_certification_scoped or candidate_genuine_production_need):
         l7_verdict = "READY_EXISTING_POLICY_BOUNDED_TRANSACTION"

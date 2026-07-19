@@ -9,6 +9,28 @@ ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
 class OperatorExecutionFeedbackTest(unittest.TestCase):
+    def test_feedback_preserves_durable_replay_and_evidence_identity(self):
+        contract = feedback.execution_feedback_contract(
+            user="10.7.0.16",
+            source_channel="controlled-source",
+            target_channel="vless",
+            execution_result={"success": True},
+            verification_result={"verification_passed": True},
+            rollback_result={"rollback_required": False},
+            packet_id="pkt-replay",
+            evidence_class="CONTROLLED_PRODUCTION",
+            decision_trace_id="decision-replay",
+            input_snapshot_identity="snapshot-replay",
+            expected_terminal="SUCCESS",
+        )
+
+        outcome = feedback.materialized_feedback_records(contract)["outcome"]
+
+        self.assertEqual(outcome["evidence_class"], "CONTROLLED_PRODUCTION")
+        self.assertEqual(outcome["decision_trace_id"], "decision-replay")
+        self.assertEqual(outcome["input_snapshot_identity"], "snapshot-replay")
+        self.assertEqual(outcome["expected_terminal"], "SUCCESS")
+
     def test_execution_feedback_contract_materializes_all_feedback_links(self):
         contract = feedback.execution_feedback_contract(
             user="10.7.0.3",

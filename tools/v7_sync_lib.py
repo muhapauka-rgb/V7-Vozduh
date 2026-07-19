@@ -3465,6 +3465,259 @@ POLYGON_DRIVEN_L7_REMAINING_CELLS = (
     "eligible_passports_at_least_5; material_variation_present; "
     "natural_production_present; rollback_and_no_rollback_present"
 )
+POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID = (
+    "V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_CALIBRATION_FLOOR_V1"
+)
+POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL = (
+    "POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_"
+    "AUTHORITY_BOUND_AND_L8_CAPTURE_READY"
+)
+POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT = (
+    "REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY"
+)
+
+
+def _mission_report_backtick_value(report_text: str, label: str) -> str:
+    match = re.search(
+        rf"^(?:- )?{re.escape(label)}: `([^`]*)`\s*$",
+        report_text,
+        flags=re.MULTILINE,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def finalize_polygon_driven_l7_calibration_floor(
+    *,
+    report_path: str,
+    run_nonce: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Persist the five-Passport calibration floor and exact split residual."""
+    report = root / report_path
+    if not report.is_file():
+        return {
+            "schema": "v7.polygon-driven-l7-calibration-floor-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["mission_report_missing"],
+            "atomic_update": None,
+        }
+    report_lines = report.read_text(encoding="utf-8").splitlines()
+    report_text = "\n".join(report_lines)
+    expected_header = [
+        f"Mission ID: `{POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID}`",
+        f"Run Nonce: `{run_nonce}`",
+    ]
+    values = {
+        label: _mission_report_backtick_value(report_text, label)
+        for label in (
+            "Controlled calibration floor",
+            "Eligible Passport count",
+            "Eligibility set",
+            "Eligible Passport IDs",
+            "Exact missing cells",
+            "Temporal terminal",
+            "L8 capture readiness",
+            "M6 verdict",
+            "M7 recommendation",
+            "M8 terminal",
+            "Authority impact",
+            "Production Maturity",
+            "High-fidelity Polygon batch",
+        )
+    }
+    passport_ids = sorted({
+        item.strip()
+        for item in values["Eligible Passport IDs"].split(";")
+        if item.strip()
+    })
+    missing_cells = sorted({
+        item.strip()
+        for item in values["Exact missing cells"].split(";")
+        if item.strip()
+    })
+    errors = []
+    if report_lines[:2] != expected_header:
+        errors.append("mission_report_identity_mismatch")
+    exact_values = {
+        "Controlled calibration floor": "PASS",
+        "Eligible Passport count": "5",
+        "Temporal terminal": "PASS",
+        "L8 capture readiness": "PASS",
+        "M6 verdict": "INSUFFICIENT_EVIDENCE",
+        "M7 recommendation": "INSUFFICIENT_EVIDENCE",
+        "M8 terminal": "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT",
+        "Authority impact": "NONE",
+        "Production Maturity": "NO_CHANGE",
+    }
+    errors.extend(
+        f"mission_report_value_mismatch:{label}"
+        for label, expected in exact_values.items()
+        if values[label] != expected
+    )
+    if len(passport_ids) != 5 or any(not value.startswith("outpass_") for value in passport_ids):
+        errors.append("mission_report_five_passport_identity_set_required")
+    if not values["Eligibility set"].startswith("outset_"):
+        errors.append("mission_report_eligibility_set_missing")
+    if not missing_cells or "eligible_passports_at_least_5" in missing_cells or "material_variation_present" in missing_cells:
+        errors.append("mission_report_calibration_floor_cells_not_closed")
+    if "natural_production_present" not in missing_cells:
+        errors.append("mission_report_natural_residual_missing")
+    if not values["High-fidelity Polygon batch"].startswith("PASS; 64/64; 768 generated cases;"):
+        errors.append("mission_report_high_fidelity_batch_missing")
+    if errors:
+        return {
+            "schema": "v7.polygon-driven-l7-calibration-floor-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors)),
+            "atomic_update": None,
+        }
+
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    state = _normalized_state_from_live_cps(cps_path.read_text(encoding="utf-8"))
+    previous_id = state["latest_terminal_mission_id"]
+    previous_report = state["latest_terminal_mission_report"]
+    captured = utc_now()
+    missing_text = "; ".join(missing_cells)
+    passport_text = "; ".join(passport_ids)
+    fingerprint = hashlib.sha256(json.dumps({
+        "mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        "run_nonce": run_nonce,
+        "report_hash": report_hash,
+        "terminal": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "eligibility_set": values["Eligibility set"],
+        "passport_ids": passport_ids,
+        "missing_cells": missing_cells,
+    }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    state.update({
+        "active_program": "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "ENGINEERING_AUTHORITY",
+        "current_active_scope": "POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL",
+        "current_safe_next_action": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "current_scope_class": "PRODUCTION_CERTIFICATION",
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_L7_FLOOR_{fingerprint[:12].upper()}",
+        "current_transition_id": "POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TO_SPLIT_ROLLBACK_NATURAL_BOUNDARY_V1",
+        "current_next_action_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "current_program_stage": "L7_CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_L8_BOUNDARY",
+        "current_program_execution_frontier": "NONE",
+        "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; five eligible controlled Passports consumed; natural and rollback diversity remain incomplete",
+        "continuation_decision": "PROGRAM_TERMINAL_SPLIT_EXTERNAL_BOUNDARY",
+        "next_executable_capability": "NONE",
+        "program_terminal_state": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "smallest_existing_next_action": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "omp_continuation_pointer": "Reenter controlled L7 only on exact independent rollback-condition Engineering Authority; passively consume the next natural L8 event through the ready capture chain",
+        "wip_authority_required_now": "YES_FOR_DELIBERATE_CONTROLLED_ROLLBACK_CONDITION; existing delegated policy remains unchanged",
+        "wip_current_primary_stop": "ENGINEERING_AUTHORITY_ROLLBACK_LANE; REAL_WORLD_LIMIT_NATURAL_LANE",
+        "wip_smallest_existing_next_action_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "wip_smallest_existing_next_action": f"{POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT}; preserve passive L8 capture and CAP-U07 WIP",
+        "sequence_execution_class": "Polygon-driven controlled evidence acquisition / passive natural capture",
+        "sequence_expected_output": "authorized rollback condition or natural event -> complete Passport -> recalibration -> Authority recommendation",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "INDEPENDENT_ENGINEERING_AUTHORITY_FOR_CONTROLLED_ROLLBACK_CONDITION_OR_QUALIFYING_NATURAL_EVENT",
+        "transaction_terminal_class": "FOUR_ADDITIONAL_L7_CONTROLLED_OUTCOMES_COMPLETE_CONSUMED",
+        "program_terminal_class": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "premature_operator_return": "FALSE",
+        "continuation_iteration": str(max(1, int(state.get("continuation_iteration") or 0) + 1)),
+        "continuation_stop_reason": "CALIBRATION_FLOOR_CONSUMED; ROLLBACK_CONDITION_AUTHORITY_BOUND; NATURAL_L8_CAPTURE_READY",
+        "no_progress_fingerprint": fingerprint,
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        "latest_terminal_run_nonce": run_nonce,
+        "latest_terminal_mission_state": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": captured,
+        "previous_terminal_mission_id": previous_id,
+        "previous_terminal_mission_report": previous_report,
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        "current_run_nonce": run_nonce,
+        "current_mission_state": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "current_mission_report": report_path,
+        "source_summary": "Polygon consumed four additional real bounded L7 outcomes, closed the five-Passport calibration floor and material variation, preserved exact natural and rollback residuals, and produced the current insufficient-evidence Authority recommendation.",
+        "automatic_continue_omp_result": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "action_class_non_consumption_root_cause": f"PARTIAL; five eligible controlled Passports exist but exact representative cells remain: {missing_text}",
+        "action_class_promotion_evaluation": "EVALUATED; INSUFFICIENT_EVIDENCE; CURRENT GOVERNED_ONLY SCOPE RETAINED",
+        "action_class_exact_missing_delta": missing_text,
+        "class_approval_ready": "NO; M6 remains insufficient, M7 retains INSUFFICIENT_EVIDENCE and M8 is not required",
+        "authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; exact current request is the controlled rollback condition; no Authority granted or expanded",
+        "exact_reentry_triggers": "INDEPENDENT_ENGINEERING_AUTHORITY_FOR_CONTROLLED_ROLLBACK_CONDITION; QUALIFYING_NATURAL_EVENT",
+        "conditional_engineering_authority_used": "NO; completed transactions reused existing controlled certification owners and one-user policy",
+        "certification_transaction_executed": "YES; four additional fresh serial one-user transactions, verification PASS, rollback NOT_REQUIRED",
+        "production_maturity_decision": "NO_CHANGE; 66.9/100; calibration floor is not a promotion threshold and representative cells remain open",
+        "production_runtime_impact": "FOUR_BOUNDED_CONTROLLED_TRANSACTIONS_COMPLETE; final Admin Safe Mode OPEN; no background Runtime enablement",
+        "routing_impact": "four dedicated certification users moved from the controlled source to verified healthy targets; each exact route verification PASS",
+        "user_movement": "YES; four additional owner-authorized bounded controlled user movements plus their engineering setup movements",
+        "aep_phase6_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
+        "phase6_certification_status": "FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; evidence classes remain non-interchangeable",
+        "phase6_current_step": "ROLLBACK_CONDITION_AUTHORITY_BOUND; NATURAL_L8_CAPTURE_READY",
+        "phase6_certification_frontier": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "phase6_exact_stop": "ENGINEERING_AUTHORITY_ROLLBACK_LANE; REAL_WORLD_LIMIT_NATURAL_LANE",
+        "phase6_exact_next_action": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "phase6_reentry_conditions": "independent rollback-condition Engineering Authority; qualifying natural event",
+        "phase6_global_status": "CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_AUTHORITY_AND_NATURAL_BOUNDARY",
+        "phase6b_controlled_status": "FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; ROLLBACK_DIVERSITY_REQUIRES_DELIBERATE_CONDITION_AUTHORITY",
+        "phase6b_next_action": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "phase6c_natural_status": "CAPTURE_READY_WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE",
+        "phase6_executable_frontier": "NONE",
+        "phase6_global_stop": "ENGINEERING_AUTHORITY",
+        "phase7_engineering_evolution_status": "PERMANENT_POLYGON_ACTIVE_FOR_SAFE_PREPARATION_AND_CAPTURE_REPAIR",
+        "phase7_production_authority_status": "GOVERNED_ONLY_LOCKED_BY_INSUFFICIENT_EVIDENCE",
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": "AUTHORITY_BOUND:DELIBERATE_CONTROLLED_ROLLBACK_CONDITION",
+        "polygon_mission_frontier": "NONE_NO_LEGAL_ROLLBACK_MISSION_WITHOUT_AUTHORITY",
+        "active_execution_frontier": "NONE",
+        "external_reentry_frontier": "ROLLBACK_CONDITION_ENGINEERING_AUTHORITY_OR_NATURAL_EVENT",
+        "phase6_engineering_stop": "ENGINEERING_AUTHORITY",
+        "phase6_controlled_lane_stop": "ENGINEERING_AUTHORITY",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT",
+        "global_engineering_stop": "ENGINEERING_AUTHORITY",
+        "engineering_program_status": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "environment_alignment_status": "PENDING_POST_COMMIT_TRUTH_CONVERGENCE",
+        "production_routing_autonomy_status": "NOT_CLAIMED",
+        "authority_promotion_status": "NONE",
+        "production_maturity_change_status": "NONE",
+        "current_completion_contract": "INTEGRATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "l7_l8_ae_material_outcomes": f"FIVE ELIGIBLE CONTROLLED PASSPORTS: {passport_text}",
+        "l7_l8_ae_m1_residual": "FIVE ELIGIBLE CONTROLLED PASSPORTS CONSUMED; supporting historical rows preserve exact gaps",
+        "l7_l8_ae_m2_residual": "FIVE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS",
+        "l7_l8_ae_m3_residual": "FIVE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual terminal and NO_DRIFT PASS",
+        "l7_l8_ae_m4_m8_status": "M4 CALIBRATION FLOOR COMPLETE; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT",
+        "l7_l8_ae_current_cycle_report": report_path,
+        "l7_l8_ae_current_cycle_terminal": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "l7_l8_ae_immutable_eligibility_set": f"{values['Eligibility set']}; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS",
+        "l7_l8_ae_authority_recommendation": "INSUFFICIENT_EVIDENCE; current GOVERNED_ONLY scope retained; M8 independent approval not opened",
+        "l7_l8_ae_exact_missing_cells": missing_text,
+        "l7_l8_ae_next_reentry": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "pending_wake_id": "NONE",
+        "reentry_active_lease": "NONE",
+        "reentry_platform_health": "PASS",
+    })
+    atomic_update = atomic_reconcile_cps(cps_path, state=state, request_external_wake=False)
+    return {
+        "schema": "v7.polygon-driven-l7-calibration-floor-finalization.v1",
+        "mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        "run_nonce": run_nonce,
+        "program_terminal": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        "eligible_passport_count": len(passport_ids),
+        "eligible_passport_ids": passport_ids,
+        "immutable_eligibility_set_fingerprint": values["Eligibility set"],
+        "exact_remaining_coverage_cells": missing_cells,
+        "next_reentry": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        "report_hash": report_hash,
+        "decision_fingerprint": fingerprint,
+        "atomic_update": atomic_update,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+        "final_verdict": "PASS" if atomic_update.get("ok") else "STOP_SAFE",
+        "errors": atomic_update.get("errors") or [],
+    }
 
 
 def finalize_l7_l8_evidence_cycle(
@@ -3653,6 +3906,12 @@ def finalize_polygon_driven_l7_evidence_acquisition(
             "atomic_update": None,
         }
     report_lines = report.read_text(encoding="utf-8").splitlines()
+    if "Controlled calibration floor: `PASS`" in "\n".join(report_lines):
+        return finalize_polygon_driven_l7_calibration_floor(
+            report_path=report_path,
+            run_nonce=run_nonce,
+            root=root,
+        )
     expected_header = [
         f"Mission ID: `{POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID}`",
         f"Run Nonce: `{run_nonce}`",
@@ -16357,6 +16616,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     phase6_multi_lane_active = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in {
         "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
         "SPLIT_L7_AUTHORITY_L8_NATURAL_BOUNDARY",
+        "L7_CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_L8_BOUNDARY",
     }
     permanent_records = permanent_polygon_criterion_registry(cps_text).get("records") or []
     permanent_polygon_automation_complete = all((

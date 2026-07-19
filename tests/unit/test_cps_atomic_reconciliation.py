@@ -420,6 +420,67 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES; exactly one"))
             self.assertEqual(live["PRODUCTION_MATURITY_CHANGE_STATUS"].strip("`"), "NONE")
 
+    def test_45_polygon_driven_l7_calibration_floor_finalizes_dynamic_passport_set(self):
+        mission_id = self.lib.POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID
+        run_nonce = "V7_L7_FLOOR_TEST"
+        relative_report = "docs/reports/engineering/polygon_l7_calibration_floor_test.md"
+        passport_ids = [f"outpass_{index:024d}" for index in range(5)]
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            report_path = root / relative_report
+            cps_path.parent.mkdir(parents=True)
+            report_path.parent.mkdir(parents=True)
+            cps_path.write_text(self.cps, encoding="utf-8")
+            report_path.write_text(
+                "\n".join((
+                    f"Mission ID: `{mission_id}`",
+                    f"Run Nonce: `{run_nonce}`",
+                    "Controlled calibration floor: `PASS`",
+                    "Eligible Passport count: `5`",
+                    "Eligibility set: `outset_dynamic_floor`",
+                    f"Eligible Passport IDs: `{'; '.join(passport_ids)}`",
+                    "Exact missing cells: `natural_production_present; rollback_and_no_rollback_present`",
+                    "Temporal terminal: `PASS`",
+                    "L8 capture readiness: `PASS`",
+                    "M6 verdict: `INSUFFICIENT_EVIDENCE`",
+                    "M7 recommendation: `INSUFFICIENT_EVIDENCE`",
+                    "M8 terminal: `MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT`",
+                    "Authority impact: `NONE`",
+                    "Production Maturity: `NO_CHANGE`",
+                    "High-fidelity Polygon batch: `PASS; 64/64; 768 generated cases; batch_fingerprint`",
+                )) + "\n",
+                encoding="utf-8",
+            )
+
+            result = self.lib.finalize_polygon_driven_l7_evidence_acquisition(
+                report_path=relative_report,
+                run_nonce=run_nonce,
+                root=root,
+            )
+
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertTrue(result["atomic_update"]["ok"])
+            self.assertEqual(result["eligible_passport_ids"], sorted(passport_ids))
+            rendered = cps_path.read_text(encoding="utf-8")
+            live = self.lib._markdown_field_table(self.lib._markdown_section(
+                rendered,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(
+                live["PROGRAM_TERMINAL_CLASS"].strip("`"),
+                self.lib.POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+            )
+            self.assertEqual(
+                live["CURRENT_NEXT_ACTION_ID"].strip("`"),
+                self.lib.POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+            )
+            self.assertEqual(live["PHASE_6_CONTROLLED_LANE_STOP"].strip("`"), "ENGINEERING_AUTHORITY")
+            self.assertEqual(live["PHASE_6_NATURAL_LANE_STOP"].strip("`"), "REAL_WORLD_LIMIT")
+            self.assertEqual(live["AUTHORITY_PROMOTION_STATUS"].strip("`"), "NONE")
+            self.assertEqual(live["PRODUCTION_MATURITY_CHANGE_STATUS"].strip("`"), "NONE")
+
 
 if __name__ == "__main__":
     unittest.main()

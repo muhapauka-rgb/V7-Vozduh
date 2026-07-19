@@ -1470,6 +1470,40 @@ def controlled_certification_evidence_scope(state_dir: Path, *, user: str, sourc
     )
 
 
+def attach_l3_operation_scoped_binding(
+    plan: dict[str, Any],
+    *,
+    state_dir: Path,
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    selected = operator_execution.selected_moves_from_plan(plan)
+    moves = selected.get("moves") if isinstance(selected.get("moves"), list) else []
+    if len(moves) != 1:
+        return {
+            "status": "STOP_SAFE",
+            "reason": "l3_operation_scoped_binding_requires_one_selected_move",
+            "selected_move_count": len(moves),
+        }
+    binding = operation_scoped_binding.read_binding(
+        state_dir=state_dir,
+        snapshot_root=snapshot_root,
+        selected=moves[0],
+    )
+    if binding.get("status") != "BOUND":
+        return binding
+    safety = plan.setdefault("safety", {})
+    atomic = safety.setdefault("atomic_execution_envelope", {})
+    atomic["source_bundle"] = {
+        "schema_version": operation_scoped_binding.SCHEMA_VERSION,
+        "source_hashes": dict(binding.get("source_hashes") or {}),
+        "hash": str(binding.get("source_bundle_hash") or ""),
+    }
+    atomic["source_bundle_hash"] = str(binding.get("source_bundle_hash") or "")
+    atomic["snapshot_bundle_hash"] = str(binding.get("snapshot_bundle_hash") or "")
+    atomic["operation_scoped_binding"] = binding
+    return binding
+
+
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
@@ -1527,6 +1561,16 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         )
 
     if initial_control.get("state") == "OPEN":
+        operation_binding = attach_l3_operation_scoped_binding(
+            plan,
+            state_dir=state_dir,
+            snapshot_root=snapshot_root,
+        )
+        if operation_binding.get("status") != "BOUND":
+            return transaction_stop(
+                "l3_operation_scoped_binding_incomplete",
+                operation_scoped_binding=operation_binding,
+            )
         selected = operator_execution.selected_moves_from_plan(plan)
         auto_window_blockers = []
         if requested_max_users != 1 or int(selected.get("selected_move_count") or 0) != 1:
@@ -1790,6 +1834,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "new_backlog_item_created": False,
         "transition": transition,
         "l3_plan_run": l3_plan_run,
+        "operation_scoped_binding": (
+            ((plan.get("safety") or {}).get("atomic_execution_envelope") or {}).get("operation_scoped_binding") or {}
+        ),
         "restore_barrier_preflight_reset": restore_barrier_preflight_reset,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,

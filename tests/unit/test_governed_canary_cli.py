@@ -876,12 +876,30 @@ class GovernedCanaryCliTest(unittest.TestCase):
             state = module.operator_execution.build_autonomous_execution_control_state(True, actor="owner", reason="incident")
             Path(args.execution_control_file).write_text(json.dumps(state), encoding="utf-8")
             original_plan = module.run_l3_production_validation_plan
+            original_binding = module.operation_scoped_binding.read_binding
             try:
                 module.run_l3_production_validation_plan = lambda **kwargs: {
                     "ok": True,
                     "returncode": 0,
                     "command": ["l3-plan"],
                     "payload": self.ready_l3_plan(),
+                }
+                module.operation_scoped_binding.read_binding = lambda **kwargs: {
+                    "schema_version": module.operation_scoped_binding.SCHEMA_VERSION,
+                    "status": "BOUND",
+                    "selected_identity": {
+                        "user": "10.7.0.5",
+                        "source": "vless",
+                        "target": "awg3",
+                    },
+                    "source_hashes": {
+                        "users_registry": "users-binding",
+                        "egress_registry": "egress-binding",
+                        "runtime_state": "runtime-binding",
+                        "candidate_suitability": "candidate-binding",
+                    },
+                    "source_bundle_hash": "binding-bundle",
+                    "snapshot_bundle_hash": "binding-bundle",
                 }
                 result = module.execute_l3_production_validation(
                     args,
@@ -893,6 +911,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 )
             finally:
                 module.run_l3_production_validation_plan = original_plan
+                module.operation_scoped_binding.read_binding = original_binding
 
         self.assertNotEqual(result.get("stop_reason"), "autonomous_execution_control_denied_pre_lease")
         self.assertEqual(result["safe_mode_final_state"], "OPEN")

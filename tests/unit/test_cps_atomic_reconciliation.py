@@ -338,6 +338,44 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(result["current_state_derived_projection_consistency"], "PASS")
         self.assertEqual(result["derived_projection_contradiction_count"], 0)
 
+    def test_43_l7_l8_current_evidence_cycle_finalizes_atomically(self):
+        mission_id = self.lib.L7_L8_EVIDENCE_CYCLE_MISSION_ID
+        run_nonce = "V7_L7L8_AE_CYCLE_TEST"
+        relative_report = "docs/reports/engineering/l7_l8_cycle_test.md"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            report_path = root / relative_report
+            cps_path.parent.mkdir(parents=True)
+            report_path.parent.mkdir(parents=True)
+            cps_path.write_text(self.cps, encoding="utf-8")
+            report_path.write_text(
+                f"Mission ID: `{mission_id}`\nRun Nonce: `{run_nonce}`\n",
+                encoding="utf-8",
+            )
+            result = self.lib.finalize_l7_l8_evidence_cycle(
+                report_path=relative_report,
+                run_nonce=run_nonce,
+                root=root,
+            )
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertTrue(result["atomic_update"]["ok"])
+            rendered = cps_path.read_text(encoding="utf-8")
+            live = self.lib._markdown_field_table(self.lib._markdown_section(
+                rendered,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(
+                live["PROGRAM_TERMINAL_CLASS"].strip("`"),
+                self.lib.L7_L8_EVIDENCE_CYCLE_TERMINAL,
+            )
+            self.assertEqual(live["AUTHORITY_RECOMMENDATION_STATE"].strip("`"), "INSUFFICIENT_EVIDENCE")
+            self.assertEqual(live["OMP_CONTINUATION_REQUIRED"].strip("`"), "FALSE")
+            self.assertEqual(live["EXTERNAL_INPUT_REQUIRED"].strip("`"), "TRUE")
+            self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("NONE"))
+            self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3426,6 +3426,188 @@ def finalize_comprehensive_phase6_phase7_campaign(
     return {**result, "atomic_update": atomic_update, "campaign_fingerprint": fingerprint}
 
 
+L7_L8_EVIDENCE_CYCLE_MISSION_ID = (
+    "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_"
+    "M1_M8_CURRENT_EVIDENCE_CYCLE_V1"
+)
+L7_L8_EVIDENCE_CYCLE_TERMINAL = (
+    "CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_"
+    "RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED"
+)
+L7_L8_EVIDENCE_REENTRY = "WAIT_FOR_QUALIFYING_L7_L8_OWNER_BACKED_EVIDENCE"
+L7_L8_EVIDENCE_MISSING_CELLS = (
+    "eligible_passports_at_least_5; complete_temporal_and_replay; "
+    "controlled_production_present; natural_production_present; "
+    "material_variation_present; rollback_and_no_rollback_present"
+)
+
+
+def finalize_l7_l8_evidence_cycle(
+    *,
+    report_path: str,
+    run_nonce: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically persist the consumed current L7/L8 evidence-cycle terminal."""
+    report = root / report_path
+    if not report.is_file():
+        return {
+            "schema": "v7.l7-l8-evidence-cycle-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["mission_report_missing"],
+            "atomic_update": None,
+        }
+    report_lines = report.read_text(encoding="utf-8").splitlines()
+    expected_header = [
+        f"Mission ID: `{L7_L8_EVIDENCE_CYCLE_MISSION_ID}`",
+        f"Run Nonce: `{run_nonce}`",
+    ]
+    if report_lines[:2] != expected_header:
+        return {
+            "schema": "v7.l7-l8-evidence-cycle-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["mission_report_identity_mismatch"],
+            "atomic_update": None,
+        }
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    state = _normalized_state_from_live_cps(cps_text)
+    previous_id = state["latest_terminal_mission_id"]
+    previous_report = state["latest_terminal_mission_report"]
+    captured = utc_now()
+    fingerprint = hashlib.sha256(json.dumps({
+        "mission_id": L7_L8_EVIDENCE_CYCLE_MISSION_ID,
+        "run_nonce": run_nonce,
+        "report_hash": report_hash,
+        "terminal": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "eligibility_set": "outset_4f53cda18c2baa0c0354bb5f",
+        "authority_recommendation": "INSUFFICIENT_EVIDENCE",
+    }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    state.update({
+        "active_program": "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "REAL_WORLD_LIMIT",
+        "current_active_scope": "CURRENT_L7_L8_EVIDENCE_CYCLE_TERMINAL_WAITING_EXTERNAL_EVIDENCE",
+        "current_safe_next_action": "WAIT FOR A QUALIFYING OWNER-BACKED CONTROLLED OR NATURAL PRODUCTION OUTCOME; DO NOT MANUFACTURE EVIDENCE",
+        "current_scope_class": "INTEGRATION_COMPLETION",
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_L7L8_CYCLE_{fingerprint[:12].upper()}",
+        "current_transition_id": "L7_L8_AE_CURRENT_EVIDENCE_CYCLE_TO_EXTERNAL_REENTRY_V1",
+        "current_next_action_id": L7_L8_EVIDENCE_REENTRY,
+        "current_program_stage": "CURRENT_EVIDENCE_CYCLE_TERMINAL_WAITING_EXTERNAL_EVIDENCE",
+        "current_program_execution_frontier": "NONE",
+        "program_frontier_input": "M1-M3 consumed; M4-M5 event boundaries; immutable insufficient M6 set; M7 recommendation consumed; M8 not required",
+        "program_frontier_owner": "EXISTING_EVENT_OUTCOME_CERTIFICATION_LEARNING_MATURITY_AUTHORITY_AND_OMP_OWNERS",
+        "program_frontier_expected_output": "QUALIFYING OWNER-BACKED OUTCOME -> PASSPORT -> TEMPORAL/REPLAY -> LEARNING -> CALIBRATION -> AUTHORITY RECOMMENDATION",
+        "continuation_decision": "PROGRAM_TERMINAL_WAITING_EXTERNAL_EVIDENCE",
+        "next_executable_capability": "NONE",
+        "program_terminal_state": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "smallest_existing_next_action": f"{L7_L8_EVIDENCE_REENTRY}; preserve current passports, immutable insufficient set and CAP-U07 WIP",
+        "omp_continuation_pointer": "Current evidence cycle is terminal; reenter only on a qualifying existing-owner production event that closes an exact missing cell",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+        "wip_smallest_existing_next_action_id": L7_L8_EVIDENCE_REENTRY,
+        "wip_smallest_existing_next_action": f"{L7_L8_EVIDENCE_REENTRY}; preserve current passports, immutable insufficient set and CAP-U07 WIP",
+        "sequence_execution_class": "L7/L8 owner-backed external evidence reentry",
+        "sequence_expected_output": "qualifying production event -> complete passport or exact continued insufficient-evidence terminal",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "QUALIFYING_OWNER_BACKED_CONTROLLED_OR_NATURAL_PRODUCTION_OUTCOME_CLOSING_EXACT_MISSING_COVERAGE_CELL",
+        "transaction_terminal_class": "M1_M8_CURRENT_EVIDENCE_CYCLE_COMPLETE_CONSUMED",
+        "program_terminal_class": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "premature_operator_return": "FALSE",
+        "continuation_iteration": str(max(1, int(state.get("continuation_iteration") or 0) + 1)),
+        "continuation_stop_reason": "WAITING_EXTERNAL_EVIDENCE_EXACT_COVERAGE_CELLS_PERSISTED",
+        "no_progress_fingerprint": fingerprint,
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": L7_L8_EVIDENCE_CYCLE_MISSION_ID,
+        "latest_terminal_run_nonce": run_nonce,
+        "latest_terminal_mission_state": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": "2026-07-19T04:50:00+00:00",
+        "previous_terminal_mission_id": previous_id,
+        "previous_terminal_mission_report": previous_report,
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": L7_L8_EVIDENCE_CYCLE_MISSION_ID,
+        "current_run_nonce": run_nonce,
+        "current_mission_state": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "current_mission_report": report_path,
+        "source_summary": "Production non-test consumer matched both CPS material identities through existing Certification History, consumed M1-M8 current-cycle semantics and emitted an immutable insufficient-evidence Authority recommendation.",
+        "automatic_continue_omp_result": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "action_class_certification_state": "SUPPORTING_ONLY_INCOMPLETE_CURRENT_EVIDENCE",
+        "authority_recommendation_state": "INSUFFICIENT_EVIDENCE",
+        "action_class_authority_state": "CURRENT_POLICY_BOUNDED_ONLY; CLASS_AUTHORITY_NOT_GRANTED; BOUNDED_AUTONOMY_NOT_GRANTED",
+        "authority_owner_verdict": "INSUFFICIENT_EVIDENCE",
+        "delegated_policy_state": "APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN",
+        "exact_reentry_triggers": "NEW QUALIFYING OWNER-BACKED CONTROLLED OUTCOME; NEW QUALIFYING NATURAL OUTCOME; OWNER-BACKED TEMPORAL OR REPLAY COMPLETION FOR CURRENT PASSPORT",
+        "action_class_promotion_evaluation": "EVALUATED; INSUFFICIENT_EVIDENCE; CURRENT GOVERNED_ONLY SCOPE RETAINED",
+        "action_class_exact_missing_delta": L7_L8_EVIDENCE_MISSING_CELLS,
+        "class_approval_ready": "NO; M7 returned INSUFFICIENT_EVIDENCE and M8 was not required",
+        "authority_required_now": "NO_INSIDE_APPROVED_POLICY; evidence recommendation is insufficient and no approval review is open",
+        "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY; wait for qualifying evidence inside existing policy",
+        "phase6_certification_status": "CURRENT_EVIDENCE_CYCLE_RECONCILED; evidence classes remain non-interchangeable",
+        "phase6_current_step": "WAITING_EXTERNAL_EVIDENCE_AFTER_M1_M8_CURRENT_CYCLE_TERMINAL",
+        "phase6_certification_frontier": "NONE; no current legal controlled or natural event",
+        "phase6_exact_stop": "REAL_WORLD_LIMIT; CURRENT CYCLE HAS NO INDEPENDENT EXECUTABLE ENGINEERING RESIDUAL",
+        "phase6_exact_next_action": L7_L8_EVIDENCE_REENTRY,
+        "phase6_reentry_conditions": "new qualifying controlled outcome; new qualifying natural outcome; owner-backed temporal/replay completion",
+        "phase6_global_status": "CURRENT_EVIDENCE_CYCLE_TERMINAL_WAITING_QUALIFYING_REAL_WORLD_EVIDENCE",
+        "phase6b_controlled_status": "WAITING_LEGAL_CONTROLLED_OPPORTUNITY; no Candidate, Packet or lease; evidence manufacture forbidden",
+        "phase6c_natural_status": "WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE",
+        "phase6_executable_frontier": "NONE",
+        "phase6_global_stop": "REAL_WORLD_LIMIT",
+        "phase7_engineering_evolution_status": "PERMANENT_POLYGON_REENTRY_ONLY_ON_NEW_OWNER_BACKED_OBLIGATION",
+        "phase7_production_authority_status": "GOVERNED_ONLY_LOCKED_BY_INSUFFICIENT_EVIDENCE",
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": "NONE_CURRENT; reenter on new owner-backed product or engineering obligation",
+        "polygon_mission_frontier": "NONE",
+        "active_execution_frontier": "NONE",
+        "external_reentry_frontier": "WAITING_QUALIFYING_L7_L8_OWNER_BACKED_EVIDENCE",
+        "phase6_engineering_stop": "CURRENT_EVIDENCE_CYCLE_COMPLETE",
+        "phase6_controlled_lane_stop": "REAL_WORLD_LIMIT",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT",
+        "global_engineering_stop": "NONE; permanent Polygon reentry remains available for a new engineering obligation",
+        "engineering_program_status": "CURRENT_L7_L8_EVIDENCE_CYCLE_TERMINAL",
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "production_maturity_decision": "NO_CHANGE; 66.9/100; immutable eligibility set is insufficient",
+        "production_runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": "NO",
+        "pending_wake_id": "NONE",
+        "reentry_active_lease": "NONE",
+        "reentry_platform_health": "PASS",
+    })
+    atomic_update = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+    )
+    return {
+        "schema": "v7.l7-l8-evidence-cycle-finalization.v1",
+        "mission_id": L7_L8_EVIDENCE_CYCLE_MISSION_ID,
+        "run_nonce": run_nonce,
+        "program_terminal": L7_L8_EVIDENCE_CYCLE_TERMINAL,
+        "authority_recommendation": "INSUFFICIENT_EVIDENCE",
+        "immutable_eligibility_set_fingerprint": "outset_4f53cda18c2baa0c0354bb5f",
+        "exact_missing_coverage_cells": L7_L8_EVIDENCE_MISSING_CELLS.split("; "),
+        "next_reentry": L7_L8_EVIDENCE_REENTRY,
+        "report_hash": report_hash,
+        "decision_fingerprint": fingerprint,
+        "atomic_update": atomic_update,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "users_moved": 0,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+        "final_verdict": "PASS" if atomic_update.get("ok") else "STOP_SAFE",
+        "errors": atomic_update.get("errors") or [],
+    }
+
+
 def classify_program_stage(stage: dict[str, Any]) -> str:
     """Classify execution reality independently from a program document label."""
     if stage.get("superseded"):
@@ -9332,6 +9514,17 @@ def project_permanent_polygon_criterion_coverage_into_capability_rows(
     controlled or natural production evidence.
     """
     records = permanent_polygon_criterion_registry(cps_text).get("records") or []
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    wip = _markdown_field_table(_markdown_section(
+        cps_text,
+        "### Active Protected Work In Progress",
+        "### Complete Or Locked Capability Records",
+    ))
+    program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     consumed: dict[str, dict[str, Any]] = {}
     for record in records:
         if (
@@ -9379,6 +9572,16 @@ def project_permanent_polygon_criterion_coverage_into_capability_rows(
             "WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_"
             f"REPRESENTATIVENESS; do not rerun {fidelity} absent declared dependency invalidation"
         )
+        # Criterion truth enriches the capability row but cannot replace the
+        # current global stop/next-action projection.  When no independent
+        # program frontier preempts the capability graph, CAP-U07 is the live
+        # WIP row and must consume the same CPS-owned boundary as Section 0.
+        if match.group(1) == "CAP-U07" and program_frontier in {"", "NONE"}:
+            cells[6] = live.get("CURRENT_STOP_CONDITION", "`REAL_WORLD_LIMIT`")
+            cells[7] = wip.get(
+                "smallest_existing_next_action",
+                live.get("CURRENT_NEXT_ACTION_ID", "").strip("`"),
+            )
         rendered.append("| " + " | ".join(cells) + " |")
     projected = "\n".join(rendered)
     if section.endswith("\n"):

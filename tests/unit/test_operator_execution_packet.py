@@ -19,6 +19,7 @@ from admin_core.operator_execution import (
     containment_forward_fix_classification,
     create_execution_lease_from_packet,
     create_execution_lease_from_preview,
+    engineering_authority_binding_from_preview,
     execute_packet,
     execution_lease_state,
     extract_packet_preview,
@@ -583,6 +584,107 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "packet_reuse": "FORBIDDEN",
             "self_expansion_allowed": False,
         }
+
+    def engineering_authority_request(self):
+        now = datetime.now(timezone.utc)
+        authority = self.delegated_policy_authority()
+        request = {
+            "schema": "v7.controlled-rollback-condition-engineering-authority-request.v1",
+            "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+            "created_at": now.isoformat(),
+            "expires_at": (now + timedelta(hours=1)).isoformat(),
+            "decision_set": ["APPROVE_ONCE_AS_SCOPED", "APPROVE_WITH_NARROWER_SCOPE", "DENY", "EXPIRED"],
+            "evidence_cell": "rollback_and_no_rollback_present",
+            "subject": {
+                "user_ip": "10.7.0.11",
+                "certification_user": True,
+                "ordinary_customer": False,
+            },
+            "scope": {
+                "max_users": 1,
+                "max_concurrent_transactions": 1,
+                "source_egress": "1",
+                "target_egress": "vless",
+                "policy_id": authority["policy_id"],
+                "policy_scope_hash": authority["policy_scope_hash"],
+            },
+            "controlled_condition": {"name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION"},
+            "one_use_law": {
+                "approval_use_limit": 1,
+                "implicit_renewal": False,
+                "retry_under_same_approval": False,
+            },
+        }
+        contract_hash = sha256_json(request)
+        request["request_id"] = "engauth_r1_" + contract_hash[:24]
+        request["contract_hash"] = contract_hash
+        return request
+
+    def test_engineering_authority_binds_and_consumes_exact_request_once(self):
+        preview = self.preview_packet()
+        request = self.engineering_authority_request()
+        binding = engineering_authority_binding_from_preview(
+            request,
+            preview,
+            decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"],
+            expected_contract_hash=request["contract_hash"],
+        )
+        packet = packet_from_preview(
+            preview,
+            approval_author="",
+            approval_reviewer="",
+            delegated_policy_authority=self.delegated_policy_authority(),
+            engineering_authority=binding,
+        )
+        lease = create_execution_lease_from_packet(packet, source_preview=preview)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.make_state(root)
+            audit = root / "audit.jsonl"
+            barrier = state / "autoswitch-restore-barrier.json"
+            first = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action",
+                restore_barrier_file=barrier,
+                execution_lease_id=lease["lease_id"],
+            )
+            replay = execute_packet(
+                packet,
+                audit,
+                state,
+                mode="runtime_action",
+                restore_barrier_file=barrier,
+                execution_lease_id=lease["lease_id"],
+            )
+            records = [json.loads(line) for line in audit.read_text(encoding="utf-8").splitlines()]
+            barrier_data = json.loads(barrier.read_text(encoding="utf-8"))
+
+        self.assertTrue(first["execution_allowed_now"])
+        self.assertEqual(records[0]["record_type"], "engineering_authority_consumed")
+        self.assertEqual(records[0]["engineering_authority_request_id"], request["request_id"])
+        self.assertEqual(records[0]["execution_lease_id"], lease["lease_id"])
+        self.assertEqual(barrier_data["engineering_authority_request_id"], request["request_id"])
+        self.assertEqual(barrier_data["engineering_authority_contract_hash"], request["contract_hash"])
+        self.assertEqual(barrier_data["engineering_authority_transaction_nonce"], binding["transaction_nonce"])
+        self.assertEqual(replay["recheck"]["verdict"], "DENY_REPLAY")
+        self.assertIn("engineering_authority_request_already_consumed", replay["recheck"]["errors"])
+
+    def test_engineering_authority_rejects_candidate_scope_drift(self):
+        request = self.engineering_authority_request()
+        preview = self.preview_packet()
+        preview["allowed_targets"] = ["other"]
+        preview["rollback_manifest_preview"]["items"][0]["forward_target"] = "other"
+        with self.assertRaises(PacketError):
+            engineering_authority_binding_from_preview(
+                request,
+                preview,
+                decision="APPROVE_ONCE_AS_SCOPED",
+                expected_request_id=request["request_id"],
+                expected_contract_hash=request["contract_hash"],
+            )
 
     def test_runtime_recheck_allows_record_only_for_matching_zero_packet(self):
         with tempfile.TemporaryDirectory() as tmp:

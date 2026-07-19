@@ -93,6 +93,9 @@ APPROVED_PACKET_BINDING_FIELDS = [
 ]
 B15_CONTAINMENT_FORWARD_FIX_SCHEMA = "v7.b15-containment-forward-fix-classification.v1"
 C5_ROLLBACK_OPERATIONAL_COMPENSATION_SCHEMA = "v7.c5-rollback-operational-compensation.v1"
+ENGINEERING_AUTHORITY_REQUEST_SCHEMA = "v7.controlled-rollback-condition-engineering-authority-request.v1"
+ENGINEERING_AUTHORITY_BINDING_SCHEMA = "v7.engineering-authority-binding.v1"
+ENGINEERING_AUTHORITY_APPROVAL = "APPROVE_ONCE_AS_SCOPED"
 
 
 class PacketError(ValueError):
@@ -479,7 +482,163 @@ def is_nonzero_clearance_packet(packet):
     return packet.get("selected_first_action") == NONZERO_ACTION
 
 
-def validate_approvals(packet, errors):
+def engineering_authority_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("contract_hash", None)
+    return sha256_json(canonical)
+
+
+def validate_engineering_authority_request(
+    request,
+    *,
+    decision,
+    expected_request_id="",
+    expected_contract_hash="",
+    now=None,
+):
+    now = now or utc_now()
+    errors = []
+    request = request if isinstance(request, dict) else {}
+    request_id = str(request.get("request_id") or "")
+    contract_hash = str(request.get("contract_hash") or "")
+    if request.get("schema") != ENGINEERING_AUTHORITY_REQUEST_SCHEMA:
+        errors.append("engineering_authority_request_schema_invalid")
+    if engineering_authority_request_hash(request) != contract_hash:
+        errors.append("engineering_authority_contract_hash_mismatch")
+    if request_id != f"engauth_r1_{contract_hash[:24]}":
+        errors.append("engineering_authority_request_identity_mismatch")
+    if expected_request_id and request_id != expected_request_id:
+        errors.append("engineering_authority_expected_request_mismatch")
+    if expected_contract_hash and contract_hash != expected_contract_hash:
+        errors.append("engineering_authority_expected_contract_mismatch")
+    if decision != ENGINEERING_AUTHORITY_APPROVAL:
+        errors.append("engineering_authority_decision_not_exact_approval")
+    if decision not in set(request.get("decision_set") or []):
+        errors.append("engineering_authority_decision_not_allowed")
+    if request.get("status") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION":
+        errors.append("engineering_authority_request_not_pending")
+    try:
+        if now >= parse_ts(request.get("expires_at")):
+            errors.append("engineering_authority_request_expired")
+    except PacketError:
+        errors.append("engineering_authority_expiry_invalid")
+    one_use = request.get("one_use_law") if isinstance(request.get("one_use_law"), dict) else {}
+    if as_int(one_use.get("approval_use_limit"), 0) != 1:
+        errors.append("engineering_authority_use_limit_invalid")
+    if one_use.get("implicit_renewal") is not False or one_use.get("retry_under_same_approval") is not False:
+        errors.append("engineering_authority_one_use_law_invalid")
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
+    if as_int(scope.get("max_users"), 0) != 1 or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
+        errors.append("engineering_authority_blast_radius_invalid")
+    if not subject.get("certification_user") or subject.get("ordinary_customer") is not False:
+        errors.append("engineering_authority_subject_invalid")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "request_id": request_id,
+        "contract_hash": contract_hash,
+        "decision": decision,
+        "expires_at": request.get("expires_at", ""),
+    }
+
+
+def engineering_authority_binding_from_preview(
+    request,
+    preview,
+    *,
+    decision,
+    expected_request_id="",
+    expected_contract_hash="",
+    now=None,
+):
+    now = now or utc_now()
+    validation = validate_engineering_authority_request(
+        request,
+        decision=decision,
+        expected_request_id=expected_request_id,
+        expected_contract_hash=expected_contract_hash,
+        now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["engineering_authority_request_invalid"]))
+    selected = selected_moves_from_preview(extract_packet_preview(preview))
+    moves = selected.get("moves") if isinstance(selected.get("moves"), list) else []
+    if len(moves) != 1:
+        raise PacketError("engineering_authority_selected_move_count_not_one")
+    move = moves[0]
+    request_scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
+    expected = {
+        "user": str(subject.get("user_ip") or ""),
+        "source": str(request_scope.get("source_egress") or ""),
+        "target": str(request_scope.get("target_egress") or ""),
+    }
+    actual = {
+        "user": str(move.get("user_ip") or ""),
+        "source": str(move.get("current_egress") or ""),
+        "target": str(move.get("recommended_egress") or ""),
+    }
+    if actual != expected:
+        raise PacketError("engineering_authority_candidate_scope_mismatch:" + sha256_json({"expected": expected, "actual": actual}))
+    return {
+        "schema_version": ENGINEERING_AUTHORITY_BINDING_SCHEMA,
+        "decision": decision,
+        "decision_recorded_at": now.isoformat(),
+        "request_id": validation["request_id"],
+        "contract_hash": validation["contract_hash"],
+        "expires_at": validation["expires_at"],
+        "transaction_nonce": secrets.token_hex(24),
+        "approval_use_limit": 1,
+        "implicit_renewal": False,
+        "retry_under_same_approval": False,
+        "evidence_cell": str(request.get("evidence_cell") or ""),
+        "controlled_condition": str((request.get("controlled_condition") or {}).get("name") or ""),
+        "subject": expected,
+        "policy_id": str(request_scope.get("policy_id") or ""),
+        "policy_scope_hash": str(request_scope.get("policy_scope_hash") or ""),
+        "request": copy.deepcopy(request),
+    }
+
+
+def validate_engineering_authority_binding(packet, errors, *, now=None):
+    binding = packet.get("engineering_authority")
+    if not isinstance(binding, dict) or not binding:
+        return
+    now = now or utc_now()
+    if binding.get("schema_version") != ENGINEERING_AUTHORITY_BINDING_SCHEMA:
+        errors.append("engineering_authority_binding_schema_invalid")
+        return
+    validation = validate_engineering_authority_request(
+        binding.get("request"),
+        decision=str(binding.get("decision") or ""),
+        expected_request_id=str(binding.get("request_id") or ""),
+        expected_contract_hash=str(binding.get("contract_hash") or ""),
+        now=now,
+    )
+    errors.extend(validation.get("errors") or [])
+    if not str(binding.get("transaction_nonce") or ""):
+        errors.append("engineering_authority_transaction_nonce_missing")
+    if as_int(binding.get("approval_use_limit"), 0) != 1:
+        errors.append("engineering_authority_binding_use_limit_invalid")
+    constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
+    rollback_items = ((packet.get("rollback_manifest") or {}).get("items") or [])
+    subject = binding.get("subject") if isinstance(binding.get("subject"), dict) else {}
+    if constraints.get("allowed_users") != [subject.get("user")]:
+        errors.append("engineering_authority_packet_user_mismatch")
+    if constraints.get("allowed_targets") != [subject.get("target")]:
+        errors.append("engineering_authority_packet_target_mismatch")
+    if len(rollback_items) != 1 or str((rollback_items[0] or {}).get("rollback_target") or "") != str(subject.get("source") or ""):
+        errors.append("engineering_authority_packet_source_mismatch")
+    delegated = packet.get("delegated_policy_authority") if isinstance(packet.get("delegated_policy_authority"), dict) else {}
+    if str(delegated.get("policy_id") or "") != str(binding.get("policy_id") or ""):
+        errors.append("engineering_authority_policy_id_mismatch")
+    if str(delegated.get("policy_scope_hash") or "") != str(binding.get("policy_scope_hash") or ""):
+        errors.append("engineering_authority_policy_scope_hash_mismatch")
+
+
+def validate_approvals(packet, errors, *, now=None):
     authority = packet.get("delegated_policy_authority")
     if isinstance(authority, dict) and authority:
         if authority.get("authority_basis") != "DELEGATED_AUTONOMY_POLICY":
@@ -530,6 +689,7 @@ def validate_approvals(packet, errors):
                 errors.append("delegated_policy_packet_approval_not_retired")
         if packet.get("approvals") not in ([], None):
             errors.append("operator_approvals_present_for_delegated_packet")
+        validate_engineering_authority_binding(packet, errors, now=now)
         return
     approvals = packet.get("approvals") or []
     if len(approvals) != 2:
@@ -574,7 +734,7 @@ def validate_zero_packet(packet, now):
         errors.append("user_movement_not_forbidden")
     if constraints.get("routing_mutation_allowed") is not False:
         errors.append("routing_mutation_not_forbidden")
-    validate_approvals(packet, errors)
+    validate_approvals(packet, errors, now=now)
     validate_expiry(packet, now, errors)
     expected = packet.get("expected") or {}
     if expected.get("selected_move_hash") != EMPTY_SELECTED_MOVES_HASH:
@@ -610,7 +770,7 @@ def validate_nonzero_packet(packet, now):
         errors.append("routing_mutation_not_forbidden")
     if constraints.get("autoswitch_apply_allowed") is not False:
         errors.append("autoswitch_apply_not_forbidden_for_clearance_action")
-    validate_approvals(packet, errors)
+    validate_approvals(packet, errors, now=now)
     validate_expiry(packet, now, errors)
     expected = packet.get("expected") or {}
     if not expected.get("generation_id"):
@@ -1867,6 +2027,12 @@ def replay_seen(records, approval_id):
     return False
 
 
+def engineering_authority_replay_seen(records, request_id):
+    if not request_id:
+        return False
+    return any(str(record.get("engineering_authority_request_id") or "") == str(request_id) for record in records)
+
+
 def append_record(audit_store, record):
     path = Path(audit_store)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1936,6 +2102,7 @@ def build_restore_barrier_clearance(packet, now=None):
     constraints = packet.get("constraints") or {}
     rollback_manifest = packet.get("rollback_manifest") or {}
     approved_plan_lock = dict(packet.get("approved_plan_lock") or {})
+    engineering_authority = packet.get("engineering_authority") if isinstance(packet.get("engineering_authority"), dict) else {}
     clearance = {
         "schema_version": 1,
         "enabled": True,
@@ -1960,6 +2127,9 @@ def build_restore_barrier_clearance(packet, now=None):
         "approval_id": packet.get("approval_id", ""),
         "packet_id": packet.get("packet_id", ""),
         "operation_id": packet.get("operation_id", ""),
+        "engineering_authority_request_id": engineering_authority.get("request_id", ""),
+        "engineering_authority_contract_hash": engineering_authority.get("contract_hash", ""),
+        "engineering_authority_transaction_nonce": engineering_authority.get("transaction_nonce", ""),
         "rollback_manifest_id": rollback_manifest.get("rollback_manifest_id", ""),
         "owner": CANONICAL_CLEARANCE_OWNER,
         "created_at": now.isoformat(),
@@ -2034,6 +2204,7 @@ def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=
 def append_lifecycle_records(lifecycle_store, packet, recheck, clearance_result, audit_record, now=None):
     now = now or utc_now()
     rollback_manifest = packet.get("rollback_manifest") or {}
+    engineering_authority = packet.get("engineering_authority") if isinstance(packet.get("engineering_authority"), dict) else {}
     base = {
         "approval_id": packet.get("approval_id", ""),
         "packet_id": packet.get("packet_id", ""),
@@ -2043,6 +2214,9 @@ def append_lifecycle_records(lifecycle_store, packet, recheck, clearance_result,
         "atomic_execution_envelope_id": (packet.get("expected") or {}).get("atomic_execution_envelope_id", ""),
         "atomic_execution_envelope_hash": (packet.get("expected") or {}).get("atomic_execution_envelope_hash", ""),
         "created_at": now.isoformat(),
+        "engineering_authority_request_id": engineering_authority.get("request_id", ""),
+        "engineering_authority_contract_hash": engineering_authority.get("contract_hash", ""),
+        "engineering_authority_transaction_nonce": engineering_authority.get("transaction_nonce", ""),
     }
     clearance_record = append_record(lifecycle_store, {
         "schema_version": "c1.governance-lifecycle-record.v1",
@@ -2096,11 +2270,16 @@ def execute_packet(
     planner_snapshot=None,
     restore_barrier_file=None,
     lifecycle_store=None,
+    execution_lease_id="",
 ):
     now = now or utc_now()
     approval_id = packet.get("approval_id") or stable_id("appr", packet)
     records = read_audit_records(audit_store)
-    if replay_seen(records, approval_id):
+    engineering_authority = packet.get("engineering_authority") if isinstance(packet.get("engineering_authority"), dict) else {}
+    engineering_request_id = str(engineering_authority.get("request_id") or "")
+    if engineering_authority_replay_seen(records, engineering_request_id):
+        recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["engineering_authority_request_already_consumed"]}
+    elif replay_seen(records, approval_id):
         recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["approval_id_already_recorded"]}
     else:
         recheck = runtime_recheck(packet, state_dir, now=now, planner_snapshot=planner_snapshot)
@@ -2147,6 +2326,32 @@ def execute_packet(
             "autoswitch_apply": False,
         }
     if mode == "runtime_action":
+        if engineering_authority and recheck.get("allow"):
+            if not execution_lease_id:
+                recheck = {
+                    "allow": False,
+                    "verdict": "DENY_ENGINEERING_AUTHORITY_PARTIAL_BINDING",
+                    "errors": ["engineering_authority_execution_lease_id_missing"],
+                }
+            else:
+                append_record(audit_store, {
+                    "schema_version": "v7.engineering-authority-consumption.v1",
+                    "record_type": "engineering_authority_consumed",
+                    "engineering_authority_request_id": engineering_request_id,
+                    "engineering_authority_contract_hash": engineering_authority.get("contract_hash", ""),
+                    "engineering_authority_decision": engineering_authority.get("decision", ""),
+                    "transaction_nonce": engineering_authority.get("transaction_nonce", ""),
+                    "approval_id": approval_id,
+                    "packet_id": packet.get("packet_id", ""),
+                    "operation_id": packet.get("operation_id", ""),
+                    "execution_lease_id": str(execution_lease_id),
+                    "created_at": now.isoformat(),
+                    "one_use": True,
+                    "retry_allowed": False,
+                    "runtime_mutation": False,
+                    "user_movement": False,
+                    "routing_mutation": False,
+                })
         if packet.get("runtime_action") == RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE:
             if recheck.get("allow"):
                 if runtime_governance_store is None:
@@ -2208,6 +2413,7 @@ def execute_packet(
         "runtime_action_performed": runtime_action_performed,
         "runtime_action_record_hash": runtime_action_record.get("record_hash") if runtime_action_record else "",
         "clearance_verdict": clearance_result.get("verdict") if clearance_result else "",
+        "engineering_authority_request_id": engineering_request_id,
     }
     written = append_record(audit_store, redact(record))
     if clearance_result and clearance_result.get("ok") and lifecycle_store:
@@ -2350,6 +2556,7 @@ def packet_from_preview(
     breaker_generation="",
     require_execution_binding=False,
     delegated_policy_authority=None,
+    engineering_authority=None,
 ):
     preview = extract_packet_preview(preview)
     now = utc_now()
@@ -2398,6 +2605,7 @@ def packet_from_preview(
             {"operator_id": approval_reviewer, "role": "approval_reviewer", "confirmed_at": now.isoformat()},
         ],
         "delegated_policy_authority": copy.deepcopy(delegated_policy_authority or {}),
+        "engineering_authority": copy.deepcopy(engineering_authority or {}),
         "constraints": {
             "selected_move_budget": as_int(selected.get("selected_move_count"), 0),
             "allowed_users": allowed_users,
@@ -2449,6 +2657,15 @@ def packet_from_preview(
         },
         "governance_owner": CANONICAL_CLEARANCE_OWNER,
     }
+    if engineering_authority:
+        packet["approval_id"] = stable_id("appr", {
+            "packet_id": packet_id,
+            "operation_id": operation_id,
+            "decision_id": decision_id,
+            "engineering_authority_request_id": engineering_authority.get("request_id", ""),
+            "transaction_nonce": engineering_authority.get("transaction_nonce", ""),
+            "expires_at": expires_at.isoformat(),
+        })
     packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
     packet["approved_plan_lock"] = approved_plan_lock_from_selected(selected, packet, packet_hash)
     validation = validate_packet(packet, now=now)

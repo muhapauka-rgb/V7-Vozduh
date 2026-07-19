@@ -1897,6 +1897,7 @@ def _execute_governed_transaction_with_guards_inner(
     blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, Any]:
     delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
+    engineering_authority_request_file = str(getattr(args, "engineering_authority_request_file", "") or "")
     setup_request = getattr(args, "_certification_setup_request", None)
     setup_mode = isinstance(setup_request, dict) and bool(setup_request)
     if not delegated_mode and not setup_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
@@ -1989,6 +1990,7 @@ def _execute_governed_transaction_with_guards_inner(
     preview_identity = operator_execution.preview_packet_identity(packet_preview)
     delegated_admission = {}
     approved_identity = {}
+    engineering_authority = {}
     if setup_mode:
         delegated_admission = {
             "schema_version": "v7.controlled-certification-setup-authority.v1",
@@ -2010,6 +2012,18 @@ def _execute_governed_transaction_with_guards_inner(
         delegated_admission = bounded_delegated_policy_admission(packet_preview, cycle)
         if not delegated_admission.get("allowed"):
             return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
+        if engineering_authority_request_file:
+            try:
+                request = read_json(Path(engineering_authority_request_file), {})
+                engineering_authority = operator_execution.engineering_authority_binding_from_preview(
+                    request,
+                    packet_preview,
+                    decision=str(getattr(args, "engineering_authority_decision", "") or ""),
+                    expected_request_id=str(getattr(args, "engineering_authority_request_id", "") or ""),
+                    expected_contract_hash=str(getattr(args, "engineering_authority_contract_hash", "") or ""),
+                )
+            except Exception as exc:
+                return transaction_stop("engineering_authority_binding_failed", cycle=cycle, error=str(exc))
     else:
         approved_identity = approved_identity_from_args(args)
         preview_binding = operator_execution.approved_packet_binding_status(preview_identity, approved_identity)
@@ -2059,6 +2073,7 @@ def _execute_governed_transaction_with_guards_inner(
                 setup_mode=setup_mode,
                 delegated_admission=delegated_admission,
             ),
+            engineering_authority=engineering_authority,
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
@@ -2118,6 +2133,7 @@ def _execute_governed_transaction_with_guards_inner(
         mode="runtime_action",
         restore_barrier_file=restore_barrier_file,
         lifecycle_store=lifecycle_store,
+        execution_lease_id=str(lease.get("lease_id") or ""),
     )
     if not clearance_result.get("execution_allowed_now"):
         terminal = operator_execution.finish_execution_lease(
@@ -2221,6 +2237,7 @@ def _execute_governed_transaction_with_guards_inner(
         "users_moved": len(results) if apply_result.get("applied") else 0,
         "runtime_automation_enabled": delegated_mode,
         "delegated_policy_admission": delegated_admission,
+        "engineering_authority": operator_execution.redact(engineering_authority),
         "candidate_approval_required": not delegated_mode,
         "packet_approval_required": not delegated_mode,
         "hash_approval_required": not delegated_mode,
@@ -2574,6 +2591,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--confirm-controlled-certification-condition", default="")
     parser.add_argument("--certification-user", default="")
     parser.add_argument("--certification-source", default="")
+    parser.add_argument("--engineering-authority-request-file", default="")
+    parser.add_argument("--engineering-authority-decision", default="")
+    parser.add_argument("--engineering-authority-request-id", default="")
+    parser.add_argument("--engineering-authority-contract-hash", default="")
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--committed-preview-file", default="")
     parser.add_argument("--restore-barrier-file", default="")

@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.36`
+Version: `4.37`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md` (`DESIGN_TIME_POLYGON_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED`).
-Previous consumed report: `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md` (`DESIGN_TIME_TECHNICAL_LOOP_IMPLEMENTED_DEPLOYMENT_TRUTH_REQUIRED`).
+Latest consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md` (`M0_CURRENT_STATE_RECONCILIATION_COMPLETE_CONSUMED`).
+Previous consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md` (`DESIGN_TIME_POLYGON_PRODUCTION_DEPLOYED_AND_CALLER_CERTIFIED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -53,6 +53,8 @@ V4.34 makes the permanent Polygon lifecycle executable across separate reentry t
 V4.35 extends that same Permanent Polygon into the product design-time lifecycle. An owner-backed product objective or semantic source/policy/topology change is compiled through existing dependency bindings into exact affected Scenario obligations; baseline and proposed source snapshots execute through their native V7 owners and are compared by stable decisions, moves, terminals, invariant verdicts and forbidden effects. Reproducible mismatches are minimized and classified before BDP admission so Polygon model/harness/oracle/generator faults cannot become product repairs. Eligible V7 source repairs must return through tests, commit, `tools/v7-safe-deploy`, production non-test caller, truth/convergence and same/affected replay. Existing outcome/calibration owners feed risk coverage, and every coverage gap becomes an exact successor obligation. The Polygon and the product-development program therefore share one closed consumer loop; synthetic evidence grants no production confidence, Authority or Production Maturity credit, and no second Planner, Runtime, owner, scheduler, queue or truth source is created.
 
 V4.36 records production deployment and real caller/consumer certification of that design-time loop. Exhaustion of the current dependency-bound Scenario corpus is not the target terminal: OMP must materialize the exact owner-backed calibration, protocol-substrate or natural-defect residual, must not ceremonially replay closed Missions, and must reenter only when that exact input exists. Production caller certification grants no production routing autonomy, Authority promotion or Production Maturity credit.
+
+V4.37 activates the approved L7/L8 Production Evidence and Authority Evolution program through CPS and consumes mandatory read-only Mission 0. Existing production inventory, closure, observation, feedback, Learning, Decision Trace, replay, Production Maturity and Authority owners were reconciled before extension. The source-level inventory is reusable, but its aggregate closure rows do not carry a stable current-action-class material identity and cannot bind the two CPS outcomes to their exact operation, temporal, interpretation and replay records. OMP therefore admits only the exact residual Mission 1 record-level Outcome Evidence Passport and opportunity-denominator extension through existing owners; Missions 2 and 3 remain conditional residuals, and event-driven L7/L8 acquisition remains forbidden until its legal activation condition exists. This activation grants no routing, Runtime, user movement, Authority or Production Maturity effect.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7839,8 +7841,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
-Resolved current next action: `PPDT-RISK-CALIBRATION_REPRESENTATIVE`
+Resolved current stop: `NONE`
+Resolved current next action: `L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8827,10 +8829,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY`
-Resolved current next action: `PPDT-RISK-CALIBRATION_REPRESENTATIVE`
-Latest consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md`
-Previous consumed report: `docs/reports/engineering/2026-07-18_173004_permanent_polygon_design_time_mission_7_risk_coverage.md`
+Resolved current stop: `NONE`
+Resolved current next action: `L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT`
+Latest consumed report: `docs/reports/engineering/2026-07-19_035000_l7_l8_authority_evolution_m0_current_state_reconciliation.md`
+Previous consumed report: `docs/reports/engineering/2026-07-19_020414_permanent_polygon_design_time_mission_8_production_certification.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

@@ -1,6 +1,6 @@
 # V7 L7/L8 Production Evidence and Authority Evolution Program
 
-Status: PROPOSED_EXECUTION_PLAN
+Status: APPROVED_EXECUTION_PLAN
 
 Activation state owner: CPS
 

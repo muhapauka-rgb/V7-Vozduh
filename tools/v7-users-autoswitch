@@ -8714,6 +8714,8 @@ class AutoswitchPlanner:
             if committed_moves:
                 plan["selected_moves"] = committed_moves
                 plan.setdefault("summary", {})["selected_moves"] = len(committed_moves)
+                operation = plan.get("operation") or {}
+                selected_hash = str(operation.get("selected_move_hash") or "")
             else:
                 safety = plan.get("safety") or {}
                 barrier = safety.get("restore_barrier") or {}

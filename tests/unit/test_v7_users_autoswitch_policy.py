@@ -6198,6 +6198,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             planner._run_switch = lambda ip, egress, reason: switch_calls.append((ip, egress, reason)) or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
             planner._verify_routes = lambda: subprocess.CompletedProcess(["v7-user-route-check"], 0, stdout="verify ok\n")
             planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="service ok\n")
+            control_decisions = []
+            original_control_decision = planner._execution_control_decision
+            planner._execution_control_decision = lambda **kwargs: (
+                control_decisions.append(dict(kwargs)) or original_control_decision(**kwargs)
+            )
 
             apply_result = planner.apply(plan)
 
@@ -6210,6 +6215,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(all(move["operation_id"] == plan["operation"]["operation_id"] for move in plan["selected_moves"]))
         self.assertTrue(all(move["selected_move_hash"] == validation["selected_move_hash"] for move in plan["selected_moves"]))
         self.assertTrue(all(move["execution_mode"] == "emergency_failover" for move in plan["selected_moves"]))
+        self.assertEqual(control_decisions[0]["selected_move_hash"], validation["selected_move_hash"])
         rehydration = plan["safety"]["committed_selected_moves_rehydration"]
         self.assertTrue(rehydration["active"])
         self.assertEqual(rehydration["source"], "approved_plan_lock")

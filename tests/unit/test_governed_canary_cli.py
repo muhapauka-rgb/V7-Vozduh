@@ -30,6 +30,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(inactive["service_matrix_lock_timeout_sec"], 90)
         self.assertTrue(active["emergency_failover_autonomy"])
         self.assertEqual(active["service_matrix_lock_timeout_sec"], 5)
+        self.assertEqual(module.controlled_engineering_action_class({}), "USER_SWITCH")
+        self.assertEqual(
+            module.controlled_engineering_action_class({"request_id": "engauth_r1_test"}),
+            "EMERGENCY_FAILOVER",
+        )
 
     def test_exact_engineering_authority_projects_only_bound_controlled_candidate(self):
         module = load_cli_module()

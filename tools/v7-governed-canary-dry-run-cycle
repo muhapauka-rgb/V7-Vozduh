@@ -1155,6 +1155,10 @@ def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) 
     }
 
 
+def controlled_engineering_action_class(engineering_authority: dict[str, Any]) -> str:
+    return "EMERGENCY_FAILOVER" if engineering_authority else "USER_SWITCH"
+
+
 def run_autoswitch_apply(
     *,
     state_dir: Path,
@@ -2225,6 +2229,7 @@ def _execute_governed_transaction_with_guards_inner(
         if not preview_binding.get("ok"):
             return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
 
+    runtime_action_class = controlled_engineering_action_class(engineering_authority)
     source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     controlled_window = operator_execution.build_autonomous_execution_control_state(
@@ -2233,7 +2238,7 @@ def _execute_governed_transaction_with_guards_inner(
         reason="governed_one_operation_window",
         operation_id=str(packet_preview.get("operation_id") or ""),
         selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
-        action_class="USER_SWITCH",
+        action_class=runtime_action_class,
         source_bundle_hash=source_bundle_hash,
         snapshot_bundle_hash=str(packet_preview.get("snapshot_bundle_hash") or ""),
         max_users=1,
@@ -2244,7 +2249,7 @@ def _execute_governed_transaction_with_guards_inner(
     preflight_control = operator_execution.autonomous_execution_control_decision(
         control_file,
         mutation_kind="forward",
-        action_class="USER_SWITCH",
+        action_class=runtime_action_class,
         expected_generation=str(controlled_window.get("generation") or ""),
         operation_id=str(packet_preview.get("operation_id") or ""),
         selected_move_hash=str(packet_preview.get("selected_move_hash") or ""),
@@ -2349,7 +2354,7 @@ def _execute_governed_transaction_with_guards_inner(
     pre_apply_control = operator_execution.autonomous_execution_control_decision(
         control_file,
         mutation_kind="forward",
-        action_class="USER_SWITCH",
+        action_class=runtime_action_class,
         expected_generation=str(packet_identity.get("breaker_generation") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),

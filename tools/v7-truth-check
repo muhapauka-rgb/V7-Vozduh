@@ -715,6 +715,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--omp-comprehensive-campaign-finalize", action="store_true", help="Atomically finalize the comprehensive Phase 6/7 campaign at its exact external boundary.")
     parser.add_argument("--omp-cps-semantic-authority-finalize", action="store_true", help="Reconcile CPS live semantics and persist the exact action-class Authority decision.")
     parser.add_argument("--omp-l7-l8-evidence-cycle-finalize", action="store_true", help="Atomically persist the consumed L7/L8 current evidence-cycle terminal.")
+    parser.add_argument("--omp-polygon-driven-l7-evidence-finalize", action="store_true", help="Atomically persist the Polygon-driven L7 controlled-evidence terminal and split L7/L8 boundary.")
     parser.add_argument("--campaign-report", default=None, help="Canonical engineering report path for comprehensive campaign finalization.")
     parser.add_argument("--campaign-run-nonce", default=None, help="Stable run nonce for comprehensive campaign finalization.")
     parser.add_argument("--continue-omp", action="store_true", help="Run one bounded standard Continue OMP engineering-control-loop invocation.")
@@ -954,6 +955,26 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"l7_l8_evidence_cycle={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"terminal={result.get('program_terminal', 'STOP_SAFE')}")
+            print(f"next_reentry={result.get('next_reentry', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" and result.get("atomic_update", {}).get("ok") else 2
+    if args.omp_polygon_driven_l7_evidence_finalize:
+        if not args.mission_report or not args.run_nonce:
+            result = {
+                "schema": "v7.polygon-driven-l7-evidence-finalization.v1",
+                "final_verdict": "STOP_SAFE",
+                "errors": ["mission_report_and_run_nonce_required"],
+            }
+        else:
+            result = sync_lib.finalize_polygon_driven_l7_evidence_acquisition(
+                report_path=args.mission_report,
+                run_nonce=args.run_nonce,
+                root=ROOT_DIR,
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"polygon_driven_l7_evidence={result.get('final_verdict', 'STOP_SAFE')}")
             print(f"terminal={result.get('program_terminal', 'STOP_SAFE')}")
             print(f"next_reentry={result.get('next_reentry', 'STOP_SAFE')}")
         return 0 if result.get("final_verdict") == "PASS" and result.get("atomic_update", {}).get("ok") else 2

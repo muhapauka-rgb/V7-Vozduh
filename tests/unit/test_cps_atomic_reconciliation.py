@@ -358,7 +358,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
                 run_nonce=run_nonce,
                 root=root,
             )
-            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(result["final_verdict"], "PASS", result)
             self.assertTrue(result["atomic_update"]["ok"])
             rendered = cps_path.read_text(encoding="utf-8")
             live = self.lib._markdown_field_table(self.lib._markdown_section(
@@ -375,6 +375,50 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.assertEqual(live["EXTERNAL_INPUT_REQUIRED"].strip("`"), "TRUE")
             self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("NONE"))
             self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("NO"))
+
+    def test_44_polygon_driven_l7_evidence_finalizes_split_boundary_atomically(self):
+        mission_id = self.lib.POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID
+        run_nonce = "V7_L7_ACQ_TEST"
+        relative_report = "docs/reports/engineering/polygon_l7_acquisition_test.md"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            report_path = root / relative_report
+            cps_path.parent.mkdir(parents=True)
+            report_path.parent.mkdir(parents=True)
+            cps_path.write_text(self.cps, encoding="utf-8")
+            report_path.write_text(
+                "\n".join((
+                    f"Mission ID: `{mission_id}`",
+                    f"Run Nonce: `{run_nonce}`",
+                    "Temporal terminal: `PASS`",
+                    "Controlled Passport: `outpass_57779380ae119a2932498de8`",
+                    "L8 capture readiness: `PASS`",
+                    "Controlled next boundary: `ENGINEERING_AUTHORITY`",
+                    "Authority impact: `NONE`",
+                    "Production Maturity: `NO_CHANGE`",
+                )) + "\n",
+                encoding="utf-8",
+            )
+            result = self.lib.finalize_polygon_driven_l7_evidence_acquisition(
+                report_path=relative_report,
+                run_nonce=run_nonce,
+                root=root,
+            )
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertTrue(result["atomic_update"]["ok"])
+            rendered = cps_path.read_text(encoding="utf-8")
+            live = self.lib._markdown_field_table(self.lib._markdown_section(
+                rendered,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(live["CURRENT_STOP_CONDITION"].strip("`"), "ENGINEERING_AUTHORITY")
+            self.assertEqual(live["PHASE_6_CONTROLLED_LANE_STOP"].strip("`"), "ENGINEERING_AUTHORITY")
+            self.assertEqual(live["PHASE_6_NATURAL_LANE_STOP"].strip("`"), "REAL_WORLD_LIMIT")
+            self.assertEqual(live["AUTHORITY_RECOMMENDATION_STATE"].strip("`"), "INSUFFICIENT_EVIDENCE")
+            self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES; exactly one"))
+            self.assertEqual(live["PRODUCTION_MATURITY_CHANGE_STATUS"].strip("`"), "NONE")
 
 
 if __name__ == "__main__":

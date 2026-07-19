@@ -1936,6 +1936,10 @@ def delegated_policy_live_state_consistency(
         == "OPERATIONAL_AUTHORITY_OUTSIDE_ACTIVE_POLICY"
     )
     live_stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
+    engineering_authority_terminal = (
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE"
+        and live_stop == "ENGINEERING_AUTHORITY"
+    )
     live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
@@ -1972,6 +1976,8 @@ def delegated_policy_live_state_consistency(
         and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
     )
     expected_authority = (
+        "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
+        if engineering_authority_terminal else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
@@ -2074,7 +2080,11 @@ def delegated_policy_live_state_consistency(
         sequence_stop = cells[5].strip("`") if len(cells) > 5 else ""
     stop_consistent = (
         len({stop, registry_stop, sequence_stop}) == 1
-        and (independent_program_frontier or len({stop, wip_stop, cap_stop}) == 1)
+        and (
+            independent_program_frontier
+            or len({stop, wip_stop, cap_stop}) == 1
+            or engineering_authority_terminal
+        )
         and (not independent_program_frontier or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop)
     )
     if not stop_consistent:
@@ -3441,6 +3451,21 @@ L7_L8_EVIDENCE_MISSING_CELLS = (
     "material_variation_present; rollback_and_no_rollback_present"
 )
 
+POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID = (
+    "V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_V1"
+)
+POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL = (
+    "POLYGON_DRIVEN_L7_CONTROLLED_OUTCOME_CONSUMED_NEXT_CONTROLLED_CONDITION_"
+    "REQUIRES_ENGINEERING_AUTHORITY_AND_L8_CAPTURE_READY"
+)
+POLYGON_DRIVEN_L7_ACQUISITION_NEXT = (
+    "REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY"
+)
+POLYGON_DRIVEN_L7_REMAINING_CELLS = (
+    "eligible_passports_at_least_5; material_variation_present; "
+    "natural_production_present; rollback_and_no_rollback_present"
+)
+
 
 def finalize_l7_l8_evidence_cycle(
     *,
@@ -3475,6 +3500,9 @@ def finalize_l7_l8_evidence_cycle(
     state = _normalized_state_from_live_cps(cps_text)
     previous_id = state["latest_terminal_mission_id"]
     previous_report = state["latest_terminal_mission_report"]
+    if previous_id == L7_L8_EVIDENCE_CYCLE_MISSION_ID:
+        previous_id = state["previous_terminal_mission_id"]
+        previous_report = state["previous_terminal_mission_report"]
     captured = utc_now()
     fingerprint = hashlib.sha256(json.dumps({
         "mission_id": L7_L8_EVIDENCE_CYCLE_MISSION_ID,
@@ -3601,6 +3629,204 @@ def finalize_l7_l8_evidence_cycle(
         "runtime_impact": "NONE",
         "routing_impact": "NONE",
         "users_moved": 0,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+        "final_verdict": "PASS" if atomic_update.get("ok") else "STOP_SAFE",
+        "errors": atomic_update.get("errors") or [],
+    }
+
+
+def finalize_polygon_driven_l7_evidence_acquisition(
+    *,
+    report_path: str,
+    run_nonce: str,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Persist the split L7 Authority / L8 natural-event boundary atomically."""
+    report = root / report_path
+    if not report.is_file():
+        return {
+            "schema": "v7.polygon-driven-l7-evidence-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["mission_report_missing"],
+            "atomic_update": None,
+        }
+    report_lines = report.read_text(encoding="utf-8").splitlines()
+    expected_header = [
+        f"Mission ID: `{POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID}`",
+        f"Run Nonce: `{run_nonce}`",
+    ]
+    required_evidence = (
+        "Temporal terminal: `PASS`",
+        "Controlled Passport: `outpass_57779380ae119a2932498de8`",
+        "L8 capture readiness: `PASS`",
+        "Controlled next boundary: `ENGINEERING_AUTHORITY`",
+        "Authority impact: `NONE`",
+        "Production Maturity: `NO_CHANGE`",
+    )
+    report_text = "\n".join(report_lines)
+    errors = []
+    if report_lines[:2] != expected_header:
+        errors.append("mission_report_identity_mismatch")
+    errors.extend(
+        f"mission_report_evidence_missing:{marker}"
+        for marker in required_evidence
+        if marker not in report_text
+    )
+    if errors:
+        return {
+            "schema": "v7.polygon-driven-l7-evidence-finalization.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": errors,
+            "atomic_update": None,
+        }
+
+    report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    state = _normalized_state_from_live_cps(cps_text)
+    previous_id = state["latest_terminal_mission_id"]
+    previous_report = state["latest_terminal_mission_report"]
+    if previous_id == POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID:
+        previous_id = state["previous_terminal_mission_id"]
+        previous_report = state["previous_terminal_mission_report"]
+    captured = utc_now()
+    fingerprint = hashlib.sha256(json.dumps({
+        "mission_id": POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID,
+        "run_nonce": run_nonce,
+        "report_hash": report_hash,
+        "terminal": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "passport": "outpass_57779380ae119a2932498de8",
+        "authority_boundary": "ENGINEERING_AUTHORITY",
+    }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    state.update({
+        "active_program": "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
+        "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
+        "current_stop_condition": "ENGINEERING_AUTHORITY",
+        "current_active_scope": "POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_TERMINAL",
+        "current_safe_next_action": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "current_scope_class": "PRODUCTION_CERTIFICATION",
+        "state_captured": captured,
+        "current_state_generation": f"cpsgen_L7_ACQ_{fingerprint[:12].upper()}",
+        "current_transition_id": "POLYGON_DRIVEN_L7_OUTCOME_TO_SPLIT_AUTHORITY_NATURAL_BOUNDARY_V1",
+        "current_next_action_id": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "current_program_stage": "SPLIT_L7_AUTHORITY_L8_NATURAL_BOUNDARY",
+        "current_program_execution_frontier": "NONE",
+        "program_frontier_input": "one fresh eligible controlled-production Passport consumed; L8 owner capture chain ready; no fresh genuine Candidate remains",
+        "program_frontier_owner": "EXISTING_CONTROLLED_CERTIFICATION_EVENT_OUTCOME_LEARNING_AUTHORITY_AND_OMP_OWNERS",
+        "program_frontier_expected_output": "INDEPENDENT AUTHORITY OR FRESH GENUINE CANDIDATE -> NEXT CONTROLLED PASSPORT; NATURAL EVENT -> COMPLETE PASSIVE L8 CAPTURE",
+        "protected_capability_wip": "CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY with one new eligible controlled Passport; representative evidence remains incomplete",
+        "continuation_decision": "PROGRAM_TERMINAL_SPLIT_EXTERNAL_BOUNDARY",
+        "next_executable_capability": "NONE",
+        "program_terminal_state": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "smallest_existing_next_action": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "omp_continuation_pointer": "Reenter controlled L7 on independent Engineering Authority or a fresh genuine delegated-policy Candidate; passively consume the next natural L8 event through the repaired owner chain",
+        "wip_authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; existing delegated policy remains unchanged",
+        "wip_current_primary_stop": "ENGINEERING_AUTHORITY_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE",
+        "wip_smallest_existing_next_action_id": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "wip_smallest_existing_next_action": f"{POLYGON_DRIVEN_L7_ACQUISITION_NEXT}; preserve passive L8 capture and CAP-U07 WIP",
+        "sequence_execution_class": "Polygon-driven L7 controlled opportunity / passive L8 capture reentry",
+        "sequence_expected_output": "owner-backed external input -> exact evidence Passport -> calibration -> Authority recommendation",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "INDEPENDENT_ENGINEERING_AUTHORITY_OR_FRESH_GENUINE_CANDIDATE_OR_QUALIFYING_NATURAL_EVENT",
+        "transaction_terminal_class": "ONE_FRESH_L7_CONTROLLED_OUTCOME_COMPLETE_CONSUMED",
+        "program_terminal_class": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "premature_operator_return": "FALSE",
+        "continuation_iteration": str(max(1, int(state.get("continuation_iteration") or 0) + 1)),
+        "continuation_stop_reason": "CONTROLLED_PREPARATION_EXHAUSTED_AT_EXACT_ENGINEERING_AUTHORITY; NATURAL_L8_CAPTURE_READY",
+        "no_progress_fingerprint": fingerprint,
+        "current_execution_mission_id": "NONE",
+        "current_execution_mission_state": "NONE",
+        "latest_terminal_mission_id": POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID,
+        "latest_terminal_run_nonce": run_nonce,
+        "latest_terminal_mission_state": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "latest_terminal_mission_report": report_path,
+        "latest_terminal_mission_started_at": "2026-07-19T05:55:00+00:00",
+        "previous_terminal_mission_id": previous_id,
+        "previous_terminal_mission_report": previous_report,
+        "current_mission_role": "LATEST_TERMINAL_MISSION",
+        "current_mission_id": POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID,
+        "current_run_nonce": run_nonce,
+        "current_mission_state": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "current_mission_report": report_path,
+        "source_summary": "Polygon repaired L8 event discovery, prepared and consumed one real bounded L7 transaction, completed its temporal/replay Passport and stopped the next deliberate controlled condition at exact Engineering Authority.",
+        "automatic_continue_omp_result": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "current_class_outcome": "SUCCESS",
+        "current_class_delta_closed": "PARTIAL; controlled_production_present and complete_temporal_and_replay closed for the new eligible Passport",
+        "current_class_outcome_evidence": "outpass_57779380ae119a2932498de8; runtime_autoswitch_3fbda1bafa1cd40b251555b0; 10.0.0.3 awg3 -> vless; SUCCESS",
+        "verification_result": "PASS; immediate, delayed 5m, delayed 1h, steady-state and deterministic replay all complete",
+        "rollback_result": "NOT_REQUIRED; bounded transaction verified SUCCESS and terminal safe mode OPEN",
+        "learning_result": "PASS; learn_7fe115732d2495a0eec80673 consumed by existing Learning owner",
+        "action_class_non_consumption_root_cause": "PARTIAL; one eligible controlled Passport exists but representative controlled/natural coverage remains insufficient",
+        "action_class_promotion_evaluation": "EVALUATED; INSUFFICIENT_EVIDENCE; CURRENT GOVERNED_ONLY SCOPE RETAINED",
+        "action_class_exact_missing_delta": POLYGON_DRIVEN_L7_REMAINING_CELLS,
+        "class_approval_ready": "NO; M6 remains insufficient, M7 retains INSUFFICIENT_EVIDENCE and M8 is not required",
+        "authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; no Authority granted or expanded",
+        "conditional_engineering_authority_used": "NO; the completed transaction used existing delegated policy",
+        "certification_transaction_executed": "YES; exactly one fresh one-user delegated transaction, verification PASS, rollback NOT_REQUIRED",
+        "controlled_run_engineering_intent_closure": "INTENT_CLOSED_FOR_ONE_POLYGON_DRIVEN_L7_OUTCOME; representative evidence program remains open",
+        "parent_engineering_intent": "INTENT_NOT_CLOSED; CAP-U07 has one eligible controlled Passport but L8 and representative coverage remain insufficient",
+        "production_maturity_decision": "NO_CHANGE; 66.9/100; one eligible controlled Passport is insufficient",
+        "production_runtime_impact": "ONE_BOUNDED_CONTROLLED_TRANSACTION_COMPLETE; final Admin Safe Mode OPEN; no background Runtime enablement",
+        "routing_impact": "10.0.0.3 moved awg3 -> vless and passed immediate/delayed/steady-state route verification",
+        "user_movement": "YES; exactly one owner-authorized bounded controlled user movement",
+        "omp_controlled_run_allowed": "NO_CURRENT_EXECUTION; no fresh genuine Candidate; deliberate condition requires Engineering Authority",
+        "controlled_run_authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION",
+        "controlled_run_execution_authorized": "NO_CURRENT_PACKET; completed Packet is historical and non-reusable",
+        "aep_phase6_status": "ACTIVE_MULTI_LANE_CERTIFICATION",
+        "phase6_certification_status": "ONE_ELIGIBLE_CONTROLLED_PASSPORT_CONSUMED; evidence classes remain non-interchangeable",
+        "phase6_current_step": "NEXT_CONTROLLED_CONDITION_AUTHORITY_BOUND; NATURAL_L8_CAPTURE_READY",
+        "phase6_certification_frontier": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "phase6_exact_stop": "ENGINEERING_AUTHORITY_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE",
+        "phase6_exact_next_action": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "phase6_reentry_conditions": "independent Engineering Authority; fresh genuine delegated-policy Candidate; qualifying natural event",
+        "phase6_global_status": "SPLIT_EXTERNAL_BOUNDARY_AFTER_ONE_ELIGIBLE_CONTROLLED_PASSPORT",
+        "phase6b_controlled_status": "ONE_ELIGIBLE_CONTROLLED_PASSPORT_CONSUMED; NO_FRESH_CANDIDATE; NEXT_DELIBERATE_CONDITION_AUTHORITY_BOUND",
+        "phase6c_natural_status": "CAPTURE_READY_WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE",
+        "phase6_executable_frontier": "NONE",
+        "phase6_global_stop": "ENGINEERING_AUTHORITY",
+        "phase7_engineering_evolution_status": "PERMANENT_POLYGON_ACTIVE_FOR_SAFE_PREPARATION_AND_CAPTURE_REPAIR",
+        "phase7_production_authority_status": "GOVERNED_ONLY_LOCKED_BY_INSUFFICIENT_EVIDENCE",
+        "production_capability_frontier": "NONE",
+        "polygon_obligation_frontier": "AUTHORITY_BOUND:CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION",
+        "polygon_mission_frontier": "NONE_NO_LEGAL_CONTROLLED_MISSION_WITHOUT_AUTHORITY",
+        "active_execution_frontier": "NONE",
+        "external_reentry_frontier": "ENGINEERING_AUTHORITY_OR_FRESH_GENUINE_CANDIDATE_OR_NATURAL_EVENT",
+        "phase6_engineering_stop": "ENGINEERING_AUTHORITY",
+        "phase6_controlled_lane_stop": "ENGINEERING_AUTHORITY",
+        "phase6_natural_lane_stop": "REAL_WORLD_LIMIT",
+        "global_engineering_stop": "ENGINEERING_AUTHORITY",
+        "engineering_program_status": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "environment_alignment_status": "FULLY_ALIGNED",
+        "production_routing_autonomy_status": "NOT_CLAIMED",
+        "authority_promotion_status": "NONE",
+        "production_maturity_change_status": "NONE",
+        "current_completion_contract": "INTEGRATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "pending_wake_id": "NONE",
+        "reentry_active_lease": "NONE",
+        "reentry_platform_health": "PASS",
+    })
+    atomic_update = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+    )
+    return {
+        "schema": "v7.polygon-driven-l7-evidence-finalization.v1",
+        "mission_id": POLYGON_DRIVEN_L7_ACQUISITION_MISSION_ID,
+        "run_nonce": run_nonce,
+        "program_terminal": POLYGON_DRIVEN_L7_ACQUISITION_TERMINAL,
+        "controlled_lane_stop": "ENGINEERING_AUTHORITY",
+        "natural_lane_stop": "REAL_WORLD_LIMIT",
+        "exact_remaining_coverage_cells": POLYGON_DRIVEN_L7_REMAINING_CELLS.split("; "),
+        "next_reentry": POLYGON_DRIVEN_L7_ACQUISITION_NEXT,
+        "report_hash": report_hash,
+        "decision_fingerprint": fingerprint,
+        "atomic_update": atomic_update,
         "authority_expanded": False,
         "production_maturity_changed": False,
         "final_verdict": "PASS" if atomic_update.get("ok") else "STOP_SAFE",
@@ -16126,7 +16352,10 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     )
     fsse_status = live.get("FSSE_STATUS", "").strip("`")
     fsse_automation_complete = fsse_status == "FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED"
-    phase6_multi_lane_active = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE"
+    phase6_multi_lane_active = live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in {
+        "PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE",
+        "SPLIT_L7_AUTHORITY_L8_NATURAL_BOUNDARY",
+    }
     permanent_records = permanent_polygon_criterion_registry(cps_text).get("records") or []
     permanent_polygon_automation_complete = all((
         live.get("ACTIVE_PROGRAM", "").strip("`") == "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
@@ -16582,10 +16811,19 @@ def cps_live_state_consistency(
     stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
+    split_authority_natural_boundary = (
+        stop == "ENGINEERING_AUTHORITY"
+        and "ENGINEERING_AUTHORITY" in wip_stop
+        and "REAL_WORLD_LIMIT" in wip_stop
+    )
     if (
         stop != normalized["current_stop_condition"]
         or registry_stop != stop
-        or (not independent_program_frontier and wip_stop != stop)
+        or (
+            not independent_program_frontier
+            and wip_stop != stop
+            and not split_authority_natural_boundary
+        )
         or (independent_program_frontier and "REAL_WORLD_LIMIT" not in wip_stop)
     ):
         errors.append("cps_current_stop_divergence")

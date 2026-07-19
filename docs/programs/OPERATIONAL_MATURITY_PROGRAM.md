@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.40`
+Version: `4.42`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,8 +13,8 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
-Latest consumed report: `docs/reports/engineering/2026-07-19_073700_polygon_driven_l7_controlled_evidence_acquisition.md` (`POLYGON_DRIVEN_L7_CONTROLLED_OUTCOME_CONSUMED_NEXT_CONTROLLED_CONDITION_REQUIRES_ENGINEERING_AUTHORITY_AND_L8_CAPTURE_READY`).
-Previous consumed report: `docs/reports/engineering/2026-07-19_050438_l7_l8_evidence_cycle_program_completion.md` (`CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED`).
+Latest consumed report: `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md` (`POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_CONSUMED_ROLLBACK_CONDITION_AUTHORITY_BOUND_AND_L8_CAPTURE_READY`).
+Previous consumed report: `docs/reports/engineering/2026-07-19_073700_polygon_driven_l7_controlled_evidence_acquisition.md` (`POLYGON_DRIVEN_L7_CONTROLLED_OUTCOME_CONSUMED_NEXT_CONTROLLED_CONDITION_REQUIRES_ENGINEERING_AUTHORITY_AND_L8_CAPTURE_READY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -61,6 +61,10 @@ V4.38 consumes the complete current L7/L8 evidence cycle through existing produc
 V4.39 corrects that terminal by making evidence-opportunity engineering an explicit permanent Polygon duty. An exact missing L7 cell activates bounded scenario selection, certification-pool/source resolution and fresh owner-bound Situation/Decision Trace/Candidate/Packet/verification/rollback preparation; only a real owner-authorized bounded production transaction can create L7 evidence. L8 remains natural, but the Polygon must prove and repair passive producer-file discovery and event-to-outcome/Learning/replay consumption before waiting. A combined L7/L8 `REAL_WORLD_LIMIT` is illegal while either preparation lane can continue. Ordinary customers cannot be relabelled to manufacture evidence, deliberate production degradation and certification-pool mutation stop at exact Engineering Authority, and no new event store, watcher, Planner, Runtime, Authority owner or truth source is created.
 
 V4.40 consumes the first Polygon-driven L7 acquisition cycle. Actual date-partitioned L8 producers are discovered and all five passive capture roles pass. One genuine delegated-policy Candidate produced one real bounded one-user `SUCCESS`, complete immediate/5m/1h/steady-state verification, deterministic replay and one eligible controlled Passport. No second fresh Candidate remains: the next deliberate controlled condition/certification-pool change stops at exact independent Engineering Authority, while natural L8 separately remains `REAL_WORLD_LIMIT` with capture readiness complete. M6/M7 retain `INSUFFICIENT_EVIDENCE`, M8 is not required, Authority and Production Maturity remain unchanged, and the four exact representative coverage cells remain explicit.
+
+V4.41 consumes the Polygon-driven L7 calibration floor without converting it into a promotion threshold. Four additional owner-authorized serial one-user controlled transactions produced complete real `SUCCESS` Passports; immediate, 5m, 1h, steady-state, Learning and deterministic replay are complete for all five eligible Passports. Material variation and the numeric floor close, while natural-production and rollback/no-rollback diversity remain explicit. M6 emits immutable insufficient set `outset_428a4e2ff440ed64bde5cb56`; M7 consumes `INSUFFICIENT_EVIDENCE`; M8 is not required. The controlled lane stops only at independent Engineering Authority for an exact deliberate rollback condition, and the natural lane remains capture-ready at `REAL_WORLD_LIMIT`. Authority, Production Maturity and background Runtime are unchanged.
+
+V4.42 closes the notification-only failure gap in the existing design-time Polygon workflow. A failed `semantic-selective-gate` remains red, while its exact workflow/job/step/run/head/log fingerprint is classified and routed through the existing mismatch classifier, BDP Reality Gate and `OMP_CANDIDATE_ADMISSION`. Each distinct producer-consumer defect becomes its own deterministic repair frontier, so product regressions cannot absorb harness/binding defects and repeated runs retain stable identity. The GitHub artifact is engineering evidence, never a registry or live truth owner; CPS remains authoritative. Replaying the already-consumed L7 calibration finalizer with the exact same Mission/report/nonce/generation is also an idempotent `ALREADY_APPLIED_NO_CHANGE`; a conflicting identity still fails closed. The handler creates no watcher, queue, daemon, Runtime, routing, user, Authority or Production Maturity effect and never weakens, skips or converts the failed gate to green.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7848,7 +7852,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY`
+Resolved current next action: `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY`
 Resolved packet: `NONE_OPEN`
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -8836,9 +8840,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY`
-Latest consumed report: `docs/reports/engineering/2026-07-19_073700_polygon_driven_l7_controlled_evidence_acquisition.md`
-Previous consumed report: `docs/reports/engineering/2026-07-19_050438_l7_l8_evidence_cycle_program_completion.md`
+Resolved current next action: `REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY`
+Latest consumed report: `docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md`
+Previous consumed report: `docs/reports/engineering/2026-07-19_073700_polygon_driven_l7_controlled_evidence_acquisition.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:
@@ -10022,3 +10026,52 @@ NEXT_LEGAL_STEP = IMPLEMENT_AND_CERTIFY_OPERATION_SCOPED_CONTROLLED_WINDOW_AND_P
 ```
 
 Production Maturity decision: `BLOCK`, score unchanged. Safe Mode remained `OPEN`; no operational Authority request, lease, restore barrier, apply, movement, rollback, systemd change or production mutation occurred. OMP rules, owners, capability, lifecycle, Runtime, Planner, Authority and blast radius are unchanged.
+
+## 39. Historical Polygon-Driven L7 Calibration Floor Consumption Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+Authority expansion: `NONE`
+
+Status: `CALIBRATION_FLOOR_CONSUMED_EXACT_RESIDUAL_PRESERVED`.
+
+OMP consumed immutable eligibility set `outset_428a4e2ff440ed64bde5cb56` with five eligible controlled Passports. Four additional real bounded one-user transactions completed immediate, 5m, 1h, steady-state, Learning and replay verification. The floor and material variation are closed; natural production and rollback/no-rollback diversity are not.
+
+```text
+M4 = COMPLETE_CONSUMED_CALIBRATION_FLOOR
+M5 = EVENT_DRIVEN_CAPTURE_READY_REAL_WORLD_LIMIT
+M6 = INSUFFICIENT_EVIDENCE
+M7 = COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE
+M8 = MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT
+CONTROLLED_LANE_NEXT = REQUEST_EXACT_CONTROLLED_ROLLBACK_CONDITION_ENGINEERING_AUTHORITY
+NATURAL_LANE_NEXT = PASSIVELY_CONSUME_QUALIFYING_NATURAL_EVENT
+PRODUCTION_MATURITY = NO_CHANGE
+```
+
+Five remains a calibration floor rather than a promotion threshold. This milestone grants no class approval, Authority expansion, bounded autonomy, autonomous Runtime or Production Maturity credit.
+
+## 40. Historical Design-Time Semantic Gate Repair And Automatic OMP Routing Milestone
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+Authority expansion: `NONE`
+
+Status: `EXACT_RED_GATE_REPAIRED_AND_FAILURE_TO_OMP_ROUTING_INSTALLED`.
+
+GitHub Actions run `29682110261` at source commit `7ab18749` failed in `semantic-selective-gate` for two independent reasons: `functional_footprint_mismatch:AEP_PHASE_6_STATUS` and `polygon_design_time_m8_frontier_not_active`. Existing owner repairs in commit `28970ba3` restored the CPS functional-footprint producer contract and made the M8 fixture stage its exact required frontier; exact workflow replay `29685043993` passed without gate weakening.
+
+The same workflow now preserves a red job and automatically materializes distinct deterministic BDP/OMP repair frontiers for every detected producer-consumer failure class. The failure log and repair-frontier JSON are uploaded through the existing GitHub Actions artifact owner. They are evidence only and do not mutate CPS.
+
+```text
+FAILURE_1 = PRODUCT_SEMANTIC_REGRESSION -> LAST_RESPONSIBLE_REAL_SOURCE_OWNER
+FAILURE_2 = STALE_SOURCE_DEPENDENCY_BINDING -> PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING
+CONSUMER = OMP_CANDIDATE_ADMISSION
+SAME_GATE_REPLAY = PASS
+CI_GATE_WEAKENED = NO
+NEW_TRUTH_SOURCE = NO
+PRODUCTION_EFFECT = NONE
+```

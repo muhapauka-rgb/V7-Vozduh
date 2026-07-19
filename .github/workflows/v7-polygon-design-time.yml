@@ -45,10 +45,26 @@ jobs:
         with:
           python-version: "3.11"
       - name: Compile and test the design-time loop
+        id: semantic_selective_gate
         run: |
-          python -m unittest tests.unit.test_polygon_design_time_engineering -v
-          tools/v7-truth-check --omp-polygon-design-time --json > /tmp/v7-polygon-design-time.json
-          python -c 'import json; r=json.load(open("/tmp/v7-polygon-design-time.json")); assert r["final_verdict"] == "PASS"; assert r["real_consumer"] == "OMP_PROGRAM_EXECUTION_RECONCILIATION"; assert r["next_output"] != "STOP_SAFE"'
+          set -o pipefail
+          {
+            python -m unittest tests.unit.test_polygon_design_time_engineering -v
+            tools/v7-truth-check --omp-polygon-design-time --json > /tmp/v7-polygon-design-time.json
+            python -c 'import json; r=json.load(open("/tmp/v7-polygon-design-time.json")); assert r["final_verdict"] == "PASS"; assert r["real_consumer"] == "OMP_PROGRAM_EXECUTION_RECONCILIATION"; assert r["next_output"] != "STOP_SAFE"'
+          } 2>&1 | tee /tmp/v7-polygon-semantic-selective-gate.log
+      - name: Materialize failing gate as an OMP repair frontier
+        if: ${{ failure() && steps.semantic_selective_gate.outcome == 'failure' }}
+        run: |
+          tools/v7-truth-check \
+            --omp-polygon-ci-failure-repair-frontier \
+            --ci-failure-log /tmp/v7-polygon-semantic-selective-gate.log \
+            --ci-workflow "${{ github.workflow }}" \
+            --ci-job semantic-selective-gate \
+            --ci-step "Compile and test the design-time loop" \
+            --ci-run-id "${{ github.run_id }}" \
+            --ci-head-sha "${{ github.sha }}" \
+            --json > /tmp/v7-polygon-ci-failure-repair-frontier.json
       - name: Verify forbidden effects remain absent
         run: |
           python -c 'import json; r=json.load(open("/tmp/v7-polygon-design-time.json")); assert not any(r["forbidden_effects"].values())'
@@ -56,6 +72,14 @@ jobs:
         with:
           name: v7-polygon-design-time-evidence
           path: /tmp/v7-polygon-design-time.json
+      - name: Upload red-gate evidence and OMP repair frontier
+        if: ${{ always() && steps.semantic_selective_gate.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: v7-polygon-design-time-failure-repair-frontier
+          path: |
+            /tmp/v7-polygon-semantic-selective-gate.log
+            /tmp/v7-polygon-ci-failure-repair-frontier.json
 
   bounded-high-fidelity:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.high_fidelity }}
@@ -69,4 +93,3 @@ jobs:
           python-version: "3.11"
       - name: Execute engineering-only high-fidelity batch
         run: tools/v7-truth-check --omp-high-fidelity-batch --scenario-budget 8 --json
-

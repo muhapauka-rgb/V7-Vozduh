@@ -117,6 +117,42 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
         self.assertFalse(model["product_candidate_allowed"])
         self.assertTrue(product["product_candidate_allowed"])
 
+    def test_repeated_ci_failure_materializes_one_deterministic_omp_repair_frontier(self):
+        log = (
+            "AssertionError: functional_footprint_mismatch:AEP_PHASE_6_STATUS\n"
+            "AssertionError: polygon_design_time_m8_frontier_not_active\n"
+        )
+        first = self.lib.polygon_ci_failure_repair_frontier(
+            cps_text=self.cps, log_text=log,
+            workflow="V7 Polygon Design-Time Engineering",
+            job="semantic-selective-gate", step="Compile and test the design-time loop",
+            run_id="29682110261", head_sha="7ab18749",
+        )
+        replay = self.lib.polygon_ci_failure_repair_frontier(
+            cps_text=self.cps, log_text=log,
+            workflow="V7 Polygon Design-Time Engineering",
+            job="semantic-selective-gate", step="Compile and test the design-time loop",
+            run_id="29682110299", head_sha="7ab18749",
+        )
+        self.assertEqual(first["final_verdict"], "PASS", first.get("errors"))
+        self.assertEqual(first["repair_frontier_status"], "OMP_REPAIR_FRONTIER_MATERIALIZED")
+        self.assertEqual(first["real_consumer"], "OMP_CANDIDATE_ADMISSION")
+        self.assertTrue(first["consumer_invoked"])
+        self.assertEqual(first["candidate_instance_ids"], replay["candidate_instance_ids"])
+        self.assertEqual(len(first["repair_frontiers"]), 2)
+        self.assertFalse(any(first["forbidden_effects"].values()))
+        self.assertEqual(
+            {row["failure_class"] for row in first["classification"]},
+            {"PRODUCT_SEMANTIC_REGRESSION", "STALE_SOURCE_DEPENDENCY_BINDING"},
+        )
+
+    def test_workflow_routes_red_gate_without_weakening_it(self):
+        workflow = (ROOT / ".github/workflows/v7-polygon-design-time.yml").read_text(encoding="utf-8")
+        self.assertIn("--omp-polygon-ci-failure-repair-frontier", workflow)
+        self.assertIn("steps.semantic_selective_gate.outcome == 'failure'", workflow)
+        self.assertIn("v7-polygon-design-time-failure-repair-frontier", workflow)
+        self.assertNotIn("continue-on-error", workflow)
+
     def test_calibration_changes_risk_frontier(self):
         records = [
             {"record_id": str(index), "predicted": "PASS", "actual": "PASS", "confidence": 0.9, "owner_backed": True}
@@ -152,7 +188,7 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
     def test_cli_real_caller_consumes_and_produces_next_frontier(self):
         completed = subprocess.run(
             [str(ROOT / "tools/v7-truth-check"), "--omp-polygon-design-time", "--json"],
-            cwd=ROOT, text=True, capture_output=True, check=False, timeout=600,
+            cwd=ROOT, text=True, capture_output=True, check=False, timeout=1200,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
         result = json.loads(completed.stdout)

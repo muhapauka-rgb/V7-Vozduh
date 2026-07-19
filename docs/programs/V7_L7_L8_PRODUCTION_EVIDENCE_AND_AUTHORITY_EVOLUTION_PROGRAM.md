@@ -8,6 +8,8 @@ This file must not be used to determine whether the program is active, paused, t
 
 Program ID: `V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1`
 
+Historical execution milestone: `V7_POLYGON_DRIVEN_L7_CONTROLLED_EVIDENCE_ACQUISITION_CALIBRATION_FLOOR_V1` consumed immutable set `outset_428a4e2ff440ed64bde5cb56` with five eligible controlled Passports. M6/M7 remain `INSUFFICIENT_EVIDENCE`, M8 is `MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT`, and current live state remains owned only by CPS.
+
 Current evidence-cycle terminal: `CURRENT_L7_L8_EVIDENCE_CYCLE_RECONCILED_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED_AND_REVIEW_HANDOFF_RESOLVED`
 
 This is a cycle terminal, not a claim that L7 controlled sufficiency, L8 natural representativeness or the permanent evidence program is complete. `CURRENT` means that every presently available qualifying opportunity and material outcome has been classified, reconciled and consumed, rejected or preserved with an exact owner-backed gap. `REVIEW_HANDOFF_RESOLVED` means Mission 8 is either not required by the Mission 7 verdict or its independent review packet is prepared; it does not mean approval occurred. If evidence remains insufficient, CPS must preserve the exact missing coverage cells and separate reentry conditions: a controlled lane may wait only after Polygon opportunity engineering reaches a genuine policy, owner, substrate or Engineering Authority boundary; a natural L8 lane may stop at `REAL_WORLD_LIMIT` only after its passive capture chain is ready.

@@ -164,8 +164,13 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertEqual(live["CONTROLLED_RUN_AUTHORITY_GENERATION"].strip("`"), "POLICY_SCOPED; NO_PACKET_SPECIFIC_AUTHORITY_REQUIRED")
         self.assertTrue(live["CONTROLLED_RUN_ROLLBACK_MANIFEST"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        self.assertTrue(live["PRODUCTION_RUNTIME_IMPACT"].strip("`").startswith("ONE_BOUNDED_CONTROLLED_TRANSACTION_COMPLETE"))
-        self.assertTrue(live["USER_MOVEMENT"].strip("`").startswith("YES; exactly one owner-authorized bounded controlled user movement"))
+        runtime_impact = live["PRODUCTION_RUNTIME_IMPACT"].strip("`")
+        self.assertIn("BOUNDED_CONTROLLED_TRANSACTION", runtime_impact)
+        self.assertIn("COMPLETE", runtime_impact)
+        self.assertIn("final Admin Safe Mode OPEN", runtime_impact)
+        movement = live["USER_MOVEMENT"].strip("`")
+        self.assertTrue(movement.startswith("YES;"))
+        self.assertIn("owner-authorized bounded controlled user movement", movement)
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_21_approved_policy_with_packet_approval_required_fails(self):
@@ -480,6 +485,16 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             self.assertEqual(live["PHASE_6_NATURAL_LANE_STOP"].strip("`"), "REAL_WORLD_LIMIT")
             self.assertEqual(live["AUTHORITY_PROMOTION_STATUS"].strip("`"), "NONE")
             self.assertEqual(live["PRODUCTION_MATURITY_CHANGE_STATUS"].strip("`"), "NONE")
+            before_replay = cps_path.read_text(encoding="utf-8")
+            replay = self.lib.finalize_polygon_driven_l7_evidence_acquisition(
+                report_path=relative_report,
+                run_nonce=run_nonce,
+                root=root,
+            )
+            self.assertEqual(replay["final_verdict"], "PASS", replay)
+            self.assertTrue(replay["idempotent_replay"])
+            self.assertEqual(replay["atomic_update"]["status"], "ALREADY_APPLIED_NO_CHANGE")
+            self.assertEqual(cps_path.read_text(encoding="utf-8"), before_replay)
 
 
 if __name__ == "__main__":

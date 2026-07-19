@@ -226,6 +226,7 @@ NORMALIZED_CPS_LIVE_STATE = {
     "phase6a_next_scenario_id": "PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
     "phase6a_next_action": "EXECUTE_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
     "phase6b_controlled_status": "CONTROLLED_PRODUCTION_READY_WHERE_SAFE; no current Candidate, Packet or lease",
+    "phase6b_controlled_frontier": "NONE",
     "phase6c_natural_status": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
     "phase6_executable_frontier": "PHASE6A_SCENARIO:PHASE6V2_MARGINAL_BENEFIT_STAY_DECISION",
     "phase6_global_stop": "NONE",
@@ -389,6 +390,7 @@ NORMALIZED_CPS_LIVE_STATE.update({
     "phase6a_next_scenario_id": "NONE",
     "phase6a_next_action": "REENTER_ONLY_ON_NEW_OWNER_BACKED_OBLIGATION",
     "phase6b_controlled_status": "CONTROLLED_PRODUCTION_READY_WHERE_SAFE; CLASS_RECOMMENDATION_NOT_READY; no Candidate, Packet or lease",
+    "phase6b_controlled_frontier": "AUTHORITY_BOUND:CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION",
     "phase6c_natural_status": "WAITING_NATURAL_PRODUCTION_EVIDENCE",
     "phase6_executable_frontier": "NONE", "phase6_global_stop": "REAL_WORLD_LIMIT",
     "phase7_engineering_evolution_status": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE_ON_NEW_OBLIGATION",
@@ -1567,6 +1569,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "PHASE_6A_NEXT_SCENARIO_ID": f"`{state['phase6a_next_scenario_id']}`",
         "PHASE_6A_NEXT_ACTION": f"`{state['phase6a_next_action']}`",
         "PHASE_6B_CONTROLLED_STATUS": f"`{state['phase6b_controlled_status']}`",
+        "PHASE_6B_CONTROLLED_FRONTIER": f"`{state['phase6b_controlled_frontier']}`",
         "PHASE_6C_NATURAL_STATUS": f"`{state['phase6c_natural_status']}`",
         "PHASE_6_EXECUTABLE_FRONTIER": f"`{state['phase6_executable_frontier']}`",
         "PHASE_6_GLOBAL_STOP": f"`{state['phase6_global_stop']}`",
@@ -3575,9 +3578,6 @@ def finalize_polygon_driven_l7_calibration_floor(
     report_hash = hashlib.sha256(report.read_bytes()).hexdigest()
     cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
     state = _normalized_state_from_live_cps(cps_path.read_text(encoding="utf-8"))
-    previous_id = state["latest_terminal_mission_id"]
-    previous_report = state["latest_terminal_mission_report"]
-    captured = utc_now()
     missing_text = "; ".join(missing_cells)
     passport_text = "; ".join(passport_ids)
     fingerprint = hashlib.sha256(json.dumps({
@@ -3589,6 +3589,59 @@ def finalize_polygon_driven_l7_calibration_floor(
         "passport_ids": passport_ids,
         "missing_cells": missing_cells,
     }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    already_applied = all((
+        state.get("latest_terminal_mission_id") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        state.get("latest_terminal_run_nonce") == run_nonce,
+        state.get("latest_terminal_mission_state") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+        state.get("latest_terminal_mission_report") == report_path,
+        state.get("current_mission_id") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+        state.get("current_run_nonce") == run_nonce,
+        state.get("current_state_generation") == f"cpsgen_L7_FLOOR_{fingerprint[:12].upper()}",
+        state.get("no_progress_fingerprint") == fingerprint,
+        state.get("current_next_action_id") == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+        state.get("phase6b_controlled_frontier") == "AUTHORITY_BOUND:DELIBERATE_CONTROLLED_ROLLBACK_CONDITION",
+    ))
+    if already_applied:
+        consistency = mission_role_consistency(
+            cps_path.read_text(encoding="utf-8"), root=root,
+            verify_external=False, expected_state=state,
+        )
+        atomic_update = {
+            "ok": consistency.get("final_verdict") == "PASS",
+            "status": (
+                "ALREADY_APPLIED_NO_CHANGE"
+                if consistency.get("final_verdict") == "PASS"
+                else "CURRENT_STATE_CONSISTENCY_FAIL"
+            ),
+            "post_write_reread": "PASS" if consistency.get("final_verdict") == "PASS" else "FAIL",
+            "previous_state_preserved": True,
+            "errors": consistency.get("errors") or [],
+        }
+        return {
+            "schema": "v7.polygon-driven-l7-calibration-floor-finalization.v1",
+            "mission_id": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID,
+            "run_nonce": run_nonce,
+            "program_terminal": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_TERMINAL,
+            "eligible_passport_count": len(passport_ids),
+            "eligible_passport_ids": passport_ids,
+            "immutable_eligibility_set_fingerprint": values["Eligibility set"],
+            "exact_remaining_coverage_cells": missing_cells,
+            "next_reentry": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
+            "report_hash": report_hash,
+            "decision_fingerprint": fingerprint,
+            "atomic_update": atomic_update,
+            "idempotent_replay": True,
+            "authority_expanded": False,
+            "production_maturity_changed": False,
+            "final_verdict": "PASS" if atomic_update["ok"] else "STOP_SAFE",
+            "errors": atomic_update["errors"],
+        }
+    previous_id = state["latest_terminal_mission_id"]
+    previous_report = state["latest_terminal_mission_report"]
+    if previous_id == POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_MISSION_ID:
+        previous_id = state["previous_terminal_mission_id"]
+        previous_report = state["previous_terminal_mission_report"]
+    captured = utc_now()
     state.update({
         "active_program": "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
         "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
@@ -3662,6 +3715,7 @@ def finalize_polygon_driven_l7_calibration_floor(
         "phase6_reentry_conditions": "independent rollback-condition Engineering Authority; qualifying natural event",
         "phase6_global_status": "CALIBRATION_FLOOR_CONSUMED_SPLIT_ROLLBACK_AUTHORITY_AND_NATURAL_BOUNDARY",
         "phase6b_controlled_status": "FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; ROLLBACK_DIVERSITY_REQUIRES_DELIBERATE_CONDITION_AUTHORITY",
+        "phase6b_controlled_frontier": "AUTHORITY_BOUND:DELIBERATE_CONTROLLED_ROLLBACK_CONDITION",
         "phase6b_next_action": POLYGON_DRIVEN_L7_CALIBRATION_FLOOR_NEXT,
         "phase6c_natural_status": "CAPTURE_READY_WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE",
         "phase6_executable_frontier": "NONE",
@@ -5543,6 +5597,7 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
         "phase6a_next_scenario_id": "PHASE_6A_NEXT_SCENARIO_ID",
         "phase6a_next_action": "PHASE_6A_NEXT_ACTION",
         "phase6b_controlled_status": "PHASE_6B_CONTROLLED_STATUS",
+        "phase6b_controlled_frontier": "PHASE_6B_CONTROLLED_FRONTIER",
         "phase6c_natural_status": "PHASE_6C_NATURAL_STATUS",
         "phase6_executable_frontier": "PHASE_6_EXECUTABLE_FRONTIER",
         "phase6_global_stop": "PHASE_6_GLOBAL_STOP",
@@ -12904,6 +12959,216 @@ def classify_future_scale_mismatch(
         ),
         "final_verdict": "PASS" if known else "STOP_SAFE",
         "errors": [] if known else ["mismatch_class_unresolved"],
+    }
+
+
+def _polygon_ci_failure_signatures(log_text: str) -> list[dict[str, str]]:
+    """Classify current CI evidence without turning a log into a truth owner."""
+    text = str(log_text or "")
+    signatures: list[dict[str, str]] = []
+    rules = (
+        (
+            "functional_footprint_mismatch:",
+            "PRODUCT_SEMANTIC_REGRESSION",
+            "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT",
+            "CPS_FUNCTIONAL_FOOTPRINT_PRODUCER_TO_TEST_CONSUMER",
+        ),
+        (
+            "polygon_design_time_m8_frontier_not_active",
+            "STALE_SOURCE_DEPENDENCY_BINDING",
+            "HARNESS_DEFECT",
+            "LIVE_CPS_FRONTIER_TO_M8_FIXTURE_CONSUMER",
+        ),
+        (
+            "design_change_prior_corpus_coverage_not_certified",
+            "STALE_SOURCE_DEPENDENCY_BINDING",
+            "HARNESS_DEFECT",
+            "CPS_CORPUS_COVERAGE_TO_DESIGN_TIME_CAMPAIGN",
+        ),
+        (
+            "non_deterministic",
+            "NONDETERMINISM",
+            "NON_DETERMINISTIC_RESULT",
+            "DESIGN_TIME_EXECUTION_TO_REPLAY_ORACLE",
+        ),
+        (
+            "resource temporarily unavailable",
+            "ENVIRONMENT_SUBSTRATE_DEFECT",
+            "ENVIRONMENT_UNSUPPORTED",
+            "GITHUB_RUNNER_SUBSTRATE_TO_DESIGN_TIME_ENTRYPOINT",
+        ),
+        (
+            "permission denied",
+            "ENVIRONMENT_SUBSTRATE_DEFECT",
+            "ENVIRONMENT_UNSUPPORTED",
+            "GITHUB_RUNNER_SUBSTRATE_TO_DESIGN_TIME_ENTRYPOINT",
+        ),
+        (
+            "expected authority boundary",
+            "AUTHORITY_BOUNDARY_EMISSION_DEFECT",
+            "HARNESS_DEFECT",
+            "AUTHORITY_BOUNDARY_TO_CI_TERMINAL_CLASSIFIER",
+        ),
+    )
+    lowered = text.casefold()
+    for needle, failure_class, mismatch_class, chain_segment in rules:
+        if needle.casefold() in lowered:
+            signatures.append({
+                "failure_class": failure_class,
+                "mismatch_class": mismatch_class,
+                "engineering_chain_segment": chain_segment,
+            })
+    if not signatures:
+        signatures.append({
+            "failure_class": "UNRESOLVED_OWNER_INVESTIGATION",
+            "mismatch_class": "UNRESOLVED",
+            "engineering_chain_segment": "CI_FAILURE_TO_LAST_RESPONSIBLE_OWNER",
+        })
+    return sorted(signatures, key=lambda row: (
+        row["failure_class"], row["engineering_chain_segment"],
+    ))
+
+
+def polygon_ci_failure_repair_frontier(
+    *,
+    cps_text: str,
+    log_text: str,
+    workflow: str,
+    job: str,
+    step: str,
+    run_id: str,
+    head_sha: str,
+) -> dict[str, Any]:
+    """Route a failing semantic gate through the existing BDP -> OMP consumer."""
+    metadata = {
+        "workflow": str(workflow or "").strip(),
+        "job": str(job or "").strip(),
+        "step": str(step or "").strip(),
+        "run_id": str(run_id or "").strip(),
+        "head_sha": str(head_sha or "").strip(),
+    }
+    errors: list[str] = []
+    for field in ("workflow", "job", "step", "run_id", "head_sha"):
+        if not metadata[field]:
+            errors.append(f"ci_failure_metadata_missing:{field}")
+    if not str(log_text or "").strip():
+        errors.append("ci_failure_log_empty")
+    if metadata["head_sha"] and not re.fullmatch(r"[0-9a-fA-F]{7,64}", metadata["head_sha"]):
+        errors.append("ci_failure_head_sha_invalid")
+    log_fingerprint = hashlib.sha256(str(log_text or "").encode("utf-8")).hexdigest()
+    signatures = _polygon_ci_failure_signatures(log_text)
+    mismatch_results = [
+        classify_future_scale_mismatch(row["mismatch_class"])
+        for row in signatures
+        if row["mismatch_class"] != "UNRESOLVED"
+    ]
+    gap_template = {
+        "primary_class": "OWNER_BACKED_CI_FAILURE_INVESTIGATION",
+        "secondary_classes": [],
+        "execution_depth": "L2",
+        "engineering_intent": "Restore the exact failing Polygon semantic-selective gate through its last responsible existing owner.",
+        "current_reality": "A current owner-backed GitHub Actions semantic gate failed and blocked downstream high-fidelity execution.",
+        "expected_reality": "The exact failure is reproduced, classified, repaired by the existing owner and replayed green without weakening the gate.",
+        "engineering_chain": "GITHUB_ACTIONS->POLYGON_SEMANTIC_GATE->BDP->CANDIDATE->OMP->OWNER_REPAIR->SAME_GATE_REPLAY",
+        "engineering_chain_segment": "CI_FAILURE_TO_LAST_RESPONSIBLE_OWNER",
+        "behaviour_instance": "A repeated design-time CI failure becomes one deterministic OMP repair frontier instead of notification-only evidence.",
+        "behaviour": "BD-003 OMP Mission Routing And Continuation",
+        "automation_logic": "Existing GitHub Actions evidence, Polygon mismatch classifier, BDP Reality Gate and OMP Candidate admission.",
+        "automation_break": "CURRENT_OWNER_BACKED_CI_FAILURE",
+        "existing_rule": "Reproducible Polygon failures route through existing BDP -> Candidate -> OMP repair and affected replay owners.",
+        "current_outcome": "SEMANTIC_SELECTIVE_GATE_FAILED",
+        "expected_outcome": "SAME_SEMANTIC_SELECTIVE_GATE_REPLAY_PASS",
+        "intent_closure_state": "AUTOMATION_BREAK",
+        "owner": "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING",
+        "producer": "V7_POLYGON_DESIGN_TIME_GITHUB_WORKFLOW",
+        "consumer": "OMP_CANDIDATE_ADMISSION",
+        "evidence": (
+            f"workflow={metadata['workflow']};job={metadata['job']};step={metadata['step']};"
+            f"run_id={metadata['run_id']};head_sha={metadata['head_sha']};log_sha256={log_fingerprint}"
+        ),
+        "implementation_scope": "existing failing source, Polygon harness/oracle/binding owner, workflow and focused tests",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "dependencies": "EXISTING_CONTRACTS_READY",
+        "verification": "Focused reproduction, exact semantic-selective gate replay, forbidden-effects check, truth and convergence.",
+        "verification_context": "GitHub Actions engineering plane; evidence artifact only; CPS remains the live truth owner.",
+        "rollback": "Revert the bounded owner repair and retain the original red gate evidence.",
+        "authority": "EXISTING_ENGINEERING_PLANE_AUTHORITY",
+        "authority_context": "No Runtime, routing, user, production-policy or Authority mutation.",
+        "terminal_path": "EXACT_FAILED_GATE_REPLAY_PASS_OR_EXACT_EXTERNAL_BOUNDARY",
+        "implementation_readiness": "IMPLEMENTATION_READY",
+        "omp_consumer": "OMP_CANDIDATE_ADMISSION",
+        "codex_readiness": "CODEX_READY_WITH_LIMITS",
+        "new_owner_required": False,
+        "new_architecture_required": False,
+    }
+    frontiers: list[dict[str, Any]] = []
+    for signature in signatures:
+        gap = dict(gap_template)
+        gap["primary_class"] = (
+            "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT"
+            if signature["mismatch_class"] == "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT"
+            else "OWNER_BACKED_CI_FAILURE_INVESTIGATION"
+        )
+        gap["secondary_classes"] = [signature["failure_class"]]
+        gap["engineering_chain_segment"] = signature["engineering_chain_segment"]
+        gap["automation_break"] = signature["failure_class"]
+        gap["owner"] = (
+            "LAST_RESPONSIBLE_REAL_SOURCE_OWNER"
+            if signature["mismatch_class"] == "REPRODUCIBLE_V7_REAL_SOURCE_DEFECT"
+            else "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING"
+        )
+        frontiers.append(
+            bdp_development_impulse_from_cps(cps_text, engineering_gaps=[gap])
+            if not errors else {}
+        )
+    accepted = all((
+        not errors,
+        bool(frontiers),
+        all(row.get("final_verdict") == "PASS" for row in frontiers),
+        all(row.get("admission_decision") == "MISSION_ACCEPTED" for row in frontiers),
+        all(row.get("mission_created") is True for row in frontiers),
+    ))
+    candidate_ids = [
+        str((row.get("candidate") or {}).get("candidate_instance_id") or "NONE")
+        for row in frontiers
+    ]
+    mission_ids = [
+        str((row.get("admission") or {}).get("mission_id") or "NONE")
+        for row in frontiers
+    ]
+    return {
+        "schema": "v7.polygon-ci-failure-repair-frontier.v1",
+        "source_evidence": {**metadata, "log_sha256": log_fingerprint},
+        "classification": signatures,
+        "mismatch_classification": mismatch_results,
+        "repair_frontier_status": "OMP_REPAIR_FRONTIER_MATERIALIZED" if accepted else "STOP_SAFE",
+        "repair_frontiers": frontiers,
+        "candidate_instance_ids": candidate_ids,
+        "mission_ids": mission_ids,
+        "real_consumer": "OMP_CANDIDATE_ADMISSION",
+        "consumer_invoked": bool(frontiers),
+        "same_failure_identity_is_deterministic": accepted,
+        "github_artifact_is_evidence_not_truth": True,
+        "cps_mutated": False,
+        "new_registry": False,
+        "new_watcher": False,
+        "new_queue": False,
+        "forbidden_effects": {
+            "runtime_mutation": False, "production_mutation": False,
+            "routing_mutation": False, "user_movement": False,
+            "packet_execution": False, "restore_barrier_write": False,
+            "rollback_apply": False, "authority_expansion": False,
+            "production_maturity_credit": False,
+        },
+        "next_output": (
+            "EXECUTE_ADMITTED_OMP_REPAIR_MISSIONS_THEN_REPLAY_SAME_GATE"
+            if accepted else "STOP_SAFE"
+        ),
+        "final_verdict": "PASS" if accepted else "STOP_SAFE",
+        "errors": sorted(set(
+            errors + [error for row in frontiers for error in (row.get("errors") or ())]
+        )),
     }
 
 

@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-20T02:39:00+07:00
+State captured: 2026-07-20T09:45:00+07:00
 Latest terminal Mission: `V7_L7_L8_R1_V3_REPEATED_STOP_SAFE_AND_EXACT_RUNTIME_TRUTH_REPAIR_V1`
 Latest terminal Mission state: `R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE_REPAIR_DEPLOYED`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: Fresh v3 was automatically admitted and consumed once, then repeated the repaired blocker fingerprint before apply; exact cleanup passed, the canonical runtime-state reader defects were repaired, tested and safely deployed, and the standing policy now requires ENGINEERING_AUTHORITY before any fresh controlled request.
+Source: Distinct deployed repair generation and production read-only preflight admitted one exact fresh v4 foreground controlled verification; no production mutation occurred during admission.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-20T02:39:00+07:00`
+Captured: `2026-07-20T09:45:00+07:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,35 +28,35 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
-| `CURRENT_ACTIVE_SCOPE` | `L7_CONTROLLED_ROLLBACK_R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE` |
-| `CURRENT_SAFE_NEXT_ACTION` | `DO NOT REISSUE OR RETRY; PRESERVE PASSIVE L8 CAPTURE AND WAIT FOR AN INDEPENDENT ENGINEERING AUTHORITY DECISION` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_ACTIVE_SCOPE` | `L7_CONTROLLED_ROLLBACK_REPAIR_GENERATION_R1_V4_READY` |
+| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE EXACT FRESH ONE-USE REQUEST engauth_r1_220b4498e31ff22aa905b06c THROUGH THE FOREGROUND CONTROLLED-PRODUCTION OWNER; CLEAN UP ON EVERY TERMINAL` |
 | `CURRENT_SCOPE_CLASS` | `PRODUCTION_CERTIFICATION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_L7_L8_R1V3_REPEAT_STOP_D5A3338F8023` |
-| `CURRENT_TRANSITION_ID` | `L7_L8_R1V3_CONSUMED_REPEAT_BLOCKER_TO_ENGINEERING_AUTHORITY_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_L7_L8_R1V4_6D602D0C53E7` |
+| `CURRENT_TRANSITION_ID` | `L7_L8_R1V3_REPAIR_TO_REPAIR_GENERATION_ADMITTED_R1V4_EXECUTION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
-| `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; five eligible controlled Passports consumed; natural and rollback diversity remain incomplete` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; five eligible controlled Passports consumed; rollback diversity v4 frontier READY; natural evidence remains passive` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
 | `CURRENT_EXECUTION_FRONTIER` | `NONE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_ENGINEERING_AUTHORITY` |
+| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `ENGINEERING_AUTHORITY_REPEATED_BLOCKER_FINGERPRINT` |
-| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
-| `TRANSACTION_TERMINAL_CLASS` | `CONSUMED_STOP_SAFE_BEFORE_APPLY` |
-| `PROGRAM_TERMINAL_CLASS` | `ENGINEERING_AUTHORITY` |
-| `NEXT_MISSION_FORMED` | `FALSE` |
-| `NEXT_MISSION_ID` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_READY_FOR_EXACT_REPAIR_GENERATION_FOREGROUND_TRANSACTION` |
+| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE` |
+| `TRANSACTION_TERMINAL_CLASS` | `READY_NOT_STARTED` |
+| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `V7_L7_REPAIR_GENERATION_AWARE_AUTHORITY_AND_CONTROLLED_ROLLBACK_PRODUCTION_VERIFICATION_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `66` |
-| `CONTINUATION_STOP_REASON` | `REPEATED_BLOCKER_FINGERPRINT_STOP_SAFE; same fingerprint d5a3338f8023562d9d803231eaf035d99d13c6aea0eaa528c552650b6a06cad1 recurred after repair` |
-| `NO_PROGRESS_FINGERPRINT` | `c20aba0da77575081e9fd61522d6dc9b249972057412ffa044f6d3ddfc95fe3c` |
+| `CONTINUATION_ITERATION` | `67` |
+| `CONTINUATION_STOP_REASON` | `R1_V4_REPAIR_GENERATION_PREFLIGHT_READY` |
+| `NO_PROGRESS_FINGERPRINT` | `6d602d0c53e726485a69c9019bc99353528018c1623c2d837d63167013f689ea` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `3` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -106,44 +106,44 @@ This section is the single live volatile current-state surface. Older production
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
 | `AEP_PHASE_6_STATUS` | `ACTIVE_MULTI_LANE_CERTIFICATION` |
-| `PHASE_6_CERTIFICATION_STATUS` | `FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; v3 created no L7 evidence; evidence classes remain non-interchangeable` |
-| `PHASE_6_CURRENT_STEP` | `ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT; NATURAL_L8_CAPTURE_READY` |
-| `PHASE_6_CERTIFICATION_FRONTIER` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
+| `PHASE_6_CERTIFICATION_STATUS` | `FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; fresh v4 repair-generation one-use controlled rollback request admitted; evidence classes remain non-interchangeable` |
+| `PHASE_6_CURRENT_STEP` | `EXECUTE_R4_V4_CONTROLLED_ROLLBACK_TRANSACTION; NATURAL_L8_CAPTURE_READY` |
+| `PHASE_6_CERTIFICATION_FRONTIER` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
 | `PHASE_6_ACTIVE_ACTION_CLASS` | `single-user governed candidate failover` |
-| `PHASE_6_CURRENT_REAL_SITUATION` | `NONE_CURRENT; latest bounded controlled situation completed as outpass_57779380ae119a2932498de8; no fresh genuine Candidate exists` |
+| `PHASE_6_CURRENT_REAL_SITUATION` | `R1_V4 exact one-use repair-generation request admitted after clean production preflight; fresh Situation, Candidate, Packet and lease must be materialized only by the foreground owner at execution` |
 | `PHASE_6_CURRENT_CANDIDATE` | `NONE` |
 | `PHASE_6_CURRENT_PACKET` | `NONE` |
 | `PHASE_6_CURRENT_LEASE` | `NONE` |
 | `PHASE_6_INTERPRETATION_STATUS` | `ONE_ELIGIBLE_CONTROLLED_PASSPORT_COMPLETE; older supporting projections retain exact interpretation gaps` |
 | `PHASE_6_DECISION_CERTIFICATION_STATUS` | `ONE_COMPLETE_DECISION_TRACE_SNAPSHOT_REPLAY_CHAIN; representative class evidence remains insufficient` |
-| `PHASE_6_RUNTIME_ELIGIBILITY` | `NO_CURRENT_ELIGIBLE_ACTION; approved policy remains bounded to one user and one serial transaction` |
-| `PHASE_6_AUTHORITY_STATUS` | `INSIDE_EXISTING_POLICY_IF_ALL_LIVE_GATES_PASS; no expansion requested or granted` |
+| `PHASE_6_RUNTIME_ELIGIBILITY` | `EXACT_R1_V4_FOREGROUND_TRANSACTION_READY; one certification user and one serial transaction; all live gates must be reread` |
+| `PHASE_6_AUTHORITY_STATUS` | `APPROVE_ONCE_AS_SCOPED_FOR_EXACT_R1_V4_REPAIR_GENERATION; no expansion requested or granted; same generation retry forbidden` |
 | `PHASE_6_ROLLBACK_CERTIFICATION` | `ONE_NEW_ELIGIBLE_NO_ROLLBACK_SUCCESS; representative rollback-and-no-rollback cell remains open` |
 | `PHASE_6_VERIFICATION_STATUS` | `ONE_ELIGIBLE_CONTROLLED_PASSPORT_IMMEDIATE_5M_1H_STEADY_STATE_REPLAY_PASS; not class approval` |
 | `PHASE_6_OUTCOME_STATUS` | `ONE NEW ELIGIBLE CONTROLLED SUCCESS; 18 owner records collapsed to outpass_57779380ae119a2932498de8; older supporting projections preserved` |
 | `PHASE_6_LEARNING_STATUS` | `learn_7fe115732d2495a0eec80673 CONSUMED; immutable set remains insufficient for representative calibration` |
 | `PHASE_6_CAPABILITY_ADVANCEMENT` | `PARTIAL_ADVANCEMENT; complete_temporal_and_replay and controlled_production_present closed; CAP-U07 and dependent capabilities remain incomplete` |
 | `PHASE_6_PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; owner value remains 66.9/100 and Production Autonomy remains 0` |
-| `PHASE_6_PENDING_EXTERNAL_INPUT` | `independent Engineering Authority for certification pool/deliberate condition, fresh genuine delegated-policy Candidate, or qualifying natural event` |
-| `PHASE_6_EXACT_STOP` | `ENGINEERING_AUTHORITY_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE` |
-| `PHASE_6_EXACT_NEXT_ACTION` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
-| `PHASE_6_REENTRY_CONDITIONS` | `new independent Engineering Authority decision after repeated blocker fingerprint; qualifying natural event` |
+| `PHASE_6_PENDING_EXTERNAL_INPUT` | `NONE_FOR_EXACT_R1_V4_CONTROLLED_TRANSACTION; qualifying natural event remains the separate passive L8 input` |
+| `PHASE_6_EXACT_STOP` | `NONE_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE` |
+| `PHASE_6_EXACT_NEXT_ACTION` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `PHASE_6_REENTRY_CONDITIONS` | `execute exact fresh v4 foreground transaction; qualifying natural event` |
 | `PHASE_7_UNLOCK_STATUS` | `ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE; PRODUCTION_AUTHORITY_EVOLUTION_LOCKED` |
 | `PHASE_6_STATUS` | `PHASE_6_PRODUCTION_CERTIFICATION_MULTI_LANE_ACTIVE` |
-| `PHASE_6_GLOBAL_STATUS` | `R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE; EXACT_REPAIR_DEPLOYED; NATURAL_L8_CAPTURE_READY` |
+| `PHASE_6_GLOBAL_STATUS` | `R1_V4_REPAIR_GENERATION_PREFLIGHT_READY_FOR_ONE_FOREGROUND_CONTROLLED_TRANSACTION; NATURAL_L8_CAPTURE_READY` |
 | `PHASE_6A_SCENARIO_STATUS` | `SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION; V1-V4 64/64 corpus covered` |
 | `PHASE_6A_SCENARIO_FRONTIER` | `NONE; no current owner-backed scenario obligation` |
 | `PHASE_6A_NEXT_SCENARIO_ID` | `NONE` |
 | `PHASE_6A_NEXT_ACTION` | `REENTER_ONLY_ON_NEW_OWNER_BACKED_OBLIGATION` |
 | `PHASE_6A_EVIDENCE_CLASS` | `ENGINEERING_SCENARIO_EVIDENCE; no natural or maturity credit` |
-| `PHASE_6B_CONTROLLED_STATUS` | `FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; R1_V3_CONSUMED_STOP_SAFE; NO_AUTO_REISSUE` |
-| `PHASE_6B_CONTROLLED_FRONTIER` | `STOPPED:REPEATED_BLOCKER_FINGERPRINT_ENGINEERING_AUTHORITY` |
-| `PHASE_6B_NEXT_ACTION` | `REQUEST_EXACT_CERTIFICATION_POOL_OR_DELIBERATE_CONDITION_ENGINEERING_AUTHORITY` |
-| `PHASE_6B_AUTHORITY_STATUS` | `CURRENT_POLICY_UNCHANGED; COMPLETED TRANSACTION INSIDE POLICY; NEXT DELIBERATE CONDITION REQUIRES INDEPENDENT AUTHORITY` |
+| `PHASE_6B_CONTROLLED_STATUS` | `FIVE_ELIGIBLE_CONTROLLED_PASSPORTS_CONSUMED; R1_V4_REPAIR_GENERATION_ADMITTED_READY` |
+| `PHASE_6B_CONTROLLED_FRONTIER` | `READY:DELIBERATE_CONTROLLED_ROLLBACK_CONDITION_R1_V4` |
+| `PHASE_6B_NEXT_ACTION` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `PHASE_6B_AUTHORITY_STATUS` | `EXACT_R1_V4_ONE_USE_DECISION_RESOLVED; repair generation c5563d40589cba98c2c8795f2c0338fb92eaaf1c; no approval reuse or Authority expansion` |
 | `PHASE_6C_NATURAL_STATUS` | `CAPTURE_READY_WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE` |
 | `PHASE_6C_NATURAL_REENTRY_CONDITION` | `new material non-synthetic natural outcome with complete situation, Decision Trace, feedback and learning chain` |
-| `PHASE_6_EXECUTABLE_FRONTIER` | `NONE` |
-| `PHASE_6_GLOBAL_STOP` | `ENGINEERING_AUTHORITY` |
+| `PHASE_6_EXECUTABLE_FRONTIER` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `PHASE_6_GLOBAL_STOP` | `NONE` |
 | `PHASE_7_ENGINEERING_EVOLUTION_STATUS` | `PERMANENT_POLYGON_ACTIVE_FOR_SAFE_PREPARATION_AND_CAPTURE_REPAIR` |
 | `PHASE_7_PRODUCTION_AUTHORITY_STATUS` | `GOVERNED_ONLY_LOCKED_BY_INSUFFICIENT_EVIDENCE` |
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
@@ -173,7 +173,7 @@ This section is the single live volatile current-state surface. Older production
 | `ACTIVE_SCENARIO_MISSION` | `NONE` |
 | `SCENARIO_BUDGET` | `10` |
 | `SCENARIO_STOP_REASON` | `SCENARIO_FRONTIER_EXHAUSTED; current frontier is an owner-backed controlled-production Mission, not a Polygon scenario` |
-| `FSSE_NEXT_ACTION` | `PRESERVE_POLYGON_REENTRY_BOUNDARY; CURRENT PROGRAM NEXT IS L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT` |
+| `FSSE_NEXT_ACTION` | `PRESERVE_POLYGON_REENTRY_BOUNDARY; CURRENT PROGRAM NEXT IS EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
@@ -194,7 +194,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; repeated blocker fingerprint forbids automatic reissue` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; exact v4 request engauth_r1_220b4498e31ff22aa905b06c resolved APPROVE_ONCE_AS_SCOPED by repair-generation policy engrepair_b2d67919a41e64803b41e44a; same generation reuse forbidden` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -218,13 +218,13 @@ This section is the single live volatile current-state surface. Older production
 | `L7_L8_AE_M2_RESIDUAL` | `FIVE TEMPORALLY COMPLETE; immediate, 5m, 1h and steady-state PASS` |
 | `L7_L8_AE_M3_RESIDUAL` | `FIVE REPLAY COMPLETE; Decision Trace, bound snapshot, expected/actual terminal and NO_DRIFT PASS` |
 | `L7_L8_AE_M4_M8_STATUS` | `M4 CALIBRATION FLOOR COMPLETE; M5 CAPTURE READY REAL_WORLD_LIMIT; M6 INSUFFICIENT_EVIDENCE; M7 COMPLETE_CONSUMED_INSUFFICIENT_EVIDENCE; M8 MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT` |
-| `L7_L8_AE_CURRENT_CYCLE_REPORT` | `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md` |
-| `L7_L8_AE_CURRENT_CYCLE_TERMINAL` | `R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE_REPAIR_DEPLOYED` |
+| `L7_L8_AE_CURRENT_CYCLE_REPORT` | `docs/reports/engineering/2026-07-20_094500_l7_repair_generation_v4_preflight_and_admission.md` |
+| `L7_L8_AE_CURRENT_CYCLE_TERMINAL` | `R1_V4_REPAIR_GENERATION_PREFLIGHT_READY` |
 | `L7_L8_AE_IMMUTABLE_ELIGIBILITY_SET` | `outset_428a4e2ff440ed64bde5cb56; eligible passports 5; CONTROLLED_PRODUCTION SUCCESS` |
 | `L7_L8_AE_AUTHORITY_RECOMMENDATION` | `INSUFFICIENT_EVIDENCE; current GOVERNED_ONLY scope retained; M8 independent approval not opened` |
 | `L7_L8_AE_EXACT_MISSING_CELLS` | `natural_production_present; rollback_and_no_rollback_present` |
-| `L7_L8_AE_NEXT_REENTRY` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
-| `L7_L8_AE_FORBIDDEN_EFFECTS` | `PASS; v3 apply NONE; users moved NONE; rollback NONE; exact cleanup Engineering Evidence only; Authority expansion NONE; Production Maturity NO_CHANGE_66_9` |
+| `L7_L8_AE_NEXT_REENTRY` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `L7_L8_AE_FORBIDDEN_EFFECTS` | `PASS_AT_ADMISSION; apply NONE; users moved NONE; rollback NONE; approval reuse NONE; Authority expansion NONE; Production Maturity NO_CHANGE_66_9` |
 | `COMPLETE_ROUTING_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-11_201307_complete_routing_decision_execution_promotion_lifecycle_closure.md` |
 | `COMPLETE_ROUTING_LIFECYCLE_DEPLOY` | `commit 167fcb96465aaecba6e4611299422dae1f6e1f5c; deploy-z8-14-Updatesystem-167fcb9-20260711T201042; truth FULLY_ALIGNED` |
 | `ROUTING_READINESS_STATE` | `PASS_CANDIDATE_SCOPED; global inventory diagnostics are advisory_only and no longer cross-scope blockers` |
@@ -246,18 +246,18 @@ This section is the single live volatile current-state surface. Older production
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_MISSION_REPORT` | `docs/reports/engineering/2026-07-11_174531_current_class_outcome_closure_and_omp_continuation.md`; `SUPERSEDED/HISTORICAL` evidence only. |
 | `HISTORICAL_PHASE4A_ATTEMPTS` | `30 bounded churn/stability cycles plus later binding revalidations; SUPERSEDED/HISTORICAL; no mutation` |
 | `CURRENT_CLASS_CANDIDATE_SELECTED` | `NONE_OPEN` |
-| `CURRENT_CLASS_OUTCOME` | `NONE_R1_V3_STOP_SAFE_BEFORE_APPLY; five prior eligible controlled outcomes retained` |
+| `CURRENT_CLASS_OUTCOME` | `NONE_V4_READY_NOT_STARTED; five prior eligible controlled outcomes retained` |
 | `CURRENT_CLASS_OUTCOME_EVIDENCE` | `outpass_57779380ae119a2932498de8; runtime_autoswitch_3fbda1bafa1cd40b251555b0; 10.0.0.3 awg3 -> vless; SUCCESS` |
 | `VERIFICATION_RESULT` | `PASS; immediate, delayed 5m, delayed 1h, steady-state and deterministic replay all complete` |
 | `ROLLBACK_RESULT` | `NOT_REQUIRED; bounded transaction verified SUCCESS and terminal safe mode OPEN` |
 | `LEARNING_RESULT` | `PASS; learn_7fe115732d2495a0eec80673 consumed by existing Learning owner` |
-| `PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; 66.9/100; calibration floor is not a promotion threshold and representative cells remain open` |
+| `PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; 66.9/100; admission and preflight create no evidence credit` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `PARTIAL; rollback_and_no_rollback_present and natural_production_present remain open` |
-| `AUTOMATIC_CONTINUE_OMP_RESULT` | `REPEATED_BLOCKER_FINGERPRINT_STOP_SAFE; NO_AUTO_REISSUE` |
+| `AUTOMATIC_CONTINUE_OMP_RESULT` | `R1_V4_REPAIR_GENERATION_PREFLIGHT_READY` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
-| `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO_V3_NOT_YET_CONSUMED; v2 consumed STOP_SAFE and is not reusable` |
-| `CERTIFICATION_TRANSACTION_EXECUTED` | `NO_V3_READY_NOT_STARTED` |
+| `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `NO_V4_NOT_YET_CONSUMED; v3 consumed STOP_SAFE and is not reusable` |
+| `CERTIFICATION_TRANSACTION_EXECUTED` | `NO_V4_READY_NOT_STARTED` |
 | `MATERIAL_DECISION_CHURN_ROOT_CAUSE` | `MULTIPLE_ROOT_CAUSES: real material recommendation transitions plus overbroad whole-file source binding, volatile non-material candidate identity and refresh-time producer contention` |
 | `MATERIAL_DECISION_CHURN_CLOSURE` | `INTENT_CLOSED; Decision Replay PASS; false invalidation removed; material invalidation preserved` |
 | `MATERIAL_DECISION_CHURN_DEPLOY_COMMIT` | `62015c156fa2a528b36bdbfb3847f3b9f9ee57c2` |
@@ -302,18 +302,18 @@ This section is the single live volatile current-state surface. Older production
 | `SNAPSHOT_BUNDLE_BINDING` | `CERTIFIED` |
 | `POST_CLOSED_REVALIDATION` | `CERTIFIED` |
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
-| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; v3 request consumed and non-reusable; v4 not admitted` |
-| `OMP_CONTROLLED_RUN_ALLOWED` | `NO; repeated blocker fingerprint requires independent ENGINEERING_AUTHORITY before any fresh request` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `ENGINEERING_AUTHORITY` |
+| `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `YES_EXACT_ONE_USE_V4_AFTER_FRESH_SETUP_GATES; same generation retry forbidden` |
+| `OMP_CONTROLLED_RUN_ALLOWED` | `YES_EXACT_ONE_USE_V4_FOREGROUND_TRANSACTION_ONLY` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
-| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `YES_ENGINEERING_AUTHORITY; automatic repair continuation policy stopped on repeated fingerprint` |
-| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `NOT_CLOSED; v3 produced no material L7 outcome and automatic reissue is stopped by repeated blocker fingerprint` |
-| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; CAP-U07 has one eligible controlled Passport but L8 and representative coverage remain insufficient` |
+| `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_FURTHER_INPUT; exact R1 v4 decision resolved by policy engrepair_b2d67919a41e64803b41e44a` |
+| `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_OPEN_FOR_EXACT_V4_FOREGROUND_TRANSACTION` |
+| `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED; rollback diversity and natural evidence remain incomplete` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `FOUR_BOUNDED_CONTROLLED_TRANSACTIONS_COMPLETE; final Admin Safe Mode OPEN; no background Runtime enablement` |
+| `PRODUCTION_RUNTIME_IMPACT` | `NONE_AT_ADMISSION` |
 | `AUTHORITY_IMPACT` | `NONE` |
-| `ROUTING_IMPACT` | `four dedicated certification users moved from the controlled source to verified healthy targets; each exact route verification PASS` |
-| `USER_MOVEMENT` | `YES; four additional owner-authorized bounded controlled user movements plus their engineering setup movements` |
+| `ROUTING_IMPACT` | `NONE_AT_ADMISSION` |
+| `USER_MOVEMENT` | `NO_AT_ADMISSION` |
 | `SECRET_HANDLING` | Runtime/server/admin credentials must not be written to repository files, reports, prompts, logs, or commits. |
 | `ACTION_CLASS_CERTIFICATION_STATE` | `SUPPORTING_ONLY_INCOMPLETE_CURRENT_EVIDENCE` |
 | `AUTHORITY_RECOMMENDATION_STATE` | `INSUFFICIENT_EVIDENCE` |
@@ -322,16 +322,16 @@ This section is the single live volatile current-state surface. Older production
 | `DELEGATED_POLICY_STATE` | `APPROVED_EXISTING_SCOPE_UNCHANGED; SELF_EXPANSION_FORBIDDEN` |
 | `EXACT_REENTRY_TRIGGERS` | `INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT; QUALIFYING_NATURAL_EVENT` |
 | `PRODUCTION_CAPABILITY_FRONTIER` | `NONE` |
-| `POLYGON_OBLIGATION_FRONTIER` | `WAITING_ENGINEERING_AUTHORITY` |
-| `POLYGON_MISSION_FRONTIER` | `NONE_ENGINEERING_AUTHORITY_BOUND` |
+| `POLYGON_OBLIGATION_FRONTIER` | `READY` |
+| `POLYGON_MISSION_FRONTIER` | `ADMITTED_READY_FOR_DISPATCH:V7_L7_REPAIR_GENERATION_AWARE_AUTHORITY_AND_CONTROLLED_ROLLBACK_PRODUCTION_VERIFICATION_V1` |
 | `L7_L8_PROGRAM_MISSION_FRONTIER` | `READY:L7L8-AE-M1-OUTCOME-EVIDENCE-PASSPORT` |
-| `ACTIVE_EXECUTION_FRONTIER` | `NONE` |
+| `ACTIVE_EXECUTION_FRONTIER` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
 | `EXTERNAL_REENTRY_FRONTIER` | `NONE` |
-| `PHASE_6_ENGINEERING_STOP` | `ENGINEERING_AUTHORITY` |
-| `PHASE_6_CONTROLLED_LANE_STOP` | `ENGINEERING_AUTHORITY` |
+| `PHASE_6_ENGINEERING_STOP` | `NONE` |
+| `PHASE_6_CONTROLLED_LANE_STOP` | `NONE` |
 | `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT` |
-| `GLOBAL_ENGINEERING_STOP` | `ENGINEERING_AUTHORITY` |
-| `ENGINEERING_PROGRAM_STATUS` | `R1_V3_REPEATED_BLOCKER_STOP_SAFE_REPAIR_DEPLOYED_ENGINEERING_AUTHORITY_BOUND_AND_L8_CAPTURE_READY` |
+| `GLOBAL_ENGINEERING_STOP` | `NONE` |
+| `ENGINEERING_PROGRAM_STATUS` | `L7_R1_V4_REPAIR_GENERATION_CONTROLLED_VERIFICATION_ADMITTED_READY` |
 | `ENVIRONMENT_ALIGNMENT_STATUS` | `FULLY_ALIGNED; local/GitHub equal; production runtime binaries match authoritative source; docs-only commit delta accepted by canonical truth model` |
 | `PRODUCTION_ROUTING_AUTONOMY_STATUS` | `NOT_CLAIMED` |
 | `AUTHORITY_PROMOTION_STATUS` | `NONE` |
@@ -348,7 +348,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-20T02:39:00+07:00`
+Generated At: `2026-07-20T09:45:00+07:00`
 
 Runtime Authority: `NONE`
 
@@ -361,10 +361,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_L7_L8_R1V3_REPEAT_STOP_D5A3338F8023` |
-| `CURRENT_TRANSITION_ID` | `L7_L8_R1V3_CONSUMED_REPEAT_BLOCKER_TO_ENGINEERING_AUTHORITY_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
-| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_L7_L8_R1V4_6D602D0C53E7` |
+| `CURRENT_TRANSITION_ID` | `L7_L8_R1V3_REPAIR_TO_REPAIR_GENERATION_ADMITTED_R1V4_EXECUTION_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -382,8 +382,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | preserve passive L8 capture and CAP-U07 WIP; resume only from exact R2 verdict for engauth_r1_f89460c18394f8fee79c9724; prior request is consumed and non-reusable |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
+| `OMP_CONTINUATION_POINTER` | Execute only the exact v4 repair-generation transaction, then consume its legal terminal and recompute the two remaining evidence cells |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4; preserve five Passports, passive L8 capture and CAP-U07 WIP` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -392,9 +392,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_L7_L8_R1V3_REPEAT_STOP_D5A3338F8023` |
-| `current_transition_id` | `L7_L8_R1V3_CONSUMED_REPEAT_BLOCKER_TO_ENGINEERING_AUTHORITY_V1` |
-| `smallest_existing_next_action_id` | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` |
+| `current_state_generation` | `cpsgen_V7_L7_L8_R1V4_6D602D0C53E7` |
+| `current_transition_id` | `L7_L8_R1V3_REPAIR_TO_REPAIR_GENERATION_ADMITTED_R1V4_EXECUTION_V1` |
+| `smallest_existing_next_action_id` | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `V7_L7_L8_R1_V3_REPEATED_STOP_SAFE_AND_EXACT_RUNTIME_TRUTH_REPAIR_V1` |
@@ -405,13 +405,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `ENGINEERING_AUTHORITY_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE` |
+| `current_primary_stop` | `NONE_CONTROLLED_LANE; REAL_WORLD_LIMIT_NATURAL_LANE` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; exact fresh one-use v3 request engauth_r1_5ecff8aa38fd049d142a030a resolved APPROVE_ONCE_AS_SCOPED by policy engrepair_fe6a2c49ae391f397330274a` |
+| `authority_required_now` | `NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; exact v4 request engauth_r1_220b4498e31ff22aa905b06c resolved APPROVE_ONCE_AS_SCOPED by policy engrepair_b2d67919a41e64803b41e44a; same generation reuse forbidden` |
 | `last_responsible_link` | real governed U01 outcome -> existing feedback/learning consumer -> future recommendation evidence |
 | `responsible_owners` | Existing feedback, decision-outcome learning, Production Maturity, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT; preserve passive L8 capture and CAP-U07 WIP |
+| `smallest_existing_next_action` | EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4; preserve five Passports, passive L8 capture and CAP-U07 WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -479,7 +479,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_L7_L8_R1V3_REPEAT_STOP_D5A3338F8023`; `L7_L8_R1V3_CONSUMED_REPEAT_BLOCKER_TO_ENGINEERING_AUTHORITY_V1` | v3 consumed STOP_SAFE; repeated blocker fingerprint d5a3338f8023562d9d803231eaf035d99d13c6aea0eaa528c552650b6a06cad1; exact cleanup PASS; repair commit 88ec9ab1e2009de6454fe465f033b84b7957bd1a deployed; next scenario NONE | `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT` | Controlled Production Certification Program existing owner | `ENGINEERING_AUTHORITY` | independent Engineering Authority decision or unchanged safe terminal; no automatic v4 request |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_L7_L8_R1V4_6D602D0C53E7`; `L7_L8_R1V3_REPAIR_TO_REPAIR_GENERATION_ADMITTED_R1V4_EXECUTION_V1` | v3 repeated blocker consumed STOP_SAFE; distinct repair generation deployed; v4 request owner-validated; production read-only preflight PASS | `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4` | EXISTING_CONTROLLED_CERTIFICATION_ENGINEERING_AUTHORITY_OUTCOME_LEARNING_AND_OMP_OWNERS | `NONE` | SETUP ENGINEERING EVIDENCE -> ONE BOUNDED CONTROLLED TRANSACTION -> VERIFIER TERMINAL -> CLEANUP -> PASSPORT/LEARNING/REPLAY -> M6/M7 RECONCILIATION |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -547,7 +547,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `ENGINEERING_AUTHORITY`; current stop is `ENGINEERING_AUTHORITY`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R4_V4`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

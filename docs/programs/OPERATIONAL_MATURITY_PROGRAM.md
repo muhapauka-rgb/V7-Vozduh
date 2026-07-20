@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.46`
+Version: `4.47`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -13,6 +13,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
+Latest admitted continuation report: `docs/reports/engineering/2026-07-20_094500_l7_repair_generation_v4_preflight_and_admission.md` (`R1_V4_REPAIR_GENERATION_PREFLIGHT_READY`).
 Latest consumed report: `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md` (`R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE_REPAIR_DEPLOYED`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-20_020100_l7_l8_r1v2_stop_safe_repair_and_r1v3_automatic_admission.md` (`R1_V3_EXACT_SCOPE_REPAIR_CONTINUATION_AUTO_ADMITTED_READY`).
 Previous consumed report: `docs/reports/engineering/2026-07-20_011000_l7_l8_r2_consumed_stop_safe_and_r1_v2_reissue.md` (`R2_CONSUMED_STOP_SAFE_BEFORE_APPLY_R1_V2_REQUEST_PREPARED`).
@@ -74,6 +75,8 @@ V4.44 consumes the exact one-use R2 as `STOP_SAFE_BEFORE_APPLY`, without treatin
 V4.45 consumes the user's standing exact-scope repair-continuation directive without converting it into a reusable approval. After a one-use controlled request reaches a proven pre-apply `STOP_SAFE`, with zero apply, movement and rollback, exact cleanup, a distinct repaired blocker, focused tests, safe deploy and aligned truth, the existing admission owner may issue and resolve one fresh one-use request for the semantically identical subject, source, target, verifier condition, evidence cell and one-user blast radius. A repeated blocker fingerprint, scope drift, ambiguous state, failed cleanup, ordinary-user selection, direct rollback, failure injection, background Runtime or Authority expansion fails closed. Request v2 remains consumed and non-reusable; fresh v3 is admitted for one foreground transaction only. This rule removes repeated human confirmation for the same safely repaired process while preserving fresh Candidate, Packet, lease, nonce and audit identities on every attempt.
 
 V4.46 consumes the automatically admitted fresh v3 request exactly once. The transaction stopped before apply with zero movement and rollback, exact cleanup restored the certification subject and source, and no L7 credit was created. The repeated outer blocker fingerprint activated the standing policy's mandatory fail-closed terminal, so no v4 request is automatically issued and v3 is never retried. Root-cause resolution remains automatic engineering work: the exact verifier now reads mutable user assignment from `users.registry` and dynamic source lifecycle state from the existing `egress-flags.state` owner, with focused tests, safe deploy and production snapshot verification. Repeated production retries require an independent Engineering Authority decision; this does not weaken automatic continuation for a future distinct repaired blocker and creates no new Runtime, owner, queue, watcher, Authority, routing scope or Production Maturity credit.
+
+V4.47 admits one fresh controlled verification only after the existing Engineering Authority owner proves a distinct deployed repair generation for the same repeated blocker fingerprint. The current repair-generation identity binds commit `c5563d40589cba98c2c8795f2c0338fb92eaaf1c`, deploy `deploy-z8-14-Updatesystem-c5563d4-20260720T093542`, the deployed autoswitch binary hash, one exact certification subject/source/target, one verifier-triggered rollback condition and one transaction. A read-only production preflight must pass before setup; setup and cleanup remain Engineering Evidence only. The request, Packet, lease and nonce remain fresh and one-use, and the same repair generation can never be retried. L7 is `READY` only for this foreground bounded transaction; L8 remains passive capture-ready. No Authority expansion, background Runtime, direct rollback, failure injection, ordinary-customer evidence manufacture or Production Maturity credit is granted.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 

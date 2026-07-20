@@ -7082,7 +7082,20 @@ class AutoswitchPlanner:
             else self._runtime_source_hashes(from_disk=True)
         )
         current_source_bundle_hash = sha256_json(current_source_hashes)
-        current_runtime_snapshot_hash = self._runtime_snapshot_hash(selected_hash)
+        # Packet materialization binds an operation-scoped runtime snapshot to
+        # the normalized source identities, not to the raw registry bytes.
+        # Validate like-for-like here.  Raw/non-operation-scoped envelopes keep
+        # the original byte-level registry hash below, while the source bundle
+        # comparison independently remains fail-closed for semantic drift.
+        current_runtime_snapshot_hash = (
+            sha256_json({
+                "users_registry_hash": str(current_source_hashes.get("users_registry") or ""),
+                "egress_registry_hash": str(current_source_hashes.get("egress_registry") or ""),
+                "selected_move_hash": selected_hash,
+            })
+            if operation_scoped
+            else self._runtime_snapshot_hash(selected_hash)
+        )
         if envelope.get("source_bundle_hash") != current_source_bundle_hash:
             mismatches.append("source_bundle_hash")
         if operation_scoped and operation_binding.get("status") != "BOUND":

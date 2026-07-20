@@ -1,0 +1,20 @@
+{
+  "change_id": "V7-L7-OPERATION-SCOPED-RUNTIME-SNAPSHOT-BINDING-V1",
+  "objective": "Make the low-level atomic envelope consumer validate the same operation-scoped runtime snapshot identity produced by the approved Packet",
+  "acceptance_criteria": [
+    "operation-scoped source hashes use the same normalized identity at Packet production and apply validation",
+    "raw non-operation-scoped envelopes retain byte-level registry validation",
+    "semantic source drift remains fail-closed",
+    "no Authority, blast-radius, routing policy or evidence-class boundary changes"
+  ],
+  "changed_dependencies": [
+    "tools/v7-users-autoswitch"
+  ],
+  "semantic_change": true,
+  "baseline_identity": "d19b64d08adf79b8212295d51dfb0190aecfb58e",
+  "proposed_identity": "CURRENT_WORKSPACE",
+  "allowed_semantic_changes": [
+    "operation_scoped_runtime_snapshot_identity_alignment"
+  ],
+  "product_program": "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1"
+}

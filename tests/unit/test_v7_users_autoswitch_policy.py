@@ -442,6 +442,50 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(result["operation_scoped_binding"], operation_binding)
         switch.assert_not_called()
 
+    def test_operation_scoped_atomic_envelope_uses_semantic_runtime_snapshot_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--apply"]))
+            selected_hash = "operation-selected-hash"
+            source_hashes = {
+                key: f"semantic-{key}-hash"
+                for key in self.tool.operation_scoped_binding.SOURCE_KEYS
+            }
+            runtime_snapshot_hash = self.tool.sha256_json({
+                "users_registry_hash": source_hashes["users_registry"],
+                "egress_registry_hash": source_hashes["egress_registry"],
+                "selected_move_hash": selected_hash,
+            })
+            plan = {
+                "operation": {
+                    "selected_move_hash": selected_hash,
+                    "selected_move_count": 1,
+                },
+                "safety": {
+                    "atomic_execution_envelope": {
+                        "selected_move_hash": selected_hash,
+                        "selected_move_count": 1,
+                        "runtime_snapshot_hash": runtime_snapshot_hash,
+                        "source_bundle_hash": self.tool.sha256_json(source_hashes),
+                        "source_bundle": {"source_hashes": source_hashes},
+                    },
+                },
+            }
+            binding = {
+                "status": "BOUND",
+                "source_hashes": source_hashes,
+                "source_bundle_hash": self.tool.sha256_json(source_hashes),
+            }
+            with mock.patch.object(
+                planner, "_operation_scoped_source_binding", return_value=binding,
+            ):
+                validation = planner._validate_atomic_execution_envelope(plan)
+
+        self.assertTrue(validation["ok"])
+        self.assertEqual(validation["state"]["condition"], "ENVELOPE_VALID")
+        self.assertEqual(validation["current_runtime_snapshot_hash"], runtime_snapshot_hash)
+
     def test_execution_control_generation_change_stops_remaining_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

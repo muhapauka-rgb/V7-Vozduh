@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.47`
+Version: `4.48`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -14,7 +14,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-20_094500_l7_repair_generation_v4_preflight_and_admission.md` (`R1_V4_REPAIR_GENERATION_PREFLIGHT_READY`).
-Latest consumed report: `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md` (`R1_V3_CONSUMED_REPEATED_BLOCKER_STOP_SAFE_REPAIR_DEPLOYED`).
+Latest consumed report: `docs/reports/engineering/2026-07-20_102000_l7_r1_v4_consumed_stop_safe_and_runtime_snapshot_binding_repair.md` (`CONSUMED_STOP_SAFE_BEFORE_APPLY_REPAIR_READY_FOR_SAFE_DEPLOY`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-20_020100_l7_l8_r1v2_stop_safe_repair_and_r1v3_automatic_admission.md` (`R1_V3_EXACT_SCOPE_REPAIR_CONTINUATION_AUTO_ADMITTED_READY`).
 Previous consumed report: `docs/reports/engineering/2026-07-20_011000_l7_l8_r2_consumed_stop_safe_and_r1_v2_reissue.md` (`R2_CONSUMED_STOP_SAFE_BEFORE_APPLY_R1_V2_REQUEST_PREPARED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
@@ -77,6 +77,8 @@ V4.45 consumes the user's standing exact-scope repair-continuation directive wit
 V4.46 consumes the automatically admitted fresh v3 request exactly once. The transaction stopped before apply with zero movement and rollback, exact cleanup restored the certification subject and source, and no L7 credit was created. The repeated outer blocker fingerprint activated the standing policy's mandatory fail-closed terminal, so no v4 request is automatically issued and v3 is never retried. Root-cause resolution remains automatic engineering work: the exact verifier now reads mutable user assignment from `users.registry` and dynamic source lifecycle state from the existing `egress-flags.state` owner, with focused tests, safe deploy and production snapshot verification. Repeated production retries require an independent Engineering Authority decision; this does not weaken automatic continuation for a future distinct repaired blocker and creates no new Runtime, owner, queue, watcher, Authority, routing scope or Production Maturity credit.
 
 V4.47 admits one fresh controlled verification only after the existing Engineering Authority owner proves a distinct deployed repair generation for the same repeated blocker fingerprint. The current repair-generation identity binds commit `c5563d40589cba98c2c8795f2c0338fb92eaaf1c`, deploy `deploy-z8-14-Updatesystem-c5563d4-20260720T093542`, the deployed autoswitch binary hash, one exact certification subject/source/target, one verifier-triggered rollback condition and one transaction. A read-only production preflight must pass before setup; setup and cleanup remain Engineering Evidence only. The request, Packet, lease and nonce remain fresh and one-use, and the same repair generation can never be retried. L7 is `READY` only for this foreground bounded transaction; L8 remains passive capture-ready. No Authority expansion, background Runtime, direct rollback, failure injection, ordinary-customer evidence manufacture or Production Maturity credit is granted.
+
+V4.48 consumes v4 exactly once as `STOP_SAFE_BEFORE_APPLY`. The source bundle and exact operation-scoped identities matched, while only the redundant runtime snapshot hash mismatched because its Packet producer used normalized source identities and its low-level consumer used raw registry-file hashes. The existing consumer now validates operation-scoped snapshots like-for-like while raw envelopes retain byte-level binding and semantic source drift remains independently fail-closed. Focused tests and the full design-time Polygon affected-obligation campaign pass with every forbidden effect absent. V4, its Packet, lease and nonce remain non-reusable; only a safe deployed distinct repair generation may admit fresh v5 in the same exact scope. L7 receives no credit from this stop, L8 remains passive capture-ready, and Authority and Production Maturity do not change.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7863,9 +7865,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY` for the controlled lane after repeated blocker fingerprint; natural L8 lane remains `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT`
-Resolved request: `engauth_r1_5ecff8aa38fd049d142a030a` is consumed and non-reusable; no v4 request or Packet is admitted; passive L8 capture remains active
+Resolved current stop: `NONE`
+Resolved current next action: `DEPLOY_OPERATION_SCOPED_RUNTIME_SNAPSHOT_BINDING_REPAIR`
+Resolved request: `engauth_r1_220b4498e31ff22aa905b06c` is consumed and non-reusable; no v5 request or Packet is admitted before a distinct deployed repair generation; passive L8 capture remains active
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8851,10 +8853,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY` for the controlled lane after repeated blocker fingerprint; natural L8 lane remains `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_INDEPENDENT_ENGINEERING_AUTHORITY_AFTER_REPEATED_BLOCKER_FINGERPRINT`
-Current terminal report: `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md`
-Latest consumed report: `docs/reports/engineering/2026-07-20_023900_l7_l8_r1_v3_repeated_stop_safe_and_exact_state_repair.md`
+Resolved current stop: `NONE`
+Resolved current next action: `DEPLOY_OPERATION_SCOPED_RUNTIME_SNAPSHOT_BINDING_REPAIR`
+Current terminal report: `docs/reports/engineering/2026-07-20_102000_l7_r1_v4_consumed_stop_safe_and_runtime_snapshot_binding_repair.md`
+Latest consumed report: `docs/reports/engineering/2026-07-20_102000_l7_r1_v4_consumed_stop_safe_and_runtime_snapshot_binding_repair.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-20_020100_l7_l8_r1v2_stop_safe_repair_and_r1v3_automatic_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-07-20_011000_l7_l8_r2_consumed_stop_safe_and_r1_v2_reissue.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

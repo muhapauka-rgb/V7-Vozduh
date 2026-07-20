@@ -967,6 +967,85 @@ def controlled_engineering_authority_selection(
     }
 
 
+def controlled_certification_repair_preflight(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Read-only proof that a fresh repair-generation run can enter setup.
+
+    This deliberately validates the clean pre-state, before moving the
+    certification identity or activating the controlled source.  The exact
+    activated state is still re-read by the normal admission and autoswitch
+    verifier after setup.
+    """
+    request = read_json(Path(args.engineering_authority_request_file), {})
+    policy = read_json(Path(args.engineering_authority_repair_continuation_policy_file), {})
+    continuation = operator_execution.validate_engineering_authority_repair_continuation(policy, request)
+    decision = str(continuation.get("decision") or "")
+    request_validation = operator_execution.validate_engineering_authority_request(
+        request,
+        decision=decision,
+        expected_request_id=str(args.engineering_authority_request_id or ""),
+        expected_contract_hash=str(args.engineering_authority_contract_hash or ""),
+    )
+    blockers: list[str] = []
+    if not continuation.get("ok"):
+        blockers.extend(continuation.get("errors") or ["repair_continuation_invalid"])
+    if not request_validation.get("ok"):
+        blockers.extend(request_validation.get("errors") or ["engineering_authority_request_invalid"])
+
+    control = operator_execution.autonomous_execution_control_state(Path(args.execution_control_file))
+    if not control.get("valid") or control.get("state") != "OPEN":
+        blockers.append("autonomous_execution_control_not_open")
+    lease_state = operator_execution.execution_lease_state(operator_execution.load_execution_lease(lease_file))
+    if lease_state.get("active"):
+        blockers.append("active_execution_lease_exists")
+
+    subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    user = str(subject.get("user_ip") or "")
+    source = str(scope.get("source_egress") or "")
+    initial = str(subject.get("initial_egress") or "")
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    setup = controlled_certification_setup_selection(users=users, egress=egress, user=user, source=source)
+    if setup.get("selection_status") != "SELECTED":
+        blockers.extend(setup.get("blockers") or ["controlled_certification_setup_not_ready"])
+    user_rows = [row for row in users if str(row.get("ip") or "") == user]
+    if len(user_rows) == 1 and str(user_rows[0].get("current") or "") != initial:
+        blockers.append("certification_user_not_on_exact_initial_egress")
+    target_rows = [row for row in egress if str(row.get("id") or "") == initial]
+    if len(target_rows) != 1 or str(target_rows[0].get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+        blockers.append("exact_initial_egress_not_ready")
+
+    records = operator_execution.read_audit_records(audit_dir / "operator-execution-audit.jsonl")
+    if operator_execution.engineering_authority_replay_seen(records, str(request.get("request_id") or "")):
+        blockers.append("engineering_authority_request_already_consumed")
+    return {
+        "schema_version": "v7.controlled-certification-repair-preflight.v1",
+        "final_verdict": "CONTROLLED_CERTIFICATION_PREFLIGHT_READY" if not blockers else "STOP_SAFE",
+        "read_only": True,
+        "blockers": sorted(set(blockers)),
+        "request_id": str(request.get("request_id") or ""),
+        "contract_hash": str(request.get("contract_hash") or ""),
+        "repair_continuation": continuation,
+        "request_validation": request_validation,
+        "setup_selection": setup,
+        "execution_control": control,
+        "execution_lease_state": lease_state,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "restore_barrier_written_now": False,
+        "apply_executed": False,
+        "users_moved": 0,
+        "rollback_attempted": False,
+        "authority_expanded": False,
+    }
+
+
 def decision_records(state_dir: Path, event_dir: Path, audit_dir: Path) -> list[dict[str, Any]]:
     paths = [
         event_dir / "switch-history.jsonl",
@@ -2873,6 +2952,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--certification-source", default="")
     parser.add_argument("--cleanup-controlled-certification-condition", action="store_true")
     parser.add_argument("--confirm-controlled-certification-cleanup", default="")
+    parser.add_argument("--verify-controlled-certification-preflight", action="store_true")
     parser.add_argument("--engineering-authority-request-file", default="")
     parser.add_argument("--engineering-authority-decision", default="")
     parser.add_argument("--engineering-authority-request-id", default="")
@@ -2908,6 +2988,15 @@ def main(argv=None) -> int:
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    if args.verify_controlled_certification_preflight:
+        result = controlled_certification_repair_preflight(
+            args,
+            state_dir=state_dir,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "CONTROLLED_CERTIFICATION_PREFLIGHT_READY" else 2
     if args.prepare_controlled_certification_condition:
         result = prepare_controlled_certification_condition(
             args,

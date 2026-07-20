@@ -1,0 +1,22 @@
+{
+  "change_id": "V7-L7-REPAIR-GENERATION-AWARE-AUTHORITY-V1",
+  "objective": "Allow exactly one automatic controlled verification for each newly deployed repair generation while preserving anti-loop and exact-scope Authority",
+  "acceptance_criteria": [
+    "same fingerprint is allowed only for a distinct deployed repair generation",
+    "one attempt is allowed per repair generation",
+    "exact clean-prestate preflight is read-only",
+    "a repeat inside the same repair generation stops safe"
+  ],
+  "changed_dependencies": [
+    "admin_core/operator_execution.py",
+    "tools/v7-governed-canary-dry-run-cycle"
+  ],
+  "semantic_change": true,
+  "baseline_identity": "fc84c71ee53a8b0b865cdcdacce73b1dd0cf2d8c",
+  "proposed_identity": "CURRENT_WORKSPACE",
+  "allowed_semantic_changes": [
+    "repair_generation_aware_exact_scope_continuation",
+    "read_only_controlled_preflight"
+  ],
+  "product_program": "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1"
+}

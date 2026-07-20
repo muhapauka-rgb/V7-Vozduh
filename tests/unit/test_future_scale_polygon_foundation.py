@@ -205,7 +205,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
             sources["cps"], "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
-        controlled_frontier = live["PHASE_6B_CONTROLLED_FRONTIER"].strip("`")
+        controlled_frontier = live["POLYGON_OBLIGATION_FRONTIER"].strip("`")
         self.assertEqual(
             result["executable_program_frontier"],
             [f"PHASE6_ENGINEERING:{controlled_frontier}"],

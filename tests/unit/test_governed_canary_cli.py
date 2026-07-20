@@ -20,6 +20,71 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_repair_generation_preflight_is_read_only_and_requires_exact_clean_prestate(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            audit = root / "audit"
+            state.mkdir()
+            audit.mkdir()
+            users = state / "users.registry"
+            egress = state / "egress.registry"
+            users.write_text(
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            egress.write_text(
+                "id=controlled-source interface=wg-test enabled=1 state=enabled controlled_certification_source=1\n"
+                "id=vless interface=tun0 enabled=1 state=enabled\n",
+                encoding="utf-8",
+            )
+            request = root / "request.json"
+            policy = root / "policy.json"
+            request.write_text(json.dumps({
+                "request_id": "engauth_r1_fresh",
+                "contract_hash": "contract-fresh",
+                "subject": {
+                    "user_ip": "10.7.0.16",
+                    "initial_egress": "vless",
+                    "certification_user": True,
+                    "ordinary_customer": False,
+                },
+                "scope": {"source_egress": "controlled-source", "target_egress": "vless"},
+            }), encoding="utf-8")
+            policy.write_text("{}", encoding="utf-8")
+            args = argparse.Namespace(
+                engineering_authority_request_file=str(request),
+                engineering_authority_repair_continuation_policy_file=str(policy),
+                engineering_authority_request_id="engauth_r1_fresh",
+                engineering_authority_contract_hash="contract-fresh",
+                execution_control_file=str(root / "safe-mode.json"),
+            )
+            before_users = users.read_text(encoding="utf-8")
+            before_egress = egress.read_text(encoding="utf-8")
+            with mock.patch.object(module.operator_execution, "validate_engineering_authority_repair_continuation", return_value={
+                "ok": True, "errors": [], "decision": "APPROVE_ONCE_AS_SCOPED",
+            }), mock.patch.object(module.operator_execution, "validate_engineering_authority_request", return_value={
+                "ok": True, "errors": [], "request_id": "engauth_r1_fresh",
+            }), mock.patch.object(module.operator_execution, "autonomous_execution_control_state", return_value={
+                "valid": True, "state": "OPEN",
+            }), mock.patch.object(module.operator_execution, "load_execution_lease", return_value={}), mock.patch.object(
+                module.operator_execution, "engineering_authority_replay_seen", return_value=False,
+            ):
+                result = module.controlled_certification_repair_preflight(
+                    args,
+                    state_dir=state,
+                    audit_dir=audit,
+                    lease_file=state / "operator-execution-lease.json",
+                )
+
+            self.assertEqual(result["final_verdict"], "CONTROLLED_CERTIFICATION_PREFLIGHT_READY")
+            self.assertTrue(result["read_only"])
+            self.assertFalse(result["runtime_mutation_performed"])
+            self.assertEqual(result["users_moved"], 0)
+            self.assertEqual(users.read_text(encoding="utf-8"), before_users)
+            self.assertEqual(egress.read_text(encoding="utf-8"), before_egress)
+
     def test_exact_engineering_authority_activates_existing_bounded_service_verifier(self):
         module = load_cli_module()
 

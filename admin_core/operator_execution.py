@@ -588,9 +588,58 @@ def validate_engineering_authority_repair_continuation(policy, request, *, now=N
         errors.append("engineering_authority_repair_verification_missing")
     if str(previous.get("repair_commit") or "") != str(request.get("current_commit") or ""):
         errors.append("engineering_authority_repair_commit_binding_mismatch")
+    blocker_fingerprint = str(previous.get("blocker_fingerprint") or "")
     prior_fingerprints = {str(value) for value in (automatic.get("prior_repaired_blocker_fingerprints") or []) if str(value)}
-    if str(previous.get("blocker_fingerprint") or "") in prior_fingerprints:
-        errors.append("engineering_authority_repair_same_blocker_recurred")
+    repeated_fingerprint = blocker_fingerprint in prior_fingerprints
+    repair_generation = {
+        "repair_commit": str(previous.get("repair_commit") or ""),
+        "repair_deploy_id": str(previous.get("repair_deploy_id") or ""),
+        "repair_binary_sha256": str(previous.get("repair_binary_sha256") or ""),
+    }
+    if repeated_fingerprint:
+        # A blocker fingerprint describes the failed gate, not the deployed
+        # implementation which evaluated it.  The same fingerprint may be
+        # evaluated exactly once after a newer, independently proven repair
+        # generation.  This preserves the anti-loop boundary while avoiding a
+        # permanent deadlock where the final repair is deployed only after the
+        # one-use request has already been consumed.
+        if policy.get("repair_generation_aware") is not True:
+            errors.append("engineering_authority_repair_same_blocker_recurred")
+        if as_int(policy.get("max_attempts_per_repair_generation"), 0) != 1:
+            errors.append("engineering_authority_repair_generation_attempt_budget_invalid")
+        if as_int(automatic.get("max_attempts_per_repair_generation"), 0) != 1:
+            errors.append("engineering_authority_repair_generation_request_budget_invalid")
+        prior_generations = automatic.get("prior_repaired_blocker_generations")
+        if not isinstance(prior_generations, list):
+            prior_generations = []
+        matching_generations = [
+            row for row in prior_generations
+            if isinstance(row, dict) and str(row.get("blocker_fingerprint") or "") == blocker_fingerprint
+        ]
+        if not matching_generations:
+            errors.append("engineering_authority_repair_generation_history_missing")
+        if not all(repair_generation.values()):
+            errors.append("engineering_authority_repair_generation_proof_missing")
+        for row in matching_generations:
+            prior_generation = (
+                str(row.get("repair_commit") or ""),
+                str(row.get("repair_deploy_id") or ""),
+                str(row.get("repair_binary_sha256") or ""),
+            )
+            if not all(prior_generation):
+                errors.append("engineering_authority_repair_generation_history_invalid")
+            if prior_generation == tuple(repair_generation.values()):
+                errors.append("engineering_authority_repair_generation_already_attempted")
+        terminal_at = str(previous.get("terminal_at") or "")
+        deployed_at = str(previous.get("repair_deployed_at") or "")
+        if previous.get("repair_deployed_after_terminal") is not True or not terminal_at or not deployed_at:
+            errors.append("engineering_authority_repair_generation_order_unproven")
+        else:
+            try:
+                if parse_ts(deployed_at) <= parse_ts(terminal_at):
+                    errors.append("engineering_authority_repair_generation_not_newer_than_terminal")
+            except PacketError:
+                errors.append("engineering_authority_repair_generation_timestamp_invalid")
     return {
         "ok": not errors,
         "errors": sorted(set(errors)),
@@ -602,6 +651,8 @@ def validate_engineering_authority_repair_continuation(policy, request, *, now=N
         "evaluated_at": now.isoformat(),
         "approval_reused": False,
         "fresh_one_use_request_required": True,
+        "repeated_blocker_fingerprint": repeated_fingerprint,
+        "repair_generation": repair_generation,
     }
 
 

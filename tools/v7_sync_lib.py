@@ -52,6 +52,7 @@ LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
     "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
     "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
     "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
+    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
 }
 
 NORMALIZED_CPS_LIVE_STATE = {
@@ -6483,6 +6484,10 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
     state["wip_smallest_existing_next_action"] = (
         wip.get("smallest_existing_next_action", "").strip("`")
         or f"{registry_next}; preserve CAP-U07 natural-evidence WIP"
+    )
+    state["last_responsible_link"] = (
+        wip.get("last_responsible_link", "").strip()
+        or state["last_responsible_link"]
     )
     state["omp_continuation_pointer"] = (
         registry.get("OMP_CONTINUATION_POINTER", "").strip("`")

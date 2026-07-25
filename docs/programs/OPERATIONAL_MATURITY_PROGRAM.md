@@ -7877,9 +7877,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
-Resolved request: `engauth_r1_837eda5cb8700534622a5d8e` is consumed and non-reusable after one real bounded transaction reached eligible owner terminal `ROLLBACK_SUCCESS`; rollback/no-rollback diversity is closed; no retry or approval reuse is admitted; only qualifying natural L8 evidence can reenter the current program
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION`
+Resolved request: the real Matrix caller consumed production receipt `sfomp_cd3c9abaa10c4178c34827e0` for the persistent VLESS Situation; a safe action cannot be selected without an exact current owner-issued one-use action-class contract. No old Candidate, Packet, lease or Authority is reusable.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8865,8 +8865,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION`
 Current terminal report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

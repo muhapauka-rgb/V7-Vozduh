@@ -666,6 +666,13 @@ NORMALIZED_CPS_LIVE_STATE.update({
     "production_routing_autonomy_status": "NOT_CLAIMED",
     "authority_promotion_status": "NONE",
     "production_maturity_change_status": "NONE",
+    # These are distinct from the active class.  A completed/waiting evidence
+    # lane for one class must not hide safe design-time work for another class.
+    "action_class_evidence_frontier": "single-user governed candidate failover:NATURAL_L8_WAITING",
+    "action_class_engineering_frontier": "NONE",
+    "next_product_action_class": "NONE",
+    "product_frontier_selection": "NO_INDEPENDENT_PRODUCT_ENGINEERING_FRONTIER",
+    "l8_observation_window": "PASSIVE_CAPTURE_READY; WAIT_FOR_QUALIFYING_NATURAL_EVENT",
 })
 
 
@@ -1662,6 +1669,11 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "PRODUCTION_ROUTING_AUTONOMY_STATUS": f"`{state['production_routing_autonomy_status']}`",
         "AUTHORITY_PROMOTION_STATUS": f"`{state['authority_promotion_status']}`",
         "PRODUCTION_MATURITY_CHANGE_STATUS": f"`{state['production_maturity_change_status']}`",
+        "CURRENT_ACTION_CLASS_EVIDENCE_FRONTIER": f"`{state['action_class_evidence_frontier']}`",
+        "ACTION_CLASS_ENGINEERING_FRONTIER": f"`{state['action_class_engineering_frontier']}`",
+        "NEXT_PRODUCT_ACTION_CLASS": f"`{state['next_product_action_class']}`",
+        "PRODUCT_FRONTIER_SELECTION": f"`{state['product_frontier_selection']}`",
+        "L8_OBSERVATION_WINDOW": f"`{state['l8_observation_window']}`",
     }
     for key, value in semantic_live_values.items():
         cps_text = _upsert_section_field(
@@ -2773,11 +2785,158 @@ def phase6_capability_criterion_projection() -> list[dict[str, Any]]:
     return rows
 
 
+def multi_lane_product_frontier_reconciliation(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Select one independent product-engineering frontier without cross-credit.
+
+    The L8 remainder of the current action class is a local observation
+    boundary.  It is not evidence that every other product action class has
+    been engineered, and it is not a licence to execute one.  This projection
+    reuses the scenario corpus and the existing hard-failure policy owner to
+    make that distinction machine-readable.
+    """
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    current_class = _plain_live_value(live, "CURRENT_ACTION_CLASS") or "UNKNOWN"
+    current_missing = _plain_live_value(live, "ACTION_CLASS_EXACT_MISSING_DELTA") or "NONE"
+    natural_waiting = current_missing == "natural_production_present"
+    corpus = load_future_scale_scenario_corpus(root=root)
+    source_path = root / "admin_core/autonomy_trust_acceleration.py"
+    source_text = source_path.read_text(encoding="utf-8") if source_path.is_file() else ""
+    hard_failure_scenarios = [
+        row for row in (corpus.get("scenarios") or [])
+        if "CHANNEL_HARD_FAILURE" in {str(item) for item in row.get("FAILURE_INJECTIONS") or ()}
+    ]
+    owner_ready = all((
+        corpus.get("final_verdict") == "PASS",
+        bool(hard_failure_scenarios),
+        "build_hard_failure_classification" in source_text,
+        "build_hard_failure_override_anti_flap_arbitration" in source_text,
+    ))
+    action_class = "channel hard-fail failover"
+    obligation_id = "POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1"
+    already_consumed = obligation_id in _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER") and "CONSUMED" in _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER")
+    selected = bool(natural_waiting and owner_ready and action_class != current_class and not already_consumed)
+    selection = (
+        "SELECTED_CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING"
+        if selected else "NO_INDEPENDENT_PRODUCT_ENGINEERING_FRONTIER"
+    )
+    frontier = [f"PHASE6_PRODUCT_ENGINEERING:{obligation_id}"] if selected else []
+    errors = list(corpus.get("errors") or [])
+    if not owner_ready and corpus.get("final_verdict") == "PASS":
+        errors.append("channel_hard_failure_existing_owner_binding_missing")
+    return {
+        "schema": "v7.multi-lane-product-frontier-reconciliation.v1",
+        "current_action_class": current_class,
+        "current_action_class_evidence_frontier": (
+            f"{current_class}:NATURAL_L8_WAITING" if natural_waiting
+            else f"{current_class}:RECONCILIATION_REQUIRED"
+        ),
+        "current_action_class_missing_cells": [current_missing] if current_missing != "NONE" else [],
+        "l8_observation_window": {
+            "status": "PASSIVE_CAPTURE_READY_WAITING_QUALIFYING_NATURAL_EVENT",
+            "natural_event_creation_allowed": False,
+            "capture_owner": "EXISTING_PRODUCTION_EVENT_OUTCOME_LEARNING_REPLAY_OWNERS",
+        },
+        "candidate_action_class": action_class,
+        "candidate_engineering_obligation_id": obligation_id if owner_ready else "NONE",
+        "candidate_scenario_ids": sorted(str(row.get("SCENARIO_ID")) for row in hard_failure_scenarios),
+        "owner_bindings": {
+            "scenario_corpus": corpus.get("final_verdict") == "PASS",
+            "hard_failure_classification": "build_hard_failure_classification" in source_text,
+            "anti_flap_arbitration": "build_hard_failure_override_anti_flap_arbitration" in source_text,
+        },
+        "product_engineering_frontier": frontier,
+        "selection": selection,
+        "already_consumed": already_consumed,
+        "authority_status": "NOT_GRANTED_ENGINEERING_ONLY; RUNTIME_APPLY_AND_USER_MOVEMENT_FORBIDDEN",
+        "evidence_separation": {
+            "current_class_l8_credit_transfers_to_candidate": False,
+            "engineering_scenario_grants_l7_or_l8_credit": False,
+            "candidate_production_execution_admitted": False,
+        },
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+    }
+
+
+def execute_multi_lane_product_action_class_engineering(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume the selected hard-failure class only as isolated engineering work."""
+    selection = multi_lane_product_frontier_reconciliation(cps_text, root=root)
+    if selection.get("final_verdict") != "PASS":
+        return {**selection, "program_terminal": "PRODUCT_FRONTIER_RECONCILIATION_STOP_SAFE"}
+    frontier = list(selection.get("product_engineering_frontier") or ())
+    if not frontier:
+        return {
+            **selection,
+            "program_terminal": "NO_NEW_PRODUCT_ENGINEERING_FRONTIER",
+            "real_caller": "continue_omp_engineering_control_loop",
+            "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "final_verdict": "BOUNDED_CONTINUATION",
+        }
+    scenario = execute_future_scale_scenario("SINGLE_CHANNEL_FAILURE", root=root)
+    consumer = scenario.get("consumer_result") or {}
+    checks = {
+        "selected_exact_class": selection.get("candidate_action_class") == "channel hard-fail failover",
+        "exact_scenario": scenario.get("scenario_id") == "SINGLE_CHANNEL_FAILURE",
+        "scenario_passed": scenario.get("final_verdict") == "PASS",
+        "existing_omp_consumer": consumer.get("final_verdict") == "PASS" and consumer.get("consumed") is True,
+        "forbidden_effects_absent": not any((scenario.get("forbidden_effects") or {}).values()),
+        "no_l7_l8_credit": (
+            scenario.get("situation_decision_trace", {}).get("learning", {}).get("natural_production_credit") is False
+            and scenario.get("situation_decision_trace", {}).get("learning", {}).get("production_maturity_credit") is False
+        ),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.multi-lane-product-action-class-engineering.v1",
+        "mission_id": "V7_POLYGON_CHANNEL_HARD_FAILURE_ACTION_CLASS_ENGINEERING_V1",
+        "engineering_obligation_id": selection.get("candidate_engineering_obligation_id"),
+        "real_caller": "continue_omp_engineering_control_loop",
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "selection": selection,
+        "scenario": scenario,
+        "checks": checks,
+        "behavior_change": (
+            "INDEPENDENT_ACTION_CLASS_ENGINEERING_CONSUMED_WITHOUT_L7_L8_CROSS_CREDIT"
+            if passed else "NONE_STOP_SAFE"
+        ),
+        "next_output": (
+            "KEEP_L8_PASSIVE_CAPTURE_READY_FOR_EACH_ACTION_CLASS"
+            if passed else "STOP_SAFE"
+        ),
+        "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
+        "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "forbidden_effects": dict(scenario.get("forbidden_effects") or {}),
+        "program_terminal": (
+            "ACTION_CLASS_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_ONLY"
+            if passed else "ACTION_CLASS_ENGINEERING_STOP_SAFE"
+        ),
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
 def phase6_multi_lane_reconciliation(
     cps_text: str,
     scenario_frontier: dict[str, Any],
     *,
     trace_capture_ready: bool = True,
+    root: Path = ROOT,
 ) -> dict[str, Any]:
     """Reconcile Phase 6A/6B/6C independently inside the existing AEP/OMP owner."""
     live = _markdown_field_table(_markdown_section(
@@ -2820,7 +2979,9 @@ def phase6_multi_lane_reconciliation(
         if polygon_obligation not in {"", "NONE"}
         else []
     )
-    executable = [*phase6b_frontier, *phase6a_frontier, *engineering_frontier]
+    product_frontier = multi_lane_product_frontier_reconciliation(cps_text, root=root)
+    product_engineering_frontier = list(product_frontier.get("product_engineering_frontier") or ())
+    executable = [*phase6b_frontier, *phase6a_frontier, *engineering_frontier, *product_engineering_frontier]
     global_active = bool(executable)
     global_status = "ACTIVE_MULTI_LANE_CERTIFICATION" if global_active else "LANES_EXHAUSTED_WAITING_NATURAL_EVIDENCE"
     global_stop = "NONE" if global_active else "REAL_WORLD_LIMIT_AFTER_SCENARIO_AND_CONTROLLED_CERTIFICATION_EXHAUSTION"
@@ -2839,10 +3000,21 @@ def phase6_multi_lane_reconciliation(
         "PHASE_6_EXECUTABLE_FRONTIER": executable,
         "PHASE_6_GLOBAL_STATUS": global_status,
         "PHASE_6_GLOBAL_STOP": global_stop,
-        "PHASE_6_ENGINEERING_STOP": "NONE" if engineering_frontier else "NO_EXECUTABLE_ENGINEERING_FRONTIER",
+        "PHASE_6_ENGINEERING_STOP": (
+            "NONE" if engineering_frontier or product_engineering_frontier
+            else "NO_EXECUTABLE_ENGINEERING_FRONTIER"
+        ),
         "PHASE_6_CONTROLLED_LANE_STOP": "NONE" if phase6b_frontier else "REAL_WORLD_LIMIT_L7_ONLY",
         "PHASE_6_NATURAL_LANE_STOP": "REAL_WORLD_LIMIT_L8_ONLY",
-        "GLOBAL_ENGINEERING_STOP": "NONE" if engineering_frontier else global_stop,
+        "GLOBAL_ENGINEERING_STOP": "NONE" if engineering_frontier or product_engineering_frontier else global_stop,
+        "CURRENT_ACTION_CLASS_EVIDENCE_FRONTIER": product_frontier["current_action_class_evidence_frontier"],
+        "ACTION_CLASS_ENGINEERING_FRONTIER": ";".join(product_engineering_frontier) or "NONE",
+        "NEXT_PRODUCT_ACTION_CLASS": (
+            product_frontier["candidate_action_class"] if product_engineering_frontier else "NONE"
+        ),
+        "PRODUCT_FRONTIER_SELECTION": product_frontier["selection"],
+        "L8_OBSERVATION_WINDOW": product_frontier["l8_observation_window"]["status"],
+        "product_frontier": product_frontier,
         "PHASE_7_ENGINEERING_EVOLUTION_STATUS": "PHASE_7_ENGINEERING_CONTINUOUS_EVOLUTION_ACTIVE",
         "PHASE_7_PRODUCTION_AUTHORITY_STATUS": "LOCKED_PENDING_NATURAL_AND_CONTROLLED_CERTIFICATION",
         "evidence_taxonomy": PHASE6_EVIDENCE_TAXONOMY,
@@ -4600,7 +4772,14 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         root=root,
         ordinary_work_available=bool(frontier) and not ordinary_frontier_deferred,
     )
-    phase6_lanes = phase6_multi_lane_reconciliation(cps, scenario_frontier) if phase6_multi_lane_enabled else None
+    phase6_lanes = phase6_multi_lane_reconciliation(cps, scenario_frontier, root=root) if phase6_multi_lane_enabled else None
+    # A legacy CPS snapshot may still display the class-local natural-L8
+    # boundary while this reconciliation has just found independent safe
+    # product engineering.  The selector is the existing owner-backed proof
+    # that the old global reading is no longer legal; it must not make its own
+    # repair path unreachable.
+    if phase6_lanes and phase6_lanes.get("PHASE_6_EXECUTABLE_FRONTIER"):
+        errors = [item for item in errors if item != "global_real_world_limit_illegal_while_program_stage_open"]
     comprehensive_campaign = (
         comprehensive_phase6_phase7_campaign_reconciliation(cps, root=root)
         if phase6_multi_lane_enabled else None
@@ -15488,6 +15667,101 @@ def continue_omp_engineering_control_loop(
                 ),
                 "final_verdict": "PASS" if update_ok else "STOP_SAFE",
                 "errors": [] if update_ok else atomic.get("errors") or ["atomic_cps_polygon_terminal_failed"],
+            }
+        product_engineering = [
+            item for item in current_frontier
+            if str(item).startswith("PHASE6_PRODUCT_ENGINEERING:")
+        ]
+        if product_engineering:
+            product = execute_multi_lane_product_action_class_engineering(cps_text, root=root)
+            if product.get("final_verdict") != "PASS":
+                return {
+                    **product,
+                    "trigger": "Continue OMP",
+                    "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                    "priority_decision": "PRODUCT_ACTION_CLASS_ENGINEERING_STOP_SAFE",
+                }
+            result_fingerprint = hashlib.sha256(json.dumps({
+                "obligation": product.get("engineering_obligation_id"),
+                "scenario": (product.get("scenario") or {}).get("result_fingerprint"),
+                "behavior": product.get("behavior_change"),
+            }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+            state = normalized_cps_live_state({
+                **_normalized_state_from_live_cps(cps_text),
+                "state_captured": utc_now(),
+                "current_state_generation": f"cpsgen_MLP_{result_fingerprint[:12].upper()}",
+                "current_transition_id": "MULTI_LANE_PRODUCT_ACTION_CLASS_ENGINEERING_CONSUMED_V1",
+                "current_active_scope": "INDEPENDENT_CHANNEL_HARD_FAILURE_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_REMAIN",
+                "current_safe_next_action": (
+                    "KEEP PASSIVE NATURAL EVENT CAPTURE READY FOR EACH ACTION CLASS; "
+                    "DO NOT MANUFACTURE L8 EVIDENCE OR APPLY HARD-FAILURE ROUTING"
+                ),
+                "current_scope_class": "MULTI_LANE_PRODUCT_ENGINEERING",
+                "program_frontier_input": (
+                    "single-user governed candidate failover retains only natural L8; "
+                    "independent channel hard-fail failover engineering was consumed through existing Polygon and OMP owners"
+                ),
+                "program_frontier_expected_output": (
+                    "qualifying natural action-class outcome -> existing capture, Outcome Passport, replay and Learning consumers"
+                ),
+                "action_class_evidence_frontier": (
+                    "single-user governed candidate failover:NATURAL_L8_WAITING; "
+                    "channel hard-fail failover:ENGINEERING_ONLY_NO_L7_L8_CREDIT"
+                ),
+                "action_class_engineering_frontier": (
+                    f"{product.get('engineering_obligation_id')}:CONSUMED"
+                ),
+                "next_product_action_class": "NONE",
+                "product_frontier_selection": "CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING_CONSUMED",
+                "l8_observation_window": (
+                    "PASSIVE_CAPTURE_READY_FOR_CURRENT_AND_CHANNEL_HARD_FAILURE_ACTION_CLASSES; "
+                    "NATURAL_EVENT_CREATION_FORBIDDEN"
+                ),
+                "phase6_global_status": "MULTI_ACTION_CLASS_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_ONLY",
+                "phase6_current_step": "L8_PASSIVE_CAPTURE_READY_FOR_DISTINCT_ACTION_CLASSES",
+                "phase6_certification_frontier": "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+                "phase6_executable_frontier": "NONE",
+                "phase6_exact_next_action": "WAIT_FOR_QUALIFYING_NATURAL_PRODUCTION_EVENT_WITH_CAPTURE_READY",
+                "phase6_global_stop": "REAL_WORLD_LIMIT_NATURAL_L8_ONLY",
+                "phase6_engineering_stop": "NO_EXECUTABLE_ENGINEERING_FRONTIER",
+                "global_engineering_stop": "REAL_WORLD_LIMIT_NATURAL_L8_ONLY",
+                "continuation_decision": "PROGRAM_TERMINAL_ACTION_CLASS_L8_OBSERVATION_WINDOWS_ONLY",
+                "program_terminal_class": "REAL_WORLD_LIMIT_NATURAL_LANE_ONLY",
+                "program_terminal_state": "REAL_WORLD_LIMIT_NATURAL_LANE_ONLY_AFTER_INDEPENDENT_ACTION_CLASS_ENGINEERING",
+                "continuation_stop_reason": "CHANNEL_HARD_FAILURE_ENGINEERING_CONSUMED; NATURAL_L8_REMAINS_PASSIVE_ONLY",
+                "no_progress_fingerprint": result_fingerprint,
+                "source_summary": (
+                    "The existing Polygon and OMP consumer consumed independent channel hard-failure engineering "
+                    "without Runtime, routing, user, Authority, maturity, L7 or L8 effect; natural capture remains passive."
+                ),
+                "automatic_continue_omp_result": "MULTI_LANE_PRODUCT_ACTION_CLASS_ENGINEERING_CONSUMED",
+                "continuation_iteration": str(int(_normalized_state_from_live_cps(cps_text).get("continuation_iteration") or "0") + 1),
+            })
+            atomic = (
+                atomic_reconcile_cps(
+                    cps_path, state=state,
+                    expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+                    request_external_wake=False,
+                ) if persist_cps else {
+                    "ok": True, "status": "SIMULATED_ATOMIC_UPDATE", "post_write_reread": "PASS",
+                }
+            )
+            update_ok = atomic.get("ok") is True and atomic.get("post_write_reread") == "PASS"
+            return {
+                **product,
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --continue-omp-persist-cps --json",
+                "priority_decision": "INDEPENDENT_PRODUCT_ACTION_CLASS_ENGINEERING_SELECTED",
+                "transitions": [{
+                    "transaction_terminal": "INDEPENDENT_ACTION_CLASS_ENGINEERING_CONSUMED",
+                    "obligation_id": product.get("engineering_obligation_id"),
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "atomic_update": atomic,
+                "exact_next_operator_command": "Continue OMP on a fresh qualifying natural production event",
+                "final_verdict": "PASS" if update_ok else "STOP_SAFE",
+                "errors": [] if update_ok else atomic.get("errors") or ["multi_lane_product_cps_projection_failed"],
             }
         if ordinary_frontier:
             return {

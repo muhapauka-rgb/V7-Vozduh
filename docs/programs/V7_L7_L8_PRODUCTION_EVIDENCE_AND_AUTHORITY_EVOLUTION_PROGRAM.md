@@ -20,6 +20,18 @@ Convert fresh, owner-backed production situations into complete, replayable and 
 
 The program does not grant class Authority, bounded autonomy or autonomous Runtime. It produces the exact evidence and recommendation that an independent Authority decision may consume.
 
+## Multi-action-class continuation rule
+
+This program's current action class remains `single-user governed candidate failover`. Its only current representative residual is natural L8, and that evidence must remain passive. This local wait must not be interpreted as a product-wide wait: OMP must independently discover and select safe design-time engineering for another action class when an existing scenario, policy and consumer owner already prove the exact binding.
+
+The first independently selected class is `channel hard-fail failover`. It is deliberately limited to Polygon engineering: `CHANNEL_HARD_FAILURE` scenario → existing hard-failure classification and anti-flap owners → existing OMP result consumer → CPS action-class projection. The isolated result creates no L7 or L8 evidence, cannot cross-credit the current class, cannot select a Candidate/Packet/lease, and grants no Runtime apply, routing mutation, user movement, Authority or Production Maturity change. A real L7/L8 cycle for that class requires its own owner-backed event and the same evidence/Authority gates; no old Passport can be reused.
+
+For every action class, the closed continuation is:
+
+`CURRENT EVIDENCE CELLS -> INDEPENDENT ENGINEERING GAP SELECTOR -> POLYGON SCENARIO/REPLAY -> EXISTING OMP CONSUMER -> CPS CLASS-LOCAL FRONTIER -> PASSIVE L8 OBSERVATION WINDOW OR EXACT L7 AUTHORITY BOUNDARY -> NEW OWNER-BACKED OUTCOME -> PASSPORT/REPLAY/LEARNING -> CLASS-LOCAL RECONCILIATION`
+
+`REAL_WORLD_LIMIT` becomes a legal program terminal only after this selector has no executable independent class engineering frontier. The selector is a reconciliation function inside existing OMP/CPS owners, not a Planner, queue, watcher, registry, scheduler or new source of truth.
+
 The closed chain is:
 
 `QUALIFYING PRODUCTION OPPORTUNITY -> SITUATION AND PRE-SNAPSHOT -> INTERPRETATION -> DECISION TRACE + PREDICTION + ALTERNATIVES -> CANDIDATE -> PACKET -> LEASE/AUTHORITY -> APPLY OR SAFE NO-ACTION -> TERMINAL ACTIVATION ACKNOWLEDGEMENT -> IMMEDIATE + DELAYED + STEADY-STATE VERIFICATION -> ROLLBACK/NO-ROLLBACK -> OUTCOME PASSPORT -> LEARNING + REPLAY -> CALIBRATION/REPRESENTATIVENESS -> PRODUCTION MATURITY DECISION -> AUTHORITY RECOMMENDATION -> CPS/OMP NEXT FRONTIER`

@@ -31,12 +31,14 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         lanes = self.lib.phase6_multi_lane_reconciliation(self.cps, frontier)
         self.assertEqual(lanes["PHASE_6C_STATUS"], "WAITING_NATURAL_PRODUCTION_EVIDENCE")
         self.assertEqual(lanes["PHASE_6A_STATUS"], "SCENARIO_FRONTIER_EXHAUSTED_CURRENT_GENERATION")
-        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "LANES_EXHAUSTED_WAITING_NATURAL_EVIDENCE")
+        self.assertEqual(lanes["PHASE_6_GLOBAL_STATUS"], "ACTIVE_MULTI_LANE_CERTIFICATION")
+        self.assertEqual(lanes["PHASE_6_GLOBAL_STOP"], "NONE")
         self.assertEqual(
-            lanes["PHASE_6_GLOBAL_STOP"],
-            "REAL_WORLD_LIMIT_AFTER_SCENARIO_AND_CONTROLLED_CERTIFICATION_EXHAUSTION",
+            lanes["PHASE_6_EXECUTABLE_FRONTIER"],
+            ["PHASE6_PRODUCT_ENGINEERING:POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1"],
         )
-        self.assertEqual(lanes["PHASE_6_EXECUTABLE_FRONTIER"], [])
+        self.assertEqual(lanes["NEXT_PRODUCT_ACTION_CLASS"], "channel hard-fail failover")
+        self.assertFalse(lanes["product_frontier"]["evidence_separation"]["current_class_l8_credit_transfers_to_candidate"])
 
     def test_controlled_preparation_is_independent_and_no_action_selected(self):
         frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)
@@ -103,9 +105,10 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
         result = self.lib.comprehensive_phase6_phase7_campaign_reconciliation(
             self.cps, root=ROOT,
         )
-        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["final_verdict"], "BOUNDED_CONTINUATION")
         self.assertEqual(result["completion_gate"]["completion_contract"], "PROGRAM_COMPLETION")
-        self.assertEqual(result["completion_gate"]["completion_verdict"], "COMPLETE_CONSUMED")
+        self.assertEqual(result["completion_gate"]["completion_verdict"], "PROGRAM_INCOMPLETE")
+        self.assertEqual(result["program_terminal"], "COMPREHENSIVE_ENGINEERING_EVOLUTION_FRONTIER_OPEN")
         self.assertEqual(result["scenario_covered_count"], 64)
         self.assertEqual(len(result["scenario_generations_closed"]), 4)
         self.assertEqual(

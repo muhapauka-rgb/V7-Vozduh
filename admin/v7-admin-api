@@ -27412,6 +27412,8 @@ def html_page_v2():
       const maxBadForSeconds = failed.reduce((value, item) => Math.max(value, Number(item.bad_for_seconds || 0)), 0);
       const activeEpisodes = failed.filter(item => String(item.failure_episode_id || '')).length;
       const emittedEpisodes = failed.filter(item => String(item.failure_event_emitted_episode_id || '')).length;
+      const sourceIncidents = [...new Set(failed.map(item => String(item.source_incident_id || '')).filter(Boolean))];
+      const failureFamilies = [...new Set(failed.map(item => String(item.failure_family || '')).filter(Boolean))];
       return {
         failed:failed.length,
         total:services.length,
@@ -27419,6 +27421,9 @@ def html_page_v2():
         maxBadForSeconds,
         activeEpisodes,
         emittedEpisodes,
+        sourceIncidents,
+        sourceIncidentCount:sourceIncidents.length,
+        failureFamilies,
         emitted:emittedEpisodes > 0,
         thresholdSamples:3,
       };
@@ -27985,7 +27990,7 @@ def html_page_v2():
         const service = item._serviceSignalEvidence || channelPrimaryServiceSignalEvidence(row);
         const episode = channelServiceEpisodeSummary(id);
         const episodeText = episode.failed
-          ? ` Устойчивый failure episode: ${episode.maxSamples}/${episode.thresholdSamples}, ${Math.round(episode.maxBadForSeconds)}с; ${episode.emitted ? 'capture event создан' : 'ожидается подтверждение persistence'}.`
+          ? ` Устойчивый failure episode: ${episode.maxSamples}/${episode.thresholdSamples}, ${Math.round(episode.maxBadForSeconds)}с; ${episode.emitted ? 'capture event создан' : 'ожидается подтверждение persistence'}. Parent incident: ${episode.sourceIncidentCount || 0}; failure family: ${(episode.failureFamilies || []).slice(0, 3).join(', ') || 'ещё не классифицирована'}.`
           : '';
         const optional = service.optionalFailed?.length
           ? ` Дополнительная техническая проверка: ${service.optionalFailed.slice(0, 4).join(', ')}. На этот сигнал не влияет.`

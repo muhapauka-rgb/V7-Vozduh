@@ -60,6 +60,13 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(row["recovery_samples"], 1)
 
     def test_failure_episode_survives_production_timer_jitter_but_not_long_gap(self):
+        self.assertEqual(
+            self.matrix.FAILURE_EPISODE_CONTINUITY_SECONDS,
+            2 * self.matrix.SERVICE_MATRIX_CADENCE_SECONDS
+            + self.matrix.SERVICE_MATRIX_RANDOMIZED_DELAY_SECONDS
+            + self.matrix.SERVICE_MATRIX_BATCH_BUDGET_SECONDS
+            + self.matrix.SERVICE_MATRIX_CONTINUITY_SAFETY_SECONDS,
+        )
         with tempfile.TemporaryDirectory() as tmp:
             matrix_file = Path(tmp) / "service-matrix.json"
             event_dir = Path(tmp) / "events"
@@ -77,6 +84,97 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             row = json.loads(matrix_file.read_text(encoding="utf-8"))["items"]["vless"]["services"]["youtube"]
             self.assertEqual(row["failure_samples"], 1)
             self.assertNotEqual(row["failure_episode_id"], first_episode)
+
+    def test_failure_family_and_registry_generation_split_episode(self):
+        previous = {
+            "ok": False,
+            "status": "FAIL",
+            "reason": "connection refused",
+            "observed_at": "2026-07-25T08:00:00+00:00",
+            "failure_started_at": "2026-07-25T08:00:00+00:00",
+            "failure_samples": 2,
+            "failure_family": "TCP_CONNECTION_REFUSED",
+            "egress_identity_generation": "egid_a",
+            "failure_episode_id": "sfep_old",
+        }
+        changed_family = self.matrix.service_failure_episode(
+            previous,
+            {"ok": False, "status": "FAIL", "reason": "operation timed out"},
+            egress_id="vless",
+            service_id="youtube",
+            observed_at="2026-07-25T08:01:00+00:00",
+            identity_generation="egid_a",
+        )
+        self.assertEqual(changed_family["failure_family"], "TRANSPORT_TIMEOUT")
+        self.assertEqual(changed_family["failure_samples"], 1)
+        changed_generation = self.matrix.service_failure_episode(
+            previous,
+            {"ok": False, "status": "FAIL", "reason": "connection refused"},
+            egress_id="vless",
+            service_id="youtube",
+            observed_at="2026-07-25T08:01:00+00:00",
+            identity_generation="egid_b",
+        )
+        self.assertEqual(changed_generation["failure_samples"], 1)
+
+    def test_correlated_failures_create_one_incident_and_recovery_terminal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            matrix_file = Path(tmp) / "service-matrix.json"
+            event_dir = Path(tmp) / "events"
+            for minute in range(3):
+                failures = {
+                    service: {
+                        "ok": False,
+                        "status": "FAIL",
+                        "tested_at": f"2026-07-25T08:0{minute}:00+00:00",
+                        "reason": "connection refused",
+                    }
+                    for service in ("youtube", "google")
+                }
+                self.matrix.update_matrix(
+                    matrix_file, "vless", "tun0", failures, 1,
+                    event_dir=event_dir,
+                    egress_identity={
+                        "canonical_egress_id": "vless",
+                        "egress_identity_generation": "egid_test",
+                        "egress_identity_fingerprint": "fingerprint",
+                    },
+                )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            failure_events = [row for row in events if row["event_type"] == "SERVICE_FAILURE_OBSERVED"]
+            self.assertEqual(len(failure_events), 2)
+            self.assertEqual(len({row["source_incident_id"] for row in failure_events}), 1)
+            self.assertEqual({row["failure_family"] for row in failure_events}, {"TCP_CONNECTION_REFUSED"})
+
+            recovery = {
+                service: {
+                    "ok": True, "status": "OK",
+                    "tested_at": "2026-07-25T08:03:00+00:00",
+                }
+                for service in ("youtube", "google")
+            }
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", recovery, 1,
+                event_dir=event_dir,
+                egress_identity={
+                    "canonical_egress_id": "vless",
+                    "egress_identity_generation": "egid_test",
+                    "egress_identity_fingerprint": "fingerprint",
+                },
+            )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            recovery_events = [row for row in events if row["event_type"] == "SERVICE_RECOVERY_OBSERVED"]
+            self.assertEqual(len(recovery_events), 2)
+            self.assertEqual(
+                {row["source_incident_id"] for row in recovery_events},
+                {failure_events[0]["source_incident_id"]},
+            )
 
     def test_l3_consumer_rejects_transient_and_consumes_persistent_episode(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)
@@ -143,11 +241,92 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(rows[0]["decision"], "NO_ACTION_NATURAL_EVENT_PENDING_PROVENANCE_AND_LEGAL_OUTCOME")
             self.assertFalse(rows[0]["execution_performed"])
 
+    def test_passive_consumer_correlates_children_and_emits_omp_frontier_then_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_dir = root / "events"
+            state_dir = root / "state"
+            event_dir.mkdir()
+            state_dir.mkdir()
+            incident = "sfinc_shared"
+            children = [
+                {
+                    "event_id": f"sfe_{service}",
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                    "channel": "vless",
+                    "service": service,
+                    "source_incident_id": incident,
+                    "failure_episode_id": f"sfep_{service}",
+                    "failure_family": "TCP_CONNECTION_REFUSED",
+                    "failure_samples": 3,
+                    "bad_for_seconds": 180,
+                    "observed_at": "2026-07-25T08:02:00+00:00",
+                    "source_hashes": {service: "hash"},
+                }
+                for service in ("youtube", "google")
+            ]
+            path = event_dir / "service-failure-events.jsonl"
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in children),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.event_dir = event_dir
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.service_signal_policy = {
+                "service_failure_persistence_samples": 3,
+                "service_failure_persistence_window_seconds": 180,
+            }
+            planner.l3_runtime_state = {}
+            result = planner._consume_passive_production_events()
+            self.assertEqual(result["source_incident_ids"], [incident])
+            self.assertEqual(result["records"]["outcome"], 1)
+            self.assertEqual(
+                result["omp_frontiers"][0]["frontier_id"],
+                "V7_SERVICE_FAILURE_INCIDENT_RECONCILIATION",
+            )
+            self.assertEqual(
+                result["omp_frontiers"][0]["failure_families"],
+                ["TCP_CONNECTION_REFUSED"],
+            )
+
+            recovery = {
+                "event_id": "sre_youtube",
+                "event_type": "SERVICE_RECOVERY_OBSERVED",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_RECOVERY_EVENT",
+                "channel": "vless",
+                "service": "youtube",
+                "source_incident_id": incident,
+                "failure_episode_id": "sfep_youtube",
+                "failure_family": "TCP_CONNECTION_REFUSED",
+                "recovered_at": "2026-07-25T08:10:00+00:00",
+            }
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(recovery) + "\n")
+            recovered = planner._consume_passive_production_events()
+            self.assertEqual(
+                recovered["omp_frontiers"][0]["frontier_id"],
+                "V7_SERVICE_FAILURE_RECOVERY_RECONCILIATION",
+            )
+            outcomes = [
+                json.loads(line)
+                for line in (state_dir / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()
+                if "outcome_status" in json.loads(line)
+            ]
+            self.assertEqual(outcomes[-1]["temporal_observations"]["state"], "RECOVERED")
+
     def test_runtime_readiness_copy_never_claims_service_availability(self):
         source = ADMIN_API.read_text(encoding="utf-8")
         self.assertIn("Runtime/config readiness: конфиг и runtime подтверждены текущим снимком; доступность сервисов этим не подтверждается.", source)
         self.assertIn("Сигнал: Runtime/config", source)
         self.assertIn("Устойчивый failure episode", source)
+        self.assertIn("Parent incident:", source)
+        self.assertIn("failure family:", source)
         self.assertIn("channelServiceEpisodeSummary", source)
 
     def test_capture_only_entrypoint_consumes_without_constructing_planner_side_effects(self):

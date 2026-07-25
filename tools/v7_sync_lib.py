@@ -2785,6 +2785,49 @@ def phase6_capability_criterion_projection() -> list[dict[str, Any]]:
     return rows
 
 
+SERVICE_FAILURE_ACTION_CLASS_SPECS = (
+    {
+        "action_class": "channel hard-fail failover",
+        "obligation_id": "POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1",
+        "scenario_ids": ("SINGLE_CHANNEL_FAILURE",),
+        "mission_id": "V7_POLYGON_CHANNEL_HARD_FAILURE_ACTION_CLASS_ENGINEERING_V1",
+    },
+    {
+        "action_class": "service-plane partial degradation",
+        "obligation_id": "POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1",
+        "scenario_ids": (
+            "PHASE6V3_SERVICE_DEGRADATION_HEALTHY_AGGREGATE",
+        ),
+        "mission_id": "V7_POLYGON_SERVICE_PLANE_PARTIAL_FAILURE_ENGINEERING_V1",
+    },
+    {
+        "action_class": "transport and protocol failure attribution",
+        "obligation_id": "POLYGON-ACTION-CLASS-TRANSPORT_PROTOCOL_FAILURE_ATTRIBUTION-ENGINEERING-G1",
+        "scenario_ids": (
+            "MIXED_PROTOCOL_FAILURE",
+        ),
+        "mission_id": "V7_POLYGON_TRANSPORT_PROTOCOL_FAILURE_ATTRIBUTION_ENGINEERING_V1",
+    },
+    {
+        "action_class": "recovery admission and anti-flap",
+        "obligation_id": "POLYGON-ACTION-CLASS-RECOVERY_RELAPSE_ANTI_FLAP-ENGINEERING-G1",
+        "scenario_ids": (
+            "PHASE6V3_RECOVERY_SERVICE_QUALITY_SPLIT",
+            "PHASE6V4_RECOVERY_OSCILLATION_CAPACITY_PRESSURE",
+        ),
+        "mission_id": "V7_POLYGON_RECOVERY_RELAPSE_ANTI_FLAP_ENGINEERING_V1",
+    },
+    {
+        "action_class": "correlated provider incident",
+        "obligation_id": "POLYGON-ACTION-CLASS-CORRELATED_PROVIDER_INCIDENT-ENGINEERING-G1",
+        "scenario_ids": (
+            "CORRELATED_CHANNEL_GROUP_FAILURE",
+        ),
+        "mission_id": "V7_POLYGON_CORRELATED_PROVIDER_INCIDENT_ENGINEERING_V1",
+    },
+)
+
+
 def multi_lane_product_frontier_reconciliation(
     cps_text: str,
     *,
@@ -2792,11 +2835,10 @@ def multi_lane_product_frontier_reconciliation(
 ) -> dict[str, Any]:
     """Select one independent product-engineering frontier without cross-credit.
 
-    The L8 remainder of the current action class is a local observation
-    boundary.  It is not evidence that every other product action class has
-    been engineered, and it is not a licence to execute one.  This projection
-    reuses the scenario corpus and the existing hard-failure policy owner to
-    make that distinction machine-readable.
+    The L8 remainder of one action class is a local observation boundary, not a
+    global product stop. The selector walks registry-backed action-class
+    obligations, suppresses consumed identities and returns the smallest exact
+    existing-owner engineering residual. It never grants execution Authority.
     """
     live = _markdown_field_table(_markdown_section(
         cps_text, "## 0. Authoritative Live Current State",
@@ -2808,28 +2850,57 @@ def multi_lane_product_frontier_reconciliation(
     corpus = load_future_scale_scenario_corpus(root=root)
     source_path = root / "admin_core/autonomy_trust_acceleration.py"
     source_text = source_path.read_text(encoding="utf-8") if source_path.is_file() else ""
-    hard_failure_scenarios = [
-        row for row in (corpus.get("scenarios") or [])
-        if "CHANNEL_HARD_FAILURE" in {str(item) for item in row.get("FAILURE_INJECTIONS") or ()}
-    ]
-    owner_ready = all((
-        corpus.get("final_verdict") == "PASS",
-        bool(hard_failure_scenarios),
-        "build_hard_failure_classification" in source_text,
-        "build_hard_failure_override_anti_flap_arbitration" in source_text,
+    by_id = {
+        str(row.get("SCENARIO_ID") or ""): row
+        for row in (corpus.get("scenarios") or ())
+    }
+    consumed_projection = " ".join((
+        _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER"),
+        _plain_live_value(live, "PRODUCT_ENGINEERING_CONSUMED_OBLIGATIONS"),
     ))
-    action_class = "channel hard-fail failover"
-    obligation_id = "POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1"
-    already_consumed = obligation_id in _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER") and "CONSUMED" in _plain_live_value(live, "ACTION_CLASS_ENGINEERING_FRONTIER")
-    selected = bool(natural_waiting and owner_ready and action_class != current_class and not already_consumed)
+    candidate_rows: list[dict[str, Any]] = []
+    for priority, spec in enumerate(SERVICE_FAILURE_ACTION_CLASS_SPECS):
+        scenario_ids = tuple(str(item) for item in spec["scenario_ids"])
+        missing_scenarios = [item for item in scenario_ids if item not in by_id]
+        consumed = (
+            str(spec["obligation_id"]) in consumed_projection
+            and "CONSUMED" in consumed_projection
+        )
+        owner_ready = (
+            corpus.get("final_verdict") == "PASS"
+            and not missing_scenarios
+            and "build_hard_failure_classification" in source_text
+            and "build_hard_failure_override_anti_flap_arbitration" in source_text
+        )
+        candidate_rows.append({
+            **spec,
+            "priority": priority,
+            "owner_ready": owner_ready,
+            "consumed": consumed,
+            "missing_scenarios": missing_scenarios,
+        })
+    selected_row = next(
+        (
+            row for row in candidate_rows
+            if natural_waiting and row["owner_ready"] and not row["consumed"]
+        ),
+        None,
+    )
+    action_class = str((selected_row or {}).get("action_class") or "NONE")
+    obligation_id = str((selected_row or {}).get("obligation_id") or "NONE")
+    selected = selected_row is not None
     selection = (
-        "SELECTED_CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING"
+        "SELECTED_PRODUCT_ENGINEERING_ACTION_CLASS"
         if selected else "NO_INDEPENDENT_PRODUCT_ENGINEERING_FRONTIER"
     )
     frontier = [f"PHASE6_PRODUCT_ENGINEERING:{obligation_id}"] if selected else []
     errors = list(corpus.get("errors") or [])
-    if not owner_ready and corpus.get("final_verdict") == "PASS":
-        errors.append("channel_hard_failure_existing_owner_binding_missing")
+    for row in candidate_rows:
+        if not row["owner_ready"] and corpus.get("final_verdict") == "PASS":
+            errors.append(
+                f"action_class_existing_owner_binding_missing:{row['obligation_id']}:"
+                + ",".join(row["missing_scenarios"])
+            )
     return {
         "schema": "v7.multi-lane-product-frontier-reconciliation.v1",
         "current_action_class": current_class,
@@ -2844,8 +2915,10 @@ def multi_lane_product_frontier_reconciliation(
             "capture_owner": "EXISTING_PRODUCTION_EVENT_OUTCOME_LEARNING_REPLAY_OWNERS",
         },
         "candidate_action_class": action_class,
-        "candidate_engineering_obligation_id": obligation_id if owner_ready else "NONE",
-        "candidate_scenario_ids": sorted(str(row.get("SCENARIO_ID")) for row in hard_failure_scenarios),
+        "candidate_engineering_obligation_id": obligation_id,
+        "candidate_scenario_ids": list((selected_row or {}).get("scenario_ids") or ()),
+        "candidate_mission_id": str((selected_row or {}).get("mission_id") or "NONE"),
+        "candidate_rows": candidate_rows,
         "owner_bindings": {
             "scenario_corpus": corpus.get("final_verdict") == "PASS",
             "hard_failure_classification": "build_hard_failure_classification" in source_text,
@@ -2853,7 +2926,10 @@ def multi_lane_product_frontier_reconciliation(
         },
         "product_engineering_frontier": frontier,
         "selection": selection,
-        "already_consumed": already_consumed,
+        "already_consumed": not selected and bool(candidate_rows) and all(row["consumed"] for row in candidate_rows),
+        "consumed_obligation_ids": [
+            str(row["obligation_id"]) for row in candidate_rows if row["consumed"]
+        ],
         "authority_status": "NOT_GRANTED_ENGINEERING_ONLY; RUNTIME_APPLY_AND_USER_MOVEMENT_FORBIDDEN",
         "evidence_separation": {
             "current_class_l8_credit_transfers_to_candidate": False,
@@ -2875,7 +2951,7 @@ def execute_multi_lane_product_action_class_engineering(
     *,
     root: Path = ROOT,
 ) -> dict[str, Any]:
-    """Consume the selected hard-failure class only as isolated engineering work."""
+    """Consume the selected action class through existing isolated owners."""
     selection = multi_lane_product_frontier_reconciliation(cps_text, root=root)
     if selection.get("final_verdict") != "PASS":
         return {**selection, "program_terminal": "PRODUCT_FRONTIER_RECONCILIATION_STOP_SAFE"}
@@ -2888,28 +2964,47 @@ def execute_multi_lane_product_action_class_engineering(
             "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
             "final_verdict": "BOUNDED_CONTINUATION",
         }
-    scenario = execute_future_scale_scenario("SINGLE_CHANNEL_FAILURE", root=root)
-    consumer = scenario.get("consumer_result") or {}
+    scenario_ids = list(selection.get("candidate_scenario_ids") or ())
+    scenario_results = [
+        execute_future_scale_scenario(scenario_id, root=root)
+        for scenario_id in scenario_ids
+    ]
+    scenario = scenario_results[0] if scenario_results else {}
+    consumers = [row.get("consumer_result") or {} for row in scenario_results]
     checks = {
-        "selected_exact_class": selection.get("candidate_action_class") == "channel hard-fail failover",
-        "exact_scenario": scenario.get("scenario_id") == "SINGLE_CHANNEL_FAILURE",
-        "scenario_passed": scenario.get("final_verdict") == "PASS",
-        "existing_omp_consumer": consumer.get("final_verdict") == "PASS" and consumer.get("consumed") is True,
-        "forbidden_effects_absent": not any((scenario.get("forbidden_effects") or {}).values()),
+        "selected_exact_class": selection.get("candidate_action_class") not in {"", "NONE"},
+        "exact_scenarios": bool(scenario_results) and [
+            str(row.get("scenario_id") or "") for row in scenario_results
+        ] == scenario_ids,
+        "scenarios_passed": bool(scenario_results) and all(
+            row.get("final_verdict") == "PASS" for row in scenario_results
+        ),
+        "existing_omp_consumer": bool(consumers) and all(
+            consumer.get("final_verdict") == "PASS" and consumer.get("consumed") is True
+            for consumer in consumers
+        ),
+        "forbidden_effects_absent": all(
+            not any((row.get("forbidden_effects") or {}).values())
+            for row in scenario_results
+        ),
         "no_l7_l8_credit": (
-            scenario.get("situation_decision_trace", {}).get("learning", {}).get("natural_production_credit") is False
-            and scenario.get("situation_decision_trace", {}).get("learning", {}).get("production_maturity_credit") is False
+            bool(scenario_results) and all(
+                row.get("situation_decision_trace", {}).get("learning", {}).get("natural_production_credit") is False
+                and row.get("situation_decision_trace", {}).get("learning", {}).get("production_maturity_credit") is False
+                for row in scenario_results
+            )
         ),
     }
     passed = all(checks.values())
     return {
         "schema": "v7.multi-lane-product-action-class-engineering.v1",
-        "mission_id": "V7_POLYGON_CHANNEL_HARD_FAILURE_ACTION_CLASS_ENGINEERING_V1",
+        "mission_id": selection.get("candidate_mission_id"),
         "engineering_obligation_id": selection.get("candidate_engineering_obligation_id"),
         "real_caller": "continue_omp_engineering_control_loop",
         "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
         "selection": selection,
         "scenario": scenario,
+        "scenarios": scenario_results,
         "checks": checks,
         "behavior_change": (
             "INDEPENDENT_ACTION_CLASS_ENGINEERING_CONSUMED_WITHOUT_L7_L8_CROSS_CREDIT"
@@ -2921,10 +3016,203 @@ def execute_multi_lane_product_action_class_engineering(
         ),
         "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
         "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
-        "forbidden_effects": dict(scenario.get("forbidden_effects") or {}),
+        "forbidden_effects": {
+            key: any(bool((row.get("forbidden_effects") or {}).get(key)) for row in scenario_results)
+            for key in {
+                key
+                for row in scenario_results
+                for key in (row.get("forbidden_effects") or {})
+            }
+        },
         "program_terminal": (
             "ACTION_CLASS_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_ONLY"
             if passed else "ACTION_CLASS_ENGINEERING_STOP_SAFE"
+        ),
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
+def classify_service_failure_engineering_case(case: dict[str, Any]) -> str:
+    """Classify one secret-free Polygon failure case deterministically."""
+    sequence = [str(item).upper() for item in (case.get("sequence") or ())]
+    if sequence == ["FAILURE", "RECOVERY", "FAILURE"]:
+        return "RECOVERY_RELAPSE"
+    if str(case.get("correlation_scope") or "").upper() == "PROVIDER":
+        return "CORRELATED_PROVIDER_FAILURE"
+    detail = str(case.get("error") or "").lower()
+    if "connection refused" in detail:
+        return "TCP_CONNECTION_REFUSED"
+    if "timeout" in detail or "timed out" in detail:
+        return "TRANSPORT_TIMEOUT"
+    if "resolve" in detail or "dns" in detail:
+        return "DNS_FAILURE"
+    if "tls" in detail or "certificate" in detail or "ssl" in detail:
+        return "TLS_FAILURE"
+    failed = int(case.get("failed_services") or 0)
+    total = int(case.get("total_services") or 0)
+    if total > 0 and 0 < failed < total:
+        return "SERVICE_PLANE_PARTIAL_FAILURE"
+    if total > 0 and failed == total:
+        return "CHANNEL_HARD_FAILURE"
+    if bool(case.get("intermittent")):
+        return "INTERMITTENT_SERVICE_FAILURE"
+    return "UNKNOWN_SERVICE_FAILURE"
+
+
+def service_failure_family_engineering_matrix() -> dict[str, Any]:
+    """Run the multi-class failure oracle without production effects."""
+    cases = (
+        ({"failed_services": 13, "total_services": 14}, "SERVICE_PLANE_PARTIAL_FAILURE"),
+        ({"failed_services": 14, "total_services": 14}, "CHANNEL_HARD_FAILURE"),
+        ({"error": "dial tcp: connection refused"}, "TCP_CONNECTION_REFUSED"),
+        ({"error": "transport timeout"}, "TRANSPORT_TIMEOUT"),
+        ({"error": "could not resolve host"}, "DNS_FAILURE"),
+        ({"error": "TLS certificate handshake failed"}, "TLS_FAILURE"),
+        ({"intermittent": True}, "INTERMITTENT_SERVICE_FAILURE"),
+        ({"sequence": ["FAILURE", "RECOVERY", "FAILURE"]}, "RECOVERY_RELAPSE"),
+        ({"correlation_scope": "PROVIDER"}, "CORRELATED_PROVIDER_FAILURE"),
+    )
+    rows = [
+        {
+            "case": index,
+            "expected": expected,
+            "actual": classify_service_failure_engineering_case(payload),
+            "input_fingerprint": hashlib.sha256(
+                json.dumps(payload, sort_keys=True).encode("utf-8")
+            ).hexdigest(),
+        }
+        for index, (payload, expected) in enumerate(cases, start=1)
+    ]
+    passed = all(row["actual"] == row["expected"] for row in rows)
+    return {
+        "schema": "v7.service-failure-family-engineering-matrix.v1",
+        "owner": "PERMANENT_POLYGON_EXISTING_SITUATION_INTERPRETATION_OWNER",
+        "rows": rows,
+        "coverage": sorted({row["actual"] for row in rows}),
+        "deterministic_replay": rows == [
+            {
+                "case": index,
+                "expected": expected,
+                "actual": classify_service_failure_engineering_case(payload),
+                "input_fingerprint": hashlib.sha256(
+                    json.dumps(payload, sort_keys=True).encode("utf-8")
+                ).hexdigest(),
+            }
+            for index, (payload, expected) in enumerate(cases, start=1)
+        ],
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "natural_l8_credit": False,
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+    }
+
+
+def certify_service_failure_multi_lane_program(
+    cps_text: str,
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume every service-failure action-class criterion in one safe run.
+
+    The action classes are required capability stages, not ceremonial
+    containers. Each exact scenario is executed once through the existing
+    Future-Scale producer and OMP consumer. The result is engineering evidence
+    only and cannot become L7/L8, Authority or Production Maturity credit.
+    """
+    selection = multi_lane_product_frontier_reconciliation(cps_text, root=root)
+    scenario_results: list[dict[str, Any]] = []
+    action_class_results: list[dict[str, Any]] = []
+    for spec in SERVICE_FAILURE_ACTION_CLASS_SPECS:
+        rows = [
+            execute_future_scale_scenario(str(scenario_id), root=root)
+            for scenario_id in spec["scenario_ids"]
+        ]
+        scenario_results.extend(rows)
+        consumers = [row.get("consumer_result") or {} for row in rows]
+        passed = bool(rows) and all(
+            row.get("final_verdict") == "PASS"
+            and not any((row.get("forbidden_effects") or {}).values())
+            for row in rows
+        ) and all(
+            consumer.get("final_verdict") == "PASS"
+            and consumer.get("consumed") is True
+            for consumer in consumers
+        )
+        action_class_results.append({
+            "action_class": spec["action_class"],
+            "engineering_obligation_id": spec["obligation_id"],
+            "mission_id": spec["mission_id"],
+            "scenario_ids": list(spec["scenario_ids"]),
+            "consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+            "terminal": "COMPLETE_CONSUMED" if passed else "STOP_SAFE",
+            "final_verdict": "PASS" if passed else "STOP_SAFE",
+        })
+    forbidden_effects = {
+        key: any(
+            bool((row.get("forbidden_effects") or {}).get(key))
+            for row in scenario_results
+        )
+        for key in {
+            key
+            for row in scenario_results
+            for key in (row.get("forbidden_effects") or {})
+        }
+    }
+    family_matrix = service_failure_family_engineering_matrix()
+    expected_families = {
+        "SERVICE_PLANE_PARTIAL_FAILURE", "TCP_CONNECTION_REFUSED",
+        "TRANSPORT_TIMEOUT", "DNS_FAILURE", "TLS_FAILURE",
+        "INTERMITTENT_SERVICE_FAILURE", "RECOVERY_RELAPSE",
+        "CORRELATED_PROVIDER_FAILURE",
+    }
+    observed_families = set(family_matrix.get("coverage") or ())
+    evidence_separation = all(
+        row.get("situation_decision_trace", {}).get("learning", {}).get("natural_production_credit") is False
+        and row.get("situation_decision_trace", {}).get("learning", {}).get("production_maturity_credit") is False
+        for row in scenario_results
+    )
+    checks = {
+        "selector_owner_ready": selection.get("final_verdict") == "PASS",
+        "all_action_classes_consumed": all(
+            row["final_verdict"] == "PASS" for row in action_class_results
+        ),
+        "failure_family_matrix_complete": expected_families.issubset(observed_families),
+        "failure_family_matrix_replay": (
+            family_matrix.get("final_verdict") == "PASS"
+            and family_matrix.get("deterministic_replay") is True
+        ),
+        "forbidden_effects_absent": not any(forbidden_effects.values()),
+        "evidence_separation_preserved": evidence_separation,
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.service-failure-multi-lane-program-certification.v1",
+        "program_id": "V7_SERVICE_FAILURE_LIFECYCLE_AND_MULTI_LANE_PRODUCT_EVOLUTION_PROGRAM_V1",
+        "caller_class": "BOUNDED_ENGINEERING_PROGRAM",
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "selection": selection,
+        "action_class_results": action_class_results,
+        "scenario_results": scenario_results,
+        "failure_family_matrix": family_matrix,
+        "consumed_obligation_ids": [
+            str(row["engineering_obligation_id"])
+            for row in action_class_results if row["final_verdict"] == "PASS"
+        ],
+        "failure_family_coverage": sorted(observed_families),
+        "checks": checks,
+        "forbidden_effects": forbidden_effects,
+        "runtime_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "natural_l8_credit": False,
+        "next_output": (
+            "PASSIVE_INCIDENT_TO_OMP_FRONTIER_AND_NATURAL_L8_CAPTURE_READY"
+            if passed else "STOP_SAFE"
         ),
         "final_verdict": "PASS" if passed else "STOP_SAFE",
         "errors": [] if passed else [key for key, value in checks.items() if not value],
@@ -14857,18 +15145,22 @@ def certify_multi_lane_product_evolution_production_entrypoint(
             )
             selection = multi_lane_product_frontier_reconciliation(caller_cps, root=execution_root)
             scenario = execute_future_scale_scenario("SINGLE_CHANNEL_FAILURE", root=execution_root)
+            program = certify_service_failure_multi_lane_program(caller_cps, root=execution_root)
             layout_evidence = {key: value for key, value in layout.items() if key != "root"}
     except (OSError, ValueError, KeyError) as exc:
         selection = {"final_verdict": "STOP_SAFE", "errors": [f"production_layout_failed:{type(exc).__name__}:{exc}"]}
         scenario = {"final_verdict": "STOP_SAFE", "forbidden_effects": {}}
+        program = {"final_verdict": "STOP_SAFE", "errors": [f"production_layout_failed:{type(exc).__name__}:{exc}"]}
         layout_evidence = {"final_verdict": "STOP_SAFE"}
     consumer = scenario.get("consumer_result") or {}
     checks = {
         "production_layout": layout_evidence.get("final_verdict") == "PASS",
         "selector_selected_exact_class": (
-            selection.get("selection") == "SELECTED_CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING"
+            selection.get("selection") == "SELECTED_PRODUCT_ENGINEERING_ACTION_CLASS"
+            and selection.get("candidate_action_class") == "channel hard-fail failover"
         ),
         "scenario_passed": scenario.get("final_verdict") == "PASS",
+        "service_failure_program_consumed": program.get("final_verdict") == "PASS",
         "omp_consumer_consumed": (
             consumer.get("consumer") == "OMP_PROGRAM_EXECUTION_RECONCILIATION"
             and consumer.get("consumed") is True
@@ -14890,13 +15182,14 @@ def certify_multi_lane_product_evolution_production_entrypoint(
         "checks": checks,
         "selection": selection,
         "scenario": scenario,
+        "service_failure_program": program,
         "production_certification_layout": layout_evidence,
         "behavior_change": (
-            "DEPLOYED_CHANNEL_HARD_FAILURE_CLASS_SELECTOR_AND_OMP_CONSUMER_VERIFIED"
+            "DEPLOYED_MULTI_CLASS_SERVICE_FAILURE_SELECTOR_AND_OMP_CONSUMER_VERIFIED"
             if passed else "NONE_STOP_SAFE"
         ),
         "next_output": (
-            "KEEP_L8_PASSIVE_CAPTURE_READY_FOR_EACH_ACTION_CLASS" if passed else "STOP_SAFE"
+            "PASSIVE_INCIDENT_TO_OMP_FRONTIER_AND_NATURAL_L8_CAPTURE_READY" if passed else "STOP_SAFE"
         ),
         "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
         "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",

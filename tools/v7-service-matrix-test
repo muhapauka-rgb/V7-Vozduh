@@ -32,12 +32,28 @@ SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_LOCK_WAIT_SECONDS = 90
-# The production lifecycle runs every 15 minutes with randomized delay and the
-# full seven-egress batch itself takes tens of seconds.  A 900-second boundary
-# therefore split every continuing failure into a fresh sample=1 episode.
-# Thirty-five minutes preserves one missed/jittered lifecycle interval while
-# still preventing unrelated observations from being joined indefinitely.
-FAILURE_EPISODE_CONTINUITY_SECONDS = 2100
+SERVICE_MATRIX_CADENCE_SECONDS = 15 * 60
+SERVICE_MATRIX_RANDOMIZED_DELAY_SECONDS = 60
+SERVICE_MATRIX_BATCH_BUDGET_SECONDS = 120
+SERVICE_MATRIX_CONTINUITY_SAFETY_SECONDS = 120
+
+
+def failure_episode_continuity_seconds() -> int:
+    """Derive continuity from the production timer and bounded batch contract.
+
+    Two cadence intervals preserve one missed lifecycle observation.  Jitter,
+    the full refresh batch budget and a bounded safety allowance are explicit
+    inputs instead of an unexplained duration literal.
+    """
+    return (
+        2 * SERVICE_MATRIX_CADENCE_SECONDS
+        + SERVICE_MATRIX_RANDOMIZED_DELAY_SECONDS
+        + SERVICE_MATRIX_BATCH_BUDGET_SECONDS
+        + SERVICE_MATRIX_CONTINUITY_SAFETY_SECONDS
+    )
+
+
+FAILURE_EPISODE_CONTINUITY_SECONDS = failure_episode_continuity_seconds()
 
 SERVICE_CATALOG: dict[str, dict[str, Any]] = {
     "google": {"label": "Google", "url": "https://www.google.com/generate_204", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},
@@ -261,6 +277,80 @@ def service_failure_observed(row: dict[str, Any]) -> bool:
     }
 
 
+def service_failure_family(row: dict[str, Any]) -> str:
+    """Normalize probe detail to a stable, non-secret failure family."""
+    status = str(row.get("status") or "").upper()
+    details = " ".join(
+        str(row.get(key) or "") for key in ("reason", "error")
+    )
+    details += " " + " ".join(
+        str(sample.get("error") or "")
+        for sample in (row.get("samples") or ())
+        if isinstance(sample, dict)
+    )
+    lowered = details.lower()
+    if status == "NOT_STARTED":
+        return "RUNTIME_INTERFACE_UNAVAILABLE"
+    if "connection refused" in lowered:
+        return "TCP_CONNECTION_REFUSED"
+    if "timed out" in lowered or "timeout" in lowered:
+        return "TRANSPORT_TIMEOUT"
+    if "could not resolve" in lowered or "name resolution" in lowered or "dns" in lowered:
+        return "DNS_FAILURE"
+    if "certificate" in lowered or "tls" in lowered or "ssl" in lowered:
+        return "TLS_FAILURE"
+    if "reset" in lowered:
+        return "CONNECTION_RESET"
+    if status.startswith("TELEGRAM_DOWN"):
+        return "TELEGRAM_TRANSPORT_DOWN"
+    if service_failure_observed(row):
+        return "SERVICE_PROBE_FAILURE"
+    return "NONE"
+
+
+def egress_config_generation(row: dict[str, Any]) -> str:
+    """Hash an owner-declared runtime config without exposing its contents."""
+    paths = [
+        Path(str(row.get(key)))
+        for key in ("config", "config_file", "runtime_config")
+        if str(row.get(key) or "").startswith("/")
+    ]
+    if str(row.get("protocol") or "").lower() == "vless":
+        paths.append(Path("/etc/sing-box/config.json"))
+    digests: list[tuple[str, str]] = []
+    for path in sorted(set(paths), key=str):
+        try:
+            digests.append((str(path), hashlib.sha256(path.read_bytes()).hexdigest()))
+        except OSError:
+            continue
+    stable = hashlib.sha256(
+        json.dumps(digests, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return f"cfg_{stable[:24]}"
+
+
+def canonical_egress_identity(row: dict[str, Any], *, egress_id: str, iface: str) -> dict[str, str]:
+    """Return a registry-owned, secret-free identity binding for episode IDs."""
+    allowed = {
+        key: str(row.get(key) or "")
+        for key in ("id", "protocol", "type", "interface", "role", "provider", "generation", "enabled")
+        if row.get(key) not in (None, "")
+    }
+    allowed.setdefault("id", egress_id)
+    allowed.setdefault("interface", iface)
+    config_generation = egress_config_generation(row)
+    allowed["config_generation"] = config_generation
+    generation = hashlib.sha256(
+        json.dumps(allowed, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    return {
+        "canonical_egress_id": egress_id,
+        "egress_identity_generation": f"egid_{generation[:24]}",
+        "egress_identity_fingerprint": generation,
+        "egress_config_generation": config_generation,
+    }
+
+
 def service_failure_episode(
     previous: dict[str, Any],
     observed: dict[str, Any],
@@ -268,6 +358,7 @@ def service_failure_episode(
     egress_id: str,
     service_id: str,
     observed_at: str,
+    identity_generation: str = "",
 ) -> dict[str, Any]:
     """Attach durable, source-bound failure continuity to an existing row.
 
@@ -279,10 +370,13 @@ def service_failure_episode(
     now = parse_timestamp(observed_at) or datetime.now(timezone.utc)
     previous_failed = service_failure_observed(previous)
     previous_at = parse_timestamp(previous.get("observed_at") or previous.get("tested_at"))
+    failure_family = service_failure_family(result)
     continuous = bool(
         previous_failed
         and previous_at
         and (now - previous_at).total_seconds() <= FAILURE_EPISODE_CONTINUITY_SECONDS
+        and str(previous.get("failure_family") or "") == failure_family
+        and str(previous.get("egress_identity_generation") or identity_generation) == identity_generation
     )
     failure = service_failure_observed(result)
     methodology = "HTTP_LIMITED" if str(result.get("status") or "").upper() == "HTTP_LIMITED" else ""
@@ -297,7 +391,10 @@ def service_failure_episode(
         samples = max(0, int(previous.get("failure_samples") or 0)) + 1 if continuous else 1
         started = parse_timestamp(started_at) or now
         episode_id = hashlib.sha256(
-            f"v7.service-failure-episode.v1|{egress_id}|{service_id}|{started_at}".encode("utf-8")
+            (
+                "v7.service-failure-episode.v2|"
+                f"{egress_id}|{identity_generation}|{service_id}|{failure_family}|{started_at}"
+            ).encode("utf-8")
         ).hexdigest()[:32]
         result.update({
             "failure_episode_id": f"sfep_{episode_id}",
@@ -307,11 +404,30 @@ def service_failure_episode(
             "consecutive_failures": samples,
             "bad_for_seconds": max(0.0, round((now - started).total_seconds(), 3)),
             "failure_state": "OBSERVED_CONTINUING" if continuous else "OBSERVED_NEW",
+            "failure_family": failure_family,
+            "egress_identity_generation": identity_generation,
             "recovery_samples": 0,
         })
+        if continuous:
+            for key in (
+                "failure_event_emitted_episode_id", "failure_event_id",
+                "failure_event_emitted_at", "source_incident_id",
+            ):
+                if previous.get(key):
+                    result[key] = previous[key]
+        elif previous_failed and previous.get("failure_episode_id"):
+            result.update({
+                "expired_failure_episode_id": str(previous.get("failure_episode_id") or ""),
+                "expired_failure_event_id": str(previous.get("failure_event_id") or ""),
+                "expired_source_incident_id": str(previous.get("source_incident_id") or ""),
+                "previous_failure_family": str(previous.get("failure_family") or ""),
+                "episode_expired_at": observed_at,
+                "episode_expiry_reason": "OBSERVATION_GAP_OR_IDENTITY_OR_FAILURE_FAMILY_CHANGE",
+            })
         return result
 
     prior_episode = str(previous.get("failure_episode_id") or "")
+    prior_event_id = str(previous.get("failure_event_id") or "")
     recovering = bool(prior_episode or previous_failed)
     result.update({
         "failure_episode_id": "",
@@ -322,6 +438,12 @@ def service_failure_episode(
         "bad_for_seconds": 0.0,
         "failure_state": "RECOVERY_OBSERVED" if recovering else "HEALTHY",
         "recovery_from_episode_id": prior_episode,
+        "recovery_from_event_id": prior_event_id,
+        "recovered_at": observed_at if recovering else "",
+        "failure_family": "NONE",
+        "previous_failure_family": str(previous.get("failure_family") or ""),
+        "egress_identity_generation": identity_generation,
+        "source_incident_id": str(previous.get("source_incident_id") or ""),
         "recovery_samples": max(0, int(previous.get("recovery_samples") or 0)) + 1 if recovering else 0,
     })
     return result
@@ -604,6 +726,7 @@ def update_matrix(
     event_dir: Optional[Path] = None,
     persistence_samples: int = 3,
     persistence_window_seconds: int = 180,
+    egress_identity: Optional[dict[str, str]] = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
@@ -615,6 +738,9 @@ def update_matrix(
         observed_at = now_iso()
         events: list[dict[str, Any]] = []
         event_path = (event_dir or DEFAULT_EVENT_DIR) / "service-failure-events.jsonl"
+        identity = dict(egress_identity or canonical_egress_identity(
+            {}, egress_id=egress_id, iface=iface,
+        ))
         for service_id, observed in results.items():
             previous = services.get(service_id) if isinstance(services.get(service_id), dict) else {}
             merged = service_failure_episode(
@@ -623,6 +749,97 @@ def update_matrix(
                 egress_id=egress_id,
                 service_id=service_id,
                 observed_at=str(observed.get("tested_at") or observed_at) if isinstance(observed, dict) else observed_at,
+                identity_generation=str(identity.get("egress_identity_generation") or ""),
+            )
+            merged.update(identity)
+            if str(merged.get("expired_failure_episode_id") or ""):
+                expiry_event_id = "sxe_" + hashlib.sha256(
+                    (
+                        "v7.service-failure-expiry-event.v1|"
+                        f"{merged.get('expired_failure_episode_id')}|{merged.get('episode_expired_at')}"
+                    ).encode("utf-8")
+                ).hexdigest()[:32]
+                events.append({
+                    "schema_version": "v7.service-failure-expiry-event.v1",
+                    "event_id": expiry_event_id,
+                    "event_type": "SERVICE_FAILURE_EPISODE_EXPIRED",
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "evidence_class": "PROBE_OBSERVED_EPISODE_EXPIRY",
+                    "natural_production_credit": False,
+                    "channel": egress_id,
+                    "service": service_id,
+                    "failure_episode_id": str(merged.get("expired_failure_episode_id") or ""),
+                    "failure_event_id": str(merged.get("expired_failure_event_id") or ""),
+                    "source_incident_id": str(merged.get("expired_source_incident_id") or ""),
+                    "failure_family": str(merged.get("previous_failure_family") or ""),
+                    "expired_at": str(merged.get("episode_expired_at") or observed_at),
+                    "expiry_reason": str(merged.get("episode_expiry_reason") or ""),
+                    **identity,
+                    "source_files": [str(matrix_file)],
+                    "producer": "tools/v7-service-matrix-test.update_matrix",
+                    "next_consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+                    "candidate_or_execution_forbidden": True,
+                })
+            if (
+                merged.get("failure_state") == "RECOVERY_OBSERVED"
+                and str(merged.get("recovery_from_event_id") or "")
+            ):
+                recovery_event_id = "sre_" + hashlib.sha256(
+                    (
+                        "v7.service-recovery-event.v1|"
+                        f"{merged['recovery_from_event_id']}|{merged.get('recovered_at')}"
+                    ).encode("utf-8")
+                ).hexdigest()[:32]
+                events.append({
+                    "schema_version": "v7.service-recovery-event.v1",
+                    "event_id": recovery_event_id,
+                    "event_type": "SERVICE_RECOVERY_OBSERVED",
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "evidence_class": "PROBE_OBSERVED_RECOVERY_EVENT",
+                    "natural_production_credit": False,
+                    "channel": egress_id,
+                    "service": service_id,
+                    "failure_episode_id": str(merged.get("recovery_from_episode_id") or ""),
+                    "failure_event_id": str(merged.get("recovery_from_event_id") or ""),
+                    "source_incident_id": str(merged.get("source_incident_id") or ""),
+                    "failure_family": str(merged.get("previous_failure_family") or ""),
+                    "recovered_at": str(merged.get("recovered_at") or observed_at),
+                    **identity,
+                    "source_files": [str(matrix_file)],
+                    "producer": "tools/v7-service-matrix-test.update_matrix",
+                    "next_consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+                    "candidate_or_execution_forbidden": True,
+                })
+                merged["recovery_event_id"] = recovery_event_id
+                merged["episode_terminal"] = "RECOVERED"
+            services[service_id] = merged
+
+        persistent_rows = {
+            service_id: service_row
+            for service_id, service_row in services.items()
+            if service_failure_observed(service_row)
+            and (
+                int(service_row.get("failure_samples") or 0) >= max(1, int(persistence_samples or 3))
+                or to_float(service_row.get("bad_for_seconds")) >= max(1, int(persistence_window_seconds or 180))
+            )
+        }
+        incident_started_at = min(
+            (str(item.get("failure_started_at") or observed_at) for item in persistent_rows.values()),
+            default=observed_at,
+        )
+        source_incident_id = "sfinc_" + hashlib.sha256(
+            (
+                "v7.service-failure-source-incident.v1|"
+                f"{egress_id}|{identity.get('egress_identity_generation')}|{incident_started_at}"
+            ).encode("utf-8")
+        ).hexdigest()[:32]
+        for service_id, merged in persistent_rows.items():
+            previous = (
+                (row.get("services") or {}).get(service_id)
+                if isinstance((row.get("services") or {}).get(service_id), dict)
+                else {}
             )
             persistent = (
                 service_failure_observed(merged)
@@ -639,9 +856,11 @@ def update_matrix(
                 merged["failure_event_emitted_episode_id"] = episode_id
                 merged["failure_event_id"] = event_id
                 merged["failure_event_emitted_at"] = observed_at
+                merged["source_incident_id"] = source_incident_id
                 events.append({
-                    "schema_version": "v7.service-failure-event.v2",
+                    "schema_version": "v7.service-failure-event.v3",
                     "event_id": event_id,
+                    "event_type": "SERVICE_FAILURE_OBSERVED",
                     "capture_only": True,
                     "event_provenance": "EXTERNAL_UNATTRIBUTED",
                     "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
@@ -649,6 +868,12 @@ def update_matrix(
                     "channel": egress_id,
                     "service": service_id,
                     "failure_episode_id": episode_id,
+                    "source_incident_id": source_incident_id,
+                    "failure_family": str(merged.get("failure_family") or "SERVICE_PROBE_FAILURE"),
+                    "incident_started_at": incident_started_at,
+                    "correlated_service_count": len(persistent_rows),
+                    "correlated_services": sorted(persistent_rows),
+                    **identity,
                     "failure_samples": int(merged.get("failure_samples") or 0),
                     "bad_for_seconds": to_float(merged.get("bad_for_seconds")),
                     "observed_at": observed_at,
@@ -661,7 +886,6 @@ def update_matrix(
                     "provenance_reconciliation_required": True,
                     "candidate_or_execution_forbidden": True,
                 })
-            services[service_id] = merged
         for service_id in list(services):
             if service_id not in SERVICE_CATALOG:
                 services.pop(service_id, None)
@@ -715,6 +939,7 @@ def main() -> int:
     timeout = max(3, min(int(args.timeout or 8), 30))
     selected = services_to_run(service)
     row = egress_row(state_dir, egress_id)
+    identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
     if interface_required(row) and not interface_live(iface):
         results = {service_id: not_started_result(service_id, iface) for service_id in selected}
     else:
@@ -745,6 +970,7 @@ def main() -> int:
             event_dir=Path(args.event_dir),
             persistence_samples=max(1, int(args.failure_persistence_samples or 3)),
             persistence_window_seconds=max(1, int(args.failure_persistence_window_seconds or 180)),
+            egress_identity=identity,
         )
     except TimeoutError:
         print(json.dumps({

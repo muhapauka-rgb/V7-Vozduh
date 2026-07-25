@@ -419,6 +419,47 @@ def sha256_json(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+PASSIVE_EVENT_PROVENANCE_CONTRACT = {
+    "OPERATOR_INDUCED": {
+        "evidence_class": "OPERATOR_INDUCED_PRODUCTION_EVENT",
+        "natural_eligibility": "INELIGIBLE",
+    },
+    "CONTROLLED_PRODUCTION": {
+        "evidence_class": "CONTROLLED_PRODUCTION_EVENT",
+        "natural_eligibility": "INELIGIBLE",
+    },
+    "EXTERNAL_UNATTRIBUTED": {
+        "evidence_class": "NATURAL_PRODUCTION_CANDIDATE",
+        "natural_eligibility": "OWNER_RECONCILIATION_REQUIRED",
+    },
+    "SYNTHETIC_ENGINEERING": {
+        "evidence_class": "SYNTHETIC_ENGINEERING_EVENT",
+        "natural_eligibility": "INELIGIBLE",
+    },
+    "UNKNOWN": {
+        "evidence_class": "UNKNOWN_EVENT",
+        "natural_eligibility": "INELIGIBLE",
+    },
+}
+
+
+def passive_event_provenance_classification(row: dict[str, Any]) -> dict[str, Any]:
+    """Classify observation provenance without granting Natural L8 credit."""
+    provenance = str(
+        row.get("event_provenance") or row.get("provenance") or "UNKNOWN"
+    ).upper()
+    contract = PASSIVE_EVENT_PROVENANCE_CONTRACT.get(
+        provenance, PASSIVE_EVENT_PROVENANCE_CONTRACT["UNKNOWN"],
+    )
+    return {
+        "observation_provenance": provenance if provenance in PASSIVE_EVENT_PROVENANCE_CONTRACT else "UNKNOWN",
+        "evidence_class": contract["evidence_class"],
+        "natural_eligibility": contract["natural_eligibility"],
+        "natural_production_credit": False,
+        "eligibility_owner": "EXISTING_OUTCOME_PASSPORT_AND_PROVENANCE_RECONCILIATION_OWNER",
+    }
+
+
 def parse_kv_line(line: str) -> dict[str, str]:
     row: dict[str, str] = {}
     for part in line.split():
@@ -9234,26 +9275,33 @@ class AutoswitchPlanner:
         credit can result from this passive step.
         """
         path = self.event_dir / "service-failure-events.jsonl"
-        operator_events = [
-            row for row in read_jsonl(path)[-500:]
-            if bool_value(row.get("capture_only"))
-            and str(row.get("event_provenance") or row.get("provenance") or "") == "OPERATOR_INDUCED"
-            and str(row.get("event_id") or "")
-        ]
+        source_rows = read_jsonl(path)[-2000:]
         persistence_samples = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
         persistence_window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
-        natural_candidate_events = [
-            row for row in read_jsonl(path)[-500:]
-            if bool_value(row.get("capture_only"))
-            and str(row.get("event_provenance") or row.get("provenance") or "") == "EXTERNAL_UNATTRIBUTED"
-            and str(row.get("evidence_class") or "") == "PROBE_OBSERVED_PRODUCTION_EVENT"
-            and str(row.get("event_id") or "")
-            and (
-                to_int(row.get("failure_samples"), 0) >= persistence_samples
-                or to_float(row.get("bad_for_seconds")) >= persistence_window
+        event_by_id: dict[str, dict[str, Any]] = {}
+        for row in source_rows:
+            event_id = str(row.get("event_id") or "")
+            provenance = str(row.get("event_provenance") or row.get("provenance") or "")
+            evidence_class = str(row.get("evidence_class") or "")
+            operator_event = provenance == "OPERATOR_INDUCED"
+            recovery_event = evidence_class == "PROBE_OBSERVED_RECOVERY_EVENT"
+            expiry_event = evidence_class == "PROBE_OBSERVED_EPISODE_EXPIRY"
+            persistent_failure = (
+                provenance == "EXTERNAL_UNATTRIBUTED"
+                and evidence_class == "PROBE_OBSERVED_PRODUCTION_EVENT"
+                and (
+                    to_int(row.get("failure_samples"), 0) >= persistence_samples
+                    or to_float(row.get("bad_for_seconds")) >= persistence_window
+                )
             )
-        ]
-        events = operator_events + natural_candidate_events
+            if bool_value(row.get("capture_only")) and event_id and (
+                operator_event or recovery_event or expiry_event or persistent_failure
+            ):
+                # Legacy producers could append the same deterministic event
+                # more than once. The existing immutable event owner remains
+                # untouched; the consumer canonicalizes by registry-owned ID.
+                event_by_id[event_id] = row
+        events = list(event_by_id.values())
         if not events:
             return {"active": False, "reason": "no_passive_capture_event", "records": {}}
         state = self._load_l3_runtime_state()
@@ -9266,7 +9314,7 @@ class AutoswitchPlanner:
             return {
                 "active": True,
                 "reason": "already_consumed_idempotent",
-                "event_ids": [str(row["event_id"]) for row in events],
+                "event_ids": sorted(event_by_id),
                 "records": {"outcome": 0, "decision_trace": 0, "learning": 0, "closure": 0},
             }
         now = now_iso()
@@ -9274,42 +9322,106 @@ class AutoswitchPlanner:
         decision_rows: list[dict[str, Any]] = []
         trust_rows: list[dict[str, Any]] = []
         closure_rows: list[dict[str, Any]] = []
+        grouped: dict[str, list[dict[str, Any]]] = {}
         for event in new_events:
-            event_id = str(event["event_id"])
-            operator_induced = str(event.get("event_provenance") or event.get("provenance") or "") == "OPERATOR_INDUCED"
-            event_provenance = "OPERATOR_INDUCED" if operator_induced else "EXTERNAL_UNATTRIBUTED"
-            evidence_class = "OPERATOR_INDUCED_PRODUCTION_EVENT" if operator_induced else "NATURAL_PRODUCTION_CANDIDATE"
-            decision = "NO_ACTION_EXTERNAL_OPERATOR_INDUCED_EVENT" if operator_induced else "NO_ACTION_NATURAL_EVENT_PENDING_PROVENANCE_AND_LEGAL_OUTCOME"
+            group_id = str(event.get("source_incident_id") or event.get("event_id") or "")
+            grouped.setdefault(group_id, []).append(event)
+        omp_frontiers: list[dict[str, Any]] = []
+        for group_id, group_events in sorted(grouped.items()):
+            event = sorted(group_events, key=lambda item: str(item.get("event_id") or ""))[0]
+            source_event_ids = sorted(str(item["event_id"]) for item in group_events)
+            event_id = group_id
+            provenance_contract = passive_event_provenance_classification(event)
+            operator_induced = provenance_contract["observation_provenance"] == "OPERATOR_INDUCED"
+            recovery_observed = any(
+                str(item.get("evidence_class") or "") == "PROBE_OBSERVED_RECOVERY_EVENT"
+                for item in group_events
+            )
+            expiry_observed = any(
+                str(item.get("evidence_class") or "") == "PROBE_OBSERVED_EPISODE_EXPIRY"
+                for item in group_events
+            )
+            event_provenance = str(provenance_contract["observation_provenance"])
+            evidence_class = (
+                str(provenance_contract["evidence_class"])
+                if operator_induced else
+                (
+                    "PASSIVE_RECOVERY_OBSERVATION" if recovery_observed
+                    else "PASSIVE_EPISODE_EXPIRY_OBSERVATION" if expiry_observed
+                    else "NATURAL_PRODUCTION_CANDIDATE"
+                )
+            )
+            decision = (
+                "NO_ACTION_EXTERNAL_OPERATOR_INDUCED_EVENT"
+                if operator_induced else
+                (
+                    "NO_ACTION_RECOVERY_OBSERVATION_CONSUMED" if recovery_observed
+                    else "NO_ACTION_EPISODE_EXPIRY_CONSUMED" if expiry_observed
+                    else
+                    "NO_ACTION_NATURAL_EVENT_PENDING_PROVENANCE_AND_LEGAL_OUTCOME"
+                )
+            )
             closure_reason = (
                 "operator-induced external event consumed without execution"
-                if operator_induced else
-                "persistent external service episode captured; natural provenance and legal outcome remain required"
+                if operator_induced else (
+                    "passive recovery consumed and linked to the original source incident" if recovery_observed
+                    else "episode expiry consumed and linked to the original source incident" if expiry_observed
+                    else
+                    "persistent external service incident captured; natural provenance and legal outcome remain required"
+                )
             )
-            source_hashes = event.get("source_hashes") if isinstance(event.get("source_hashes"), dict) else {}
-            situation_id = "situation_" + sha256_json({"event_id": event_id, "source_hashes": source_hashes})[:24]
-            decision_trace_id = "decision_" + sha256_json({"event_id": event_id, "terminal": "STOP_SAFE_NO_ACTION"})[:24]
+            source_hashes = {
+                str(key): str(value)
+                for item in group_events
+                for key, value in (
+                    item.get("source_hashes") if isinstance(item.get("source_hashes"), dict) else {}
+                ).items()
+            }
+            terminal = (
+                "RECOVERY_OBSERVED_NO_ACTION" if recovery_observed
+                else "EPISODE_EXPIRED_NO_ACTION" if expiry_observed
+                else "STOP_SAFE_NO_ACTION"
+            )
+            situation_id = "situation_" + sha256_json({"source_incident_id": group_id, "source_event_ids": source_event_ids, "source_hashes": source_hashes})[:24]
+            decision_trace_id = "decision_" + sha256_json({"source_incident_id": group_id, "terminal": terminal})[:24]
             learning_id = "learn_" + sha256_json({"event_id": event_id, "decision_trace_id": decision_trace_id})[:24]
             replay_fingerprint = "replay_" + sha256_json({
                 "event_id": event_id, "situation_id": situation_id, "decision_trace_id": decision_trace_id,
-                "expected": "STOP_SAFE_NO_ACTION", "actual": "STOP_SAFE_NO_ACTION",
+                "expected": terminal, "actual": terminal,
             })[:24]
             base = {
                 "event_id": event_id,
+                "source_incident_id": group_id,
+                "source_event_ids": source_event_ids,
                 "event_provenance": event_provenance,
+                "provenance_reconciliation": provenance_contract,
                 "evidence_class": evidence_class,
                 "source_event_path": str(path),
                 "source_files": list(event.get("source_files") or []),
                 "source_hashes": source_hashes,
                 "channel": str(event.get("channel") or ""),
                 "service": str(event.get("service") or ""),
+                "services": sorted({
+                    str(item.get("service") or "")
+                    for item in group_events if str(item.get("service") or "")
+                }),
+                "failure_families": sorted({
+                    str(item.get("failure_family") or "")
+                    for item in group_events if str(item.get("failure_family") or "")
+                }),
+                "egress_identity_generation": str(event.get("egress_identity_generation") or ""),
                 "failure_episode_id": str(event.get("failure_episode_id") or ""),
+                "failure_episode_ids": sorted({
+                    str(item.get("failure_episode_id") or "")
+                    for item in group_events if str(item.get("failure_episode_id") or "")
+                }),
                 "failure_samples": to_int(event.get("failure_samples"), 0),
                 "affected_users": list(event.get("affected_users") or []),
                 "observed_at": str(event.get("observed_at") or ""),
                 "situation_id": situation_id,
                 "decision_trace_id": decision_trace_id,
-                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
-                "expected_terminal": "STOP_SAFE_NO_ACTION",
+                "terminal_outcome_classification": terminal,
+                "expected_terminal": terminal,
                 "deterministic_replay_fingerprint": replay_fingerprint,
                 "replay_verdict": "NO_DRIFT",
                 "candidate_created": False,
@@ -9338,9 +9450,20 @@ class AutoswitchPlanner:
                 "schema_version": "v7.passive-production-event-outcome.v1",
                 **base,
                 "created_at": now,
-                "outcome_status": "stop_safe_no_action",
+                "outcome_status": terminal.lower(),
                 "verification": {"source_snapshot_bound": bool(source_hashes), "execution_absent": True, "rollback": "NOT_APPLICABLE"},
-                "temporal_observations": {"initial": True, "delayed_5m": False, "delayed_1h": False, "state": "PENDING_PASSIVE_RECOVERY_OBSERVATION"},
+                "temporal_observations": {
+                    "initial": not recovery_observed,
+                    "recovery_observed": recovery_observed,
+                    "recovered_at": str(event.get("recovered_at") or ""),
+                    "expiry_observed": expiry_observed,
+                    "expired_at": str(event.get("expired_at") or ""),
+                    "state": (
+                        "RECOVERED" if recovery_observed
+                        else "EXPIRED" if expiry_observed
+                        else "PENDING_PASSIVE_RECOVERY_OBSERVATION"
+                    ),
+                },
                 "learning": {"learning_record_id": learning_id, "consumed": True, "scope": "OBSERVATION_ONLY_NO_TRUST_OR_AUTHORITY_CHANGE"},
             })
             trust_rows.append({
@@ -9357,18 +9480,43 @@ class AutoswitchPlanner:
                 "created_at": now,
                 "object_type": "passive_production_event",
                 "object_id": event_id,
-                "closure_state": "CAPTURED_STOP_SAFE",
+                "closure_state": (
+                    "RECOVERED" if recovery_observed
+                    else "EXPIRED" if expiry_observed
+                    else "CAPTURED_STOP_SAFE"
+                ),
                 "closure_reason": closure_reason,
                 "learning_record_id": learning_id,
             })
-            consumed[event_id] = {
-                "consumed_at": now,
-                "situation_id": situation_id,
-                "decision_trace_id": decision_trace_id,
-                "learning_record_id": learning_id,
-                "terminal": "STOP_SAFE_NO_ACTION",
-                "replay_fingerprint": replay_fingerprint,
-            }
+            for source_event_id in source_event_ids:
+                consumed[source_event_id] = {
+                    "consumed_at": now,
+                    "source_incident_id": group_id,
+                    "situation_id": situation_id,
+                    "decision_trace_id": decision_trace_id,
+                    "learning_record_id": learning_id,
+                    "terminal": terminal,
+                    "replay_fingerprint": replay_fingerprint,
+                }
+            omp_frontiers.append({
+                "frontier_id": (
+                    "V7_SERVICE_FAILURE_RECOVERY_RECONCILIATION" if recovery_observed
+                    else "V7_SERVICE_FAILURE_EPISODE_EXPIRY_RECONCILIATION" if expiry_observed
+                    else
+                    "V7_SERVICE_FAILURE_INCIDENT_RECONCILIATION"
+                ),
+                "source_incident_id": group_id,
+                "channel": str(event.get("channel") or ""),
+                "failure_families": list(base["failure_families"]),
+                "action_class": (
+                    "recovery admission and anti-flap" if recovery_observed
+                    else "episode expiry and new-generation reconciliation" if expiry_observed
+                    else
+                    "service failure attribution and safe response"
+                ),
+                "owner": "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER",
+                "execution_authority_granted": False,
+            })
         append_jsonl(self.state_dir / "execution-events.jsonl", decision_rows + outcome_rows)
         append_jsonl(self.state_dir / "runtime-trust.jsonl", trust_rows)
         append_jsonl(self.state_dir / "closure-records.jsonl", closure_rows)
@@ -9376,12 +9524,30 @@ class AutoswitchPlanner:
         return {
             "active": True,
             "reason": "consumed",
-            "event_ids": [str(row["event_id"]) for row in new_events],
+            "event_ids": sorted(str(row["event_id"]) for row in new_events),
+            "source_incident_ids": sorted(grouped),
             "records": {"outcome": len(outcome_rows), "decision_trace": len(decision_rows), "learning": len(trust_rows), "closure": len(closure_rows)},
+            "omp_frontiers": omp_frontiers,
             "execution_forbidden": True,
             "natural_production_credit": False,
             "l7_credit": False,
-            "natural_event_candidates_captured": len([row for row in new_events if str(row.get("event_provenance") or row.get("provenance") or "") == "EXTERNAL_UNATTRIBUTED"]),
+            "natural_event_candidates_captured": sum(
+                1
+                for rows in grouped.values()
+                if any(
+                    str(row.get("event_provenance") or row.get("provenance") or "") == "EXTERNAL_UNATTRIBUTED"
+                    and str(row.get("evidence_class") or "") == "PROBE_OBSERVED_PRODUCTION_EVENT"
+                    for row in rows
+                )
+            ),
+            "recovery_incidents_consumed": sum(
+                1
+                for rows in grouped.values()
+                if any(
+                    str(row.get("evidence_class") or "") == "PROBE_OBSERVED_RECOVERY_EVENT"
+                    for row in rows
+                )
+            ),
         }
 
     def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:

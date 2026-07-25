@@ -21,6 +21,29 @@ TERMINAL_OUTCOME_ROLLBACK_SUCCESS = "ROLLBACK_SUCCESS"
 TERMINAL_OUTCOME_ROLLBACK_FAILURE = "ROLLBACK_FAILURE"
 TERMINAL_OUTCOME_APPLY_FAILURE = "APPLY_FAILURE"
 TERMINAL_OUTCOME_NO_EXECUTION = "NO_EXECUTION"
+TERMINAL_OUTCOME_CORRECT_STAY = "CORRECT_STAY"
+TERMINAL_OUTCOME_STOP_SAFE = "STOP_SAFE"
+TERMINAL_OUTCOME_NO_CANDIDATE = "NO_CANDIDATE"
+TERMINAL_OUTCOME_MISSED = "MISSED"
+
+TERMINAL_OUTCOME_ALIASES = {
+    "OK": TERMINAL_OUTCOME_SUCCESS,
+    "APPLIED": TERMINAL_OUTCOME_SUCCESS,
+    "VERIFIED": TERMINAL_OUTCOME_SUCCESS,
+    "STAY": TERMINAL_OUTCOME_CORRECT_STAY,
+    "NO_CHANGE": TERMINAL_OUTCOME_CORRECT_STAY,
+    "STOP_SAFE_NO_ACTION": TERMINAL_OUTCOME_STOP_SAFE,
+    "RECOVERY_OBSERVED_NO_ACTION": TERMINAL_OUTCOME_STOP_SAFE,
+    "DENIED": TERMINAL_OUTCOME_STOP_SAFE,
+    "NO_LEGAL_CANDIDATE": TERMINAL_OUTCOME_NO_CANDIDATE,
+    "OPPORTUNITY_MISSED": TERMINAL_OUTCOME_MISSED,
+}
+
+
+def normalize_terminal_outcome_classification(value: Any) -> str:
+    """Normalize producer aliases without inventing a second outcome taxonomy."""
+    explicit = str(value or "").strip().upper()
+    return TERMINAL_OUTCOME_ALIASES.get(explicit, explicit)
 
 
 def utc_now() -> str:
@@ -57,13 +80,19 @@ def terminal_transaction_classification(
     row = execution_result if isinstance(execution_result, dict) else {}
     verify = verification_result if isinstance(verification_result, dict) else {}
     rollback = rollback_result if isinstance(rollback_result, dict) else {}
-    explicit = str(row.get("terminal_outcome_classification") or row.get("terminal_classification") or "").upper()
+    explicit = normalize_terminal_outcome_classification(
+        row.get("terminal_outcome_classification") or row.get("terminal_classification")
+    )
     if explicit in {
         TERMINAL_OUTCOME_SUCCESS,
         TERMINAL_OUTCOME_ROLLBACK_SUCCESS,
         TERMINAL_OUTCOME_ROLLBACK_FAILURE,
         TERMINAL_OUTCOME_APPLY_FAILURE,
         TERMINAL_OUTCOME_NO_EXECUTION,
+        TERMINAL_OUTCOME_CORRECT_STAY,
+        TERMINAL_OUTCOME_STOP_SAFE,
+        TERMINAL_OUTCOME_NO_CANDIDATE,
+        TERMINAL_OUTCOME_MISSED,
     }:
         return explicit
 
@@ -125,13 +154,19 @@ def outcome_status_from_terminal(terminal_classification: str) -> str:
         TERMINAL_OUTCOME_ROLLBACK_FAILURE: "rollback_failure",
         TERMINAL_OUTCOME_APPLY_FAILURE: "failure",
         TERMINAL_OUTCOME_NO_EXECUTION: "no_execution",
+        TERMINAL_OUTCOME_CORRECT_STAY: "correct_stay",
+        TERMINAL_OUTCOME_STOP_SAFE: "stop_safe",
+        TERMINAL_OUTCOME_NO_CANDIDATE: "no_candidate",
+        TERMINAL_OUTCOME_MISSED: "missed",
     }.get(terminal_classification, "unknown")
 
 
 def classify_outcome(result: dict[str, Any] | None = None, verification: dict[str, Any] | None = None) -> str:
     row = result if isinstance(result, dict) else {}
     verify = verification if isinstance(verification, dict) else {}
-    terminal = str(row.get("terminal_outcome_classification") or row.get("terminal_classification") or "").upper()
+    terminal = normalize_terminal_outcome_classification(
+        row.get("terminal_outcome_classification") or row.get("terminal_classification")
+    )
     if terminal:
         return outcome_status_from_terminal(terminal)
     text = " ".join(
@@ -170,7 +205,7 @@ def feedback_deltas(outcome_status: str, prediction_expected: float = 0.0, predi
     elif outcome_status in {"rollback_required", "rollback_success"}:
         trust_delta = 0.0
         recommendation_delta = -0.75
-    elif outcome_status in {"failure", "rollback_failure"}:
+    elif outcome_status in {"failure", "rollback_failure", "missed"}:
         trust_delta = -1.5
         recommendation_delta = -1.0
     else:

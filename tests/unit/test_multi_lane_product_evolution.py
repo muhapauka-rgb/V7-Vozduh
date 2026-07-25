@@ -32,7 +32,7 @@ class MultiLaneProductEvolutionTest(unittest.TestCase):
     def test_l8_wait_selects_independent_engineering_not_production(self):
         result = self.lib.multi_lane_product_frontier_reconciliation(self.cps, root=ROOT)
         self.assertEqual(result["final_verdict"], "PASS", result["errors"])
-        self.assertEqual(result["selection"], "SELECTED_CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING")
+        self.assertEqual(result["selection"], "SELECTED_PRODUCT_ENGINEERING_ACTION_CLASS")
         self.assertEqual(result["candidate_action_class"], "channel hard-fail failover")
         self.assertEqual(
             result["product_engineering_frontier"],
@@ -61,8 +61,16 @@ class MultiLaneProductEvolutionTest(unittest.TestCase):
             1,
         )
         result = self.lib.multi_lane_product_frontier_reconciliation(marked, root=ROOT)
-        self.assertTrue(result["already_consumed"])
-        self.assertEqual(result["product_engineering_frontier"], [])
+        self.assertFalse(result["already_consumed"])
+        self.assertIn(
+            "POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1",
+            result["consumed_obligation_ids"],
+        )
+        self.assertEqual(result["candidate_action_class"], "service-plane partial degradation")
+        self.assertNotIn(
+            "CHANNEL_HARD_FAILURE_FAILOVER",
+            result["product_engineering_frontier"][0],
+        )
 
     def test_engineering_execution_uses_existing_consumer_and_remains_isolated(self):
         result = self.lib.execute_multi_lane_product_action_class_engineering(self.cps, root=ROOT)
@@ -78,6 +86,16 @@ class MultiLaneProductEvolutionTest(unittest.TestCase):
         self.assertEqual(result["caller_class"], "PRODUCTION_NON_TEST_READ_ONLY_CALLER")
         self.assertEqual(result["real_consumer"], "OMP_PROGRAM_EXECUTION_RECONCILIATION")
         self.assertTrue(all(result["checks"].values()))
+
+    def test_complete_service_failure_program_consumes_all_action_classes(self):
+        result = self.lib.certify_service_failure_multi_lane_program(self.cps, root=ROOT)
+        self.assertEqual(result["final_verdict"], "PASS", result["errors"])
+        self.assertEqual(len(result["action_class_results"]), 5)
+        self.assertTrue(all(row["terminal"] == "COMPLETE_CONSUMED" for row in result["action_class_results"]))
+        self.assertIn("TCP_CONNECTION_REFUSED", result["failure_family_coverage"])
+        self.assertIn("RECOVERY_RELAPSE", result["failure_family_coverage"])
+        self.assertFalse(result["natural_l8_credit"])
+        self.assertFalse(any(result["forbidden_effects"].values()))
 
 
 if __name__ == "__main__":

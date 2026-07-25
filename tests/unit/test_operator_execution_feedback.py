@@ -9,6 +9,22 @@ ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
 class OperatorExecutionFeedbackTest(unittest.TestCase):
+    def test_terminal_aliases_normalize_to_existing_outcome_taxonomy(self):
+        expected = {
+            "applied": "SUCCESS",
+            "stay": "CORRECT_STAY",
+            "stop_safe_no_action": "STOP_SAFE",
+            "no_legal_candidate": "NO_CANDIDATE",
+            "opportunity_missed": "MISSED",
+            "rollback_success": "ROLLBACK_SUCCESS",
+        }
+        for alias, canonical in expected.items():
+            with self.subTest(alias=alias):
+                self.assertEqual(
+                    feedback.normalize_terminal_outcome_classification(alias),
+                    canonical,
+                )
+
     def test_feedback_preserves_durable_replay_and_evidence_identity(self):
         contract = feedback.execution_feedback_contract(
             user="10.7.0.16",

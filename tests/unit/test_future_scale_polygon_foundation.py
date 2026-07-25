@@ -205,10 +205,12 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
             sources["cps"], "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
         ))
-        controlled_frontier = live["POLYGON_OBLIGATION_FRONTIER"].strip("`")
         self.assertEqual(
             result["executable_program_frontier"],
-            [f"PHASE6_ENGINEERING:{controlled_frontier}"],
+            [
+                "PHASE6_PRODUCT_ENGINEERING:"
+                "POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1"
+            ],
         )
 
     def test_23_real_truth_check_entrypoint_exists(self):

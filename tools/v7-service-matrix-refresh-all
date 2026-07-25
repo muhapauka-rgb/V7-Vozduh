@@ -10,6 +10,7 @@ treating every run as FAIL because no legacy status= line was printed.
 import argparse
 import contextlib
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -152,6 +153,107 @@ def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
         pass
 
 
+def sha256_json(payload: Any) -> str:
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+
+def enabled_users_on_egress(state_dir: Path, egress_id: str) -> list[str]:
+    users: list[str] = []
+    try:
+        lines = (state_dir / "users.registry").read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return users
+    for line in lines:
+        row = parse_kv_line(line)
+        if row.get("current") == egress_id and bool_value(row.get("enabled"), default=True) and row.get("ip"):
+            users.append(str(row["ip"]))
+    return sorted(set(users))
+
+
+def append_passive_failure_capture(
+    event_dir: Path,
+    *,
+    state_dir: Path,
+    matrix: dict[str, Any],
+    refresh_payload: dict[str, Any],
+    provenance: str,
+    trigger_reference: str,
+) -> list[dict[str, Any]]:
+    """Append one source-bound observation record per declared external failure.
+
+    This is deliberately a capture-only projection.  It must never become an
+    execution wake, an L7 transaction, or natural-L8 credit on its own.
+    """
+    if not provenance:
+        return []
+    items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
+    rows: list[dict[str, Any]] = []
+    for result in refresh_payload.get("results") or []:
+        if not isinstance(result, dict) or bool(result.get("ok")):
+            continue
+        egress_id = str(result.get("egress") or "")
+        item = items.get(egress_id) if isinstance(items.get(egress_id), dict) else {}
+        services = item.get("services") if isinstance(item.get("services"), dict) else {}
+        failed_services = sorted(
+            str(name) for name, service in services.items()
+            if isinstance(service, dict)
+            and (service.get("ok") is False or str(service.get("status") or "").upper() in {"FAIL", "ERROR", "DOWN", "NOT_STARTED"})
+        )
+        affected_users = enabled_users_on_egress(state_dir, egress_id)
+        if not egress_id or not failed_services or not affected_users:
+            continue
+        source_hashes = {
+            "service_matrix": sha256_json(item),
+            "egress_registry": sha256_json(parse_registry(state_dir / "egress.registry")),
+            "users_on_source": sha256_json(affected_users),
+        }
+        identity = {
+            "schema_version": "v7.passive-production-failure-capture.v1",
+            "channel": egress_id,
+            "failed_services": failed_services,
+            "provenance": provenance,
+            "trigger_reference": trigger_reference,
+            "source_hashes": source_hashes,
+        }
+        event_id = "pevt_" + sha256_json(identity)[:24]
+        rows.append({
+            **identity,
+            "event_id": event_id,
+            "event_type": "external_channel_unavailability",
+            "observed_at": str(item.get("updated") or refresh_payload.get("updated") or now_iso()),
+            "producer": "tools/v7-service-matrix-refresh-all",
+            "source_files": ["service-matrix.json", "egress.registry", "users.registry"],
+            "affected_users": affected_users,
+            "capture_only": True,
+            "execution_forbidden": True,
+            "candidate_packet_lease_forbidden": True,
+            "natural_production_credit": False,
+            "l7_credit": False,
+            "synthetic_event": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        })
+    if not rows:
+        return []
+    event_dir.mkdir(parents=True, exist_ok=True)
+    path = event_dir / "service-failure-events.jsonl"
+    existing_ids: set[str] = set()
+    try:
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]:
+            parsed = json.loads(line)
+            if isinstance(parsed, dict) and parsed.get("event_id"):
+                existing_ids.add(str(parsed["event_id"]))
+    except (OSError, json.JSONDecodeError):
+        pass
+    new_rows = [row for row in rows if row["event_id"] not in existing_ids]
+    if new_rows:
+        with path.open("a", encoding="utf-8") as fh:
+            for row in new_rows:
+                fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    return new_rows
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Refresh V7 service matrix for all enabled egress channels.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
@@ -160,6 +262,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checker", default=default_checker_path())
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
+    parser.add_argument(
+        "--event-provenance",
+        choices=("OPERATOR_INDUCED", "OBSERVED_EXTERNAL_UNATTRIBUTED"),
+        default="",
+        help="Emit a capture-only external-failure event; never grants execution or L7/L8 credit.",
+    )
+    parser.add_argument("--event-trigger-reference", default="", help="Stable external trigger identity required for OPERATOR_INDUCED capture.")
     parser.add_argument(
         "--lock-acquired-marker",
         default="",
@@ -222,6 +331,25 @@ def main() -> int:
             },
         }
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
+    if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
+        print(json.dumps({"error": "operator_induced_event_trigger_reference_required"}, ensure_ascii=False))
+        return 2
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    capture_rows = append_passive_failure_capture(
+        Path(args.event_dir),
+        state_dir=state_dir,
+        matrix=matrix,
+        refresh_payload=payload,
+        provenance=str(args.event_provenance or ""),
+        trigger_reference=str(args.event_trigger_reference or "").strip(),
+    )
+    payload["passive_failure_capture"] = {
+        "emitted_event_ids": [row["event_id"] for row in capture_rows],
+        "event_provenance": str(args.event_provenance or ""),
+        "capture_only": True,
+        "execution_forbidden": True,
+        "natural_production_credit": False,
+    }
     write_json_atomic(summary_file, payload)
     append_event(Path(args.event_dir), payload)
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))

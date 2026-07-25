@@ -7163,6 +7163,37 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     self.assertIn("large_batch_evidence_validation_failed", result["blockers"])
                     self.assertFalse(result["evidence_review"]["evidence_valid"])
 
+    def test_operator_induced_passive_capture_consumes_once_without_execution_credit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="vless")
+            event = {
+                "event_id": "pevt_operator_vless_1",
+                "provenance": "OPERATOR_INDUCED",
+                "capture_only": True,
+                "channel": "vless",
+                "affected_users": ["10.0.0.2"],
+                "source_files": ["service-matrix.json", "egress.registry", "users.registry"],
+                "source_hashes": {"service_matrix": "matrix-hash", "users_on_source": "users-hash"},
+                "observed_at": "2026-07-25T06:19:23+00:00",
+                "natural_production_credit": False,
+                "l7_credit": False,
+            }
+            (root / "events" / "service-failure-events.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--mode", "observe"]))
+            first = planner._consume_passive_production_events()
+            self.assertEqual(first["reason"], "consumed")
+            self.assertTrue(first["execution_forbidden"])
+            self.assertFalse(first["natural_production_credit"])
+            outcome_rows = [json.loads(line) for line in (root / "state" / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()]
+            outcome = next(row for row in outcome_rows if row.get("schema_version") == "v7.passive-production-event-outcome.v1")
+            self.assertEqual(outcome["terminal_outcome_classification"], "STOP_SAFE_NO_ACTION")
+            self.assertFalse(outcome["candidate_created"])
+            self.assertFalse(outcome["packet_created"])
+            self.assertEqual(outcome["users_moved"], 0)
+            second = planner._consume_passive_production_events()
+            self.assertEqual(second["reason"], "already_consumed_idempotent")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,88 @@
+{
+  "schema": "v7.l7-r1-v6-post-deploy-reconciliation.v1",
+  "captured_at": "2026-07-25T12:38:00+07:00",
+  "commit": "74a1439ca2250edcd030f1d8e63051c0e282ec7a",
+  "github_actions_run": 30145045566,
+  "github_actions_terminal": "SUCCESS",
+  "deploy_id": "deploy-z8-14-Updatesystem-74a1439-20260725T121921",
+  "deployed_files": {
+    "tools/v7-users-autoswitch": "c2feacc10630d2b6457563eebc0b23a118d103262e7579fdb589662904e3c12f",
+    "tools/v7-governed-canary-dry-run-cycle": "ced634f8aa9ab082474bbec3442778a1ab79c42e4a4e87d51af74fddae3298a3",
+    "admin_core/autonomy_trust_acceleration.py": "1aa96c602e977109873883f0239322ea1980c03bc8d37f253bdd8b7142768d55"
+  },
+  "production_outcome": {
+    "operation_id": "runtime_autoswitch_e24aa37725837336d2f53aa2",
+    "packet_id": "pkt_preview_d2b1e202fa0e65635c1ccb24",
+    "passport_id": "outpass_c981a43ce6f653764caaa3ee",
+    "evidence_class": "CONTROLLED_PRODUCTION",
+    "terminal_class": "ROLLBACK_SUCCESS",
+    "eligibility": "ELIGIBLE_FOR_CALIBRATION",
+    "temporal_complete": true,
+    "replay_complete": true,
+    "expected_terminal": "ROLLBACK_SUCCESS",
+    "actual_terminal": "ROLLBACK_SUCCESS",
+    "intent_drift_class": "NO_DRIFT",
+    "learning_consumed": true,
+    "omp_consumed": true
+  },
+  "delayed_observation_consumer": {
+    "first_call_final_verdict": "PASS",
+    "first_call_observations_written": 3,
+    "v6_terminal_preserved": "ROLLBACK_SUCCESS",
+    "second_call_final_verdict": "PASS",
+    "second_call_observations_written": 0,
+    "idempotency": "PASS"
+  },
+  "prior_certified_eligibility_set": {
+    "owner_report": "docs/reports/engineering/2026-07-19_114247_polygon_driven_l7_calibration_floor_completion.md",
+    "fingerprint": "outset_428a4e2ff440ed64bde5cb56",
+    "passport_ids": [
+      "outpass_1f9c6c5e9f7246388d981052",
+      "outpass_5542ff7606b4688f6868d72f",
+      "outpass_57779380ae119a2932498de8",
+      "outpass_c1fcd2ee3841cf4c5a558d12",
+      "outpass_df9caafb1663e8f8677c9a20"
+    ]
+  },
+  "current_certified_eligibility_set": {
+    "fingerprint": "outset_48bda484f8f3ef7985e4716f",
+    "passport_ids": [
+      "outpass_1f9c6c5e9f7246388d981052",
+      "outpass_5542ff7606b4688f6868d72f",
+      "outpass_57779380ae119a2932498de8",
+      "outpass_c1fcd2ee3841cf4c5a558d12",
+      "outpass_c981a43ce6f653764caaa3ee",
+      "outpass_df9caafb1663e8f8677c9a20"
+    ],
+    "terminal_classes": [
+      "ROLLBACK_SUCCESS",
+      "SUCCESS"
+    ],
+    "coverage_cells": {
+      "eligible_passports_at_least_5": true,
+      "controlled_production_present": true,
+      "natural_production_present": false,
+      "rollback_and_no_rollback_present": true,
+      "material_variation_present": true,
+      "complete_temporal_and_replay": true
+    },
+    "missing_coverage_cells": [
+      "natural_production_present"
+    ]
+  },
+  "m6_status": "INSUFFICIENT_EVIDENCE",
+  "m7_authority_recommendation": "INSUFFICIENT_EVIDENCE",
+  "m8_status": "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT",
+  "authority_impact": "NONE",
+  "production_maturity_impact": "NO_CHANGE",
+  "forbidden_effects": {
+    "new_production_apply": false,
+    "new_user_movement": false,
+    "routing_mutation_during_replay": false,
+    "runtime_mutation_during_replay": false,
+    "restore_barrier_write_during_replay": false,
+    "rollback_apply_during_replay": false,
+    "authority_expansion": false,
+    "synthetic_evidence_created": false
+  }
+}

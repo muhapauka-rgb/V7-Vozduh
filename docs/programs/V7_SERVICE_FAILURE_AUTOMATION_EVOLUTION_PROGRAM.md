@@ -1,0 +1,559 @@
+# V7 Service Failure Automation Evolution Program
+
+Version: `1.0`
+
+Status: `PROPOSED_EXECUTION_PLAN`
+
+Activation state owner: `CPS`
+
+This file defines capability stages and completion contracts. It must not be
+used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## Program identity
+
+`V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`
+
+## Target
+
+Close the existing production loop:
+
+```text
+Service Failure
+-> durable incident
+-> OMP consumption
+-> incident-bound safe decision
+-> ACTION / STAY / STOP_SAFE
+-> mandatory STOP_SAFE responsibility classification
+-> existing BDP/OMP repair or exact Authority boundary
+-> bounded shadow decision
+-> controlled action only when independently authorized
+-> verification and rollback/no-rollback
+-> real Outcome Passport
+-> replay and Learning
+-> affected capability reconciliation
+-> next incident or exact legal terminal
+```
+
+The target is not a new Automation Gap Engine, Decision Engine, Shadow system,
+Planner, Runtime, queue, registry or Authority owner. The target is to connect
+the already implemented owners so that a production `STOP_SAFE` cannot end as
+only a recorded event, dashboard warning or email.
+
+## Discovery result
+
+The pre-implementation audit proved that most requested capabilities already
+exist:
+
+| Capability | Existing owner | Current result |
+| --- | --- | --- |
+| failure persistence, episode identity, recovery/expiry | service Matrix lifecycle | `IMPLEMENTED_PRODUCTION_CALLED` |
+| passive Situation/Decision/Outcome/replay/Learning capture | `tools/v7-users-autoswitch --consume-passive-events-only` | `IMPLEMENTED_PRODUCTION_CALLED` |
+| multi-lane engineering action classes | OMP/Permanent Polygon | `5/5 COMPLETE_CONSUMED` |
+| capacity, suitability, policy, confidence, rollback and safety gates | `tools/v7-users-autoswitch` | `IMPLEMENTED_TESTED` |
+| bounded emergency failover | `emergency_failover_autonomy` in `tools/v7-users-autoswitch` | `IMPLEMENTED_CERTIFIED_INACTIVE` |
+| shadow MOVE/KEEP model and durable decision history | `admin_core/shadow_autonomy.py` and existing JSONL owner | `IMPLEMENTED_UNDERFED_MANUAL_CALLER_ONLY` |
+| outcome, feedback, replay, Learning and calibration | existing execution/feedback/trust owners | `IMPLEMENTED` |
+| STOP/Intent Gap classification and BDP routing law | OMP Automation Gap Closure Cycle | `CONTRACT_COMPLETE_RUNTIME_BINDING_MISSING` |
+| Authority recommendation and action-class evolution | existing delegated-policy and L7/L8 owners | `IMPLEMENTED_HOLD_GOVERNED_ONLY` |
+
+The exact current broken link is:
+
+```text
+service Matrix timer
+-> passive event consumer
+-> transient Incident/STOP_SAFE product frontier in latest summary
+-> NO PROVEN DURABLE OMP CONSUMER
+```
+
+An idempotent later Matrix run overwrites the summary with
+`NO_NEW_MATERIAL_INCIDENT_OR_ALREADY_CONSUMED`, so a material frontier is not a
+durable unconsumed obligation. Production passive records remain durable, but
+their next OMP responsibility is not consumed. This applies equally to a
+failure that should lead to safe action and a `STOP_SAFE` / correct-`STAY`
+terminal that must explain why no action was legal.
+
+## Existing-owner law
+
+1. Discover -> Reuse -> Extend -> Implement.
+2. No new service-failure automation architecture may be created.
+3. Incident obligations must be derived from or appended through existing
+   event, decision, outcome, closure, CPS or certification owners.
+4. `service-matrix-refresh-summary.json` is a latest-run projection, not a
+   durable work queue or truth source.
+5. Shadow history remains the existing shadow owner. Real outcome history
+   remains the existing outcome/feedback owner. Neither may replace the other.
+6. OMP Automation Gap Closure remains the only STOP/Intent Gap law.
+7. The existing autoswitch planner remains the only route decision producer.
+8. The existing emergency failover path remains the only bounded failover
+   execution capability considered by this Program.
+9. CPS remains the only volatile program and Authority state owner.
+10. `Incident Frontier` and `Product Evolution Frontier` are two projections
+    of the existing OMP product-engineering frontier. They are not new owners,
+    registries, queues or schedulers.
+
+## Evidence and authority law
+
+1. Passive capture, synthetic Polygon results and shadow decisions are
+   Engineering Evidence only.
+2. `EXTERNAL_UNATTRIBUTED`, `OPERATOR_INDUCED`, controlled and natural
+   provenance remain separate.
+3. A shadow projection such as “N affected users could move” is impact
+   analysis, not executable scope.
+4. Any actionable recommendation must be bounded by the current delegated
+   action-class policy; current default scope is at most one user and one
+   transaction.
+5. A legacy runtime policy projection cannot override current CPS/OMP
+   `GOVERNED_ONLY`.
+6. Runtime apply, routing mutation, user movement, Packet execution,
+   restore-barrier write and rollback apply are forbidden unless an exact
+   current owner-issued one-use contract independently authorizes them.
+7. This Program may recommend `HOLD`, `FREEZE`, `DEMOTE`,
+   `RECOMMEND_NARROW_SCOPE` or `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`. It
+   cannot grant Authority.
+8. Production Maturity is unchanged unless its independent canonical owner
+   consumes qualifying real evidence.
+
+## Progressive blast-radius expansion contract
+
+The current one-user limit is a certified safety boundary, not a permanent
+technical limit. This Program must mature the existing failover action class
+through the following evidence-gated ladder:
+
+```text
+1 user
+-> 2 users
+-> 5 users
+-> 10 users
+-> bounded cohort
+-> bounded incident scope
+```
+
+The ladder defines maximum authorized scope, not a requirement to move that
+many users. Every decision must still select the smallest necessary cohort.
+
+Promotion to the next tier requires:
+
+- real owner-backed outcomes at the current tier;
+- correct target selection and sufficient target capacity;
+- successful immediate and temporal verification;
+- representative rollback and no-rollback behavior;
+- acceptable false-positive, false-negative, STOP_SAFE and missed-opportunity
+  rates;
+- anti-flap, cooldown, retry-budget and correlated-failure protection;
+- Shadow comparison against actual outcomes;
+- no unresolved source/target/protocol/provider concentration risk;
+- an immutable evidence set and independent Authority recommendation;
+- CPS consumption of the exact approved tier.
+
+Any failed verification, rollback failure, drift, capacity loss, correlated
+incident or confidence regression must hold, narrow, freeze or demote the
+current tier. A numeric limit must never be increased directly in policy.
+
+The legacy production projection `XLARGE_BATCH/50` is historical evidence, not
+current Service Failure Authority. It must be reconciled with current
+`GOVERNED_ONLY` before any tier above one can become executable.
+
+## Dynamic Mission compression
+
+`M0` is mandatory and is complete through the associated fresh audit.
+
+After every Mission, OMP must recompute exact residuals:
+
+- skip fully consumed criteria as `MISSION_NOT_REQUIRED_ALREADY_CONSUMED`;
+- reduce partially consumed Missions to their exact missing producer-consumer
+  links;
+- merge Missions only when owner, evidence class, isolation, verification and
+  terminal semantics remain explicit;
+- do not continue ceremonially after a legal program terminal;
+- a lane-local Authority or real-world wait cannot block independent safe
+  engineering work.
+
+## Parallel frontier and arbitration law
+
+V7 has two simultaneous, existing-owner work projections:
+
+| Projection | Input | Legal outputs |
+| --- | --- | --- |
+| `INCIDENT_FRONTIER` | real production Situation, incident, ACTION/STAY/STOP_SAFE, recovery or expiry | safe repair, correct-STAY/STOP terminal, exact data/caller/code/Authority/external-owner gap |
+| `PRODUCT_EVOLUTION_FRONTIER` | capability residual, Polygon result, replay/coverage gap, valid incident-derived engineering gap | existing BDP -> Candidate -> OMP Mission -> affected verification -> next residual |
+
+Arbitration rules:
+
+1. A material current production incident has safety priority.
+2. A correct `STAY` or `STOP_SAFE` closes that incident action only; it does
+   not suppress independent Product Evolution work.
+3. Product Evolution work cannot relabel, erase or bypass an open production
+   incident.
+4. Every consumed output recomputes both projections.
+5. A `STOP_SAFE` creates a deterministic classification obligation, but BDP
+   admission occurs only for a proven automatable engineering gap.
+6. Both projections are derived and consumed through existing OMP/CPS owners;
+   neither is a durable second backlog.
+
+## Mission map
+
+### M0 — Existing capability and production binding reconciliation
+
+Status in this plan: `DISCOVERY_COMPLETE_AWAITING_CPS_ADMISSION`.
+
+Required result:
+
+- prove current CPS/OMP, repository and production caller state;
+- inventory capability owners by semantics, not filenames;
+- distinguish implemented, tested, deployed, production-called, consumed and
+  Authority-active states;
+- identify the last responsible producer-consumer link.
+
+Completion contract:
+
+`EXISTING_AUTOMATION_INVENTORIED_AND_EXACT_RESIDUAL_PROVEN`
+
+### M1 — Durable Situation / Incident / STOP_SAFE obligation and real OMP consumer
+
+Extend the existing passive records so every material Situation, incident,
+ACTION, `STAY`, `STOP_SAFE`, recovery or expiry exposes one deterministic
+obligation identity through an existing durable owner. Do not create an
+opportunity store, queue or registry.
+
+The existing OMP continuation consumer must:
+
+1. discover the unconsumed durable Situation/Incident/STOP_SAFE obligation;
+2. verify source identity, provenance, freshness and generation;
+3. consume it exactly once across processes;
+4. preserve recovery/expiry links;
+5. classify every `STOP_SAFE` before selecting a successor;
+6. emit the exact Incident and Product Evolution projection outputs;
+7. preserve an unconsumed obligation when a later Matrix run has no new event.
+
+The mandatory first classification is:
+
+```text
+STOP_SAFE
+-> CORRECT_SAFE_TERMINAL
+or DATA_OR_EVIDENCE_GAP
+or EXISTING_CAPABILITY_NOT_CALLED
+or ENGINEERING_IMPLEMENTATION_GAP
+or AUTHORITY_REQUIRED
+or EXTERNAL_OWNER_REQUIRED
+```
+
+`CORRECT_SAFE_TERMINAL` is a successful safety outcome, not a BDP Candidate.
+Only a proven automatable engineering gap enters the existing BDP -> Candidate
+-> OMP path.
+
+The durable obligation must also preserve affected-user count, current
+certified blast-radius tier, requested tier, target-capacity snapshot and the
+exact evidence cell blocking the next tier. These are projections through
+existing owners, not a new Authority registry.
+
+Required production proof:
+
+```text
+real Matrix timer
+-> passive consumer
+-> durable obligation
+-> independent OMP caller
+-> consumer behavior change
+-> successor or legal terminal
+```
+
+Completion contract:
+
+`PRODUCTION_SITUATION_STOP_SAFE_OBLIGATION_DURABLE_AND_OMP_CONSUMED`
+
+### M2 — Incident-bound Decision Matrix and early Automation Gap adapter
+
+Do not build another Decision Matrix. Bind the durable incident to the existing
+autoswitch planner and its current gates in read-only mode.
+
+For the exact source and affected scope, calculate:
+
+- source hard/partial failure classification;
+- healthy target availability;
+- target service suitability and capacity;
+- policy eligibility;
+- evidence freshness;
+- confidence;
+- anti-flap and cooldown;
+- verification and rollback feasibility;
+- current action-class Authority;
+- bounded executable scope and separate aggregate impact scope.
+
+For every incident, the adapter must calculate:
+
+- the smallest necessary cohort;
+- the maximum capacity-safe cohort;
+- the current Authority-safe cohort;
+- the effective cohort as the minimum of those bounds;
+- why the next ladder tier is allowed or blocked.
+
+The legal decision taxonomy is:
+
+- `MOVE_READY_WITHIN_EXISTING_AUTHORITY`;
+- `STAY_CORRECT_CURRENT_ROUTE`;
+- `STOP_SAFE_NO_SAFE_TARGET`;
+- `STOP_SAFE_DATA_OR_EVIDENCE_GAP`;
+- `STOP_SAFE_EXISTING_CAPABILITY_NOT_CALLED`;
+- `STOP_SAFE_ENGINEERING_IMPLEMENTATION_GAP`;
+- `STOP_SAFE_AUTHORITY_REQUIRED`;
+- `STOP_SAFE_EXTERNAL_OWNER_REQUIRED`.
+
+Every STOP must include:
+
+- `last_responsible_link`;
+- owner;
+- exact missing artifact;
+- existing consumer;
+- reentry condition;
+- whether Polygon can close the engineering part;
+- forbidden effects.
+
+Before any MOVE-capable output, reconcile the current CPS delegated policy with
+the older production runtime authority projection. A broader legacy batch
+budget must fail closed and cannot become current action-class Authority.
+
+M2 consumes the early classification emitted by M1. It must not postpone
+Automation Gap Closure until a later implementation Mission. M4 only routes,
+repairs and revalidates a gap that M1/M2 already proved.
+
+Completion contract:
+
+`INCIDENT_BOUND_SAFE_DECISION_AND_RESPONSIBILITY_CLASSIFICATION_CONSUMED`
+
+### M3 — Automatic bounded Shadow production and outcome reconciliation
+
+Reuse `admin_core/shadow_autonomy.py` and its current durable owner. Remove
+dependence on an operator opening an admin endpoint as the only producer.
+
+The event-driven OMP incident consumer must produce:
+
+- one deduplicated bounded shadow recommendation for the exact current
+  delegated scope;
+- a separate aggregate affected-user impact projection;
+- MOVE/STAY/STOP_SAFE reason and gate snapshot;
+- source, target, Situation, Decision Trace and incident identities;
+- zero apply, zero movement and zero Authority effect.
+
+Shadow must evaluate the ladder without granting it: current-tier behavior,
+counterfactual `2/5/10/bounded cohort` behavior, capacity pressure, rollback
+exposure and correlated-failure risk. Only the current certified tier may be
+presented as potentially executable; all higher tiers remain counterfactual.
+
+The existing outcome/feedback owner must automatically compare a later
+owner-backed outcome with the matching shadow decision. Observed outcomes are
+primary evidence. Human comparison remains secondary supervised evidence and
+must not be fabricated to fill a threshold.
+
+Completion requires more than model invocation:
+
+- a real non-test incident produces a durable shadow record;
+- duplicate invocations append zero duplicates;
+- a matching controlled or natural outcome, when present, reaches the existing
+  comparison/Learning consumer;
+- the next capability state changes or the exact evidence gap is emitted.
+
+Completion contract:
+
+`EVENT_DRIVEN_SHADOW_DECISION_AND_REAL_OUTCOME_RECONCILIATION_PRODUCTION_CONSUMED`
+
+### M4 — Existing Automation Gap Closure routing, repair and revalidation
+
+Consume the M1/M2 classification through the missing real caller/consumer for
+the OMP V4.7-V4.10 contract. Do not repeat classification or create a second
+gap engine.
+
+Routing by classification:
+
+| Classification | Existing route |
+| --- | --- |
+| correct STOP/no safe target | close as legal safety terminal and monitor the same incident generation |
+| missing/stale data | responsible producer repair -> tests -> deploy -> affected replay |
+| existing capability not called | repair the producer-consumer binding |
+| engineering implementation gap | existing BDP -> Candidate -> OMP Mission |
+| Authority required | exact action-class recommendation/request; no implicit grant |
+| external owner required | owner-bound terminal with exact reentry event |
+
+If the current tier succeeds but the next tier is blocked, Automation Gap
+Closure must classify the exact reason as evidence, capacity, implementation,
+consumer binding, Authority or external-owner gap. It must not reduce every
+promotion blocker to generic `AUTHORITY_REQUIRED`.
+
+A repair closes only when the original incident is replayed and the original
+STOP/Intent Gap changes to its expected state. Tests or reports alone do not
+close it.
+
+Completion contract:
+
+`STOP_SAFE_AUTOMATION_GAP_ROUTED_AND_ORIGINAL_INTENT_REVALIDATED`
+
+### M5 — Conditional bounded controlled automation
+
+Do not rebuild emergency failover. Reuse the existing
+`emergency_failover_autonomy` gates and one-use operation-scoped contract.
+
+This Mission runs only when M1-M4 prove:
+
+- a genuine production need;
+- a safe target;
+- fresh service evidence;
+- current action-class Authority;
+- exact one-user/one-transaction budget;
+- fresh Candidate, Packet, lease and snapshots;
+- verification and rollback readiness;
+- accepted event-driven wake;
+- no legacy-policy/CPS conflict.
+
+Controlled progression is one tier per independently certified evidence
+generation. A Mission may skip a nominal tier only when existing owner-backed
+evidence already proves every completion criterion for that tier; the skip
+must be recorded as `TIER_NOT_REQUIRED_ALREADY_CERTIFIED`.
+
+Every controlled tier run must preserve:
+
+- one operation-scoped cohort identity;
+- per-user and cohort-level verification;
+- target capacity before, during and after execution;
+- partial-apply handling;
+- cohort rollback semantics;
+- circuit breaker and immediate demotion path;
+- exact evidence separation from ordinary production and Natural L8.
+
+The inactive periodic autoswitch timer must not be enabled merely to satisfy
+automation. The existing event-driven incident/OMP path should invoke one
+bounded run. Timer/cron/blind polling remain rejected wake sources unless a
+separate Authority program changes that contract.
+
+If Authority is absent, the legal terminal is an exact
+`ENGINEERING_AUTHORITY`, not a fake execution and not a global engineering
+stop.
+
+Completion contract:
+
+`BOUNDED_SERVICE_FAILURE_ACTION_REAL_OUTCOME_CONSUMED`
+
+or, when legitimately blocked:
+
+`BOUNDED_SERVICE_FAILURE_ACTION_EXACT_AUTHORITY_BOUNDARY_PROVEN`
+
+### M6 — Learning, capability maturation and Authority recommendation
+
+Reuse Outcome Passport, temporal verification, deterministic replay, Learning,
+calibration and action-class Authority owners.
+
+After every new incident outcome:
+
+1. reconcile the affected CAP-U criteria only;
+2. preserve provenance and action-class separation;
+3. compare shadow recommendation with actual outcome;
+4. recalculate false-positive, false-negative, correct-STAY, STOP_SAFE,
+   rollback/no-rollback and missed-opportunity coverage;
+5. recompute confidence and risk by action class;
+6. emit exactly one of:
+   - `HOLD_GOVERNED_ONLY`;
+   - `FREEZE`;
+   - `DEMOTE`;
+   - `RECOMMEND_NARROW_SCOPE`;
+   - `INSUFFICIENT_EVIDENCE`;
+   - `RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`.
+
+The recommendation must include an exact blast-radius result:
+
+- `HOLD_CURRENT_TIER`;
+- `DEMOTE_TO_<N>`;
+- `RECOMMEND_TIER_<N>`;
+- `RECOMMEND_BOUNDED_COHORT`;
+- `RECOMMEND_BOUNDED_INCIDENT_SCOPE`;
+- `INSUFFICIENT_TIER_EVIDENCE`.
+
+It must bind the maximum users per transaction, maximum concurrent
+transactions, source/target families, failure classes, capacity reserve,
+cooldown, rollback trigger, circuit breaker, demotion rule and expiry.
+
+Unrelated whole capabilities must not advance.
+
+Completion contract:
+
+`CURRENT_SERVICE_FAILURE_EVIDENCE_CONSUMED_AND_ACTION_CLASS_AUTHORITY_RECOMMENDATION_DECIDED`
+
+### M7 — Separate Authority-owned activation
+
+This Mission is conditional and outside any implicit continuation.
+
+It starts only if M6 emits
+`RECOMMEND_CERTIFIED_FOR_CLASS_APPROVAL`. Activation must use a distinct
+existing-owner Program identity, fresh CPS admission and independent Authority
+decision. It must define blast radius, event classes, evidence floors,
+cooldowns, rollback, circuit breakers, demotion and kill conditions.
+
+Activation may grant only the exact recommended ladder tier. Approval of tier
+`N` does not approve a larger cohort, another action class, another
+source/target family, parallel execution or full-incident automation.
+
+After activation, the next real qualifying incident must verify the granted
+tier in production. Its outcome returns to M6; success may form the next-tier
+recommendation, while failure automatically holds, narrows, freezes or demotes
+the class through the existing Authority owner.
+
+`HOLD`, `FREEZE`, `DEMOTE`, `RECOMMEND_NARROW_SCOPE` and
+`INSUFFICIENT_EVIDENCE` legally skip M7.
+
+Completion contract:
+
+`ACTION_CLASS_AUTHORITY_DECISION_INDEPENDENTLY_CONSUMED`
+
+## Verification campaign
+
+Every implementation Mission must run:
+
+1. focused unit tests for the changed owner;
+2. the exact service-failure episode and passive consumer tests;
+3. the exact incident-bound planner/shadow replay;
+4. duplicate and cross-process idempotency tests;
+5. forbidden-effects verification;
+6. affected Permanent Polygon scenarios;
+7. commit and push;
+8. `tools/v7-safe-deploy` only for the exact approved manifest;
+9. a fresh non-test production caller and consumer;
+10. affected incident replay;
+11. `tools/v7-truth-check --all --json`;
+12. `tools/v7-convergence-status --json`;
+13. local/GitHub/production commit and runtime snapshot reconciliation.
+
+No Mission may claim `COMPLETE_CONSUMED` from tests, reports, deploy or an
+in-process probe alone.
+
+## Forbidden shortcuts
+
+- a second event/opportunity store;
+- a second decision or automation-gap engine;
+- treating latest-run summary as a queue;
+- `continue-on-error`, skipped gates or weakened assertions;
+- enabling a timer to manufacture independent automation evidence;
+- bulk executable shadow recommendations outside delegated scope;
+- directly changing `max_users_per_run`, `max_users_per_channel` or a legacy
+  batch budget without current-tier evidence and independent Authority;
+- promoting more than one unproven blast-radius tier at once;
+- reusing Candidate, Packet, lease, nonce or Authority;
+- directly invoking rollback to manufacture a terminal;
+- moving ordinary customers solely to create certification evidence;
+- relabeling synthetic, operator-induced or unattributed events as Natural L8;
+- using legacy runtime policy as current CPS Authority;
+- changing Production Maturity from Engineering or shadow evidence.
+
+## Program terminal
+
+`SERVICE_FAILURE_AUTOMATION_EVOLUTION_LOOP_PRODUCTION_CONSUMED_AND_CERTIFIED_BLAST_RADIUS_TIER_DECIDED`
+
+This terminal means the current Incident and Product Evolution projections are
+both reconciled: the incident-to-OMP-to-decision-to-gap-to-shadow-to-outcome-to-
+Learning loop is production-consumed, all independent product residuals are
+either consumed or explicitly owned, and the current action-class Authority
+recommendation, including the exact certified blast-radius tier, has been
+independently decided.
+
+It does not necessarily mean autonomous routing is enabled, Natural L8 is
+sufficient, Authority expanded or Production Maturity increased.
+
+## Exact first executable frontier
+
+`V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1`

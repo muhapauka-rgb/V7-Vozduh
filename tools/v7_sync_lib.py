@@ -5967,6 +5967,223 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
     return live.get(key, "").strip("`").strip()
 
 
+SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
+
+
+def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    records: list[dict[str, Any]] = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(row, dict):
+            records.append(row)
+    return records
+
+
+def _append_jsonl_record(path: Path, row: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def service_failure_automation_state_dir(*, root: Path = ROOT, state_dir: Optional[Path] = None) -> Path:
+    if state_dir is not None:
+        return Path(state_dir)
+    configured = os.environ.get("V7_SERVICE_FAILURE_STATE_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    return root / "egress" / "state"
+
+
+def service_failure_automation_frontier(
+    *, root: Path = ROOT, state_dir: Optional[Path] = None,
+) -> dict[str, Any]:
+    """Read the existing closure owner for one unconsumed automation obligation."""
+    resolved_state_dir = service_failure_automation_state_dir(root=root, state_dir=state_dir)
+    closure_path = resolved_state_dir / "closure-records.jsonl"
+    rows = _read_jsonl_records(closure_path)
+    consumed = {
+        str(row.get("automation_obligation_id") or "")
+        for row in rows
+        if str(row.get("object_type") or "") == "service_failure_automation_omp_consumption"
+        and str(row.get("closure_state") or "") == "OMP_CONSUMED"
+    }
+    pending = [
+        row for row in rows
+        if str(row.get("object_type") or "") == "service_failure_automation_obligation"
+        and str(row.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
+        and str(row.get("automation_obligation_id") or "") not in consumed
+    ]
+    pending.sort(key=lambda row: str(row.get("created_at") or row.get("observed_at") or ""), reverse=True)
+    selected = pending[0] if pending else {}
+    return {
+        "schema_version": "v7.service-failure-automation-frontier.v1",
+        "owner": "existing closure-records + OMP continuation owners",
+        "state_dir": str(resolved_state_dir),
+        "closure_path": str(closure_path),
+        "pending_count": len(pending),
+        "selected": selected,
+        "final_verdict": "READY" if selected else "NO_PENDING_OBLIGATION",
+        "new_registry_created": False,
+    }
+
+
+def consume_service_failure_automation_frontier(
+    *, root: Path = ROOT, state_dir: Optional[Path] = None, persist_cps: bool = False,
+) -> dict[str, Any]:
+    """Consume one existing service-failure obligation through the OMP owner.
+
+    The durable source and the consumption receipt both live in the existing
+    closure owner.  No Candidate, Packet, lease, Runtime action or Authority
+    change can be produced here.
+    """
+    frontier = service_failure_automation_frontier(root=root, state_dir=state_dir)
+    obligation = frontier.get("selected") if isinstance(frontier.get("selected"), dict) else {}
+    if not obligation:
+        return {
+            "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+            "final_verdict": "NO_PENDING_OBLIGATION",
+            "frontier": frontier,
+            "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+            "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        }
+    obligation_id = str(obligation.get("automation_obligation_id") or "")
+    classification = str(obligation.get("stop_safe_classification") or "STOP_SAFE_DATA_OR_EVIDENCE_GAP")
+    product_frontier = str(obligation.get("product_evolution_frontier") or "NONE")
+    incident_frontier = str(obligation.get("incident_frontier") or "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION")
+    next_action = product_frontier if product_frontier != "NONE" else incident_frontier
+    legal_terminal = classification == "CORRECT_SAFE_TERMINAL"
+    authority_boundary = classification in {
+        "STOP_SAFE_AUTHORITY_REQUIRED",
+        "STOP_SAFE_EXTERNAL_OWNER_REQUIRED",
+    }
+    receipt = {
+        "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+        "object_type": "service_failure_automation_omp_consumption",
+        "object_id": "sfomp_" + hashlib.sha256(obligation_id.encode("utf-8")).hexdigest()[:24],
+        "automation_obligation_id": obligation_id,
+        "closure_state": "OMP_CONSUMED",
+        "consumed_at": utc_now(),
+        "program_id": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "mission_id": SERVICE_FAILURE_AUTOMATION_M1,
+        "source_incident_id": str(obligation.get("source_incident_id") or ""),
+        "situation_id": str(obligation.get("situation_id") or ""),
+        "decision_trace_id": str(obligation.get("decision_trace_id") or ""),
+        "classification": classification,
+        "incident_frontier": incident_frontier,
+        "product_evolution_frontier": product_frontier,
+        "next_action": next_action,
+        "legal_terminal": legal_terminal,
+        "real_caller": "tools/v7-service-matrix-refresh-all",
+        "real_consumer": "continue_omp_engineering_control_loop",
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
+    }
+    atomic: dict[str, Any] = {"ok": True, "status": "CPS_PERSIST_NOT_REQUESTED"}
+    if persist_cps:
+        cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+        cps_text = cps_path.read_text(encoding="utf-8")
+        state = _normalized_state_from_live_cps(cps_text)
+        fingerprint = hashlib.sha256(json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        if authority_boundary:
+            stop_condition = "ENGINEERING_AUTHORITY"
+            continuation_decision = "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
+            terminal_class = "ENGINEERING_AUTHORITY"
+            terminal_state = "ENGINEERING_AUTHORITY_SERVICE_FAILURE_ACTION_CLASS_RECONCILIATION_REQUIRED"
+            external_input = "EXACT_ACTION_CLASS_AUTHORITY_RECONCILIATION"
+            authority_required = "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
+            safe_next_action = "PRESERVE THE INCIDENT AND REQUEST ONLY THE EXACT OWNER-ISSUED ONE-USE ACTION-CLASS CONTRACT; DO NOT APPLY OR MOVE USERS"
+        elif legal_terminal:
+            stop_condition = "REAL_WORLD_LIMIT"
+            continuation_decision = "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
+            terminal_class = "REAL_WORLD_LIMIT"
+            terminal_state = "REAL_WORLD_LIMIT_SERVICE_FAILURE_TERMINAL_REENTRY_REQUIRED"
+            external_input = "NEXT_MATERIAL_SERVICE_FAILURE_OR_PRODUCT_EVOLUTION_OBLIGATION"
+            authority_required = "NO_INSIDE_APPROVED_POLICY"
+            safe_next_action = "KEEP INCIDENT CAPTURE READY AND CONTINUE INDEPENDENT PRODUCT EVOLUTION FRONTIER"
+        else:
+            # A proven code/caller/data gap stays inside engineering only when
+            # its existing BDP/OMP route is represented by the next revision.
+            stop_condition = "NONE"
+            continuation_decision = "CONTINUE_PROGRAM_FRONTIER"
+            terminal_class = "NONE"
+            terminal_state = "NONE_SERVICE_FAILURE_AUTOMATION_REPAIR_FRONTIER_READY"
+            external_input = "NONE"
+            authority_required = "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
+            safe_next_action = "RECONCILE THE EXACT STOP_SAFE CLASSIFICATION THROUGH EXISTING BDP/OMP OWNERS"
+        state.update({
+            "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+            "current_stop_condition": stop_condition,
+            "current_active_scope": "SERVICE_FAILURE_AUTOMATION_INCIDENT_AND_PRODUCT_EVOLUTION_FRONTIERS_ACTIVE",
+            "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+            "current_state_generation": f"cpsgen_SFA_{fingerprint[:12].upper()}",
+            "current_transition_id": "SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1",
+            "current_next_action_id": next_action if not legal_terminal else "WAIT_FOR_NEXT_MATERIAL_SERVICE_FAILURE_OR_PRODUCT_EVOLUTION_OBLIGATION",
+            "current_safe_next_action": safe_next_action,
+            "current_program_execution_frontier": next_action if not (legal_terminal or authority_boundary) else "NONE",
+            "current_execution_frontier": next_action if not (legal_terminal or authority_boundary) else "NONE",
+            "program_frontier_input": f"service failure automation obligation {obligation_id}",
+            "program_frontier_expected_output": "STOP_SAFE CLASSIFICATION -> EXISTING BDP/OMP ROUTE OR LEGAL TERMINAL",
+            "smallest_existing_next_action": next_action,
+            "last_responsible_link": str(obligation.get("last_responsible_link") or "service failure obligation -> OMP consumer"),
+            "continuation_decision": continuation_decision,
+            "program_terminal_class": terminal_class,
+            "program_terminal_state": terminal_state,
+            "authority_required_now": authority_required,
+            "wip_authority_required_now": authority_required,
+            "wip_current_primary_stop": stop_condition,
+            "wip_smallest_existing_next_action_id": next_action,
+            "wip_smallest_existing_next_action": next_action,
+            "omp_continuation_required": "TRUE" if not (legal_terminal or authority_boundary) else "FALSE",
+            "external_input_required": "FALSE" if not (legal_terminal or authority_boundary) else "TRUE",
+            "external_input_type": external_input,
+            "next_mission_formed": "TRUE" if not (legal_terminal or authority_boundary) else "FALSE",
+            "next_mission_id": SERVICE_FAILURE_AUTOMATION_M1 if not (legal_terminal or authority_boundary) else "NONE",
+            "state_captured": utc_now(),
+        })
+        atomic = atomic_reconcile_cps(
+            cps_path,
+            state=state,
+            request_external_wake=False,
+            expected_generation=_plain_live_value(_markdown_field_table(_markdown_section(cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry")), "CURRENT_STATE_GENERATION"),
+        )
+        if not atomic.get("ok"):
+            return {
+                "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+                "final_verdict": "STOP_SAFE",
+                "frontier": frontier,
+                "receipt": receipt,
+                "atomic_update": atomic,
+                "errors": atomic.get("errors") or ["cps_update_failed"],
+            }
+    _append_jsonl_record(Path(frontier["closure_path"]), receipt)
+    return {
+        "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+        "final_verdict": "PASS",
+        "frontier": frontier,
+        "receipt": receipt,
+        "atomic_update": atomic,
+        "real_caller": receipt["real_caller"],
+        "real_consumer": receipt["real_consumer"],
+        "behavior_change": True,
+        "next_output": next_action,
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "errors": [],
+    }
+
+
 def event_driven_ready_frontier_fingerprint(live: dict[str, str]) -> str:
     """Fingerprint only the owner-backed fields that make engineering work executable."""
     payload = {
@@ -15902,6 +16119,30 @@ def continue_omp_engineering_control_loop(
         live = _markdown_field_table(_markdown_section(
             cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
         ))
+        service_failure = service_failure_automation_frontier(root=root)
+        if service_failure.get("final_verdict") == "READY":
+            consumed = consume_service_failure_automation_frontier(
+                root=root,
+                persist_cps=persist_cps,
+            )
+            return {
+                **consumed,
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "trigger": "service-failure Matrix lifecycle",
+                "entrypoint": "tools/v7-service-matrix-refresh-all -> tools/v7-truth-check --continue-omp",
+                "priority_decision": "SERVICE_FAILURE_AUTOMATION_FRONTIER_SELECTED",
+                "transitions": [{
+                    "transaction_terminal": "SERVICE_FAILURE_AUTOMATION_OBLIGATION_OMP_CONSUMED",
+                    "mission_id": SERVICE_FAILURE_AUTOMATION_M1,
+                    "obligation_id": ((consumed.get("receipt") or {}).get("automation_obligation_id") or ""),
+                    "next_output": consumed.get("next_output", "NONE"),
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "exact_next_operator_command": "Continue OMP",
+                "exact_next_automatic_action": consumed.get("next_output", "NONE"),
+                "continuation_wake_materialized": False,
+            }
         corpus = load_future_scale_scenario_corpus(root=root)
         sources = load_program_execution_sources(root)
         reconciliation = program_execution_reconciliation(sources, root=root)

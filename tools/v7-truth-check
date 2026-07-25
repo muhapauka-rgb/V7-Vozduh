@@ -37,7 +37,16 @@ FSSE_SCENARIO_ROOT_ENV = "V7_FSSE_SCENARIO_ROOT"
 def fsse_scenario_root() -> Path:
     """Return an explicit isolated engineering corpus root when requested."""
     configured = os.environ.get(FSSE_SCENARIO_ROOT_ENV, "").strip()
-    return Path(configured).resolve() if configured else ROOT_DIR
+    if configured:
+        return Path(configured).resolve()
+    # The deployed entrypoint lives in /usr/local/bin, while its canonical
+    # owner corpus is intentionally kept under /opt/v7.  Falling back to the
+    # binary directory would make a real Matrix caller read a non-existent
+    # CPS and silently break the producer -> consumer link.
+    production_root = Path("/opt/v7")
+    if ROOT_DIR == Path("/usr/local") and (production_root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").exists():
+        return production_root
+    return ROOT_DIR
 
 RUNTIME_READONLY_COMMANDS = [
     ["hostname"],

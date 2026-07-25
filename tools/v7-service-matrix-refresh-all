@@ -220,6 +220,97 @@ def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict
     }
 
 
+def run_service_failure_automation_advisory(
+    consumer: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    timeout_sec: int = 45,
+) -> dict[str, Any]:
+    """Invoke the existing autoswitch owner in bounded advisory-only mode."""
+    command = [
+        consumer,
+        "--consume-service-failure-automation-only",
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+    ]
+    started_at = now_iso()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(5, min(int(timeout_sec or 45), 120)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "error": str(exc),
+            "command": command,
+        }
+    output = proc.stdout or ""
+    try:
+        parsed = json.loads(output)
+    except json.JSONDecodeError:
+        parsed = {}
+    return {
+        "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+        "status": "PASS" if proc.returncode == 0 and isinstance(parsed, dict) and parsed.get("ok") else "FAILED",
+        "ok": proc.returncode == 0 and isinstance(parsed, dict) and parsed.get("ok") is True,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "command": command,
+        "returncode": proc.returncode,
+        "consumer_result": parsed,
+        "output_tail": output[-2000:],
+    }
+
+
+def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]:
+    """Consume the already-materialized obligation through the standard OMP entrypoint."""
+    command = ["v7-truth-check", "--continue-omp", "--continue-omp-persist-cps", "--json"]
+    started_at = now_iso()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(10, min(int(timeout_sec or 45), 180)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "FAILED", "ok": False, "started_at": started_at,
+            "error": str(exc), "command": command,
+        }
+    output = proc.stdout or ""
+    try:
+        parsed = json.loads(output)
+    except json.JSONDecodeError:
+        parsed = {}
+    passed = proc.returncode == 0 and isinstance(parsed, dict) and parsed.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"}
+    return {
+        "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+        "status": "PASS" if passed else "FAILED",
+        "ok": passed,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "command": command,
+        "returncode": proc.returncode,
+        "consumer_result": parsed,
+        "output_tail": output[-2000:],
+    }
+
+
 def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
     try:
         event_dir.mkdir(parents=True, exist_ok=True)
@@ -443,6 +534,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checker", default=default_checker_path())
     parser.add_argument("--passive-consumer", default=default_passive_consumer_path())
     parser.add_argument("--passive-consumer-timeout-sec", type=int, default=30)
+    parser.add_argument("--skip-service-failure-automation-advisory", action="store_true")
+    parser.add_argument("--skip-service-failure-omp-consumer", action="store_true")
     parser.add_argument(
         "--skip-passive-consumer",
         action="store_true",
@@ -574,6 +667,38 @@ def main() -> int:
     payload["omp_product_frontiers"] = list(
         consumer_result.get("omp_frontiers") or ()
     )
+    if args.skip_service_failure_automation_advisory:
+        payload["service_failure_automation_advisory"] = {
+            "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+            "status": "SKIPPED_EXPLICITLY",
+            "ok": False,
+            "reason": "explicit_skip",
+        }
+    else:
+        payload["service_failure_automation_advisory"] = run_service_failure_automation_advisory(
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            timeout_sec=int(args.passive_consumer_timeout_sec) + 15,
+        )
+    advisory_result = (
+        (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
+    )
+    advisory_payload = advisory_result.get("result") if isinstance(advisory_result, dict) else {}
+    if args.skip_service_failure_omp_consumer:
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "SKIPPED_EXPLICITLY", "ok": False, "reason": "explicit_skip",
+        }
+    elif isinstance(advisory_payload, dict) and advisory_payload.get("active"):
+        payload["service_failure_omp_consumer"] = run_service_failure_omp_consumer(
+            timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
+        )
+    else:
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
+        }
     payload["omp_product_frontier_owner"] = "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER"
     payload["next_output"] = (
         "OMP_PRODUCT_FRONTIER_MATERIALIZED"

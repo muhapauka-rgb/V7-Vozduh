@@ -17,6 +17,7 @@ from typing import Any
 SCHEMA_VERSION = "v7.shadow-autonomy.v1"
 DECISION_RECORD_TYPE = "shadow_decision"
 COMPARISON_RECORD_TYPE = "operator_comparison"
+OUTCOME_COMPARISON_RECORD_TYPE = "observed_outcome_comparison"
 COMPARISON_CATEGORIES = {"trust", "service", "capacity", "risk", "manual_preference", "other"}
 OBSERVATION_TARGETS = {
     "minimum_window_hours": 24,
@@ -158,10 +159,59 @@ def operator_comparison_record(
     return record
 
 
+def observed_outcome_comparison_record(
+    decision: dict[str, Any],
+    outcome: dict[str, Any],
+    *,
+    now: str = "",
+) -> dict[str, Any]:
+    """Bind an already-recorded execution outcome to one shadow decision.
+
+    The caller must supply an owner-backed outcome.  This function is pure:
+    it neither infers an outcome from absence nor performs a route action.
+    """
+    executed = outcome.get("apply_executed") is True or outcome.get("execution_performed") is True
+    successful = outcome.get("verification_passed") is True or outcome.get("outcome") in {"PASS", "VERIFIED", "NO_ROLLBACK_REQUIRED"}
+    predicted_move = str(decision.get("recommended_action") or "") == "MOVE_USER"
+    matched = (predicted_move and executed and successful) or (not predicted_move and not executed)
+    record = {
+        "schema_version": SCHEMA_VERSION,
+        "record_type": OUTCOME_COMPARISON_RECORD_TYPE,
+        "timestamp": now or utc_now(),
+        "decision_id": str(decision.get("decision_id") or ""),
+        "automation_obligation_id": str(decision.get("automation_obligation_id") or outcome.get("automation_obligation_id") or ""),
+        "source_incident_id": str(decision.get("source_incident_id") or outcome.get("source_incident_id") or ""),
+        "outcome_id": str(outcome.get("outcome_id") or outcome.get("execution_id") or outcome.get("object_id") or ""),
+        "recommended_action": str(decision.get("recommended_action") or ""),
+        "outcome_observed": True,
+        "outcome_successful": successful,
+        "prediction_matched_observed_outcome": matched,
+        "outcome_source_owner": str(outcome.get("owner") or outcome.get("responsibility_owner") or "existing execution outcome owner"),
+        "runtime_mutation_performed": False,
+        "execution_allowed_now": False,
+        "users_moved": 0,
+        "apply_executed": False,
+        "autonomy_enabled": False,
+    }
+    record["comparison_id"] = "shadowout_" + stable_hash(record)[:24]
+    return record
+
+
 def _latest_comparisons(history: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     latest: dict[str, dict[str, Any]] = {}
     for row in history:
         if not isinstance(row, dict) or row.get("record_type") != COMPARISON_RECORD_TYPE:
+            continue
+        decision_id = str(row.get("decision_id") or "")
+        if decision_id:
+            latest[decision_id] = row
+    return latest
+
+
+def _latest_observed_outcomes(history: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    latest: dict[str, dict[str, Any]] = {}
+    for row in history:
+        if not isinstance(row, dict) or row.get("record_type") != OUTCOME_COMPARISON_RECORD_TYPE:
             continue
         decision_id = str(row.get("decision_id") or "")
         if decision_id:
@@ -191,6 +241,10 @@ def decision_quality_summary(decisions: list[dict[str, Any]], history: list[dict
     total = len(compared)
     agreements = sum(1 for row in compared if row.get("operator_agreed") is True)
     overrides = sum(1 for row in compared if row.get("override") is True)
+    observed = _latest_observed_outcomes(history)
+    observed_rows = [observed[row["decision_id"]] for row in decisions if row.get("decision_id") in observed]
+    observed_total = len(observed_rows)
+    observed_matches = sum(1 for row in observed_rows if row.get("prediction_matched_observed_outcome") is True)
     confidence_values = [as_float(row.get("confidence"), 0.0) for row in decisions]
     return {
         "schema_version": "v7.shadow-autonomy-quality.v1",
@@ -202,7 +256,9 @@ def decision_quality_summary(decisions: list[dict[str, Any]], history: list[dict
         "agreement_rate": round(agreements / total, 4) if total else 0.0,
         "disagreement_rate": round((total - agreements) / total, 4) if total else 0.0,
         "override_rate": round(overrides / total, 4) if total else 0.0,
-        "prediction_accuracy": "INSUFFICIENT_OUTCOME_HISTORY",
+        "observed_outcomes_total": observed_total,
+        "observed_outcome_match_count": observed_matches,
+        "prediction_accuracy": round(observed_matches / observed_total, 4) if observed_total else "INSUFFICIENT_OUTCOME_HISTORY",
         "trust_accuracy": round(agreements / total, 4) if total else 0.0,
         "recommendation_accuracy": round((agreements - overrides) / total, 4) if total else 0.0,
         "average_decision_confidence": round(sum(confidence_values) / len(confidence_values), 3) if confidence_values else 0.0,
@@ -559,6 +615,7 @@ def build_shadow_autonomy_model(decision_surface: dict[str, Any], history: list[
         "current_decisions": decisions,
         "decision_history": [row for row in history if row.get("record_type") == DECISION_RECORD_TYPE][-50:],
         "comparison_history": [row for row in history if row.get("record_type") == COMPARISON_RECORD_TYPE][-50:],
+        "observed_outcome_history": [row for row in history if row.get("record_type") == OUTCOME_COMPARISON_RECORD_TYPE][-50:],
         "quality": quality,
         "confidence": confidence,
         "observation_window": observation,

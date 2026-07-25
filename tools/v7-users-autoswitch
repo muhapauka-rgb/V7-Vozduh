@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from admin_core import operation_scoped_binding, operator_execution
+from admin_core import operation_scoped_binding, operator_execution, shadow_autonomy
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -1115,6 +1115,7 @@ class AutoswitchPlanner:
         state.setdefault("incidents", {})
         state.setdefault("processed_event_ids", [])
         state.setdefault("passive_event_consumptions", {})
+        state.setdefault("service_failure_automation_obligations", {})
         state.setdefault("capability", {})
         state.setdefault("updated", "")
         return state
@@ -9550,6 +9551,275 @@ class AutoswitchPlanner:
             ),
         }
 
+    @staticmethod
+    def _service_failure_automation_obligation_id(row: dict[str, Any]) -> str:
+        return "sfaob_" + sha256_json({
+            "source_incident_id": str(row.get("source_incident_id") or row.get("object_id") or ""),
+            "situation_id": str(row.get("situation_id") or ""),
+            "decision_trace_id": str(row.get("decision_trace_id") or ""),
+            "terminal": str(row.get("terminal_outcome_classification") or row.get("closure_state") or ""),
+            "provenance": str(row.get("event_provenance") or ""),
+        })[:24]
+
+    @staticmethod
+    def _service_failure_stop_safe_classification(
+        closure: dict[str, Any],
+        decisions: list[dict[str, Any]],
+    ) -> tuple[str, str, str]:
+        if not all(str(closure.get(key) or "") for key in ("source_incident_id", "situation_id", "decision_trace_id")):
+            return (
+                "STOP_SAFE_DATA_OR_EVIDENCE_GAP",
+                "passive terminal lacks the immutable Situation, incident or Decision Trace identity",
+                "V7_SERVICE_FAILURE_AUTOMATION_CAPTURE_BINDING_REPAIR",
+            )
+        closure_state = str(closure.get("closure_state") or "").upper()
+        terminal = str(closure.get("terminal_outcome_classification") or "").upper()
+        provenance = str(closure.get("event_provenance") or "").upper()
+        if provenance == "OPERATOR_INDUCED":
+            return (
+                "STOP_SAFE_EXTERNAL_OWNER_REQUIRED",
+                "external operator provenance is not execution authority",
+                "EXTERNAL_OWNER_BOUNDARY",
+            )
+        if closure_state in {"RECOVERED", "EXPIRED"} or terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")):
+            return (
+                "CORRECT_SAFE_TERMINAL",
+                "recovery or expiry is already a legal no-action terminal",
+                "NONE",
+            )
+        movable = [
+            row for row in decisions
+            if str(row.get("recommended_egress") or "")
+            and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
+        ]
+        if not movable:
+            return (
+                "STOP_SAFE_NO_SAFE_TARGET",
+                "existing planner found no safe target for the failed source",
+                "NONE",
+            )
+        return (
+            "STOP_SAFE_AUTHORITY_REQUIRED",
+            "a safe planner target exists but passive capture does not grant current execution authority",
+            "V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION",
+        )
+
+    def reconcile_service_failure_shadow_outcomes(self) -> dict[str, Any]:
+        """Attach only exact, owner-backed execution outcomes to shadow rows."""
+        shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
+        history = read_jsonl(shadow_path)
+        executions = read_jsonl(self.state_dir / "execution-events.jsonl")
+        existing = {
+            (str(row.get("decision_id") or ""), str(row.get("outcome_id") or ""))
+            for row in history
+            if str(row.get("record_type") or "") == shadow_autonomy.OUTCOME_COMPARISON_RECORD_TYPE
+        }
+        appended: list[dict[str, Any]] = []
+        for decision in history:
+            if str(decision.get("record_type") or "") != shadow_autonomy.DECISION_RECORD_TYPE:
+                continue
+            source_incident_id = str(decision.get("source_incident_id") or "")
+            if not source_incident_id:
+                continue
+            for outcome in executions:
+                if str(outcome.get("source_incident_id") or "") != source_incident_id:
+                    continue
+                actually_executed = (
+                    outcome.get("apply_executed") is True
+                    or outcome.get("execution_performed") is True
+                    or bool(outcome.get("operation_id"))
+                )
+                if not actually_executed:
+                    continue
+                outcome_id = str(outcome.get("outcome_id") or outcome.get("execution_id") or outcome.get("object_id") or outcome.get("operation_id") or "")
+                decision_id = str(decision.get("decision_id") or "")
+                if not outcome_id or (decision_id, outcome_id) in existing:
+                    continue
+                verification = outcome.get("verification_result") if isinstance(outcome.get("verification_result"), dict) else {}
+                projected = {
+                    **outcome,
+                    "outcome_id": outcome_id,
+                    "apply_executed": True,
+                    "execution_performed": True,
+                    "verification_passed": verification.get("success") is True,
+                    "owner": "existing execution outcome owner",
+                }
+                appended.append(shadow_autonomy.observed_outcome_comparison_record(decision, projected))
+        if appended:
+            append_jsonl(shadow_path, appended)
+        return {
+            "active": bool(appended),
+            "observed_outcome_comparisons_added": len(appended),
+            "reason": "exact_owner_backed_outcomes_reconciled" if appended else "no_exact_execution_outcome_available",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    def materialize_service_failure_automation_advisory(self, plan: dict[str, Any]) -> dict[str, Any]:
+        """Turn existing passive terminals into one bounded OMP-ready obligation.
+
+        This is deliberately advisory-only.  It reuses closure-records, the
+        existing planner and the existing Shadow Autonomy JSONL; it neither
+        creates a Candidate/Packet/lease nor enters the apply path.
+        """
+        closure_path = self.state_dir / "closure-records.jsonl"
+        shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
+        outcome_reconciliation = self.reconcile_service_failure_shadow_outcomes()
+        closures = read_jsonl(closure_path)
+        existing = {
+            str(row.get("automation_obligation_id") or "")
+            for row in closures
+            if str(row.get("object_type") or "") == "service_failure_automation_obligation"
+        }
+        passive = [
+            row for row in closures
+            if str(row.get("object_type") or "") == "passive_production_event"
+        ]
+        candidates = []
+        for row in passive:
+            obligation_id = self._service_failure_automation_obligation_id(row)
+            if obligation_id and obligation_id not in existing:
+                candidates.append((str(row.get("observed_at") or row.get("created_at") or ""), obligation_id, row))
+        if not candidates:
+            return {
+                "schema_version": "v7.service-failure-automation-advisory.v1",
+                "active": False,
+                "reason": "no_unmaterialized_passive_terminal",
+                "outcome_reconciliation": outcome_reconciliation,
+                "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
+            }
+        _observed, obligation_id, closure = sorted(candidates, key=lambda row: row[0], reverse=True)[0]
+        source = str(closure.get("channel") or "")
+        decisions = [
+            row for row in (plan.get("decisions") or [])
+            if not source or str(row.get("current_egress") or "") == source
+        ]
+        classification, reason, product_frontier = self._service_failure_stop_safe_classification(closure, decisions)
+        movable = [
+            row for row in decisions
+            if str(row.get("recommended_egress") or "")
+            and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
+        ]
+        chosen = sorted(movable, key=lambda row: str(row.get("user_ip") or ""))[:1]
+        now = now_iso()
+        affected = list(closure.get("affected_users") or [])
+        authority_policy = getattr(self, "authority_budget_policy", {})
+        emergency_policy = getattr(self, "emergency_failover_policy", {})
+        current_tier = max(0, to_int(
+            emergency_policy.get("max_users_per_run") if isinstance(emergency_policy, dict) else 0,
+            1,
+        ))
+        authority_safe_cohort = max(0, to_int(
+            authority_policy.get("current_allowed_user_budget") if isinstance(authority_policy, dict) else 0,
+            0,
+        ))
+        target_capacity_snapshot = {
+            str(row.get("recommended_egress") or ""): row.get("capacity_decision")
+            for row in chosen if str(row.get("recommended_egress") or "")
+        }
+        obligation = {
+            "schema_version": "v7.service-failure-automation-obligation.v1",
+            "object_type": "service_failure_automation_obligation",
+            "object_id": obligation_id,
+            "automation_obligation_id": obligation_id,
+            "closure_state": "READY_FOR_OMP_CONSUMPTION",
+            "created_at": now,
+            "source_incident_id": str(closure.get("source_incident_id") or closure.get("object_id") or ""),
+            "situation_id": str(closure.get("situation_id") or ""),
+            "decision_trace_id": str(closure.get("decision_trace_id") or ""),
+            "event_provenance": str(closure.get("event_provenance") or "UNKNOWN"),
+            "evidence_class": str(closure.get("evidence_class") or "UNKNOWN_EVENT"),
+            "channel": source,
+            "failure_families": list(closure.get("failure_families") or []),
+            "affected_users_count": len(affected),
+            "aggregate_impact_users": len(affected),
+            "bounded_recommendation_users": len(chosen),
+            "current_certified_blast_radius_tier": current_tier,
+            "requested_blast_radius_tier": min(len(affected), max(1, current_tier)),
+            "smallest_necessary_cohort": len(chosen),
+            "maximum_capacity_safe_cohort": len(chosen),
+            "current_authority_safe_cohort": authority_safe_cohort,
+            "effective_cohort": 0,
+            "target_capacity_snapshot": target_capacity_snapshot,
+            "next_tier_blocking_evidence_cell": "current action-class authority and real outcome coverage",
+            "stop_safe_classification": classification,
+            "classification_reason": reason,
+            "last_responsible_link": "passive STOP_SAFE terminal -> incident-bound planner advisory -> existing OMP consumer",
+            "responsibility_owner": "tools/v7-users-autoswitch",
+            "product_evolution_frontier": product_frontier,
+            "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+            "authority_reconciliation": "CURRENT_CPS_GOVERNED_ONLY_REQUIRED_BEFORE_ANY_MOVE",
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "apply_executed": False,
+            "authority_expanded": False,
+            "production_maturity_changed": False,
+        }
+        shadow_rows = read_jsonl(shadow_path)
+        shadow_ids = {str(row.get("decision_id") or "") for row in shadow_rows}
+        shadow_record: dict[str, Any] = {}
+        if chosen:
+            selected = chosen[0]
+            shadow_record = shadow_autonomy.shadow_decision_record({
+                "user": str(selected.get("user_ip") or ""),
+                "current_channel": str(selected.get("current_egress") or source),
+                "recommended_channel": str(selected.get("recommended_egress") or ""),
+                "recommendation": "move_recommended",
+                "reasons": list(selected.get("reason") or []) + [classification],
+                "trust": to_float(selected.get("trust"), 0.0),
+                "risk": to_float(selected.get("risk"), 0.0),
+                "prediction": selected.get("prediction") if isinstance(selected.get("prediction"), dict) else {},
+                "blockers": [classification, "CPS_AUTHORITY_RECONCILIATION_REQUIRED"],
+            }, now=now)
+            shadow_record["decision_id"] = "shadow_" + sha256_json({
+                "automation_obligation_id": obligation_id,
+                "user": shadow_record.get("user"),
+                "source": shadow_record.get("current_channel"),
+                "target": shadow_record.get("recommended_target"),
+            })[:24]
+            shadow_record.update({
+                "source_incident_id": obligation["source_incident_id"],
+                "automation_obligation_id": obligation_id,
+                "situation_id": obligation["situation_id"],
+                "decision_trace_id": obligation["decision_trace_id"],
+                "aggregate_impact_users": len(affected),
+                "bounded_recommendation_users": 1,
+                "execution_allowed_now": False,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "apply_executed": False,
+                "autonomy_enabled": False,
+            })
+        append_jsonl(closure_path, [obligation])
+        if shadow_record and str(shadow_record.get("decision_id") or "") not in shadow_ids:
+            append_jsonl(shadow_path, [shadow_record])
+        state = self._load_l3_runtime_state()
+        obligations = state.setdefault("service_failure_automation_obligations", {})
+        if not isinstance(obligations, dict):
+            obligations = {}
+            state["service_failure_automation_obligations"] = obligations
+        obligations[obligation_id] = {
+            "status": "READY_FOR_OMP_CONSUMPTION",
+            "source_incident_id": obligation["source_incident_id"],
+            "classification": classification,
+            "updated_at": now,
+        }
+        self._write_l3_runtime_state(state)
+        return {
+            "schema_version": "v7.service-failure-automation-advisory.v1",
+            "active": True,
+            "obligation": obligation,
+            "shadow_decision_id": str(shadow_record.get("decision_id") or ""),
+            "outcome_reconciliation": outcome_reconciliation,
+            "next_output": obligation["incident_frontier"] if product_frontier == "NONE" else product_frontier,
+            "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False, "production_maturity_change": False},
+        }
+
     def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:
         safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
         incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
@@ -10529,6 +10799,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--consume-service-failure-automation-only",
+        action="store_true",
+        help=(
+            "Materialize one existing passive Situation/STOP_SAFE terminal as a bounded "
+            "OMP-ready automation obligation and Shadow record without applying routing."
+        ),
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -10643,10 +10921,49 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Run only the existing planner's read-only incident advisory path."""
+    forbidden = [
+        name for name in ("apply", "emergency_failover_autonomy", "controlled_verifier_contention")
+        if bool_value(getattr(args, name, False))
+    ]
+    if forbidden:
+        return {
+            "schema_version": "v7.service-failure-automation-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
+        }
+    planner = AutoswitchPlanner(args)
+    plan = planner.plan()
+    result = planner.materialize_service_failure_automation_advisory(plan)
+    return {
+        "schema_version": "v7.service-failure-automation-entrypoint.v1",
+        "status": "PASS",
+        "ok": True,
+        "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
+        "consumer": "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
+        "result": result,
+        "forbidden_effects": {
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "packet_created": False,
+            "lease_created": False,
+            "authority_change": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
 def main() -> int:
     args = build_arg_parser().parse_args()
     if args.consume_passive_events_only:
         result = consume_passive_events_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
+    if args.consume_service_failure_automation_only:
+        result = consume_service_failure_automation_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     planner = AutoswitchPlanner(args)

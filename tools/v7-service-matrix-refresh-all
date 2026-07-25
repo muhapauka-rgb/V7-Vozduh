@@ -18,7 +18,7 @@ import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -170,6 +170,50 @@ def enabled_users_on_egress(state_dir: Path, egress_id: str) -> list[str]:
     return sorted(set(users))
 
 
+def latest_history_failure_episode(state_dir: Path, channel: str) -> Optional[dict[str, Any]]:
+    """Return the latest persisted failure episode for one canonical channel.
+
+    This deliberately reads the existing egress-history owner.  An operator may
+    report a short external outage only after it has recovered; a fresh matrix
+    refresh alone would then be unable to prove that real, already-observed
+    condition without inventing a new failure.
+    """
+    path = state_dir / "egress-history.jsonl"
+    rows: list[dict[str, Any]] = []
+    try:
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-5000:]:
+            parsed = json.loads(line)
+            if isinstance(parsed, dict) and f"{channel}_code" in parsed:
+                rows.append(parsed)
+    except (OSError, json.JSONDecodeError):
+        return None
+    failed_indexes = [
+        index for index, row in enumerate(rows)
+        if not str(row.get(f"{channel}_code") or "").startswith("2")
+    ]
+    if not failed_indexes:
+        return None
+    last = failed_indexes[-1]
+    first = last
+    while first > 0 and not str(rows[first - 1].get(f"{channel}_code") or "").startswith("2"):
+        first -= 1
+    recovered_at = ""
+    for row in rows[last + 1:]:
+        if str(row.get(f"{channel}_code") or "").startswith("2"):
+            recovered_at = str(row.get("time") or "")
+            break
+    episode = rows[first:last + 1]
+    return {
+        "history_path": str(path.name),
+        "observed_at": str(rows[first].get("time") or ""),
+        "last_failed_at": str(rows[last].get("time") or ""),
+        "recovered_at": recovered_at,
+        "failure_count": len(episode),
+        "failure_codes": sorted({str(row.get(f"{channel}_code") or "") for row in episode}),
+        "history_hash": sha256_json(episode),
+    }
+
+
 def append_passive_failure_capture(
     event_dir: Path,
     *,
@@ -178,6 +222,7 @@ def append_passive_failure_capture(
     refresh_payload: dict[str, Any],
     provenance: str,
     trigger_reference: str,
+    declared_channel: str = "",
 ) -> list[dict[str, Any]]:
     """Append one source-bound observation record per declared external failure.
 
@@ -186,6 +231,65 @@ def append_passive_failure_capture(
     """
     if not provenance:
         return []
+    if provenance == "OPERATOR_INDUCED":
+        # An operator-induced incident is source-bound to the declared canonical
+        # channel.  Never reinterpret whichever channel happens to be unhealthy
+        # at refresh time as that reported incident.
+        channel = str(declared_channel or "")
+        registry = parse_registry(state_dir / "egress.registry")
+        if not channel or not any(row.get("id") == channel for row in registry):
+            return []
+        affected_users = enabled_users_on_egress(state_dir, channel)
+        episode = latest_history_failure_episode(state_dir, channel)
+        if not affected_users or not episode:
+            return []
+        source_hashes = {
+            "egress_history_episode": str(episode["history_hash"]),
+            "egress_registry": sha256_json(registry),
+            "users_on_source": sha256_json(affected_users),
+        }
+        identity = {
+            "schema_version": "v7.passive-production-failure-capture.v1",
+            "channel": channel,
+            "provenance": provenance,
+            "trigger_reference": trigger_reference,
+            "observed_at": episode["observed_at"],
+            "source_hashes": source_hashes,
+        }
+        row = {
+            **identity,
+            "event_id": "pevt_" + sha256_json(identity)[:24],
+            "event_type": "external_channel_unavailability",
+            "producer": "tools/v7-service-matrix-refresh-all",
+            "source_files": ["egress-history.jsonl", "service-matrix.json", "egress.registry", "users.registry"],
+            "affected_users": affected_users,
+            "history_episode": episode,
+            "capture_matrix_hash": sha256_json(matrix),
+            "capture_only": True,
+            "execution_forbidden": True,
+            "candidate_packet_lease_forbidden": True,
+            "natural_production_credit": False,
+            "l7_credit": False,
+            "synthetic_event": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+        event_dir.mkdir(parents=True, exist_ok=True)
+        path = event_dir / "service-failure-events.jsonl"
+        existing_ids: set[str] = set()
+        try:
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]:
+                parsed = json.loads(line)
+                if isinstance(parsed, dict) and parsed.get("event_id"):
+                    existing_ids.add(str(parsed["event_id"]))
+        except (OSError, json.JSONDecodeError):
+            pass
+        if row["event_id"] in existing_ids:
+            return []
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        return [row]
     items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
     rows: list[dict[str, Any]] = []
     for result in refresh_payload.get("results") or []:
@@ -269,6 +373,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Emit a capture-only external-failure event; never grants execution or L7/L8 credit.",
     )
     parser.add_argument("--event-trigger-reference", default="", help="Stable external trigger identity required for OPERATOR_INDUCED capture.")
+    parser.add_argument("--event-channel", default="", help="Canonical affected egress id required for OPERATOR_INDUCED capture.")
     parser.add_argument(
         "--lock-acquired-marker",
         default="",
@@ -334,6 +439,9 @@ def main() -> int:
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
         print(json.dumps({"error": "operator_induced_event_trigger_reference_required"}, ensure_ascii=False))
         return 2
+    if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_channel or "").strip():
+        print(json.dumps({"error": "operator_induced_event_channel_required"}, ensure_ascii=False))
+        return 2
     matrix = read_json(state_dir / "service-matrix.json", {})
     capture_rows = append_passive_failure_capture(
         Path(args.event_dir),
@@ -342,6 +450,7 @@ def main() -> int:
         refresh_payload=payload,
         provenance=str(args.event_provenance or ""),
         trigger_reference=str(args.event_trigger_reference or "").strip(),
+        declared_channel=str(args.event_channel or "").strip(),
     )
     payload["passive_failure_capture"] = {
         "emitted_event_ids": [row["event_id"] for row in capture_rows],

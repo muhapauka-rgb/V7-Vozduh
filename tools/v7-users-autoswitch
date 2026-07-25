@@ -582,6 +582,9 @@ def runtime_authority_contract_status(
     now = datetime.now(timezone.utc).timestamp()
     expires_at = str(contract.get("expires_at") or "")
     max_users = max(0, to_int(contract.get("max_users"), 0))
+    scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
+    required_gates = contract.get("required_gates") if isinstance(contract.get("required_gates"), dict) else {}
+    stop_conditions = contract.get("stop_conditions") if isinstance(contract.get("stop_conditions"), list) else []
     allowed_class = normalize_authority_class(
         contract.get("max_authority_class") or contract.get("authority_class") or "CANARY"
     )
@@ -592,7 +595,20 @@ def runtime_authority_contract_status(
     expiry_ok = parse_ts(expires_at) > now
     class_ok = AUTHORITY_CLASS_RANK[allowed_class] >= AUTHORITY_CLASS_RANK[certified_class]
     budget_ok = max_users > 0
-    valid = (not required) or (schema_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok)
+    action_scope_ok = bool(str(scope.get("source_egress") or "")) and bool(str(scope.get("target_egress") or ""))
+    gate_contract_ok = (
+        bool_value(required_gates.get("fresh_evidence_required"))
+        and bool_value(required_gates.get("verification_required"))
+        and bool_value(required_gates.get("rollback_required"))
+        and bool_value(required_gates.get("anti_flap_required"))
+        and "cooldown_seconds" in required_gates
+        and to_int(required_gates.get("cooldown_seconds"), -1) >= 0
+    )
+    stop_conditions_ok = bool([item for item in stop_conditions if str(item).strip()])
+    valid = (not required) or (
+        schema_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok
+        and action_scope_ok and gate_contract_ok and stop_conditions_ok
+    )
     blockers: list[str] = []
     if required and not schema_ok:
         blockers.append("current_action_class_contract_missing_or_schema_invalid")
@@ -606,6 +622,12 @@ def runtime_authority_contract_status(
         blockers.append("current_action_class_contract_below_certified_authority")
     if required and schema_ok and not budget_ok:
         blockers.append("current_action_class_contract_zero_budget")
+    if required and schema_ok and not action_scope_ok:
+        blockers.append("current_action_class_contract_source_target_scope_missing")
+    if required and schema_ok and not gate_contract_ok:
+        blockers.append("current_action_class_contract_required_gates_missing")
+    if required and schema_ok and not stop_conditions_ok:
+        blockers.append("current_action_class_contract_stop_conditions_missing")
     return {
         "schema_version": "v7.current-action-class-contract-gate.v1",
         "required": required,
@@ -616,6 +638,18 @@ def runtime_authority_contract_status(
         "max_authority_class": allowed_class,
         "max_users": max_users,
         "expires_at": expires_at,
+        "scope": {
+            "source_egress": str(scope.get("source_egress") or ""),
+            "target_egress": str(scope.get("target_egress") or ""),
+        },
+        "required_gates": {
+            "fresh_evidence_required": bool_value(required_gates.get("fresh_evidence_required")),
+            "verification_required": bool_value(required_gates.get("verification_required")),
+            "rollback_required": bool_value(required_gates.get("rollback_required")),
+            "anti_flap_required": bool_value(required_gates.get("anti_flap_required")),
+            "cooldown_seconds": to_int(required_gates.get("cooldown_seconds"), -1),
+        },
+        "stop_conditions": [str(item) for item in stop_conditions if str(item).strip()],
         "blockers": blockers,
         "truth_source": "existing_policy_current_action_class_contract",
         "new_truth_sources_created": False,
@@ -5340,6 +5374,66 @@ class AutoswitchPlanner:
             "next_state": next_class if authority_class != "POOL" else "POOL_MONITOR",
         }
 
+    def _action_class_execution_boundary(
+        self,
+        *,
+        decisions: list[dict[str, Any]],
+        selected: list[dict[str, Any]],
+        authority_budget_gate: dict[str, Any],
+        emergency_failover_gate: dict[str, Any],
+        restore_barrier_execution_gate: dict[str, Any],
+        intelligence_snapshot_gate: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Compare shadow demand with the legally allowed action boundary.
+
+        This remains a read-only projection: it does not create a Candidate,
+        Packet or lease and never turns a shadow recommendation into execution
+        permission.  It makes the exact residual gate consumable by the
+        existing STOP_SAFE/OMP owners.
+        """
+        shadow_candidates = [
+            item for item in decisions
+            if str(item.get("recommended_egress") or "")
+            and str(item.get("recommended_egress") or "") != str(item.get("current_egress") or "")
+        ]
+        contract = dict(authority_budget_gate.get("current_action_class_contract") or {})
+        contract_valid = bool(contract.get("valid"))
+        blockers = list(contract.get("blockers") or [])
+        if not contract_valid:
+            status = "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED"
+        elif not shadow_candidates:
+            status = "NO_ACTION_NO_SHADOW_CANDIDATE"
+        elif not selected:
+            status = "STOP_SAFE_OTHER_EXECUTION_GATE_REQUIRED"
+            if bool_value(restore_barrier_execution_gate.get("execution_blocked")):
+                blockers.append(str(restore_barrier_execution_gate.get("execution_blocker") or "restore_barrier"))
+            if bool_value(intelligence_snapshot_gate.get("stop_required")):
+                blockers.append(str(intelligence_snapshot_gate.get("unsafe_blocker") or "intelligence_snapshot_gate"))
+            if bool_value(emergency_failover_gate.get("enabled")) and not bool_value(emergency_failover_gate.get("ok")):
+                blockers.extend(str(item) for item in (emergency_failover_gate.get("blockers") or []) if str(item))
+        else:
+            status = "PACKET_MATERIALIZATION_ELIGIBLE"
+        return {
+            "schema_version": "v7.service-failure-action-class-execution-boundary.v1",
+            "shadow_candidate_count": len(shadow_candidates),
+            "allowed_selected_count": len(selected),
+            "action_class_contract": contract,
+            "status": status,
+            "blockers": sorted(set(blockers)),
+            "next_required_objects": ["fresh_candidate", "packet", "lease", "verification", "rollback"]
+            if status == "PACKET_MATERIALIZATION_ELIGIBLE" else [],
+            "execution_authorized": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "owner": "tools/v7-users-autoswitch",
+            "consumer": "existing service failure obligation -> OMP Automation Gap Closure",
+        }
+
     def _authority_budget_gate(self, selected: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         policy = dict(self.authority_budget_policy)
         authority_class = normalize_authority_class(policy.get("authority_class"))
@@ -6517,6 +6611,14 @@ class AutoswitchPlanner:
             selected_hash=selected_hash,
             operation=operation,
         )
+        action_class_execution_boundary = self._action_class_execution_boundary(
+            decisions=decisions,
+            selected=selected,
+            authority_budget_gate=authority_budget_gate,
+            emergency_failover_gate=emergency_failover_gate,
+            restore_barrier_execution_gate=restore_barrier_execution_gate,
+            intelligence_snapshot_gate=intelligence_snapshot_gate,
+        )
         routing_brain = self._routing_brain_advisory(decisions, len(active), affected_candidate_moves)
         ctr_shadow_comparison = self._ctr_shadow_comparison(decisions)
         self._persist_dynamic_load_summary()
@@ -6540,6 +6642,7 @@ class AutoswitchPlanner:
                 "blast_radius_cap_applied": blast_radius_cap_applied,
                 "authority_budget_cap_applied": authority_cap_applied,
                 "authority_budget_gate": authority_budget_gate,
+                "action_class_execution_boundary": action_class_execution_boundary,
                 "dynamic_blast_radius": {
                     "total_active_users": len(active),
                     "affected_candidate_moves": affected_candidate_moves,
@@ -9804,6 +9907,19 @@ class AutoswitchPlanner:
             str(row.get("recommended_egress") or ""): row.get("capacity_decision")
             for row in chosen if str(row.get("recommended_egress") or "")
         }
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        action_boundary = safety.get("action_class_execution_boundary") if isinstance(safety.get("action_class_execution_boundary"), dict) else {
+            "schema_version": "v7.service-failure-action-class-execution-boundary.v1",
+            "status": "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED",
+            "execution_authorized": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+        }
         obligation = {
             "schema_version": "v7.service-failure-automation-obligation.v1",
             "object_type": "service_failure_automation_obligation",
@@ -9836,6 +9952,8 @@ class AutoswitchPlanner:
             "product_evolution_frontier": product_frontier,
             "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
             "authority_reconciliation": "CURRENT_CPS_GOVERNED_ONLY_REQUIRED_BEFORE_ANY_MOVE",
+            "action_class_execution_boundary": action_boundary,
+            "shadow_allowed_action_status": str(action_boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED"),
             "candidate_created": False,
             "packet_created": False,
             "lease_created": False,
@@ -9876,6 +9994,8 @@ class AutoswitchPlanner:
                 "aggregate_impact_users": len(affected),
                 "bounded_recommendation_users": 1,
                 "execution_allowed_now": False,
+                "allowed_action_status": obligation["shadow_allowed_action_status"],
+                "action_class_execution_boundary": action_boundary,
                 "runtime_mutation_performed": False,
                 "users_moved": 0,
                 "apply_executed": False,

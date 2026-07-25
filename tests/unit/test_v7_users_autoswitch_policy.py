@@ -143,6 +143,15 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "max_authority_class": "POOL",
                     "max_users": 100,
                     "expires_at": "2999-01-01T00:00:00+00:00",
+                    "scope": {"source_egress": "fixture-source", "target_egress": "fixture-target"},
+                    "required_gates": {
+                        "fresh_evidence_required": True,
+                        "verification_required": True,
+                        "rollback_required": True,
+                        "anti_flap_required": True,
+                        "cooldown_seconds": 180,
+                    },
+                    "stop_conditions": ["no_safe_target", "stale_evidence", "verification_failure"],
                 },
             )
         if emergency_failover_autonomy is not None:

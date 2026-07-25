@@ -120,6 +120,36 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertFalse(comparison["runtime_mutation_performed"])
             self.assertFalse(comparison["apply_executed"])
 
+    def test_shadow_allowed_action_boundary_never_grants_execution(self):
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        decisions = [{
+            "user_ip": "10.0.0.2",
+            "current_egress": "vless",
+            "recommended_egress": "awg0",
+        }]
+        missing = planner._action_class_execution_boundary(
+            decisions=decisions,
+            selected=[],
+            authority_budget_gate={"current_action_class_contract": {"valid": False, "blockers": ["contract_missing"]}},
+            emergency_failover_gate={},
+            restore_barrier_execution_gate={},
+            intelligence_snapshot_gate={},
+        )
+        eligible = planner._action_class_execution_boundary(
+            decisions=decisions,
+            selected=[decisions[0]],
+            authority_budget_gate={"current_action_class_contract": {"valid": True, "contract_id": "scoped"}},
+            emergency_failover_gate={},
+            restore_barrier_execution_gate={},
+            intelligence_snapshot_gate={},
+        )
+
+        self.assertEqual(missing["status"], "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED")
+        self.assertEqual(eligible["status"], "PACKET_MATERIALIZATION_ELIGIBLE")
+        self.assertFalse(eligible["execution_authorized"])
+        self.assertFalse(eligible["packet_created"])
+        self.assertEqual(eligible["users_moved"], 0)
+
     def test_production_receipt_reconciles_source_cps_without_second_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.1`
+Version: `1.2`
 
 Status: `PROPOSED_EXECUTION_PLAN`
 
@@ -412,6 +412,39 @@ Completion contract:
 
 Do not rebuild emergency failover. Reuse the existing
 `emergency_failover_autonomy` gates and one-use operation-scoped contract.
+
+M5 has three non-interchangeable sub-stages. They are not a new Program,
+Authority, Planner, queue, registry or execution path.
+
+#### M5a — Action-class contract reconciliation
+
+The existing policy, CPS and OMP owners must state the legal action class for
+the exact failure family before any Packet-capable output. A contract above
+`CANARY` must bind source and target egress, maximum users, freshness,
+verification, rollback, cooldown, anti-flap, expiry and concrete stop
+conditions. A missing or stale contract is `STOP_SAFE/FROZEN/0`; historical
+promotion evidence is never a substitute.
+
+#### M5b — Shadow versus allowed-action boundary
+
+Every Shadow recommendation must be compared with the action class actually
+allowed now. The read-only output is exactly one of:
+
+- `NO_ACTION_NO_SHADOW_CANDIDATE`;
+- `STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED`;
+- `STOP_SAFE_OTHER_EXECUTION_GATE_REQUIRED`;
+- `PACKET_MATERIALIZATION_ELIGIBLE`.
+
+`PACKET_MATERIALIZATION_ELIGIBLE` is not `MOVE_READY` and grants no execution
+permission. It means only that a fresh Candidate, Packet, lease, verification
+and rollback gate may be prepared by their existing owners.
+
+#### M5c — Execution-boundary preparation
+
+Candidate, Packet and lease preparation may occur only after M5a/M5b, using
+fresh Situation and Decision Trace identities. Runtime apply remains a
+separate one-use operational contract. `ENGINEERING_AUTHORITY` may prepare or
+validate the boundary but cannot silently become `OPERATIONAL_AUTHORITY`.
 
 This Mission runs only when M1-M4 prove:
 

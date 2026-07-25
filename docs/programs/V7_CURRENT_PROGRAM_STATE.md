@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-25T08:13:11+00:00
+State captured: 2026-07-25T15:49:43+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: The existing Polygon and OMP consumer consumed independent channel hard-failure engineering without Runtime, routing, user, Authority, maturity, L7 or L8 effect; natural capture remains passive.
+Source: The existing Service Matrix, passive incident consumer, Polygon and OMP owners now close the service-failure episode-to-product-frontier lifecycle in production without Runtime, routing, user, Authority, maturity, L7 or L8 effect; the current external VLESS endpoint remains owner-bound and natural capture remains passive.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-25T08:13:11+00:00`
+Captured: `2026-07-25T15:49:43+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -29,8 +29,8 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
-| `CURRENT_ACTIVE_SCOPE` | `INDEPENDENT_CHANNEL_HARD_FAILURE_ENGINEERING_CONSUMED_L8_OBSERVATION_WINDOWS_REMAIN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `KEEP PASSIVE NATURAL EVENT CAPTURE READY; REPAIR THE REFUSING EXTERNAL VLESS ENDPOINT THROUGH ITS OWNER OR ADMIT A FRESH OWNER-AUTHORIZED USER-PROTECTION CONTRACT; DO NOT MANUFACTURE L8 EVIDENCE, REUSE OLD AUTHORITY OR BULK-MOVE USERS` |
+| `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_LIFECYCLE_AND_ALL_CURRENT_MULTI_LANE_ENGINEERING_CRITERIA_CONSUMED; EXTERNAL_ENDPOINT_AND_NATURAL_L8_BOUNDARIES_REMAIN` |
+| `CURRENT_SAFE_NEXT_ACTION` | `KEEP PASSIVE NATURAL EVENT CAPTURE READY; CONSUME NEW INCIDENT FRONTIERS THROUGH EXISTING OMP OWNERS; REPAIR THE EXTERNAL VLESS ENDPOINT THROUGH ITS OWNER OR ADMIT A FRESH OWNER-AUTHORIZED USER-PROTECTION CONTRACT; DO NOT MANUFACTURE L8 EVIDENCE, REUSE OLD AUTHORITY OR BULK-MOVE USERS` |
 | `CURRENT_SCOPE_CLASS` | `MULTI_LANE_PRODUCT_ENGINEERING` |
 | `CURRENT_STATE_GENERATION` | `cpsgen_MLP_60B7634B5E1B` |
 | `CURRENT_TRANSITION_ID` | `MULTI_LANE_PRODUCT_ACTION_CLASS_ENGINEERING_CONSUMED_V1` |
@@ -56,10 +56,10 @@ This section is the single live volatile current-state surface. Older production
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `74` |
 | `CONTINUATION_STOP_REASON` | `CHANNEL_HARD_FAILURE_ENGINEERING_CONSUMED; NATURAL_L8_REMAINS_PASSIVE_ONLY` |
-| `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_TIMER_CONSUMED; commit f338e2a6d8b0a207f7e6b60d037e5bc0407ad1b8; deploy deploy-z8-14-Updatesystem-f338e2a-20260725T205214; Matrix lifecycle consumer PASS at 2026-07-25T13:53:34Z; 31 new external-unattributed service events produced 31 Situation/Trace/Outcome/Learning/Closure chains; repeat caller idempotent` |
-| `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_EXTERNAL_UNATTRIBUTED; fresh Matrix vless services 1/14 OK; 13 persistent failures; local sing-box and tun0 remained running while vless-out upstream TCP connect returned connection refused; assigned users were not moved by this Mission` |
+| `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
+| `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_EXTERNAL_UNATTRIBUTED; production Matrix vless services 1/14 OK; 13 failures; one generation grouped the persistent CONNECTION_RESET observations under source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; later failure-family variation expired affected episodes and started fresh generations; assigned users were not moved` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `STOP_SAFE_NO_ACTION; exact restoration boundary is external VLESS endpoint repair or a fresh owner-authorized user-protection contract; no historical Candidate, Packet, lease or Authority is reusable` |
-| `CURRENT_L8_CANDIDATE_STATUS` | `CAPTURED_NOT_CREDITED; representative event sfe_2e76a65b580c02a89ef39b7566091967; provenance EXTERNAL_UNATTRIBUTED; Situation situation_aa01d792e3d82899296f94fe; Decision Trace decision_2dd4ec1f0734cc71e642a66d; replay NO_DRIFT; Learning delta 0; natural_production_present remains open` |
+| `CURRENT_L8_CANDIDATE_STATUS` | `CAPTURED_NOT_CREDITED; grouped VLESS incident sfinc_be20296fba3d8a6a33e58a583f1b58db; provenance EXTERNAL_UNATTRIBUTED; Situation situation_ecfe85dceea8a2d7eb3ab995; Decision Trace decision_c410493f06b1a6f34432d7e2; replay NO_DRIFT; Learning delta 0; later expiry reconciliation situation_b82179e3d32bdccf4bf49e53; natural_production_present remains open` |
 | `NO_PROGRESS_FINGERPRINT` | `60b7634b5e1b79cbdccae991ef34328a8f0d49659d4c17c5a4d3712307de28de` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `3` |
@@ -258,6 +258,16 @@ This section is the single live volatile current-state surface. Older production
 | `PRODUCTION_MATURITY_DECISION` | `NO_CHANGE; 66.9/100; rollback diversity is not a promotion threshold and natural L8 remains absent` |
 | `CURRENT_CLASS_DELTA_CLOSED` | `PARTIAL; rollback_and_no_rollback_present closed; natural_production_present remains open` |
 | `AUTOMATIC_CONTINUE_OMP_RESULT` | `MULTI_LANE_PRODUCT_ACTION_CLASS_ENGINEERING_CONSUMED` |
+| `SERVICE_FAILURE_LIFECYCLE_PROGRAM_ID` | `V7_SERVICE_FAILURE_LIFECYCLE_AND_MULTI_LANE_PRODUCT_EVOLUTION_PROGRAM_V1` |
+| `SERVICE_FAILURE_LIFECYCLE_PROGRAM_STATUS` | `COMPLETE_CONSUMED_PRODUCTION_DEPLOYED` |
+| `SERVICE_FAILURE_LIFECYCLE_PROGRAM_TERMINAL` | `SERVICE_FAILURE_LIFECYCLE_DEPLOYED_CONSUMED_AND_MULTI_LANE_ENGINEERING_CRITERIA_RECONCILED` |
+| `SERVICE_FAILURE_LIFECYCLE_DEPLOY` | `commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; six runtime owners changed exactly as safe-deploy manifest declared` |
+| `SERVICE_FAILURE_LIFECYCLE_PRODUCTION_CERTIFICATION` | `PASS; service failure program consumed; exact selector and scenario passed; OMP consumer consumed; forbidden effects absent; no Natural L8 or Production Maturity credit` |
+| `SERVICE_FAILURE_LIFECYCLE_PRODUCTION_CONSUMER` | `tools/v7-service-matrix-refresh-all -> tools/v7-users-autoswitch --consume-passive-events-only; production owner-cycle PASS; OMP_PRODUCT_FRONTIER_MATERIALIZED` |
+| `SERVICE_FAILURE_LIFECYCLE_ACTION_CLASSES` | `5/5 COMPLETE_CONSUMED: channel hard-fail failover; service-plane partial degradation; transport/protocol failure attribution; recovery admission/anti-flap; correlated provider incident` |
+| `SERVICE_FAILURE_LIFECYCLE_CURRENT_REAL_BOUNDARY` | `EXTERNAL_ENDPOINT_OWNER_BOUND for current VLESS restoration; qualifying Natural L8 evidence remains absent and cannot be manufactured` |
+| `SERVICE_FAILURE_LIFECYCLE_FORBIDDEN_EFFECTS` | `PASS; Candidate/Packet/lease NONE; Runtime apply NONE; routing mutation NONE; user movement 0; rollback apply NONE; Authority change NONE; Production Maturity NO_CHANGE; L7/L8 credit NONE` |
+| `SERVICE_FAILURE_LIFECYCLE_REPORT` | `docs/reports/engineering/2026-07-25_225500_service_failure_lifecycle_multi_lane_program_completion.md` |
 | `HISTORICAL_ACTION_CLASS_PROMOTION_REPORT` | `docs/reports/engineering/2026-07-11_194202_current_action_class_promotion_to_bounded_authority.md`; `SUPERSEDED/HISTORICAL` context only. |
 | `HISTORICAL_CURRENT_CLASS_OUTCOME_STORE_AUDIT` | `18,036 execution-outcome records at historical readback; all DRY_RUN / NO_EXECUTION; CURRENT_CLASS_OUTCOME_ABSENT` |
 | `CONDITIONAL_ENGINEERING_AUTHORITY_USED` | `YES_EXACT_R1_V6_CONSUMED_ONCE; non-reusable; no Authority expansion` |
@@ -314,10 +324,10 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED_FOR_DECLARED_L7_COVERAGE; natural L8 remains external` |
 | `PARENT_ENGINEERING_INTENT` | `INTENT_NOT_CLOSED_ONLY_NATURAL_L8_EVIDENCE_REMAINS` |
 | `ACTIVE_WIP_PROTECTED` | `TRUE; COMPLETION_FIRST; reorder forbidden` |
-| `PRODUCTION_RUNTIME_IMPACT` | `BOUNDED_ONE_USER_FAILOVER_APPLY_AND_OWNER_ROLLBACK_SUCCESS; setup and cleanup complete; final Admin Safe Mode OPEN` |
+| `PRODUCTION_RUNTIME_IMPACT` | `BOUNDED_CONTROLLED_TRANSACTION_COMPLETE; one-user failover apply and owner rollback success; setup and cleanup complete; final Admin Safe Mode OPEN` |
 | `AUTHORITY_IMPACT` | `NONE` |
 | `ROUTING_IMPACT` | `BOUNDED_ONE_USER_CONTROLLED_FAILOVER_AND_ROLLBACK_PLUS_EXACT_CLEANUP; final prestate restored` |
-| `USER_MOVEMENT` | `YES; only owner-authorized certification user moved in setup, one admitted transaction, rollback and cleanup; final prestate restored` |
+| `USER_MOVEMENT` | `YES; owner-authorized bounded controlled user movement only: certification user moved in setup, one admitted transaction, rollback and cleanup; final prestate restored` |
 | `SECRET_HANDLING` | Runtime/server/admin credentials must not be written to repository files, reports, prompts, logs, or commits. |
 | `ACTION_CLASS_CERTIFICATION_STATE` | `SIX_ELIGIBLE_CONTROLLED_PASSPORTS_INSUFFICIENT_WITHOUT_NATURAL_L8` |
 | `AUTHORITY_RECOMMENDATION_STATE` | `INSUFFICIENT_EVIDENCE` |
@@ -357,7 +367,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-25T08:13:11+00:00`
+Generated At: `2026-07-25T15:49:43+00:00`
 
 Runtime Authority: `NONE`
 

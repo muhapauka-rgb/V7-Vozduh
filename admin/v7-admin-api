@@ -22010,7 +22010,7 @@ def html_page_v2():
     const CHANNEL_SIGNAL_SORT_DEFS = [
       {id:'signal_services', label:'Сигнал: сервисы', meaning:'Проблемные сервисы выше, затем предупреждения, OK и нет данных.'},
       {id:'signal_load', label:'Сигнал: нагрузка', meaning:'Каналы с ограничением назначений выше.'},
-      {id:'signal_runtime', label:'Сигнал: готовность', meaning:'Проблемы готовности и устаревшие проверки выше.'},
+      {id:'signal_runtime', label:'Сигнал: Runtime/config', meaning:'Только конфигурационная и runtime-готовность. Не подтверждает доступность сервисов.'},
       {id:'signal_stability', label:'Сигнал: стабильность', meaning:'Проблемы устойчивости выше.'},
     ];
     const ORGANIZATION_TABLE_COLUMN_DEFS = [
@@ -25740,7 +25740,7 @@ def html_page_v2():
       return `<button type="button" class="channel-signal-sort-button${active}" title="${esc(title)}" onclick="event.stopPropagation();toggleTableSort('channel','${esc(sortId)}')"><span>${esc(label)}</span>${indicator ? `<span class="sort-indicator">${esc(indicator)}</span>` : ''}</button>`;
     }
     function channelSignalsHeaderLabel() {
-      return `<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — runtime, T — стабильность">${channelSignalHeaderButton('S','signal_services','Сортировать по сервисам')}${channelSignalHeaderButton('L','signal_load','Сортировать по нагрузке')}${channelSignalHeaderButton('R','signal_runtime','Сортировать по готовности')}${channelSignalHeaderButton('T','signal_stability','Сортировать по стабильности')}</span></span>`;
+      return `<span class="channel-signals-head"><span>Сигналы</span><span class="channel-signal-head-codes" aria-label="S — сервисы, L — нагрузка, R — Runtime/config readiness, T — стабильность">${channelSignalHeaderButton('S','signal_services','Сортировать по сервисам')}${channelSignalHeaderButton('L','signal_load','Сортировать по нагрузке')}${channelSignalHeaderButton('R','signal_runtime','Сортировать по Runtime/config readiness')}${channelSignalHeaderButton('T','signal_stability','Сортировать по стабильности')}</span></span>`;
     }
     function sortableHeader(kind='user', col={}) {
       const disabled = !col.id || col.id === 'action' || col.sortable === false;
@@ -27942,7 +27942,7 @@ def html_page_v2():
         Services:'Сервисы',
         Capacity:'Нагрузка',
         Route:'Маршрут',
-        Runtime:'Готовность',
+        Runtime:'Runtime/config',
         Stability:'Стабильность',
       }[check] || check || 'Сигнал';
     }
@@ -27971,8 +27971,8 @@ def html_page_v2():
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
         return Number(item.score || 0) >= Number(item.max || 0)
-          ? 'Готовность: канал подтвержден текущим снимком.'
-          : `Готовность: ${operatorText(rd.reason || rd.status || item.reason || 'последняя проверка готовности устарела')}`;
+          ? 'Runtime/config readiness: конфиг и runtime подтверждены текущим снимком; доступность сервисов этим не подтверждается.'
+          : `Runtime/config readiness: ${operatorText(rd.reason || rd.status || item.reason || 'последняя проверка готовности устарела')}`;
       }
       if (check === 'Stability') {
         return Number(item.score || 0) >= Number(item.max || 0)
@@ -28018,7 +28018,7 @@ def html_page_v2():
     function channelSignalsCell(source={}) {
       const items = channelSignalSummary(source);
       if (!items.length) return '<span class="muted">нет сигналов</span>';
-      return `<div class="channel-signal-strip" aria-label="S сервисы, L нагрузка, R runtime, T стабильность">${items.slice(0, 4).map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" data-tooltip="${esc(item.tooltip)}" aria-label="${esc(channelSignalAccessibleLabel(item))}"></span>`).join('')}</div>`;
+      return `<div class="channel-signal-strip" aria-label="S сервисы, L нагрузка, R Runtime/config readiness, T стабильность">${items.slice(0, 4).map(item => `<span class="channel-signal-badge ${esc(item.tone)}" tabindex="0" data-tooltip="${esc(item.tooltip)}" aria-label="${esc(channelSignalAccessibleLabel(item))}"></span>`).join('')}</div>`;
     }
     function channelCommercialStatusCell(source={}) {
       const s = channelSuitability(source);
@@ -28708,8 +28708,8 @@ def html_page_v2():
       }
       if (check === 'Runtime') {
         const rd = row._detail?.runtime_readiness || (overview.egress_runtime_readiness || {})[id] || {};
-        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Готовность подтверждена текущим снимком.';
-        return operatorShort(rd.reason || rd.status || 'Откройте логи канала: подтверждение готовности неполное.');
+        if (Number(item.score || 0) >= Number(item.max || 0)) return 'Runtime/config readiness подтверждена; это не подтверждение доступности сервисов.';
+        return operatorShort(rd.reason || rd.status || 'Откройте логи канала: Runtime/config readiness неполная.');
       }
       if (check === 'History') {
         const decision = channelDecisionRow(id);

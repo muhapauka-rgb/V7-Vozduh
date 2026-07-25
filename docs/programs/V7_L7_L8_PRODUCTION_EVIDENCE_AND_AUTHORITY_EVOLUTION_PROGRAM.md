@@ -484,7 +484,7 @@ Capture-readiness activation condition: `EXACT_L8_CELL_IS_MISSING`.
 
 Evidence-consumption activation condition: `QUALIFYING_NATURAL_EVENT_OBSERVED_BY_EXISTING_OWNER`.
 
-Audit and, where necessary, extend the existing event/wake/outcome consumer path so its actual producer filenames and partitions are discovered and qualifying natural events are passively and durably captured without synthetic triggering or forced user movement. Record both selected and non-selected opportunities and apply the same completeness contract.
+Audit and, where necessary, extend the existing event/wake/outcome consumer path so its actual producer filenames and partitions are discovered and qualifying natural events are passively and durably captured without synthetic triggering or forced user movement. Persistent source-bound service failure episodes produced by the existing service-matrix owner are passive `EXTERNAL_UNATTRIBUTED` candidates: they must create a Situation/Trace/STOP_SAFE capture record, but never natural L8 credit until provenance and a complete legal production outcome are independently established. Runtime/config readiness is a separate operator signal and never proves service availability. Record both selected and non-selected opportunities and apply the same completeness contract.
 
 Completion: the existing capture chain proves event discovery, Situation/Trace/snapshot, outcome, rollback/no-rollback, Learning and replay readiness before waiting. Fresh natural outcomes are consumed as L8 only when complete; missing opportunity coverage and natural diversity remain explicit; no controlled result is relabelled natural.
 

@@ -1207,11 +1207,27 @@ class AutoswitchPlanner:
             row = services.get(service) if isinstance(services.get(service), dict) else {}
             status = str(row.get("status") or "").upper()
             truth_class = str(row.get("truth_class") or "")
-            if row.get("ok") is False or row.get("available") is False or truth_class == "PERSISTENT_FAIL" or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}:
+            failure_samples = self._service_failure_count(row)
+            bad_for_seconds = to_float(row.get("bad_for_seconds") or row.get("failed_for_seconds"))
+            persistent = (
+                truth_class == "PERSISTENT_FAIL"
+                or failure_samples >= max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
+                or bad_for_seconds >= max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
+            )
+            failed = row.get("ok") is False or row.get("available") is False or status in {"DOWN", "FAIL", "ERROR", "NOT_STARTED"}
+            # A source incident must be backed by a durable episode, not a
+            # single reset/timeout observed by an otherwise fresh probe.
+            if failed and persistent:
                 failures.append({
                     "service": service,
                     "status": status or str(row.get("status") or ""),
-                    "truth_class": truth_class,
+                    "truth_class": "PERSISTENT_FAIL",
+                    "failure_episode_id": str(row.get("failure_episode_id") or ""),
+                    "failure_samples": failure_samples,
+                    "bad_for_seconds": bad_for_seconds,
+                    "observed_at": str(row.get("observed_at") or row.get("tested_at") or ""),
+                    "probe_provenance": str(row.get("probe_provenance") or "SERVICE_PROBE_OBSERVED"),
+                    "probe_classification": str(row.get("probe_classification") or "FAILURE"),
                     "source_object": "service-matrix.json:items[].services",
                 })
         return failures
@@ -9212,18 +9228,34 @@ class AutoswitchPlanner:
 
         The service-matrix owner remains the producer.  This existing runtime
         owner only records the Situation -> STOP_SAFE no-action terminal and
-        its replay/learning projection.  No Candidate, Packet, lease, routing
-        mutation, Authority, L7 or natural-L8 credit can result.
+        its replay/learning projection. Persistent unattributed service episodes
+        are captured as natural-event candidates, never as natural-L8 credit.
+        No Candidate, Packet, lease, routing mutation, Authority or L7/L8
+        credit can result from this passive step.
         """
         path = self.event_dir / "service-failure-events.jsonl"
-        events = [
+        operator_events = [
             row for row in read_jsonl(path)[-500:]
             if bool_value(row.get("capture_only"))
             and str(row.get("event_provenance") or row.get("provenance") or "") == "OPERATOR_INDUCED"
             and str(row.get("event_id") or "")
         ]
+        persistence_samples = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
+        persistence_window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
+        natural_candidate_events = [
+            row for row in read_jsonl(path)[-500:]
+            if bool_value(row.get("capture_only"))
+            and str(row.get("event_provenance") or row.get("provenance") or "") == "EXTERNAL_UNATTRIBUTED"
+            and str(row.get("evidence_class") or "") == "PROBE_OBSERVED_PRODUCTION_EVENT"
+            and str(row.get("event_id") or "")
+            and (
+                to_int(row.get("failure_samples"), 0) >= persistence_samples
+                or to_float(row.get("bad_for_seconds")) >= persistence_window
+            )
+        ]
+        events = operator_events + natural_candidate_events
         if not events:
-            return {"active": False, "reason": "no_operator_induced_capture_event", "records": {}}
+            return {"active": False, "reason": "no_passive_capture_event", "records": {}}
         state = self._load_l3_runtime_state()
         consumed = state.setdefault("passive_event_consumptions", {})
         if not isinstance(consumed, dict):
@@ -9244,6 +9276,15 @@ class AutoswitchPlanner:
         closure_rows: list[dict[str, Any]] = []
         for event in new_events:
             event_id = str(event["event_id"])
+            operator_induced = str(event.get("event_provenance") or event.get("provenance") or "") == "OPERATOR_INDUCED"
+            event_provenance = "OPERATOR_INDUCED" if operator_induced else "EXTERNAL_UNATTRIBUTED"
+            evidence_class = "OPERATOR_INDUCED_PRODUCTION_EVENT" if operator_induced else "NATURAL_PRODUCTION_CANDIDATE"
+            decision = "NO_ACTION_EXTERNAL_OPERATOR_INDUCED_EVENT" if operator_induced else "NO_ACTION_NATURAL_EVENT_PENDING_PROVENANCE_AND_LEGAL_OUTCOME"
+            closure_reason = (
+                "operator-induced external event consumed without execution"
+                if operator_induced else
+                "persistent external service episode captured; natural provenance and legal outcome remain required"
+            )
             source_hashes = event.get("source_hashes") if isinstance(event.get("source_hashes"), dict) else {}
             situation_id = "situation_" + sha256_json({"event_id": event_id, "source_hashes": source_hashes})[:24]
             decision_trace_id = "decision_" + sha256_json({"event_id": event_id, "terminal": "STOP_SAFE_NO_ACTION"})[:24]
@@ -9254,12 +9295,15 @@ class AutoswitchPlanner:
             })[:24]
             base = {
                 "event_id": event_id,
-                "event_provenance": "OPERATOR_INDUCED",
-                "evidence_class": "OPERATOR_INDUCED_PRODUCTION_EVENT",
+                "event_provenance": event_provenance,
+                "evidence_class": evidence_class,
                 "source_event_path": str(path),
                 "source_files": list(event.get("source_files") or []),
                 "source_hashes": source_hashes,
                 "channel": str(event.get("channel") or ""),
+                "service": str(event.get("service") or ""),
+                "failure_episode_id": str(event.get("failure_episode_id") or ""),
+                "failure_samples": to_int(event.get("failure_samples"), 0),
                 "affected_users": list(event.get("affected_users") or []),
                 "observed_at": str(event.get("observed_at") or ""),
                 "situation_id": situation_id,
@@ -9286,8 +9330,8 @@ class AutoswitchPlanner:
                 **base,
                 "created_at": now,
                 "classification": "STOP_SAFE",
-                "decision": "NO_ACTION_EXTERNAL_OPERATOR_INDUCED_EVENT",
-                "reason": "no_current_authority_or_packet_may_be reused; event capture is not execution authority",
+                "decision": decision,
+                "reason": "no current authority or packet may be reused; passive event capture is not execution authority",
                 "consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
             })
             outcome_rows.append({
@@ -9314,7 +9358,7 @@ class AutoswitchPlanner:
                 "object_type": "passive_production_event",
                 "object_id": event_id,
                 "closure_state": "CAPTURED_STOP_SAFE",
-                "closure_reason": "operator-induced external event consumed without execution",
+                "closure_reason": closure_reason,
                 "learning_record_id": learning_id,
             })
             consumed[event_id] = {
@@ -9337,6 +9381,7 @@ class AutoswitchPlanner:
             "execution_forbidden": True,
             "natural_production_credit": False,
             "l7_credit": False,
+            "natural_event_candidates_captured": len([row for row in new_events if str(row.get("event_provenance") or row.get("provenance") or "") == "EXTERNAL_UNATTRIBUTED"]),
         }
 
     def _l3_materialize_learning_closure(self, plan: dict[str, Any]) -> dict[str, Any]:

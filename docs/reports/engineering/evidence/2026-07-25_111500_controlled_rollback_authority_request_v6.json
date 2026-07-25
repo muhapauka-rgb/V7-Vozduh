@@ -1,0 +1,167 @@
+{
+  "schema": "v7.controlled-rollback-condition-engineering-authority-request.v1",
+  "program_id": "V7_L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM_V1",
+  "roadmap_stage": "R1_REPAIR_GENERATION_VERIFICATION",
+  "mission_id": "V7_L7_REPAIR_GENERATION_AWARE_AUTHORITY_AND_CONTROLLED_ROLLBACK_PRODUCTION_VERIFICATION_V6",
+  "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+  "created_at": "2026-07-25T11:15:00+07:00",
+  "expires_at": "2026-07-25T15:00:00+07:00",
+  "decision_set": [
+    "APPROVE_ONCE_AS_SCOPED",
+    "APPROVE_WITH_NARROWER_SCOPE",
+    "DENY",
+    "EXPIRED"
+  ],
+  "action_class": "single-user governed candidate failover",
+  "evidence_cell": "rollback_and_no_rollback_present",
+  "evidence_target": "one real verifier-triggered ROLLBACK_SUCCESS plus the existing no-rollback outcomes",
+  "subject": {
+    "user_ip": "10.7.0.16",
+    "table": "1014",
+    "certification_user": true,
+    "certification_group": "polygon-l7-canary",
+    "ordinary_customer": false,
+    "initial_egress": "vless",
+    "initial_registry_row_sha256": "70f90409b5c73ac642efd0157d96301d7907a449347852315046f3d317a848e2"
+  },
+  "scope": {
+    "max_users": 1,
+    "max_concurrent_transactions": 1,
+    "max_material_outcomes": 1,
+    "source_egress": "wireguard-1779454504-c43409",
+    "source_interface": "v7e06a394c478",
+    "source_protocol": "wireguard",
+    "source_registry_row_sha256": "a24f5db3da2b705d8a2d0a213b7e9bb0820a9aab20c3aed6d5936121e2302044",
+    "target_egress": "vless",
+    "target_interface": "tun0",
+    "target_protocol": "vless",
+    "required_services": [
+      "google",
+      "telegram"
+    ],
+    "policy_id": "dap_default_tier1_readonly",
+    "policy_scope_hash": "f610dbd87f9d8e5b63d69538138340ace04c9799ac42ebedd205206eee9f723e",
+    "source_owner": "tools/v7-egress-set-state",
+    "assignment_and_runtime_owner": "tools/v7-users-autoswitch -> tools/runtime-support/v7-user-switch",
+    "verification_owner": "tools/v7-users-autoswitch._verify_routes_for_apply + tools/v7-service-matrix-test",
+    "rollback_owner": "tools/v7-users-autoswitch.apply rollback branch",
+    "service_matrix_lifecycle_owner": "tools/v7-service-matrix-refresh-all"
+  },
+  "controlled_condition": {
+    "name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION",
+    "smallest_sufficient_reason": "After exact setup and forward acknowledgement, the existing lifecycle owner creates one bounded real verifier timeout; the normal verifier alone decides whether rollback is required.",
+    "activation_order": [
+      "prepare only the designated certification user on the exact controlled source",
+      "mark only the exact source maintenance through its existing owner",
+      "admit and apply exactly one fresh one-user failover to vless",
+      "after forward route acknowledgement start one normal service-matrix lifecycle and prove its lock owner marker",
+      "restore the registered rollback source enabled",
+      "let the normal required-service verifier observe the condition and make the rollback decision"
+    ],
+    "registered_rollback_trigger": "required_service_verify_timeout after successful bounded forward apply and exact selected-user route acknowledgement",
+    "expected_terminal": "ROLLBACK_SUCCESS",
+    "honest_alternative_terminal": "SUCCESS_OR_NO_ROLLBACK_RECORDED_WITH_CELL_REMAINING_OPEN_IF_THE_REGISTERED_TRIGGER_DOES_NOT_OCCUR",
+    "direct_rollback_invocation_for_evidence": false,
+    "rollback_failure_injection": false
+  },
+  "verification_contract": {
+    "before": "exact read-only repair-generation preflight, registry, route, source/target, policy, Safe Mode and lease",
+    "terminal_activation_acknowledgement": "10.7.0.16 route table 1014 uses tun0/vless after exact admitted apply",
+    "immediate": "normal verifier provenance, rollback decision and restored route/service state",
+    "post_cleanup": "10.7.0.16 on vless; controlled source enabled; no other user changed; Admin Safe Mode OPEN",
+    "delayed_5m": "route, registry, services, source state and no duplicate transaction",
+    "delayed_1h": "same plus drift and incident review",
+    "steady_state": "criterion-defined sustained restoration and no later regression"
+  },
+  "one_use_law": {
+    "approval_use_limit": 1,
+    "implicit_renewal": false,
+    "retry_under_same_approval": false,
+    "approval_consumption": "atomic with fresh Candidate, Packet, serial lease and transaction nonce",
+    "changed_binding_requires_new_request": true
+  },
+  "automatic_reissue": {
+    "policy_id": "engrepair_b2d67919a41e64803b41e44a",
+    "policy_hash": "b2d67919a41e64803b41e44a365b9d7de2ca19bea404370edd1bb67f732b97b5",
+    "previous_request_id": "engauth_r1_b152de57ac3e4f557e1cfb9e",
+    "fresh_request": true,
+    "reuses_previous_approval": false,
+    "max_attempts_per_repair_generation": 1,
+    "prior_repaired_blocker_fingerprints": [
+      "d5a3338f8023562d9d803231eaf035d99d13c6aea0eaa528c552650b6a06cad1",
+      "21595efe063b7c7c99d7b5067f10085a6b7e2d43fbfc7a1beb41f0a5c60224e3",
+      "dc2385ca7b4b5cf846423d474d8f112f219697054971727ab30deb844d7844e1"
+    ],
+    "prior_repaired_blocker_generations": [
+      {
+        "blocker_fingerprint": "d5a3338f8023562d9d803231eaf035d99d13c6aea0eaa528c552650b6a06cad1",
+        "repair_commit": "2eceabb312eb1cbe2f224439c9c460ccb48585d8",
+        "repair_deploy_id": "deploy-z8-14-Updatesystem-2eceabb-20260720T015856",
+        "repair_binary_sha256": "85795aac06bac36484369a3f2fbe972ed517f5343b536cd9ead28f1b03dfeb5c"
+      },
+      {
+        "blocker_fingerprint": "21595efe063b7c7c99d7b5067f10085a6b7e2d43fbfc7a1beb41f0a5c60224e3",
+        "repair_commit": "c5563d40589cba98c2c8795f2c0338fb92eaaf1c",
+        "repair_deploy_id": "deploy-z8-14-Updatesystem-c5563d4-20260720T093542",
+        "repair_binary_sha256": "6137f9cd482cec992e669f55efba998d54b3c43ff707e4b3baf0f229a63f30db"
+      },
+      {
+        "blocker_fingerprint": "dc2385ca7b4b5cf846423d474d8f112f219697054971727ab30deb844d7844e1",
+        "repair_commit": "ecc9167d29180ca79a507610f73d6e8364ba4953",
+        "repair_deploy_id": "deploy-z8-14-Updatesystem-ecc9167-20260725T104558",
+        "repair_binary_sha256": "96bd05f51eba5c625fcbec5fb2e02f53596efe03cd828e45b946bac59ae7debe"
+      }
+    ],
+    "decision_is_resolved_by_existing_owner_at_fresh_admission": true,
+    "background_execution": false
+  },
+  "previous_consumed_request": {
+    "request_id": "engauth_r1_b152de57ac3e4f557e1cfb9e",
+    "contract_hash": "b152de57ac3e4f557e1cfb9e53d43384c88747597ec8104f3504cc44e842ea4c",
+    "terminal": "CONSUMED_STOP_SAFE_BEFORE_APPLY",
+    "terminal_at": "2026-07-25T03:55:07.385738+00:00",
+    "transaction_nonce": "59c50167c1b3c8c72ee396b53f0f5839e8ff66f40eb64667",
+    "operation_id": "govdry_516d8937254a245b1514a293",
+    "packet_id": "pkt_preview_4bc5f394d570a2d74e1ba7db",
+    "apply_executed": false,
+    "users_moved": 0,
+    "rollback_attempted": false,
+    "cleanup_result": "PASS_EXACT_PRESTATE_RESTORED",
+    "blocker_reasons": [
+      "l3_execution_eligibility_stop_safe",
+      "l3_allows_failover_only"
+    ],
+    "blocker_fingerprint": "dc2385ca7b4b5cf846423d474d8f112f219697054971727ab30deb844d7844e1",
+    "repair_commit": "eef71daf998ce0deba3701f8aa00129b8691696a",
+    "repair_deploy_id": "deploy-z8-14-Updatesystem-eef71da-20260725T110745",
+    "repair_binary_sha256": "b1bee031526299391c13b02082905972eaa7e62938cc4daf9c66a69dff136a57",
+    "repair_owner_hashes": {
+      "tools/v7-governed-canary-dry-run-cycle": "b1bee031526299391c13b02082905972eaa7e62938cc4daf9c66a69dff136a57",
+      "admin_core/operator_execution_pipeline.py": "33368ab357a10c9aa1e9424b86c6d61432ecb62d6756ed71994459954dc3c143"
+    },
+    "repair_deployed_at": "2026-07-25T11:07:45+07:00",
+    "repair_deployed_after_terminal": true,
+    "repair_tests_passed": true,
+    "truth_convergence_aligned": true,
+    "reuse_forbidden": true
+  },
+  "excluded_effects": [
+    "ordinary-customer experimentation",
+    "more than one selected user or one serial transaction",
+    "rollback-failure injection or direct rollback invocation",
+    "fault injection outside the exact named source and verifier condition",
+    "Authority, policy or blast-radius expansion",
+    "class approval, Runtime background enablement or Production Maturity increase",
+    "natural-evidence relabelling",
+    "implicit retry or approval reuse"
+  ],
+  "current_commit": "eef71daf998ce0deba3701f8aa00129b8691696a",
+  "current_eligibility_set": "outset_428a4e2ff440ed64bde5cb56",
+  "current_eligible_passports": 5,
+  "current_missing_cells": [
+    "natural_production_present",
+    "rollback_and_no_rollback_present"
+  ],
+  "request_id": "engauth_r1_837eda5cb8700534622a5d8e",
+  "contract_hash": "837eda5cb8700534622a5d8e6ed490c1b7d8a9fe47474acbe2d961f9cad599e3"
+}

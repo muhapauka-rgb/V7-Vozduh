@@ -106,6 +106,83 @@ def default_checker_path() -> str:
     return str(local) if local.exists() else "v7-service-matrix-test"
 
 
+def default_passive_consumer_path() -> str:
+    local = Path(__file__).with_name("v7-users-autoswitch")
+    return str(local) if local.exists() else "v7-users-autoswitch"
+
+
+def run_passive_consumer(
+    consumer: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    timeout_sec: int = 30,
+) -> dict[str, Any]:
+    """Consume passive events through the existing owner without runtime action."""
+    command = [
+        consumer,
+        "--consume-passive-events-only",
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+    ]
+    started_at = now_iso()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(5, min(int(timeout_sec or 30), 120)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.passive-consumer-liveness.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "command": command,
+            "error": f"{type(exc).__name__}:{exc}",
+            "omp_repair_frontier": {
+                "frontier_id": "V7_PASSIVE_SERVICE_EVENT_CONSUMER_REPAIR",
+                "last_responsible_producer": "tools/v7-service-matrix-refresh-all",
+                "missing_consumer": "tools/v7-users-autoswitch --consume-passive-events-only",
+                "exact_missing_artifact": "passive consumer terminal",
+                "forbidden_effects": "NONE",
+            },
+        }
+    parsed: dict[str, Any] = {}
+    try:
+        value = json.loads(proc.stdout or "")
+        parsed = value if isinstance(value, dict) else {}
+    except json.JSONDecodeError:
+        parsed = {}
+    ok = proc.returncode == 0 and parsed.get("status") == "PASS"
+    result = {
+        "schema_version": "v7.passive-consumer-liveness.v1",
+        "status": "PASS" if ok else "FAILED",
+        "ok": ok,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "command": command,
+        "returncode": proc.returncode,
+        "consumer_result": parsed,
+    }
+    if not ok:
+        result["output_tail"] = (proc.stdout or "")[-2000:]
+        result["omp_repair_frontier"] = {
+            "frontier_id": "V7_PASSIVE_SERVICE_EVENT_CONSUMER_REPAIR",
+            "last_responsible_producer": "tools/v7-service-matrix-refresh-all",
+            "missing_consumer": "tools/v7-users-autoswitch --consume-passive-events-only",
+            "exact_missing_artifact": "passive consumer terminal",
+            "forbidden_effects": "NONE",
+        }
+    return result
+
+
 def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
@@ -364,6 +441,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
     parser.add_argument("--summary-file", default="")
     parser.add_argument("--checker", default=default_checker_path())
+    parser.add_argument("--passive-consumer", default=default_passive_consumer_path())
+    parser.add_argument("--passive-consumer-timeout-sec", type=int, default=30)
+    parser.add_argument(
+        "--skip-passive-consumer",
+        action="store_true",
+        help="Diagnostic/test-only escape hatch; production lifecycle should keep the existing passive consumer connected.",
+    )
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument(
@@ -459,6 +543,26 @@ def main() -> int:
         "execution_forbidden": True,
         "natural_production_credit": False,
     }
+    if args.skip_passive_consumer:
+        payload["passive_event_consumer"] = {
+            "schema_version": "v7.passive-consumer-liveness.v1",
+            "status": "SKIPPED_EXPLICITLY",
+            "ok": False,
+            "omp_repair_frontier": {
+                "frontier_id": "V7_PASSIVE_SERVICE_EVENT_CONSUMER_REPAIR",
+                "last_responsible_producer": "tools/v7-service-matrix-refresh-all",
+                "missing_consumer": "tools/v7-users-autoswitch --consume-passive-events-only",
+                "exact_missing_artifact": "passive consumer terminal",
+                "forbidden_effects": "NONE",
+            },
+        }
+    else:
+        payload["passive_event_consumer"] = run_passive_consumer(
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            timeout_sec=int(args.passive_consumer_timeout_sec),
+        )
     write_json_atomic(summary_file, payload)
     append_event(Path(args.event_dir), payload)
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))

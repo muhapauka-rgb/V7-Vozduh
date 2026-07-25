@@ -32,7 +32,12 @@ SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_LOCK_WAIT_SECONDS = 90
-FAILURE_EPISODE_CONTINUITY_SECONDS = 900
+# The production lifecycle runs every 15 minutes with randomized delay and the
+# full seven-egress batch itself takes tens of seconds.  A 900-second boundary
+# therefore split every continuing failure into a fresh sample=1 episode.
+# Thirty-five minutes preserves one missed/jittered lifecycle interval while
+# still preventing unrelated observations from being joined indefinitely.
+FAILURE_EPISODE_CONTINUITY_SECONDS = 2100
 
 SERVICE_CATALOG: dict[str, dict[str, Any]] = {
     "google": {"label": "Google", "url": "https://www.google.com/generate_204", "classes": ("GLOBAL_FAST", "GLOBAL_STABLE")},

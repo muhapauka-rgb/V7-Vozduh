@@ -27358,6 +27358,18 @@ def html_page_v2():
         const detail = total ? `мастер импорта пройден, сервисы ${okCount}/${total}` : 'мастер импорта пройден';
         return {label:'OK', tone:'ok', detail};
       }
+      const matrix = channelMatrix(row.id || '');
+      if (matrix.total && matrix.okCount < matrix.total) {
+        const episode = channelServiceEpisodeSummary(row.id || '', matrix.mx);
+        const persistence = episode.failed
+          ? ` Устойчивый failure episode: ${episode.maxSamples}/${episode.thresholdSamples}; ${episode.emitted ? 'event создан' : 'подтверждается'}.`
+          : '';
+        return {
+          label:`Сервисы ${matrix.okCount}/${matrix.total}`,
+          tone:matrix.okCount <= Math.max(1, Math.floor(matrix.total * 0.25)) ? 'bad' : 'warn',
+          detail:`Runtime/config не подтверждает сервисную доступность.${persistence}`,
+        };
+      }
       const st = row.state || {};
       const ok = String(st.code || '') === '200' || String(st.diagnose_severity || '').toUpperCase() === 'OK';
       if (ok) return {label:'OK', tone:'ok', detail:st.diagnose_detail || st.diagnose_reason || 'канал отвечает'};
@@ -27391,6 +27403,25 @@ def html_page_v2():
       const okCount = Number(mx.ok_count || 0);
       const total = Number(mx.total || mx.count || Object.keys(mx.services || {}).length || 0);
       return {mx, okCount, total, text: total ? `${okCount}/${total}` : 'нет замера', tone: total && okCount === total ? 'ok' : (total ? 'warn' : 'muted')};
+    }
+    function channelServiceEpisodeSummary(id='', raw={}) {
+      const matrix = raw && Object.keys(raw).length ? raw : channelMatrix(id).mx;
+      const services = Object.values(serviceMatrixServices(matrix) || {}).filter(item => item && typeof item === 'object');
+      const failed = services.filter(item => !serviceOk(item));
+      const maxSamples = failed.reduce((value, item) => Math.max(value, Number(item.failure_samples || item.consecutive_failures || 0)), 0);
+      const maxBadForSeconds = failed.reduce((value, item) => Math.max(value, Number(item.bad_for_seconds || 0)), 0);
+      const activeEpisodes = failed.filter(item => String(item.failure_episode_id || '')).length;
+      const emittedEpisodes = failed.filter(item => String(item.failure_event_emitted_episode_id || '')).length;
+      return {
+        failed:failed.length,
+        total:services.length,
+        maxSamples,
+        maxBadForSeconds,
+        activeEpisodes,
+        emittedEpisodes,
+        emitted:emittedEpisodes > 0,
+        thresholdSamples:3,
+      };
     }
     function channelServerSpeed(id, st={}) {
       const sp = (overview.speed_tests?.items || {})[id] || {};
@@ -27952,12 +27983,16 @@ def html_page_v2():
       const check = String(item.check || '');
       if (check === 'Services') {
         const service = item._serviceSignalEvidence || channelPrimaryServiceSignalEvidence(row);
+        const episode = channelServiceEpisodeSummary(id);
+        const episodeText = episode.failed
+          ? ` Устойчивый failure episode: ${episode.maxSamples}/${episode.thresholdSamples}, ${Math.round(episode.maxBadForSeconds)}с; ${episode.emitted ? 'capture event создан' : 'ожидается подтверждение persistence'}.`
+          : '';
         const optional = service.optionalFailed?.length
           ? ` Дополнительная техническая проверка: ${service.optionalFailed.slice(0, 4).join(', ')}. На этот сигнал не влияет.`
           : '';
-        if (!service.total) return `Сервисы: нет свежего подтверждения основных сервисов.${optional}`;
+        if (!service.total) return `Сервисы: нет свежего подтверждения основных сервисов.${optional}${episodeText}`;
         if (!service.failed.length) return `Сервисы: основные сервисы работают ${service.ok}/${service.total}.${optional}`;
-        return `Сервисы: работают ${service.ok}/${service.total}. Недоступны: ${service.failed.slice(0, 4).join(', ')}.`;
+        return `Сервисы: работают ${service.ok}/${service.total}. Недоступны: ${service.failed.slice(0, 4).join(', ')}.${episodeText}`;
       }
           if (check === 'Capacity') {
             const count = egressUserCount(id);
@@ -32337,7 +32372,9 @@ def html_page_v2():
       const okCount = measured.filter(serviceOk).length;
       const notStarted = total && measured.every(item => String(item.status || '').toUpperCase() === 'NOT_STARTED');
       const tone = notStarted ? 'muted' : (total && okCount === total ? 'ok' : (total ? 'warn' : 'muted'));
-      const status = notStarted ? 'не запущен' : (total ? `${okCount}/${total}` : 'нет замера');
+      const episode = channelServiceEpisodeSummary(id, mx);
+      const episodeSuffix = episode.failed ? ` · эпизод ${episode.maxSamples}/${episode.thresholdSamples}${episode.emitted ? ' · captured' : ''}` : '';
+      const status = notStarted ? 'не запущен' : (total ? `${okCount}/${total}${episodeSuffix}` : 'нет замера');
         const cells = services.map(name => serviceMatrixCellHtml(id, name, serviceMatrixGroupedItem(mxServices, name)));
         return `<tr><td><button class="channel-name-button" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')"><strong>${esc(channelDisplayName(id))}</strong></button></td>${cells.join('')}<td>${pill(status, tone)}</td><td class="right"><button class="mini-action" onclick="event.stopPropagation();runV2ServiceMatrix('${esc(id)}')">Обновить</button> <button class="mini-action" onclick="event.stopPropagation();openChannelDrawer('${esc(id)}')">Открыть</button></td></tr>`;
       });

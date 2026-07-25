@@ -10355,6 +10355,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pre-planner-refresh-timeout-sec", type=int, default=20)
     parser.add_argument("--service-matrix-lock-timeout-sec", type=int, default=DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS)
     parser.add_argument(
+        "--consume-passive-events-only",
+        action="store_true",
+        help=(
+            "Consume capture-only production observations into Situation/Decision/Outcome/Replay/Learning "
+            "without planning, Candidate/Packet/lease creation, routing mutation, user movement or L7/L8 credit."
+        ),
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -10390,8 +10398,91 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Run the existing passive consumer without constructing the Planner path.
+
+    AutoswitchPlanner.__init__ owns additional observation and optional refresh
+    behaviors needed by the planner.  A Matrix lifecycle consumer must not enter
+    those behaviors merely to close a capture-only event.  This deliberately
+    constructs only the existing passive-event owner state required by
+    _consume_passive_production_events().
+    """
+    forbidden_flags: list[str] = []
+    for name in (
+        "apply",
+        "emergency_failover_autonomy",
+        "controlled_verifier_contention",
+        "allow_pre_planner_refresh_with_apply",
+    ):
+        if bool_value(getattr(args, name, False)):
+            forbidden_flags.append(name)
+    for name in (
+        "approved_packet_id",
+        "approved_operation_id",
+        "approved_selected_move_hash",
+        "approved_authority_generation",
+        "approved_breaker_generation",
+        "approved_source_bundle_hash",
+        "approved_snapshot_bundle_hash",
+        "generate_rollback_packet_from_result",
+        "rollback_packet",
+        "promote_authority_to",
+    ):
+        if str(getattr(args, name, "") or "").strip():
+            forbidden_flags.append(name)
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden_flags.append("pre_planner_refresh")
+    forbidden_effects = {
+        "planner_execution": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "user_movement": False,
+        "rollback_apply": False,
+        "authority_change": False,
+        "production_maturity_change": False,
+        "l7_credit": False,
+        "natural_l8_credit": False,
+    }
+    if forbidden_flags:
+        return {
+            "schema_version": "v7.passive-event-consumer-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "mode": "PASSIVE_EVENTS_ONLY",
+            "blockers": [f"passive_consumer_forbids_{name}" for name in sorted(set(forbidden_flags))],
+            "forbidden_effects": forbidden_effects,
+        }
+
+    planner = object.__new__(AutoswitchPlanner)
+    planner.args = args
+    planner.state_dir = Path(args.state_dir)
+    planner.event_dir = Path(args.event_dir)
+    planner.l3_runtime_state_file = planner.state_dir / "l3-runtime-state.json"
+    planner.l3_runtime_state = planner._load_l3_runtime_state()
+    planner.policy = read_json(Path(args.policy_file), {})
+    planner.org_policy = read_json(Path(args.org_policy_file), {})
+    planner.service_signal_policy = planner._service_signal_policy()
+    result = planner._consume_passive_production_events()
+    return {
+        "schema_version": "v7.passive-event-consumer-entrypoint.v1",
+        "status": "PASS",
+        "ok": True,
+        "mode": "PASSIVE_EVENTS_ONLY",
+        "consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+        "result": result,
+        "forbidden_effects": forbidden_effects,
+    }
+
+
 def main() -> int:
     args = build_arg_parser().parse_args()
+    if args.consume_passive_events_only:
+        result = consume_passive_events_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
     planner = AutoswitchPlanner(args)
     if args.promote_authority_to:
         result = planner.promote_authority(args.promote_authority_to)

@@ -46,3 +46,23 @@ Maturity change: `NONE`.
 current action-class contract. Current legal terminal остаётся
 `ENGINEERING_AUTHORITY`; exact next frontier остаётся
 `V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION`.
+
+## Production deploy и caller verification
+
+Commit `8f0b47cf52b6635ddb11dd2602d9b1a042f1d18a` deployed through
+`tools/v7-safe-deploy`:
+`deploy-z8-14-Updatesystem-8f0b47c-20260726T012213`.
+
+Production non-test caller
+`/usr/local/bin/v7-autonomy-trust-evidence-inventory --action-class-runtime-only`
+returned the exact intended consumed result:
+
+- `current_mode=GOVERNED_ONLY`;
+- `current_action_class_contract_state=MISSING`;
+- `runtime_apply_enabled=false`;
+- `runtime_can_execute_automatically=false`;
+- blocker `CURRENT_ACTION_CLASS_CONTRACT_REQUIRED`.
+
+`tools/v7-truth-check --all --json`: `PASS`.
+`tools/v7-convergence-status --json`: `ALIGNED`; local, GitHub and production
+all equal `8f0b47cf52b6635ddb11dd2602d9b1a042f1d18a`.

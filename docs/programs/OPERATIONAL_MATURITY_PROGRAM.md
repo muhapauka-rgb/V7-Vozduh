@@ -10106,7 +10106,7 @@ PRODUCTION_EFFECT = NONE
 
 ## 41. Service Failure Legacy Runtime Authority Projection Fail-Closed Repair
 
-Classification: `ACTIVE_PROGRAM_ENGINEERING_REPAIR`.
+Classification: `PERMANENT_RULE`.
 Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 Scheduling Authority: `NONE`.
 Execution Authority: `NONE`.

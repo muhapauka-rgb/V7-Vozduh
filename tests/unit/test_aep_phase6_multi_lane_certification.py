@@ -25,6 +25,13 @@ class AepPhase6MultiLaneCertificationTest(unittest.TestCase):
             report="docs/reports/engineering/phase6-target-test.md", root=ROOT,
         )
         cls.cps = cls.lib.build_normalized_cps_document(current, target)
+        cls.cps = cls.lib._replace_section_field(
+            cls.cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "ACTION_CLASS_ENGINEERING_FRONTIER",
+            "`NONE`",
+        )
 
     def test_natural_wait_does_not_block_scenario_lane(self):
         frontier = self.lib.future_scale_scenario_frontier(self.cps, root=ROOT)

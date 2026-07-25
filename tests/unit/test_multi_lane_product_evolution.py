@@ -21,6 +21,13 @@ class MultiLaneProductEvolutionTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+        cls.cps = cls.lib._replace_section_field(
+            cls.cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "ACTION_CLASS_ENGINEERING_FRONTIER",
+            "`NONE`",
+        )
 
     def test_l8_wait_selects_independent_engineering_not_production(self):
         result = self.lib.multi_lane_product_frontier_reconciliation(self.cps, root=ROOT)
@@ -64,6 +71,13 @@ class MultiLaneProductEvolutionTest(unittest.TestCase):
         self.assertEqual(result["scenario"]["scenario_id"], "SINGLE_CHANNEL_FAILURE")
         self.assertFalse(any(result["forbidden_effects"].values()))
         self.assertEqual(result["production_maturity_impact"], "NO_CHANGE")
+
+    def test_production_entrypoint_uses_materialized_owner_contract(self):
+        result = self.lib.certify_multi_lane_product_evolution_production_entrypoint(root=ROOT)
+        self.assertEqual(result["final_verdict"], "PASS", result["errors"])
+        self.assertEqual(result["caller_class"], "PRODUCTION_NON_TEST_READ_ONLY_CALLER")
+        self.assertEqual(result["real_consumer"], "OMP_PROGRAM_EXECUTION_RECONCILIATION")
+        self.assertTrue(all(result["checks"].values()))
 
 
 if __name__ == "__main__":

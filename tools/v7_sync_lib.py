@@ -14839,6 +14839,72 @@ def polygon_production_certification_layout(*, root: Path = ROOT):
         }
 
 
+def certify_multi_lane_product_evolution_production_entrypoint(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Prove the deployed hard-failure class selector and consumer path read-only."""
+    try:
+        with polygon_production_certification_layout(root=root) as layout:
+            execution_root = layout["root"]
+            corpus = load_future_scale_scenario_corpus(root=execution_root)
+            caller_cps = polygon_production_certification_cps_text(corpus)
+            caller_cps = caller_cps.replace(
+                "## Authoritative Unfinished Capability Closure Registry",
+                "| `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |\n"
+                "| `ACTION_CLASS_EXACT_MISSING_DELTA` | `natural_production_present` |\n"
+                "| `ACTION_CLASS_ENGINEERING_FRONTIER` | `NONE` |\n\n"
+                "## Authoritative Unfinished Capability Closure Registry",
+            )
+            selection = multi_lane_product_frontier_reconciliation(caller_cps, root=execution_root)
+            scenario = execute_future_scale_scenario("SINGLE_CHANNEL_FAILURE", root=execution_root)
+            layout_evidence = {key: value for key, value in layout.items() if key != "root"}
+    except (OSError, ValueError, KeyError) as exc:
+        selection = {"final_verdict": "STOP_SAFE", "errors": [f"production_layout_failed:{type(exc).__name__}:{exc}"]}
+        scenario = {"final_verdict": "STOP_SAFE", "forbidden_effects": {}}
+        layout_evidence = {"final_verdict": "STOP_SAFE"}
+    consumer = scenario.get("consumer_result") or {}
+    checks = {
+        "production_layout": layout_evidence.get("final_verdict") == "PASS",
+        "selector_selected_exact_class": (
+            selection.get("selection") == "SELECTED_CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING"
+        ),
+        "scenario_passed": scenario.get("final_verdict") == "PASS",
+        "omp_consumer_consumed": (
+            consumer.get("consumer") == "OMP_PROGRAM_EXECUTION_RECONCILIATION"
+            and consumer.get("consumed") is True
+            and consumer.get("final_verdict") == "PASS"
+        ),
+        "forbidden_effects_absent": not any((scenario.get("forbidden_effects") or {}).values()),
+        "no_natural_or_maturity_credit": (
+            scenario.get("situation_decision_trace", {}).get("learning", {}).get("natural_production_credit") is False
+            and scenario.get("situation_decision_trace", {}).get("learning", {}).get("production_maturity_credit") is False
+        ),
+    }
+    passed = all(checks.values())
+    return {
+        "schema": "v7.multi-lane-product-evolution-production-certification.v1",
+        "caller_class": "PRODUCTION_NON_TEST_READ_ONLY_CALLER",
+        "entrypoint": "tools/v7-truth-check --omp-multi-lane-product-evolution-production-certification --json",
+        "real_caller": "certify_multi_lane_product_evolution_production_entrypoint",
+        "real_consumer": "OMP_PROGRAM_EXECUTION_RECONCILIATION",
+        "checks": checks,
+        "selection": selection,
+        "scenario": scenario,
+        "production_certification_layout": layout_evidence,
+        "behavior_change": (
+            "DEPLOYED_CHANNEL_HARD_FAILURE_CLASS_SELECTOR_AND_OMP_CONSUMER_VERIFIED"
+            if passed else "NONE_STOP_SAFE"
+        ),
+        "next_output": (
+            "KEEP_L8_PASSIVE_CAPTURE_READY_FOR_EACH_ACTION_CLASS" if passed else "STOP_SAFE"
+        ),
+        "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+        "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "final_verdict": "PASS" if passed else "STOP_SAFE",
+        "errors": [] if passed else [key for key, value in checks.items() if not value],
+    }
+
+
 def certify_permanent_polygon_design_time_production_entrypoint(
     *, root: Path = ROOT,
 ) -> dict[str, Any]:

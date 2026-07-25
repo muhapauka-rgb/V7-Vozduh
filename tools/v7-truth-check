@@ -32,6 +32,7 @@ from admin_core import autonomy_trust_acceleration, operator_execution
 DEFAULT_MANIFEST = Path("docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json")
 RUNTIME_SNAPSHOT_SCHEMA = "v7-runtime-truth-snapshot/v1"
 FSSE_SCENARIO_ROOT_ENV = "V7_FSSE_SCENARIO_ROOT"
+SERVICE_FAILURE_STATE_DIR_ENV = "V7_SERVICE_FAILURE_STATE_DIR"
 
 
 def fsse_scenario_root() -> Path:
@@ -47,6 +48,17 @@ def fsse_scenario_root() -> Path:
     if ROOT_DIR == Path("/usr/local") and (production_root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").exists():
         return production_root
     return ROOT_DIR
+
+
+def service_failure_state_dir() -> Path:
+    """Resolve the existing production evidence owner for the narrow consumer."""
+    configured = os.environ.get(SERVICE_FAILURE_STATE_DIR_ENV, "").strip()
+    if configured:
+        return Path(configured).resolve()
+    production_state = Path("/opt/v7/egress/state")
+    if production_state.exists():
+        return production_state
+    return fsse_scenario_root() / "egress" / "state"
 
 RUNTIME_READONLY_COMMANDS = [
     ["hostname"],
@@ -728,6 +740,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--campaign-report", default=None, help="Canonical engineering report path for comprehensive campaign finalization.")
     parser.add_argument("--campaign-run-nonce", default=None, help="Stable run nonce for comprehensive campaign finalization.")
     parser.add_argument("--continue-omp", action="store_true", help="Run one bounded standard Continue OMP engineering-control-loop invocation.")
+    parser.add_argument("--consume-service-failure-automation-only", action="store_true", help="Consume one durable Service Failure automation obligation through the existing OMP owner without requiring the source CPS corpus on a binary-only production host.")
+    parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -941,6 +955,30 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"terminal={result.get('program_terminal', 'STOP_SAFE')}")
             print(f"next_mission={result.get('next_mission_id', 'NONE')}")
         return 0 if result.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"} else 2
+    if args.reconcile_service_failure_receipt:
+        try:
+            receipt = json.loads(Path(args.reconcile_service_failure_receipt).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            result = {"final_verdict": "STOP_SAFE", "errors": [f"service_failure_receipt_unreadable:{exc}"]}
+        else:
+            result = sync_lib.reconcile_service_failure_automation_receipt_to_cps(
+                receipt, root=fsse_scenario_root(),
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"service_failure_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.consume_service_failure_automation_only:
+        result = sync_lib.consume_service_failure_automation_frontier(
+            state_dir=service_failure_state_dir(), persist_cps=False,
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"service_failure_automation={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'NONE')}")
+        return 0 if result.get("final_verdict") in {"PASS", "NO_PENDING_OBLIGATION"} else 2
     if args.continue_omp:
         result = sync_lib.continue_omp_engineering_control_loop(
             root=fsse_scenario_root(), changed_dependencies=args.continue_omp_change,

@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -118,6 +119,35 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertTrue(comparison["prediction_matched_observed_outcome"])
             self.assertFalse(comparison["runtime_mutation_performed"])
             self.assertFalse(comparison["apply_executed"])
+
+    def test_production_receipt_reconciles_source_cps_without_second_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "object_id": "sfomp_source_test",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_source_test",
+                "source_incident_id": "sfinc_source_test",
+                "situation_id": "situation_source_test",
+                "decision_trace_id": "decision_source_test",
+                "classification": "STOP_SAFE_AUTHORITY_REQUIRED",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION",
+                "next_action": "V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION",
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "apply_executed": False,
+                "authority_expanded": False,
+                "production_maturity_changed": False,
+                "users_moved": 0,
+            }
+            result = self.sync.reconcile_service_failure_automation_receipt_to_cps(receipt, root=root)
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(result["receipt"]["object_id"], "sfomp_source_test")
+            self.assertTrue(result["atomic_update"]["ok"])
 
 
 if __name__ == "__main__":

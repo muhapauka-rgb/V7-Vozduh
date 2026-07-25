@@ -274,8 +274,14 @@ def run_service_failure_automation_advisory(
 
 
 def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]:
-    """Consume the already-materialized obligation through the standard OMP entrypoint."""
-    command = ["v7-truth-check", "--continue-omp", "--continue-omp-persist-cps", "--json"]
+    """Consume the already-materialized obligation through the standard OMP entrypoint.
+
+    Production deploys the evidence owner but deliberately not the source CPS
+    corpus.  This narrow existing-owner command persists the consumption
+    receipt in production; the canonical source CPS is reconciled only from
+    that owner-backed receipt by its source owner.
+    """
+    command = ["v7-truth-check", "--consume-service-failure-automation-only", "--json"]
     started_at = now_iso()
     try:
         proc = subprocess.run(

@@ -6037,6 +6037,7 @@ def service_failure_automation_frontier(
 
 def consume_service_failure_automation_frontier(
     *, root: Path = ROOT, state_dir: Optional[Path] = None, persist_cps: bool = False,
+    obligation_override: Optional[dict[str, Any]] = None, record_receipt: bool = True,
 ) -> dict[str, Any]:
     """Consume one existing service-failure obligation through the OMP owner.
 
@@ -6045,7 +6046,9 @@ def consume_service_failure_automation_frontier(
     change can be produced here.
     """
     frontier = service_failure_automation_frontier(root=root, state_dir=state_dir)
-    obligation = frontier.get("selected") if isinstance(frontier.get("selected"), dict) else {}
+    obligation = obligation_override if isinstance(obligation_override, dict) else (
+        frontier.get("selected") if isinstance(frontier.get("selected"), dict) else {}
+    )
     if not obligation:
         return {
             "schema_version": "v7.service-failure-automation-omp-consumption.v1",
@@ -6167,7 +6170,8 @@ def consume_service_failure_automation_frontier(
                 "atomic_update": atomic,
                 "errors": atomic.get("errors") or ["cps_update_failed"],
             }
-    _append_jsonl_record(Path(frontier["closure_path"]), receipt)
+    if record_receipt:
+        _append_jsonl_record(Path(frontier["closure_path"]), receipt)
     return {
         "schema_version": "v7.service-failure-automation-omp-consumption.v1",
         "final_verdict": "PASS",
@@ -6182,6 +6186,63 @@ def consume_service_failure_automation_frontier(
         "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
         "errors": [],
     }
+
+
+def reconcile_service_failure_automation_receipt_to_cps(
+    receipt: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Project a verified production receipt into the canonical source CPS.
+
+    Production hosts intentionally carry runtime evidence, not a duplicate
+    documentation corpus.  The source CPS may therefore reconcile a receipt
+    only after its immutable identity and forbidden-effect fields validate.
+    It never manufactures a second production receipt.
+    """
+    required = (
+        "automation_obligation_id", "source_incident_id", "situation_id",
+        "decision_trace_id", "classification", "next_action",
+    )
+    missing = [key for key in required if not str(receipt.get(key) or "")]
+    forbidden = [
+        key for key in (
+            "runtime_mutation_performed", "routing_mutation_performed",
+            "apply_executed", "authority_expanded", "production_maturity_changed",
+        ) if receipt.get(key) is not False
+    ]
+    if (
+        str(receipt.get("object_type") or "") != "service_failure_automation_omp_consumption"
+        or str(receipt.get("closure_state") or "") != "OMP_CONSUMED"
+        or missing or forbidden or int(receipt.get("users_moved") or 0) != 0
+    ):
+        return {
+            "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": (
+                (["receipt_identity_or_effects_invalid"] if not missing and not forbidden else [])
+                + [f"missing:{key}" for key in missing]
+                + [f"forbidden_effect:{key}" for key in forbidden]
+            ),
+        }
+    obligation = {
+        "automation_obligation_id": receipt["automation_obligation_id"],
+        "source_incident_id": receipt["source_incident_id"],
+        "situation_id": receipt["situation_id"],
+        "decision_trace_id": receipt["decision_trace_id"],
+        "stop_safe_classification": receipt["classification"],
+        "incident_frontier": receipt.get("incident_frontier") or receipt["next_action"],
+        "product_evolution_frontier": receipt.get("product_evolution_frontier") or "NONE",
+        "last_responsible_link": "production OMP receipt -> canonical source CPS reconciliation",
+    }
+    result = consume_service_failure_automation_frontier(
+        root=root,
+        state_dir=Path("/nonexistent-service-failure-source-reconciliation"),
+        persist_cps=True,
+        obligation_override=obligation,
+        record_receipt=False,
+    )
+    result["schema_version"] = "v7.service-failure-automation-source-cps-reconciliation.v1"
+    result["production_receipt_id"] = str(receipt.get("object_id") or "")
+    result["receipt"] = receipt
+    return result
 
 
 def event_driven_ready_frontier_fingerprint(live: dict[str, str]) -> str:

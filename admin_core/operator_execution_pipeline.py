@@ -314,6 +314,7 @@ def recommendation_execution_contract(row: dict[str, Any]) -> dict[str, Any]:
         "user": user,
         "current_channel": current,
         "recommended_channel": target,
+        "move_type": str(row.get("move_type") or "governed_canary"),
         "confidence": row.get("confidence", 0.0),
         "trust": row.get("trust", 0.0),
         "prediction": row.get("prediction") if isinstance(row.get("prediction"), dict) else {},
@@ -827,6 +828,7 @@ def _dry_run_candidates(decision_surface: dict[str, Any], max_users: int = 1) ->
             "user": user,
             "current_channel": move.get("from") or source.get("current_channel") or source.get("current") or "",
             "recommended_channel": move.get("to") or source.get("recommended_channel") or "",
+            "move_type": str(move.get("move_type") or source.get("move_type") or "governed_canary"),
             "confidence": move.get("confidence", source.get("confidence", 0.0)),
             "trust": source.get("trust", 0.0),
             "prediction": source.get("prediction") if isinstance(source.get("prediction"), dict) else {},
@@ -2069,6 +2071,7 @@ def _preview_packet_for_candidate(
         "user": candidate.get("user", ""),
         "from": candidate.get("current_channel", ""),
         "to": candidate.get("recommended_channel", ""),
+        "move_type": str(candidate.get("move_type") or "governed_canary"),
     }
     selected_move_hash = stable_hash(semantic_payload)
     commit_authority_generation = authority_generation or ("authgen_" + stable_hash(semantic_payload)[:24])
@@ -2092,6 +2095,7 @@ def _preview_packet_for_candidate(
         "blast_radius_unit": "user",
         "blast_radius_budget": 1,
         "decision_reason": "single_user_governed_candidate_failover",
+        "move_type": semantic_payload["move_type"],
     }
     decision_id = "decision_commit_" + stable_hash(decision_commit_payload)[:24]
     candidate_source_hashes = candidate.get("source_hashes") if isinstance(candidate.get("source_hashes"), dict) else {}
@@ -2160,6 +2164,7 @@ def _preview_packet_for_candidate(
                     "user_ip": candidate.get("user", ""),
                     "rollback_target": rollback_target,
                     "forward_target": candidate.get("recommended_channel", ""),
+                    "move_type": semantic_payload["move_type"],
                     "source_operation_id": operation_id,
                 }
             ],

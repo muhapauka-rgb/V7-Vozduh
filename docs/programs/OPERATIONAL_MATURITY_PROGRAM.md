@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.49`
+Version: `4.50`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -7866,8 +7866,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R1_V5`
-Resolved request: `engauth_r1_b152de57ac3e4f557e1cfb9e` is a fresh one-use request admitted by the existing repair-generation policy after deploy `deploy-z8-14-Updatesystem-ecc9167-20260725T104558`; v4 remains consumed and non-reusable; passive L8 capture remains active
+Resolved current next action: `DEPLOY_CONTROLLED_FAILOVER_PACKET_SEMANTIC_REPAIR`
+Resolved request: `engauth_r1_b152de57ac3e4f557e1cfb9e` is consumed and non-reusable after a pre-apply `l3_allows_failover_only` STOP_SAFE; the existing producer now preserves `move_type=failover`, but no fresh request may be admitted before a distinct deployed repair generation and target safety remains mandatory
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

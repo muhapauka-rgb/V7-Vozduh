@@ -135,6 +135,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(selected["selection_status"], "SELECTED")
         self.assertEqual(selected["selected_candidate"]["user"], "10.7.0.16")
         self.assertEqual(selected["selected_candidate"]["target"], "vless")
+        self.assertEqual(selected["selected_candidate"]["move_type"], "failover")
         self.assertEqual(unsafe["selection_status"], "STOP_SAFE")
         self.assertIn("engineering_authority_controlled_source_not_activated", unsafe["blockers"])
 
@@ -167,6 +168,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         first = preview("engauth_r1_first")
         second = preview("engauth_r1_second")
+        self.assertEqual(first["rollback_manifest_preview"]["items"][0]["move_type"], "failover")
         self.assertNotEqual(first["packet_id"], second["packet_id"])
         self.assertNotEqual(first["operation_id"], second["operation_id"])
 

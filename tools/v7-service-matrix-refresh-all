@@ -696,7 +696,7 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "SKIPPED_EXPLICITLY", "ok": False, "reason": "explicit_skip",
         }
-    elif isinstance(advisory_payload, dict) and advisory_payload.get("active"):
+    elif (payload.get("service_failure_automation_advisory") or {}).get("ok") is True:
         payload["service_failure_omp_consumer"] = run_service_failure_omp_consumer(
             timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
         )

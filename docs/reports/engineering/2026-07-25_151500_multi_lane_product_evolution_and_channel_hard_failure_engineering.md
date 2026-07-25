@@ -32,3 +32,11 @@ Hard-failure classification и anti-flap arbitration уже принадлежа
 `PASSIVE_CAPTURE_READY_FOR_CURRENT_AND_CHANNEL_HARD_FAILURE_ACTION_CLASSES; NATURAL_EVENT_CREATION_FORBIDDEN`.
 
 Следующий qualifying natural event должен попасть в существующие Situation → Decision Trace → Outcome Passport → temporal/replay → Learning consumers своего action class. Искусственно создавать L8 событие запрещено.
+
+## Production caller follow-up
+
+Первый прямой вызов deployed `--continue-omp` честно завершился до исполнения: installed CLI вывел root `/usr/local`, где нет CPS/corpus (`FileNotFoundError: /usr/local/docs/programs/V7_CURRENT_PROGRAM_STATE.md`). Это producer→consumer binding defect, не production evidence и не forbidden effect.
+
+Repair сохранён в commit `d14121f3`: новый existing-entrypoint flag `--omp-multi-lane-product-evolution-production-certification` строит уже применяемый disposable production-certification layout от deployed manifest, проверяет selector и вызывает тот же OMP consumer read-only. Локальный production-layout caller и 54 focused regression tests: `PASS`.
+
+На момент этого отчёта repair ещё не отправлен/не задеплоен: security gate требует отдельное явное разрешение на GitHub egress для этого второго commit. До этого шага production caller verification остаётся `PENDING_REPAIR_DEPLOY`; routing, users, Authority и Maturity не затронуты.

@@ -10103,3 +10103,38 @@ CI_GATE_WEAKENED = NO
 NEW_TRUTH_SOURCE = NO
 PRODUCTION_EFFECT = NONE
 ```
+
+## 41. Service Failure Legacy Runtime Authority Projection Fail-Closed Repair
+
+Classification: `ACTIVE_PROGRAM_ENGINEERING_REPAIR`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Scheduling Authority: `NONE`.
+Execution Authority: `NONE`.
+Authority expansion: `NONE`.
+
+Production read-only planning discovered that the existing policy owner still
+contained a historical `XLARGE_BATCH/50` projection promoted on 2026-07-03,
+while CPS current truth is `GOVERNED_ONLY` and the active Program is at
+`ENGINEERING_AUTHORITY`. This was a latent producer-to-consumer disagreement:
+historical promotion evidence could otherwise be interpreted as present action
+Authority.
+
+The existing `tools/v7-users-autoswitch` authority gate now requires a fresh,
+bounded `v7.current-action-class-contract.v1` for Authority above `CANARY`.
+It validates scope, legal action class, expiry, maximum Authority class and
+maximum user budget before the restore-barrier or apply path. Missing or stale
+contracts force `FROZEN/0` and record
+`block_all_selected_moves_current_action_class_contract_required`.
+
+```text
+HISTORICAL_XLARGE_POLICY -> CURRENT_ACTION_CLASS_CONTRACT_GATE -> FROZEN_OR_BOUNDED_SCOPE
+MUTATION = 0
+USER_MOVEMENT = 0
+ROUTING_CHANGE = 0
+AUTHORITY_GRANT = 0
+NEXT_LEGAL_STEP = EXISTING_OWNER_ISSUES_EXACT_UNEXPIRED_ONE_USE_CONTRACT_OR_REMAINS_STOP_SAFE
+```
+
+The repair changes neither the CPS Authority decision nor Production Maturity.
+It removes an unsafe stale projection; it cannot issue a contract, apply a
+Packet, move a user, write a restore barrier or enable a service/timer.

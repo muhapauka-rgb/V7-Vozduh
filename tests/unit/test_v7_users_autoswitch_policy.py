@@ -132,7 +132,19 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "service_signals": service_signals or {},
         }
         if authority_budget is not None:
-            policy["authority_budget"] = authority_budget
+            policy["authority_budget"] = dict(authority_budget)
+            policy["authority_budget"].setdefault(
+                "current_action_class_contract",
+                {
+                    "schema_version": "v7.current-action-class-contract.v1",
+                    "contract_id": "unit-test-current-action-class-contract",
+                    "active_program": "UNIT_TEST",
+                    "action_class": "GOVERNED_ONLY",
+                    "max_authority_class": "POOL",
+                    "max_users": 100,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                },
+            )
         if emergency_failover_autonomy is not None:
             policy["emergency_failover_autonomy"] = emergency_failover_autonomy
         (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")
@@ -1752,6 +1764,34 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 0)
         self.assertEqual(gate["decision"], "authority_budget_gate_disabled_by_policy")
         self.assertIn("disable_authority_budget_gate_in_production", gate["blocked_actions"])
+
+    def test_historical_broad_authority_without_current_action_contract_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=4,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+                authority_budget={
+                    "authority_class": "XLARGE_BATCH",
+                    "certified_authority_class": "XLARGE_BATCH",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 50,
+                    "promoted_at": "2026-07-03T10:53:23+00:00",
+                },
+            )
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["authority_budget"].pop("current_action_class_contract", None)
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            plan = self.tool.AutoswitchPlanner(self.args_for(root, ["--max-selected-moves", "25"])).plan()
+
+        gate = plan["safety"]["authority_budget_gate"]
+        self.assertEqual(plan["summary"]["selected_moves"], 0)
+        self.assertEqual(gate["authority_lifecycle_state"], "FROZEN")
+        self.assertEqual(gate["current_allowed_user_budget"], 0)
+        self.assertEqual(gate["decision"], "block_all_selected_moves_current_action_class_contract_required")
+        self.assertIn("current_action_class_contract_missing_or_schema_invalid", gate["blocked_actions"])
 
     def test_authority_governance_frozen_state_blocks_all_moves(self):
         with tempfile.TemporaryDirectory() as tmp:

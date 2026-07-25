@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.0`
+Version: `1.1`
 
 Status: `PROPOSED_EXECUTION_PLAN`
 
@@ -152,6 +152,28 @@ current tier. A numeric limit must never be increased directly in policy.
 The legacy production projection `XLARGE_BATCH/50` is historical evidence, not
 current Service Failure Authority. It must be reconciled with current
 `GOVERNED_ONLY` before any tier above one can become executable.
+
+### Current action-class contract binding
+
+The existing `/etc/v7/policy.json` authority owner must carry a fresh,
+explicitly scoped `current_action_class_contract` for every runtime Authority
+above `CANARY`. This is a policy field and gate inside the existing
+`tools/v7-users-autoswitch` owner; it is not a second Authority, registry,
+queue or CPS replacement.
+
+The contract must contain:
+
+- schema `v7.current-action-class-contract.v1`;
+- `contract_id`, `active_program` and legal action class;
+- an unexpired `expires_at`;
+- maximum Authority class and maximum user scope.
+
+The autoswitch gate must cap selection by that scope. A missing, malformed,
+expired, lower-than-certified or zero-budget contract is
+`STOP_SAFE/FROZEN/0` before restore-barrier snapshot or apply. Historical
+promotion evidence, including `XLARGE_BATCH/50`, can never substitute for this
+contract. Issuing or refreshing a contract remains the exact existing
+owner-issued Authority action; this Program cannot issue one itself.
 
 ## Dynamic Mission compression
 

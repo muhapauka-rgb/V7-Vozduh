@@ -558,6 +558,70 @@ def parse_ts(value: Any) -> float:
         return 0.0
 
 
+def runtime_authority_contract_status(
+    policy: dict[str, Any],
+    *,
+    prepared_class: str,
+    certified_class: str,
+) -> dict[str, Any]:
+    """Bind a broad runtime budget to a fresh, explicitly scoped policy contract.
+
+    Historical promotion evidence is useful for analysis, but is not an
+    executable grant forever.  The existing policy owner must keep an active
+    action-class contract alongside any authority above CANARY; absence or
+    expiry is deliberately a zero-budget terminal before a plan can reach the
+    restore-barrier or apply path.
+    """
+    broad_authority = max(
+        AUTHORITY_CLASS_RANK[prepared_class],
+        AUTHORITY_CLASS_RANK[certified_class],
+    ) > AUTHORITY_CLASS_RANK["CANARY"]
+    contract = policy.get("current_action_class_contract")
+    contract = dict(contract) if isinstance(contract, dict) else {}
+    required = broad_authority
+    now = datetime.now(timezone.utc).timestamp()
+    expires_at = str(contract.get("expires_at") or "")
+    max_users = max(0, to_int(contract.get("max_users"), 0))
+    allowed_class = normalize_authority_class(
+        contract.get("max_authority_class") or contract.get("authority_class") or "CANARY"
+    )
+    action_class = str(contract.get("action_class") or "").strip().upper()
+    schema_ok = str(contract.get("schema_version") or "") == "v7.current-action-class-contract.v1"
+    scope_ok = bool(str(contract.get("contract_id") or "")) and bool(str(contract.get("active_program") or ""))
+    action_ok = action_class in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}
+    expiry_ok = parse_ts(expires_at) > now
+    class_ok = AUTHORITY_CLASS_RANK[allowed_class] >= AUTHORITY_CLASS_RANK[certified_class]
+    budget_ok = max_users > 0
+    valid = (not required) or (schema_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok)
+    blockers: list[str] = []
+    if required and not schema_ok:
+        blockers.append("current_action_class_contract_missing_or_schema_invalid")
+    if required and schema_ok and not scope_ok:
+        blockers.append("current_action_class_contract_scope_missing")
+    if required and schema_ok and not action_ok:
+        blockers.append("current_action_class_contract_action_class_invalid")
+    if required and schema_ok and not expiry_ok:
+        blockers.append("current_action_class_contract_expired_or_missing")
+    if required and schema_ok and not class_ok:
+        blockers.append("current_action_class_contract_below_certified_authority")
+    if required and schema_ok and not budget_ok:
+        blockers.append("current_action_class_contract_zero_budget")
+    return {
+        "schema_version": "v7.current-action-class-contract-gate.v1",
+        "required": required,
+        "valid": valid,
+        "contract_id": str(contract.get("contract_id") or ""),
+        "active_program": str(contract.get("active_program") or ""),
+        "action_class": action_class,
+        "max_authority_class": allowed_class,
+        "max_users": max_users,
+        "expires_at": expires_at,
+        "blockers": blockers,
+        "truth_source": "existing_policy_current_action_class_contract",
+        "new_truth_sources_created": False,
+    }
+
+
 def write_json_atomic(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
@@ -1028,11 +1092,18 @@ class AutoswitchPlanner:
         )
         requested_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state"))
         requested_state = AUTHORITY_CERTIFIED_STATE_ALIASES.get(requested_state, requested_state)
+        action_contract = runtime_authority_contract_status(
+            policy,
+            prepared_class=prepared_class,
+            certified_class=certified_class,
+        )
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
         if revoked:
             lifecycle_state = "REVOKED"
         elif frozen:
+            lifecycle_state = "FROZEN"
+        elif not action_contract["valid"]:
             lifecycle_state = "FROZEN"
         elif requested_state in AUTHORITY_BRIDGE_STATES:
             lifecycle_state = requested_state
@@ -1065,6 +1136,8 @@ class AutoswitchPlanner:
         requested_budget = to_int(policy.get("current_allowed_user_budget"), prepared_budget)
         certification_ceiling = bridge_budget_ceiling or certified_budget
         current_budget = max(0, min(requested_budget, prepared_budget, certification_ceiling, runtime_ceiling))
+        if action_contract["required"]:
+            current_budget = min(current_budget, action_contract["max_users"]) if action_contract["valid"] else 0
         next_class = AUTHORITY_CLASS_NEXT.get(runtime_class, "CANARY")
         next_budget_default = authority_class_budget(next_class, current_budget)
         policy["prepared_authority_class"] = prepared_class
@@ -1078,7 +1151,10 @@ class AutoswitchPlanner:
             min(to_int(policy.get("next_allowed_user_budget"), next_budget_default), next_budget_default),
         )
         policy["truth_source"] = "existing_policy_files"
+        policy["current_action_class_contract"] = action_contract
         policy["runtime_calculation_mode"] = (
+            "current_action_class_contract_bounded_authority"
+            if action_contract["required"] else
             "certified_authority_with_transitional_bridge"
             if bridge_budget_ceiling
             else "prepared_and_certified_min_authority"
@@ -5271,6 +5347,8 @@ class AutoswitchPlanner:
         certified_class = normalize_authority_class(policy.get("certified_authority_class") or "CANARY")
         lifecycle_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state")) or "CERTIFIED"
         bridge = dict(policy.get("authority_bridge") or {})
+        action_contract = dict(policy.get("current_action_class_contract") or {})
+        action_contract_valid = bool(action_contract.get("valid", True))
         bridge_enabled = bool(bridge.get("enabled")) and lifecycle_state in AUTHORITY_BRIDGE_STATES
         class_budget = authority_class_budget(authority_class, to_int(policy.get("current_allowed_user_budget"), 1))
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
@@ -5280,7 +5358,11 @@ class AutoswitchPlanner:
         selected_after = selected[:allowed_budget] if selected_before > allowed_budget else list(selected)
         cap_applied = selected_after != selected
         prepared_exceeds_certified = AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]
-        if lifecycle_state in {"FROZEN", "REVOKED"} or allowed_budget <= 0:
+        if not action_contract_valid:
+            decision = "block_all_selected_moves_current_action_class_contract_required"
+            action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
+            next_state = "FROZEN"
+        elif lifecycle_state in {"FROZEN", "REVOKED"} or allowed_budget <= 0:
             decision = "block_all_selected_moves_authority_budget_zero"
             action = "drop_selected_moves_before_restore_barrier_snapshot_apply"
             next_state = lifecycle_state if lifecycle_state in {"FROZEN", "REVOKED"} else "FROZEN"
@@ -5309,6 +5391,7 @@ class AutoswitchPlanner:
             "prepared_authority_class": prepared_class,
             "certified_authority_class": certified_class,
             "authority_lifecycle_state": lifecycle_state,
+            "current_action_class_contract": action_contract,
             "current_allowed_user_budget": allowed_budget,
             "next_authority_class": policy.get("next_authority_class") or AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY"),
             "next_allowed_user_budget": to_int(policy.get("next_allowed_user_budget"), allowed_budget),
@@ -5320,7 +5403,10 @@ class AutoswitchPlanner:
             "executor": "tools/v7-users-autoswitch",
             "trigger": "after_policy_selection_before_restore_barrier_snapshot_apply",
             "written_evidence": "plan.safety.authority_budget_gate",
-            "blocked_actions": ["selected_moves_above_authority_budget", "apply_above_authority_budget"] if cap_applied or allowed_budget <= 0 else [],
+            "blocked_actions": (
+                sorted(set(["selected_moves_above_authority_budget", "apply_above_authority_budget"] + list(action_contract.get("blockers") or [])))
+                if cap_applied or allowed_budget <= 0 or not action_contract_valid else []
+            ),
             "next_state": next_state,
             "authority_lifecycle": {
                 "schema_version": "v7.authority-governance-lifecycle.v1",

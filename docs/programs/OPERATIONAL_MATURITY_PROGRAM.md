@@ -1609,17 +1609,26 @@ Current default policy:
 | --- | --- |
 | Policy id | `dap_default_tier1_readonly` |
 | Policy state | `APPROVED` |
-| Current mode | `DELEGATED_AUTONOMY` |
+| Current mode | `GOVERNED_ONLY` |
 | Target mode | `DELEGATED_AUTONOMY` |
+| Current action-class contract | `MISSING` |
 | Allowed first class | `single-user governed candidate failover` |
 | Max users per action | `1` |
 | Max concurrent transactions | `1` |
 | Candidate approval required | `NO` |
 | Packet approval required | `NO` |
-| Runtime apply enabled | `YES_WITHIN_APPROVED_POLICY_ONLY` |
+| Runtime apply enabled | `NO` |
 | Authority expanded | `NO` |
 
-The approved policy permits bounded governed-learning execution while the class remains `GOVERNED_ONLY`. It does not promote the class, authorize another class, permit concurrency, or increase blast radius. A fresh ephemeral packet, operation-scoped binding, live safety gates, serial execution lease, verification, rollback/no-rollback, outcome closure, learning, truth convergence, and final Safe Mode `OPEN` remain mandatory. Engineering Authority remains mandatory for every policy expansion.
+The approved policy is a bounded reference for governed-learning execution; it
+is not a current Runtime grant while the exact action-class contract is
+missing. The existing policy owner must first issue a fresh scoped contract.
+It does not promote the class, authorize another class, permit concurrency, or
+increase blast radius. A fresh ephemeral packet, operation-scoped binding,
+live safety gates, serial execution lease, verification, rollback/no-rollback,
+outcome closure, learning, truth convergence, and final Safe Mode `OPEN`
+remain mandatory. Engineering Authority remains mandatory for every policy
+expansion.
 
 Runtime may execute automatically only if all are true:
 

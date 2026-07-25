@@ -417,7 +417,9 @@ class V7TruthCheckTest(unittest.TestCase):
             )
             (programs / "OPERATIONAL_MATURITY_PROGRAM.md").write_text(
                 "| Policy state | `APPROVED` |\n"
-                "| Current mode | `DELEGATED_AUTONOMY` |\n"
+                "| Current mode | `GOVERNED_ONLY` |\n"
+                "| Current action-class contract | `MISSING` |\n"
+                "| Runtime apply enabled | `NO` |\n"
                 "| Packet approval required | `NO` |\n",
                 encoding="utf-8",
             )

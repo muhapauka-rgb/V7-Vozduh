@@ -258,7 +258,12 @@ DEFAULT_DELEGATED_AUTONOMY_POLICY = {
     "policy_id": "dap_default_tier1_readonly",
     "policy_name": "Default Bounded Delegated Autonomy Policy",
     "policy_state": "APPROVED",
-    "current_mode": "DELEGATED_AUTONOMY",
+    # This is an engineering/reference projection, not the live Runtime
+    # policy file.  It must never make a historical or illustrative bounded
+    # policy look like a current execution grant.  A caller that has read an
+    # exact, current owner-issued contract may explicitly provide its mode and
+    # runtime flag; the default is deliberately governed and fail-closed.
+    "current_mode": "GOVERNED_ONLY",
     "target_mode": "DELEGATED_AUTONOMY",
     "allowed_action_classes": ["single-user governed candidate failover"],
     "max_users_per_action": 1,
@@ -338,7 +343,8 @@ DEFAULT_DELEGATED_AUTONOMY_POLICY = {
         "action_class_promotion_evaluation",
     ],
     "governed_learning_mode_allowed": True,
-    "runtime_apply_enabled": True,
+    "runtime_apply_enabled": False,
+    "current_action_class_contract_state": "MISSING",
     "operator_candidate_approval_required": False,
     "operator_packet_approval_required": False,
     "operator_hash_approval_required": False,
@@ -3053,6 +3059,8 @@ def build_delegated_autonomy_runtime_eligibility(
         for item in missing_evidence
     ):
         blockers.append("AUTHORITY_POLICY_NOT_APPROVED")
+    if str(policy_preview.get("current_action_class_contract_state") or "").upper() != "ACTIVE":
+        blockers.append("CURRENT_ACTION_CLASS_CONTRACT_REQUIRED")
     if not bool(policy_preview.get("runtime_apply_enabled")):
         blockers.append("RUNTIME_APPLY_NOT_ENABLED")
     blockers = list(dict.fromkeys(blockers))

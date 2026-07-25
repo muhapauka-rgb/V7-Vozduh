@@ -2225,7 +2225,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(enablement["next_promotion_target"], "CERTIFIED_FOR_CLASS_APPROVAL")
         self.assertFalse(enablement["runtime_capability_view"]["runtime_can_execute_automatically"])
         self.assertFalse(enablement["runtime_capability_view"]["runtime_apply_allowed_now"])
-        self.assertEqual(enablement["runtime_capability_view"]["current_autonomy_mode"], "DELEGATED_AUTONOMY")
+        self.assertEqual(enablement["runtime_capability_view"]["current_autonomy_mode"], "GOVERNED_ONLY")
         self.assertEqual(enablement["runtime_capability_view"]["target_autonomy_mode"], "DELEGATED_AUTONOMY")
         self.assertEqual(enablement["enablement_readiness"]["stop_condition_if_promoted"], "AUTHORITY_BOUNDARY")
         self.assertIn("class-level authority_policy_approval", enablement["enablement_readiness"]["missing_evidence"])
@@ -2251,17 +2251,18 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(policy["policy_state"], "APPROVED")
         self.assertEqual(policy["max_blast_radius"]["users"], 1)
         self.assertEqual(policy["max_concurrent_transactions"], 1)
-        self.assertTrue(policy["runtime_apply_enabled"])
+        self.assertFalse(policy["runtime_apply_enabled"])
         self.assertFalse(policy["operator_candidate_approval_required"])
         self.assertFalse(policy["operator_packet_approval_required"])
         self.assertFalse(policy["self_expansion_allowed"])
         self.assertEqual(len(policy["policy_scope_hash"]), 64)
         self.assertFalse(policy["authority_expanded"])
-        self.assertTrue(policy["autonomy_enabled"])
+        self.assertFalse(policy["autonomy_enabled"])
         eligibility = enablement["delegated_autonomy_runtime_eligibility"]
         self.assertNotIn("POLICY_NOT_APPROVED", eligibility["blockers"])
         self.assertNotIn("ACTION_CLASS_NOT_AUTONOMOUS_RUNTIME", eligibility["blockers"])
-        self.assertNotIn("RUNTIME_APPLY_NOT_ENABLED", eligibility["blockers"])
+        self.assertIn("CURRENT_ACTION_CLASS_CONTRACT_REQUIRED", eligibility["blockers"])
+        self.assertIn("RUNTIME_APPLY_NOT_ENABLED", eligibility["blockers"])
         self.assertTrue(eligibility["governed_learning_policy_consumed"])
         self.assertFalse(eligibility["authority_expansion_allowed_by_runtime"])
         self.assertEqual(
@@ -2276,7 +2277,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(enablement["apply_executed"])
         self.assertEqual(enablement["users_moved"], 0)
         self.assertFalse(enablement["authority_expanded"])
-        self.assertTrue(enablement["autonomy_enabled"])
+        self.assertFalse(enablement["autonomy_enabled"])
         self.assertFalse(enablement["new_planner_created"])
         self.assertFalse(enablement["new_governance_created"])
         self.assertFalse(enablement["new_execution_path_created"])
@@ -2291,6 +2292,7 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
             "policy_state": "APPROVED",
             "current_mode": "DELEGATED_AUTONOMY",
             "runtime_apply_enabled": True,
+            "current_action_class_contract_state": "ACTIVE",
         })
         eligibility = accel.build_delegated_autonomy_runtime_eligibility(
             policy_preview=policy,
@@ -2324,7 +2326,10 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(oversized["users_moved"], 0)
 
     def test_delegated_policy_allows_governed_only_without_promoting_class(self):
-        policy = accel.build_delegated_autonomy_policy_preview()
+        policy = accel.build_delegated_autonomy_policy_preview({
+            "runtime_apply_enabled": True,
+            "current_action_class_contract_state": "ACTIVE",
+        })
         eligibility = accel.build_delegated_autonomy_runtime_eligibility(
             policy_preview=policy,
             packet_mapping={
@@ -4377,7 +4382,11 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
                 "allowed_users": ["10.0.0.9"],
                 "allowed_targets": ["awg3"],
             },
-            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            delegated_policy=accel.build_delegated_autonomy_policy_preview({
+                "current_mode": "DELEGATED_AUTONOMY",
+                "runtime_apply_enabled": True,
+                "current_action_class_contract_state": "ACTIVE",
+            }),
             owner_capture_sources=sources,
         )
 
@@ -4415,7 +4424,11 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
                 "allowed_users": ["10.0.0.2"],
                 "allowed_targets": ["awg3"],
             },
-            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            delegated_policy=accel.build_delegated_autonomy_policy_preview({
+                "current_mode": "DELEGATED_AUTONOMY",
+                "runtime_apply_enabled": True,
+                "current_action_class_contract_state": "ACTIVE",
+            }),
             owner_capture_sources=sources,
         )
 
@@ -4455,7 +4468,11 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
                 "_v7_genuine_production_candidate": True,
                 "_v7_candidate_reason_summary": ["best available channel has higher advisory suitability"],
             },
-            delegated_policy=accel.build_delegated_autonomy_policy_preview(),
+            delegated_policy=accel.build_delegated_autonomy_policy_preview({
+                "current_mode": "DELEGATED_AUTONOMY",
+                "runtime_apply_enabled": True,
+                "current_action_class_contract_state": "ACTIVE",
+            }),
             owner_capture_sources=sources,
         )
 

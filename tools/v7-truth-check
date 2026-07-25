@@ -584,7 +584,9 @@ def delegated_policy_consistency_check(repo_root: Path) -> dict[str, Any]:
     checks = {
         "delegated_policy_consistency": bool(
             policy.get("policy_state") == "APPROVED"
-            and policy.get("current_mode") == "DELEGATED_AUTONOMY"
+            and policy.get("current_mode") == "GOVERNED_ONLY"
+            and policy.get("current_action_class_contract_state") == "MISSING"
+            and policy.get("runtime_apply_enabled") is False
             and policy.get("allowed_action_classes") == ["single-user governed candidate failover"]
         ),
         "action_class_policy_consistency": policy.get("max_users_per_action") == 1,
@@ -609,7 +611,9 @@ def delegated_policy_consistency_check(repo_root: Path) -> dict[str, Any]:
         "cps_omp_policy_consistency": bool(
             "`DELEGATED_AUTONOMY_POLICY` | `APPROVED`" in cps
             and "Policy state | `APPROVED`" in omp
-            and "Current mode | `DELEGATED_AUTONOMY`" in omp
+            and "Current mode | `GOVERNED_ONLY`" in omp
+            and "Current action-class contract | `MISSING`" in omp
+            and "Runtime apply enabled | `NO`" in omp
         ),
     }
     contradiction_ids = sorted(name for name, passed in checks.items() if not passed)

@@ -911,12 +911,13 @@ Current default policy is approved for one bounded governed-learning class:
 ```text
 policy_id: dap_default_tier1_readonly
 state: APPROVED
-current_mode: DELEGATED_AUTONOMY
+current_mode: GOVERNED_ONLY
 target_mode: DELEGATED_AUTONOMY
+current_action_class_contract: MISSING
 max_users_per_action: 1
 max_concurrent_transactions: 1
 candidate_and_packet_approval_required: NO
-runtime_apply_enabled: YES_WITHIN_EXACT_POLICY_ONLY
+runtime_apply_enabled: NO
 self_expansion_allowed: NO
 ```
 

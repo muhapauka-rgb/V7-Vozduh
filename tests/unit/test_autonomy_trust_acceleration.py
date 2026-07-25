@@ -4305,6 +4305,29 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(model["mission_results"]["M7"]["authority_recommendation"], "INSUFFICIENT_EVIDENCE")
         self.assertEqual(model["mission_results"]["M8"]["status"], "MISSION_NOT_REQUIRED_BY_AUTHORITY_VERDICT")
 
+    def test_l7_l8_material_rollback_terminal_is_not_erased_by_later_no_execution_projection(self):
+        records = [
+            {
+                "operation_id": "runtime_autoswitch_rollback",
+                "packet_id": "pkt-rollback",
+                "user": "10.7.0.16",
+                "source_channel": "controlled-source",
+                "target_channel": "vless",
+                "execution_outcome": {"applied": True, "success": False, "result": "rollback_success"},
+                "terminal_outcome_classification": "ROLLBACK_SUCCESS",
+                "evidence_class": "CONTROLLED_PRODUCTION",
+            },
+            {
+                "operation_id": "runtime_autoswitch_rollback",
+                "packet_id": "pkt-rollback",
+                "terminal_outcome_classification": "NO_EXECUTION",
+            },
+        ]
+
+        model = accel.build_l7_l8_outcome_evidence_program(records)
+
+        self.assertEqual(model["outcome_evidence_passports"][0]["terminal_class"], "ROLLBACK_SUCCESS")
+
     def test_l7_l8_opportunity_denominator_preserves_non_action_terminals(self):
         records = [
             {"decision_id": "stay-1", "action": "STAY", "user": "u1", "channel": "awg0"},

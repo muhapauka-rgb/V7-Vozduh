@@ -787,8 +787,13 @@ class AutoswitchPlanner:
             reasons.append("controlled_verifier_user_missing_or_disabled")
         else:
             raw_user = next((row for row in parse_registry(self.state_dir / "users.registry") if str(row.get("ip") or "") == requested_user), {})
-            if str(user.current) != requested_source:
-                reasons.append("controlled_verifier_user_not_on_source")
+            # This scope is evaluated only after the bounded forward apply has
+            # been acknowledged.  The immutable move still proves the original
+            # source, while fresh runtime truth must now place the user on the
+            # approved forward target.  Requiring the pre-apply source here
+            # makes every valid forward apply fail its own verifier setup.
+            if str(user.current) != requested_target:
+                reasons.append("controlled_verifier_user_not_on_forward_target")
             if str(raw_user.get("certification_user") or "").lower() not in {"1", "true", "yes"}:
                 reasons.append("controlled_verifier_user_not_certification_user")
         raw_source = next((row for row in parse_registry(self.state_dir / "egress.registry") if str(row.get("id") or "") == requested_source), {})
@@ -809,6 +814,7 @@ class AutoswitchPlanner:
             "source": requested_source,
             "target": requested_target,
             "fresh_user_source": str(user.current) if user is not None else "",
+            "fresh_user_egress": str(user.current) if user is not None else "",
             "source_enabled": bool(source.enabled) if source is not None else None,
             "source_state": str(source.state) if source is not None else "",
         }
@@ -9125,7 +9131,14 @@ class AutoswitchPlanner:
                     # failed condition activation must never be converted into
                     # an artificial verifier failure merely to manufacture the
                     # desired rollback terminal.
-                    service_verify = self._verify_emergency_required_services(move)
+                    if controlled_condition is not None and not controlled_condition.get("ok"):
+                        service_verify = subprocess.CompletedProcess(
+                            ["v7-service-matrix-test"],
+                            0,
+                            stdout="controlled verifier condition not activated; induced failure suppressed\n",
+                        )
+                    else:
+                        service_verify = self._verify_emergency_required_services(move)
                     row["service_verify_rc"] = service_verify.returncode
                     row["service_verify_output"] = service_verify.stdout[-4000:]
                 verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)

@@ -203,7 +203,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.write_fixture(root)
             state_dir = root / "state"
             (state_dir / "users.registry").write_text(
-                "ip=10.7.0.16 current=1 table=1014 enabled=1 certification_user=1\n",
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
                 encoding="utf-8",
             )
             (state_dir / "egress.registry").write_text(
@@ -246,7 +246,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.write_fixture(root)
             state_dir = root / "state"
             (state_dir / "users.registry").write_text(
-                "ip=10.7.0.16 current=1 table=1014 enabled=1 certification_user=1\n",
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
                 encoding="utf-8",
             )
             state = json.loads((state_dir / "v7-state.json").read_text(encoding="utf-8"))
@@ -279,7 +279,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         self.assertTrue(scope["ok"])
         self.assertEqual(scope["reasons"], [])
-        self.assertEqual(scope["fresh_user_source"], "1")
+        self.assertEqual(scope["fresh_user_source"], "vless")
+        self.assertEqual(scope["fresh_user_egress"], "vless")
         self.assertFalse(scope["source_enabled"])
         self.assertEqual(scope["source_state"], "maintenance")
 

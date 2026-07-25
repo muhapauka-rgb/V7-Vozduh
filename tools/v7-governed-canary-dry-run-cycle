@@ -123,7 +123,7 @@ def materialize_due_delayed_observations(
         if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
             continue
         terminal = str(row.get("terminal_outcome_classification") or "").upper()
-        if terminal != "SUCCESS":
+        if terminal not in {"SUCCESS", "ROLLBACK_SUCCESS"}:
             continue
         packet_id = str(row.get("packet_id") or "")
         feedback_id = str(row.get("feedback_id") or "")
@@ -147,8 +147,9 @@ def materialize_due_delayed_observations(
             skipped.append({"identity": identity, "reason": "outcome_time_invalid"})
             continue
         elapsed = max(0, int((now - observed).total_seconds()))
+        terminal = str(row.get("terminal_outcome_classification") or "").upper()
         observation_id = "delobs_" + operator_execution.sha256_json({
-            "identity": identity, "window": "1h", "terminal": "SUCCESS",
+            "identity": identity, "window": "1h", "terminal": terminal,
         })[:24]
         if observation_id in existing_ids:
             skipped.append({"identity": identity, "reason": "already_materialized"})
@@ -201,11 +202,16 @@ def materialize_due_delayed_observations(
             "target_channel": target,
             "selected_moves": row.get("selected_moves") or [{"user": user, "from": source, "to": target}],
             "evidence_class": str(row.get("evidence_class") or "CONTROLLED_PRODUCTION"),
-            "execution_outcome": {"applied": True, "success": True},
+            "execution_outcome": {
+                "applied": True,
+                "success": terminal == "SUCCESS",
+                "result": "rollback_success" if terminal == "ROLLBACK_SUCCESS" else "success",
+                "terminal_state": "ROLLED_BACK" if terminal == "ROLLBACK_SUCCESS" else "APPLIED",
+            },
             "verification_result": {"verification_passed": True, "current_channel": current, "route_check": route},
-            "terminal_outcome_classification": "SUCCESS",
-            "expected_terminal": "SUCCESS",
-            "outcome_status": "success",
+            "terminal_outcome_classification": terminal,
+            "expected_terminal": terminal,
+            "outcome_status": "rollback_success" if terminal == "ROLLBACK_SUCCESS" else "success",
             "outcome_observed_at": now.isoformat(),
             "stability_window_seconds": elapsed,
             "delayed_5m_observation": True,
@@ -905,6 +911,11 @@ def controlled_engineering_authority_selection(
     user = str(subject.get("user_ip") or "")
     source = str(scope.get("source_egress") or "")
     target = str(scope.get("target_egress") or "")
+    required_services = [
+        str(service).strip()
+        for service in (scope.get("required_services") or [])
+        if str(service).strip()
+    ]
     user_rows = [row for row in users if str(row.get("ip") or "") == user]
     source_rows = [row for row in egress if str(row.get("id") or "") == source]
     target_rows = [row for row in egress if str(row.get("id") or "") == target]
@@ -935,6 +946,8 @@ def controlled_engineering_authority_selection(
         blockers.append("engineering_authority_source_interface_mismatch")
     if str(condition.get("name") or "") != "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION":
         blockers.append("engineering_authority_condition_not_exact")
+    if not required_services:
+        blockers.append("engineering_authority_required_services_missing")
     unrelated = [
         str(row.get("ip") or "") for row in users
         if str(row.get("current") or "") == source and str(row.get("ip") or "") != user
@@ -957,6 +970,7 @@ def controlled_engineering_authority_selection(
             "source": source,
             "target": target,
             "move_type": "failover",
+            "important_services": required_services,
             "evidence_value": 1,
             "suitability_score": 100.0,
             "confidence": 100.0,

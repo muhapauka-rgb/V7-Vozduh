@@ -112,6 +112,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "scope": {
                 "source_egress": "controlled-source", "source_interface": "wg-test",
                 "target_egress": "vless", "target_interface": "tun0",
+                "required_services": ["google", "telegram"],
             },
             "controlled_condition": {"name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION"},
         }
@@ -136,6 +137,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(selected["selected_candidate"]["user"], "10.7.0.16")
         self.assertEqual(selected["selected_candidate"]["target"], "vless")
         self.assertEqual(selected["selected_candidate"]["move_type"], "failover")
+        self.assertEqual(selected["selected_candidate"]["important_services"], ["google", "telegram"])
         self.assertEqual(unsafe["selection_status"], "STOP_SAFE")
         self.assertIn("engineering_authority_controlled_source_not_activated", unsafe["blockers"])
 
@@ -155,6 +157,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "scope": {
                     "source_egress": "controlled-source", "source_interface": "wg-test",
                     "target_egress": "vless", "target_interface": "tun0",
+                    "required_services": ["google", "telegram"],
                 },
                 "controlled_condition": {"name": "CONTROLLED_SOURCE_FAILURE_WITH_REAL_SERVICE_MATRIX_VERIFIER_CONTENTION"},
             }
@@ -372,6 +375,50 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
             self.assertEqual(result["observations_written"], 1)
             self.assertEqual(result["written"][0]["decision_trace_id"], "govexec_operation_trace")
+
+    def test_due_delayed_observation_preserves_rollback_success_terminal(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.16 current=vless table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                "id=vless interface=tun0 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "user-10.7.0.16.assign").write_text("egress=vless\n", encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb-rollback-delayed",
+                "packet_id": "pkt-rollback-delayed",
+                "decision_id": "decision-rollback-delayed",
+                "decision_trace_id": "decision-rollback-delayed",
+                "input_snapshot_identity": "snapshot-rollback-delayed",
+                "closure_reference": "runtime-rollback-delayed",
+                "user": "10.7.0.16",
+                "source_channel": "controlled-source",
+                "target_channel": "vless",
+                "terminal_outcome_classification": "ROLLBACK_SUCCESS",
+                "outcome_observed_at": "2026-07-19T00:00:00+00:00",
+                "selected_moves": [{"user": "10.7.0.16", "from": "controlled-source", "to": "vless"}],
+                "evidence_class": "CONTROLLED_PRODUCTION",
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            module.scoped_user_route_check = lambda _state, _user: {
+                "passed": True, "returncode": 0, "reason": "unit",
+            }
+
+            result = module.materialize_due_delayed_observations(
+                state_dir,
+                now=datetime(2026, 7, 19, 1, 1, tzinfo=timezone.utc),
+            )
+
+            self.assertEqual(result["observations_written"], 1)
+            self.assertEqual(result["written"][0]["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
+            self.assertEqual(result["written"][0]["expected_terminal"], "ROLLBACK_SUCCESS")
+            self.assertEqual(result["written"][0]["execution_outcome"]["terminal_state"], "ROLLED_BACK")
 
     def test_event_reader_consumes_actual_date_partitioned_owner_files(self):
         module = load_cli_module()

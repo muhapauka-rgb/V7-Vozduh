@@ -10001,6 +10001,7 @@ def _l7_l8_evidence_class(records: list[dict[str, Any]]) -> str:
 
 
 def _l7_l8_terminal(records: list[dict[str, Any]]) -> str:
+    values: list[str] = []
     for record in reversed(records):
         quality = record.get("outcome_quality") if isinstance(record.get("outcome_quality"), dict) else {}
         value = (
@@ -10009,7 +10010,24 @@ def _l7_l8_terminal(records: list[dict[str, Any]]) -> str:
         )
         text = _text(value).upper()
         if text and text not in {"UNKNOWN", "NONE"}:
-            return text
+            values.append(text)
+    # Later read-model/cleanup rows may legitimately say NO_EXECUTION even
+    # after the connected runtime operation applied and rolled back.  Such a
+    # projection cannot erase the material terminal.  Preserve reverse owner
+    # order inside the material set so the final rollback outcome still wins
+    # over the preceding forward SUCCESS.
+    material = {
+        "ROLLBACK_FAILURE",
+        "ROLLBACK_SUCCESS",
+        "FAILED",
+        "PARTIAL_SUCCESS",
+        "SUCCESS",
+    }
+    for value in values:
+        if value in material:
+            return value
+    if values:
+        return values[0]
     return "UNKNOWN"
 
 

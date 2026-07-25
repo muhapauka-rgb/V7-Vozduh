@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.51`
+Version: `4.52`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -14,9 +14,9 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-07-25_110500_l7_r1_v5_consumed_stop_safe_and_failover_semantic_repair.md` (`CONSUMED_STOP_SAFE_BEFORE_APPLY_REPAIR_READY_FOR_SAFE_DEPLOY`).
+Latest consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md` (`R1_V6_ROLLBACK_SUCCESS_RECORDED_CONSUMER_REPAIR_READY_FOR_SAFE_DEPLOY`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_105100_l7_repair_generation_v5_preflight_and_admission.md` (`R1_V5_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Previous consumed report: `docs/reports/engineering/2026-07-20_102000_l7_r1_v4_consumed_stop_safe_and_runtime_snapshot_binding_repair.md` (`CONSUMED_STOP_SAFE_BEFORE_APPLY_REPAIR_READY_FOR_SAFE_DEPLOY`).
+Previous consumed report: `docs/reports/engineering/2026-07-25_110500_l7_r1_v5_consumed_stop_safe_and_failover_semantic_repair.md` (`CONSUMED_STOP_SAFE_BEFORE_APPLY_REPAIR_READY_FOR_SAFE_DEPLOY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7866,8 +7866,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R1_V6`
-Resolved request: `engauth_r1_837eda5cb8700534622a5d8e` is a fresh one-use request admitted by the existing repair-generation policy after deploy `deploy-z8-14-Updatesystem-eef71da-20260725T110745`; v5 remains consumed and non-reusable; all live gates and target safety remain mandatory
+Resolved current next action: `DEPLOY_CONTROLLED_VERIFIER_AND_EVIDENCE_CONSUMER_REPAIR`
+Resolved request: `engauth_r1_837eda5cb8700534622a5d8e` is consumed and non-reusable after one real bounded transaction reached owner terminal `ROLLBACK_SUCCESS`; no retry or approval reuse is admitted; the current action is existing-owner engineering repair and replay
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8854,11 +8854,11 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_CONTROLLED_ROLLBACK_PRODUCTION_TRANSACTION_R1_V6`
-Current terminal report: `docs/reports/engineering/2026-07-25_110500_l7_r1_v5_consumed_stop_safe_and_failover_semantic_repair.md`
-Latest consumed report: `docs/reports/engineering/2026-07-25_110500_l7_r1_v5_consumed_stop_safe_and_failover_semantic_repair.md`
-Previous admitted continuation report: `docs/reports/engineering/2026-07-25_105100_l7_repair_generation_v5_preflight_and_admission.md`
-Previous consumed report: `docs/reports/engineering/2026-07-20_102000_l7_r1_v4_consumed_stop_safe_and_runtime_snapshot_binding_repair.md`
+Resolved current next action: `DEPLOY_CONTROLLED_VERIFIER_AND_EVIDENCE_CONSUMER_REPAIR`
+Current terminal report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`
+Latest consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`
+Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
+Previous consumed report: `docs/reports/engineering/2026-07-25_110500_l7_r1_v5_consumed_stop_safe_and_failover_semantic_repair.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

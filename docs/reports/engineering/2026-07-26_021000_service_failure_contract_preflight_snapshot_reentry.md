@@ -89,5 +89,13 @@ Candidate/Packet/lease/apply.
 Это `ENGINEERING_AUTHORITY` terminal, а не поломка snapshot, не разрешение на
 runtime apply и не причина повышать Authority или Production Maturity.
 
+## Итоговая валидация
+
+- Focused и полный набор: `309` unit tests, `OK`.
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`.
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`.
+- Local, GitHub и production runtime snapshot: commit
+  `8c4e193db121f4667b4f3e36d022119fe0e722d9`.
+
 Ни старый `APPROVE_ONCE_AS_SCOPED`, ни общее согласие не являются заменой
 актуального exact policy-owner contract.

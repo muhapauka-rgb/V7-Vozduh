@@ -48,6 +48,9 @@ from admin_core.operator_execution import (
     validate_engineering_authority_repair_continuation,
     validate_current_action_class_contract_authority_request,
     issue_current_action_class_contract_to_policy,
+    issue_current_action_class_contract_from_audit,
+    register_current_action_class_contract_request,
+    current_action_class_contract_request_from_audit,
     read_audit_records,
 )
 
@@ -314,6 +317,33 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     audit_store=decline_audit, actor_id="authority-operator",
                 )
             self.assertEqual(len([r for r in read_audit_records(decline_audit) if r.get("decision") == "DECLINE"]), 1)
+
+    def test_current_action_request_audit_preserves_exact_preimage_without_grant(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.json"
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_current_action_class_contract_authority_request(
+                action_contract_template(sha256_file(policy_path)), issue_preflight={"ready": True, "blockers": []},
+            )
+            registered = register_current_action_class_contract_request(request, audit_store=audit_path)
+            self.assertEqual(registered["status"], "REGISTERED")
+            self.assertFalse(registered["policy_write"])
+            recovered = current_action_class_contract_request_from_audit(
+                request["request_id"], request["request_hash"], audit_store=audit_path,
+            )
+            self.assertEqual(recovered, request)
+            issued = issue_current_action_class_contract_from_audit(
+                policy_path, request_id=request["request_id"], request_hash=request["request_hash"],
+                decision="APPROVE_ONCE_AS_SCOPED", audit_store=audit_path, actor_id="authority-operator",
+            )
+            self.assertEqual(issued["status"], "ISSUED")
+            self.assertTrue(issued["policy_write"])
+            with self.assertRaisesRegex(PacketError, "decision_already_recorded"):
+                issue_current_action_class_contract_from_audit(
+                    policy_path, request_id=request["request_id"], request_hash=request["request_hash"],
+                    decision="APPROVE_ONCE_AS_SCOPED", audit_store=audit_path, actor_id="authority-operator",
+                )
 
     def test_current_action_contract_interprocess_consumption_allows_exactly_one(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -105,6 +105,7 @@ CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER = CANONICAL_CLEARANCE_OWNER
 CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 300
 CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-audit.v1"
+CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE = "current_action_class_contract_request_emitted"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
     "no_safe_target",
@@ -565,6 +566,70 @@ def _current_action_class_decision_records(records, request_id):
         if record.get("record_type") == "current_action_class_contract_authority_decision"
         and str(record.get("authority_request_id") or "") == str(request_id or "")
     ]
+
+
+def _current_action_class_request_records(records, request_id):
+    return [
+        record for record in records
+        if record.get("record_type") == CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE
+        and str(record.get("authority_request_id") or "") == str(request_id or "")
+    ]
+
+
+def register_current_action_class_contract_request(request, *, audit_store=None, producer_id="tools/v7-users-autoswitch", now=None):
+    """Persist an exact short-lived request in the established audit owner.
+
+    This is request provenance only: it does not write policy, issue a contract,
+    grant Authority, or create an execution artifact.  Keeping the immutable
+    preimage in the existing append-only audit closes the producer -> exact
+    Authority-consumer handoff without introducing another registry.
+    """
+    request = request if isinstance(request, dict) else {}
+    now = now or utc_now()
+    validation = validate_current_action_class_contract_authority_request(
+        request, decision="DECLINE", allow_decline=True, now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_request_invalid"]))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    records = read_audit_records(audit_store)
+    existing = _current_action_class_request_records(records, request["request_id"])
+    if existing:
+        if len(existing) != 1 or str(existing[0].get("authority_request_hash") or "") != request["request_hash"]:
+            raise PacketError("current_action_class_contract_request_audit_identity_conflict")
+        if existing[0].get("request") != request:
+            raise PacketError("current_action_class_contract_request_audit_preimage_conflict")
+        return {"status": "ALREADY_REGISTERED", "request_id": request["request_id"], "request_hash": request["request_hash"], "audit_store": str(audit_store), "policy_write": False}
+    record = append_record(audit_store, {
+        "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+        "record_type": CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE,
+        "authority_request_id": request["request_id"],
+        "authority_request_hash": request["request_hash"],
+        "expires_at": request["expires_at"],
+        "producer_provenance": {"producer_id": str(producer_id), "recorded_at": now.isoformat()},
+        "request": copy.deepcopy(request),
+        "created_at": now.isoformat(),
+    })
+    return {"status": "REGISTERED", "request_id": request["request_id"], "request_hash": request["request_hash"], "audit_store": str(audit_store), "record_hash": record["record_hash"], "policy_write": False}
+
+
+def current_action_class_contract_request_from_audit(request_id, request_hash, *, audit_store=None, now=None):
+    """Return only one unexpired immutable request preimage from the audit owner."""
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    matches = _current_action_class_request_records(read_audit_records(audit_store), request_id)
+    if len(matches) != 1:
+        raise PacketError("current_action_class_contract_request_audit_missing_or_duplicate")
+    record = matches[0]
+    request = record.get("request") if isinstance(record.get("request"), dict) else {}
+    if str(record.get("authority_request_hash") or "") != str(request_hash or ""):
+        raise PacketError("current_action_class_contract_request_audit_hash_mismatch")
+    validation = validate_current_action_class_contract_authority_request(
+        request, decision="DECLINE", expected_request_id=request_id,
+        expected_request_hash=request_hash, now=now or utc_now(), allow_decline=True,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_request_audit_invalid"]))
+    return request
 
 
 def _current_action_class_contract_audit_record(
@@ -3415,14 +3480,13 @@ def load_packet(path, repo_root):
     return read_json(packet_path), packet_path
 
 
-def issue_current_action_class_contract_to_policy(
-    policy_path, request_path, *, decision, expected_request_id="", expected_request_hash="", now=None,
+def _issue_current_action_class_contract_request_to_policy(
+    policy_path, request, *, decision, expected_request_id="", expected_request_hash="", now=None,
     audit_store=None, actor_id="",
 ):
-    """Persist a contract only through this existing Authority owner surface."""
+    """Persist one already-materialized request through the existing Authority owner."""
     policy_path = Path(policy_path)
-    request_path = Path(request_path)
-    request = read_json(request_path)
+    request = request if isinstance(request, dict) else {}
     audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     now = now or utc_now()
     with current_action_class_contract_policy_lock(policy_path):
@@ -3469,6 +3533,33 @@ def issue_current_action_class_contract_to_policy(
             "append_only": True,
         },
     }
+
+
+def issue_current_action_class_contract_to_policy(
+    policy_path, request_path, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    audit_store=None, actor_id="",
+):
+    """Persist a contract from one supplied exact request JSON preimage."""
+    return _issue_current_action_class_contract_request_to_policy(
+        policy_path, read_json(Path(request_path)), decision=decision,
+        expected_request_id=expected_request_id, expected_request_hash=expected_request_hash,
+        now=now, audit_store=audit_store, actor_id=actor_id,
+    )
+
+
+def issue_current_action_class_contract_from_audit(
+    policy_path, *, request_id, request_hash, decision, now=None, audit_store=None, actor_id="",
+):
+    """Issue only the exact unexpired request preimage held by the audit owner."""
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    request = current_action_class_contract_request_from_audit(
+        request_id, request_hash, audit_store=audit_store, now=now,
+    )
+    return _issue_current_action_class_contract_request_to_policy(
+        policy_path, request, decision=decision, expected_request_id=request_id,
+        expected_request_hash=request_hash, now=now, audit_store=audit_store,
+        actor_id=actor_id,
+    )
 
 
 def decline_current_action_class_contract_request(
@@ -3560,6 +3651,14 @@ def main(argv=None):
         help="Existing Authority owner only: issue one exact approved action-class contract from a fresh request JSON.",
     )
     parser.add_argument(
+        "--register-current-action-class-contract-request", default="",
+        help="Append one validated short-lived request preimage to the existing Authority audit; never writes policy or issues a contract.",
+    )
+    parser.add_argument(
+        "--issue-current-action-class-contract-from-audit-request-id", default="",
+        help="Existing Authority owner only: issue from one exact unexpired request preimage already held by its audit owner.",
+    )
+    parser.add_argument(
         "--decline-current-action-class-contract-from-request", default="",
         help="Existing Authority owner only: append one exact DECLINE decision without writing policy.",
     )
@@ -3571,6 +3670,30 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.register_current_action_class_contract_request:
+            if args.packet or args.generate_from_plan or args.generate_from_preview or args.issue_current_action_class_contract_from_request or args.issue_current_action_class_contract_from_audit_request_id or args.decline_current_action_class_contract_from_request:
+                raise PacketError("current_action_class_contract_request_register_mode_must_not_mix_execution_or_decision_modes")
+            request = read_json(Path(args.register_current_action_class_contract_request))
+            result = register_current_action_class_contract_request(
+                request, audit_store=(str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl" else args.audit_store),
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
+        if args.issue_current_action_class_contract_from_audit_request_id:
+            if args.packet or args.generate_from_plan or args.generate_from_preview or args.issue_current_action_class_contract_from_request or args.decline_current_action_class_contract_from_request:
+                raise PacketError("current_action_class_contract_issue_audit_mode_must_not_mix_packet_modes")
+            result = issue_current_action_class_contract_from_audit(
+                args.action_class_policy_file,
+                request_id=args.issue_current_action_class_contract_from_audit_request_id,
+                request_hash=args.expected_authority_request_hash,
+                decision=args.authority_decision,
+                audit_store=(str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl" else args.audit_store),
+                actor_id=args.authority_actor_id,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.issue_current_action_class_contract_from_request:
             if args.packet or args.generate_from_plan or args.generate_from_preview or args.decline_current_action_class_contract_from_request:
                 raise PacketError("current_action_class_contract_issue_mode_must_not_mix_packet_modes")

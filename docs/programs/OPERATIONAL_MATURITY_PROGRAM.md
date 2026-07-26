@@ -7887,8 +7887,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION`
-Resolved request: the real Matrix caller consumed production receipt `sfomp_cd3c9abaa10c4178c34827e0` for the persistent VLESS Situation; a safe action cannot be selected without an exact current owner-issued one-use action-class contract. No old Candidate, Packet, lease or Authority is reusable.
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION`
+Resolved request: CPS holds only the current fresh read-only M5a request identity and expiry emitted by the existing production autoswitch -> Authority-owner handoff. The exact request may be independently approved once or declined; no old Candidate, Packet, lease or Authority is reusable, and M5b cannot start before that decision.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8875,7 +8875,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION`
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION`
 Current terminal report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

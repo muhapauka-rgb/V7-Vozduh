@@ -84,3 +84,44 @@ fresh M5a `ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY` package.
 Этот отчёт не выдаёт и не утверждает contract; он не создаёт Candidate, Packet,
 lease или restore barrier. Legal terminal после verification — только fresh
 independent M5a Authority request с current id/hash/expiry.
+
+## Production deploy и current legal terminal
+
+Штатный `tools/v7-safe-deploy` выпустил только существующие owner-файлы:
+
+```text
+commit:     0cc651087327929deef6c5030670b6c858f54363
+release:    deploy-z8-14-Updatesystem-0cc6510-20260726T212015
+runtime:    /usr/local/bin/v7-users-autoswitch
+            /usr/local/bin/admin_core/operator_execution.py
+restart:    not required
+```
+
+Fresh non-test production reconciliation вернул:
+
+```text
+status                    = ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY
+authority_classification  = ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY
+exact_legal_next_action   = INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST
+issue_preflight.ready     = true
+pre-contract blockers     = []
+post-contract blocker     = restore_barrier_required_for_emergency_failover
+```
+
+Current independently decidable M5a request (не approval и не policy write):
+
+```text
+request_id:   accauth_r1_c0465cdcec15778e52f02064
+request_hash: c0465cdcec15778e52f02064e51074f6eba91ba070deed6b8bb23df9452b9cc1
+expires_at:   2026-07-26T14:25:49.831683+00:00
+```
+
+Binding: Situation incident `91a9a78afb8a8ab4673d8d30`, user `10.0.0.2`,
+`vless -> wireguard-1779454504-c43409`, one user, one transaction, fresh
+source/snapshot/selected-move identities, owner verification,
+verifier-triggered rollback/containment, cooldown `180s` и anti-flap.
+
+Contract не выдан, policy не записана; Packet identity остаётся empty, Candidate,
+Packet, lease, restore barrier, runtime apply, routing/user movement, rollback,
+Authority expansion и Production Maturity change — `NONE`. Если request истечёт
+или будет declined, следующий шаг всегда новая fresh reconciliation, без reuse.

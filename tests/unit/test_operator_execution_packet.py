@@ -1572,12 +1572,18 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             state = self.make_state(root)
             audit = root / "audit.jsonl"
             barrier = state / "autoswitch-restore-barrier.json"
+            preview = self.preview_packet()
+            preview["source_hashes"] = {
+                "users_registry": sha256_file(state / "users.registry"),
+                "egress_registry": sha256_file(state / "egress.registry"),
+            }
+            preview["snapshot_bundle_hash"] = "snapshot-unit-operational-authority"
             packet = packet_from_preview(
-                self.preview_packet(),
+                preview,
                 approval_author="operator-a",
                 approval_reviewer="operator-b",
             )
-            lease = create_execution_lease_from_packet(packet, source_preview=self.preview_packet())
+            lease = create_execution_lease_from_packet(packet, source_preview=preview)
             result = execute_packet(
                 lease["packet"],
                 audit,
@@ -1589,6 +1595,12 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(packet_identity(lease["packet"]), lease["immutable_packet_identity"])
         self.assertEqual(result["recheck"]["verdict"], "ALLOW_RESTORE_BARRIER_CLEARANCE")
         self.assertEqual(result["clearance_preview"]["clearance"]["packet_id"], packet["packet_id"])
+        package = result["operational_authority_package"]
+        self.assertEqual(package["status"], "OPERATIONAL_AUTHORITY_RESTORE_BARRIER_READY")
+        self.assertFalse(package["actionable"])
+        self.assertEqual(package["packet_identity"]["packet_id"], packet["packet_id"])
+        self.assertEqual(package["scope"]["max_users"], 1)
+        self.assertIn("runtime_apply", package["forbidden_effects"])
         self.assertEqual(
             result["clearance_preview"]["clearance"]["approved_selected_moves_hash"],
             packet["expected"]["selected_move_hash"],

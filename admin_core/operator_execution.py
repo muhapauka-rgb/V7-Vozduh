@@ -2767,6 +2767,59 @@ def preview_restore_barrier_clearance(restore_barrier_file, packet, recheck, now
     }
 
 
+def restore_barrier_operational_authority_package(packet, recheck):
+    """Build a read-only Operational Authority package for one exact packet.
+
+    The package is deliberately not an approval and cannot write a restore
+    barrier.  It is emitted only after the canonical packet recheck passes, so
+    an absent, stale or mismatched packet can never be presented as an
+    Operational Authority decision surface.
+    """
+    identity = packet_identity(packet)
+    required_identity = (
+        "packet_id", "operation_id", "decision_id", "authority_generation",
+        "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
+        "user", "source", "target",
+    )
+    missing = [key for key in required_identity if not str(identity.get(key) or "")]
+    ready = (
+        packet.get("runtime_action") == RUNTIME_ACTION_CREATE_CLEARANCE
+        and bool(recheck.get("allow"))
+        and not missing
+        and as_int(identity.get("max_users"), 0) == 1
+        and as_int(identity.get("selected_move_count"), 0) == 1
+    )
+    return {
+        "schema_version": "v7.restore-barrier-operational-authority-package.v1",
+        "status": "OPERATIONAL_AUTHORITY_RESTORE_BARRIER_READY" if ready else "STOP_SAFE_PACKET_BOUND_OPERATIONAL_AUTHORITY_NOT_READY",
+        "actionable": False,
+        "packet_identity": identity,
+        "recheck_verdict": str(recheck.get("verdict") or ""),
+        "missing_identity_fields": missing,
+        "scope": {
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "user": identity.get("user", ""),
+            "source": identity.get("source", ""),
+            "target": identity.get("target", ""),
+        },
+        "exact_action": "INDEPENDENT_DECISION_ON_PACKET_BOUND_RESTORE_BARRIER_CLEARANCE",
+        "forbidden_effects": [
+            "restore_barrier_write_without_independent_operational_decision",
+            "runtime_apply",
+            "routing_mutation",
+            "user_movement",
+            "rollback_apply",
+            "authority_expansion",
+            "production_maturity_change",
+        ],
+        "reentry_condition": (
+            "independent owner approves or declines this exact fresh packet; "
+            "a later apply still rechecks the one-use Action Class contract"
+        ) if ready else "fresh exact packet and canonical recheck are required",
+    }
+
+
 def append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=None):
     now = now or utc_now()
     path = Path(restore_barrier_file)
@@ -2914,6 +2967,10 @@ def execute_packet(
             "record_written": False,
             "runtime_action_record": None,
             "clearance_preview": clearance_preview,
+            "operational_authority_package": (
+                restore_barrier_operational_authority_package(packet, recheck)
+                if packet.get("runtime_action") == RUNTIME_ACTION_CREATE_CLEARANCE else None
+            ),
             "execution_allowed_now": False,
             "real_runtime_action_performed": False,
             "runtime_mutation": False,

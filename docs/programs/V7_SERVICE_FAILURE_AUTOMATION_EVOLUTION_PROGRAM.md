@@ -213,6 +213,17 @@ promotion evidence, including `XLARGE_BATCH/50`, can never substitute for this
 contract. Issuing or refreshing a contract remains the exact existing
 owner-issued Authority action; this Program cannot issue one itself.
 
+M5a ordering is strict: the absence of an exact fresh Packet or packet-bound
+restore barrier must block only the later M5c Operational Authority path. It
+must never block a fresh M5a Action Class request when Situation, Decision,
+scope, L3 evidence and all contract-specific preconditions are fresh. A valid
+contract then causes M5b fresh planner revalidation; it does not create a
+Candidate, Packet or lease and it is not consumed by their preparation. Its
+single atomic consumption remains immediately before the sole forward Runtime
+mutation. Only a later exact fresh Packet may form an
+`OPERATIONAL_AUTHORITY_RESTORE_BARRIER_READY` package through the existing
+operator-execution owner.
+
 ### Authority-boundary re-entry loop
 
 An `ENGINEERING_AUTHORITY` terminal must not become a manual dead end. The

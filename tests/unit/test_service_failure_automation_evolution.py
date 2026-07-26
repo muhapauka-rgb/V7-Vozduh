@@ -282,7 +282,7 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         self.assertFalse(request["runtime_apply"])
         self.assertEqual(request["users_moved"], 0)
 
-    def test_authority_request_waits_for_independent_restore_barrier_before_issue(self):
+    def test_restore_barrier_is_post_contract_gate_not_m5a_circular_blocker(self):
         plan = {
             "operation": {
                 "planner_generation_id": "planner-generation-1",
@@ -327,22 +327,29 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
                 plan, policy_path=policy_path,
             )
 
-        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS")
-        self.assertFalse(request["issue_preflight"]["ready"])
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY")
+        self.assertTrue(request["issue_preflight"]["ready"])
         self.assertEqual(
             request["pre_contract_execution_blockers"],
+            [],
+        )
+        self.assertEqual(
+            request["post_contract_operational_blockers"],
             ["restore_barrier_required_for_emergency_failover"],
         )
-        self.assertIn("restore_barrier_required_for_emergency_failover", request["issue_preflight"]["blockers"])
+        self.assertNotIn("restore_barrier_required_for_emergency_failover", request["issue_preflight"]["blockers"])
         self.assertNotIn("no_selected_moves_for_emergency_failover", request["issue_preflight"]["blockers"])
-        self.assertEqual(request["authority_classification"], "SAFE_PREDECESSOR_REQUIRED")
+        self.assertEqual(
+            request["authority_classification"],
+            "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+        )
         self.assertEqual(
             request["exact_legal_next_action"],
-            "RECONCILE_PACKET_BOUND_RESTORE_BARRIER_PREDECESSOR_ORDERING",
+            "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST",
         )
         package = request["approval_package"]
-        self.assertEqual(package["status"], "STOP_SAFE_NOT_ACTIONABLE_EXACT_PACKET_ABSENT")
-        self.assertFalse(package["actionable"])
+        self.assertEqual(package["status"], "AWAITING_INDEPENDENT_AUTHORITY_DECISION")
+        self.assertTrue(package["actionable"])
         self.assertTrue(package["request_id"])
         self.assertTrue(package["request_hash"])
         self.assertFalse(package["packet_identity"]["present"])
@@ -351,6 +358,32 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         self.assertEqual(package["scope"]["max_concurrent_transactions"], 1)
         self.assertIn("restore_barrier_write", package["forbidden_effects"])
         self.assertFalse(request["authority_granted"])
+        self.assertFalse(request["contract_written"])
+
+    def test_valid_contract_reenters_packet_materialization_without_consumption(self):
+        plan = {
+            "decisions": [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {
+                "action_class_execution_boundary": {"status": "PACKET_MATERIALIZATION_ELIGIBLE"},
+                "authority_budget_gate": {
+                    "current_action_class_contract": {"required": True, "valid": True, "blockers": []},
+                },
+            },
+        }
+        request = self.autoswitch.action_class_contract_reconciliation_request(
+            plan, policy_path=Path("/etc/v7/policy.json"),
+        )
+
+        self.assertEqual(request["authority_classification"], "SAFE_PACKET_MATERIALIZATION_PREDECESSOR_REQUIRED")
+        self.assertEqual(request["exact_legal_next_action"], "REENTER_FRESH_PLANNER_FOR_PACKET_MATERIALIZATION")
+        self.assertEqual(request["approval_package"]["status"], "SAFE_PACKET_MATERIALIZATION_PREDECESSOR_REQUIRED")
+        self.assertFalse(request["approval_package"]["actionable"])
+        self.assertFalse(request["packet_created"])
+        self.assertFalse(request["lease_created"])
         self.assertFalse(request["contract_written"])
 
     def test_authority_request_waits_for_snapshot_revalidation_before_policy_owner(self):

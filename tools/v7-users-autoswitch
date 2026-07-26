@@ -895,21 +895,23 @@ def action_class_contract_reconciliation_request(
     if l3_wake and not bool_value(l3_wake.get("accepted")):
         wake_blockers = [str(item) for item in (l3_wake.get("blockers") or []) if str(item)]
         issue_preflight_blockers.extend(wake_blockers or ["confirmed_l3_wake_required"])
-    # The contract is not a substitute for an existing controlled-production
-    # prerequisite.  Some emergency gate rows are merely the expected effect
-    # of a missing contract (no selected move); those must not mask the L3
-    # shadow evidence.  Every independent execution blocker, notably the
-    # owner-issued restore barrier, must however stop issuance so a one-use
-    # contract never expires before it can become legally consumable.
+    # M5a must decide the scoped Action Class before M5b can legally rerun the
+    # planner and before M5c can materialize a packet.  A restore barrier is a
+    # packet-bound *operational* gate, so treating it as a pre-contract M5a
+    # blocker creates an impossible cycle: no contract -> no packet -> no
+    # barrier -> no contract.  Preserve it as explicit post-contract evidence,
+    # but never let an absent packet/barrier suppress a fresh action-class
+    # Authority request.  This does not make the contract executable: the
+    # existing planner still revalidates every gate and only then exposes
+    # PACKET_MATERIALIZATION_ELIGIBLE or STOP_SAFE.
     contract_artifact_blockers = {
         "confirmed_l3_wake_required",
         "no_selected_moves_for_emergency_failover",
     }
-    independent_emergency_blockers = [
+    operational_post_contract_blockers = [
         str(item) for item in (emergency_gate.get("blockers") or [])
         if str(item) and str(item) not in contract_artifact_blockers
     ]
-    issue_preflight_blockers.extend(independent_emergency_blockers)
     if not all(str(template["source_generation"].get(key) or "") for key in (
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
     )):
@@ -949,23 +951,16 @@ def action_class_contract_reconciliation_request(
         "reason": "exact_fresh_packet_absent_in_read_only_reconciliation",
     }
     if current_contract_valid:
-        authority_classification = "NO_NEW_AUTHORITY_REVALIDATE_EXISTING_CONSUMER"
-        exact_action = "REVALIDATE_EXISTING_ACTION_CLASS_CONTRACT"
-        package_status = "NOT_REQUIRED"
-        reentry_condition = "existing consumer emits a fresh exact execution boundary"
-    elif "restore_barrier_required_for_emergency_failover" in issue_preflight_blockers:
-        # Restore-barrier clearance is packet-bound.  This read-only producer
-        # creates no Packet, so presenting the blocked Action Class request as
-        # either an Engineering or Operational approval would be misleading.
-        authority_classification = "SAFE_PREDECESSOR_REQUIRED"
-        exact_action = "RECONCILE_PACKET_BOUND_RESTORE_BARRIER_PREDECESSOR_ORDERING"
-        package_status = "STOP_SAFE_NOT_ACTIONABLE_EXACT_PACKET_ABSENT"
+        authority_classification = "SAFE_PACKET_MATERIALIZATION_PREDECESSOR_REQUIRED"
+        exact_action = "REENTER_FRESH_PLANNER_FOR_PACKET_MATERIALIZATION"
+        package_status = "SAFE_PACKET_MATERIALIZATION_PREDECESSOR_REQUIRED"
         reentry_condition = (
-            "existing owner proves an exact fresh non-executing packet identity "
-            "or removes the contradictory packet-bound precondition, then reruns fresh reconciliation"
+            "existing planner revalidates the fresh contract and returns "
+            "PACKET_MATERIALIZATION_ELIGIBLE or an exact STOP_SAFE; a contract "
+            "does not create or consume a Packet or lease"
         )
     elif issue_preflight["ready"]:
-        authority_classification = "ENGINEERING_AUTHORITY_REQUIRED"
+        authority_classification = "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY"
         exact_action = "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST"
         package_status = "AWAITING_INDEPENDENT_AUTHORITY_DECISION"
         reentry_condition = "owner issues or declines the exact request before expiry"
@@ -1026,7 +1021,8 @@ def action_class_contract_reconciliation_request(
         "current_contract_valid": current_contract_valid,
         "current_contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
         "issue_preflight": issue_preflight,
-        "pre_contract_execution_blockers": sorted(set(independent_emergency_blockers)),
+        "pre_contract_execution_blockers": [],
+        "post_contract_operational_blockers": sorted(set(operational_post_contract_blockers)),
         "shadow_candidate": {
             "user_ip": str(chosen.get("user_ip") or ""),
             "source_egress": str(chosen.get("current_egress") or ""),

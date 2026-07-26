@@ -44,3 +44,14 @@ Focused unit coverage verifies successful exact issuance, issuer/provenance,
 one-user/one-transaction scope, atomic one-use consumption and rejection of a
 second consumption. Full local test, deployment, production caller and truth /
 convergence results are recorded only after their respective commands finish.
+
+## Production caller repair
+
+The first production read-only caller after deployment exposed an exact
+producer defect: the freshly coherent planner legitimately had no
+`operation.source_bundle_hash` while the Authority request required one. The
+repair derives that identity from the same canonical Intelligence Snapshot
+source hashes and binds the shadow move identity (user/source/target), not the
+empty post-authority selected-move set. This preserves fail-closed behavior:
+if those canonical identities are unavailable or change before consumption,
+issuance or the one-use transition stops safely.

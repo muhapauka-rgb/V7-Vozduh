@@ -716,6 +716,53 @@ def runtime_authority_contract_status(
     }
 
 
+def action_class_contract_source_generation(plan: dict[str, Any], selected_move: dict[str, Any]) -> dict[str, str]:
+    """Derive fresh contract provenance from the existing planner snapshot.
+
+    The authority gate intentionally removes selected moves before a contract
+    exists, so ``operation.selected_move_hash`` can legitimately be the empty
+    selection.  The contract instead binds the exact shadow move identity and
+    the canonical snapshot sources that produced it.
+    """
+    plan = plan if isinstance(plan, dict) else {}
+    operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    intelligence = safety.get("intelligence_snapshots") if isinstance(safety.get("intelligence_snapshots"), dict) else {}
+    results = intelligence.get("results") if isinstance(intelligence.get("results"), dict) else {}
+    source_hashes = {
+        str(name): dict(row.get("source_hashes") or {})
+        for name, row in sorted(results.items())
+        if isinstance(row, dict) and isinstance(row.get("source_hashes"), dict)
+    }
+    planner_generation_id = str(operation.get("planner_generation_id") or operation.get("generation_id") or "")
+    source_bundle_hash = str(operation.get("source_bundle_hash") or "")
+    if not source_bundle_hash and source_hashes:
+        source_bundle_hash = sha256_json({"planner_generation_id": planner_generation_id, "source_hashes": source_hashes})
+    snapshot_bundle_hash = str(
+        operation.get("snapshot_bundle_hash") or operation.get("runtime_snapshot_hash") or ""
+    )
+    if not snapshot_bundle_hash and results:
+        snapshot_bundle_hash = sha256_json({
+            str(name): {
+                "path": str(row.get("path") or ""),
+                "source_hashes": dict(row.get("source_hashes") or {}),
+                "validation_ok": bool_value(row.get("validation_ok")),
+            }
+            for name, row in sorted(results.items()) if isinstance(row, dict)
+        })
+    selected_move_hash = sha256_json({
+        "user_ip": str(selected_move.get("user_ip") or ""),
+        "source_egress": str(selected_move.get("current_egress") or ""),
+        "target_egress": str(selected_move.get("recommended_egress") or ""),
+    }) if selected_move else ""
+    return {
+        "planner_generation_id": planner_generation_id,
+        "source_bundle_hash": source_bundle_hash,
+        "snapshot_bundle_hash": snapshot_bundle_hash,
+        "selected_move_hash": selected_move_hash,
+    }
+
+
 def action_class_contract_reconciliation_request(
     plan: dict[str, Any], *, policy_path: Path,
 ) -> dict[str, Any]:
@@ -741,7 +788,6 @@ def action_class_contract_reconciliation_request(
         safety.get("intelligence_snapshots"), dict
     ) else {}
     status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
-    operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
     l3_incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
     shadow_candidates = sorted(
         [
@@ -775,12 +821,7 @@ def action_class_contract_reconciliation_request(
             "incident_id": str(l3_incident.get("incident_id") or l3_incident.get("incident_key") or ""),
             "incident_generation": str(l3_incident.get("generation") or ""),
         },
-        "source_generation": {
-            "planner_generation_id": str(operation.get("planner_generation_id") or operation.get("generation_id") or ""),
-            "source_bundle_hash": str(operation.get("source_bundle_hash") or ""),
-            "snapshot_bundle_hash": str(operation.get("snapshot_bundle_hash") or ""),
-            "selected_move_hash": str(operation.get("selected_move_hash") or ""),
-        },
+        "source_generation": action_class_contract_source_generation(plan, chosen),
         "verification_contract": {
             "owner": "tools/v7-users-autoswitch",
             "required": True,
@@ -9595,12 +9636,7 @@ class AutoswitchPlanner:
                         "source_egress": str(move.get("current_egress") or ""),
                         "target_egress": str(move.get("recommended_egress") or ""),
                     },
-                    source_generation={
-                        "planner_generation_id": str(operation.get("planner_generation_id") or operation.get("generation_id") or ""),
-                        "source_bundle_hash": str(operation.get("source_bundle_hash") or ""),
-                        "snapshot_bundle_hash": str(operation.get("snapshot_bundle_hash") or ""),
-                        "selected_move_hash": str(operation.get("selected_move_hash") or ""),
-                    },
+                    source_generation=action_class_contract_source_generation(plan, move),
                     operation_id=operation_id,
                 )
             except operator_execution.PacketError as exc:

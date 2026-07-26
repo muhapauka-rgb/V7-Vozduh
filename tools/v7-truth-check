@@ -746,6 +746,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--continue-omp", action="store_true", help="Run one bounded standard Continue OMP engineering-control-loop invocation.")
     parser.add_argument("--consume-service-failure-automation-only", action="store_true", help="Consume one durable Service Failure automation obligation through the existing OMP owner without requiring the source CPS corpus on a binary-only production host.")
     parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
+    parser.add_argument("--reconcile-action-class-contract-request", default="", metavar="PATH", help="Atomically project one fresh read-only M5a action-class Authority request into the canonical source CPS; never approves, writes policy, or executes an action.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -972,6 +973,20 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"service_failure_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.reconcile_action_class_contract_request:
+        try:
+            reconciliation = json.loads(Path(args.reconcile_action_class_contract_request).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            result = {"final_verdict": "STOP_SAFE", "errors": [f"action_class_contract_reconciliation_unreadable:{exc}"]}
+        else:
+            result = sync_lib.reconcile_action_class_contract_request_to_cps(
+                reconciliation, root=fsse_scenario_root(),
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"action_class_contract_request_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.consume_service_failure_automation_only:
         result = sync_lib.consume_service_failure_automation_frontier(

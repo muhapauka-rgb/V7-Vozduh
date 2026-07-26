@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from admin_core import operator_execution
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -503,6 +505,91 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
             self.assertEqual(result["final_verdict"], "PASS")
             self.assertEqual(result["receipt"]["object_id"], "sfomp_source_test")
             self.assertTrue(result["atomic_update"]["ok"])
+
+    def test_fresh_m5a_request_is_atomically_projected_without_contract_or_packet(self):
+        template = {
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "action_class": "GOVERNED_ONLY",
+            "max_authority_class": "CANARY",
+            "authority_ceiling": "CANARY",
+            "policy_generation_hash": "a" * 64,
+            "subject": {"user_ip": "10.0.0.2"},
+            "scope": {"source_egress": "vless", "target_egress": "awg0"},
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "incident_generation": {"incident_id": "incident-1", "incident_generation": "incident-generation-1"},
+            "source_generation": {
+                "planner_generation_id": "planner-generation-1",
+                "source_bundle_hash": "source-bundle-1",
+                "snapshot_bundle_hash": "snapshot-bundle-1",
+                "selected_move_hash": "selected-move-1",
+            },
+            "verification_contract": {
+                "owner": "tools/v7-users-autoswitch", "required": True,
+                "immediate_and_temporal_observation": True, "success_criteria": "owner_verified",
+            },
+            "rollback_containment_contract": {
+                "owner": "tools/v7-users-autoswitch", "required": True,
+                "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True,
+            },
+            "cooldown": {"required": True, "seconds": 180},
+            "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+            "stop_conditions": sorted(operator_execution.CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS),
+        }
+        request = operator_execution.build_current_action_class_contract_authority_request(
+            template, issue_preflight={"ready": True, "blockers": []},
+        )
+        package = {
+            "schema_version": "v7.authority-normalized-approval-package.v1",
+            "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+            "authority_classification": "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+            "actionable": True, "request_id": request["request_id"], "request_hash": request["request_hash"],
+            "expires_at": request["expires_at"],
+            "packet_identity": {"present": False, "packet_id": "", "packet_hash": ""},
+            "forbidden_effects": [
+                "contract_issuance", "policy_write", "restore_barrier_write", "candidate_creation",
+                "execution_packet_or_lease_creation", "runtime_apply", "routing_mutation", "user_movement",
+                "rollback_apply", "authority_expansion", "production_maturity_change",
+            ],
+        }
+        reconciliation = {
+            "schema_version": "v7.action-class-contract-reconciliation-request.v1",
+            "status": "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY",
+            "authority_classification": "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+            "exact_legal_next_action": "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST",
+            "authority_decision_request": request, "approval_package": package,
+            "authority_granted": False, "contract_written": False, "runtime_apply": False,
+            "routing_mutation": False, "candidate_created": False, "packet_created": False,
+            "lease_created": False, "users_moved": 0,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
+            result = self.sync.reconcile_action_class_contract_request_to_cps(reconciliation, root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            text = cps_path.read_text(encoding="utf-8")
+            self.assertIn(f"| `CURRENT_AUTHORITY_REQUEST_ID` | `{request['request_id']}` |", text)
+            self.assertIn("| `CURRENT_PACKET` | `NONE` |", text)
+            self.assertIn("| `CURRENT_LEASE` | `NONE` |", text)
+            self.assertFalse(result["contract_written"])
+            self.assertFalse(result["packet_created"])
+
+    def test_m5a_request_projection_rejects_changed_request_identity(self):
+        rejected = self.sync.reconcile_action_class_contract_request_to_cps({
+            "schema_version": "v7.action-class-contract-reconciliation-request.v1",
+            "status": "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY",
+            "authority_classification": "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+            "exact_legal_next_action": "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST",
+            "authority_decision_request": {"request_id": "changed"},
+            "approval_package": {"schema_version": "v7.authority-normalized-approval-package.v1"},
+            "authority_granted": False, "contract_written": False, "runtime_apply": False,
+            "routing_mutation": False, "candidate_created": False, "packet_created": False,
+            "lease_created": False, "users_moved": 0,
+        })
+        self.assertEqual(rejected["final_verdict"], "STOP_SAFE")
+        self.assertIn("current_action_class_contract_request_schema_invalid", rejected["errors"])
 
 
 if __name__ == "__main__":

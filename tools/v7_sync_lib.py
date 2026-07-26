@@ -6274,6 +6274,195 @@ def reconcile_service_failure_automation_receipt_to_cps(
     return result
 
 
+def reconcile_action_class_contract_request_to_cps(
+    reconciliation: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically project one fresh, read-only M5a Authority request to CPS.
+
+    The request remains non-durable at the Authority owner and this function
+    never approves, declines, writes policy, creates a Candidate/Packet/lease,
+    or changes Runtime.  CPS only gains an auditable pointer to the exact
+    short-lived decision that production already produced through the existing
+    autoswitch -> Authority-owner handoff.
+    """
+    from admin_core import operator_execution
+
+    reconciliation = reconciliation if isinstance(reconciliation, dict) else {}
+    request = reconciliation.get("authority_decision_request")
+    package = reconciliation.get("approval_package")
+    effects = {
+        "authority_granted": reconciliation.get("authority_granted"),
+        "contract_written": reconciliation.get("contract_written"),
+        "runtime_apply": reconciliation.get("runtime_apply"),
+        "routing_mutation": reconciliation.get("routing_mutation"),
+        "candidate_created": reconciliation.get("candidate_created"),
+        "packet_created": reconciliation.get("packet_created"),
+        "lease_created": reconciliation.get("lease_created"),
+    }
+    errors: list[str] = []
+    if reconciliation.get("schema_version") != "v7.action-class-contract-reconciliation-request.v1":
+        errors.append("action_class_reconciliation_schema_invalid")
+    if reconciliation.get("status") != "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY":
+        errors.append("action_class_request_not_fresh_issue_ready")
+    if reconciliation.get("authority_classification") != "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY":
+        errors.append("action_class_authority_classification_invalid")
+    if reconciliation.get("exact_legal_next_action") != "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST":
+        errors.append("action_class_exact_legal_next_action_invalid")
+    if not isinstance(request, dict) or not isinstance(package, dict):
+        errors.append("action_class_request_or_package_missing")
+        request = {}
+        package = {}
+    validation = operator_execution.validate_current_action_class_contract_authority_request(
+        request, decision="DECLINE", allow_decline=True,
+    )
+    if not validation.get("ok"):
+        errors.extend(str(item) for item in validation.get("errors") or [])
+    if package.get("schema_version") != "v7.authority-normalized-approval-package.v1":
+        errors.append("action_class_approval_package_schema_invalid")
+    if package.get("status") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION" or package.get("actionable") is not True:
+        errors.append("action_class_approval_package_not_actionable")
+    if package.get("authority_classification") != reconciliation.get("authority_classification"):
+        errors.append("action_class_package_classification_mismatch")
+    if package.get("request_id") != request.get("request_id") or package.get("request_hash") != request.get("request_hash"):
+        errors.append("action_class_package_request_identity_mismatch")
+    if package.get("expires_at") != request.get("expires_at"):
+        errors.append("action_class_package_expiry_mismatch")
+    packet_identity = package.get("packet_identity") if isinstance(package.get("packet_identity"), dict) else {}
+    if packet_identity.get("present") is not False or packet_identity.get("packet_id") or packet_identity.get("packet_hash"):
+        errors.append("action_class_m5a_packet_must_be_absent")
+    if any(value is not False for value in effects.values()) or int(reconciliation.get("users_moved") or 0) != 0:
+        errors.append("action_class_reconciliation_forbidden_effect_present")
+    expected_forbidden = {
+        "contract_issuance", "policy_write", "restore_barrier_write",
+        "candidate_creation", "execution_packet_or_lease_creation", "runtime_apply",
+        "routing_mutation", "user_movement", "rollback_apply", "authority_expansion",
+        "production_maturity_change",
+    }
+    if not expected_forbidden.issubset({str(item) for item in package.get("forbidden_effects") or []}):
+        errors.append("action_class_package_forbidden_effects_incomplete")
+    if errors:
+        return {
+            "schema_version": "v7.action-class-contract-request-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE",
+            "status": "ACTION_CLASS_CONTRACT_REQUEST_CPS_RECONCILIATION_REJECTED",
+            "errors": sorted(set(errors)),
+            "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
+            "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        }
+
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema_version": "v7.action-class-contract-request-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "status": "CPS_UNREADABLE_STOP_SAFE",
+            "errors": [str(exc)],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    expected_generation = _plain_live_value(live, "CURRENT_STATE_GENERATION")
+    request_fingerprint = hashlib.sha256(json.dumps({
+        "request_id": request["request_id"], "request_hash": request["request_hash"],
+        "expires_at": request["expires_at"], "incident_generation": request["incident_generation"],
+        "source_generation": request["source_generation"],
+    }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "current_stop_condition": "ENGINEERING_AUTHORITY",
+        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_RECONCILIATION",
+        "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+        "current_state_generation": f"cpsgen_SFA_M5A_{request_fingerprint[:12].upper()}",
+        "current_transition_id": "SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1",
+        "current_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION",
+        "current_safe_next_action": "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST; DO NOT WRITE POLICY OR APPLY OR MOVE USERS",
+        "current_program_execution_frontier": "NONE",
+        "current_execution_frontier": "NONE",
+        "continuation_decision": "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY",
+        "program_terminal_class": "ENGINEERING_AUTHORITY",
+        "program_terminal_state": "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+        "authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; exact one-use action-class contract decision only",
+        "wip_authority_required_now": "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; exact one-use action-class contract decision only",
+        "wip_current_primary_stop": "ENGINEERING_AUTHORITY",
+        "wip_smallest_existing_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION",
+        "wip_smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION",
+        "smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "EXACT_ACTION_CLASS_AUTHORITY_RECONCILIATION",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "state_captured": utc_now(),
+    })
+    overrides = {
+        "CURRENT_AUTHORITY_REQUEST_ID": f"`{request['request_id']}`",
+        "CURRENT_AUTHORITY_REQUEST_HASH": f"`{request['request_hash']}`",
+        "CURRENT_AUTHORITY_REQUEST_EXPIRY": f"`{request['expires_at']}`",
+        "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": f"`{request_fingerprint}`",
+        "CURRENT_AUTHORITY_REQUEST_STATUS": "`AWAITING_INDEPENDENT_AUTHORITY_DECISION`",
+        "CURRENT_AUTHORITY_REQUEST_SCOPE": "`max_users=1; max_concurrent_transactions=1`",
+        "CURRENT_PACKET": "`NONE`",
+        "CURRENT_LEASE": "`NONE`",
+    }
+
+    def project_m5a_predecessor_links(document: str, projected: dict[str, str]) -> str:
+        """Keep the existing CAP-U07 and sequence consumers on the same CPS edge."""
+        capability_section_start = "### Unfinished Capability Closure Records"
+        capability_section_end = "### Open Engineering Intents And Last Responsible Links"
+        sequence_start = "### Deterministic Execution Sequence"
+        sequence_end = "### Authority, Reality And Safety Stops"
+
+        def replace_one_line(text: str, start: str, end: str, prefix: str, replacement: str) -> str:
+            section = _markdown_section(text, start, end)
+            matches = [line for line in section.splitlines() if line.startswith(prefix)]
+            if len(matches) != 1:
+                raise ValueError(f"cps_projection_line_missing_or_duplicate:{prefix}")
+            return text.replace(section, section.replace(matches[0], replacement, 1), 1)
+
+        next_action = projected["current_next_action_id"]
+        cap_row = (
+            "| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | "
+            "`WAITING_EXTERNAL_DEPENDENCY` | `COVERED_ENGINEERING_L4`; criterion "
+            "`SHADOW_LEARNING_REPRESENTATION_MATRIX` consumed; whole capability remains PARTIAL; current M5a Authority request is "
+            "read-only and does not close the capability | fresh M5a request -> existing Authority owner -> "
+            "fresh planner revalidation | `ENGINEERING_AUTHORITY` | "
+            f"{next_action} | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |"
+        )
+        document = replace_one_line(
+            document, capability_section_start, capability_section_end, "| `CAP-U07` |", cap_row,
+        )
+        sequence_row = (
+            "| `1` | `U07` Learning WAITING WIP; "
+            f"`{projected['current_state_generation']}`; `{projected['current_transition_id']}` | "
+            "fresh M5a request is read-only; no Packet or lease exists; next scenario "
+            f"`{projected['next_scenario_id']}` | `{next_action}` | "
+            "existing autoswitch -> Authority owner -> fresh planner revalidation; no Runtime action | "
+            "`ENGINEERING_AUTHORITY` | independent decision -> one-use contract or decline -> existing M5b consumer; "
+            f"owner `{projected['program_frontier_owner']}` |"
+        )
+        return replace_one_line(document, sequence_start, sequence_end, "| `1` |", sequence_row)
+
+    atomic = atomic_reconcile_cps(
+        cps_path, state=state, expected_generation=expected_generation,
+        request_external_wake=False, section0_field_overrides=overrides,
+        document_mutator=project_m5a_predecessor_links,
+    )
+    return {
+        "schema_version": "v7.action-class-contract-request-source-cps-reconciliation.v1",
+        "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+        "status": "ACTION_CLASS_CONTRACT_REQUEST_CPS_RECONCILED" if atomic.get("ok") else atomic.get("status", "STOP_SAFE"),
+        "request_id": request["request_id"], "request_hash": request["request_hash"],
+        "expires_at": request["expires_at"], "request_fingerprint": request_fingerprint,
+        "atomic_update": atomic,
+        "runtime_impact": "NONE", "routing_impact": "NONE", "user_movement": 0,
+        "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+        "packet_created": False, "lease_created": False, "contract_written": False,
+    }
+
+
 def event_driven_ready_frontier_fingerprint(live: dict[str, str]) -> str:
     """Fingerprint only the owner-backed fields that make engineering work executable."""
     payload = {
@@ -18826,6 +19015,8 @@ def atomic_reconcile_cps(
     criterion_records: Optional[Iterable[dict[str, Any]]] = None,
     expected_generation: Optional[str] = None,
     force_external_wake_reason: Optional[str] = None,
+    section0_field_overrides: Optional[dict[str, str]] = None,
+    document_mutator: Optional[Callable[[str, dict[str, str]], str]] = None,
 ) -> dict[str, Any]:
     """Render, validate, atomically replace, reread, and rollback CPS on failure."""
     wake_request: dict[str, Any] = {
@@ -18864,6 +19055,16 @@ def atomic_reconcile_cps(
             normalized_cps_live_state(base_state), original_live,
         )
         candidate = build_normalized_cps_document(original, resolved_state)
+        if section0_field_overrides:
+            for key, value in sorted(section0_field_overrides.items()):
+                candidate = _upsert_section_field(
+                    candidate,
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                    str(key), str(value),
+                )
+        if document_mutator:
+            candidate = document_mutator(candidate, resolved_state)
         if criterion_records is not None:
             candidate = render_permanent_polygon_criterion_registry(
                 candidate,
@@ -18881,6 +19082,16 @@ def atomic_reconcile_cps(
             if wake_request.get("dispatch_required") is True:
                 resolved_state.update(_event_driven_state_overrides(wake_request))
                 candidate = build_normalized_cps_document(original, resolved_state)
+                if section0_field_overrides:
+                    for key, value in sorted(section0_field_overrides.items()):
+                        candidate = _upsert_section_field(
+                            candidate,
+                            "## 0. Authoritative Live Current State",
+                            "## Authoritative Unfinished Capability Closure Registry",
+                            str(key), str(value),
+                        )
+                if document_mutator:
+                    candidate = document_mutator(candidate, resolved_state)
                 if criterion_records is not None:
                     candidate = render_permanent_polygon_criterion_registry(
                         candidate,

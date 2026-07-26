@@ -1,7 +1,7 @@
 # Отчёт: устранение deadlock между L3 wake и Action Class contract
 
 Дата: 2026-07-26
-Статус: FOLLOWUP_CONSUMER_REPAIR_TESTED_PENDING_PRODUCTION_DEPLOY
+Статус: RESTORE_BARRIER_PREFLIGHT_REPAIR_TESTED_PENDING_PRODUCTION_DEPLOY
 
 ## Причина
 
@@ -78,13 +78,40 @@ PYTHONPYCACHEPREFIX=/tmp/v7-pycache python3 -m unittest \
 Ran 226 tests ... OK
 ```
 
-## Legal terminal до follow-up deploy
+Следующая production revalidation корректно не создала Candidate, Packet, lease
+или apply, поскольку действующий scope-bound contract встретил независимый
+`restore_barrier_required_for_emergency_failover`. Это выявило второй ordering
+defect: reconciliation проверял L3 wake, но не передавал в contract issue
+preflight independent blockers того же existing emergency gate. В результате
+контракт мог быть выдан раньше, чем становится юридически consumable.
+
+Исправление добавляет все независимые pre-contract execution blockers в request
+preflight. Исключены только два contract-artifact значения:
+`confirmed_l3_wake_required` (уже проверяется L3 owner) и
+`no_selected_moves_for_emergency_failover` (ожидаемый эффект отсутствующего
+contract). В частности, отсутствие owner-issued restore barrier теперь не
+позволяет выпустить one-use contract. Новый тест подтверждает именно эту
+границу.
+
+Повторно выполнено:
+
+```text
+PYTHONPYCACHEPREFIX=/tmp/v7-pycache python3 -m unittest \
+  tests.unit.test_v7_users_autoswitch_policy \
+  tests.unit.test_service_failure_automation_evolution \
+  tests.unit.test_operator_execution_packet
+
+Ran 227 tests ... OK
+```
+
+## Legal terminal до final preflight deploy
 
 `PRODUCTION_DEPLOY_AND_NON_TEST_RECONCILIATION_CALL_REQUIRED`.
 
 Следующий допустимый шаг: safe deploy только `tools/v7-users-autoswitch`, затем
 production read-only reconciliation. Если живое fresh L3 evidence действительно
 подтверждено, существующий Authority owner сможет сформировать новый scope-bound
-request; если нет, terminal остаётся `WAIT_FOR_FRESH_OWNER_BACKED_L3_WAKE`.
+request только после owner-issued restore barrier; если нет, terminal остаётся
+`RESTORE_BARRIER_REQUIRED_FOR_EMERGENCY_FAILOVER`.
 Ни L8, ни Production Maturity, ни routing/user scope этим исправлением не
 изменяются.

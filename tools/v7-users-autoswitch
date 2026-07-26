@@ -799,6 +799,9 @@ def action_class_contract_reconciliation_request(
         safety.get("intelligence_snapshots"), dict
     ) else {}
     l3_wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
+    emergency_gate = safety.get("emergency_failover_autonomy") if isinstance(
+        safety.get("emergency_failover_autonomy"), dict
+    ) else {}
     status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
     l3_incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
     shadow_candidates = sorted(
@@ -892,6 +895,21 @@ def action_class_contract_reconciliation_request(
     if l3_wake and not bool_value(l3_wake.get("accepted")):
         wake_blockers = [str(item) for item in (l3_wake.get("blockers") or []) if str(item)]
         issue_preflight_blockers.extend(wake_blockers or ["confirmed_l3_wake_required"])
+    # The contract is not a substitute for an existing controlled-production
+    # prerequisite.  Some emergency gate rows are merely the expected effect
+    # of a missing contract (no selected move); those must not mask the L3
+    # shadow evidence.  Every independent execution blocker, notably the
+    # owner-issued restore barrier, must however stop issuance so a one-use
+    # contract never expires before it can become legally consumable.
+    contract_artifact_blockers = {
+        "confirmed_l3_wake_required",
+        "no_selected_moves_for_emergency_failover",
+    }
+    independent_emergency_blockers = [
+        str(item) for item in (emergency_gate.get("blockers") or [])
+        if str(item) and str(item) not in contract_artifact_blockers
+    ]
+    issue_preflight_blockers.extend(independent_emergency_blockers)
     if not all(str(template["source_generation"].get(key) or "") for key in (
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
     )):
@@ -933,6 +951,7 @@ def action_class_contract_reconciliation_request(
         "current_contract_valid": current_contract_valid,
         "current_contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
         "issue_preflight": issue_preflight,
+        "pre_contract_execution_blockers": sorted(set(independent_emergency_blockers)),
         "shadow_candidate": {
             "user_ip": str(chosen.get("user_ip") or ""),
             "source_egress": str(chosen.get("current_egress") or ""),

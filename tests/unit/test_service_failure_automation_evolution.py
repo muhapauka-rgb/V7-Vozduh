@@ -199,6 +199,62 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(request["runtime_apply"])
         self.assertEqual(request["users_moved"], 0)
 
+    def test_authority_request_waits_for_independent_restore_barrier_before_issue(self):
+        plan = {
+            "operation": {
+                "planner_generation_id": "planner-generation-1",
+                "source_bundle_hash": "source-bundle-1",
+                "snapshot_bundle_hash": "snapshot-bundle-1",
+                "selected_move_hash": "selected-move-1",
+            },
+            "decisions": [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {
+                "action_class_execution_boundary": {
+                    "status": "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED",
+                },
+                "authority_budget_gate": {
+                    "certified_authority_class": "POOL",
+                    "current_action_class_contract": {
+                        "required": True,
+                        "valid": False,
+                        "blockers": ["current_action_class_contract_missing_or_schema_invalid"],
+                    },
+                },
+                "l3_wake": {"accepted": True, "blockers": []},
+                "l3_incident": {
+                    "incident_id": "incident-1",
+                    "incident_generation": "incident-generation-1",
+                },
+                "emergency_failover_autonomy": {
+                    "blockers": [
+                        "no_selected_moves_for_emergency_failover",
+                        "restore_barrier_required_for_emergency_failover",
+                    ],
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.json"
+            policy_path.write_text("{}\n", encoding="utf-8")
+            request = self.autoswitch.action_class_contract_reconciliation_request(
+                plan, policy_path=policy_path,
+            )
+
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS")
+        self.assertFalse(request["issue_preflight"]["ready"])
+        self.assertEqual(
+            request["pre_contract_execution_blockers"],
+            ["restore_barrier_required_for_emergency_failover"],
+        )
+        self.assertIn("restore_barrier_required_for_emergency_failover", request["issue_preflight"]["blockers"])
+        self.assertNotIn("no_selected_moves_for_emergency_failover", request["issue_preflight"]["blockers"])
+        self.assertFalse(request["authority_granted"])
+        self.assertFalse(request["contract_written"])
+
     def test_authority_request_waits_for_snapshot_revalidation_before_policy_owner(self):
         plan = {
             "decisions": [{

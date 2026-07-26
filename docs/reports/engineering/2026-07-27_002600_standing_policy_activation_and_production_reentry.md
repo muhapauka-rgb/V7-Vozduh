@@ -75,5 +75,31 @@ Wrapper теперь принимает `GOVERNED_TRANSACTION_STOPPED/STOP_SAFE`
 
 ## Текущий terminal
 
-`ENGINEERING_REPAIR_READY_FOR_SAFE_DEPLOY_AND_AFFECTED_PRODUCTION_REPLAY`
+Первый repair был задеплоен:
+`deploy-z8-14-Updatesystem-c52618a-20260727T002636`. Affected production
+replay подтвердил:
 
+- OMP consumer: `PASS / NO_PENDING_OBLIGATION`;
+- bounded consumer: `PASS / STOP_SAFE`;
+- apply `false`, restore barrier `false`, users moved `0`, final `OPEN`.
+
+Replay также доказал следующий точный predecessor gap:
+
+```text
+Service Matrix writes fresh observations
+-> bounded executor builds decision surface from old snapshots
+-> planner refreshes snapshots
+-> executor keeps consuming the pre-refresh surface
+-> snapshot_mismatch:risk-summaries
+-> permanent packet_not_ready
+```
+
+Существующий `v7-intelligence-snapshot-refresh` owner уже реализован. Bounded
+delegated path теперь вызывает его через существующий autoswitch
+`--pre-planner-refresh write`, после чего заново читает decision surface и
+Learning inventory перед Candidate/Packet gates. Никакие пороги, Authority,
+failure classes или safety gates не ослаблены.
+
+Повторная focused affected campaign: `138 tests PASS`.
+
+`SNAPSHOT_PREDECESSOR_REPAIR_READY_FOR_SAFE_DEPLOY_AND_AFFECTED_PRODUCTION_REPLAY`

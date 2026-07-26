@@ -22,6 +22,24 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_bounded_planner_observe_refreshes_snapshots_through_existing_owner(self):
+        module = load_cli_module()
+        completed = mock.Mock(returncode=0, stdout=json.dumps({"selected_moves": []}), stderr="")
+        with mock.patch.object(module.subprocess, "run", return_value=completed) as run:
+            result = module.run_planner_observe(
+                Path("/state"),
+                Path("/events"),
+                Path("/snapshots"),
+                1,
+                refresh_snapshots=True,
+            )
+        self.assertTrue(result["ok"])
+        command = run.call_args.args[0]
+        self.assertIn("--pre-planner-refresh", command)
+        self.assertEqual(command[command.index("--pre-planner-refresh") + 1], "write")
+        self.assertIn("--pre-planner-refresh-command", command)
+        self.assertIn("v7-intelligence-snapshot-refresh", command[-1])
+
     def test_repair_generation_preflight_is_read_only_and_requires_exact_clean_prestate(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

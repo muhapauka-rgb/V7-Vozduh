@@ -339,7 +339,24 @@ def planner_observe_executable() -> Path:
     return repo_tool
 
 
-def run_planner_observe(state_dir: Path, event_dir: Path, snapshot_root: Path, max_users: int) -> dict[str, Any]:
+def snapshot_refresh_executable() -> Path:
+    repo_tool = ROOT / "tools" / "v7-intelligence-snapshot-refresh"
+    if repo_tool.exists():
+        return repo_tool
+    runtime_peer = Path(__file__).resolve().with_name("v7-intelligence-snapshot-refresh")
+    if runtime_peer.exists():
+        return runtime_peer
+    return Path("v7-intelligence-snapshot-refresh")
+
+
+def run_planner_observe(
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    max_users: int,
+    *,
+    refresh_snapshots: bool = False,
+) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
         "--mode",
@@ -354,6 +371,13 @@ def run_planner_observe(state_dir: Path, event_dir: Path, snapshot_root: Path, m
         str(snapshot_root),
         "--pretty",
     ]
+    if refresh_snapshots:
+        command.extend([
+            "--pre-planner-refresh",
+            "write",
+            "--pre-planner-refresh-command",
+            str(snapshot_refresh_executable()),
+        ])
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=45)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -2277,7 +2301,34 @@ def _execute_governed_transaction_with_guards_inner(
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     planner_observe = {"skipped": True}
     if not args.skip_planner_observe and not support_mode:
-        planner_observe = run_planner_observe(state_dir, event_dir, snapshot_root, 1)
+        planner_observe = run_planner_observe(
+            state_dir,
+            event_dir,
+            snapshot_root,
+            1,
+            refresh_snapshots=delegated_mode,
+        )
+        if delegated_mode and planner_observe.get("ok"):
+            # The existing autoswitch owner refreshes intelligence snapshots
+            # before planner load.  Re-read the decision surface afterwards;
+            # reusing the pre-refresh surface would manufacture a permanent
+            # snapshot_mismatch and make every standing-policy cycle STOP_SAFE.
+            surface = operator_decision_surface.build_operator_decision_surface(
+                snapshot_root=snapshot_root,
+                users=users,
+                egress=egress,
+                runtime_state=runtime_state,
+                decision_records=records,
+            )
+            inventory = autonomy_trust_acceleration.build_acceleration_inventory(
+                snapshot_root=snapshot_root,
+                decision_surface=surface,
+                shadow_history=shadow_history,
+                decision_records=records,
+                event_rows=events,
+            )
+            surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
+            surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
         moves = selected_moves_from_planner_payload(planner_observe.get("payload", {}))
         surface = merge_planner_moves_into_surface(surface, moves, replace_existing=True)
     a4_goal_directed_selection = {}

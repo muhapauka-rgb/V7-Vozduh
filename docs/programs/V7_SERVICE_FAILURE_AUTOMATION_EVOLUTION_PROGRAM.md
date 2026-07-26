@@ -91,6 +91,44 @@ terminal that must explain why no action was legal.
     of the existing OMP product-engineering frontier. They are not new owners,
     registries, queues or schedulers.
 
+### Mandatory semantic discovery and connection law
+
+Before every implementation, repair, Mission transition or proposed new
+artifact, the executing owner must first prove the current semantic topology:
+
+```text
+required outcome
+-> existing producer
+-> durable artifact / identity
+-> existing consumer
+-> verification
+-> terminal / successor
+```
+
+The audit must search by behavior and data-flow, not only by filename or
+feature name. It must identify all already implemented or deployed owners,
+their input/output identities, freshness and one-use constraints, Authority
+boundary, caller, consumer, verification and terminal semantics.
+
+The mandatory order is:
+
+1. discover the existing implementation and its live/deployed state;
+2. trace every relevant producer -> consumer link and prove the exact broken,
+   absent, stale, duplicate or unreachable link;
+3. reuse the existing owner when it already provides the required capability;
+4. connect or minimally extend the existing owner when capability exists but
+   its handoff, invocation, identity binding or consumption is incomplete;
+5. implement new code only for the smallest proven residual that no existing
+   owner can supply;
+6. verify that the resulting output is consumed by a real downstream owner and
+   changes an exact successor, legal terminal or product capability projection.
+
+No Mission may create a parallel owner, queue, registry, watcher, Planner,
+Runtime, Authority path, Packet path or evidence store merely because an
+existing capability was not discovered or connected correctly. A report,
+test, deploy or JSON artifact alone is not completion: the intended output
+must reach and be consumed by its declared next owner.
+
 ## Evidence and authority law
 
 1. Passive capture, synthetic Polygon results and shadow decisions are

@@ -798,6 +798,7 @@ def action_class_contract_reconciliation_request(
     intelligence_gate = safety.get("intelligence_snapshots") if isinstance(
         safety.get("intelligence_snapshots"), dict
     ) else {}
+    l3_wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
     status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
     l3_incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
     shadow_candidates = sorted(
@@ -882,6 +883,15 @@ def action_class_contract_reconciliation_request(
         issue_preflight_blockers.append(
             str(intelligence_gate.get("unsafe_blocker") or "intelligence_snapshot_gate_stop_required")
         )
+    # A shadow recommendation is deliberately weaker than a runtime-ready L3
+    # incident.  Do not ask the existing policy owner to issue a short-lived
+    # one-use contract if the same planner invocation already knows that its
+    # event-driven L3 consumer will reject execution.  Otherwise an approved
+    # contract can only expire unused, which is an Authority request/consumer
+    # handoff defect rather than a legitimate production boundary.
+    if l3_wake and not bool_value(l3_wake.get("accepted")):
+        wake_blockers = [str(item) for item in (l3_wake.get("blockers") or []) if str(item)]
+        issue_preflight_blockers.extend(wake_blockers or ["confirmed_l3_wake_required"])
     if not all(str(template["source_generation"].get(key) or "") for key in (
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
     )):
@@ -909,6 +919,7 @@ def action_class_contract_reconciliation_request(
         "ready": not issue_preflight_blockers,
         "blockers": sorted(set(issue_preflight_blockers)),
         "intelligence_snapshot_stop_required": bool_value(intelligence_gate.get("stop_required")),
+        "l3_wake_accepted": bool_value(l3_wake.get("accepted")) if l3_wake else None,
     }
     authority_request = operator_execution.build_current_action_class_contract_authority_request(
         template, issue_preflight=issue_preflight,

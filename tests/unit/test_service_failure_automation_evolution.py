@@ -229,6 +229,47 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertIn("v7-intelligence-snapshot-refresh", request["next_consumer"])
         self.assertFalse(request["authority_granted"])
 
+    def test_authority_request_waits_for_current_l3_wake_before_policy_owner(self):
+        plan = {
+            "operation": {
+                "planner_generation_id": "planner-generation-1",
+                "source_bundle_hash": "source-bundle-1",
+                "snapshot_bundle_hash": "snapshot-bundle-1",
+                "selected_move_hash": "selected-move-1",
+            },
+            "decisions": [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {
+                "action_class_execution_boundary": {
+                    "status": "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED",
+                },
+                "authority_budget_gate": {
+                    "current_action_class_contract": {"required": True, "valid": False, "blockers": ["contract_missing"]},
+                },
+                "l3_incident": {
+                    "incident_id": "incident-1",
+                    "incident_generation": "incident-generation-1",
+                },
+                "l3_wake": {
+                    "accepted": False,
+                    "blockers": ["confirmed_l3_wake_required"],
+                },
+            },
+        }
+
+        request = self.autoswitch.action_class_contract_reconciliation_request(
+            plan, policy_path=Path("/etc/v7/policy.json"),
+        )
+
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS")
+        self.assertFalse(request["issue_preflight"]["ready"])
+        self.assertFalse(request["issue_preflight"]["l3_wake_accepted"])
+        self.assertIn("confirmed_l3_wake_required", request["issue_preflight"]["blockers"])
+        self.assertIn("action-class contract reconciliation", request["next_consumer"])
+
     def test_active_contract_reenters_existing_boundary_without_new_request(self):
         plan = {
             "decisions": [],

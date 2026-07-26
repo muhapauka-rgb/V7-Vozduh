@@ -125,3 +125,11 @@ Contract не выдан, policy не записана; Packet identity оста
 Packet, lease, restore barrier, runtime apply, routing/user movement, rollback,
 Authority expansion и Production Maturity change — `NONE`. Если request истечёт
 или будет declined, следующий шаг всегда новая fresh reconciliation, без reuse.
+
+## Final truth и convergence
+
+После production caller: `tools/v7-truth-check --all --json` вернул
+`PASS / FULLY_ALIGNED`, а `tools/v7-convergence-status --json` —
+`PASS / ALIGNED`. Local, GitHub и production Runtime связаны с commit
+`1db9d4b44d65b7eec752531b45fc9baea9b6e749`. Независимые, ранее существовавшие
+незакоммиченные engineering reports не включались в этот change set.

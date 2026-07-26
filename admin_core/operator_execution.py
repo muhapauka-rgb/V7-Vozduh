@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import argparse
 import copy
+import fcntl
 import hashlib
 import json
 import os
 import secrets
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -102,6 +104,27 @@ CURRENT_ACTION_CLASS_CONTRACT_SCHEMA = "v7.current-action-class-contract.v2"
 CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER = CANONICAL_CLEARANCE_OWNER
 CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 300
+CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-audit.v1"
+DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
+CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
+    "no_safe_target",
+    "stale_or_changed_situation",
+    "selected_move_identity_changed",
+    "target_capacity_or_service_gate_failed",
+    "verification_failure",
+    "rollback_required",
+    "authority_decision_expired",
+    "one_use_consumed_or_contended",
+}
+CURRENT_ACTION_CLASS_AUTHORITY_RANK = {
+    "CANARY": 0,
+    "SMALL_BATCH": 1,
+    "MEDIUM_BATCH": 2,
+    "LARGE_BATCH": 3,
+    "XLARGE_BATCH": 4,
+    "FULL_INCIDENT": 5,
+    "POOL": 5,
+}
 
 
 class PacketError(ValueError):
@@ -517,6 +540,68 @@ def current_action_class_contract_hash(contract):
     return sha256_json(canonical)
 
 
+@contextmanager
+def current_action_class_contract_policy_lock(policy_path):
+    """Serialize the existing policy owner's read -> validate -> write lifecycle.
+
+    The sidecar lock is only an interprocess coordination primitive.  It is not
+    a state owner, queue, registry or source of truth; durable truth remains
+    the existing policy and operator-execution audit owners.
+    """
+    policy_path = Path(policy_path)
+    lock_path = policy_path.with_name(f".{policy_path.name}.action-class-contract.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _current_action_class_decision_records(records, request_id):
+    return [
+        record for record in records
+        if record.get("record_type") == "current_action_class_contract_authority_decision"
+        and str(record.get("authority_request_id") or "") == str(request_id or "")
+    ]
+
+
+def _current_action_class_contract_audit_record(
+    request, *, decision, actor_id, policy_generation_hash, now,
+):
+    if not str(actor_id or "").strip():
+        raise PacketError("current_action_class_contract_authority_actor_missing")
+    request = request if isinstance(request, dict) else {}
+    decision_id = stable_id("accdec", {
+        "request_id": request.get("request_id", ""),
+        "request_hash": request.get("request_hash", ""),
+        "decision": decision,
+        "actor_id": str(actor_id),
+    })
+    return {
+        "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+        "record_type": "current_action_class_contract_authority_decision",
+        "decision_id": decision_id,
+        "authority_request_id": str(request.get("request_id") or ""),
+        "authority_request_hash": str(request.get("request_hash") or ""),
+        "decision": str(decision),
+        "active_program": str(request.get("active_program") or ""),
+        "subject": copy.deepcopy(request.get("subject") or {}),
+        "scope": copy.deepcopy(request.get("scope") or {}),
+        "incident_generation": copy.deepcopy(request.get("incident_generation") or {}),
+        "source_generation": copy.deepcopy(request.get("source_generation") or {}),
+        "policy_generation_hash": str(policy_generation_hash or ""),
+        "actor_provenance": {
+            "actor_id": str(actor_id),
+            "decision_surface": "tools/v7-operator-execution-packet",
+            "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+            "recorded_at": now.isoformat(),
+        },
+        "created_at": now.isoformat(),
+    }
+
+
 def build_current_action_class_contract_authority_request(template, *, issue_preflight=None, now=None):
     """Build the existing Authority owner's exact one-use decision input.
 
@@ -541,6 +626,8 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
         "active_program": str(template.get("active_program") or ""),
         "action_class": str(template.get("action_class") or ""),
         "max_authority_class": str(template.get("max_authority_class") or ""),
+        "authority_ceiling": str(template.get("authority_ceiling") or template.get("max_authority_class") or ""),
+        "policy_generation_hash": str(template.get("policy_generation_hash") or ""),
         "subject": {"user_ip": str(subject.get("user_ip") or "")},
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
@@ -571,7 +658,7 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
 
 
 def validate_current_action_class_contract_authority_request(
-    request, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    request, *, decision, expected_request_id="", expected_request_hash="", now=None, allow_decline=False,
 ):
     now = now or utc_now()
     request = request if isinstance(request, dict) else {}
@@ -597,8 +684,11 @@ def validate_current_action_class_contract_authority_request(
             errors.append("current_action_class_contract_request_created_at_invalid")
     except PacketError:
         errors.append("current_action_class_contract_request_timestamps_invalid")
-    if decision != ENGINEERING_AUTHORITY_APPROVAL or decision not in set(request.get("decision_set") or []):
-        errors.append("current_action_class_contract_decision_not_exact_approval")
+    permitted_decisions = {ENGINEERING_AUTHORITY_APPROVAL}
+    if allow_decline:
+        permitted_decisions.add("DECLINE")
+    if decision not in permitted_decisions or decision not in set(request.get("decision_set") or []):
+        errors.append("current_action_class_contract_decision_not_exact")
     if str(request.get("issuing_owner_required") or "") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
         errors.append("current_action_class_contract_issuing_owner_invalid")
     scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
@@ -607,6 +697,14 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_program_missing")
     if str(request.get("action_class") or "").upper() not in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}:
         errors.append("current_action_class_contract_action_class_invalid")
+    max_authority_class = str(request.get("max_authority_class") or "").upper()
+    authority_ceiling = str(request.get("authority_ceiling") or "").upper()
+    if max_authority_class not in CURRENT_ACTION_CLASS_AUTHORITY_RANK or authority_ceiling not in CURRENT_ACTION_CLASS_AUTHORITY_RANK:
+        errors.append("current_action_class_contract_authority_ceiling_invalid")
+    elif CURRENT_ACTION_CLASS_AUTHORITY_RANK[max_authority_class] > CURRENT_ACTION_CLASS_AUTHORITY_RANK[authority_ceiling]:
+        errors.append("current_action_class_contract_authority_exceeds_ceiling")
+    if len(str(request.get("policy_generation_hash") or "")) != 64:
+        errors.append("current_action_class_contract_policy_generation_missing")
     if not str(subject.get("user_ip") or ""):
         errors.append("current_action_class_contract_subject_missing")
     if not str(scope.get("source_egress") or "") or not str(scope.get("target_egress") or ""):
@@ -616,18 +714,28 @@ def validate_current_action_class_contract_authority_request(
     source_generation = request.get("source_generation") if isinstance(request.get("source_generation"), dict) else {}
     if not all(str(source_generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
         errors.append("current_action_class_contract_source_generation_missing")
-    if not isinstance(request.get("incident_generation"), dict):
+    incident_generation = request.get("incident_generation") if isinstance(request.get("incident_generation"), dict) else {}
+    if not all(str(incident_generation.get(key) or "") for key in ("incident_id", "incident_generation")):
         errors.append("current_action_class_contract_incident_generation_invalid")
-    if not isinstance(request.get("verification_contract"), dict) or not request.get("verification_contract"):
+    verification = request.get("verification_contract") if isinstance(request.get("verification_contract"), dict) else {}
+    if not all(verification.get(key) for key in ("owner", "required", "immediate_and_temporal_observation", "success_criteria")):
         errors.append("current_action_class_contract_verification_contract_missing")
-    if not isinstance(request.get("rollback_containment_contract"), dict) or not request.get("rollback_containment_contract"):
+    rollback = request.get("rollback_containment_contract") if isinstance(request.get("rollback_containment_contract"), dict) else {}
+    if not (
+        rollback.get("owner") and rollback.get("required") is True
+        and rollback.get("triggered_by_verifier") is True
+        and rollback.get("direct_terminal_manufacture_forbidden") is True
+    ):
         errors.append("current_action_class_contract_rollback_contract_missing")
     cooldown = request.get("cooldown") if isinstance(request.get("cooldown"), dict) else {}
     anti_flap = request.get("anti_flap") if isinstance(request.get("anti_flap"), dict) else {}
     if as_int(cooldown.get("seconds"), -1) < 0 or cooldown.get("required") is not True:
         errors.append("current_action_class_contract_cooldown_invalid")
-    if anti_flap.get("required") is not True:
+    if anti_flap.get("required") is not True or anti_flap.get("same_source_target_repeat_forbidden") is not True:
         errors.append("current_action_class_contract_anti_flap_invalid")
+    stop_conditions = {str(item).strip() for item in (request.get("stop_conditions") or []) if str(item).strip()}
+    if not CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS.issubset(stop_conditions):
+        errors.append("current_action_class_contract_stop_conditions_incomplete")
     one_use = request.get("one_use_law") if isinstance(request.get("one_use_law"), dict) else {}
     if as_int(one_use.get("approval_use_limit"), 0) != 1 or one_use.get("implicit_renewal") is not False or one_use.get("retry_under_same_approval") is not False:
         errors.append("current_action_class_contract_one_use_law_invalid")
@@ -639,7 +747,10 @@ def validate_current_action_class_contract_authority_request(
     return {"ok": not errors, "errors": sorted(set(errors)), "request_id": request_id, "request_hash": request_hash, "evaluated_at": now.isoformat()}
 
 
-def issue_current_action_class_contract(policy, request, *, decision, expected_request_id="", expected_request_hash="", now=None):
+def issue_current_action_class_contract(
+    policy, request, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    authority_actor_id="", authority_decision_id="",
+):
     """Issue the policy contract through the existing Authority owner only.
 
     The returned policy is deliberately not a runtime action.  Its contract
@@ -654,6 +765,8 @@ def issue_current_action_class_contract(policy, request, *, decision, expected_r
     )
     if not validation.get("ok"):
         raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_request_invalid"]))
+    if not str(authority_actor_id or "").strip() or not str(authority_decision_id or "").strip():
+        raise PacketError("current_action_class_contract_authority_audit_provenance_missing")
     policy = copy.deepcopy(policy if isinstance(policy, dict) else {})
     authority_budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
     previous = authority_budget.get("current_action_class_contract") if isinstance(authority_budget.get("current_action_class_contract"), dict) else {}
@@ -677,6 +790,8 @@ def issue_current_action_class_contract(policy, request, *, decision, expected_r
         "active_program": str(request.get("active_program") or ""),
         "action_class": str(request.get("action_class") or ""),
         "max_authority_class": str(request.get("max_authority_class") or ""),
+        "authority_ceiling": str(request.get("authority_ceiling") or ""),
+        "policy_generation_hash": str(request.get("policy_generation_hash") or ""),
         "subject": copy.deepcopy(request.get("subject") or {}),
         "scope": {"source_egress": str(scope.get("source_egress") or ""), "target_egress": str(scope.get("target_egress") or "")},
         "max_users": 1,
@@ -700,6 +815,8 @@ def issue_current_action_class_contract(policy, request, *, decision, expected_r
             "request_id": validation["request_id"],
             "request_hash": validation["request_hash"],
             "decided_at": issued_at,
+            "actor_id": str(authority_actor_id or ""),
+            "decision_id": str(authority_decision_id or ""),
             "approval_use_limit": 1,
             "implicit_renewal": False,
             "retry_under_same_approval": False,
@@ -737,6 +854,13 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
         raise PacketError("current_action_class_contract_consumption_identity_mismatch")
     if current_action_class_contract_hash(contract) != str(contract_hash or ""):
         raise PacketError("current_action_class_contract_consumption_hash_invalid")
+    try:
+        if parse_ts(contract.get("expires_at")) <= now:
+            raise PacketError("current_action_class_contract_consumption_expired")
+    except PacketError as exc:
+        if str(exc) == "current_action_class_contract_consumption_expired":
+            raise
+        raise PacketError("current_action_class_contract_consumption_expiry_invalid") from exc
     if str(consumption.get("state") or "") != "ISSUED" or as_int(consumption.get("allowed_uses"), 0) != 1 or as_int(consumption.get("consumed_uses"), -1) != 0:
         raise PacketError("current_action_class_contract_not_available_for_one_use_consumption")
     expected_subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
@@ -771,10 +895,34 @@ def consume_current_action_class_contract(policy, *, contract_id, contract_hash,
     return {"policy": policy, "consumption": consumption, "contract": contract}
 
 
-def consume_current_action_class_contract_to_policy(policy_path, **kwargs):
+def consume_current_action_class_contract_to_policy(policy_path, *, audit_store=None, actor_id="tools/v7-users-autoswitch", **kwargs):
+    """Consume once under the existing policy owner's interprocess lock.
+
+    Locking covers the read, exact identity checks and atomic policy replace, so
+    two autoswitch processes cannot both observe ISSUED.  The audit append is
+    linked to the resulting consumption id and uses the established
+    operator-execution audit store.
+    """
     policy_path = Path(policy_path)
-    result = consume_current_action_class_contract(read_json(policy_path), **kwargs)
-    write_json_atomic(policy_path, result["policy"])
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(policy_path):
+        result = consume_current_action_class_contract(read_json(policy_path), **kwargs)
+        write_json_atomic(policy_path, result["policy"])
+        append_record(audit_store, {
+            "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+            "record_type": "current_action_class_contract_consumed",
+            "contract_id": result["contract"].get("contract_id", ""),
+            "contract_hash": result["contract"].get("contract_hash", ""),
+            "authority_request_id": ((result["contract"].get("authority_decision") or {}).get("request_id", "")),
+            "consumption_id": result["consumption"].get("consumption_id", ""),
+            "operation_id": str(kwargs.get("operation_id") or ""),
+            "actor_provenance": {
+                "actor_id": str(actor_id or "tools/v7-users-autoswitch"),
+                "consumption_owner": "tools/v7-users-autoswitch",
+                "recorded_at": (kwargs.get("now") or utc_now()).isoformat(),
+            },
+            "created_at": (kwargs.get("now") or utc_now()).isoformat(),
+        })
     return result
 
 
@@ -3212,17 +3360,37 @@ def load_packet(path, repo_root):
 
 def issue_current_action_class_contract_to_policy(
     policy_path, request_path, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    audit_store=None, actor_id="",
 ):
     """Persist a contract only through this existing Authority owner surface."""
     policy_path = Path(policy_path)
     request_path = Path(request_path)
-    policy = read_json(policy_path)
     request = read_json(request_path)
-    result = issue_current_action_class_contract(
-        policy, request, decision=decision, expected_request_id=expected_request_id,
-        expected_request_hash=expected_request_hash, now=now,
-    )
-    write_json_atomic(policy_path, result["policy"])
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    now = now or utc_now()
+    with current_action_class_contract_policy_lock(policy_path):
+        policy_generation_hash = sha256_file(policy_path)
+        if _current_action_class_decision_records(read_audit_records(audit_store), request.get("request_id")):
+            raise PacketError("current_action_class_contract_authority_decision_already_recorded")
+        validation = validate_current_action_class_contract_authority_request(
+            request, decision=decision, expected_request_id=expected_request_id,
+            expected_request_hash=expected_request_hash, now=now,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_request_invalid"]))
+        if str(request.get("policy_generation_hash") or "") != policy_generation_hash:
+            raise PacketError("current_action_class_contract_policy_generation_changed")
+        decision_record = append_record(audit_store, _current_action_class_contract_audit_record(
+            request, decision=decision, actor_id=actor_id,
+            policy_generation_hash=policy_generation_hash, now=now,
+        ))
+        result = issue_current_action_class_contract(
+            read_json(policy_path), request, decision=decision,
+            expected_request_id=expected_request_id, expected_request_hash=expected_request_hash,
+            now=now, authority_actor_id=actor_id,
+            authority_decision_id=decision_record["decision_id"],
+        )
+        write_json_atomic(policy_path, result["policy"])
     return {
         "status": "ISSUED",
         "policy_path": str(policy_path),
@@ -3237,6 +3405,54 @@ def issue_current_action_class_contract_to_policy(
         "packet_created": False,
         "lease_created": False,
         "production_maturity_changed": False,
+        "authority_decision_audit": {
+            "decision_id": decision_record["decision_id"],
+            "audit_store": str(audit_store),
+            "actor_id": str(actor_id),
+            "append_only": True,
+        },
+    }
+
+
+def decline_current_action_class_contract_request(
+    policy_path, request_path, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    audit_store=None, actor_id="",
+):
+    """Record one owner-backed decline without writing an action-class contract."""
+    if decision != "DECLINE":
+        raise PacketError("current_action_class_contract_decline_not_exact")
+    policy_path = Path(policy_path)
+    request = read_json(Path(request_path))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    now = now or utc_now()
+    with current_action_class_contract_policy_lock(policy_path):
+        policy_generation_hash = sha256_file(policy_path)
+        if _current_action_class_decision_records(read_audit_records(audit_store), request.get("request_id")):
+            raise PacketError("current_action_class_contract_authority_decision_already_recorded")
+        validation = validate_current_action_class_contract_authority_request(
+            request, decision=decision, expected_request_id=expected_request_id,
+            expected_request_hash=expected_request_hash, now=now, allow_decline=True,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_decline_invalid"]))
+        if str(request.get("policy_generation_hash") or "") != policy_generation_hash:
+            raise PacketError("current_action_class_contract_policy_generation_changed")
+        decision_record = append_record(audit_store, _current_action_class_contract_audit_record(
+            request, decision=decision, actor_id=actor_id,
+            policy_generation_hash=policy_generation_hash, now=now,
+        ))
+    return {
+        "status": "DECLINED",
+        "policy_path": str(policy_path),
+        "policy_write": False,
+        "authority_granted": False,
+        "authority_decision_audit": {
+            "decision_id": decision_record["decision_id"], "audit_store": str(audit_store),
+            "actor_id": str(actor_id), "append_only": True,
+        },
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
     }
 
 
@@ -3286,15 +3502,20 @@ def main(argv=None):
         "--issue-current-action-class-contract-from-request", default="",
         help="Existing Authority owner only: issue one exact approved action-class contract from a fresh request JSON.",
     )
+    parser.add_argument(
+        "--decline-current-action-class-contract-from-request", default="",
+        help="Existing Authority owner only: append one exact DECLINE decision without writing policy.",
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
+    parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
     parser.add_argument("--expected-authority-request-id", default="")
     parser.add_argument("--expected-authority-request-hash", default="")
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
         if args.issue_current_action_class_contract_from_request:
-            if args.packet or args.generate_from_plan or args.generate_from_preview:
+            if args.packet or args.generate_from_plan or args.generate_from_preview or args.decline_current_action_class_contract_from_request:
                 raise PacketError("current_action_class_contract_issue_mode_must_not_mix_packet_modes")
             result = issue_current_action_class_contract_to_policy(
                 args.action_class_policy_file,
@@ -3302,9 +3523,33 @@ def main(argv=None):
                 decision=args.authority_decision,
                 expected_request_id=args.expected_authority_request_id,
                 expected_request_hash=args.expected_authority_request_hash,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+                actor_id=args.authority_actor_id,
             )
             text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
             print(text)
+            return 0
+        if args.decline_current_action_class_contract_from_request:
+            if args.packet or args.generate_from_plan or args.generate_from_preview:
+                raise PacketError("current_action_class_contract_decline_mode_must_not_mix_packet_modes")
+            result = decline_current_action_class_contract_request(
+                args.action_class_policy_file,
+                args.decline_current_action_class_contract_from_request,
+                decision=args.authority_decision,
+                expected_request_id=args.expected_authority_request_id,
+                expected_request_hash=args.expected_authority_request_hash,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+                actor_id=args.authority_actor_id,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
             return 0
         if args.check_autonomous_execution_control:
             result = autonomous_execution_control_decision(

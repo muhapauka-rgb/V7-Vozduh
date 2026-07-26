@@ -1,5 +1,6 @@
 import json
 import tempfile
+import threading
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -28,6 +29,8 @@ from admin_core.operator_execution import (
     finish_execution_lease,
     issue_current_action_class_contract,
     consume_current_action_class_contract,
+    consume_current_action_class_contract_to_policy,
+    decline_current_action_class_contract_request,
     finalize_autonomous_execution_control_window,
     material_state_from_packet,
     packet_from_preview,
@@ -44,11 +47,48 @@ from admin_core.operator_execution import (
     write_execution_lease,
     validate_engineering_authority_repair_continuation,
     validate_current_action_class_contract_authority_request,
+    issue_current_action_class_contract_to_policy,
+    read_audit_records,
 )
 
 
 def write_json(path, data):
     Path(path).write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+
+
+def action_contract_template(policy_generation_hash="a" * 64):
+    return {
+        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "action_class": "GOVERNED_ONLY",
+        "max_authority_class": "POOL",
+        "authority_ceiling": "POOL",
+        "policy_generation_hash": policy_generation_hash,
+        "subject": {"user_ip": "10.0.0.2"},
+        "scope": {"source_egress": "vless", "target_egress": "awg3"},
+        "max_users": 1,
+        "max_concurrent_transactions": 1,
+        "incident_generation": {"incident_id": "incident-1", "incident_generation": "generation-1"},
+        "source_generation": {
+            "planner_generation_id": "planner-1", "source_bundle_hash": "source-1",
+            "snapshot_bundle_hash": "snapshot-1", "selected_move_hash": "move-1",
+        },
+        "verification_contract": {
+            "owner": "tools/v7-users-autoswitch", "required": True,
+            "immediate_and_temporal_observation": True, "success_criteria": "route_and_service_pass",
+        },
+        "rollback_containment_contract": {
+            "owner": "tools/v7-users-autoswitch", "required": True,
+            "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True,
+        },
+        "cooldown": {"required": True, "seconds": 180},
+        "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+        "stop_conditions": [
+            "no_safe_target", "stale_or_changed_situation", "selected_move_identity_changed",
+            "target_capacity_or_service_gate_failed", "verification_failure", "rollback_required",
+            "authority_decision_expired", "one_use_consumed_or_contended",
+        ],
+        "max_ttl_seconds": 300,
+    }
 
 
 def packet_template(state_dir, expires_delta=timedelta(hours=1)):
@@ -105,18 +145,30 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "scope": {"source_egress": "vless", "target_egress": "awg3"},
             "max_users": 1,
             "max_concurrent_transactions": 1,
-            "incident_generation": {"incident_id": "incident-1"},
+            "incident_generation": {"incident_id": "incident-1", "incident_generation": "generation-1"},
             "source_generation": {
                 "planner_generation_id": "planner-1",
                 "source_bundle_hash": "source-1",
                 "snapshot_bundle_hash": "snapshot-1",
                 "selected_move_hash": "move-1",
             },
-            "verification_contract": {"owner": "tools/v7-users-autoswitch", "required": True},
-            "rollback_containment_contract": {"owner": "tools/v7-users-autoswitch", "required": True},
+            "policy_generation_hash": "a" * 64,
+            "authority_ceiling": "POOL",
+            "verification_contract": {
+                "owner": "tools/v7-users-autoswitch", "required": True,
+                "immediate_and_temporal_observation": True, "success_criteria": "route_and_service_pass",
+            },
+            "rollback_containment_contract": {
+                "owner": "tools/v7-users-autoswitch", "required": True,
+                "triggered_by_verifier": True, "direct_terminal_manufacture_forbidden": True,
+            },
             "cooldown": {"required": True, "seconds": 180},
-            "anti_flap": {"required": True},
-            "stop_conditions": ["verification_failure"],
+            "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
+            "stop_conditions": [
+                "no_safe_target", "stale_or_changed_situation", "selected_move_identity_changed",
+                "target_capacity_or_service_gate_failed", "verification_failure", "rollback_required",
+                "authority_decision_expired", "one_use_consumed_or_contended",
+            ],
             "max_ttl_seconds": 300,
         }
         request = build_current_action_class_contract_authority_request(
@@ -130,6 +182,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         issued = issue_current_action_class_contract(
             {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
             expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+            authority_actor_id="test-authority", authority_decision_id="accdec-test",
         )
         contract = issued["contract"]
         self.assertEqual(contract["issuing_owner"], CANONICAL_CLEARANCE_OWNER)
@@ -174,6 +227,130 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
         self.assertFalse(result["ok"])
         self.assertIn("current_action_class_contract_request_expired", result["errors"])
+
+    def test_current_action_contract_expiry_rejects_consumption(self):
+        now = datetime(2026, 7, 26, tzinfo=timezone.utc)
+        request = build_current_action_class_contract_authority_request(
+            action_contract_template(), issue_preflight={"ready": True, "blockers": []}, now=now,
+        )
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"], now=now,
+            authority_actor_id="test-authority", authority_decision_id="accdec-test",
+        )
+        contract = issued["contract"]
+        with self.assertRaisesRegex(PacketError, "consumption_expired"):
+            consume_current_action_class_contract(
+                issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"],
+                subject=contract["subject"], scope=contract["scope"],
+                source_generation=contract["source_generation"], operation_id="expired-op",
+                now=now + timedelta(seconds=301),
+            )
+
+    def test_current_action_contract_rejects_malformed_incident_and_authority_ceiling(self):
+        malformed = action_contract_template()
+        malformed["incident_generation"] = {"incident_id": ""}
+        request = build_current_action_class_contract_authority_request(
+            malformed, issue_preflight={"ready": True, "blockers": []},
+        )
+        result = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED",
+        )
+        self.assertIn("current_action_class_contract_incident_generation_invalid", result["errors"])
+        over_ceiling = action_contract_template()
+        over_ceiling["max_authority_class"] = "FULL_INCIDENT"
+        over_ceiling["authority_ceiling"] = "CANARY"
+        request = build_current_action_class_contract_authority_request(
+            over_ceiling, issue_preflight={"ready": True, "blockers": []},
+        )
+        result = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED",
+        )
+        self.assertIn("current_action_class_contract_authority_exceeds_ceiling", result["errors"])
+
+    def test_current_action_contract_authority_decisions_are_append_only_and_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.json"
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            request_path = Path(tmp) / "request.json"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_current_action_class_contract_authority_request(
+                action_contract_template(sha256_file(policy_path)), issue_preflight={"ready": True, "blockers": []},
+            )
+            write_json(request_path, request)
+            result = issue_current_action_class_contract_to_policy(
+                policy_path, request_path, decision="APPROVE_ONCE_AS_SCOPED",
+                expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+                audit_store=audit_path, actor_id="authority-operator",
+            )
+            self.assertEqual(result["status"], "ISSUED")
+            with self.assertRaisesRegex(PacketError, "decision_already_recorded"):
+                issue_current_action_class_contract_to_policy(
+                    policy_path, request_path, decision="APPROVE_ONCE_AS_SCOPED",
+                    expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+                    audit_store=audit_path, actor_id="authority-operator",
+                )
+            records = read_audit_records(audit_path)
+            self.assertEqual(len([r for r in records if r.get("decision") == "APPROVE_ONCE_AS_SCOPED"]), 1)
+
+            decline_policy = Path(tmp) / "decline-policy.json"
+            decline_request_path = Path(tmp) / "decline-request.json"
+            decline_audit = Path(tmp) / "decline-audit.jsonl"
+            write_json(decline_policy, {"authority_budget": {}})
+            decline_request = build_current_action_class_contract_authority_request(
+                action_contract_template(sha256_file(decline_policy)), issue_preflight={"ready": True, "blockers": []},
+            )
+            write_json(decline_request_path, decline_request)
+            declined = decline_current_action_class_contract_request(
+                decline_policy, decline_request_path, decision="DECLINE",
+                expected_request_id=decline_request["request_id"], expected_request_hash=decline_request["request_hash"],
+                audit_store=decline_audit, actor_id="authority-operator",
+            )
+            self.assertEqual(declined["status"], "DECLINED")
+            with self.assertRaisesRegex(PacketError, "decision_already_recorded"):
+                decline_current_action_class_contract_request(
+                    decline_policy, decline_request_path, decision="DECLINE",
+                    expected_request_id=decline_request["request_id"], expected_request_hash=decline_request["request_hash"],
+                    audit_store=decline_audit, actor_id="authority-operator",
+                )
+            self.assertEqual(len([r for r in read_audit_records(decline_audit) if r.get("decision") == "DECLINE"]), 1)
+
+    def test_current_action_contract_interprocess_consumption_allows_exactly_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.json"
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            request = build_current_action_class_contract_authority_request(
+                action_contract_template(), issue_preflight={"ready": True, "blockers": []},
+            )
+            issued = issue_current_action_class_contract(
+                {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+                expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+                authority_actor_id="test-authority", authority_decision_id="accdec-test",
+            )
+            write_json(policy_path, issued["policy"])
+            contract = issued["contract"]
+            barrier = threading.Barrier(2)
+            outcomes = []
+
+            def consume(operation_id):
+                barrier.wait()
+                try:
+                    consume_current_action_class_contract_to_policy(
+                        policy_path, audit_store=audit_path, contract_id=contract["contract_id"],
+                        contract_hash=contract["contract_hash"], subject=contract["subject"], scope=contract["scope"],
+                        source_generation=contract["source_generation"], operation_id=operation_id,
+                    )
+                    outcomes.append("PASS")
+                except PacketError:
+                    outcomes.append("STOP_SAFE")
+
+            threads = [threading.Thread(target=consume, args=(f"op-{n}",)) for n in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            self.assertEqual(sorted(outcomes), ["PASS", "STOP_SAFE"])
+            self.assertEqual(len([r for r in read_audit_records(audit_path) if r.get("record_type") == "current_action_class_contract_consumed"]), 1)
 
     def test_autonomous_execution_control_is_fail_closed_and_generation_bound(self):
         now = datetime.now(timezone.utc)

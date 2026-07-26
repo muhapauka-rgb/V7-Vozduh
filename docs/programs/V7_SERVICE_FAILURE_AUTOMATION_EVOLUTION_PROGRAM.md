@@ -171,11 +171,13 @@ The contract must contain:
   `max_concurrent_transactions=1`;
 - `incident_generation` and the fresh `source_generation` identity
   (`planner_generation_id`, source/snapshot bundle hashes and selected-move
-  hash);
+  hash), plus the exact pre-decision policy generation hash and Authority
+  ceiling;
 - `issued_at`, short unexpired `expires_at`, verification contract,
   rollback/containment contract, cooldown and anti-flap contract;
 - immutable `authority_decision` provenance: the exact request id/hash,
-  `APPROVE_ONCE_AS_SCOPED`, and decision timestamp;
+  `APPROVE_ONCE_AS_SCOPED`, decision timestamp, decision id and accountable
+  actor provenance;
 - a one-use consumption state (`ISSUED -> CONSUMED/EXPIRED`) with exactly one
   allowed use and no retry under the same decision.
 
@@ -192,6 +194,17 @@ existing Authority owner to atomically transition `ISSUED -> CONSUMED`, binding
 the exact user, source/target and source generation. A failed or interrupted
 later apply remains consumed and therefore requires a new reconciliation and
 new Authority decision; no retry can silently reuse the previous contract.
+
+The owner holds an interprocess policy-file lock across read, validation and
+atomic replace, so competing consumers cannot both observe `ISSUED`. The
+already-owned append-only `/opt/v7/audit/operator-execution-audit.jsonl`
+records exactly one `APPROVE_ONCE_AS_SCOPED` or `DECLINE` decision with actor
+provenance, and records the one-use consumption. The lock is only a transient
+coordination primitive; it is not an additional durable owner. Issuance fails
+closed if the current policy generation no longer equals the request binding,
+the incident identity/generation is incomplete, Authority exceeds its actual
+ceiling, required stop conditions are missing, or verification/rollback
+contracts do not name their required owner and verifier-triggered behavior.
 
 The autoswitch gate must cap selection by that scope. A missing, malformed,
 expired, lower-than-certified or zero-budget contract is

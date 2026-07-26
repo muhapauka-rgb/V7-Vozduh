@@ -613,6 +613,8 @@ def runtime_authority_contract_status(
         and bool(str(decision.get("request_id") or ""))
         and bool(str(decision.get("request_hash") or ""))
         and bool(str(decision.get("decided_at") or ""))
+        and bool(str(decision.get("actor_id") or ""))
+        and bool(str(decision.get("decision_id") or ""))
     )
     scope_ok = bool(str(scope.get("source_egress") or "")) and bool(str(scope.get("target_egress") or ""))
     action_ok = action_class in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}
@@ -621,8 +623,15 @@ def runtime_authority_contract_status(
     budget_ok = (max_users > 0) if not strict_provenance_contract else (max_users == 1 and max_concurrent_transactions == 1)
     source_generation_ok = (not strict_provenance_contract) or (all(str(source_generation.get(key) or "") for key in (
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
-    )) and isinstance(incident_generation, dict))
-    execution_contract_ok = (not strict_provenance_contract) or (bool(verification_contract) and bool(rollback_contract))
+    )) and all(str(incident_generation.get(key) or "") for key in ("incident_id", "incident_generation")))
+    execution_contract_ok = (not strict_provenance_contract) or (
+        verification_contract.get("owner") and verification_contract.get("required") is True
+        and verification_contract.get("immediate_and_temporal_observation") is True
+        and verification_contract.get("success_criteria")
+        and rollback_contract.get("owner") and rollback_contract.get("required") is True
+        and rollback_contract.get("triggered_by_verifier") is True
+        and rollback_contract.get("direct_terminal_manufacture_forbidden") is True
+    )
     lifecycle_ok = (not strict_provenance_contract) or (
         cooldown.get("required") is True and to_int(cooldown.get("seconds"), -1) >= 0
         and anti_flap.get("required") is True
@@ -641,7 +650,9 @@ def runtime_authority_contract_status(
         and "cooldown_seconds" in required_gates
         and to_int(required_gates.get("cooldown_seconds"), -1) >= 0
     )
-    stop_conditions_ok = bool([item for item in stop_conditions if str(item).strip()])
+    stop_conditions_ok = (not strict_provenance_contract) or operator_execution.CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS.issubset(
+        {str(item).strip() for item in stop_conditions if str(item).strip()}
+    )
     valid = (not required) or (
         schema_ok and provenance_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok
         and source_generation_ok and execution_contract_ok and lifecycle_ok and gate_contract_ok and stop_conditions_ok
@@ -809,6 +820,8 @@ def action_class_contract_reconciliation_request(
         "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "action_class": "GOVERNED_ONLY",
         "max_authority_class": str(authority_gate.get("certified_authority_class") or "CANARY"),
+        "authority_ceiling": str(authority_gate.get("certified_authority_class") or "CANARY"),
+        "policy_generation_hash": sha256_file(policy_path),
         "max_users": 1,
         "max_concurrent_transactions": 1,
         "max_ttl_seconds": 300,
@@ -819,13 +832,14 @@ def action_class_contract_reconciliation_request(
         },
         "incident_generation": {
             "incident_id": str(l3_incident.get("incident_id") or l3_incident.get("incident_key") or ""),
-            "incident_generation": str(l3_incident.get("generation") or ""),
+            "incident_generation": str(l3_incident.get("incident_generation") or l3_incident.get("generation") or ""),
         },
         "source_generation": action_class_contract_source_generation(plan, chosen),
         "verification_contract": {
             "owner": "tools/v7-users-autoswitch",
             "required": True,
             "immediate_and_temporal_observation": True,
+            "success_criteria": "owner_defined_immediate_and_temporal_route_service_verification",
         },
         "rollback_containment_contract": {
             "owner": "tools/v7-users-autoswitch",
@@ -849,6 +863,8 @@ def action_class_contract_reconciliation_request(
             "target_capacity_or_service_gate_failed",
             "verification_failure",
             "rollback_required",
+            "authority_decision_expired",
+            "one_use_consumed_or_contended",
         ],
     }
     request_id = "accr_" + sha256_json({
@@ -870,6 +886,10 @@ def action_class_contract_reconciliation_request(
         "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
     )):
         issue_preflight_blockers.append("fresh_source_generation_missing")
+    if not all(str(template["incident_generation"].get(key) or "") for key in ("incident_id", "incident_generation")):
+        issue_preflight_blockers.append("fresh_owner_backed_incident_generation_missing")
+    if len(str(template["policy_generation_hash"] or "")) != 64:
+        issue_preflight_blockers.append("policy_generation_missing")
     if not str(template["subject"].get("user_ip") or "") or str(template["subject"].get("user_ip")) == "OWNER_TO_BIND_FROM_FRESH_SITUATION":
         issue_preflight_blockers.append("fresh_exact_user_missing")
     if current_contract_valid:
@@ -9638,6 +9658,8 @@ class AutoswitchPlanner:
                     },
                     source_generation=action_class_contract_source_generation(plan, move),
                     operation_id=operation_id,
+                    audit_store=getattr(self.args, "action_class_audit_store", ""),
+                    actor_id="tools/v7-users-autoswitch",
                 )
             except operator_execution.PacketError as exc:
                 return {
@@ -11301,6 +11323,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-source-bundle-hash", default="", help="Fail closed unless apply consumes this approved source bundle hash.")
     parser.add_argument("--approved-snapshot-bundle-hash", default="", help="Fail closed unless apply consumes this approved snapshot bundle hash.")
     parser.add_argument("--execution-control-file", default=str(DEFAULT_EXECUTION_CONTROL_FILE))
+    parser.add_argument(
+        "--action-class-audit-store",
+        default=str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        help="Existing operator-execution append-only audit owner for action-class consumption.",
+    )
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")

@@ -47,6 +47,32 @@ one-user/one-transaction scope, atomic one-use consumption and rejection of a
 second consumption. Full local test, deployment, production caller and truth /
 convergence results are recorded only after their respective commands finish.
 
+## Reliability hardening — 2026-07-26
+
+The same existing Authority owner was extended, without a new registry or
+execution path:
+
+- a v2 contract is rejected at consumption when its `expires_at` has passed;
+- an advisory sidecar file lock serializes policy read -> validation -> atomic
+  write, so concurrent autoswitch processes have exactly one successful
+  `ISSUED -> CONSUMED` transition;
+- the established append-only
+  `/opt/v7/audit/operator-execution-audit.jsonl` now records exactly one
+  `APPROVE_ONCE_AS_SCOPED` or `DECLINE` with request/hash, actor provenance,
+  incident/source identities and pre-decision policy generation; consumption
+  is recorded by the same owner;
+- issuance rejects changed policy generation, incomplete incident identity,
+  an Authority class above its policy ceiling, incomplete stop conditions, and
+  incomplete verification/rollback/anti-flap contracts;
+- the request binds the policy generation and Authority ceiling in addition to
+  the prior source/snapshot/selected-move generation.
+
+New focused tests prove expired-contract rejection, malformed incident and
+Authority-ceiling rejection, one-and-only-one APPROVE/DECLINE audit record,
+and two concurrent consumers producing exactly one `PASS` and one
+`STOP_SAFE`. These are engineering safety properties only: they do not issue a
+production contract or create L7/L8 evidence.
+
 ## Production caller repair
 
 The first production read-only caller after deployment exposed an exact

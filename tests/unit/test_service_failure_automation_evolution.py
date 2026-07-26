@@ -175,11 +175,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "blockers": ["current_action_class_contract_missing_or_schema_invalid"],
                     },
                 },
+                "l3_incident": {
+                    "incident_id": "incident-1",
+                    "incident_generation": "incident-generation-1",
+                },
             },
         }
-        request = self.autoswitch.action_class_contract_reconciliation_request(
-            plan, policy_path=Path("/etc/v7/policy.json"),
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_path = Path(tmp) / "policy.json"
+            policy_path.write_text("{}\n", encoding="utf-8")
+            request = self.autoswitch.action_class_contract_reconciliation_request(
+                plan, policy_path=policy_path,
+            )
 
         self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY")
         self.assertEqual(request["shadow_candidate"]["source_egress"], "vless")

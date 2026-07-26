@@ -2,9 +2,12 @@ import importlib.machinery
 import importlib.util
 import json
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -89,6 +92,86 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(first["next_output"], "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR")
             second = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
             self.assertEqual(second["final_verdict"], "NO_PENDING_OBLIGATION")
+
+    def test_existing_closure_owner_is_consumed_once_across_processes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_cross_process",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "created_at": "2026-07-26T00:00:00+00:00",
+                "source_incident_id": "sfinc_cross_process",
+                "situation_id": "situation_cross_process",
+                "decision_trace_id": "decision_cross_process",
+                "stop_safe_classification": "STOP_SAFE_EXISTING_CAPABILITY_NOT_CALLED",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(obligation) + "\n", encoding="utf-8")
+            script = """
+import importlib.machinery, importlib.util, json, sys
+loader = importlib.machinery.SourceFileLoader('sync_child', sys.argv[1])
+spec = importlib.util.spec_from_loader(loader.name, loader)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+result = module.consume_service_failure_automation_frontier(state_dir=module.Path(sys.argv[2]), persist_cps=False)
+print(json.dumps({'verdict': result.get('final_verdict')}))
+"""
+            processes = [
+                subprocess.Popen(
+                    [sys.executable, "-c", script, str(ROOT / "tools/v7_sync_lib.py"), str(state_dir)],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                )
+                for _ in range(4)
+            ]
+            verdicts = []
+            for process in processes:
+                stdout, stderr = process.communicate(timeout=30)
+                self.assertEqual(process.returncode, 0, stderr)
+                verdicts.append(json.loads(stdout)["verdict"])
+            self.assertEqual(verdicts.count("PASS"), 1)
+            self.assertEqual(verdicts.count("NO_PENDING_OBLIGATION"), 3)
+
+    def test_safe_service_failure_successor_materializes_event_driven_reentry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "egress/state"
+            state_dir.mkdir(parents=True)
+            (root / "docs/programs").mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_safe_successor",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "created_at": "2026-07-26T00:00:00+00:00",
+                "source_incident_id": "sfinc_safe_successor",
+                "situation_id": "situation_safe_successor",
+                "decision_trace_id": "decision_safe_successor",
+                "stop_safe_classification": "STOP_SAFE_EXISTING_CAPABILITY_NOT_CALLED",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(obligation) + "\n", encoding="utf-8")
+
+            atomic_result = {
+                "ok": True,
+                "status": "ATOMIC_UPDATE_COMPLETE",
+                "post_write_reread": "PASS",
+                "external_wake": {"dispatch_required": True},
+            }
+            with mock.patch.object(
+                self.sync, "atomic_reconcile_cps", return_value=atomic_result,
+            ) as atomic:
+                result = self.sync.consume_service_failure_automation_frontier(
+                    root=root, state_dir=state_dir, persist_cps=True,
+                )
+
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertTrue(result["atomic_update"]["external_wake"]["dispatch_required"])
+            self.assertEqual(result["next_output"], "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR")
+            self.assertTrue(atomic.call_args.kwargs["request_external_wake"])
 
     def test_exact_execution_outcome_is_compared_without_replaying_or_applying(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -5992,6 +5992,8 @@ def _append_jsonl_record(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def service_failure_automation_state_dir(*, root: Path = ROOT, state_dir: Optional[Path] = None) -> Path:
@@ -6039,6 +6041,7 @@ def service_failure_automation_frontier(
 def consume_service_failure_automation_frontier(
     *, root: Path = ROOT, state_dir: Optional[Path] = None, persist_cps: bool = False,
     obligation_override: Optional[dict[str, Any]] = None, record_receipt: bool = True,
+    _lock_held: bool = False,
 ) -> dict[str, Any]:
     """Consume one existing service-failure obligation through the OMP owner.
 
@@ -6046,7 +6049,29 @@ def consume_service_failure_automation_frontier(
     closure owner.  No Candidate, Packet, lease, Runtime action or Authority
     change can be produced here.
     """
-    frontier = service_failure_automation_frontier(root=root, state_dir=state_dir)
+    resolved_state_dir = service_failure_automation_state_dir(root=root, state_dir=state_dir)
+    if record_receipt and not _lock_held:
+        # The sidecar is only the existing closure owner's interprocess
+        # coordination primitive.  Hold it across select -> CPS projection ->
+        # receipt append so two Continue OMP processes cannot consume the same
+        # durable obligation or publish two successors.
+        lock_path = resolved_state_dir / "closure-records.lock"
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with lock_path.open("a+", encoding="utf-8") as lock_handle:
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+            try:
+                return consume_service_failure_automation_frontier(
+                    root=root,
+                    state_dir=resolved_state_dir,
+                    persist_cps=persist_cps,
+                    obligation_override=obligation_override,
+                    record_receipt=record_receipt,
+                    _lock_held=True,
+                )
+            finally:
+                fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+
+    frontier = service_failure_automation_frontier(root=root, state_dir=resolved_state_dir)
     obligation = obligation_override if isinstance(obligation_override, dict) else (
         frontier.get("selected") if isinstance(frontier.get("selected"), dict) else {}
     )
@@ -6159,7 +6184,10 @@ def consume_service_failure_automation_frontier(
         atomic = atomic_reconcile_cps(
             cps_path,
             state=state,
-            request_external_wake=False,
+            # Safe successors must re-enter through the already certified
+            # event-driven OMP owner.  Exact Authority/real-world terminals
+            # intentionally suppress a wake and remain external boundaries.
+            request_external_wake=not (legal_terminal or authority_boundary),
             expected_generation=_plain_live_value(_markdown_field_table(_markdown_section(cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry")), "CURRENT_STATE_GENERATION"),
         )
         if not atomic.get("ok"):

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.2`
+Version: `1.3`
 
 Status: `PROPOSED_EXECUTION_PLAN`
 
@@ -258,6 +258,43 @@ After every Mission, OMP must recompute exact residuals:
 - do not continue ceremonially after a legal program terminal;
 - a lane-local Authority or real-world wait cannot block independent safe
   engineering work.
+
+## Automatic successor continuation contract
+
+Every non-terminal result in this Program must close through the existing
+owner chain:
+
+```text
+verified result
+-> existing OMP consumer
+-> atomic CPS projection
+-> residual recomputation
+-> durable exact successor
+-> existing event-driven Continue OMP re-entry
+```
+
+Transaction terminals, focused repair completion, tests, safe deploy,
+production caller verification, replay, Learning, Outcome consumption and an
+M6/M7 recommendation are not operator-return points while a safe successor
+exists. The existing event-driven Codex Automation Platform owner must receive
+one deterministic wake after the atomic successor projection; the watchdog is
+fallback only. Consumption and successor publication are interprocess
+exact-once through the existing closure owner.
+
+The wake is suppressed only for an exact independent `ENGINEERING_AUTHORITY`
+or `OPERATIONAL_AUTHORITY` decision, a fully reconciled `REAL_WORLD_LIMIT`, an
+external owner/access input, or an irreducible safety boundary. These terminals
+must preserve the exact re-entry condition. They may not be converted into an
+approval or bypassed by this Program.
+
+After each owner-backed controlled outcome, replay and Learning, the existing
+M6/M7 owners recompute the progressive blast-radius ladder. `HOLD`, `FREEZE`,
+`DEMOTE` and insufficient-evidence decisions remain exact legal outputs. An
+independently approved next tier produces a durable successor for the same
+existing execution lifecycle. At most one tier may advance per independently
+certified generation: `1 -> 2 -> 5 -> 10 -> bounded cohort`. No policy number
+may be raised directly and no historical evidence may substitute for the
+current owner decision.
 
 ## Parallel frontier and arbitration law
 

@@ -56,13 +56,38 @@ policy, Authority, Packet, routing и users по-прежнему не меня�
 routing mutation, user move, packet execution, lease, rollback, runtime apply,
 Authority grant или Production Maturity change.
 
-## Следующий закрытый цикл
+## Production caller verification
 
-1. Безопасно задеплоить только `tools/v7-users-autoswitch`.
-2. Вызвать production reconciliation и подтвердить coherent snapshot preflight
-   под shared lock.
-3. Если freshness закрыта, оставить выдачу точного one-use contract отдельному
-   policy owner; если нет — потребить точный producer defect через BDP/OMP.
+Коммит `03a1def27e2c2decb7793a9a4e16c9445ea12e00` доставлен штатным
+`v7-safe-deploy` как единственный runtime-файл `tools/v7-users-autoswitch`
+(`deploy-z8-14-Updatesystem-03a1def-20260726T101205`).
+
+Production entrypoint вернул:
+
+- `POLICY_READ_ONLY_HANDOFF_WITH_EXISTING_SNAPSHOT_REFRESH`;
+- `coherent_snapshot_preflight.performed=true`;
+- `source_stable=true`;
+- `shared_service_matrix_lock_held=true`;
+- `snapshot_stop_required=false`;
+- `ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY`.
+
+Проверены запрещённые эффекты: `policy_write=false`,
+`authority_granted=false`, `runtime_apply=false`, `routing_mutation=false`,
+`user_movement=0`, `candidate_created=false`, `packet_created=false`,
+`lease_created=false`, `rollback_apply=false`, `production_maturity_change=false`.
+
+## Точный legal terminal и следующий закрытый цикл
+
+Engineering residual закрыт. Единственный следующий consumer — независимый
+existing owner `/etc/v7/policy.json`; он может либо отклонить request (возврат
+в fresh `STOP_SAFE`), либо выдать короткий one-use contract для ровно одного
+пользователя `vless -> wireguard-1779454504-c43409` с freshness,
+verification, rollback, cooldown, anti-flap и expiry. После этого existing
+autoswitch boundary обязан заново прочитать и проверить contract до любого
+Candidate/Packet/lease/apply.
+
+Это `ENGINEERING_AUTHORITY` terminal, а не поломка snapshot, не разрешение на
+runtime apply и не причина повышать Authority или Production Maturity.
 
 Ни старый `APPROVE_ONCE_AS_SCOPED`, ни общее согласие не являются заменой
 актуального exact policy-owner contract.

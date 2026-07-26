@@ -677,6 +677,9 @@ def action_class_contract_reconciliation_request(
     contract_gate = authority_gate.get("current_action_class_contract") if isinstance(
         authority_gate.get("current_action_class_contract"), dict
     ) else {}
+    intelligence_gate = safety.get("intelligence_snapshots") if isinstance(
+        safety.get("intelligence_snapshots"), dict
+    ) else {}
     status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
     shadow_candidates = sorted(
         [
@@ -730,12 +733,23 @@ def action_class_contract_reconciliation_request(
         "target": template["scope"]["target_egress"],
         "user": str(chosen.get("user_ip") or ""),
     })[:24]
+    issue_preflight_blockers: list[str] = []
+    if not chosen:
+        issue_preflight_blockers.append("no_current_shadow_candidate")
+    if bool_value(intelligence_gate.get("stop_required")):
+        issue_preflight_blockers.append(
+            str(intelligence_gate.get("unsafe_blocker") or "intelligence_snapshot_gate_stop_required")
+        )
     if current_contract_valid:
         reconciliation_status = "CURRENT_ACTION_CLASS_CONTRACT_ACTIVE_REVALIDATE_EXISTING_CONSUMER"
         next_consumer = "tools/v7-users-autoswitch planner -> action_class_execution_boundary"
     elif status == "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED":
-        reconciliation_status = "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_READY"
-        next_consumer = "existing /etc/v7/policy.json authority owner -> tools/v7-users-autoswitch planner -> action_class_execution_boundary"
+        if issue_preflight_blockers:
+            reconciliation_status = "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS"
+            next_consumer = "existing v7-intelligence-snapshot-refresh/source owner -> tools/v7-users-autoswitch planner -> action-class contract reconciliation"
+        else:
+            reconciliation_status = "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY"
+            next_consumer = "existing /etc/v7/policy.json authority owner -> tools/v7-users-autoswitch planner -> action_class_execution_boundary"
     else:
         reconciliation_status = "NO_ACTION_CLASS_CONTRACT_REQUEST_REQUIRED_FOR_CURRENT_BOUNDARY"
         next_consumer = "existing service-failure obligation -> OMP Automation Gap Closure"
@@ -747,6 +761,11 @@ def action_class_contract_reconciliation_request(
         "contract_required": contract_required,
         "current_contract_valid": current_contract_valid,
         "current_contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
+        "issue_preflight": {
+            "ready": not issue_preflight_blockers,
+            "blockers": sorted(set(issue_preflight_blockers)),
+            "intelligence_snapshot_stop_required": bool_value(intelligence_gate.get("stop_required")),
+        },
         "shadow_candidate": {
             "user_ip": str(chosen.get("user_ip") or ""),
             "source_egress": str(chosen.get("current_egress") or ""),

@@ -185,8 +185,11 @@ Authority. Its closed loop is:
 
 `STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED`
 `->` read-only request template
+`->` if any freshness/source-binding gate is unresolved: its existing producer
+or `v7-intelligence-snapshot-refresh`, then the planner is re-run
 `->` existing `/etc/v7/policy.json` authority owner independently issues or
-declines a short one-use scoped contract
+declines a short one-use scoped contract only after the request preflight is
+fresh and ready
 `->` existing event-driven Service Matrix/autoswitch invocation re-reads and
 validates that contract
 `->` existing action-class boundary returns either another exact `STOP_SAFE`,

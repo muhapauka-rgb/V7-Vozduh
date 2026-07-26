@@ -175,7 +175,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             plan, policy_path=Path("/etc/v7/policy.json"),
         )
 
-        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_READY")
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY")
         self.assertEqual(request["shadow_candidate"]["source_egress"], "vless")
         self.assertEqual(request["owner_issued_contract_template"]["max_users"], 1)
         self.assertIn("existing /etc/v7/policy.json authority owner", request["next_consumer"])
@@ -183,6 +183,36 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(request["contract_written"])
         self.assertFalse(request["runtime_apply"])
         self.assertEqual(request["users_moved"], 0)
+
+    def test_authority_request_waits_for_snapshot_revalidation_before_policy_owner(self):
+        plan = {
+            "decisions": [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {
+                "action_class_execution_boundary": {
+                    "status": "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED",
+                },
+                "authority_budget_gate": {
+                    "current_action_class_contract": {"required": True, "valid": False, "blockers": ["contract_missing"]},
+                },
+                "intelligence_snapshots": {
+                    "stop_required": True,
+                    "unsafe_blocker": "source_hash_mismatch:service_matrix",
+                },
+            },
+        }
+        request = self.autoswitch.action_class_contract_reconciliation_request(
+            plan, policy_path=Path("/etc/v7/policy.json"),
+        )
+
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS")
+        self.assertFalse(request["issue_preflight"]["ready"])
+        self.assertIn("source_hash_mismatch:service_matrix", request["issue_preflight"]["blockers"])
+        self.assertIn("v7-intelligence-snapshot-refresh", request["next_consumer"])
+        self.assertFalse(request["authority_granted"])
 
     def test_active_contract_reenters_existing_boundary_without_new_request(self):
         plan = {

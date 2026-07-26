@@ -54,6 +54,26 @@ new entrypoint has `policy_write=false`, `authority_granted=false`,
 `runtime_apply=false`, `routing_mutation=false`, `users_moved=0`, and no
 Candidate/Packet/lease creation.
 
+## Production verification
+
+Commit `6564067aad53656421570b0eb92eafa53fe316a5` was deployed only through
+`tools/v7-safe-deploy` as
+`deploy-z8-14-Updatesystem-6564067-20260726T094436`. The manifest changed only
+`tools/v7-users-autoswitch`; no service restart was required.
+
+The production non-test caller
+`/usr/local/bin/v7-users-autoswitch --action-class-contract-reconciliation-only`
+returned `PASS` and `ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_READY` for the
+current Authority STOP_SAFE. It exposed the existing policy owner as the next
+consumer and confirmed every forbidden effect remains false: no policy write,
+Authority grant, runtime apply, routing mutation, user move, Candidate,
+Packet, lease or rollback apply.
+
+Post-deploy `tools/v7-truth-check --all --json` returned `PASS` /
+`FULLY_ALIGNED`; `tools/v7-convergence-status --json` returned `PASS`.
+Local, GitHub and production all resolve to the same commit
+`6564067aad53656421570b0eb92eafa53fe316a5`.
+
 ## CPS / OMP result
 
 CPS is intentionally unchanged: there is no new owner-backed production

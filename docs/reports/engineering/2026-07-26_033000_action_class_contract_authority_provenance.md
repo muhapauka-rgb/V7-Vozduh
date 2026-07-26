@@ -24,6 +24,8 @@ watcher, registry, queue, planner или Authority system не созданы.
 - v2 contract carries `issuing_owner`, immutable Authority decision provenance,
   `issued_at`, short `expires_at`, contract hash, all bounded scope fields and
   `one_use_consumption=ISSUED`;
+- the separate read-only reconciliation request expires after five minutes, so
+  an Authority decision cannot issue a contract from an old snapshot;
 - autoswitch validates that provenance before any Candidate/Packet/apply path;
   it additionally filters selection to the one exact user/source/target;
 - immediately before a sole forward mutation, autoswitch calls the same

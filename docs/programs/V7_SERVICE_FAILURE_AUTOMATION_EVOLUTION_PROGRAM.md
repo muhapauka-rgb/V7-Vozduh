@@ -185,6 +185,8 @@ expected request id/hash and `APPROVE_ONCE_AS_SCOPED`, then alone writes the
 policy field. Neither a hand-edited JSON object nor the read-only autoswitch
 request template is an Authority decision or an executable contract. The
 autoswitch owner only consumes and independently revalidates a v2 contract.
+The request itself expires after five minutes; it is not a standing approval
+and an expired reconciliation must be produced again from fresh snapshots.
 Immediately before its sole forward mutation, it calls back into the same
 existing Authority owner to atomically transition `ISSUED -> CONSUMED`, binding
 the exact user, source/target and source generation. A failed or interrupted

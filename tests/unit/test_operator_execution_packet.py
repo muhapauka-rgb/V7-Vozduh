@@ -150,6 +150,31 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 source_generation=contract["source_generation"], operation_id="operation-2",
             )
 
+    def test_current_action_contract_request_expires_before_authority_issuance(self):
+        now = datetime(2026, 7, 26, tzinfo=timezone.utc)
+        request = build_current_action_class_contract_authority_request({
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "action_class": "GOVERNED_ONLY",
+            "max_authority_class": "POOL",
+            "subject": {"user_ip": "10.0.0.2"},
+            "scope": {"source_egress": "vless", "target_egress": "awg3"},
+            "max_users": 1, "max_concurrent_transactions": 1,
+            "incident_generation": {"incident_id": "incident-1"},
+            "source_generation": {
+                "planner_generation_id": "planner-1", "source_bundle_hash": "source-1",
+                "snapshot_bundle_hash": "snapshot-1", "selected_move_hash": "move-1",
+            },
+            "verification_contract": {"owner": "autoswitch"},
+            "rollback_containment_contract": {"owner": "autoswitch"},
+            "cooldown": {"required": True, "seconds": 180},
+            "anti_flap": {"required": True}, "stop_conditions": ["verification_failure"],
+        }, issue_preflight={"ready": True, "blockers": []}, now=now)
+        result = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED", now=now + timedelta(seconds=301),
+        )
+        self.assertFalse(result["ok"])
+        self.assertIn("current_action_class_contract_request_expired", result["errors"])
+
     def test_autonomous_execution_control_is_fail_closed_and_generation_bound(self):
         now = datetime.now(timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

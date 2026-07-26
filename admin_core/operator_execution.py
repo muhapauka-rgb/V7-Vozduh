@@ -101,6 +101,7 @@ CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA = "v7.current-action-class-contract
 CURRENT_ACTION_CLASS_CONTRACT_SCHEMA = "v7.current-action-class-contract.v2"
 CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER = CANONICAL_CLEARANCE_OWNER
 CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
+CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 300
 
 
 class PacketError(ValueError):
@@ -516,7 +517,7 @@ def current_action_class_contract_hash(contract):
     return sha256_json(canonical)
 
 
-def build_current_action_class_contract_authority_request(template, *, issue_preflight=None):
+def build_current_action_class_contract_authority_request(template, *, issue_preflight=None, now=None):
     """Build the existing Authority owner's exact one-use decision input.
 
     This deliberately returns a non-durable request.  It has no policy-write
@@ -524,6 +525,7 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
     this established Authority surface, can turn an exact approval into the
     policy field consumed by autoswitch.
     """
+    now = now or utc_now()
     template = copy.deepcopy(template if isinstance(template, dict) else {})
     scope = template.get("scope") if isinstance(template.get("scope"), dict) else {}
     subject = template.get("subject") if isinstance(template.get("subject"), dict) else {}
@@ -532,6 +534,8 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
     request = {
         "schema_version": CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA,
         "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(seconds=CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS)).isoformat(),
         "decision_set": [ENGINEERING_AUTHORITY_APPROVAL, "DECLINE"],
         "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
         "active_program": str(template.get("active_program") or ""),
@@ -586,6 +590,13 @@ def validate_current_action_class_contract_authority_request(
         errors.append("current_action_class_contract_expected_hash_mismatch")
     if str(request.get("status") or "") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION":
         errors.append("current_action_class_contract_request_not_pending")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("current_action_class_contract_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("current_action_class_contract_request_created_at_invalid")
+    except PacketError:
+        errors.append("current_action_class_contract_request_timestamps_invalid")
     if decision != ENGINEERING_AUTHORITY_APPROVAL or decision not in set(request.get("decision_set") or []):
         errors.append("current_action_class_contract_decision_not_exact_approval")
     if str(request.get("issuing_owner_required") or "") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:

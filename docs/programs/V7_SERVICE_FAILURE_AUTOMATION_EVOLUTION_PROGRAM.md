@@ -287,6 +287,40 @@ external owner/access input, or an irreducible safety boundary. These terminals
 must preserve the exact re-entry condition. They may not be converted into an
 approval or bypassed by this Program.
 
+### Auto-safe continuation execution policy
+
+`CODEX_AUTOMATION_PLATFORM` is the existing watchdog fallback owner for this
+Program. It must re-enter the active OMP task on the configured heartbeat when
+the task is idle or interrupted; an ended response, connection loss, context
+compaction or a completed intermediate tool call is never a Program terminal.
+
+On each wake it must read fresh CPS and use the existing OMP re-entry owner.
+When CPS exposes a safe executable successor, it must continue without an
+operator message through the complete existing-owner chain: discovery,
+smallest repair, focused verification, commit/push, passing safe-deploy
+manifest, authorised safe deploy, production caller/consumer verification,
+affected replay/Learning, truth/convergence, atomic CPS/OMP/report projection,
+residual recomputation and successor dispatch.
+
+The continuation is strictly bounded:
+
+- it must re-read CPS before every successor and preserve the existing
+  exact-once lease, duplicate suppression and source-generation checks;
+- it must not retry an unchanged failed successor indefinitely; after three
+  wakes without owner-backed progress it records the exact
+  producer-to-consumer blocker and stops without churn;
+- it must not create a new watcher, queue, registry, Planner, Runtime or
+  Authority system;
+- it must not treat this policy as consent for `ENGINEERING_AUTHORITY`,
+  `OPERATIONAL_AUTHORITY`, restore-barrier write, Packet execution, routing
+  mutation, user movement, rollback apply, Authority expansion, Production
+  Maturity change, external owner/access input or Natural L8 evidence.
+
+At any such independent boundary the heartbeat may perform read-only discovery
+and prepare the exact existing-owner request, but must preserve the re-entry
+condition and stop. A new safe successor or a separately owner-issued scoped
+contract is required before it continues.
+
 After each owner-backed controlled outcome, replay and Learning, the existing
 M6/M7 owners recompute the progressive blast-radius ladder. `HOLD`, `FREEZE`,
 `DEMOTE` and insufficient-evidence decisions remain exact legal outputs. An

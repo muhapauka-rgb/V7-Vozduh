@@ -150,6 +150,58 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(eligible["packet_created"])
         self.assertEqual(eligible["users_moved"], 0)
 
+    def test_authority_stop_safe_emits_existing_policy_owner_request_without_grant(self):
+        plan = {
+            "decisions": [{
+                "user_ip": "10.0.0.2",
+                "current_egress": "vless",
+                "recommended_egress": "awg0",
+            }],
+            "safety": {
+                "action_class_execution_boundary": {
+                    "status": "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED",
+                },
+                "authority_budget_gate": {
+                    "certified_authority_class": "POOL",
+                    "current_action_class_contract": {
+                        "required": True,
+                        "valid": False,
+                        "blockers": ["current_action_class_contract_missing_or_schema_invalid"],
+                    },
+                },
+            },
+        }
+        request = self.autoswitch.action_class_contract_reconciliation_request(
+            plan, policy_path=Path("/etc/v7/policy.json"),
+        )
+
+        self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_READY")
+        self.assertEqual(request["shadow_candidate"]["source_egress"], "vless")
+        self.assertEqual(request["owner_issued_contract_template"]["max_users"], 1)
+        self.assertIn("existing /etc/v7/policy.json authority owner", request["next_consumer"])
+        self.assertFalse(request["authority_granted"])
+        self.assertFalse(request["contract_written"])
+        self.assertFalse(request["runtime_apply"])
+        self.assertEqual(request["users_moved"], 0)
+
+    def test_active_contract_reenters_existing_boundary_without_new_request(self):
+        plan = {
+            "decisions": [],
+            "safety": {
+                "action_class_execution_boundary": {"status": "NO_ACTION_NO_SHADOW_CANDIDATE"},
+                "authority_budget_gate": {
+                    "current_action_class_contract": {"required": True, "valid": True, "blockers": []},
+                },
+            },
+        }
+        request = self.autoswitch.action_class_contract_reconciliation_request(
+            plan, policy_path=Path("/etc/v7/policy.json"),
+        )
+
+        self.assertEqual(request["status"], "CURRENT_ACTION_CLASS_CONTRACT_ACTIVE_REVALIDATE_EXISTING_CONSUMER")
+        self.assertIn("action_class_execution_boundary", request["next_consumer"])
+        self.assertFalse(request["contract_written"])
+
     def test_production_receipt_reconciles_source_cps_without_second_receipt(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

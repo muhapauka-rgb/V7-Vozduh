@@ -218,6 +218,25 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         planner.finalize_operation(plan)
         return plan
 
+    def test_action_class_contract_reconciliation_entrypoint_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, authority_budget={
+                "enabled": True,
+                "authority_class": "POOL",
+                "prepared_authority_class": "POOL",
+                "certified_authority_class": "POOL",
+                "current_allowed_user_budget": 1,
+            })
+            result = self.tool.action_class_contract_reconciliation_only(self.args_for(root))
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["mode"], "READ_ONLY_EXISTING_POLICY_OWNER_HANDOFF")
+        self.assertFalse(result["forbidden_effects"]["policy_write"])
+        self.assertFalse(result["forbidden_effects"]["authority_granted"])
+        self.assertFalse(result["forbidden_effects"]["runtime_apply"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_controlled_verifier_lifecycle_start_failure_restores_source_without_direct_rollback(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

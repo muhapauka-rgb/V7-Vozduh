@@ -175,6 +175,30 @@ promotion evidence, including `XLARGE_BATCH/50`, can never substitute for this
 contract. Issuing or refreshing a contract remains the exact existing
 owner-issued Authority action; this Program cannot issue one itself.
 
+### Authority-boundary re-entry loop
+
+An `ENGINEERING_AUTHORITY` terminal must not become a manual dead end. The
+existing `tools/v7-users-autoswitch --action-class-contract-reconciliation-only`
+producer emits a read-only, deterministic request template from the current
+Shadow/action-boundary projection. It never writes policy or creates
+Authority. Its closed loop is:
+
+`STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED`
+`->` read-only request template
+`->` existing `/etc/v7/policy.json` authority owner independently issues or
+declines a short one-use scoped contract
+`->` existing event-driven Service Matrix/autoswitch invocation re-reads and
+validates that contract
+`->` existing action-class boundary returns either another exact `STOP_SAFE`,
+`NO_ACTION`, or `PACKET_MATERIALIZATION_ELIGIBLE`
+`->` existing Service Failure obligation/OMP consumer.
+
+The request template is intentionally non-durable and cannot substitute for
+fresh Situation, Decision Trace, selected-move/snapshot identities, policy
+owner confirmation, Candidate, Packet, lease, verification or rollback. A
+policy update alone grants no Runtime apply; the same existing consumer must
+revalidate every gate against fresh owner-backed inputs.
+
 ## Dynamic Mission compression
 
 `M0` is mandatory and is complete through the associated fresh audit.
@@ -481,6 +505,12 @@ separate Authority program changes that contract.
 If Authority is absent, the legal terminal is an exact
 `ENGINEERING_AUTHORITY`, not a fake execution and not a global engineering
 stop.
+
+The Authority terminal itself has the explicit re-entry loop above. It closes
+only when the existing policy owner either declines/lets the request expire
+(which returns a fresh `STOP_SAFE`) or issues a valid short one-use contract
+that the existing autoswitch boundary consumes and revalidates. No new
+Authority owner, registry, queue, watcher or timer is introduced.
 
 Completion contract:
 

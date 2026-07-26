@@ -656,6 +656,126 @@ def runtime_authority_contract_status(
     }
 
 
+def action_class_contract_reconciliation_request(
+    plan: dict[str, Any], *, policy_path: Path,
+) -> dict[str, Any]:
+    """Produce the next existing-owner input after an Authority STOP_SAFE.
+
+    This is intentionally a *request template*, not a policy writer and not an
+    Authority grant.  It makes the producer -> existing policy owner ->
+    autoswitch revalidation link explicit while preserving the rule that a
+    fresh Situation, Decision Trace and one-use operational contract are
+    required before any Candidate/Packet/apply lifecycle can begin.
+    """
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    boundary = safety.get("action_class_execution_boundary") if isinstance(
+        safety.get("action_class_execution_boundary"), dict
+    ) else {}
+    authority_gate = safety.get("authority_budget_gate") if isinstance(
+        safety.get("authority_budget_gate"), dict
+    ) else {}
+    contract_gate = authority_gate.get("current_action_class_contract") if isinstance(
+        authority_gate.get("current_action_class_contract"), dict
+    ) else {}
+    status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
+    shadow_candidates = sorted(
+        [
+            row for row in (plan.get("decisions") or [])
+            if isinstance(row, dict)
+            and str(row.get("recommended_egress") or "")
+            and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
+        ],
+        key=lambda row: (
+            str(row.get("user_ip") or ""),
+            str(row.get("current_egress") or ""),
+            str(row.get("recommended_egress") or ""),
+        ),
+    )
+    chosen = shadow_candidates[0] if shadow_candidates else {}
+    current_contract_valid = bool(contract_gate.get("valid"))
+    contract_required = bool(contract_gate.get("required"))
+    template = {
+        "schema_version": "v7.current-action-class-contract.v1",
+        "contract_id": "OWNER_TO_ISSUE_AFTER_FRESH_REENTRY",
+        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "action_class": "GOVERNED_ONLY",
+        "max_authority_class": str(authority_gate.get("certified_authority_class") or "CANARY"),
+        "max_users": 1,
+        "expires_at": "OWNER_TO_SET_SHORT_ONE_USE_EXPIRY",
+        "scope": {
+            "source_egress": str(chosen.get("current_egress") or "OWNER_TO_BIND_FROM_FRESH_SITUATION"),
+            "target_egress": str(chosen.get("recommended_egress") or "OWNER_TO_BIND_FROM_FRESH_SITUATION"),
+        },
+        "required_gates": {
+            "fresh_evidence_required": True,
+            "verification_required": True,
+            "rollback_required": True,
+            "anti_flap_required": True,
+            "cooldown_seconds": 180,
+        },
+        "stop_conditions": [
+            "no_safe_target",
+            "stale_or_changed_situation",
+            "selected_move_identity_changed",
+            "target_capacity_or_service_gate_failed",
+            "verification_failure",
+            "rollback_required",
+        ],
+    }
+    request_id = "accr_" + sha256_json({
+        "policy_path": str(policy_path),
+        "boundary_status": status,
+        "contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
+        "source": template["scope"]["source_egress"],
+        "target": template["scope"]["target_egress"],
+        "user": str(chosen.get("user_ip") or ""),
+    })[:24]
+    if current_contract_valid:
+        reconciliation_status = "CURRENT_ACTION_CLASS_CONTRACT_ACTIVE_REVALIDATE_EXISTING_CONSUMER"
+        next_consumer = "tools/v7-users-autoswitch planner -> action_class_execution_boundary"
+    elif status == "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED":
+        reconciliation_status = "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_READY"
+        next_consumer = "existing /etc/v7/policy.json authority owner -> tools/v7-users-autoswitch planner -> action_class_execution_boundary"
+    else:
+        reconciliation_status = "NO_ACTION_CLASS_CONTRACT_REQUEST_REQUIRED_FOR_CURRENT_BOUNDARY"
+        next_consumer = "existing service-failure obligation -> OMP Automation Gap Closure"
+    return {
+        "schema_version": "v7.action-class-contract-reconciliation-request.v1",
+        "status": reconciliation_status,
+        "request_id": request_id,
+        "boundary_status": status,
+        "contract_required": contract_required,
+        "current_contract_valid": current_contract_valid,
+        "current_contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
+        "shadow_candidate": {
+            "user_ip": str(chosen.get("user_ip") or ""),
+            "source_egress": str(chosen.get("current_egress") or ""),
+            "target_egress": str(chosen.get("recommended_egress") or ""),
+        },
+        "owner_issued_contract_template": template,
+        "issue_preconditions": [
+            "fresh owner-backed Situation and Decision Trace at issue time",
+            "fresh selected-move, source and target snapshot identities at issue time",
+            "existing policy owner independently confirms one-user scope and short expiry",
+            "existing autoswitch consumer revalidates every required gate after policy update",
+        ],
+        "policy_owner": "existing /etc/v7/policy.json authority owner",
+        "next_consumer": next_consumer,
+        "reentry_trigger": "existing event-driven Service Matrix/incident invocation or explicit existing-owner policy reconciliation call",
+        "authority_granted": False,
+        "contract_written": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "production_maturity_changed": False,
+        "new_owner_created": False,
+        "new_registry_created": False,
+    }
+
+
 def write_json_atomic(path: Path, data: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
@@ -11013,6 +11133,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--action-class-contract-reconciliation-only",
+        action="store_true",
+        help=(
+            "Read-only producer for the exact existing policy-owner action-class contract request; "
+            "never writes policy, grants Authority, creates a packet or applies routing."
+        ),
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -11162,6 +11290,56 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
     }
 
 
+def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Close the read-only STOP_SAFE -> policy-owner -> revalidation handoff."""
+    forbidden = [
+        name for name in (
+            "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "promote_authority_to", "generate_rollback_packet_from_result", "rollback_packet",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": "v7.action-class-contract-reconciliation-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [f"action_class_contract_reconciliation_forbids_{name}" for name in sorted(set(forbidden))],
+        }
+    planner = AutoswitchPlanner(args)
+    plan = planner.plan()
+    request = action_class_contract_reconciliation_request(plan, policy_path=Path(args.policy_file))
+    return {
+        "schema_version": "v7.action-class-contract-reconciliation-entrypoint.v1",
+        "status": "PASS",
+        "ok": True,
+        "mode": "READ_ONLY_EXISTING_POLICY_OWNER_HANDOFF",
+        "producer": "tools/v7-users-autoswitch.action_class_contract_reconciliation_request",
+        "consumer": request["next_consumer"],
+        "result": request,
+        "forbidden_effects": {
+            "policy_write": False,
+            "authority_granted": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "rollback_apply": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
 def main() -> int:
     args = build_arg_parser().parse_args()
     if args.consume_passive_events_only:
@@ -11170,6 +11348,10 @@ def main() -> int:
         return 0 if result.get("status") == "PASS" else 2
     if args.consume_service_failure_automation_only:
         result = consume_service_failure_automation_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
+    if args.action_class_contract_reconciliation_only:
+        result = action_class_contract_reconciliation_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     planner = AutoswitchPlanner(args)

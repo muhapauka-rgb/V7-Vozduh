@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-26T16:09:38+00:00
+State captured: 2026-07-26T16:21:01+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: The existing Service Matrix, passive incident consumer, Polygon and OMP 
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-26T16:09:38+00:00`
+Captured: `2026-07-26T16:21:01+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,7 +32,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_RECONCILIATION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST; DO NOT WRITE POLICY OR APPLY OR MOVE USERS` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_M5A_EEE6466AC0EF` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_M5A_E063C69CF385` |
 | `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
@@ -356,10 +356,10 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_PRODUCT_ACTION_CLASS` | `NONE` |
 | `PRODUCT_FRONTIER_SELECTION` | `CHANNEL_HARD_FAILURE_FAILOVER_ENGINEERING_CONSUMED` |
 | `L8_OBSERVATION_WINDOW` | `PASSIVE_CAPTURE_PRODUCTION_CONSUMER_LIVE_FOR_CURRENT_AND_CHANNEL_HARD_FAILURE_ACTION_CLASSES; EXTERNAL_UNATTRIBUTED CANDIDATES PRESERVED WITHOUT CREDIT; NATURAL_EVENT_CREATION_FORBIDDEN` |
-| `CURRENT_AUTHORITY_REQUEST_EXPIRY` | `2026-07-26T16:14:14.985800+00:00` |
-| `CURRENT_AUTHORITY_REQUEST_FINGERPRINT` | `eee6466ac0ef8e6d84fe562ce785f7b23c9cb6f77dc17cebf1b492b0f9e9ba59` |
-| `CURRENT_AUTHORITY_REQUEST_HASH` | `fbd403e97422f1684420e5d3f167fdbe9dd58d13490c76e6b0dc7ada73c636d7` |
-| `CURRENT_AUTHORITY_REQUEST_ID` | `accauth_r1_fbd403e97422f1684420e5d3` |
+| `CURRENT_AUTHORITY_REQUEST_EXPIRY` | `2026-07-26T16:25:43.918931+00:00` |
+| `CURRENT_AUTHORITY_REQUEST_FINGERPRINT` | `e063c69cf385f5fbfad705369f4b878f767e70bb1e2821b806d24e5f520d7169` |
+| `CURRENT_AUTHORITY_REQUEST_HASH` | `c956e2cc486f8364e80035c3727e125352f2165942f766fbc0161546db3dc0c3` |
+| `CURRENT_AUTHORITY_REQUEST_ID` | `accauth_r1_c956e2cc486f8364e80035c3` |
 | `CURRENT_AUTHORITY_REQUEST_SCOPE` | `max_users=1; max_concurrent_transactions=1` |
 | `CURRENT_AUTHORITY_REQUEST_STATUS` | `AWAITING_INDEPENDENT_AUTHORITY_DECISION` |
 | `CURRENT_LEASE` | `NONE` |
@@ -375,7 +375,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-26T16:09:38+00:00`
+Generated At: `2026-07-26T16:21:01+00:00`
 
 Runtime Authority: `NONE`
 
@@ -388,7 +388,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_M5A_EEE6466AC0EF` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_M5A_E063C69CF385` |
 | `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION` |
 | `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
@@ -419,7 +419,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_M5A_EEE6466AC0EF` |
+| `current_state_generation` | `cpsgen_SFA_M5A_E063C69CF385` |
 | `current_transition_id` | `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1` |
 | `smallest_existing_next_action_id` | `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION` |
 | `active_mission_id` | `NONE` |
@@ -506,7 +506,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_M5A_EEE6466AC0EF`; `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1` | fresh M5a request is read-only; no Packet or lease exists; next scenario `NONE` | `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION` | existing autoswitch -> Authority owner -> fresh planner revalidation; no Runtime action | `ENGINEERING_AUTHORITY` | independent decision -> one-use contract or decline -> existing M5b consumer; owner `no Runtime action` |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_M5A_E063C69CF385`; `SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_REQUEST_READY_V1` | fresh M5a request is read-only; no Packet or lease exists; next scenario `NONE` | `V7_SERVICE_FAILURE_AUTOMATION_M5A_ACTION_CLASS_AUTHORITY_DECISION` | existing autoswitch -> Authority owner -> fresh planner revalidation; no Runtime action | `ENGINEERING_AUTHORITY` | independent decision -> one-use contract or decline -> existing M5b consumer; owner `no Runtime action` |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

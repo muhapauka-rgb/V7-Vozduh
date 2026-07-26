@@ -11310,7 +11310,15 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
 
 
 def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
-    """Close the read-only STOP_SAFE -> policy-owner -> revalidation handoff."""
+    """Close the STOP_SAFE -> policy-owner handoff on one coherent snapshot.
+
+    The policy handoff itself remains non-mutating.  Its preflight must however
+    run inside the existing observe lifecycle: the Telegram sentinel is a
+    legitimate high-frequency service-matrix writer, so an out-of-band refresh
+    followed by an unlocked read can immediately be stale.  Observe mode holds
+    the shared service-matrix lock, invokes the existing snapshot owner, and
+    reloads the same source bundle before the request template is derived.
+    """
     forbidden = [
         name for name in (
             "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
@@ -11333,17 +11341,31 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
             "ok": False,
             "blockers": [f"action_class_contract_reconciliation_forbids_{name}" for name in sorted(set(forbidden))],
         }
-    planner = AutoswitchPlanner(args)
+    coherent_args = argparse.Namespace(**vars(args))
+    coherent_args.mode = "observe"
+    coherent_args.pre_planner_refresh = "off"
+    planner = AutoswitchPlanner(coherent_args)
     plan = planner.plan()
     request = action_class_contract_reconciliation_request(plan, policy_path=Path(args.policy_file))
+    snapshot_gate = ((plan.get("safety") or {}).get("intelligence_snapshots") or {})
+    refresh = snapshot_gate.get("pre_planner_refresh") if isinstance(snapshot_gate, dict) else {}
+    refresh = refresh if isinstance(refresh, dict) else {}
     return {
         "schema_version": "v7.action-class-contract-reconciliation-entrypoint.v1",
         "status": "PASS",
         "ok": True,
-        "mode": "READ_ONLY_EXISTING_POLICY_OWNER_HANDOFF",
+        "mode": "POLICY_READ_ONLY_HANDOFF_WITH_EXISTING_SNAPSHOT_REFRESH",
         "producer": "tools/v7-users-autoswitch.action_class_contract_reconciliation_request",
         "consumer": request["next_consumer"],
         "result": request,
+        "coherent_snapshot_preflight": {
+            "owner": "existing v7-intelligence-snapshot-refresh",
+            "performed": refresh.get("state") == "REFRESH_SUCCESS",
+            "source_stable": bool_value(((refresh.get("refresh_result") or {}).get("source_stable"))),
+            "shared_service_matrix_lock_held": bool_value(((refresh.get("service_matrix_lock") or {}).get("acquired"))),
+            "snapshot_stop_required": bool_value(snapshot_gate.get("stop_required")) if isinstance(snapshot_gate, dict) else True,
+            "snapshot_write_only": True,
+        },
         "forbidden_effects": {
             "policy_write": False,
             "authority_granted": False,
@@ -11355,6 +11377,7 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
             "lease_created": False,
             "rollback_apply": False,
             "production_maturity_change": False,
+            "snapshot_refresh_only": True,
         },
     }
 

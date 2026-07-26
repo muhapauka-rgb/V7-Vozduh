@@ -185,8 +185,10 @@ Authority. Its closed loop is:
 
 `STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED`
 `->` read-only request template
-`->` if any freshness/source-binding gate is unresolved: its existing producer
-or `v7-intelligence-snapshot-refresh`, then the planner is re-run
+`->` existing coherent observe lifecycle holds the shared service-matrix lock,
+invokes `v7-intelligence-snapshot-refresh`, and re-runs the planner on the
+same source bundle (a standalone refresh followed by an unlocked read is not
+sufficient while the Telegram sentinel is a live writer)
 `->` existing `/etc/v7/policy.json` authority owner independently issues or
 declines a short one-use scoped contract only after the request preflight is
 fresh and ready

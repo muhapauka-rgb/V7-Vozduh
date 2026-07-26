@@ -33,6 +33,15 @@ snapshot gate остановлен. Его единственный следую
 `/etc/v7/policy.json`. Новых owner, Authority, queue, runtime или registry не
 создано.
 
+Дальнейшая production-проверка установила источник race: существующий
+`v7-telegram-sentinel` обновляет `service-matrix.json` каждые 4 секунды. Он
+уже использует общий `service-matrix.lock`, но отдельный refresh и последующий
+unlocked reconciliation могли разойтись между двумя запусками sentinel.
+Поэтому reconciliation переведён на уже существующий `observe` lifecycle:
+он удерживает этот lock, вызывает существующий snapshot owner и строит
+request template до освобождения lock. Это write только intelligence snapshots;
+policy, Authority, Packet, routing и users по-прежнему не меняются.
+
 ## Проверка до deploy
 
 Запущены 308 unit tests, включая новый сценарий source-binding stop:
@@ -50,12 +59,9 @@ Authority grant или Production Maturity change.
 ## Следующий закрытый цикл
 
 1. Безопасно задеплоить только `tools/v7-users-autoswitch`.
-2. Вызвать production read-only reconciliation и подтвердить ожидание snapshot
-   owner.
-3. Вызвать существующий `v7-intelligence-snapshot-refresh`, который обновляет
-   только snapshots.
-4. Повторно вызвать reconciliation.
-5. Если freshness закрыта, оставить выдачу точного one-use contract отдельному
+2. Вызвать production reconciliation и подтвердить coherent snapshot preflight
+   под shared lock.
+3. Если freshness закрыта, оставить выдачу точного one-use contract отдельному
    policy owner; если нет — потребить точный producer defect через BDP/OMP.
 
 Ни старый `APPROVE_ONCE_AS_SCOPED`, ни общее согласие не являются заменой

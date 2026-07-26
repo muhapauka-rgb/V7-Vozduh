@@ -231,11 +231,50 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             result = self.tool.action_class_contract_reconciliation_only(self.args_for(root))
 
         self.assertEqual(result["status"], "PASS")
-        self.assertEqual(result["mode"], "READ_ONLY_EXISTING_POLICY_OWNER_HANDOFF")
+        self.assertEqual(result["mode"], "POLICY_READ_ONLY_HANDOFF_WITH_EXISTING_SNAPSHOT_REFRESH")
+        self.assertIn("performed", result["coherent_snapshot_preflight"])
         self.assertFalse(result["forbidden_effects"]["policy_write"])
         self.assertFalse(result["forbidden_effects"]["authority_granted"])
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
+    def test_action_contract_reconciliation_uses_coherent_observe_lifecycle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = {
+                "safety": {
+                    "action_class_execution_boundary": {
+                        "status": "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED",
+                    },
+                    "authority_budget_gate": {
+                        "current_action_class_contract": {"required": True, "valid": False, "blockers": ["missing"]},
+                    },
+                    "intelligence_snapshots": {
+                        "stop_required": False,
+                        "pre_planner_refresh": {
+                            "state": "REFRESH_SUCCESS",
+                            "service_matrix_lock": {"acquired": True},
+                            "refresh_result": {"source_stable": True},
+                        },
+                    },
+                },
+                "decisions": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "vless",
+                    "recommended_egress": "1",
+                }],
+            }
+            with mock.patch.object(self.tool, "AutoswitchPlanner") as planner_class:
+                planner_class.return_value.plan.return_value = plan
+                result = self.tool.action_class_contract_reconciliation_only(self.args_for(root))
+
+        coherent_args = planner_class.call_args.args[0]
+        self.assertEqual(coherent_args.mode, "observe")
+        self.assertEqual(coherent_args.pre_planner_refresh, "off")
+        self.assertTrue(result["coherent_snapshot_preflight"]["performed"])
+        self.assertTrue(result["coherent_snapshot_preflight"]["source_stable"])
+        self.assertTrue(result["coherent_snapshot_preflight"]["shared_service_matrix_lock_held"])
 
     def test_controlled_verifier_lifecycle_start_failure_restores_source_without_direct_rollback(self):
         with tempfile.TemporaryDirectory() as tmp:

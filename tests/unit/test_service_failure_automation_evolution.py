@@ -335,6 +335,21 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         )
         self.assertIn("restore_barrier_required_for_emergency_failover", request["issue_preflight"]["blockers"])
         self.assertNotIn("no_selected_moves_for_emergency_failover", request["issue_preflight"]["blockers"])
+        self.assertEqual(request["authority_classification"], "SAFE_PREDECESSOR_REQUIRED")
+        self.assertEqual(
+            request["exact_legal_next_action"],
+            "RECONCILE_PACKET_BOUND_RESTORE_BARRIER_PREDECESSOR_ORDERING",
+        )
+        package = request["approval_package"]
+        self.assertEqual(package["status"], "STOP_SAFE_NOT_ACTIONABLE_EXACT_PACKET_ABSENT")
+        self.assertFalse(package["actionable"])
+        self.assertTrue(package["request_id"])
+        self.assertTrue(package["request_hash"])
+        self.assertFalse(package["packet_identity"]["present"])
+        self.assertEqual(package["packet_identity"]["packet_id"], "")
+        self.assertEqual(package["scope"]["max_users"], 1)
+        self.assertEqual(package["scope"]["max_concurrent_transactions"], 1)
+        self.assertIn("restore_barrier_write", package["forbidden_effects"])
         self.assertFalse(request["authority_granted"])
         self.assertFalse(request["contract_written"])
 

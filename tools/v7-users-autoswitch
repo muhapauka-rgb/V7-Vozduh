@@ -942,10 +942,85 @@ def action_class_contract_reconciliation_request(
     authority_request = operator_execution.build_current_action_class_contract_authority_request(
         template, issue_preflight=issue_preflight,
     )
+    packet_identity = {
+        "present": False,
+        "packet_id": "",
+        "packet_hash": "",
+        "reason": "exact_fresh_packet_absent_in_read_only_reconciliation",
+    }
+    if current_contract_valid:
+        authority_classification = "NO_NEW_AUTHORITY_REVALIDATE_EXISTING_CONSUMER"
+        exact_action = "REVALIDATE_EXISTING_ACTION_CLASS_CONTRACT"
+        package_status = "NOT_REQUIRED"
+        reentry_condition = "existing consumer emits a fresh exact execution boundary"
+    elif "restore_barrier_required_for_emergency_failover" in issue_preflight_blockers:
+        # Restore-barrier clearance is packet-bound.  This read-only producer
+        # creates no Packet, so presenting the blocked Action Class request as
+        # either an Engineering or Operational approval would be misleading.
+        authority_classification = "SAFE_PREDECESSOR_REQUIRED"
+        exact_action = "RECONCILE_PACKET_BOUND_RESTORE_BARRIER_PREDECESSOR_ORDERING"
+        package_status = "STOP_SAFE_NOT_ACTIONABLE_EXACT_PACKET_ABSENT"
+        reentry_condition = (
+            "existing owner proves an exact fresh non-executing packet identity "
+            "or removes the contradictory packet-bound precondition, then reruns fresh reconciliation"
+        )
+    elif issue_preflight["ready"]:
+        authority_classification = "ENGINEERING_AUTHORITY_REQUIRED"
+        exact_action = "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST"
+        package_status = "AWAITING_INDEPENDENT_AUTHORITY_DECISION"
+        reentry_condition = "owner issues or declines the exact request before expiry"
+    else:
+        authority_classification = "SAFE_PREDECESSOR_REQUIRED"
+        exact_action = "SATISFY_FRESH_OWNER_BACKED_REQUEST_PRECONDITIONS"
+        package_status = "STOP_SAFE_NOT_ACTIONABLE_PRECONDITIONS_INCOMPLETE"
+        reentry_condition = "all request preconditions are fresh and issue_preflight.ready is true"
+    approval_package = {
+        "schema_version": "v7.authority-normalized-approval-package.v1",
+        "status": package_status,
+        "authority_classification": authority_classification,
+        "actionable": package_status == "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "request_id": str(authority_request.get("request_id") or ""),
+        "request_hash": str(authority_request.get("request_hash") or ""),
+        "packet_identity": packet_identity,
+        "situation_identity": copy.deepcopy(template["incident_generation"]),
+        "decision_identity": {
+            "planner_generation_id": str(template["source_generation"].get("planner_generation_id") or ""),
+            "selected_move_hash": str(template["source_generation"].get("selected_move_hash") or ""),
+        },
+        "subject": copy.deepcopy(template["subject"]),
+        "scope": {
+            **copy.deepcopy(template["scope"]),
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+        },
+        "source_generation": copy.deepcopy(template["source_generation"]),
+        "expires_at": str(authority_request.get("expires_at") or ""),
+        "verification_contract": copy.deepcopy(template["verification_contract"]),
+        "rollback_containment_contract": copy.deepcopy(template["rollback_containment_contract"]),
+        "cooldown": copy.deepcopy(template["cooldown"]),
+        "anti_flap": copy.deepcopy(template["anti_flap"]),
+        "exact_action": exact_action,
+        "forbidden_effects": [
+            "contract_issuance",
+            "policy_write",
+            "restore_barrier_write",
+            "candidate_creation",
+            "execution_packet_or_lease_creation",
+            "runtime_apply",
+            "routing_mutation",
+            "user_movement",
+            "rollback_apply",
+            "authority_expansion",
+            "production_maturity_change",
+        ],
+        "reentry_condition": reentry_condition,
+    }
     return {
         "schema_version": "v7.action-class-contract-reconciliation-request.v1",
         "status": reconciliation_status,
         "request_id": request_id,
+        "authority_classification": authority_classification,
+        "exact_legal_next_action": exact_action,
         "boundary_status": status,
         "contract_required": contract_required,
         "current_contract_valid": current_contract_valid,
@@ -959,6 +1034,7 @@ def action_class_contract_reconciliation_request(
         },
         "owner_issued_contract_template": template,
         "authority_decision_request": authority_request,
+        "approval_package": approval_package,
         "issue_preconditions": [
             "fresh owner-backed Situation and Decision Trace at issue time",
             "fresh selected-move, source and target snapshot identities at issue time",

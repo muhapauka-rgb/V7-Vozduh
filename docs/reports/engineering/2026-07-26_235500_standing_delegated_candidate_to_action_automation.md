@@ -117,6 +117,14 @@ Candidate/Packet/lease, не пишет restore barrier, не выполняет
   `9f9bbab045d5f125103e37cd929904a5b19173b0df063323c650452fc73dcf2`;
   `authority_granted=false`, `policy_write=false`, `runtime_apply=false`,
   `routing_mutation=false`, `users_moved=0`.
+- Финальный `tools/v7-truth-check --all --json`: `PASS`; CPS
+  `ATOMIC_CPS_LIVE_STATE_CONSISTENT`, OMP self-continuation `PASS`, GitHub
+  `GITHUB_ALIGNED`.
+- Финальный `tools/v7-convergence-status --json`: `PASS / ALIGNED`; local и
+  GitHub указывают на docs-layer commit, production — на точный runtime commit
+  `941187a143a2da008f80c8ce8203e4cd8423c21c`; различие классифицировано
+  `DOCS_ONLY_MISMATCH`, deployment required `false`, все runtime hashes
+  совпадают.
 
 Exact scope: existing planner only; action class
 `single-user governed candidate failover`; fresh Candidate/Packet/lease;

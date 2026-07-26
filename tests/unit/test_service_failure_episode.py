@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -453,6 +454,44 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])
             self.assertEqual(stop["users_moved"], 0)
+
+            executor.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json\n"
+                "print(json.dumps({"
+                "'final_verdict':'GOVERNED_TRANSACTION_STOPPED',"
+                "'transaction_status':'STOP_SAFE',"
+                "'stop_reason':'packet_not_ready',"
+                "'users_moved':0,'apply_executed':False}))\n"
+                "raise SystemExit(2)\n",
+                encoding="utf-8",
+            )
+            governed_stop = self.refresh.run_bounded_delegated_service_failure_action(
+                str(executor),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertTrue(governed_stop["ok"])
+            self.assertEqual(governed_stop["status"], "STOP_SAFE")
+            self.assertFalse(governed_stop["runtime_mutation_performed"])
+
+    def test_matrix_lifecycle_treats_no_pending_omp_obligation_as_legal_noop(self):
+        completed = mock.Mock(
+            returncode=0,
+            stdout=json.dumps({
+                "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+                "final_verdict": "NO_PENDING_OBLIGATION",
+                "runtime_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+            }),
+        )
+        with mock.patch.object(self.refresh.subprocess, "run", return_value=completed):
+            result = self.refresh.run_service_failure_omp_consumer()
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["consumer_result"]["final_verdict"], "NO_PENDING_OBLIGATION")
 
 
 if __name__ == "__main__":

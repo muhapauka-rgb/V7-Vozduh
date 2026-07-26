@@ -181,8 +181,19 @@ def run_bounded_delegated_service_failure_action(
     except json.JSONDecodeError:
         parsed = {}
     verdict = str(parsed.get("final_verdict") or "")
+    transaction_status = str(parsed.get("transaction_status") or "")
     completed = proc.returncode == 0 and verdict == "GOVERNED_TRANSACTION_COMPLETED"
-    stop_safe = verdict == "STOP_SAFE"
+    stop_safe = (
+        (
+            verdict == "STOP_SAFE"
+            or (
+                verdict == "GOVERNED_TRANSACTION_STOPPED"
+                and transaction_status == "STOP_SAFE"
+            )
+        )
+        and not bool(parsed.get("apply_executed"))
+        and int(parsed.get("users_moved") or 0) == 0
+    )
     return {
         "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
         "status": "ACTION_COMPLETED" if completed else ("STOP_SAFE" if stop_safe else "FAILED"),
@@ -392,7 +403,15 @@ def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]
         parsed = json.loads(output)
     except json.JSONDecodeError:
         parsed = {}
-    passed = proc.returncode == 0 and isinstance(parsed, dict) and parsed.get("final_verdict") in {"PASS", "BOUNDED_CONTINUATION"}
+    passed = (
+        proc.returncode == 0
+        and isinstance(parsed, dict)
+        and parsed.get("final_verdict") in {
+            "PASS",
+            "BOUNDED_CONTINUATION",
+            "NO_PENDING_OBLIGATION",
+        }
+    )
     return {
         "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
         "status": "PASS" if passed else "FAILED",

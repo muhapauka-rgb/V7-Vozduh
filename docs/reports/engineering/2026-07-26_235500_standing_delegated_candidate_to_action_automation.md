@@ -97,10 +97,41 @@ Candidate/Packet/lease, не пишет restore barrier, не выполняет
 
 ## Deployment and production verification
 
-`PENDING` до commit, push, canonical safe deploy, production non-test
-fail-closed caller, truth/convergence и формирования exact standing Authority
-request.
+- Commit и GitHub: `941187a143a2da008f80c8ce8203e4cd8423c21c`.
+- Canonical deploy:
+  `deploy-z8-14-Updatesystem-941187a-20260727T001302`, `PASS`.
+- Manifest изменил только:
+  `tools/v7-users-autoswitch`,
+  `tools/v7-governed-canary-dry-run-cycle`,
+  `tools/v7-service-matrix-refresh-all`,
+  `admin_core/operator_execution.py`.
+- Production non-test bounded caller завершился
+  `GOVERNED_TRANSACTION_STOPPED / STOP_SAFE` с причиной
+  `delegated_policy_admission_denied`: `apply=false`,
+  `routing mutation=false`, `restore barrier=false`, `users_moved=0`.
+- Production Authority owner зарегистрировал request
+  `sdpauth_r1_906f2d2515016198d4c47727`, hash
+  `906f2d2515016198d4c47727cc1c5fafcff391408b1627174645ea3c1d450b54`,
+  expiry `2026-07-27T17:14:29.219060+00:00`.
+- Request registration: append-only record
+  `9f9bbab045d5f125103e37cd929904a5b19173b0df063323c650452fc73dcf2`;
+  `authority_granted=false`, `policy_write=false`, `runtime_apply=false`,
+  `routing_mutation=false`, `users_moved=0`.
+
+Exact scope: existing planner only; action class
+`single-user governed candidate failover`; fresh Candidate/Packet/lease;
+`max_users=1`; `max_concurrent_transactions=1`; confidence, prediction and
+trust floors `70`; cooldown `1800s`; anti-flap `PASS`; immediate user,
+channel, service and truth verification; rollback or certified no-rollback;
+final `OPEN`; self-expansion, new action classes, blast-radius increase,
+identity reuse and Production Maturity change are forbidden.
 
 ## Текущий legal terminal
 
-`ENGINEERING_IMPLEMENTATION_COMPLETE_DEPLOY_AND_STANDING_POLICY_AUTHORITY_REQUEST_REQUIRED`
+`STANDING_DELEGATED_POLICY_AUTHORITY_REQUEST_READY`
+
+До exact независимого решения контракт отсутствует. После однократного
+`APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY` будущие qualifying Candidates
+не требуют ручного Candidate/Packet/hash approval; каждый из них всё равно
+должен заново пройти fresh event, planner, Packet, lease, live gates,
+verification, rollback/no-rollback, Outcome и Learning.

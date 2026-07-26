@@ -95,3 +95,38 @@ reconciliation, либо устранить противоречивую packet-
 
 Ни старые request/Packet/lease, ни этот отчёт не могут быть переиспользованы
 как Authority или execution input.
+
+## Production deploy и consumer verification
+
+Изменение выпущено только штатным `tools/v7-safe-deploy`:
+
+```text
+commit:     d1e29c6f73a03cf3551a6a5b691e112eda7d7894
+release:    deploy-z8-14-Updatesystem-d1e29c6-20260726T202653
+runtime:    only /usr/local/bin/v7-users-autoswitch
+restart:    not required
+```
+
+Fresh non-test production caller `/usr/local/bin/v7-users-autoswitch
+--action-class-contract-reconciliation-only` получил новый package от
+deployed owner:
+
+```text
+authority_classification = SAFE_PREDECESSOR_REQUIRED
+exact_legal_next_action = RECONCILE_PACKET_BOUND_RESTORE_BARRIER_PREDECESSOR_ORDERING
+approval_package.status = STOP_SAFE_NOT_ACTIONABLE_EXACT_PACKET_ABSENT
+approval_package.actionable = false
+packet_identity.present = false
+```
+
+Проверены и сохранены live identity для этой единственной read-only
+reconciliation: subject `10.0.0.2`, `vless ->
+wireguard-1779454504-c43409`, scope `1 user / 1 transaction`, current
+incident/source/snapshot/selected-move generations, 300-second request expiry,
+owner verification, verifier-triggered rollback/containment, 180-second
+cooldown и anti-flap. Пакет не является executable approval: exact request и
+hash действуют только как fresh owner evidence и истекают без последствий.
+
+Production caller вновь подтвердил `false` для contract/policy/barrier write,
+Candidate, Packet, lease, runtime apply, routing mutation, user movement,
+rollback apply, Authority and Production Maturity effects.

@@ -11576,6 +11576,12 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     followed by an unlocked read can immediately be stale.  Observe mode holds
     the shared service-matrix lock, invokes the existing snapshot owner, and
     reloads the same source bundle before the request template is derived.
+
+    The entrypoint also enables the existing emergency failover *evidence* gate
+    only on its private observe-mode planner.  This is necessary to consume a
+    fresh L3 wake from the bounded pre-contract shadow selection; it cannot
+    enable apply because this entrypoint rejects `--apply` and never calls
+    `planner.apply()`.
     """
     forbidden = [
         name for name in (
@@ -11602,6 +11608,7 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     coherent_args = argparse.Namespace(**vars(args))
     coherent_args.mode = "observe"
     coherent_args.pre_planner_refresh = "off"
+    coherent_args.emergency_failover_autonomy = True
     planner = AutoswitchPlanner(coherent_args)
     plan = planner.plan()
     request = action_class_contract_reconciliation_request(plan, policy_path=Path(args.policy_file))
@@ -11613,6 +11620,7 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
         "status": "PASS",
         "ok": True,
         "mode": "POLICY_READ_ONLY_HANDOFF_WITH_EXISTING_SNAPSHOT_REFRESH",
+        "l3_evidence_mode": "PRE_CONTRACT_SHADOW_SELECTION_READ_ONLY",
         "producer": "tools/v7-users-autoswitch.action_class_contract_reconciliation_request",
         "consumer": request["next_consumer"],
         "result": request,

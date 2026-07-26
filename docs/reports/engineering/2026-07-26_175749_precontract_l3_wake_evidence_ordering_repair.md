@@ -1,7 +1,7 @@
 # Отчёт: устранение deadlock между L3 wake и Action Class contract
 
 Дата: 2026-07-26
-Статус: IMPLEMENTED_AND_TESTED_PENDING_PRODUCTION_DEPLOY
+Статус: FOLLOWUP_CONSUMER_REPAIR_TESTED_PENDING_PRODUCTION_DEPLOY
 
 ## Причина
 
@@ -54,9 +54,33 @@ PYTHONPYCACHEPREFIX=/tmp/v7-pycache python3 -m unittest \
 Ran 225 tests ... OK
 ```
 
-## Legal terminal до deploy
+После первого deploy production planner подтвердил сам L3 producer:
+`ACCEPT_WAKE` для `10.0.0.2`, VLESS и bounded shadow target, при
+`selected_moves == []`. Это доказало отсутствие Candidate/Packet/lease/apply,
+но выявило последний consumer gap: dedicated
+`--action-class-contract-reconciliation-only` намеренно не включал emergency
+evidence policy и поэтому видел пустой `l3_wake`.
 
-`PRODUCTION_DEPLOY_AND_NON_TEST_OWNER_CALL_REQUIRED`.
+Follow-up включает policy только во внутреннем observe-mode planner
+reconciliation entrypoint. Внешний флаг по-прежнему запрещён, а entrypoint не
+вызывает `apply()`. Добавлен end-to-end unit test: fresh pre-contract L3 wake
+доходит до reconciliation request; неполный fixture честно удерживается
+snapshot/source gate, не получая contract автоматически.
+
+Повторно выполнено:
+
+```text
+PYTHONPYCACHEPREFIX=/tmp/v7-pycache python3 -m unittest \
+  tests.unit.test_v7_users_autoswitch_policy \
+  tests.unit.test_service_failure_automation_evolution \
+  tests.unit.test_operator_execution_packet
+
+Ran 226 tests ... OK
+```
+
+## Legal terminal до follow-up deploy
+
+`PRODUCTION_DEPLOY_AND_NON_TEST_RECONCILIATION_CALL_REQUIRED`.
 
 Следующий допустимый шаг: safe deploy только `tools/v7-users-autoswitch`, затем
 production read-only reconciliation. Если живое fresh L3 evidence действительно

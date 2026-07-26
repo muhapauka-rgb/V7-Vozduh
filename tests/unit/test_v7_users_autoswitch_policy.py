@@ -264,6 +264,55 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_action_contract_reconciliation_consumes_precontract_l3_wake_read_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={
+                    "telegram": {
+                        "ok": False,
+                        "status": "DOWN",
+                        "score": 0,
+                        "consecutive_failures": 3,
+                        "tested_at": fresh,
+                    },
+                },
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": fresh,
+                    "reason": "unit-test",
+                },
+                authority_budget={
+                    "authority_class": "POOL",
+                    "certified_authority_class": "POOL",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 1,
+                    "current_action_class_contract": {},
+                },
+                emergency_failover_autonomy={
+                    "enabled": True,
+                    "max_users_per_run": 1,
+                    "max_users_per_channel": 1,
+                },
+            )
+            result = self.tool.action_class_contract_reconciliation_only(self.args_for(root))
+
+        request = result["result"]
+        self.assertEqual(
+            request["status"],
+            "ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS",
+        )
+        self.assertTrue(request["issue_preflight"]["l3_wake_accepted"])
+        self.assertIn("intelligence_snapshot_gate_stop_required", request["issue_preflight"]["blockers"])
+        self.assertEqual(result["l3_evidence_mode"], "PRE_CONTRACT_SHADOW_SELECTION_READ_ONLY")
+        self.assertFalse(result["forbidden_effects"]["policy_write"])
+        self.assertFalse(result["forbidden_effects"]["runtime_apply"])
+        self.assertFalse(result["forbidden_effects"]["candidate_created"])
+        self.assertFalse(result["forbidden_effects"]["packet_created"])
+        self.assertFalse(result["forbidden_effects"]["lease_created"])
+
     def test_action_contract_reconciliation_uses_coherent_observe_lifecycle(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -298,6 +347,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         coherent_args = planner_class.call_args.args[0]
         self.assertEqual(coherent_args.mode, "observe")
         self.assertEqual(coherent_args.pre_planner_refresh, "off")
+        self.assertTrue(coherent_args.emergency_failover_autonomy)
         self.assertTrue(result["coherent_snapshot_preflight"]["performed"])
         self.assertTrue(result["coherent_snapshot_preflight"]["source_stable"])
         self.assertTrue(result["coherent_snapshot_preflight"]["shared_service_matrix_lock_held"])

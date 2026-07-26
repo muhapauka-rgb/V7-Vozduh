@@ -1,7 +1,7 @@
 # Отчёт: устранение разрыва Action Class → L3 wake
 
 Дата: 2026-07-26  
-Статус: `IMPLEMENTED_PENDING_SAFE_DEPLOY`
+Статус: `COMPLETE_DEPLOYED_AND_PRODUCTION_CALLER_VERIFIED`
 
 ## Что обнаружено
 
@@ -51,12 +51,39 @@ Ran 224 tests — OK
 - exact blocker: `confirmed_l3_wake_required`;
 - `users_moved=0`, Packet/lease отсутствуют, contract не consumed.
 
+## Deploy и production caller verification
+
+Коммит `a967e6bbae0e9b7833113b9a63ce92c7592e226b` доставлен штатным
+`tools/v7-safe-deploy` как release
+`deploy-z8-14-Updatesystem-a967e6b-20260726T174808`.
+
+Deploy manifest содержал единственный изменённый production binary
+`tools/v7-users-autoswitch`; service restart не потребовался. Runtime apply,
+routing mutation, user movement, Packet/lease, rollback и Authority expansion
+остались `false`/`0`.
+
+После естественного истечения ранее ошибочно выданного unused contract production
+non-test caller повторён через
+`/usr/local/bin/v7-users-autoswitch --action-class-contract-reconciliation-only`:
+
+```text
+status: ACTION_CLASS_CONTRACT_REQUEST_TEMPLATE_WAITING_FRESH_PRECONDITIONS
+issue_preflight.ready: false
+issue_preflight.blockers: [confirmed_l3_wake_required]
+l3_wake_accepted: false
+```
+
+То есть новый policy request не выпускается до event-driven L3 wake. Snapshot owner
+при этом успешно удержал общий lock и подтвердил stable source.
+
+`tools/v7-truth-check --all --json`: `PASS` / `FULLY_ALIGNED`.  
+`tools/v7-convergence-status --json`: `PASS` / `ALIGNED`; local, GitHub и production
+runtime совпадают на `a967e6bbae0e9b7833113b9a63ce92c7592e226b`.
+
 ## Законный terminal
 
-До deploy: `IMPLEMENTED_PENDING_SAFE_DEPLOY`.
+`STOP_SAFE_WAITING_FRESH_OWNER_BACKED_L3_WAKE`.
 
-После deploy требуется повторить read-only reconciliation и подтвердить, что при
-отсутствующем/просроченном L3 wake policy issue request не формируется. Следующий
-runtime frontier остаётся existing owner-backed `confirmed current L3 wake` или
-Automation Gap Closure; старый contract, Packet и restore-barrier identity не могут
-быть переиспользованы.
+Следующий runtime frontier остаётся existing owner-backed `confirmed current L3 wake`
+или Automation Gap Closure; старые contract, Packet и restore-barrier identity не
+могут быть переиспользованы.

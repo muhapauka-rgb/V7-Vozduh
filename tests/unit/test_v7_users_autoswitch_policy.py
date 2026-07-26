@@ -2128,6 +2128,43 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(incident["authority_expanded"])
         self.assertEqual(plan["summary"]["l3_incident_state"], "READY_FOR_EXECUTION")
 
+    def test_missing_action_contract_keeps_fresh_l3_wake_observable_without_selection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fresh = "2999-01-01T00:00:00+00:00"
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0, "consecutive_failures": 3, "tested_at": fresh}},
+                restore_barrier={
+                    "enabled": True,
+                    "expires_at": "2999-01-01T00:00:00+00:00",
+                    "reason": "unit-test",
+                },
+                authority_budget={
+                    "authority_class": "POOL",
+                    "certified_authority_class": "POOL",
+                    "authority_lifecycle_state": "PROMOTED",
+                    "current_allowed_user_budget": 1,
+                    "current_action_class_contract": {},
+                },
+                emergency_failover_autonomy={"enabled": True, "max_users_per_run": 1, "max_users_per_channel": 1},
+            )
+            plan = self.tool.AutoswitchPlanner(self.args_for(root, ["--emergency-failover-autonomy"])).plan()
+
+        gate = plan["safety"]["emergency_failover_autonomy"]
+        wake = plan["safety"]["l3_wake"]
+        boundary = plan["safety"]["action_class_execution_boundary"]
+        self.assertEqual(plan["selected_moves"], [])
+        self.assertFalse(gate["ok"])
+        self.assertEqual(gate["move_evidence_source"], "pre_contract_shadow_selection_read_only")
+        self.assertEqual(len(gate["move_evidence"]), 1)
+        self.assertEqual(wake["decision"], "ACCEPT_WAKE")
+        self.assertIn("confirmed_service_failure", wake["accepted_wake_sources"])
+        self.assertEqual(boundary["status"], "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED")
+        self.assertFalse(boundary["candidate_created"])
+        self.assertFalse(boundary["packet_created"])
+        self.assertFalse(boundary["lease_created"])
+
     def test_observation_fail_with_affected_users_produces_confirmed_current_channel_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

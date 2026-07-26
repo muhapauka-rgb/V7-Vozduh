@@ -2024,6 +2024,8 @@ class AutoswitchPlanner:
         self,
         selected: list[dict[str, Any]],
         restore_barrier: dict[str, Any],
+        *,
+        evidence_candidates: Optional[list[dict[str, Any]]] = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         policy = dict(self.emergency_failover_policy)
         enabled = bool_value(policy.get("enabled"))
@@ -2036,6 +2038,7 @@ class AutoswitchPlanner:
             "blockers": [],
             "selected_moves_before_gate": len(selected),
             "selected_moves_after_gate": len(selected),
+            "evidence_candidates_before_gate": len(evidence_candidates or selected),
             "max_users_per_run": to_int(policy.get("max_users_per_run"), 1),
             "max_users_per_channel": to_int(policy.get("max_users_per_channel"), 1),
             "require_fresh_evidence": bool_value(policy.get("require_fresh_evidence", True)),
@@ -2094,13 +2097,34 @@ class AutoswitchPlanner:
 
         eligible: list[dict[str, Any]] = []
         per_move: list[dict[str, Any]] = []
+        selected_keys = {
+            (
+                str(move.get("user_ip") or ""),
+                str(move.get("current_egress") or ""),
+                str(move.get("recommended_egress") or ""),
+                str(move.get("move_type") or ""),
+            )
+            for move in selected
+        }
+        # The action-class contract is an execution gate, not an observation
+        # gate.  When it suppresses selected moves, retain the exact
+        # pre-contract bounded shadow selection solely to derive a fresh L3
+        # wake.  It cannot create a Candidate, Packet, lease or mutation: only
+        # rows that still survive the contract gate may enter `eligible`.
+        evidence_source = list(selected) if selected else list(evidence_candidates or [])
         incident_source = str(incident_source_continuity.get("incident_source") or "")
-        for move in selected:
+        for move in evidence_source:
             if bool_value(incident_source_continuity.get("active")) and str(move.get("current_egress") or "") != incident_source:
                 blockers.append("incident_source_selected_move_mismatch")
             evidence = self._emergency_failover_move_evidence(move)
             per_move.append(evidence)
-            if evidence.get("ok"):
+            move_key = (
+                str(move.get("user_ip") or ""),
+                str(move.get("current_egress") or ""),
+                str(move.get("recommended_egress") or ""),
+                str(move.get("move_type") or ""),
+            )
+            if evidence.get("ok") and move_key in selected_keys:
                 eligible.append(move)
             else:
                 blockers.extend(str(reason) for reason in evidence.get("blockers") or [])
@@ -2201,6 +2225,9 @@ class AutoswitchPlanner:
                 if len(duplicate_consumed_attempts) >= gate["retry_budget_per_incident"]:
                     blockers.append("l3_retry_budget_exhausted")
         gate["move_evidence"] = per_move
+        gate["move_evidence_source"] = (
+            "selected_moves" if selected else "pre_contract_shadow_selection_read_only"
+        )
         gate["wake"] = wake
         gate["incident_key"] = incident_key
         gate["previous_attempts"] = previous_attempts
@@ -6737,6 +6764,7 @@ class AutoswitchPlanner:
             selected = selected[:max_selected_moves]
             blast_radius_cap_applied = True
         selected_after_request_cap_count = len(selected)
+        pre_contract_selected = list(selected)
         selected, authority_budget_gate = self._authority_budget_gate(selected)
         authority_cap_applied = bool(authority_budget_gate.get("authority_cap_applied"))
         effective_cap_inputs = [
@@ -6848,7 +6876,11 @@ class AutoswitchPlanner:
             intelligence_snapshot_gate["selected_moves_after_gate"] = 0
         else:
             intelligence_snapshot_gate["selected_moves_after_gate"] = len(selected)
-        selected, emergency_failover_gate = self._emergency_failover_authority_gate(selected, restore_barrier)
+        selected, emergency_failover_gate = self._emergency_failover_authority_gate(
+            selected,
+            restore_barrier,
+            evidence_candidates=pre_contract_selected,
+        )
         if bool_value(emergency_failover_gate.get("enabled")):
             if bool_value(emergency_failover_gate.get("ok")):
                 selected_moves_source = "emergency_failover_autonomy"

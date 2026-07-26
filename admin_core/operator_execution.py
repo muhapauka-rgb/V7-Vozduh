@@ -97,6 +97,10 @@ ENGINEERING_AUTHORITY_REQUEST_SCHEMA = "v7.controlled-rollback-condition-enginee
 ENGINEERING_AUTHORITY_BINDING_SCHEMA = "v7.engineering-authority-binding.v1"
 ENGINEERING_AUTHORITY_APPROVAL = "APPROVE_ONCE_AS_SCOPED"
 ENGINEERING_AUTHORITY_REPAIR_CONTINUATION_POLICY_SCHEMA = "v7.controlled-rollback-repair-continuation-policy.v1"
+CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA = "v7.current-action-class-contract-authority-request.v1"
+CURRENT_ACTION_CLASS_CONTRACT_SCHEMA = "v7.current-action-class-contract.v2"
+CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER = CANONICAL_CLEARANCE_OWNER
+CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
 
 
 class PacketError(ValueError):
@@ -495,6 +499,272 @@ def engineering_authority_repair_continuation_policy_hash(policy):
     canonical.pop("policy_id", None)
     canonical.pop("policy_hash", None)
     return sha256_json(canonical)
+
+
+def current_action_class_contract_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def current_action_class_contract_hash(contract):
+    canonical = copy.deepcopy(contract if isinstance(contract, dict) else {})
+    canonical.pop("contract_id", None)
+    canonical.pop("contract_hash", None)
+    canonical.pop("one_use_consumption", None)
+    return sha256_json(canonical)
+
+
+def build_current_action_class_contract_authority_request(template, *, issue_preflight=None):
+    """Build the existing Authority owner's exact one-use decision input.
+
+    This deliberately returns a non-durable request.  It has no policy-write
+    capability: only ``issue_current_action_class_contract`` below, owned by
+    this established Authority surface, can turn an exact approval into the
+    policy field consumed by autoswitch.
+    """
+    template = copy.deepcopy(template if isinstance(template, dict) else {})
+    scope = template.get("scope") if isinstance(template.get("scope"), dict) else {}
+    subject = template.get("subject") if isinstance(template.get("subject"), dict) else {}
+    source_generation = template.get("source_generation") if isinstance(template.get("source_generation"), dict) else {}
+    incident_generation = template.get("incident_generation") if isinstance(template.get("incident_generation"), dict) else {}
+    request = {
+        "schema_version": CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "decision_set": [ENGINEERING_AUTHORITY_APPROVAL, "DECLINE"],
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "active_program": str(template.get("active_program") or ""),
+        "action_class": str(template.get("action_class") or ""),
+        "max_authority_class": str(template.get("max_authority_class") or ""),
+        "subject": {"user_ip": str(subject.get("user_ip") or "")},
+        "scope": {
+            "source_egress": str(scope.get("source_egress") or ""),
+            "target_egress": str(scope.get("target_egress") or ""),
+            "max_users": as_int(template.get("max_users"), 0),
+            "max_concurrent_transactions": as_int(template.get("max_concurrent_transactions"), 0),
+        },
+        "incident_generation": incident_generation,
+        "source_generation": source_generation,
+        "verification_contract": copy.deepcopy(template.get("verification_contract") or {}),
+        "rollback_containment_contract": copy.deepcopy(template.get("rollback_containment_contract") or {}),
+        "cooldown": copy.deepcopy(template.get("cooldown") or {}),
+        "anti_flap": copy.deepcopy(template.get("anti_flap") or {}),
+        "stop_conditions": [str(item) for item in (template.get("stop_conditions") or []) if str(item).strip()],
+        "max_ttl_seconds": min(CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS, max(1, as_int(template.get("max_ttl_seconds"), 300))),
+        "one_use_law": {
+            "approval_use_limit": 1,
+            "implicit_renewal": False,
+            "retry_under_same_approval": False,
+            "consumption_owner": "tools/v7-users-autoswitch",
+        },
+        "issue_preflight": copy.deepcopy(issue_preflight if isinstance(issue_preflight, dict) else {}),
+    }
+    request_hash = current_action_class_contract_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"accauth_r1_{request_hash[:24]}"
+    return request
+
+
+def validate_current_action_class_contract_authority_request(
+    request, *, decision, expected_request_id="", expected_request_hash="", now=None,
+):
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors: list[str] = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    if request.get("schema_version") != CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA:
+        errors.append("current_action_class_contract_request_schema_invalid")
+    if current_action_class_contract_request_hash(request) != request_hash:
+        errors.append("current_action_class_contract_request_hash_mismatch")
+    if request_id != f"accauth_r1_{request_hash[:24]}":
+        errors.append("current_action_class_contract_request_identity_mismatch")
+    if expected_request_id and request_id != expected_request_id:
+        errors.append("current_action_class_contract_expected_request_mismatch")
+    if expected_request_hash and request_hash != expected_request_hash:
+        errors.append("current_action_class_contract_expected_hash_mismatch")
+    if str(request.get("status") or "") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION":
+        errors.append("current_action_class_contract_request_not_pending")
+    if decision != ENGINEERING_AUTHORITY_APPROVAL or decision not in set(request.get("decision_set") or []):
+        errors.append("current_action_class_contract_decision_not_exact_approval")
+    if str(request.get("issuing_owner_required") or "") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("current_action_class_contract_issuing_owner_invalid")
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    subject = request.get("subject") if isinstance(request.get("subject"), dict) else {}
+    if not str(request.get("active_program") or ""):
+        errors.append("current_action_class_contract_program_missing")
+    if str(request.get("action_class") or "").upper() not in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}:
+        errors.append("current_action_class_contract_action_class_invalid")
+    if not str(subject.get("user_ip") or ""):
+        errors.append("current_action_class_contract_subject_missing")
+    if not str(scope.get("source_egress") or "") or not str(scope.get("target_egress") or ""):
+        errors.append("current_action_class_contract_scope_missing")
+    if as_int(scope.get("max_users"), 0) != 1 or as_int(scope.get("max_concurrent_transactions"), 0) != 1:
+        errors.append("current_action_class_contract_blast_radius_invalid")
+    source_generation = request.get("source_generation") if isinstance(request.get("source_generation"), dict) else {}
+    if not all(str(source_generation.get(key) or "") for key in ("planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash")):
+        errors.append("current_action_class_contract_source_generation_missing")
+    if not isinstance(request.get("incident_generation"), dict):
+        errors.append("current_action_class_contract_incident_generation_invalid")
+    if not isinstance(request.get("verification_contract"), dict) or not request.get("verification_contract"):
+        errors.append("current_action_class_contract_verification_contract_missing")
+    if not isinstance(request.get("rollback_containment_contract"), dict) or not request.get("rollback_containment_contract"):
+        errors.append("current_action_class_contract_rollback_contract_missing")
+    cooldown = request.get("cooldown") if isinstance(request.get("cooldown"), dict) else {}
+    anti_flap = request.get("anti_flap") if isinstance(request.get("anti_flap"), dict) else {}
+    if as_int(cooldown.get("seconds"), -1) < 0 or cooldown.get("required") is not True:
+        errors.append("current_action_class_contract_cooldown_invalid")
+    if anti_flap.get("required") is not True:
+        errors.append("current_action_class_contract_anti_flap_invalid")
+    one_use = request.get("one_use_law") if isinstance(request.get("one_use_law"), dict) else {}
+    if as_int(one_use.get("approval_use_limit"), 0) != 1 or one_use.get("implicit_renewal") is not False or one_use.get("retry_under_same_approval") is not False:
+        errors.append("current_action_class_contract_one_use_law_invalid")
+    if str(one_use.get("consumption_owner") or "") != "tools/v7-users-autoswitch":
+        errors.append("current_action_class_contract_consumption_owner_invalid")
+    preflight = request.get("issue_preflight") if isinstance(request.get("issue_preflight"), dict) else {}
+    if preflight.get("ready") is not True or preflight.get("blockers") not in ([], None):
+        errors.append("current_action_class_contract_issue_preflight_not_ready")
+    return {"ok": not errors, "errors": sorted(set(errors)), "request_id": request_id, "request_hash": request_hash, "evaluated_at": now.isoformat()}
+
+
+def issue_current_action_class_contract(policy, request, *, decision, expected_request_id="", expected_request_hash="", now=None):
+    """Issue the policy contract through the existing Authority owner only.
+
+    The returned policy is deliberately not a runtime action.  Its contract
+    carries the exact Authority decision, fresh source generation and a
+    one-use state; autoswitch must independently revalidate it before any
+    Candidate/Packet/apply lifecycle can proceed.
+    """
+    now = now or utc_now()
+    validation = validate_current_action_class_contract_authority_request(
+        request, decision=decision, expected_request_id=expected_request_id,
+        expected_request_hash=expected_request_hash, now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["current_action_class_contract_request_invalid"]))
+    policy = copy.deepcopy(policy if isinstance(policy, dict) else {})
+    authority_budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
+    previous = authority_budget.get("current_action_class_contract") if isinstance(authority_budget.get("current_action_class_contract"), dict) else {}
+    previous_one_use = previous.get("one_use_consumption") if isinstance(previous.get("one_use_consumption"), dict) else {}
+    if str(previous_one_use.get("state") or "") == "ISSUED":
+        try:
+            previous_unexpired = parse_ts(previous.get("expires_at")) > now
+        except PacketError:
+            previous_unexpired = False
+        if previous_unexpired:
+            raise PacketError("current_action_class_contract_unconsumed_contract_already_issued")
+    ttl_seconds = as_int(request.get("max_ttl_seconds"), 0)
+    if ttl_seconds <= 0 or ttl_seconds > CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS:
+        raise PacketError("current_action_class_contract_ttl_invalid")
+    issued_at = now.isoformat()
+    expires_at = (now + timedelta(seconds=ttl_seconds)).isoformat()
+    scope = request.get("scope") or {}
+    contract = {
+        "schema_version": CURRENT_ACTION_CLASS_CONTRACT_SCHEMA,
+        "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "active_program": str(request.get("active_program") or ""),
+        "action_class": str(request.get("action_class") or ""),
+        "max_authority_class": str(request.get("max_authority_class") or ""),
+        "subject": copy.deepcopy(request.get("subject") or {}),
+        "scope": {"source_egress": str(scope.get("source_egress") or ""), "target_egress": str(scope.get("target_egress") or "")},
+        "max_users": 1,
+        "max_concurrent_transactions": 1,
+        "incident_generation": copy.deepcopy(request.get("incident_generation") or {}),
+        "source_generation": copy.deepcopy(request.get("source_generation") or {}),
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "verification_contract": copy.deepcopy(request.get("verification_contract") or {}),
+        "rollback_containment_contract": copy.deepcopy(request.get("rollback_containment_contract") or {}),
+        "cooldown": copy.deepcopy(request.get("cooldown") or {}),
+        "anti_flap": copy.deepcopy(request.get("anti_flap") or {}),
+        "required_gates": {
+            "fresh_evidence_required": True, "verification_required": True,
+            "rollback_required": True, "anti_flap_required": True,
+            "cooldown_seconds": as_int((request.get("cooldown") or {}).get("seconds"), 0),
+        },
+        "stop_conditions": copy.deepcopy(request.get("stop_conditions") or []),
+        "authority_decision": {
+            "decision": ENGINEERING_AUTHORITY_APPROVAL,
+            "request_id": validation["request_id"],
+            "request_hash": validation["request_hash"],
+            "decided_at": issued_at,
+            "approval_use_limit": 1,
+            "implicit_renewal": False,
+            "retry_under_same_approval": False,
+        },
+        "one_use_consumption": {
+            "state": "ISSUED", "allowed_uses": 1, "consumed_uses": 0,
+            "consumption_owner": "tools/v7-users-autoswitch", "consumption_id": "",
+            "consumed_at": "", "retry_allowed": False,
+        },
+    }
+    contract_hash = current_action_class_contract_hash(contract)
+    contract["contract_hash"] = contract_hash
+    contract["contract_id"] = f"acc_{contract_hash[:24]}"
+    authority_budget = dict(authority_budget)
+    authority_budget["current_action_class_contract"] = contract
+    policy["authority_budget"] = authority_budget
+    return {"policy": policy, "contract": contract, "validation": validation}
+
+
+def consume_current_action_class_contract(policy, *, contract_id, contract_hash, subject, scope, source_generation, operation_id, now=None):
+    """Atomically consume a v2 contract before its sole forward mutation.
+
+    A failed or interrupted downstream apply still consumes the decision.  That
+    is intentional: retrying requires a fresh Situation and a fresh Authority
+    decision, never reuse of an old policy field.
+    """
+    now = now or utc_now()
+    policy = copy.deepcopy(policy if isinstance(policy, dict) else {})
+    budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
+    contract = budget.get("current_action_class_contract") if isinstance(budget.get("current_action_class_contract"), dict) else {}
+    consumption = contract.get("one_use_consumption") if isinstance(contract.get("one_use_consumption"), dict) else {}
+    if str(contract.get("schema_version") or "") != CURRENT_ACTION_CLASS_CONTRACT_SCHEMA:
+        raise PacketError("current_action_class_contract_consumption_schema_invalid")
+    if str(contract.get("contract_id") or "") != str(contract_id or "") or str(contract.get("contract_hash") or "") != str(contract_hash or ""):
+        raise PacketError("current_action_class_contract_consumption_identity_mismatch")
+    if current_action_class_contract_hash(contract) != str(contract_hash or ""):
+        raise PacketError("current_action_class_contract_consumption_hash_invalid")
+    if str(consumption.get("state") or "") != "ISSUED" or as_int(consumption.get("allowed_uses"), 0) != 1 or as_int(consumption.get("consumed_uses"), -1) != 0:
+        raise PacketError("current_action_class_contract_not_available_for_one_use_consumption")
+    expected_subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
+    expected_scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
+    if str((subject or {}).get("user_ip") or "") != str(expected_subject.get("user_ip") or ""):
+        raise PacketError("current_action_class_contract_consumption_subject_mismatch")
+    if {
+        "source_egress": str((scope or {}).get("source_egress") or ""),
+        "target_egress": str((scope or {}).get("target_egress") or ""),
+    } != {
+        "source_egress": str(expected_scope.get("source_egress") or ""),
+        "target_egress": str(expected_scope.get("target_egress") or ""),
+    }:
+        raise PacketError("current_action_class_contract_consumption_scope_mismatch")
+    if dict(source_generation or {}) != dict(contract.get("source_generation") or {}):
+        raise PacketError("current_action_class_contract_consumption_generation_mismatch")
+    if not str(operation_id or ""):
+        raise PacketError("current_action_class_contract_consumption_operation_missing")
+    consumption = dict(consumption)
+    consumption.update({
+        "state": "CONSUMED", "consumed_uses": 1,
+        "consumption_id": stable_id("accuse", {"contract_id": contract_id, "operation_id": operation_id}),
+        "consumed_at": now.isoformat(), "operation_id": str(operation_id),
+        "retry_allowed": False,
+    })
+    contract["one_use_consumption"] = consumption
+    # The contract hash identifies the immutable issuance; consumption is a
+    # governed lifecycle transition and intentionally does not rewrite it.
+    budget = dict(budget)
+    budget["current_action_class_contract"] = contract
+    policy["authority_budget"] = budget
+    return {"policy": policy, "consumption": consumption, "contract": contract}
+
+
+def consume_current_action_class_contract_to_policy(policy_path, **kwargs):
+    policy_path = Path(policy_path)
+    result = consume_current_action_class_contract(read_json(policy_path), **kwargs)
+    write_json_atomic(policy_path, result["policy"])
+    return result
 
 
 def _engineering_authority_exact_scope(payload):
@@ -2929,6 +3199,36 @@ def load_packet(path, repo_root):
     return read_json(packet_path), packet_path
 
 
+def issue_current_action_class_contract_to_policy(
+    policy_path, request_path, *, decision, expected_request_id="", expected_request_hash="", now=None,
+):
+    """Persist a contract only through this existing Authority owner surface."""
+    policy_path = Path(policy_path)
+    request_path = Path(request_path)
+    policy = read_json(policy_path)
+    request = read_json(request_path)
+    result = issue_current_action_class_contract(
+        policy, request, decision=decision, expected_request_id=expected_request_id,
+        expected_request_hash=expected_request_hash, now=now,
+    )
+    write_json_atomic(policy_path, result["policy"])
+    return {
+        "status": "ISSUED",
+        "policy_path": str(policy_path),
+        "contract": result["contract"],
+        "authority_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "policy_write": True,
+        "authority_granted": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "production_maturity_changed": False,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Validate and consume V7 operator execution packets without user movement.")
     parser.add_argument("--packet")
@@ -2971,9 +3271,30 @@ def main(argv=None):
     parser.add_argument("--snapshot-bundle-hash", default="")
     parser.add_argument("--max-users", type=int, default=0)
     parser.add_argument("--rollback-certified", action="store_true")
+    parser.add_argument(
+        "--issue-current-action-class-contract-from-request", default="",
+        help="Existing Authority owner only: issue one exact approved action-class contract from a fresh request JSON.",
+    )
+    parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
+    parser.add_argument("--authority-decision", default="")
+    parser.add_argument("--expected-authority-request-id", default="")
+    parser.add_argument("--expected-authority-request-hash", default="")
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.issue_current_action_class_contract_from_request:
+            if args.packet or args.generate_from_plan or args.generate_from_preview:
+                raise PacketError("current_action_class_contract_issue_mode_must_not_mix_packet_modes")
+            result = issue_current_action_class_contract_to_policy(
+                args.action_class_policy_file,
+                args.issue_current_action_class_contract_from_request,
+                decision=args.authority_decision,
+                expected_request_id=args.expected_authority_request_id,
+                expected_request_hash=args.expected_authority_request_hash,
+            )
+            text = json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True)
+            print(text)
+            return 0
         if args.check_autonomous_execution_control:
             result = autonomous_execution_control_decision(
                 Path(args.execution_control_file),

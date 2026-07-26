@@ -133,17 +133,31 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         }
         if authority_budget is not None:
             policy["authority_budget"] = dict(authority_budget)
-            policy["authority_budget"].setdefault(
-                "current_action_class_contract",
-                {
+            contract = policy["authority_budget"].get("current_action_class_contract")
+            if not isinstance(contract, dict):
+                contract = {
                     "schema_version": "v7.current-action-class-contract.v1",
-                    "contract_id": "unit-test-current-action-class-contract",
+                    "issuing_owner": operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
                     "active_program": "UNIT_TEST",
                     "action_class": "GOVERNED_ONLY",
                     "max_authority_class": "POOL",
+                    "subject": {"user_ip": "10.0.0.2"},
                     "max_users": 100,
+                    "max_concurrent_transactions": 100,
+                    "incident_generation": {"incident_id": "unit-incident"},
+                    "source_generation": {
+                        "planner_generation_id": "unit-planner-generation",
+                        "source_bundle_hash": "unit-source-bundle",
+                        "snapshot_bundle_hash": "unit-snapshot-bundle",
+                        "selected_move_hash": "unit-selected-move",
+                    },
+                    "issued_at": "2026-01-01T00:00:00+00:00",
                     "expires_at": "2999-01-01T00:00:00+00:00",
                     "scope": {"source_egress": "fixture-source", "target_egress": "fixture-target"},
+                    "verification_contract": {"owner": "unit-test", "required": True},
+                    "rollback_containment_contract": {"owner": "unit-test", "required": True},
+                    "cooldown": {"required": True, "seconds": 180},
+                    "anti_flap": {"required": True},
                     "required_gates": {
                         "fresh_evidence_required": True,
                         "verification_required": True,
@@ -152,8 +166,20 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                         "cooldown_seconds": 180,
                     },
                     "stop_conditions": ["no_safe_target", "stale_evidence", "verification_failure"],
-                },
-            )
+                    "authority_decision": {
+                        "decision": operator_execution.ENGINEERING_AUTHORITY_APPROVAL,
+                        "request_id": "accauth_r1_unit",
+                        "request_hash": "unit-request-hash",
+                        "decided_at": "2026-01-01T00:00:00+00:00",
+                    },
+                    "one_use_consumption": {
+                        "state": "ISSUED", "allowed_uses": 1, "consumed_uses": 0,
+                        "consumption_owner": "tools/v7-users-autoswitch", "retry_allowed": False,
+                    },
+                }
+                contract["contract_hash"] = operator_execution.current_action_class_contract_hash(contract)
+                contract["contract_id"] = "acc_" + contract["contract_hash"][:24]
+                policy["authority_budget"]["current_action_class_contract"] = contract
         if emergency_failover_autonomy is not None:
             policy["emergency_failover_autonomy"] = emergency_failover_autonomy
         (root / "policy.json").write_text(json.dumps(policy), encoding="utf-8")

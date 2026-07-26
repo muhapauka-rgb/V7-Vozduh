@@ -15,6 +15,7 @@ from admin_core.operator_execution import (
     autonomous_execution_control_decision,
     autonomous_execution_control_state,
     build_autonomous_execution_control_state,
+    build_current_action_class_contract_authority_request,
     cancel_execution_lease,
     containment_forward_fix_classification,
     create_execution_lease_from_packet,
@@ -25,6 +26,8 @@ from admin_core.operator_execution import (
     execution_lease_state,
     extract_packet_preview,
     finish_execution_lease,
+    issue_current_action_class_contract,
+    consume_current_action_class_contract,
     finalize_autonomous_execution_control_window,
     material_state_from_packet,
     packet_from_preview,
@@ -40,6 +43,7 @@ from admin_core.operator_execution import (
     sha256_json,
     write_execution_lease,
     validate_engineering_authority_repair_continuation,
+    validate_current_action_class_contract_authority_request,
 )
 
 
@@ -92,6 +96,60 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
+        template = {
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "action_class": "GOVERNED_ONLY",
+            "max_authority_class": "POOL",
+            "subject": {"user_ip": "10.0.0.2"},
+            "scope": {"source_egress": "vless", "target_egress": "awg3"},
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "incident_generation": {"incident_id": "incident-1"},
+            "source_generation": {
+                "planner_generation_id": "planner-1",
+                "source_bundle_hash": "source-1",
+                "snapshot_bundle_hash": "snapshot-1",
+                "selected_move_hash": "move-1",
+            },
+            "verification_contract": {"owner": "tools/v7-users-autoswitch", "required": True},
+            "rollback_containment_contract": {"owner": "tools/v7-users-autoswitch", "required": True},
+            "cooldown": {"required": True, "seconds": 180},
+            "anti_flap": {"required": True},
+            "stop_conditions": ["verification_failure"],
+            "max_ttl_seconds": 300,
+        }
+        request = build_current_action_class_contract_authority_request(
+            template, issue_preflight={"ready": True, "blockers": []},
+        )
+        valid = validate_current_action_class_contract_authority_request(
+            request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+        )
+        self.assertTrue(valid["ok"], valid["errors"])
+        issued = issue_current_action_class_contract(
+            {"authority_budget": {}}, request, decision="APPROVE_ONCE_AS_SCOPED",
+            expected_request_id=request["request_id"], expected_request_hash=request["request_hash"],
+        )
+        contract = issued["contract"]
+        self.assertEqual(contract["issuing_owner"], CANONICAL_CLEARANCE_OWNER)
+        self.assertEqual(contract["max_users"], 1)
+        self.assertEqual(contract["max_concurrent_transactions"], 1)
+        self.assertEqual(contract["one_use_consumption"]["state"], "ISSUED")
+        self.assertEqual(contract["authority_decision"]["request_id"], request["request_id"])
+        consumed = consume_current_action_class_contract(
+            issued["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"],
+            subject=contract["subject"], scope=contract["scope"],
+            source_generation=contract["source_generation"], operation_id="operation-1",
+        )
+        self.assertEqual(consumed["consumption"]["state"], "CONSUMED")
+        with self.assertRaises(PacketError):
+            consume_current_action_class_contract(
+                consumed["policy"], contract_id=contract["contract_id"], contract_hash=contract["contract_hash"],
+                subject=contract["subject"], scope=contract["scope"],
+                source_generation=contract["source_generation"], operation_id="operation-2",
+            )
+
     def test_autonomous_execution_control_is_fail_closed_and_generation_bound(self):
         now = datetime.now(timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

@@ -152,6 +152,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
     def test_authority_stop_safe_emits_existing_policy_owner_request_without_grant(self):
         plan = {
+            "operation": {
+                "planner_generation_id": "planner-generation-1",
+                "source_bundle_hash": "source-bundle-1",
+                "snapshot_bundle_hash": "snapshot-bundle-1",
+                "selected_move_hash": "selected-move-1",
+            },
             "decisions": [{
                 "user_ip": "10.0.0.2",
                 "current_egress": "vless",
@@ -178,6 +184,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(request["status"], "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY")
         self.assertEqual(request["shadow_candidate"]["source_egress"], "vless")
         self.assertEqual(request["owner_issued_contract_template"]["max_users"], 1)
+        self.assertEqual(request["owner_issued_contract_template"]["max_concurrent_transactions"], 1)
+        self.assertTrue(request["authority_decision_request"]["request_id"])
         self.assertIn("existing /etc/v7/policy.json authority owner", request["next_consumer"])
         self.assertFalse(request["authority_granted"])
         self.assertFalse(request["contract_written"])

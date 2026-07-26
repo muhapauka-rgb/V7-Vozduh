@@ -163,10 +163,33 @@ queue or CPS replacement.
 
 The contract must contain:
 
-- schema `v7.current-action-class-contract.v1`;
-- `contract_id`, `active_program` and legal action class;
-- an unexpired `expires_at`;
-- maximum Authority class and maximum user scope.
+- schema `v7.current-action-class-contract.v2` (the former v1 is legacy
+  compatibility only and can never be emitted by this Program);
+- `contract_id`, `contract_hash`, `issuing_owner`, `active_program` and legal
+  action class;
+- exact `subject.user_ip`, source/target scope, `max_users=1` and
+  `max_concurrent_transactions=1`;
+- `incident_generation` and the fresh `source_generation` identity
+  (`planner_generation_id`, source/snapshot bundle hashes and selected-move
+  hash);
+- `issued_at`, short unexpired `expires_at`, verification contract,
+  rollback/containment contract, cooldown and anti-flap contract;
+- immutable `authority_decision` provenance: the exact request id/hash,
+  `APPROVE_ONCE_AS_SCOPED`, and decision timestamp;
+- a one-use consumption state (`ISSUED -> CONSUMED/EXPIRED`) with exactly one
+  allowed use and no retry under the same decision.
+
+`admin_core/operator_execution.py` is the existing Authority decision owner
+for this issuance. Its explicit issue surface verifies the fresh request,
+expected request id/hash and `APPROVE_ONCE_AS_SCOPED`, then alone writes the
+policy field. Neither a hand-edited JSON object nor the read-only autoswitch
+request template is an Authority decision or an executable contract. The
+autoswitch owner only consumes and independently revalidates a v2 contract.
+Immediately before its sole forward mutation, it calls back into the same
+existing Authority owner to atomically transition `ISSUED -> CONSUMED`, binding
+the exact user, source/target and source generation. A failed or interrupted
+later apply remains consumed and therefore requires a new reconciliation and
+new Authority decision; no retry can silently reuse the previous contract.
 
 The autoswitch gate must cap selection by that scope. A missing, malformed,
 expired, lower-than-certified or zero-budget contract is
@@ -191,7 +214,9 @@ same source bundle (a standalone refresh followed by an unlocked read is not
 sufficient while the Telegram sentinel is a live writer)
 `->` existing `/etc/v7/policy.json` authority owner independently issues or
 declines a short one-use scoped contract only after the request preflight is
-fresh and ready
+fresh and ready, through the existing `admin_core/operator_execution.py`
+Authority decision surface and an exact `APPROVE_ONCE_AS_SCOPED` request/hash
+binding
 `->` existing event-driven Service Matrix/autoswitch invocation re-reads and
 validates that contract
 `->` existing action-class boundary returns either another exact `STOP_SAFE`,

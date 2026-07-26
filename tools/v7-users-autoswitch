@@ -582,20 +582,57 @@ def runtime_authority_contract_status(
     now = datetime.now(timezone.utc).timestamp()
     expires_at = str(contract.get("expires_at") or "")
     max_users = max(0, to_int(contract.get("max_users"), 0))
+    max_concurrent_transactions = max(0, to_int(contract.get("max_concurrent_transactions"), 0))
     scope = contract.get("scope") if isinstance(contract.get("scope"), dict) else {}
+    subject = contract.get("subject") if isinstance(contract.get("subject"), dict) else {}
+    source_generation = contract.get("source_generation") if isinstance(contract.get("source_generation"), dict) else {}
+    incident_generation = contract.get("incident_generation") if isinstance(contract.get("incident_generation"), dict) else {}
+    verification_contract = contract.get("verification_contract") if isinstance(contract.get("verification_contract"), dict) else {}
+    rollback_contract = contract.get("rollback_containment_contract") if isinstance(contract.get("rollback_containment_contract"), dict) else {}
+    cooldown = contract.get("cooldown") if isinstance(contract.get("cooldown"), dict) else {}
+    anti_flap = contract.get("anti_flap") if isinstance(contract.get("anti_flap"), dict) else {}
+    decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    consumption = contract.get("one_use_consumption") if isinstance(contract.get("one_use_consumption"), dict) else {}
     required_gates = contract.get("required_gates") if isinstance(contract.get("required_gates"), dict) else {}
     stop_conditions = contract.get("stop_conditions") if isinstance(contract.get("stop_conditions"), list) else []
     allowed_class = normalize_authority_class(
         contract.get("max_authority_class") or contract.get("authority_class") or "CANARY"
     )
     action_class = str(contract.get("action_class") or "").strip().upper()
-    schema_ok = str(contract.get("schema_version") or "") == "v7.current-action-class-contract.v1"
-    scope_ok = bool(str(contract.get("contract_id") or "")) and bool(str(contract.get("active_program") or ""))
+    contract_schema = str(contract.get("schema_version") or "")
+    strict_provenance_contract = contract_schema == operator_execution.CURRENT_ACTION_CLASS_CONTRACT_SCHEMA
+    schema_ok = contract_schema in {"v7.current-action-class-contract.v1", operator_execution.CURRENT_ACTION_CLASS_CONTRACT_SCHEMA}
+    provenance_ok = (not strict_provenance_contract) or (
+        str(contract.get("issuing_owner") or "") == operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER
+        and bool(str(contract.get("contract_id") or ""))
+        and bool(str(contract.get("contract_hash") or ""))
+        and operator_execution.current_action_class_contract_hash(contract) == str(contract.get("contract_hash") or "")
+        and bool(str(contract.get("active_program") or ""))
+        and bool(str(subject.get("user_ip") or ""))
+        and decision.get("decision") == operator_execution.ENGINEERING_AUTHORITY_APPROVAL
+        and bool(str(decision.get("request_id") or ""))
+        and bool(str(decision.get("request_hash") or ""))
+        and bool(str(decision.get("decided_at") or ""))
+    )
+    scope_ok = bool(str(scope.get("source_egress") or "")) and bool(str(scope.get("target_egress") or ""))
     action_ok = action_class in {"GOVERNED_ONLY", "EMERGENCY_FAILOVER"}
     expiry_ok = parse_ts(expires_at) > now
     class_ok = AUTHORITY_CLASS_RANK[allowed_class] >= AUTHORITY_CLASS_RANK[certified_class]
-    budget_ok = max_users > 0
-    action_scope_ok = bool(str(scope.get("source_egress") or "")) and bool(str(scope.get("target_egress") or ""))
+    budget_ok = (max_users > 0) if not strict_provenance_contract else (max_users == 1 and max_concurrent_transactions == 1)
+    source_generation_ok = (not strict_provenance_contract) or (all(str(source_generation.get(key) or "") for key in (
+        "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
+    )) and isinstance(incident_generation, dict))
+    execution_contract_ok = (not strict_provenance_contract) or (bool(verification_contract) and bool(rollback_contract))
+    lifecycle_ok = (not strict_provenance_contract) or (
+        cooldown.get("required") is True and to_int(cooldown.get("seconds"), -1) >= 0
+        and anti_flap.get("required") is True
+        and consumption.get("state") == "ISSUED"
+        and to_int(consumption.get("allowed_uses"), 0) == 1
+        and to_int(consumption.get("consumed_uses"), -1) == 0
+        and consumption.get("retry_allowed") is False
+        and str(consumption.get("consumption_owner") or "") == "tools/v7-users-autoswitch"
+    )
+    action_scope_ok = scope_ok
     gate_contract_ok = (
         bool_value(required_gates.get("fresh_evidence_required"))
         and bool_value(required_gates.get("verification_required"))
@@ -606,12 +643,14 @@ def runtime_authority_contract_status(
     )
     stop_conditions_ok = bool([item for item in stop_conditions if str(item).strip()])
     valid = (not required) or (
-        schema_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok
-        and action_scope_ok and gate_contract_ok and stop_conditions_ok
+        schema_ok and provenance_ok and scope_ok and action_ok and expiry_ok and class_ok and budget_ok
+        and source_generation_ok and execution_contract_ok and lifecycle_ok and gate_contract_ok and stop_conditions_ok
     )
     blockers: list[str] = []
     if required and not schema_ok:
         blockers.append("current_action_class_contract_missing_or_schema_invalid")
+    if required and strict_provenance_contract and not provenance_ok:
+        blockers.append("current_action_class_contract_authority_provenance_invalid")
     if required and schema_ok and not scope_ok:
         blockers.append("current_action_class_contract_scope_missing")
     if required and schema_ok and not action_ok:
@@ -621,9 +660,15 @@ def runtime_authority_contract_status(
     if required and schema_ok and not class_ok:
         blockers.append("current_action_class_contract_below_certified_authority")
     if required and schema_ok and not budget_ok:
-        blockers.append("current_action_class_contract_zero_budget")
+        blockers.append("current_action_class_contract_exact_one_user_budget_required")
     if required and schema_ok and not action_scope_ok:
         blockers.append("current_action_class_contract_source_target_scope_missing")
+    if required and strict_provenance_contract and not source_generation_ok:
+        blockers.append("current_action_class_contract_incident_or_source_generation_missing")
+    if required and strict_provenance_contract and not execution_contract_ok:
+        blockers.append("current_action_class_contract_verification_or_rollback_contract_missing")
+    if required and strict_provenance_contract and not lifecycle_ok:
+        blockers.append("current_action_class_contract_one_use_lifecycle_invalid")
     if required and schema_ok and not gate_contract_ok:
         blockers.append("current_action_class_contract_required_gates_missing")
     if required and schema_ok and not stop_conditions_ok:
@@ -633,10 +678,13 @@ def runtime_authority_contract_status(
         "required": required,
         "valid": valid,
         "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
         "active_program": str(contract.get("active_program") or ""),
         "action_class": action_class,
         "max_authority_class": allowed_class,
         "max_users": max_users,
+        "max_concurrent_transactions": max_concurrent_transactions,
+        "subject": {"user_ip": str(subject.get("user_ip") or "")},
         "expires_at": expires_at,
         "scope": {
             "source_egress": str(scope.get("source_egress") or ""),
@@ -650,6 +698,18 @@ def runtime_authority_contract_status(
             "cooldown_seconds": to_int(required_gates.get("cooldown_seconds"), -1),
         },
         "stop_conditions": [str(item) for item in stop_conditions if str(item).strip()],
+        "provenance": {
+            "issuing_owner": str(contract.get("issuing_owner") or ""),
+            "authority_decision_id": str(decision.get("request_id") or ""),
+            "incident_generation": incident_generation,
+            "source_generation": source_generation,
+            "verification_contract": verification_contract,
+            "rollback_containment_contract": rollback_contract,
+            "cooldown": cooldown,
+            "anti_flap": anti_flap,
+            "one_use_state": str(consumption.get("state") or ""),
+            "strict_provenance_contract": strict_provenance_contract,
+        },
         "blockers": blockers,
         "truth_source": "existing_policy_current_action_class_contract",
         "new_truth_sources_created": False,
@@ -681,6 +741,8 @@ def action_class_contract_reconciliation_request(
         safety.get("intelligence_snapshots"), dict
     ) else {}
     status = str(boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED")
+    operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+    l3_incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
     shadow_candidates = sorted(
         [
             row for row in (plan.get("decisions") or [])
@@ -698,17 +760,40 @@ def action_class_contract_reconciliation_request(
     current_contract_valid = bool(contract_gate.get("valid"))
     contract_required = bool(contract_gate.get("required"))
     template = {
-        "schema_version": "v7.current-action-class-contract.v1",
-        "contract_id": "OWNER_TO_ISSUE_AFTER_FRESH_REENTRY",
         "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "action_class": "GOVERNED_ONLY",
         "max_authority_class": str(authority_gate.get("certified_authority_class") or "CANARY"),
         "max_users": 1,
-        "expires_at": "OWNER_TO_SET_SHORT_ONE_USE_EXPIRY",
+        "max_concurrent_transactions": 1,
+        "max_ttl_seconds": 300,
+        "subject": {"user_ip": str(chosen.get("user_ip") or "OWNER_TO_BIND_FROM_FRESH_SITUATION")},
         "scope": {
             "source_egress": str(chosen.get("current_egress") or "OWNER_TO_BIND_FROM_FRESH_SITUATION"),
             "target_egress": str(chosen.get("recommended_egress") or "OWNER_TO_BIND_FROM_FRESH_SITUATION"),
         },
+        "incident_generation": {
+            "incident_id": str(l3_incident.get("incident_id") or l3_incident.get("incident_key") or ""),
+            "incident_generation": str(l3_incident.get("generation") or ""),
+        },
+        "source_generation": {
+            "planner_generation_id": str(operation.get("planner_generation_id") or operation.get("generation_id") or ""),
+            "source_bundle_hash": str(operation.get("source_bundle_hash") or ""),
+            "snapshot_bundle_hash": str(operation.get("snapshot_bundle_hash") or ""),
+            "selected_move_hash": str(operation.get("selected_move_hash") or ""),
+        },
+        "verification_contract": {
+            "owner": "tools/v7-users-autoswitch",
+            "required": True,
+            "immediate_and_temporal_observation": True,
+        },
+        "rollback_containment_contract": {
+            "owner": "tools/v7-users-autoswitch",
+            "required": True,
+            "triggered_by_verifier": True,
+            "direct_terminal_manufacture_forbidden": True,
+        },
+        "cooldown": {"required": True, "seconds": 180},
+        "anti_flap": {"required": True, "same_source_target_repeat_forbidden": True},
         "required_gates": {
             "fresh_evidence_required": True,
             "verification_required": True,
@@ -740,6 +825,12 @@ def action_class_contract_reconciliation_request(
         issue_preflight_blockers.append(
             str(intelligence_gate.get("unsafe_blocker") or "intelligence_snapshot_gate_stop_required")
         )
+    if not all(str(template["source_generation"].get(key) or "") for key in (
+        "planner_generation_id", "source_bundle_hash", "snapshot_bundle_hash", "selected_move_hash",
+    )):
+        issue_preflight_blockers.append("fresh_source_generation_missing")
+    if not str(template["subject"].get("user_ip") or "") or str(template["subject"].get("user_ip")) == "OWNER_TO_BIND_FROM_FRESH_SITUATION":
+        issue_preflight_blockers.append("fresh_exact_user_missing")
     if current_contract_valid:
         reconciliation_status = "CURRENT_ACTION_CLASS_CONTRACT_ACTIVE_REVALIDATE_EXISTING_CONSUMER"
         next_consumer = "tools/v7-users-autoswitch planner -> action_class_execution_boundary"
@@ -753,6 +844,14 @@ def action_class_contract_reconciliation_request(
     else:
         reconciliation_status = "NO_ACTION_CLASS_CONTRACT_REQUEST_REQUIRED_FOR_CURRENT_BOUNDARY"
         next_consumer = "existing service-failure obligation -> OMP Automation Gap Closure"
+    issue_preflight = {
+        "ready": not issue_preflight_blockers,
+        "blockers": sorted(set(issue_preflight_blockers)),
+        "intelligence_snapshot_stop_required": bool_value(intelligence_gate.get("stop_required")),
+    }
+    authority_request = operator_execution.build_current_action_class_contract_authority_request(
+        template, issue_preflight=issue_preflight,
+    )
     return {
         "schema_version": "v7.action-class-contract-reconciliation-request.v1",
         "status": reconciliation_status,
@@ -761,17 +860,14 @@ def action_class_contract_reconciliation_request(
         "contract_required": contract_required,
         "current_contract_valid": current_contract_valid,
         "current_contract_blockers": sorted(str(item) for item in (contract_gate.get("blockers") or [])),
-        "issue_preflight": {
-            "ready": not issue_preflight_blockers,
-            "blockers": sorted(set(issue_preflight_blockers)),
-            "intelligence_snapshot_stop_required": bool_value(intelligence_gate.get("stop_required")),
-        },
+        "issue_preflight": issue_preflight,
         "shadow_candidate": {
             "user_ip": str(chosen.get("user_ip") or ""),
             "source_egress": str(chosen.get("current_egress") or ""),
             "target_egress": str(chosen.get("recommended_egress") or ""),
         },
         "owner_issued_contract_template": template,
+        "authority_decision_request": authority_request,
         "issue_preconditions": [
             "fresh owner-backed Situation and Decision Trace at issue time",
             "fresh selected-move, source and target snapshot identities at issue time",
@@ -5582,13 +5678,25 @@ class AutoswitchPlanner:
         bridge = dict(policy.get("authority_bridge") or {})
         action_contract = dict(policy.get("current_action_class_contract") or {})
         action_contract_valid = bool(action_contract.get("valid", True))
+        action_contract_scope = action_contract.get("scope") if isinstance(action_contract.get("scope"), dict) else {}
+        action_contract_subject = action_contract.get("subject") if isinstance(action_contract.get("subject"), dict) else {}
         bridge_enabled = bool(bridge.get("enabled")) and lifecycle_state in AUTHORITY_BRIDGE_STATES
         class_budget = authority_class_budget(authority_class, to_int(policy.get("current_allowed_user_budget"), 1))
         allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), class_budget), class_budget))
         if bridge_enabled:
             allowed_budget = max(0, min(to_int(policy.get("current_allowed_user_budget"), 0), to_int(bridge.get("bridge_budget_ceiling"), 0)))
         selected_before = len(selected)
-        selected_after = selected[:allowed_budget] if selected_before > allowed_budget else list(selected)
+        if action_contract_valid and (action_contract.get("provenance") or {}).get("strict_provenance_contract"):
+            scoped_selected = [
+                move for move in selected
+                if str(move.get("user_ip") or "") == str(action_contract_subject.get("user_ip") or "")
+                and str(move.get("current_egress") or "") == str(action_contract_scope.get("source_egress") or "")
+                and str(move.get("recommended_egress") or "") == str(action_contract_scope.get("target_egress") or "")
+            ]
+        else:
+            scoped_selected = list(selected)
+        selected_after = scoped_selected[:allowed_budget] if len(scoped_selected) > allowed_budget else list(scoped_selected)
+        scope_cap_applied = len(scoped_selected) != selected_before
         cap_applied = selected_after != selected
         prepared_exceeds_certified = AUTHORITY_CLASS_RANK[prepared_class] > AUTHORITY_CLASS_RANK[certified_class]
         if not action_contract_valid:
@@ -5629,8 +5737,10 @@ class AutoswitchPlanner:
             "next_authority_class": policy.get("next_authority_class") or AUTHORITY_CLASS_NEXT.get(authority_class, "CANARY"),
             "next_allowed_user_budget": to_int(policy.get("next_allowed_user_budget"), allowed_budget),
             "selected_moves_before_gate": selected_before,
+            "selected_moves_after_contract_scope": len(scoped_selected),
             "selected_moves_after_gate": len(selected_after),
             "authority_cap_applied": cap_applied,
+            "action_contract_scope_cap_applied": scope_cap_applied,
             "decision": decision,
             "action": action,
             "executor": "tools/v7-users-autoswitch",
@@ -9463,6 +9573,48 @@ class AutoswitchPlanner:
                 "reason": "l3_execution_eligibility_stop_safe",
                 "unsafe_blocker": ",".join(str(item) for item in (l3_eligibility.get("blockers") or [])),
                 "l3_execution_eligibility": l3_eligibility,
+            }
+        action_contract = ((safety.get("authority_budget_gate") or {}).get("current_action_class_contract") or {})
+        strict_contract = ((action_contract.get("provenance") or {}).get("strict_provenance_contract") is True)
+        if strict_contract:
+            selected_for_contract = list(plan.get("selected_moves") or [])
+            if len(selected_for_contract) != 1:
+                return {
+                    "applied": False,
+                    "reason": "current_action_class_contract_exact_one_user_consumption_required",
+                    "selected_move_count": len(selected_for_contract),
+                }
+            move = selected_for_contract[0]
+            try:
+                consumption_result = operator_execution.consume_current_action_class_contract_to_policy(
+                    Path(self.args.policy_file),
+                    contract_id=str(action_contract.get("contract_id") or ""),
+                    contract_hash=str(action_contract.get("contract_hash") or ""),
+                    subject={"user_ip": str(move.get("user_ip") or "")},
+                    scope={
+                        "source_egress": str(move.get("current_egress") or ""),
+                        "target_egress": str(move.get("recommended_egress") or ""),
+                    },
+                    source_generation={
+                        "planner_generation_id": str(operation.get("planner_generation_id") or operation.get("generation_id") or ""),
+                        "source_bundle_hash": str(operation.get("source_bundle_hash") or ""),
+                        "snapshot_bundle_hash": str(operation.get("snapshot_bundle_hash") or ""),
+                        "selected_move_hash": str(operation.get("selected_move_hash") or ""),
+                    },
+                    operation_id=operation_id,
+                )
+            except operator_execution.PacketError as exc:
+                return {
+                    "applied": False,
+                    "reason": "current_action_class_contract_consumption_stop_safe",
+                    "unsafe_blocker": str(exc),
+                }
+            self.policy = consumption_result["policy"]
+            plan.setdefault("safety", {})["current_action_class_contract_consumption"] = {
+                "owner": operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                "state": consumption_result["consumption"].get("state"),
+                "consumption_id": consumption_result["consumption"].get("consumption_id"),
+                "runtime_apply_started_after_consumption": True,
             }
         for move in plan["selected_moves"]:
             item_control = self._execution_control_decision(

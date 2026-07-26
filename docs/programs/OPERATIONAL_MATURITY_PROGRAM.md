@@ -10129,10 +10129,13 @@ historical promotion evidence could otherwise be interpreted as present action
 Authority.
 
 The existing `tools/v7-users-autoswitch` authority gate now requires a fresh,
-bounded `v7.current-action-class-contract.v1` for Authority above `CANARY`.
-It validates scope, legal action class, expiry, maximum Authority class and
-maximum user budget before the restore-barrier or apply path. Missing or stale
-contracts force `FROZEN/0` and record
+bounded `v7.current-action-class-contract.v2` for new Authority above `CANARY`.
+Only the existing `admin_core/operator_execution.py` Authority decision owner
+may issue it from an exact `APPROVE_ONCE_AS_SCOPED` request/hash binding. It
+validates issuer, decision provenance, exact user/source/target, source or
+incident generation, `max_users=1`, `max_concurrent_transactions=1`, expiry,
+verification/rollback/cooldown/anti-flap contracts and one-use state before the
+restore-barrier or apply path. Missing or stale contracts force `FROZEN/0` and record
 `block_all_selected_moves_current_action_class_contract_required`.
 
 ```text

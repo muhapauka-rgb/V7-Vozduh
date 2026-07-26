@@ -1,8 +1,8 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.3`
+Version: `1.4`
 
-Status: `PROPOSED_EXECUTION_PLAN`
+Status: `APPROVED_EXECUTION_PLAN`
 
 Activation state owner: `CPS`
 
@@ -225,7 +225,7 @@ expected request id/hash and `APPROVE_ONCE_AS_SCOPED`, then alone writes the
 policy field. Neither a hand-edited JSON object nor the read-only autoswitch
 request template is an Authority decision or an executable contract. The
 autoswitch owner only consumes and independently revalidates a v2 contract.
-The request itself expires after five minutes; it is not a standing approval
+The request itself expires after fifteen minutes; it is not a standing approval
 and an expired reconciliation must be produced again from fresh snapshots.
 Immediately before its sole forward mutation, it calls back into the same
 existing Authority owner to atomically transition `ISSUED -> CONSUMED`, binding
@@ -261,6 +261,56 @@ single atomic consumption remains immediately before the sole forward Runtime
 mutation. Only a later exact fresh Packet may form an
 `OPERATIONAL_AUTHORITY_RESTORE_BARRIER_READY` package through the existing
 operator-execution owner.
+
+### Standing delegated one-user operational policy
+
+The repeated short-lived M5a approval loop is a compatibility and emergency
+fallback, not the target steady state. The existing policy and
+operator-execution owners may carry one independently approved standing
+delegated contract for the already-certified action class
+`single-user governed candidate failover`.
+
+The standing contract:
+
+- is issued only from one exact registered short-lived request and one
+  append-only Authority decision with actor provenance;
+- is bound to the complete policy template and policy-file generation, not
+  only to a numeric user limit;
+- permits only a fresh matching production service-failure event, the existing
+  planner, one fresh Candidate, one fresh Packet and one fresh lease;
+- permits at most one user and one concurrent transaction;
+- requires live capacity, service, route, freshness, confidence, anti-flap,
+  cooldown, verification, rollback/containment and final-`OPEN` gates;
+- never permits Candidate, Packet, lease or historical Authority reuse;
+- expires after 30 days and fails closed when missing, malformed, expired,
+  audit-unproven or scope-mismatched;
+- grants no larger cohort, new failure class, new action class, Authority
+  self-expansion or Production Maturity change.
+
+Inside an active standing contract, a qualifying fresh Candidate does not wait
+for a new human decision. The existing Service Matrix lifecycle invokes the
+existing bounded governed executor, which alone owns:
+
+```text
+fresh failure event
+-> fresh planner reconciliation
+-> Candidate
+-> Packet
+-> lease
+-> restore-barrier clearance
+-> one bounded action
+-> verification
+-> rollback or certified no-rollback
+-> Outcome
+-> Learning
+-> OMP consumption
+-> next event or STOP_SAFE
+```
+
+No independent autoswitch timer is enabled. The already existing
+service-failure producer/consumer lifecycle is the wake source. Absence of a
+qualifying event, safe target or any required gate is a normal `STOP_SAFE`
+with zero movement.
 
 ### Authority-boundary re-entry loop
 
@@ -600,7 +650,8 @@ Completion contract:
 ### M5 — Conditional bounded controlled automation
 
 Do not rebuild emergency failover. Reuse the existing
-`emergency_failover_autonomy` gates and one-use operation-scoped contract.
+`emergency_failover_autonomy` gates, standing delegated action-class contract
+and per-operation one-use Candidate/Packet/lease identities.
 
 M5 has three non-interchangeable sub-stages. They are not a new Program,
 Authority, Planner, queue, registry or execution path.
@@ -608,11 +659,13 @@ Authority, Planner, queue, registry or execution path.
 #### M5a — Action-class contract reconciliation
 
 The existing policy, CPS and OMP owners must state the legal action class for
-the exact failure family before any Packet-capable output. A contract above
-`CANARY` must bind source and target egress, maximum users, freshness,
+the exact failure family before any Packet-capable output. The target steady
+state is one independently issued standing one-user delegated contract; the
+short-lived exact-user M5a contract remains the fallback. Either contract must
+bind maximum users, concurrency, allowed failure/action classes, freshness,
 verification, rollback, cooldown, anti-flap, expiry and concrete stop
-conditions. A missing or stale contract is `STOP_SAFE/FROZEN/0`; historical
-promotion evidence is never a substitute.
+conditions. A missing, stale or audit-unproven contract is
+`STOP_SAFE/FROZEN/0`; historical promotion evidence is never a substitute.
 
 #### M5b — Shadow versus allowed-action boundary
 
@@ -631,9 +684,12 @@ and rollback gate may be prepared by their existing owners.
 #### M5c — Execution-boundary preparation
 
 Candidate, Packet and lease preparation may occur only after M5a/M5b, using
-fresh Situation and Decision Trace identities. Runtime apply remains a
-separate one-use operational contract. `ENGINEERING_AUTHORITY` may prepare or
-validate the boundary but cannot silently become `OPERATIONAL_AUTHORITY`.
+fresh Situation and Decision Trace identities. Under the standing contract,
+the fresh Packet, lease, restore-barrier clearance and operation-scoped
+execution window are the exact one-use operational boundary; no per-Candidate
+human approval is required. Without that standing contract, Runtime apply
+remains a separate exact one-use operational decision. `ENGINEERING_AUTHORITY`
+cannot silently become `OPERATIONAL_AUTHORITY`.
 
 This Mission runs only when M1-M4 prove:
 
@@ -667,9 +723,9 @@ automation. The existing event-driven incident/OMP path should invoke one
 bounded run. Timer/cron/blind polling remain rejected wake sources unless a
 separate Authority program changes that contract.
 
-If Authority is absent, the legal terminal is an exact
-`ENGINEERING_AUTHORITY`, not a fake execution and not a global engineering
-stop.
+If standing Authority is absent, the legal terminal is an exact standing
+policy Authority request or the legacy exact-user `ENGINEERING_AUTHORITY`
+fallback, not a fake execution and not a global engineering stop.
 
 The Authority terminal itself has the explicit re-entry loop above. It closes
 only when the existing policy owner either declines/lets the request expire

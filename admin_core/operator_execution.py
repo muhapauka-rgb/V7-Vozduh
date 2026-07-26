@@ -103,10 +103,17 @@ CURRENT_ACTION_CLASS_CONTRACT_REQUEST_SCHEMA = "v7.current-action-class-contract
 CURRENT_ACTION_CLASS_CONTRACT_SCHEMA = "v7.current-action-class-contract.v2"
 CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER = CANONICAL_CLEARANCE_OWNER
 CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS = 900
-CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 300
+CURRENT_ACTION_CLASS_CONTRACT_REQUEST_TTL_SECONDS = 900
 CURRENT_ACTION_CLASS_AUDIT_SCHEMA = "v7.current-action-class-contract-authority-audit.v1"
 CURRENT_ACTION_CLASS_REQUEST_RECORD_TYPE = "current_action_class_contract_request_emitted"
 DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
+STANDING_DELEGATED_POLICY_REQUEST_SCHEMA = "v7.standing-delegated-operational-policy-authority-request.v1"
+STANDING_DELEGATED_POLICY_SCHEMA = "v7.standing-delegated-operational-policy.v1"
+STANDING_DELEGATED_POLICY_REQUEST_RECORD_TYPE = "standing_delegated_operational_policy_request_emitted"
+STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE = "standing_delegated_operational_policy_authority_decision"
+STANDING_DELEGATED_POLICY_REQUEST_TTL_SECONDS = 24 * 60 * 60
+STANDING_DELEGATED_POLICY_MAX_TTL_SECONDS = 30 * 24 * 60 * 60
+STANDING_DELEGATED_POLICY_ID = "dap_default_tier1_readonly"
 CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
     "no_safe_target",
     "stale_or_changed_situation",
@@ -541,6 +548,220 @@ def current_action_class_contract_hash(contract):
     return sha256_json(canonical)
 
 
+def standing_delegated_policy_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def standing_delegated_policy_contract_hash(contract):
+    canonical = copy.deepcopy(contract if isinstance(contract, dict) else {})
+    canonical.pop("contract_id", None)
+    canonical.pop("contract_hash", None)
+    return sha256_json(canonical)
+
+
+def standing_delegated_operational_policy_template():
+    """Return the exact narrow scope consumed by the existing executor.
+
+    The template is not Authority and cannot enable execution.  It keeps the
+    scope definition with the established policy/packet owners and is turned
+    into live Authority only by ``issue_standing_delegated_policy_from_audit``.
+    """
+    from admin_core import autonomy_trust_acceleration
+
+    policy = copy.deepcopy(autonomy_trust_acceleration.DEFAULT_DELEGATED_AUTONOMY_POLICY)
+    policy.update({
+        "policy_state": "APPROVED",
+        "current_mode": "DELEGATED_AUTONOMY",
+        "target_mode": "DELEGATED_AUTONOMY",
+        "runtime_apply_enabled": True,
+        "current_action_class_contract_state": "STANDING_POLICY_ACTIVE",
+        "operator_candidate_approval_required": False,
+        "operator_packet_approval_required": False,
+        "operator_hash_approval_required": False,
+        "self_expansion_allowed": False,
+        "final_safe_mode": "OPEN",
+    })
+    return policy
+
+
+def build_standing_delegated_policy_authority_request(
+    *, policy_generation_hash, active_program, now=None,
+):
+    """Build a short-lived request to activate the bounded standing policy."""
+    from admin_core import autonomy_trust_acceleration
+
+    now = now or utc_now()
+    policy = standing_delegated_operational_policy_template()
+    normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
+    request = {
+        "schema_version": STANDING_DELEGATED_POLICY_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(seconds=STANDING_DELEGATED_POLICY_REQUEST_TTL_SECONDS)).isoformat(),
+        "decision_set": ["APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY", "DECLINE"],
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "active_program": str(active_program or ""),
+        "policy_generation_hash": str(policy_generation_hash or ""),
+        "policy_id": STANDING_DELEGATED_POLICY_ID,
+        "policy": policy,
+        "policy_template_hash": sha256_json(policy),
+        "normalized_scope": normalized_scope,
+        "policy_scope_hash": autonomy_trust_acceleration.delegated_autonomy_scope_hash(policy),
+        "contract_ttl_seconds": STANDING_DELEGATED_POLICY_MAX_TTL_SECONDS,
+        "per_action_law": {
+            "candidate_owner": "tools/v7-users-autoswitch",
+            "candidate_identity": "FRESH_ONLY",
+            "packet_owner": CANONICAL_CLEARANCE_OWNER,
+            "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+            "packet_reuse": "FORBIDDEN",
+            "lease_required": True,
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "verification_required": True,
+            "rollback_or_certified_no_rollback_required": True,
+            "final_safe_mode": "OPEN",
+        },
+        "forbidden_effects": [
+            "authority_self_expansion",
+            "new_action_class",
+            "blast_radius_increase",
+            "candidate_or_packet_reuse",
+            "production_maturity_change",
+        ],
+    }
+    request_hash = standing_delegated_policy_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"sdpauth_r1_{request_hash[:24]}"
+    return request
+
+
+def validate_standing_delegated_policy_authority_request(
+    request, *, decision, expected_request_id="", expected_request_hash="", now=None,
+    allow_decline=False,
+):
+    from admin_core import autonomy_trust_acceleration
+
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    if request.get("schema_version") != STANDING_DELEGATED_POLICY_REQUEST_SCHEMA:
+        errors.append("standing_delegated_policy_request_schema_invalid")
+    if standing_delegated_policy_request_hash(request) != request_hash:
+        errors.append("standing_delegated_policy_request_hash_mismatch")
+    if request_id != f"sdpauth_r1_{request_hash[:24]}":
+        errors.append("standing_delegated_policy_request_identity_mismatch")
+    if expected_request_id and request_id != expected_request_id:
+        errors.append("standing_delegated_policy_expected_request_mismatch")
+    if expected_request_hash and request_hash != expected_request_hash:
+        errors.append("standing_delegated_policy_expected_hash_mismatch")
+    if request.get("status") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION":
+        errors.append("standing_delegated_policy_request_not_pending")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("standing_delegated_policy_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("standing_delegated_policy_request_created_at_invalid")
+    except PacketError:
+        errors.append("standing_delegated_policy_request_timestamps_invalid")
+    allowed_decisions = {"APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"}
+    if allow_decline:
+        allowed_decisions.add("DECLINE")
+    if decision not in allowed_decisions or decision not in set(request.get("decision_set") or []):
+        errors.append("standing_delegated_policy_decision_not_exact")
+    if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("standing_delegated_policy_issuing_owner_invalid")
+    if not str(request.get("active_program") or ""):
+        errors.append("standing_delegated_policy_active_program_missing")
+    if len(str(request.get("policy_generation_hash") or "")) != 64:
+        errors.append("standing_delegated_policy_generation_missing")
+    if request.get("policy_id") != STANDING_DELEGATED_POLICY_ID:
+        errors.append("standing_delegated_policy_id_invalid")
+    expected = standing_delegated_operational_policy_template()
+    expected_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(expected)
+    if request.get("policy") != expected or request.get("policy_template_hash") != sha256_json(expected):
+        errors.append("standing_delegated_policy_template_invalid")
+    if request.get("normalized_scope") != expected_scope:
+        errors.append("standing_delegated_policy_scope_invalid")
+    if request.get("policy_scope_hash") != autonomy_trust_acceleration.delegated_autonomy_scope_hash(expected):
+        errors.append("standing_delegated_policy_scope_hash_invalid")
+    if as_int(request.get("contract_ttl_seconds"), 0) != STANDING_DELEGATED_POLICY_MAX_TTL_SECONDS:
+        errors.append("standing_delegated_policy_ttl_invalid")
+    law = request.get("per_action_law") if isinstance(request.get("per_action_law"), dict) else {}
+    exact_law = {
+        "candidate_owner": "tools/v7-users-autoswitch",
+        "candidate_identity": "FRESH_ONLY",
+        "packet_owner": CANONICAL_CLEARANCE_OWNER,
+        "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+        "packet_reuse": "FORBIDDEN",
+        "lease_required": True,
+        "max_users": 1,
+        "max_concurrent_transactions": 1,
+        "verification_required": True,
+        "rollback_or_certified_no_rollback_required": True,
+        "final_safe_mode": "OPEN",
+    }
+    if law != exact_law:
+        errors.append("standing_delegated_policy_per_action_law_invalid")
+    return {"ok": not errors, "errors": sorted(set(errors)), "request_id": request_id, "request_hash": request_hash}
+
+
+def validate_standing_delegated_operational_policy(contract, *, now=None, audit_records=None):
+    """Fail closed unless the live policy contains an exact owner-issued grant."""
+    from admin_core import autonomy_trust_acceleration
+
+    now = now or utc_now()
+    contract = contract if isinstance(contract, dict) else {}
+    errors = []
+    if contract.get("schema_version") != STANDING_DELEGATED_POLICY_SCHEMA:
+        errors.append("standing_delegated_policy_contract_schema_invalid")
+    contract_hash = str(contract.get("contract_hash") or "")
+    if standing_delegated_policy_contract_hash(contract) != contract_hash:
+        errors.append("standing_delegated_policy_contract_hash_invalid")
+    if str(contract.get("contract_id") or "") != f"sdpc_{contract_hash[:24]}":
+        errors.append("standing_delegated_policy_contract_identity_invalid")
+    if contract.get("status") != "ACTIVE":
+        errors.append("standing_delegated_policy_contract_not_active")
+    try:
+        if parse_ts(contract.get("expires_at")) <= now:
+            errors.append("standing_delegated_policy_contract_expired")
+    except PacketError:
+        errors.append("standing_delegated_policy_contract_expiry_invalid")
+    if contract.get("issuing_owner") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("standing_delegated_policy_contract_owner_invalid")
+    policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
+    expected = standing_delegated_operational_policy_template()
+    if autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy) != autonomy_trust_acceleration.normalized_delegated_autonomy_scope(expected):
+        errors.append("standing_delegated_policy_contract_scope_invalid")
+    if contract.get("policy_scope_hash") != autonomy_trust_acceleration.delegated_autonomy_scope_hash(expected):
+        errors.append("standing_delegated_policy_contract_scope_hash_invalid")
+    request_binding = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    if (
+        request_binding.get("decision") != "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"
+        or not request_binding.get("request_id")
+        or not request_binding.get("request_hash")
+        or not request_binding.get("actor_id")
+    ):
+        errors.append("standing_delegated_policy_authority_provenance_invalid")
+    if audit_records is not None:
+        matching_records = [
+            record for record in (audit_records if isinstance(audit_records, list) else [])
+            if record.get("record_type") == STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE
+            and record.get("decision_id") == request_binding.get("decision_id")
+            and record.get("authority_request_id") == request_binding.get("request_id")
+            and record.get("authority_request_hash") == request_binding.get("request_hash")
+            and record.get("decision") == request_binding.get("decision")
+            and ((record.get("actor_provenance") or {}).get("actor_id") == request_binding.get("actor_id"))
+        ]
+        if len(matching_records) != 1:
+            errors.append("standing_delegated_policy_authority_audit_missing_or_duplicate")
+    return {"ok": not errors, "errors": sorted(set(errors)), "policy": policy, "contract": contract}
+
+
 @contextmanager
 def current_action_class_contract_policy_lock(policy_path):
     """Serialize the existing policy owner's read -> validate -> write lifecycle.
@@ -729,7 +950,7 @@ def build_current_action_class_contract_authority_request(template, *, issue_pre
         "cooldown": copy.deepcopy(template.get("cooldown") or {}),
         "anti_flap": copy.deepcopy(template.get("anti_flap") or {}),
         "stop_conditions": [str(item) for item in (template.get("stop_conditions") or []) if str(item).strip()],
-        "max_ttl_seconds": min(CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS, max(1, as_int(template.get("max_ttl_seconds"), 300))),
+        "max_ttl_seconds": min(CURRENT_ACTION_CLASS_CONTRACT_MAX_TTL_SECONDS, max(1, as_int(template.get("max_ttl_seconds"), 900))),
         "one_use_law": {
             "approval_use_limit": 1,
             "implicit_renewal": False,
@@ -1011,6 +1232,183 @@ def consume_current_action_class_contract_to_policy(policy_path, *, audit_store=
             "created_at": (kwargs.get("now") or utc_now()).isoformat(),
         })
     return result
+
+
+def _standing_delegated_policy_request_records(records, request_id):
+    return [
+        record for record in records
+        if record.get("record_type") == STANDING_DELEGATED_POLICY_REQUEST_RECORD_TYPE
+        and str(record.get("authority_request_id") or "") == str(request_id or "")
+    ]
+
+
+def _standing_delegated_policy_decision_records(records, request_id):
+    return [
+        record for record in records
+        if record.get("record_type") == STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE
+        and str(record.get("authority_request_id") or "") == str(request_id or "")
+    ]
+
+
+def register_standing_delegated_policy_request(
+    request, *, audit_store=None, producer_id="tools/v7-operator-execution-packet", now=None,
+):
+    """Append the exact decision preimage without changing live policy."""
+    now = now or utc_now()
+    validation = validate_standing_delegated_policy_authority_request(
+        request, decision="DECLINE", allow_decline=True, now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["standing_delegated_policy_request_invalid"]))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    records = read_audit_records(audit_store)
+    existing = _standing_delegated_policy_request_records(records, request["request_id"])
+    if existing:
+        if (
+            len(existing) != 1
+            or existing[0].get("authority_request_hash") != request["request_hash"]
+            or existing[0].get("request") != request
+        ):
+            raise PacketError("standing_delegated_policy_request_audit_identity_conflict")
+        return {
+            "status": "ALREADY_REGISTERED",
+            "request_id": request["request_id"],
+            "request_hash": request["request_hash"],
+            "audit_store": str(audit_store),
+            "policy_write": False,
+        }
+    record = append_record(audit_store, {
+        "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+        "record_type": STANDING_DELEGATED_POLICY_REQUEST_RECORD_TYPE,
+        "authority_request_id": request["request_id"],
+        "authority_request_hash": request["request_hash"],
+        "expires_at": request["expires_at"],
+        "producer_provenance": {
+            "producer_id": str(producer_id),
+            "recorded_at": now.isoformat(),
+        },
+        "request": copy.deepcopy(request),
+        "created_at": now.isoformat(),
+    })
+    return {
+        "status": "REGISTERED",
+        "request_id": request["request_id"],
+        "request_hash": request["request_hash"],
+        "audit_store": str(audit_store),
+        "record_hash": record["record_hash"],
+        "policy_write": False,
+    }
+
+
+def standing_delegated_policy_request_from_audit(
+    request_id, request_hash, *, audit_store=None, now=None,
+):
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    matches = _standing_delegated_policy_request_records(read_audit_records(audit_store), request_id)
+    if len(matches) != 1:
+        raise PacketError("standing_delegated_policy_request_audit_missing_or_duplicate")
+    record = matches[0]
+    request = record.get("request") if isinstance(record.get("request"), dict) else {}
+    if record.get("authority_request_hash") != request_hash:
+        raise PacketError("standing_delegated_policy_request_audit_hash_mismatch")
+    validation = validate_standing_delegated_policy_authority_request(
+        request, decision="DECLINE", expected_request_id=request_id,
+        expected_request_hash=request_hash, now=now or utc_now(), allow_decline=True,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["standing_delegated_policy_request_audit_invalid"]))
+    return request
+
+
+def issue_standing_delegated_policy_from_audit(
+    policy_path, *, request_id, request_hash, decision, audit_store=None,
+    actor_id="", now=None,
+):
+    """Activate one bounded standing policy through the existing Authority owner."""
+    if decision != "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY":
+        raise PacketError("standing_delegated_policy_decision_not_exact")
+    if not str(actor_id or "").strip():
+        raise PacketError("standing_delegated_policy_authority_actor_missing")
+    now = now or utc_now()
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(policy_path):
+        records = read_audit_records(audit_store)
+        if _standing_delegated_policy_decision_records(records, request_id):
+            raise PacketError("standing_delegated_policy_authority_decision_already_recorded")
+        request = standing_delegated_policy_request_from_audit(
+            request_id, request_hash, audit_store=audit_store, now=now,
+        )
+        validation = validate_standing_delegated_policy_authority_request(
+            request, decision=decision, expected_request_id=request_id,
+            expected_request_hash=request_hash, now=now,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(validation.get("errors") or ["standing_delegated_policy_request_invalid"]))
+        policy_generation_hash = sha256_file(policy_path)
+        if request.get("policy_generation_hash") != policy_generation_hash:
+            raise PacketError("standing_delegated_policy_generation_changed")
+        decision_id = stable_id("sdpdec", {
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision": decision,
+            "actor_id": str(actor_id),
+        })
+        decision_record = append_record(audit_store, {
+            "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+            "record_type": STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE,
+            "decision_id": decision_id,
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "decision": decision,
+            "actor_provenance": {
+                "actor_id": str(actor_id),
+                "decision_surface": "tools/v7-operator-execution-packet",
+                "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                "recorded_at": now.isoformat(),
+            },
+            "created_at": now.isoformat(),
+        })
+        contract = {
+            "schema_version": STANDING_DELEGATED_POLICY_SCHEMA,
+            "status": "ACTIVE",
+            "issued_at": now.isoformat(),
+            "expires_at": (now + timedelta(seconds=STANDING_DELEGATED_POLICY_MAX_TTL_SECONDS)).isoformat(),
+            "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+            "active_program": request["active_program"],
+            "policy_scope_hash": request["policy_scope_hash"],
+            "policy": copy.deepcopy(request["policy"]),
+            "authority_decision": {
+                "decision": decision,
+                "decision_id": decision_record["decision_id"],
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "actor_id": str(actor_id),
+                "decided_at": now.isoformat(),
+            },
+            "per_action_law": copy.deepcopy(request["per_action_law"]),
+        }
+        contract_hash = standing_delegated_policy_contract_hash(contract)
+        contract["contract_hash"] = contract_hash
+        contract["contract_id"] = f"sdpc_{contract_hash[:24]}"
+        policy = read_json(policy_path)
+        policy["delegated_autonomy_policy"] = contract
+        write_json_atomic(policy_path, policy)
+    return {
+        "status": "ACTIVATED",
+        "policy_path": str(policy_path),
+        "contract": contract,
+        "authority_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "policy_write": True,
+        "authority_expanded": True,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "production_maturity_changed": False,
+    }
 
 
 def _engineering_authority_exact_scope(payload):
@@ -1351,6 +1749,18 @@ def validate_approvals(packet, errors, *, now=None):
             errors.append("delegated_policy_packet_reuse_invalid")
         if authority.get("self_expansion_allowed") is not False:
             errors.append("delegated_policy_self_expansion_invalid")
+        if authority.get("authority_audit_verified") is not True:
+            errors.append("delegated_policy_authority_audit_not_verified")
+        standing_contract = authority.get("standing_policy_contract") if isinstance(authority.get("standing_policy_contract"), dict) else {}
+        standing_validation = validate_standing_delegated_operational_policy(standing_contract, now=now)
+        if not standing_validation.get("ok"):
+            errors.extend(standing_validation.get("errors") or ["standing_delegated_policy_contract_invalid"])
+        elif normalized_delegated_scope := (
+            standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
+        ):
+            from admin_core import autonomy_trust_acceleration
+            if autonomy_trust_acceleration.normalized_delegated_autonomy_scope(normalized_delegated_scope) != normalized_scope:
+                errors.append("standing_delegated_policy_packet_scope_mismatch")
         if normalized_scope:
             if normalized_scope.get("allowed_action_classes") != ["single-user governed candidate failover"]:
                 errors.append("delegated_policy_normalized_action_classes_invalid")
@@ -3684,6 +4094,18 @@ def main(argv=None):
         "--decline-current-action-class-contract-from-request", default="",
         help="Existing Authority owner only: append one exact DECLINE decision without writing policy.",
     )
+    parser.add_argument(
+        "--prepare-standing-delegated-policy-request", action="store_true",
+        help="Build and register one fresh exact standing-policy Authority request without activating it.",
+    )
+    parser.add_argument(
+        "--issue-standing-delegated-policy-from-audit-request-id", default="",
+        help="Activate only one exact registered standing-policy request after its independent decision.",
+    )
+    parser.add_argument(
+        "--standing-policy-active-program",
+        default="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
     parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
@@ -3692,6 +4114,55 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.prepare_standing_delegated_policy_request:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.issue_current_action_class_contract_from_request
+                or args.issue_current_action_class_contract_from_audit_request_id
+                or args.decline_current_action_class_contract_from_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+            ):
+                raise PacketError("standing_delegated_policy_prepare_mode_must_not_mix_execution_or_decision_modes")
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(Path(args.action_class_policy_file)),
+                active_program=args.standing_policy_active_program,
+            )
+            registration = register_standing_delegated_policy_request(
+                request,
+                audit_store=(str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl" else args.audit_store),
+            )
+            result = {
+                "status": "STANDING_DELEGATED_POLICY_AUTHORITY_REQUEST_READY",
+                "request": request,
+                "registration": registration,
+                "authority_granted": False,
+                "policy_write": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "users_moved": 0,
+            }
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
+        if args.issue_standing_delegated_policy_from_audit_request_id:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.issue_current_action_class_contract_from_request
+                or args.issue_current_action_class_contract_from_audit_request_id
+                or args.decline_current_action_class_contract_from_request
+            ):
+                raise PacketError("standing_delegated_policy_issue_mode_must_not_mix_packet_modes")
+            result = issue_standing_delegated_policy_from_audit(
+                args.action_class_policy_file,
+                request_id=args.issue_standing_delegated_policy_from_audit_request_id,
+                request_hash=args.expected_authority_request_hash,
+                decision=args.authority_decision,
+                audit_store=(str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl" else args.audit_store),
+                actor_id=args.authority_actor_id,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.register_current_action_class_contract_request:
             if args.packet or args.generate_from_plan or args.generate_from_preview or args.issue_current_action_class_contract_from_request or args.issue_current_action_class_contract_from_audit_request_id or args.decline_current_action_class_contract_from_request:
                 raise PacketError("current_action_class_contract_request_register_mode_must_not_mix_execution_or_decision_modes")

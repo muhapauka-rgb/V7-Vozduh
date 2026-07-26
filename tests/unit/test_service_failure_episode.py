@@ -411,6 +411,49 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(failed["omp_repair_frontier"]["frontier_id"], "V7_PASSIVE_SERVICE_EVENT_CONSUMER_REPAIR")
             self.assertEqual(failed["omp_repair_frontier"]["forbidden_effects"], "NONE")
 
+    def test_matrix_lifecycle_invokes_bounded_executor_only_with_active_standing_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            policy_file = root / "policy.json"
+            policy_file.write_text("{}", encoding="utf-8")
+            inactive = self.refresh.run_bounded_delegated_service_failure_action(
+                str(root / "missing-executor"),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertTrue(inactive["ok"])
+            self.assertEqual(inactive["status"], "INACTIVE_NO_STANDING_POLICY")
+            self.assertFalse(inactive["action_attempted"])
+
+            policy_file.write_text(
+                json.dumps({"delegated_autonomy_policy": {"status": "ACTIVE"}}),
+                encoding="utf-8",
+            )
+            executor = root / "executor"
+            executor.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json\n"
+                "print(json.dumps({'final_verdict':'STOP_SAFE','users_moved':0,'apply_executed':False}))\n"
+                "raise SystemExit(2)\n",
+                encoding="utf-8",
+            )
+            executor.chmod(0o755)
+            stop = self.refresh.run_bounded_delegated_service_failure_action(
+                str(executor),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertTrue(stop["ok"])
+            self.assertEqual(stop["status"], "STOP_SAFE")
+            self.assertTrue(stop["action_attempted"])
+            self.assertEqual(stop["users_moved"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

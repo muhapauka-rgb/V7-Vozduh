@@ -9,6 +9,8 @@ from unittest import mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from admin_core import autonomy_trust_acceleration, operator_execution
+
 
 def load_cli_module():
     path = Path(__file__).resolve().parents[2] / "tools" / "v7-governed-canary-dry-run-cycle"
@@ -754,11 +756,59 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "reason": "unit-test-open" if open_control else "unit-test-window",
             "rollback_policy": "CERTIFIED_ROLLBACK_ONLY",
         }), encoding="utf-8")
+        delegated_policy = operator_execution.standing_delegated_operational_policy_template()
+        standing_contract = {
+            "schema_version": operator_execution.STANDING_DELEGATED_POLICY_SCHEMA,
+            "status": "ACTIVE",
+            "issued_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "issuing_owner": operator_execution.CANONICAL_CLEARANCE_OWNER,
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "policy_scope_hash": autonomy_trust_acceleration.delegated_autonomy_scope_hash(delegated_policy),
+            "policy": delegated_policy,
+            "authority_decision": {
+                "decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                "decision_id": "sdpdec-unit",
+                "request_id": "sdpauth_r1_unit",
+                "request_hash": "a" * 64,
+                "actor_id": "unit-authority",
+                "decided_at": now.isoformat(),
+            },
+            "per_action_law": {
+                "candidate_owner": "tools/v7-users-autoswitch",
+                "candidate_identity": "FRESH_ONLY",
+                "packet_owner": operator_execution.CANONICAL_CLEARANCE_OWNER,
+                "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+                "packet_reuse": "FORBIDDEN",
+                "lease_required": True,
+                "max_users": 1,
+                "max_concurrent_transactions": 1,
+                "verification_required": True,
+                "rollback_or_certified_no_rollback_required": True,
+                "final_safe_mode": "OPEN",
+            },
+        }
+        contract_hash = operator_execution.standing_delegated_policy_contract_hash(standing_contract)
+        standing_contract["contract_hash"] = contract_hash
+        standing_contract["contract_id"] = f"sdpc_{contract_hash[:24]}"
+        policy_file = root / "policy.json"
+        policy_file.write_text(json.dumps({"delegated_autonomy_policy": standing_contract}), encoding="utf-8")
+        authority_audit_store = root / "operator-execution-audit.jsonl"
+        authority_audit_store.write_text(json.dumps({
+            "record_type": operator_execution.STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE,
+            "decision_id": "sdpdec-unit",
+            "authority_request_id": "sdpauth_r1_unit",
+            "authority_request_hash": "a" * 64,
+            "decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            "actor_provenance": {"actor_id": "unit-authority"},
+        }) + "\n", encoding="utf-8")
         source_hashes = {"users_registry": "users-hash", "egress_registry": "egress-hash"}
         source_hash = hashlib.sha256(json.dumps(source_hashes, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         return argparse.Namespace(
             state_dir=str(root / "state"),
             event_dir=str(root / "events"),
+            policy_file=str(policy_file),
+            operator_execution_audit_store=str(authority_audit_store),
             snapshot_root=str(root / "state" / "intelligence"),
             audit_dir=str(root / "audit"),
             max_users=1,
@@ -820,6 +870,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
         }
         return {
             "stop_reason": "AUTHORITY_BOUNDARY",
+            "event_consumer": {
+                "events": [{
+                    "event_id": "service-failure-unit",
+                    "event_type": "external_channel_unavailability",
+                    "object": source,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }],
+            },
             "packet_preview": preview,
             "action_class_runtime_enablement": {
                 "current_action_class": "single-user governed candidate failover",
@@ -1072,6 +1130,25 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(result["users_moved"], 1)
         self.assertEqual(result["safe_mode_final_state"], "OPEN")
+
+    def test_bounded_delegated_policy_rejects_candidate_without_fresh_matching_failure_event(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            cycle = self.ready_cycle()
+            cycle["event_consumer"] = {"events": []}
+            result = module.bounded_delegated_policy_admission(
+                cycle["packet_preview"],
+                cycle,
+                live_policy_contract=policy_root["delegated_autonomy_policy"],
+                authority_audit_records=module.operator_execution.read_audit_records(
+                    Path(args.operator_execution_audit_store),
+                ),
+            )
+        self.assertFalse(result["allowed"])
+        self.assertIn("FRESH_MATCHING_SERVICE_FAILURE_EVENT_MISSING", result["blockers"])
 
     def test_materialized_feedback_classifies_rollback_completed_as_rollback_success(self):
         module = load_cli_module()

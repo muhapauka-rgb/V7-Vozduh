@@ -23,6 +23,7 @@ from typing import Any, Optional
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 DEFAULT_LOCK_WAIT_SECONDS = 90
 
@@ -109,6 +110,94 @@ def default_checker_path() -> str:
 def default_passive_consumer_path() -> str:
     local = Path(__file__).with_name("v7-users-autoswitch")
     return str(local) if local.exists() else "v7-users-autoswitch"
+
+
+def default_governed_executor_path() -> str:
+    local = Path(__file__).with_name("v7-governed-canary-dry-run-cycle")
+    return str(local) if local.exists() else "v7-governed-canary-dry-run-cycle"
+
+
+def run_bounded_delegated_service_failure_action(
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    timeout_sec: int = 180,
+) -> dict[str, Any]:
+    """Close the existing event -> planner -> bounded executor consumer link.
+
+    Absence of an active owner-issued standing contract is a normal fail-closed
+    terminal.  The executor remains the sole owner of Candidate/Packet/lease,
+    restore-barrier, apply, verification and final OPEN transitions.
+    """
+    policy_root = read_json(policy_file, {})
+    contract = (
+        policy_root.get("delegated_autonomy_policy")
+        if isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+        else {}
+    )
+    if contract.get("status") != "ACTIVE":
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "INACTIVE_NO_STANDING_POLICY",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    command = [
+        executor,
+        "--execute-bounded-delegated-transaction",
+        "--state-dir", str(state_dir),
+        "--event-dir", str(event_dir),
+        "--policy-file", str(policy_file),
+        "--max-users", "1",
+        "--pretty",
+    ]
+    started_at = now_iso()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(30, min(int(timeout_sec or 180), 600)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "command": command,
+            "error": f"{type(exc).__name__}:{exc}",
+            "action_attempted": True,
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+    except json.JSONDecodeError:
+        parsed = {}
+    verdict = str(parsed.get("final_verdict") or "")
+    completed = proc.returncode == 0 and verdict == "GOVERNED_TRANSACTION_COMPLETED"
+    stop_safe = verdict == "STOP_SAFE"
+    return {
+        "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+        "status": "ACTION_COMPLETED" if completed else ("STOP_SAFE" if stop_safe else "FAILED"),
+        "ok": completed or stop_safe,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "command": command,
+        "returncode": proc.returncode,
+        "consumer_result": parsed,
+        "action_attempted": True,
+        "action_completed": completed,
+        "runtime_mutation_performed": bool(parsed.get("runtime_mutation_performed") or parsed.get("apply_executed")),
+        "users_moved": int(parsed.get("users_moved") or 0),
+        "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
+    }
 
 
 def run_passive_consumer(
@@ -539,9 +628,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--summary-file", default="")
     parser.add_argument("--checker", default=default_checker_path())
     parser.add_argument("--passive-consumer", default=default_passive_consumer_path())
+    parser.add_argument("--governed-executor", default=default_governed_executor_path())
+    parser.add_argument("--policy-file", default=str(DEFAULT_POLICY_FILE))
     parser.add_argument("--passive-consumer-timeout-sec", type=int, default=30)
     parser.add_argument("--skip-service-failure-automation-advisory", action="store_true")
     parser.add_argument("--skip-service-failure-omp-consumer", action="store_true")
+    parser.add_argument("--skip-bounded-delegated-service-failure-action", action="store_true")
     parser.add_argument(
         "--skip-passive-consumer",
         action="store_true",
@@ -705,6 +797,27 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
         }
+    if args.skip_bounded_delegated_service_failure_action:
+        payload["bounded_delegated_service_failure_action"] = {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "SKIPPED_EXPLICITLY",
+            "ok": False,
+            "reason": "explicit_skip",
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    else:
+        payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action(
+            str(args.governed_executor),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            policy_file=Path(args.policy_file),
+            timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
+        )
+        if payload["bounded_delegated_service_failure_action"].get("action_completed"):
+            payload["service_failure_post_action_omp_consumer"] = run_service_failure_omp_consumer(
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
+            )
     payload["omp_product_frontier_owner"] = "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER"
     payload["next_output"] = (
         "OMP_PRODUCT_FRONTIER_MATERIALIZED"

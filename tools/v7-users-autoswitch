@@ -828,7 +828,7 @@ def action_class_contract_reconciliation_request(
         "policy_generation_hash": sha256_file(policy_path),
         "max_users": 1,
         "max_concurrent_transactions": 1,
-        "max_ttl_seconds": 300,
+        "max_ttl_seconds": 900,
         "subject": {"user_ip": str(chosen.get("user_ip") or "OWNER_TO_BIND_FROM_FRESH_SITUATION")},
         "scope": {
             "source_egress": str(chosen.get("current_egress") or "OWNER_TO_BIND_FROM_FRESH_SITUATION"),

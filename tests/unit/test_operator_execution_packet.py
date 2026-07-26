@@ -17,6 +17,9 @@ from admin_core.operator_execution import (
     autonomous_execution_control_state,
     build_autonomous_execution_control_state,
     build_current_action_class_contract_authority_request,
+    build_standing_delegated_policy_authority_request,
+    standing_delegated_operational_policy_template,
+    standing_delegated_policy_contract_hash,
     cancel_execution_lease,
     containment_forward_fix_classification,
     create_execution_lease_from_packet,
@@ -51,6 +54,10 @@ from admin_core.operator_execution import (
     issue_current_action_class_contract_from_audit,
     register_current_action_class_contract_request,
     current_action_class_contract_request_from_audit,
+    issue_standing_delegated_policy_from_audit,
+    register_standing_delegated_policy_request,
+    validate_standing_delegated_operational_policy,
+    validate_standing_delegated_policy_authority_request,
     read_audit_records,
 )
 
@@ -139,6 +146,80 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_standing_delegated_policy_requires_exact_registered_authority_and_activates_once(self):
+        now = datetime(2026, 7, 26, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                now=now,
+            )
+            validation = validate_standing_delegated_policy_authority_request(
+                request,
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                expected_request_id=request["request_id"],
+                expected_request_hash=request["request_hash"],
+                now=now,
+            )
+            self.assertTrue(validation["ok"], validation["errors"])
+            registration = register_standing_delegated_policy_request(
+                request, audit_store=audit_path, now=now,
+            )
+            self.assertEqual(registration["status"], "REGISTERED")
+            result = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            self.assertEqual(result["status"], "ACTIVATED")
+            self.assertEqual(result["users_moved"], 0)
+            self.assertFalse(result["runtime_apply"])
+            live = json.loads(policy_path.read_text(encoding="utf-8"))["delegated_autonomy_policy"]
+            live_validation = validate_standing_delegated_operational_policy(
+                live, now=now + timedelta(days=1),
+            )
+            self.assertTrue(live_validation["ok"], live_validation["errors"])
+            self.assertEqual(live_validation["policy"]["max_users_per_action"], 1)
+            self.assertEqual(live_validation["policy"]["max_concurrent_transactions"], 1)
+            expired = validate_standing_delegated_operational_policy(
+                live, now=now + timedelta(days=31),
+            )
+            self.assertFalse(expired["ok"])
+            self.assertIn("standing_delegated_policy_contract_expired", expired["errors"])
+            with self.assertRaisesRegex(PacketError, "decision_already_recorded"):
+                issue_standing_delegated_policy_from_audit(
+                    policy_path,
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                    audit_store=audit_path,
+                    actor_id="unit-authority",
+                    now=now,
+                )
+
+    def test_standing_delegated_policy_request_and_contract_expire_fail_closed(self):
+        now = datetime(2026, 7, 26, tzinfo=timezone.utc)
+        request = build_standing_delegated_policy_authority_request(
+            policy_generation_hash="a" * 64,
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            now=now,
+        )
+        validation = validate_standing_delegated_policy_authority_request(
+            request,
+            decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            now=now + timedelta(days=1, seconds=1),
+        )
+        self.assertFalse(validation["ok"])
+        self.assertIn("standing_delegated_policy_request_expired", validation["errors"])
+
     def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
         template = {
             "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
@@ -226,7 +307,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "anti_flap": {"required": True}, "stop_conditions": ["verification_failure"],
         }, issue_preflight={"ready": True, "blockers": []}, now=now)
         result = validate_current_action_class_contract_authority_request(
-            request, decision="APPROVE_ONCE_AS_SCOPED", now=now + timedelta(seconds=301),
+            request, decision="APPROVE_ONCE_AS_SCOPED", now=now + timedelta(seconds=901),
         )
         self.assertFalse(result["ok"])
         self.assertIn("current_action_class_contract_request_expired", result["errors"])
@@ -869,21 +950,49 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         }
 
     def delegated_policy_authority(self):
-        normalized_scope = {
-            "allowed_action_classes": ["single-user governed candidate failover"],
-            "max_users_per_action": 1,
-            "max_concurrent_transactions": 1,
-            "required_anti_flap": "PASS",
-            "required_freshness": ["capacity", "quality", "route", "service"],
-            "required_verification": ["immediate_post_action_user_verification"],
-            "required_rollback": "class_level_rollback_or_certified_no_rollback_path",
-            "final_safe_mode": "OPEN",
-            "operator_packet_approval_required": False,
+        from admin_core import autonomy_trust_acceleration
+
+        now = datetime.now(timezone.utc)
+        policy = standing_delegated_operational_policy_template()
+        normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
+        contract = {
+            "schema_version": "v7.standing-delegated-operational-policy.v1",
+            "status": "ACTIVE",
+            "issued_at": now.isoformat(),
+            "expires_at": (now + timedelta(days=30)).isoformat(),
+            "issuing_owner": CANONICAL_CLEARANCE_OWNER,
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "policy_scope_hash": autonomy_trust_acceleration.delegated_autonomy_scope_hash(policy),
+            "policy": policy,
+            "authority_decision": {
+                "decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                "decision_id": "sdpdec-unit",
+                "request_id": "sdpauth_r1_unit",
+                "request_hash": "a" * 64,
+                "actor_id": "unit-authority",
+                "decided_at": now.isoformat(),
+            },
+            "per_action_law": {
+                "candidate_owner": "tools/v7-users-autoswitch",
+                "candidate_identity": "FRESH_ONLY",
+                "packet_owner": CANONICAL_CLEARANCE_OWNER,
+                "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+                "packet_reuse": "FORBIDDEN",
+                "lease_required": True,
+                "max_users": 1,
+                "max_concurrent_transactions": 1,
+                "verification_required": True,
+                "rollback_or_certified_no_rollback_required": True,
+                "final_safe_mode": "OPEN",
+            },
         }
+        contract_hash = standing_delegated_policy_contract_hash(contract)
+        contract["contract_hash"] = contract_hash
+        contract["contract_id"] = f"sdpc_{contract_hash[:24]}"
         return {
             "authority_basis": "DELEGATED_AUTONOMY_POLICY",
             "policy_id": "dap_default_tier1_readonly",
-            "policy_scope_hash": sha256_json(normalized_scope),
+            "policy_scope_hash": autonomy_trust_acceleration.delegated_autonomy_scope_hash(policy),
             "normalized_scope": normalized_scope,
             "policy_state": "APPROVED",
             "current_mode": "DELEGATED_AUTONOMY",
@@ -893,6 +1002,8 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "candidate_identity": "FRESH_ONLY",
             "packet_reuse": "FORBIDDEN",
             "self_expansion_allowed": False,
+            "standing_policy_contract": contract,
+            "authority_audit_verified": True,
         }
 
     def engineering_authority_request(self):

@@ -43,6 +43,8 @@ from admin_core.intelligence_snapshots import read_snapshot_family  # noqa: E402
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
+DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
+DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 SELECTED_MOVE_SEMANTIC_FIELDS = ("reason", "important_services", "candidates", "scores", "service_failover")
 
 
@@ -1635,11 +1637,23 @@ def execute_governed_transaction(args: argparse.Namespace, *, state_dir: Path, e
     )
 
 
-def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: dict[str, Any]) -> dict[str, Any]:
-    policy = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview()
+def bounded_delegated_policy_admission(
+    packet_preview: dict[str, Any],
+    cycle: dict[str, Any],
+    *,
+    live_policy_contract: dict[str, Any] | None = None,
+    authority_audit_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    contract_validation = operator_execution.validate_standing_delegated_operational_policy(
+        live_policy_contract or {},
+        audit_records=authority_audit_records,
+    )
+    policy = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview(
+        contract_validation.get("policy") if contract_validation.get("ok") else {},
+    )
     selected_count = int(packet_preview.get("selected_move_count") or len(packet_preview.get("allowed_users") or []))
     action_class = "single-user governed candidate failover" if selected_count == 1 else "UNKNOWN_ACTION_CLASS"
-    blockers = []
+    blockers = list(contract_validation.get("errors") or [])
     exact_requirements = {
         "policy_state": "APPROVED",
         "current_mode": "DELEGATED_AUTONOMY",
@@ -1674,6 +1688,41 @@ def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: di
     rollback = packet_preview.get("rollback_manifest_preview") or {}
     if not rollback.get("items"):
         blockers.append("ROLLBACK_MANIFEST_MISSING")
+    rollback_items = rollback.get("items") if isinstance(rollback.get("items"), list) else []
+    source = str((rollback_items[0] if rollback_items else {}).get("rollback_target") or "")
+    event_rows = (
+        (cycle.get("event_consumer") or {}).get("events")
+        if isinstance(cycle.get("event_consumer"), dict)
+        else []
+    )
+    qualifying_event = {}
+    allowed_event_types = {
+        "external_channel_unavailability",
+        "service_failure",
+        "service_matrix_regression",
+        "service_regression",
+        "channel_quality_regression",
+    }
+    now = datetime.now(timezone.utc)
+    for event in reversed(event_rows if isinstance(event_rows, list) else []):
+        if not isinstance(event, dict):
+            continue
+        if str(event.get("event_type") or "") not in allowed_event_types:
+            continue
+        if source and str(event.get("object") or "") != source:
+            continue
+        try:
+            observed = datetime.fromisoformat(str(event.get("timestamp") or "").replace("Z", "+00:00"))
+            if observed.tzinfo is None:
+                observed = observed.replace(tzinfo=timezone.utc)
+            age_seconds = (now - observed.astimezone(timezone.utc)).total_seconds()
+        except (TypeError, ValueError):
+            continue
+        if 0 <= age_seconds <= 1800:
+            qualifying_event = event
+            break
+    if not qualifying_event:
+        blockers.append("FRESH_MATCHING_SERVICE_FAILURE_EVENT_MISSING")
     blockers = list(dict.fromkeys(blockers))
     authority = {
         "authority_basis": "DELEGATED_AUTONOMY_POLICY",
@@ -1689,6 +1738,8 @@ def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: di
         "packet_reuse": str(policy.get("packet_reuse") or ""),
         "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
         "engineering_authority_source": "V7_OMP_BOUNDED_DELEGATED_AUTONOMY_AND_PACKET_APPROVAL_RETIREMENT_V1",
+        "standing_policy_contract": copy.deepcopy(contract_validation.get("contract") or {}),
+        "authority_audit_verified": not bool(contract_validation.get("errors")),
     }
     return {
         "schema_version": "v7.bounded-delegated-policy-admission.v1",
@@ -1700,6 +1751,7 @@ def bounded_delegated_policy_admission(packet_preview: dict[str, Any], cycle: di
         "packet_approval_required": False,
         "hash_approval_required": False,
         "live_machine_gates_preserved": True,
+        "qualifying_service_failure_event": qualifying_event,
     }
 
 
@@ -2324,7 +2376,19 @@ def _execute_governed_transaction_with_guards_inner(
             },
         }
     elif delegated_mode:
-        delegated_admission = bounded_delegated_policy_admission(packet_preview, cycle)
+        policy_root = read_json(Path(args.policy_file), {})
+        delegated_admission = bounded_delegated_policy_admission(
+            packet_preview,
+            cycle,
+            live_policy_contract=(
+                policy_root.get("delegated_autonomy_policy")
+                if isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+                else {}
+            ),
+            authority_audit_records=operator_execution.read_audit_records(
+                Path(args.operator_execution_audit_store),
+            ),
+        )
         if not delegated_admission.get("allowed"):
             return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
         if engineering_authority_request_file:
@@ -2945,6 +3009,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run V7 governed canary knowledge-gated dry-run cycle.")
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
+    parser.add_argument("--policy-file", default=str(DEFAULT_POLICY_FILE))
+    parser.add_argument(
+        "--operator-execution-audit-store",
+        default=str(DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE),
+    )
     parser.add_argument("--snapshot-root", default="")
     parser.add_argument("--audit-dir", default="")
     parser.add_argument("--max-users", type=int, default=1)

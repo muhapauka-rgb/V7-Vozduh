@@ -55,3 +55,25 @@ source hashes and binds the shadow move identity (user/source/target), not the
 empty post-authority selected-move set. This preserves fail-closed behavior:
 if those canonical identities are unavailable or change before consumption,
 issuance or the one-use transition stops safely.
+
+## Final production verification
+
+The repaired production non-test caller returned
+`ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY` with a fresh exact request:
+
+- authority request: `accauth_r1_ede0f1fd7546a91c901a6615`;
+- issuing owner: `admin_core/operator_execution.py`;
+- exact scope: user `10.0.0.2`, `vless -> wireguard-1779454504-c43409`;
+- source generation is fully populated and `issue_preflight.ready=true`;
+- budget is exactly one user and one concurrent transaction;
+- one-use owner is `tools/v7-users-autoswitch`.
+
+The caller remained `POLICY_READ_ONLY_HANDOFF_WITH_EXISTING_SNAPSHOT_REFRESH`:
+policy write, Authority grant, Candidate/Packet/lease, runtime apply, routing
+mutation, rollback apply and user movement all remained absent. No production
+contract was issued. The remaining legal terminal is the intended independent
+Authority decision for this fresh request; it is not an engineering defect.
+
+After deploy `e3393e872eaf58fa659b947b6448c1eb07af26a1`, full truth returned
+`PASS/FULLY_ALIGNED`; convergence returned `PASS/ALIGNED` with local, GitHub and
+production at that same commit.

@@ -1,7 +1,7 @@
 # Отчёт: устранение deadlock между L3 wake и Action Class contract
 
 Дата: 2026-07-26
-Статус: RESTORE_BARRIER_PREFLIGHT_REPAIR_TESTED_PENDING_PRODUCTION_DEPLOY
+Статус: PRODUCTION_DEPLOYED_AND_CONSUMER_VERIFIED
 
 ## Причина
 
@@ -115,3 +115,37 @@ request только после owner-issued restore barrier; если нет, t
 `RESTORE_BARRIER_REQUIRED_FOR_EMERGENCY_FAILOVER`.
 Ни L8, ни Production Maturity, ни routing/user scope этим исправлением не
 изменяются.
+
+## Final production verification
+
+Три узких safe deploy выпускали только `tools/v7-users-autoswitch`:
+
+1. `8188109d` — pre-contract L3 shadow evidence;
+2. `82eb0c3f` — reconciliation consumer этого evidence;
+3. `a93353cb` — restore-barrier preflight.
+
+Финальный runtime release:
+`deploy-z8-14-Updatesystem-a93353c-20260726T181144`; restart service не
+требовался. `tools/v7-truth-check --all --json` вернул `PASS/FULLY_ALIGNED`,
+а `tools/v7-convergence-status --json` — `PASS/ALIGNED` для local, GitHub и
+production commit `a93353cb0e2f24f039ef93665ef139af6d1e1a1c`.
+
+Production non-test reconciliation подтвердил:
+
+- coherent existing snapshot owner выполнен и source stable;
+- L3 pre-contract shadow evidence включён;
+- fresh L3 wake принят;
+- expired `acc_d18b14f16f7c11393b3a68c6` не был потреблён;
+- новый contract не выдан;
+- policy write, Authority grant, Candidate, Packet, lease, runtime apply,
+  routing mutation, rollback и user movement отсутствуют;
+- единственный exact blocker:
+  `restore_barrier_required_for_emergency_failover`.
+
+Итоговый legal terminal:
+`RESTORE_BARRIER_REQUIRED_FOR_EMERGENCY_FAILOVER`.
+
+Следующий OMP frontier — существующий restore-barrier Authority owner: сначала
+его отдельный scope-bound request и independent decision, затем fresh
+reconciliation, fresh one-use Action Class contract и полная revalidation.
+Ни barrier, ни routing action данным ремонтом автоматически не создаются.

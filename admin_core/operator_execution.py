@@ -584,7 +584,29 @@ def register_current_action_class_contract_request(request, *, audit_store=None,
     preimage in the existing append-only audit closes the producer -> exact
     Authority-consumer handoff without introducing another registry.
     """
-    request = request if isinstance(request, dict) else {}
+    envelope = request if isinstance(request, dict) else {}
+    if isinstance(envelope.get("authority_decision_request"), dict):
+        package = envelope.get("approval_package") if isinstance(envelope.get("approval_package"), dict) else {}
+        forbidden_effects = {
+            "authority_granted", "contract_written", "runtime_apply", "routing_mutation",
+            "candidate_created", "packet_created", "lease_created",
+        }
+        if not (
+            envelope.get("schema_version") == "v7.action-class-contract-reconciliation-request.v1"
+            and envelope.get("status") == "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY"
+            and envelope.get("authority_classification") == "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY"
+            and envelope.get("exact_legal_next_action") == "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST"
+            and package.get("status") == "AWAITING_INDEPENDENT_AUTHORITY_DECISION"
+            and package.get("actionable") is True
+            and all(envelope.get(key) is False for key in forbidden_effects)
+            and int(envelope.get("users_moved") or 0) == 0
+        ):
+            raise PacketError("current_action_class_contract_reconciliation_envelope_invalid")
+        request = envelope["authority_decision_request"]
+        if package.get("request_id") != request.get("request_id") or package.get("request_hash") != request.get("request_hash"):
+            raise PacketError("current_action_class_contract_reconciliation_envelope_identity_mismatch")
+    else:
+        request = envelope
     now = now or utc_now()
     validation = validate_current_action_class_contract_authority_request(
         request, decision="DECLINE", allow_decline=True, now=now,

@@ -329,6 +329,24 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             registered = register_current_action_class_contract_request(request, audit_store=audit_path)
             self.assertEqual(registered["status"], "REGISTERED")
             self.assertFalse(registered["policy_write"])
+            envelope = {
+                "schema_version": "v7.action-class-contract-reconciliation-request.v1",
+                "status": "ACTION_CLASS_CONTRACT_ISSUE_REVIEW_READY",
+                "authority_classification": "ENGINEERING_AUTHORITY_ACTION_CLASS_CONTRACT_REQUEST_READY",
+                "exact_legal_next_action": "INDEPENDENT_DECISION_ON_FRESH_ONE_USE_ACTION_CLASS_CONTRACT_REQUEST",
+                "authority_decision_request": request,
+                "approval_package": {
+                    "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION", "actionable": True,
+                    "request_id": request["request_id"], "request_hash": request["request_hash"],
+                },
+                "authority_granted": False, "contract_written": False, "runtime_apply": False,
+                "routing_mutation": False, "candidate_created": False, "packet_created": False,
+                "lease_created": False, "users_moved": 0,
+            }
+            self.assertEqual(
+                register_current_action_class_contract_request(envelope, audit_store=audit_path)["status"],
+                "ALREADY_REGISTERED",
+            )
             recovered = current_action_class_contract_request_from_audit(
                 request["request_id"], request["request_hash"], audit_store=audit_path,
             )

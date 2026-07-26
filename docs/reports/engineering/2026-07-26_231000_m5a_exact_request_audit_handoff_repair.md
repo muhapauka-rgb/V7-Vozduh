@@ -22,6 +22,8 @@ Read-only M5a producer корректно формировал short-lived reque
 
 Новые тесты доказывают request preimage recovery, zero policy write at registration, exact audit issuance and rejection повторного decision.
 
+Production verification выявила и закрыла последний format-link: producer передаёт canonical reconciliation envelope, внутри которого находится request preimage. Registration consumer теперь принимает envelope только если подтверждены exact M5a class/action/package identity и все forbidden effects равны zero; затем извлекает вложенный preimage для existing Authority audit. Некорректный envelope fail-closed до append-only записи.
+
 ## Следующая граница
 
 После deploy production owner может зарегистрировать новый fresh request без contract/policy/runtime effect. Только затем exact user approval ID/hash может быть consumed existing Authority issuer. Packet, lease, restore barrier, routing, user movement и rollback остаются вне данного repair и запрещены.

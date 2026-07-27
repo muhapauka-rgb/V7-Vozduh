@@ -563,6 +563,8 @@ def runtime_authority_contract_status(
     *,
     prepared_class: str,
     certified_class: str,
+    standing_policy_contract: dict[str, Any] = None,
+    authority_audit_records: list[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Bind a broad runtime budget to a fresh, explicitly scoped policy contract.
 
@@ -684,6 +686,64 @@ def runtime_authority_contract_status(
         blockers.append("current_action_class_contract_required_gates_missing")
     if required and schema_ok and not stop_conditions_ok:
         blockers.append("current_action_class_contract_stop_conditions_missing")
+
+    # A valid standing delegated policy is an existing Authority-owner
+    # contract, not an absent one-use M5a contract. Its exact per-action
+    # binding happens later in the existing governed executor against fresh
+    # Candidate, Packet, event, source/target, verification and rollback
+    # facts. Requiring the retired one-use shape here would freeze the already
+    # approved path before it could reach those live gates.
+    standing = standing_policy_contract if isinstance(standing_policy_contract, dict) else {}
+    standing_validation = operator_execution.validate_standing_delegated_operational_policy(
+        standing,
+        audit_records=authority_audit_records or [],
+    ) if standing else {"ok": False, "errors": ["standing_delegated_policy_missing"], "policy": {}}
+    standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
+    standing_exactly_bounded = (
+        bool(standing_validation.get("ok"))
+        and str(standing_scope.get("policy_state") or "") == "APPROVED"
+        and str(standing_scope.get("current_mode") or "") == "DELEGATED_AUTONOMY"
+        and int(standing_scope.get("max_users_per_action") or 0) == 1
+        and int(standing_scope.get("max_concurrent_transactions") or 0) == 1
+        and str(standing_scope.get("candidate_identity") or "") == "FRESH_ONLY"
+        and str(standing_scope.get("packet_generation") or "") == "FRESH_IMMEDIATELY_BEFORE_EXECUTION"
+        and str(standing_scope.get("packet_reuse") or "") == "FORBIDDEN"
+        and standing_scope.get("runtime_apply_enabled") is True
+        and standing_scope.get("self_expansion_allowed") is False
+    )
+    if required and not valid and standing_exactly_bounded:
+        return {
+            "schema_version": "v7.current-action-class-contract-gate.v1",
+            "required": True,
+            "valid": True,
+            "contract_id": str(standing.get("contract_id") or ""),
+            "contract_hash": str(standing.get("contract_hash") or ""),
+            "active_program": str(standing.get("active_program") or ""),
+            "action_class": "GOVERNED_ONLY",
+            "max_authority_class": "CANARY",
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "subject": {"user_ip": ""},
+            "expires_at": str(standing.get("expires_at") or ""),
+            "scope": {"source_egress": "", "target_egress": ""},
+            "required_gates": {
+                "fresh_evidence_required": True,
+                "verification_required": True,
+                "rollback_required": True,
+                "anti_flap_required": True,
+                "cooldown_seconds": int((standing_scope.get("cooldown") or {}).get("per_user_seconds") or 0),
+            },
+            "stop_conditions": list(standing_scope.get("stop_conditions") or []),
+            "provenance": {
+                "issuing_owner": str(standing.get("issuing_owner") or ""),
+                "authority_decision_id": str((standing.get("authority_decision") or {}).get("decision_id") or ""),
+                "standing_policy_contract": True,
+                "strict_provenance_contract": False,
+            },
+            "blockers": [],
+            "truth_source": "existing_delegated_autonomy_policy_and_operator_execution_audit",
+            "new_truth_sources_created": False,
+        }
     return {
         "schema_version": "v7.current-action-class-contract-gate.v1",
         "required": required,
@@ -1524,10 +1584,19 @@ class AutoswitchPlanner:
         )
         requested_state = normalize_authority_lifecycle_state(policy.get("authority_lifecycle_state"))
         requested_state = AUTHORITY_CERTIFIED_STATE_ALIASES.get(requested_state, requested_state)
+        standing_policy_contract = (self.policy or {}).get("delegated_autonomy_policy")
+        standing_policy_contract = standing_policy_contract if isinstance(standing_policy_contract, dict) else {}
+        authority_audit_store = Path(getattr(
+            self.args,
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
         action_contract = runtime_authority_contract_status(
             policy,
             prepared_class=prepared_class,
             certified_class=certified_class,
+            standing_policy_contract=standing_policy_contract,
+            authority_audit_records=operator_execution.read_audit_records(authority_audit_store),
         )
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))

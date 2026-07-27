@@ -1936,6 +1936,47 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["decision"], "block_all_selected_moves_current_action_class_contract_required")
         self.assertIn("current_action_class_contract_missing_or_schema_invalid", gate["blocked_actions"])
 
+    def test_active_standing_policy_is_a_valid_bounded_runtime_gate_not_a_one_use_contract(self):
+        standing = {
+            "contract_id": "sdpc_unit",
+            "contract_hash": "a" * 64,
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "expires_at": "2099-01-01T00:00:00+00:00",
+            "issuing_owner": "admin_core/operator_execution.py",
+            "authority_decision": {"decision_id": "sdpdec_unit"},
+        }
+        standing_policy = {
+            "policy_state": "APPROVED",
+            "current_mode": "DELEGATED_AUTONOMY",
+            "max_users_per_action": 1,
+            "max_concurrent_transactions": 1,
+            "candidate_identity": "FRESH_ONLY",
+            "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
+            "packet_reuse": "FORBIDDEN",
+            "runtime_apply_enabled": True,
+            "self_expansion_allowed": False,
+            "cooldown": {"per_user_seconds": 1800},
+            "stop_conditions": ["ANTI_FLAP_BLOCK"],
+        }
+        with mock.patch.object(
+            self.tool.operator_execution,
+            "validate_standing_delegated_operational_policy",
+            return_value={"ok": True, "errors": [], "policy": standing_policy},
+        ):
+            gate = self.tool.runtime_authority_contract_status(
+                {},
+                prepared_class="POOL",
+                certified_class="CANARY",
+                standing_policy_contract=standing,
+                authority_audit_records=[{"record_type": "existing-audit"}],
+            )
+
+        self.assertTrue(gate["required"])
+        self.assertTrue(gate["valid"])
+        self.assertEqual(gate["max_users"], 1)
+        self.assertFalse(gate["provenance"]["strict_provenance_contract"])
+        self.assertTrue(gate["provenance"]["standing_policy_contract"])
+
     def test_authority_governance_frozen_state_blocks_all_moves(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

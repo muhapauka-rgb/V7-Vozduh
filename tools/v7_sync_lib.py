@@ -8299,6 +8299,22 @@ def reconcile_service_failure_execution_feedback_to_cps(
         errors.append("execution_feedback_terminal_not_consumable")
     if execution.get("runtime_mutation_performed") is not True or int(execution.get("users_moved") or 0) != 1:
         errors.append("execution_feedback_exact_one_user_apply_not_proven")
+    scope_accounting = feedback.get("incident_scope_accounting")
+    scope_accounting = scope_accounting if isinstance(scope_accounting, dict) else {}
+    scope_available = bool(scope_accounting)
+    if scope_available:
+        affected_scope_count = int(scope_accounting.get("affected_scope_count") or 0)
+        protected_scope_count = int(scope_accounting.get("protected_scope_count") or 0)
+        unresolved_scope_count = int(scope_accounting.get("unresolved_scope_count") or 0)
+        excluded_scope_count = int(scope_accounting.get("explicitly_excluded_or_recovered_scope_count") or 0)
+        if str(scope_accounting.get("status") or "") != "ACCOUNTED":
+            errors.append("execution_feedback_scope_accounting_not_accounted")
+        if not str(scope_accounting.get("affected_scope_fingerprint") or ""):
+            errors.append("execution_feedback_scope_fingerprint_missing")
+        if bool(scope_accounting.get("raw_user_list_stored")):
+            errors.append("execution_feedback_scope_raw_user_storage_forbidden")
+        if affected_scope_count != protected_scope_count + unresolved_scope_count + excluded_scope_count:
+            errors.append("execution_feedback_scope_accounting_unbalanced")
     if errors:
         return {
             "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
@@ -8338,8 +8354,15 @@ def reconcile_service_failure_execution_feedback_to_cps(
         "state_captured": utc_now(),
         "current_state_generation": f"cpsgen_SFA_EXEC_{fingerprint[:12].upper()}",
         "current_transition_id": "SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1",
-        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_PARTIALLY_PROTECTED_INCIDENT_ACTIVE",
+        "current_active_scope": (
+            "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
+            if scope_available and unresolved_scope_count > 0
+            else "SERVICE_FAILURE_AUTOMATION_PARTIALLY_PROTECTED_INCIDENT_ACTIVE"
+        ),
         "current_safe_next_action": (
+            "CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; "
+            "each next operation requires a new Candidate, Packet and lease under the existing standing policy"
+            if scope_available and unresolved_scope_count > 0 else
             "PRESERVE THE EXACT EXECUTION FEEDBACK; REMAIN READY FOR A FRESH OWNER-BACKED "
             "MATCHING SERVICE FAILURE BEFORE ANY NEW CANDIDATE/PACKET/LEASE"
         ),
@@ -8354,11 +8377,18 @@ def reconcile_service_failure_execution_feedback_to_cps(
             "and fresh Candidate/Packet/lease identities."
         ),
     })
+    scope_text = (
+        f"; scope affected={affected_scope_count}, protected={protected_scope_count}, "
+        f"unresolved={unresolved_scope_count}, excluded_or_recovered={excluded_scope_count}; "
+        f"fingerprint {scope_accounting.get('affected_scope_fingerprint') or ''}"
+        if scope_available else ""
+    )
     incident_text = (
         f"PARTIALLY_PROTECTED; source incident {source_incident_id}; fresh event {source_event_id}; "
         f"one bounded user {feedback.get('user') or ''} moved from {source_channel} to "
         f"{feedback.get('target_channel') or ''}; feedback {feedback_id}; packet {packet_id}; "
         "remaining channel scope stays open and may only reenter on a fresh matching event"
+        f"{scope_text}"
     )
     atomic = atomic_reconcile_cps(
         cps_path,
@@ -8376,6 +8406,19 @@ def reconcile_service_failure_execution_feedback_to_cps(
             "LAST_SERVICE_FAILURE_EXECUTION_PACKET": f"`{packet_id}`",
             "LAST_SERVICE_FAILURE_EXECUTION_OUTCOME": f"`{terminal}`",
             "LAST_SERVICE_FAILURE_EXECUTION_CONSUMPTION": "`PACKET_BOUND_FRESH_EVENT_OUTCOME_CONSUMED`",
+            "CURRENT_VLESS_AFFECTED_SCOPE": (
+                f"`{affected_scope_count}`" if scope_available else "`UNKNOWN_NOT_PROJECTED`"
+            ),
+            "CURRENT_VLESS_PROTECTED_SCOPE": (
+                f"`{protected_scope_count}`" if scope_available else "`UNKNOWN_NOT_PROJECTED`"
+            ),
+            "CURRENT_VLESS_UNRESOLVED_SCOPE": (
+                f"`{unresolved_scope_count}`" if scope_available else "`UNKNOWN_NOT_PROJECTED`"
+            ),
+            "CURRENT_VLESS_SCOPE_ACCOUNTING": (
+                "`ACCOUNTED; existing Matrix -> L3 -> CPS consumer; raw user list not stored`"
+                if scope_available else "`LEGACY_FEEDBACK_WITHOUT_COMPACT_SCOPE`"
+            ),
         },
     )
     return {

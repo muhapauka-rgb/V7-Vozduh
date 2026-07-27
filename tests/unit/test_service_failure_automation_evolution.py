@@ -199,6 +199,35 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(self.sync._plain_live_value(live, "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID"), "execfb_source_bound")
         self.assertIn("PARTIALLY_PROTECTED", self.sync._plain_live_value(live, "CURRENT_VLESS_SERVICE_INCIDENT"))
 
+    def test_accounted_scope_projects_active_incident_drain_into_source_cps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            feedback = {
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_scope_source", "packet_id": "pkt_scope_source",
+                "user": "10.0.0.2", "source_channel": "vless", "target_channel": "awg3",
+                "terminal_outcome_classification": "SUCCESS", "verification_result": {"success": True},
+                "execution_outcome": {"runtime_mutation_performed": True, "users_moved": 1},
+                "service_failure_causal_binding": {
+                    "source_incident_id": "sfinc_scope_source", "source_event_id": "sfrev_scope_source",
+                    "source_event_ids": ["sfrev_scope_source"], "event_type": "SERVICE_FAILURE_REVALIDATED", "source_channel": "vless",
+                },
+                "incident_scope_accounting": {
+                    "status": "ACCOUNTED", "affected_scope_count": 5, "protected_scope_count": 1,
+                    "unresolved_scope_count": 4, "explicitly_excluded_or_recovered_scope_count": 0,
+                    "affected_scope_fingerprint": "scope-fingerprint", "raw_user_list_stored": False,
+                },
+            }
+            result = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback, root=root)
+            live = self.sync._markdown_field_table(self.sync._markdown_section(
+                (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+                "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+            ))
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(self.sync._plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), "4")
+        self.assertEqual(self.sync._plain_live_value(live, "CURRENT_SAFE_NEXT_ACTION").split()[0], "CONTINUE")
+
     def test_advisory_skips_expired_terminal_and_selects_open_revalidation(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

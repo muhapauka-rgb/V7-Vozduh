@@ -11233,6 +11233,14 @@ class AutoswitchPlanner:
         closure_path = self.state_dir / "closure-records.jsonl"
         shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
         outcome_reconciliation = self.reconcile_service_failure_shadow_outcomes()
+        # Refresh the existing current-source denominator before choosing one
+        # bounded successor.  A later zero-user incident must not starve an
+        # older still-open incident that actually has users on its failed
+        # source.  This is selection only; the normal authority/action gates
+        # remain downstream and unchanged.
+        pre_obligation_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        pre_obligation_state = self._load_l3_runtime_state()
+        pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
         closures = read_jsonl(closure_path)
         existing = {
             str(row.get("automation_obligation_id") or "")
@@ -11255,7 +11263,25 @@ class AutoswitchPlanner:
                 continue
             obligation_id = self._service_failure_automation_obligation_id(row)
             if obligation_id and obligation_id not in existing:
-                candidates.append((str(row.get("observed_at") or row.get("created_at") or ""), obligation_id, row))
+                candidate_incident_key = str(row.get("incident_key") or self._passive_incident_projection_key(
+                    str(row.get("source_incident_id") or row.get("object_id") or "")
+                ))
+                candidate_incident = pre_obligation_incidents.get(candidate_incident_key) if isinstance(pre_obligation_incidents.get(candidate_incident_key), dict) else {}
+                candidate_scope = (
+                    candidate_incident.get("current_source_scope")
+                    if isinstance(candidate_incident.get("current_source_scope"), dict)
+                    else (candidate_incident.get("scope_accounting") if isinstance(candidate_incident.get("scope_accounting"), dict) else {})
+                )
+                if not candidate_scope and isinstance(row.get("source_scope"), dict):
+                    candidate_scope = row.get("source_scope") or {}
+                candidate_scope_count = max(0, to_int(candidate_scope.get("affected_scope_count"), len(list(row.get("affected_users") or []))))
+                candidates.append((
+                    int(candidate_scope_count > 0),
+                    candidate_scope_count,
+                    str(row.get("observed_at") or row.get("created_at") or ""),
+                    obligation_id,
+                    row,
+                ))
         if not candidates:
             return {
                 "schema_version": "v7.service-failure-automation-advisory.v1",
@@ -11265,7 +11291,11 @@ class AutoswitchPlanner:
                 "outcome_reconciliation": outcome_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
             }
-        _observed, obligation_id, closure = sorted(candidates, key=lambda row: row[0], reverse=True)[0]
+        _has_live_scope, _scope_count, _observed, obligation_id, closure = sorted(
+            candidates,
+            key=lambda row: (row[0], row[1], row[2], row[3]),
+            reverse=True,
+        )[0]
         source = str(closure.get("channel") or "")
         # The passive terminal is an immutable observation, not the live
         # source denominator.  Before materializing an OMP obligation, reuse
@@ -11274,12 +11304,9 @@ class AutoswitchPlanner:
         # a historical closure with an empty compact user list from silently
         # producing an ``affected_users_count=0`` successor for an open
         # incident.  No route, Packet, lease, or policy is touched here.
-        pre_obligation_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
-        pre_obligation_state = self._load_l3_runtime_state()
         pre_obligation_incident_key = str(closure.get("incident_key") or self._passive_incident_projection_key(
             str(closure.get("source_incident_id") or closure.get("object_id") or "")
         ))
-        pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
         pre_obligation_incident = pre_obligation_incidents.get(pre_obligation_incident_key) if isinstance(pre_obligation_incidents.get(pre_obligation_incident_key), dict) else {}
         current_source_scope = (
             pre_obligation_incident.get("current_source_scope")

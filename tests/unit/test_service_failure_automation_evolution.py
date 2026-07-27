@@ -81,6 +81,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "owner": "tools/v7-users-autoswitch.passive-causal-projection",
                 "source_incident_id": incident_id,
             })[:24]
+            zero_incident_id = "sfinc_zero_scope"
+            zero_incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": zero_incident_id,
+            })[:24]
             (state_dir / "users.registry").write_text(
                 "ip=10.0.0.2 current=vless enabled=1\n"
                 "ip=10.0.0.3 current=vless enabled=1\n"
@@ -101,6 +106,15 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "affected_scope_fingerprint": "live-scope-fingerprint",
                     },
                 },
+                zero_incident_key: {
+                    "incident_key": zero_incident_key, "incident_id": zero_incident_id,
+                    "source_incident_id": zero_incident_id, "source_channel": "other", "channel": "other",
+                    "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED", "affected_scope_count": 0,
+                        "affected_scope_fingerprint": "zero-scope-fingerprint",
+                    },
+                },
             }}), encoding="utf-8")
             closure = {
                 "object_type": "passive_production_event", "object_id": incident_id,
@@ -110,7 +124,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 # An old compact passive closure legitimately has no raw list.
                 "affected_users": [], "observed_at": "2026-07-27T00:00:00+00:00",
             }
-            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            zero_closure = {
+                "object_type": "passive_production_event", "object_id": zero_incident_id,
+                "source_incident_id": zero_incident_id, "incident_key": zero_incident_key,
+                "situation_id": "situation_zero_scope", "decision_trace_id": "decision_zero_scope",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION", "channel": "other",
+                "affected_users": [], "observed_at": "2026-07-27T00:01:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(closure) + "\n" + json.dumps(zero_closure) + "\n", encoding="utf-8",
+            )
             planner = object.__new__(self.autoswitch.AutoswitchPlanner)
             planner.state_dir = state_dir
             planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
@@ -119,6 +142,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "user_ip": "10.0.0.2", "current_egress": "vless", "recommended_egress": "awg0",
             }]})
         self.assertTrue(result["active"])
+        self.assertEqual(result["obligation"]["source_incident_id"], incident_id)
         self.assertEqual(result["obligation"]["affected_users_count"], 3)
         self.assertEqual(result["obligation"]["current_source_scope"]["affected_scope_fingerprint"], "live-scope-fingerprint")
         self.assertFalse(result["obligation"]["current_source_scope"]["raw_user_list_stored"])

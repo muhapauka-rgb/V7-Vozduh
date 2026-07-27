@@ -72,6 +72,84 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_packet_bound_execution_feedback_reconciles_only_its_existing_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_bound"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    incident_key: {
+                        "incident_key": incident_key, "incident_id": incident_id,
+                        "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "next_required_consumer": "tools/v7_sync_lib.consume_service_failure_automation_frontier",
+                        "reentry_condition": "fresh event", "causal_lineage": {},
+                    },
+                },
+            }), encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb_bound", "source_channel": "vless", "target_channel": "awg3",
+                "user": "10.0.0.2", "packet_id": "pkt_bound", "closure_reference": "operation_bound",
+                "terminal_outcome_classification": "SUCCESS",
+                "verification_result": {"success": True}, "learning_record": {"learning_record_id": "learn_bound"},
+                "service_failure_causal_binding": {
+                    "source_incident_id": incident_id, "source_event_id": "sfrev_bound",
+                    "source_event_ids": ["sfrev_bound"], "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "source_channel": "vless",
+                },
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            result = planner.reconcile_service_failure_execution_outcomes()
+            repeated = planner.reconcile_service_failure_execution_outcomes()
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = state["incidents"][incident_key]
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["changed_records"], 1)
+        self.assertEqual(repeated["changed_records"], 0)
+        self.assertEqual(record["incident_state"], "PARTIALLY_PROTECTED")
+        self.assertEqual(record["last_execution_feedback_id"], "execfb_bound")
+        self.assertEqual(record["causal_lineage"]["source_event_ids"], ["sfrev_bound"])
+
+    def test_exact_packet_bound_execution_feedback_updates_source_cps_without_new_action(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            feedback = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb_source_bound", "packet_id": "pkt_source_bound",
+                "user": "10.0.0.2", "source_channel": "vless", "target_channel": "awg3",
+                "terminal_outcome_classification": "SUCCESS",
+                "verification_result": {"success": True},
+                "execution_outcome": {"runtime_mutation_performed": True, "users_moved": 1},
+                "service_failure_causal_binding": {
+                    "source_incident_id": "sfinc_source_bound", "source_event_id": "sfrev_source_bound",
+                    "source_event_ids": ["sfrev_source_bound"], "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "source_channel": "vless",
+                },
+            }
+            result = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback, root=root)
+            repeated = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback, root=root)
+            live = self.sync._markdown_field_table(self.sync._markdown_section(
+                (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+                "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+            ))
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertTrue(result["atomic_update"]["ok"])
+        self.assertEqual(repeated["status"], "EXECUTION_FEEDBACK_ALREADY_CONSUMED")
+        self.assertEqual(self.sync._plain_live_value(live, "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID"), "execfb_source_bound")
+        self.assertIn("PARTIALLY_PROTECTED", self.sync._plain_live_value(live, "CURRENT_VLESS_SERVICE_INCIDENT"))
+
     def test_advisory_skips_expired_terminal_and_selects_open_revalidation(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

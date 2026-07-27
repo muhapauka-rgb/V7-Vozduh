@@ -448,6 +448,7 @@ def execution_feedback_contract(
     decision_trace_id: str = "",
     input_snapshot_identity: str = "",
     expected_terminal: str = "",
+    service_failure_causal_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     execution_result = execution_result if isinstance(execution_result, dict) else {}
     verification_result = verification_result if isinstance(verification_result, dict) else {}
@@ -515,6 +516,10 @@ def execution_feedback_contract(
         "decision_trace_id": str(decision_trace_id or ""),
         "input_snapshot_identity": str(input_snapshot_identity or ""),
         "expected_terminal": str(expected_terminal or terminal_classification),
+        "service_failure_causal_binding": (
+            dict(service_failure_causal_binding)
+            if isinstance(service_failure_causal_binding, dict) else {}
+        ),
         "runtime_mutation_performed": False,
         "new_truth_sources_created": False,
     }
@@ -532,6 +537,10 @@ def execution_feedback_contract(
 
 
 def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    causal_binding = (
+        contract.get("service_failure_causal_binding")
+        if isinstance(contract.get("service_failure_causal_binding"), dict) else {}
+    )
     base = {
         "feedback_id": contract.get("feedback_id", ""),
         "user": contract.get("user", ""),
@@ -561,6 +570,13 @@ def materialized_feedback_records(contract: dict[str, Any]) -> dict[str, dict[st
         "decision_trace_id": contract.get("decision_trace_id", ""),
         "input_snapshot_identity": contract.get("input_snapshot_identity", ""),
         "expected_terminal": contract.get("expected_terminal", ""),
+        "service_failure_causal_binding": causal_binding,
+        "source_incident_id": str(causal_binding.get("source_incident_id") or ""),
+        "source_event_id": str(causal_binding.get("source_event_id") or ""),
+        "source_event_ids": [str(item) for item in (causal_binding.get("source_event_ids") or []) if str(item)],
+        "source_event_type": str(causal_binding.get("event_type") or ""),
+        "source_event_observation_generation": str(causal_binding.get("observation_generation") or ""),
+        "source_event_provenance": str(causal_binding.get("event_provenance") or ""),
         "created_at": utc_now(),
     }
     return {

@@ -1515,6 +1515,7 @@ def materialize_governed_transaction_feedback(
     rollback_attempted: bool,
     verification_passed: bool,
     evidence_class: str = "CONTROLLED_PRODUCTION",
+    service_failure_causal_binding: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not apply_result.get("applied"):
         return {
@@ -1613,6 +1614,7 @@ def materialize_governed_transaction_feedback(
             decision_trace_id=str(packet.get("decision_id") or packet.get("operation_id") or ""),
             input_snapshot_identity=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
             expected_terminal=terminal_outcome_classification,
+            service_failure_causal_binding=service_failure_causal_binding,
         )
         records = operator_execution_feedback.materialized_feedback_records(contract)
         append_jsonl(state_dir / "execution-events.jsonl", records["outcome"])
@@ -2536,6 +2538,25 @@ def _execute_governed_transaction_with_guards_inner(
             return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
 
     runtime_action_class = controlled_engineering_action_class(engineering_authority)
+    qualifying_service_failure_event = (
+        delegated_admission.get("qualifying_service_failure_event")
+        if isinstance(delegated_admission.get("qualifying_service_failure_event"), dict) else {}
+    )
+    service_failure_causal_binding: dict[str, Any] = {}
+    if str(qualifying_service_failure_event.get("event_type") or "") in {
+        "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+    }:
+        source_event_id = str(qualifying_service_failure_event.get("event_id") or "")
+        service_failure_causal_binding = {
+            "schema_version": "v7.service-failure-causal-binding.v1",
+            "source_incident_id": str(qualifying_service_failure_event.get("source_incident_id") or ""),
+            "source_event_id": source_event_id,
+            "source_event_ids": [source_event_id] if source_event_id else [],
+            "event_type": str(qualifying_service_failure_event.get("event_type") or ""),
+            "event_provenance": str(qualifying_service_failure_event.get("event_provenance") or ""),
+            "observation_generation": str(qualifying_service_failure_event.get("observation_generation") or ""),
+            "source_channel": str(qualifying_service_failure_event.get("object") or ""),
+        }
     source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     controlled_window = operator_execution.build_autonomous_execution_control_state(
@@ -2580,6 +2601,7 @@ def _execute_governed_transaction_with_guards_inner(
                 delegated_admission=delegated_admission,
             ),
             engineering_authority=engineering_authority,
+            service_failure_causal_binding=(service_failure_causal_binding or None),
         )
     except Exception as exc:
         return transaction_stop("packet_materialization_failed", cycle=cycle, error=str(exc))
@@ -2720,6 +2742,7 @@ def _execute_governed_transaction_with_guards_inner(
         rollback_attempted=rollback_attempted,
         verification_passed=verification_passed,
         evidence_class="ENGINEERING_SETUP" if setup_mode else ("ENGINEERING_CLEANUP" if cleanup_mode else "CONTROLLED_PRODUCTION"),
+        service_failure_causal_binding=(packet.get("service_failure_causal_binding") if isinstance(packet.get("service_failure_causal_binding"), dict) else None),
     )
     return {
         "schema_version": "v7.governed-execution-transaction.v1",
@@ -2740,6 +2763,7 @@ def _execute_governed_transaction_with_guards_inner(
         "rollback_attempted": rollback_attempted,
         "rollback_result": operation.get("rollback_verdict", "NOT_REQUIRED" if not rollback_attempted else ""),
         "feedback_materialization": feedback_materialization,
+        "service_failure_causal_binding": service_failure_causal_binding,
         "a4_evidence_updated": bool(feedback_materialization.get("materialized")),
         "users_moved": len(results) if apply_result.get("applied") else 0,
         "runtime_automation_enabled": delegated_mode,

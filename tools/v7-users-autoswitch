@@ -1951,6 +1951,130 @@ class AutoswitchPlanner:
             },
         }
 
+    def reconcile_service_failure_execution_outcomes(self) -> dict[str, Any]:
+        """Consume exact packet-bound execution feedback into the same L3 incident state.
+
+        The feedback, packet and incident already have owners.  This method is
+        only their compact-state consumer: it refuses timing-based inference,
+        creates no execution artefact and keeps a partially protected channel
+        incident open for its remaining scope.
+        """
+        state = self._load_l3_runtime_state()
+        incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+        rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        changed = 0
+        consumed = 0
+        rejected: list[str] = []
+        for row in rows:
+            if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
+                continue
+            binding = row.get("service_failure_causal_binding")
+            if not isinstance(binding, dict) or not binding:
+                continue
+            source_incident_id = str(binding.get("source_incident_id") or "")
+            source_event_id = str(binding.get("source_event_id") or "")
+            source_channel = str(binding.get("source_channel") or "")
+            event_type = str(binding.get("event_type") or "")
+            feedback_id = str(row.get("feedback_id") or row.get("object_id") or "")
+            if not all((source_incident_id, source_event_id, source_channel, feedback_id)):
+                rejected.append("execution_feedback_causal_binding_identity_missing")
+                continue
+            if event_type not in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}:
+                rejected.append("execution_feedback_causal_binding_event_type_invalid")
+                continue
+            if str(row.get("source_channel") or "") != source_channel:
+                rejected.append("execution_feedback_causal_binding_source_mismatch")
+                continue
+            incident_key = self._passive_incident_projection_key(source_incident_id)
+            existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+            if not existing:
+                rejected.append("execution_feedback_parent_incident_projection_missing")
+                continue
+            if str(existing.get("last_execution_feedback_id") or "") == feedback_id:
+                consumed += 1
+                continue
+            terminal = str(row.get("terminal_outcome_classification") or "UNKNOWN")
+            verification = row.get("verification_result") if isinstance(row.get("verification_result"), dict) else {}
+            success = terminal == "SUCCESS" and verification.get("success") is True
+            rollback_success = terminal == "ROLLBACK_SUCCESS"
+            if not (success or rollback_success):
+                rejected.append("execution_feedback_terminal_not_consumable")
+                continue
+            user = str(row.get("user") or "")
+            user_fingerprint = sha256_json({"incident": source_incident_id, "user": user})
+            lineage = dict(existing.get("causal_lineage") or {})
+            lineage.update({
+                "source_incident_id": source_incident_id,
+                "source_event_ids": sorted({
+                    *[str(item) for item in (binding.get("source_event_ids") or []) if str(item)],
+                    source_event_id,
+                }),
+                "execution_feedback_id": feedback_id,
+                "packet_id": str(row.get("packet_id") or ""),
+                "execution_decision_trace_id": str(row.get("decision_trace_id") or ""),
+                "learning_id": str(((row.get("learning_record") or {}).get("learning_record_id") or existing.get("learning_id") or "")),
+            })
+            desired = {
+                **existing,
+                "status": "PARTIALLY_PROTECTED",
+                "incident_state": "PARTIALLY_PROTECTED",
+                "channel_incident_state": "OPEN",
+                "attempt_terminal": terminal,
+                "attempt_id": str(row.get("closure_reference") or row.get("operation_id") or feedback_id),
+                "packet_id": str(row.get("packet_id") or ""),
+                "outcome_id": feedback_id,
+                "learning_id": lineage["learning_id"],
+                "last_execution_feedback_id": feedback_id,
+                "last_observed_at": str(row.get("outcome_observed_at") or row.get("created_at") or now_iso()),
+                "cohort_protection_intent": {
+                    **(existing.get("cohort_protection_intent") if isinstance(existing.get("cohort_protection_intent"), dict) else {}),
+                    "state": "PARTIALLY_PROTECTED",
+                    "partial_scope_reason": "ONE_PACKET_BOUND_USER_PROTECTED; remaining cohort remains open",
+                },
+                "user_protection_intent": {
+                    "state": "INTENT_CLOSED",
+                    "scope_type": "USER",
+                    "scope_fingerprint": user_fingerprint,
+                    "intent_closure_reason": "PACKET_BOUND_EXECUTION_SUCCESS" if success else "PACKET_BOUND_ROLLBACK_SUCCESS",
+                    "intent_closure_evidence_pointer": feedback_id,
+                    "raw_user_list_stored": False,
+                },
+                "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_shadow_outcomes",
+                "reentry_condition": "existing shadow/outcome consumer consumes exact packet-bound feedback; remaining channel scope continues on fresh owner-backed observation",
+                "causal_lineage": lineage,
+                "causal_invariant": {
+                    "name": "OPEN_INCIDENT_REQUIRES_SUCCESSOR_AND_REENTRY",
+                    "valid": True,
+                },
+                "execution_performed": True,
+                "runtime_mutation_performed": True,
+                "routing_mutation_performed": True,
+                "users_moved": 1,
+                "apply_executed": True,
+                "authority_expanded": False,
+                "production_maturity_changed": False,
+                "consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+            }
+            incidents[incident_key] = desired
+            changed += 1
+            consumed += 1
+        if changed:
+            state["incidents"] = incidents
+            self._write_l3_runtime_state(state)
+        return {
+            "schema_version": "v7.service-failure-execution-outcome-reconciliation.v1",
+            "active": bool(rows),
+            "consumed_records": consumed,
+            "changed_records": changed,
+            "rejected_records": sorted(set(rejected)),
+            "final_verdict": "PASS" if not rejected else "STOP_SAFE",
+            "forbidden_effects": {
+                "candidate_created": False, "packet_created": False, "lease_created": False,
+                "runtime_apply": False, "routing_mutation": False, "user_movement": 0,
+                "rollback_apply": False, "authority_change": False, "production_maturity_change": False,
+            },
+        }
+
     def _l3_incident_attempt_count(self, incident_key: str) -> int:
         incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
         incident = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
@@ -12091,6 +12215,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
         }
     planner = AutoswitchPlanner(args)
+    execution_outcome_reconciliation = planner.reconcile_service_failure_execution_outcomes()
     plan = planner.plan()
     result = planner.materialize_service_failure_automation_advisory(plan)
     return {
@@ -12100,6 +12225,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
         "consumer": "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
         "result": result,
+        "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "forbidden_effects": {
             "runtime_apply": False,
             "routing_mutation": False,

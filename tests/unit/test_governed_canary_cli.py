@@ -1343,6 +1343,43 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(outcome_rows[0]["terminal_outcome_classification"], "ROLLBACK_SUCCESS")
         self.assertLess(recommendation_rows[0]["delta"], 0)
 
+    def test_materialized_feedback_preserves_packet_bound_service_failure_lineage(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir(parents=True)
+            binding = {
+                "schema_version": "v7.service-failure-causal-binding.v1",
+                "source_incident_id": "sfinc_bound",
+                "source_event_id": "sfrev_bound",
+                "source_event_ids": ["sfrev_bound"],
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "observation_generation": "sfrev_bound",
+                "source_channel": "vless",
+            }
+            result = module.materialize_governed_transaction_feedback(
+                state_dir=state,
+                packet={
+                    "packet_id": "pkt_bound", "decision_id": "decision_bound",
+                    "operation_id": "operation_bound", "expected": {"selected_move_hash": "hash_bound"},
+                    "service_failure_causal_binding": binding,
+                },
+                operation={"operation_id": "operation_bound", "terminal_state": "APPLIED", "terminal_reason": "selected_moves_applied"},
+                apply_result={"applied": True, "results": [{"user_ip": "10.0.0.2", "from": "vless", "to": "awg3", "verify_rc": 0}]},
+                user="10.0.0.2", source="vless", target="awg3",
+                rollback_attempted=False, verification_passed=True,
+                service_failure_causal_binding=binding,
+            )
+            outcome = next(
+                json.loads(line) for line in (state / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()
+                if "execution-outcome-record" in line
+            )
+        self.assertTrue(result["materialized"])
+        self.assertEqual(outcome["source_incident_id"], "sfinc_bound")
+        self.assertEqual(outcome["source_event_id"], "sfrev_bound")
+        self.assertEqual(outcome["service_failure_causal_binding"]["source_channel"], "vless")
+
     def test_execute_governed_transaction_requires_explicit_transaction_confirmation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

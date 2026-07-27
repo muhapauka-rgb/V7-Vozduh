@@ -815,6 +815,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--continue-omp", action="store_true", help="Run one bounded standard Continue OMP engineering-control-loop invocation.")
     parser.add_argument("--consume-service-failure-automation-only", action="store_true", help="Consume one durable Service Failure automation obligation through the existing OMP owner without requiring the source CPS corpus on a binary-only production host.")
     parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
+    parser.add_argument("--reconcile-service-failure-execution-feedback", default="", metavar="PATH", help="Atomically reconcile one exact packet-bound Service Failure execution feedback record into the canonical source CPS; never executes an action.")
     parser.add_argument("--reconcile-action-class-contract-request", default="", metavar="PATH", help="Atomically project one fresh read-only M5a action-class Authority request into the canonical source CPS; never approves, writes policy, or executes an action.")
     parser.add_argument("--reconcile-external-authority-boundary", action="store_true", help="Atomically restore the exact existing external-Authority CPS projection after a proven automatic-successor precedence defect; never issues policy or executes an action.")
     parser.add_argument("--reconcile-active-standing-delegated-policy", action="store_true", help="Read the existing production policy/audit status and atomically replace a stale CPS Authority-request projection; never issues a contract or executes an action.")
@@ -1059,6 +1060,20 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"service_failure_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.reconcile_service_failure_execution_feedback:
+        try:
+            feedback = json.loads(Path(args.reconcile_service_failure_execution_feedback).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            result = {"final_verdict": "STOP_SAFE", "errors": [f"service_failure_execution_feedback_unreadable:{exc}"]}
+        else:
+            result = sync_lib.reconcile_service_failure_execution_feedback_to_cps(
+                feedback, root=fsse_scenario_root(),
+            )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"service_failure_execution_feedback_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.reconcile_action_class_contract_request:
         try:

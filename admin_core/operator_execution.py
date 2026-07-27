@@ -1902,6 +1902,27 @@ def validate_nonzero_packet(packet, now):
         if not item.get("user_ip") or not item.get("rollback_target") or not item.get("source_operation_id"):
             errors.append("rollback_manifest_item_incomplete")
             break
+    # Generic packets have no incident lineage.  A packet which claims the
+    # existing Matrix lineage must be complete and source-bound, so later
+    # outcome consumption never reconstructs causality from timing alone.
+    causal_binding = packet.get("service_failure_causal_binding")
+    if causal_binding is not None:
+        if not isinstance(causal_binding, dict):
+            errors.append("service_failure_causal_binding_invalid")
+        else:
+            source_incident_id = str(causal_binding.get("source_incident_id") or "")
+            source_event_id = str(causal_binding.get("source_event_id") or "")
+            source_event_ids = causal_binding.get("source_event_ids")
+            source_event_ids = source_event_ids if isinstance(source_event_ids, list) else []
+            bound_source = str(causal_binding.get("source_channel") or "")
+            event_type = str(causal_binding.get("event_type") or "")
+            if not source_incident_id or not (source_event_id or source_event_ids):
+                errors.append("service_failure_causal_binding_identity_missing")
+            if event_type not in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}:
+                errors.append("service_failure_causal_binding_event_type_invalid")
+            rollback_source = str((rollback_items[0] if rollback_items else {}).get("rollback_target") or "")
+            if not bound_source or bound_source != rollback_source:
+                errors.append("service_failure_causal_binding_source_mismatch")
     if errors:
         return {"ok": False, "verdict": "DENY_PACKET_INVALID", "errors": sorted(set(errors))}
     return {"ok": True, "verdict": "PACKET_VALID", "errors": []}
@@ -3712,6 +3733,7 @@ def packet_from_preview(
     require_execution_binding=False,
     delegated_policy_authority=None,
     engineering_authority=None,
+    service_failure_causal_binding=None,
 ):
     preview = extract_packet_preview(preview)
     now = utc_now()
@@ -3812,6 +3834,8 @@ def packet_from_preview(
         },
         "governance_owner": CANONICAL_CLEARANCE_OWNER,
     }
+    if service_failure_causal_binding is not None:
+        packet["service_failure_causal_binding"] = copy.deepcopy(service_failure_causal_binding)
     if engineering_authority:
         packet["approval_id"] = stable_id("appr", {
             "packet_id": packet_id,

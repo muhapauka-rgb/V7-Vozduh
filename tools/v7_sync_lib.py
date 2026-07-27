@@ -8262,6 +8262,140 @@ def engineering_polygon_scenario_instance(source: dict[str, Any]) -> dict[str, A
     }
 
 
+def reconcile_service_failure_execution_feedback_to_cps(
+    feedback: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Project one exact packet-bound service-failure outcome into source CPS.
+
+    The production executor remains the only producer of the outcome.  This
+    source-side consumer accepts no inferred correlation: the feedback must
+    preserve the Matrix incident/event binding embedded in the Packet before
+    it can update the volatile CPS description of the same incident.
+    """
+    binding = feedback.get("service_failure_causal_binding")
+    binding = binding if isinstance(binding, dict) else {}
+    execution = feedback.get("execution_outcome")
+    execution = execution if isinstance(execution, dict) else {}
+    verification = feedback.get("verification_result")
+    verification = verification if isinstance(verification, dict) else {}
+    source_incident_id = str(binding.get("source_incident_id") or "")
+    source_event_id = str(binding.get("source_event_id") or "")
+    source_channel = str(binding.get("source_channel") or "")
+    feedback_id = str(feedback.get("feedback_id") or feedback.get("object_id") or "")
+    packet_id = str(feedback.get("packet_id") or "")
+    errors: list[str] = []
+    if str(feedback.get("schema_version") or "") != "v7.execution-outcome-record.v1":
+        errors.append("execution_feedback_schema_invalid")
+    if not all((source_incident_id, source_event_id, source_channel, feedback_id, packet_id)):
+        errors.append("execution_feedback_causal_binding_identity_missing")
+    if str(binding.get("event_type") or "") not in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}:
+        errors.append("execution_feedback_causal_binding_event_type_invalid")
+    if str(feedback.get("source_channel") or "") != source_channel:
+        errors.append("execution_feedback_causal_binding_source_mismatch")
+    terminal = str(feedback.get("terminal_outcome_classification") or "")
+    success = terminal == "SUCCESS" and verification.get("success") is True
+    rollback_success = terminal == "ROLLBACK_SUCCESS"
+    if not (success or rollback_success):
+        errors.append("execution_feedback_terminal_not_consumable")
+    if execution.get("runtime_mutation_performed") is not True or int(execution.get("users_moved") or 0) != 1:
+        errors.append("execution_feedback_exact_one_user_apply_not_proven")
+    if errors:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": sorted(set(errors)),
+        }
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": [f"cps_unreadable:{exc}"],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": ["service_failure_program_not_active_in_cps"],
+        }
+    fingerprint = hashlib.sha256(json.dumps({
+        "feedback_id": feedback_id,
+        "source_incident_id": source_incident_id,
+        "source_event_id": source_event_id,
+        "packet_id": packet_id,
+        "terminal": terminal,
+    }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    if _plain_live_value(live, "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID") == feedback_id:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "PASS", "status": "EXECUTION_FEEDBACK_ALREADY_CONSUMED",
+            "feedback_id": feedback_id, "behavior_change": False, "errors": [],
+        }
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "state_captured": utc_now(),
+        "current_state_generation": f"cpsgen_SFA_EXEC_{fingerprint[:12].upper()}",
+        "current_transition_id": "SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1",
+        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_PARTIALLY_PROTECTED_INCIDENT_ACTIVE",
+        "current_safe_next_action": (
+            "PRESERVE THE EXACT EXECUTION FEEDBACK; REMAIN READY FOR A FRESH OWNER-BACKED "
+            "MATCHING SERVICE FAILURE BEFORE ANY NEW CANDIDATE/PACKET/LEASE"
+        ),
+        "transaction_terminal_class": terminal,
+        "verification_result": "PASS" if success else "ROLLBACK_SUCCESS",
+        "rollback_result": "NOT_REQUIRED" if success else "ROLLBACK_COMPLETED",
+        "learning_result": "EXISTING_EXECUTION_FEEDBACK_CONSUMED",
+        "user_movement": "ONE_BOUNDED_USER_MOVED_IN_EXECUTION_FEEDBACK; no scope expansion",
+        "source_summary": (
+            "The existing Matrix -> delegated Packet -> execution-feedback chain consumed one exact "
+            "service-failure revalidation outcome into CPS; remaining scope requires a fresh matching event "
+            "and fresh Candidate/Packet/lease identities."
+        ),
+    })
+    incident_text = (
+        f"PARTIALLY_PROTECTED; source incident {source_incident_id}; fresh event {source_event_id}; "
+        f"one bounded user {feedback.get('user') or ''} moved from {source_channel} to "
+        f"{feedback.get('target_channel') or ''}; feedback {feedback_id}; packet {packet_id}; "
+        "remaining channel scope stays open and may only reenter on a fresh matching event"
+    )
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "CURRENT_VLESS_SERVICE_INCIDENT": f"`{incident_text}`",
+            "CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL": (
+                "`PARTIAL_PROTECTION_EXECUTION_CONSUMED; no historical Event/Candidate/Packet/lease may be reused`"
+            ),
+            "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID": f"`{feedback_id}`",
+            "LAST_SERVICE_FAILURE_EXECUTION_SOURCE_INCIDENT": f"`{source_incident_id}`",
+            "LAST_SERVICE_FAILURE_EXECUTION_SOURCE_EVENT": f"`{source_event_id}`",
+            "LAST_SERVICE_FAILURE_EXECUTION_PACKET": f"`{packet_id}`",
+            "LAST_SERVICE_FAILURE_EXECUTION_OUTCOME": f"`{terminal}`",
+            "LAST_SERVICE_FAILURE_EXECUTION_CONSUMPTION": "`PACKET_BOUND_FRESH_EVENT_OUTCOME_CONSUMED`",
+        },
+    )
+    return {
+        "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+        "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+        "status": "PACKET_BOUND_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED" if atomic.get("ok") else "CPS_UPDATE_FAILED",
+        "feedback_id": feedback_id,
+        "source_incident_id": source_incident_id,
+        "source_event_id": source_event_id,
+        "packet_id": packet_id,
+        "atomic_update": atomic,
+        "behavior_change": bool(atomic.get("ok")),
+        "forbidden_effects": {
+            "runtime_apply": False, "routing_mutation": False, "user_movement": 0,
+            "authority_expansion": False, "production_maturity_change": False,
+        },
+        "errors": [] if atomic.get("ok") else atomic.get("errors") or ["cps_execution_feedback_projection_failed"],
+    }
+
+
 def select_engineering_polygon_scenario(
     sources: Iterable[Any],
     *,

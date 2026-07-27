@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.4`
+Version: `1.5`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,19 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V1.5 revision record — current executable plan
+
+This revision replaces the V1.4 Mission map as the executable plan. The V1.4
+map is retained below only as implemented-owner and historical-contract
+context; it must not dispatch work. V1.5 adds no file, database, event bus,
+queue, registry, Planner, Runtime or Authority owner.
+
+It corrects the causal-loss defect discovered in production: an attempt
+terminal, especially a stale-evidence `STOP_SAFE`, must not be interpreted as
+the terminal of the continuing incident. It also adopts a scale-safe model:
+existing append-only transition records retain history; a compact existing
+current-state projection retains only the latest actionable state and pointers.
 
 ## Program identity
 
@@ -90,6 +103,11 @@ terminal that must explain why no action was legal.
 10. `Incident Frontier` and `Product Evolution Frontier` are two projections
     of the existing OMP product-engineering frontier. They are not new owners,
     registries, queues or schedulers.
+11. The existing `closure-records`, event/outcome JSONL families, bounded
+    readers, snapshot store and `tools/v7-users-autoswitch` incident state are
+    the only permitted storage substrate for this Program. Raw history remains
+    append-only and partitionable; current incident state is a compact
+    projection, never an ever-growing envelope.
 
 ### Mandatory semantic discovery and connection law
 
@@ -451,7 +469,275 @@ Arbitration rules:
 6. Both projections are derived and consumed through existing OMP/CPS owners;
    neither is a durable second backlog.
 
-## Mission map
+## V1.5 causal-closure architecture and Mission map
+
+### Proven reuse and exact residual
+
+V1.5 reuses, rather than replaces, these already implemented elements:
+
+| Need | Existing owner | V1.5 use |
+| --- | --- | --- |
+| immutable observation and transition history | date-partitionable event, closure, outcome and Learning JSONL families | append-only causal transitions; no live action reads all history |
+| compact read model | intelligence snapshot store, bounded JSONL readers and autoswitch runtime state | current incident/attempt projection with atomic replace and bounded reads |
+| incident identity and partial-scope continuity | `tools/v7-users-autoswitch` L3 incident state | common passive/L3 incident lifecycle; no second incident registry |
+| exact-once handoff | existing `closure-records.lock`, receipt and CPS reconciliation owner | lock the complete transition, not just receipt append |
+| safe action | existing planner, delegated policy, Candidate, Packet, lease and governed executor | only fresh objects for the same revalidated incident |
+| engineering readiness | Permanent Polygon and existing controlled-production owner | reproduce, verify and prepare an opportunity; never manufacture a production outcome |
+
+The exact residual is therefore not missing logs and not missing automation.
+The passive service-failure path records a durable terminal but does not yet
+share a compact continuing-incident projection with the execution path. A
+later `NO_PENDING_OBLIGATION` or stale attempt can consequently hide an open
+incident instead of revalidating it. V1.5 closes that producer-to-consumer
+gap.
+
+### Scale and retention law
+
+The design must remain safe at 10,000 users and 1,000 channels.
+
+```text
+existing append-only event / decision / closure / outcome / Learning records
+                       +
+compact keyed current-incident projection
+                       +
+CPS pointers to only the active program frontier
+```
+
+The compact projection is an extension of the existing autoswitch incident
+state, not a new store. It contains only:
+
+- `incident_id`, `incident_generation`, state and first/last confirmation;
+- latest observation generation and failure family;
+- affected, protected and unresolved **scope summaries** (counts, cohort
+  fingerprint and source pointers, never a growing user list);
+- current certified tier, last attempt pointer and last terminal;
+- last responsible link, next consumer, re-entry condition and intent status;
+- lineage pointers to immutable records.
+
+It must not embed probe bodies, all decisions, all attempts, all users or all
+outcomes. Each transition is appended once through existing owners and refers
+back by identity. Existing date-partitioned JSONL-family reads, bounded tail
+reads and producer-owned snapshot rotation remain the scale mechanism. M0
+must measure file growth, lock hold time and lookup cost before setting any
+retention/rollup values; it must not invent numerical retention limits. If a
+single current-state partition becomes a measured bottleneck, the existing
+JSONL-family/owner may partition by incident/channel generation and publish a
+compact rollup — never add a database or a second truth source.
+
+This follows the production pattern of append-only history plus a materialized
+current view: Kafka compaction retains a latest keyed value for recovery,
+AWS documents event sourcing with materialized views, OpenTelemetry carries
+correlation context across components, and Elastic rolls over/downsamples
+time-series history rather than letting one live index grow without limit.
+
+Primary design references (inform the pattern; they do not introduce those
+products into V7): [Apache Kafka log compaction](https://kafka.apache.org/40/design/design/),
+[AWS event sourcing and materialized views](https://docs.aws.amazon.com/prescriptive-guidance/latest/cloud-design-patterns/event-sourcing-pattern.html),
+[OpenTelemetry context propagation](https://opentelemetry.io/docs/concepts/context-propagation/)
+and [Elastic data-stream lifecycle](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/data-stream-lifecycle.html).
+
+### Dual lifecycle and causal-lineage contract
+
+Every relevant record carries the applicable subset of this lineage:
+
+```text
+incident_id, incident_generation, observation_generation,
+situation_id, decision_trace_id, obligation_id, action_opportunity_id,
+attempt_id, candidate_id, packet_id, lease_id, outcome_id, learning_id,
+parent_transition_id
+```
+
+This is identity metadata inside existing records, not a graph database.
+The invariant is mandatory:
+
+```text
+every current frontier -> traceable backward to its incident
+every open incident -> traceable forward to its next required consumer
+```
+
+Failure of either direction is `CAUSAL_LINEAGE_BROKEN`, an engineering defect
+with a last responsible producer-consumer link; it is never `NO_WORK`.
+
+Two independent state axes are required:
+
+| Axis | States | Meaning |
+| --- | --- | --- |
+| Incident lifecycle | `OPEN_OBSERVED`, `OPEN_REVALIDATION_REQUIRED`, `OPEN_ACTION_REQUIRED`, `OPEN_AUTHORITY_REQUIRED`, `OPEN_EXTERNAL_OWNER_REQUIRED`, `ACTION_IN_PROGRESS`, `PARTIALLY_PROTECTED`, `RECOVERY_VERIFYING`, `INTENT_CLOSED` | status of the actual service/user-protection problem |
+| Attempt terminal | `SUCCESS`, `STOP_SAFE`, `NO_CANDIDATE`, `PACKET_EXPIRED`, `AUTHORITY_REQUIRED`, `ROLLBACK_SUCCESS`, `VERIFICATION_FAILED`, `NO_EXECUTION` | result of one fresh decision/execution attempt |
+
+`attempt terminal != incident terminal`. A one-user success for a forty-user
+channel incident is `PARTIALLY_PROTECTED`; an expired packet is normally
+`OPEN_REVALIDATION_REQUIRED`, not incident closure.
+
+### Active-incident revalidation law
+
+The required missing transition is:
+
+```text
+same incident_id + fresh failed probes + same source/failure family
++ no verified recovery + valid current action class + safe target
+-> CURRENT_ACTIVE_INCIDENT_REVALIDATED
+-> new observation generation -> new Situation -> new Decision
+-> fresh action opportunity -> fresh Candidate / Packet / lease only if legal
+```
+
+No new outage is required. Fresh confirmation that the same incident remains
+open is sufficient. The historical incident identity persists; every live
+execution identity is recreated. A verified recovery instead enters
+`RECOVERY_VERIFYING` and may close the relevant protection intent only after
+its existing recovery owner proves it.
+
+### Intent and no-progress law
+
+Every `STOP_SAFE` first answers whether the exact user-protection intent is
+closed. A fresh proof that no target is safer, or that the user is already on
+the best permitted route, is a correct intent closure and must not create BDP
+churn. BDP/OMP is admitted only when all are true:
+
+```text
+intent remains open
+AND last responsible link is engineering
+AND an existing owner can change the result
+```
+
+Authority, external-owner and Natural L8 boundaries preserve the incident as
+open with their exact re-entry condition. For every open incident, retain
+`first_seen`, `last_progress_at`, `last_observation_at`, `blocked_since`,
+`next_reentry_due` and `same_blocker_count`. Repeated unchanged blocking input
+becomes `NO_PROGRESS_CAUSAL_CHAIN_DEFECT` after the existing bounded
+no-progress rule, routing the last responsible link to repair instead of
+blind refresh.
+
+### M0 — Causal-loss and storage-topology audit
+
+Read CPS/OMP, source, production state and every existing owner by behavior.
+For each current/recent material incident, prove the full lineage from Matrix
+observation to next consumer or exact terminal. Measure append growth,
+partition availability, compact-projection size, lock duration and bounded
+lookup cost. Classify each missing link as producer, consumer, identity,
+freshness, projection, concurrency or external boundary.
+
+Completion: `CAUSAL_LOSS_AND_SCALE_RESIDUAL_EXACTLY_PROVEN`.
+
+### M1 — Dual lifecycle and compact incident projection
+
+Extend the existing autoswitch incident state and existing closure transition
+records with the two axes, compact fields, scope summaries and lineage
+pointers. Preserve append-only history externally; migrate/reconcile current
+open incidents without fabricating a new observation or outcome. Ensure a
+single-user outcome leaves a wider channel incident `PARTIALLY_PROTECTED`.
+
+Completion: `DUAL_LIFECYCLE_COMPACT_PROJECTION_CONSUMED_WITHOUT_SECOND_STORE`.
+
+### M2 — Atomic causal transition and successor publication
+
+Use the existing lock/CAS owner across selection of the current incident,
+generation validation, incident-state update, successor publication, CPS
+projection and receipt append. A crash between any stages must recover
+idempotently without a duplicate successor. Old writers after a newer
+generation fail closed.
+
+Completion: `INCIDENT_TRANSITION_EXACTLY_ONCE_AND_RECOVERABLE`.
+
+### M3 — Current active incident revalidation
+
+Implement the active-incident revalidation transition through existing Matrix,
+passive capture and planner owners. Fresh failed probes of a continuing,
+unrecovered incident must create a new observation generation and fresh
+read-only action opportunity, rather than requiring a second outage. Existing
+standing policy is revalidated as a gate; it neither reuses a Candidate nor
+grants a Packet.
+
+Completion: `CURRENT_ACTIVE_INCIDENT_REVALIDATED_TO_FRESH_SUCCESSOR_OR_EXACT_STOP_SAFE`.
+
+### M4 — Intent-aware STOP_SAFE and Automation Gap routing
+
+Classify each attempt terminal against the continuing incident and its exact
+protection intent. Route only open engineering gaps through existing BDP/OMP;
+retain correct-STAY, Authority, external-owner and Natural L8 states as
+explicit re-entry boundaries. Reconcile both `INCIDENT_FRONTIER` and
+`PRODUCT_EVOLUTION_FRONTIER` after every transition.
+
+Completion: `OPEN_INTENT_GAP_ROUTED_OR_CORRECT_INTENT_CLOSURE_PROVEN`.
+
+### M5 — Polygon as engineering-closure substrate
+
+Polygon receives the exact unresolved engineering cell and lineage. It may
+replay the causal chain, test target/capacity/rollback/anti-flap/partial-scope
+logic and prepare a controlled L7 opportunity for the existing production
+owner. It cannot close the production incident, create an Outcome Passport,
+claim L7 credit or manufacture Natural L8.
+
+Completion: `UNRESOLVED_ENGINEERING_CELL_REPLAYED_AND_OWNER_HANDOFF_READY`.
+
+### M6 — Existing controlled action path and partial-scope handling
+
+Only when current policy and all fresh gates allow, use the existing planner →
+Candidate → Packet → lease → bounded executor path. A one-user outcome updates
+protected/unresolved scope and returns to the same incident; tier progression
+remains independent from incident closure. A non-action terminal updates the
+attempt axis and continues through M3/M4.
+
+Completion: `FRESH_BOUNDED_ATTEMPT_OUTCOME_OR_EXACT_CONTINUING_INCIDENT_STOP`.
+
+### M7 — Outcome, replay, Learning and tier recommendation
+
+Reuse existing Outcome Passport, temporal verification, replay, Learning and
+M6 recommendation owners. Consume only the affected capability criteria;
+compare shadow with actual outcome; update the exact tier recommendation.
+No whole capability, Authority or Production Maturity may advance implicitly.
+
+Completion: `OUTCOME_LINEAGE_TO_LEARNING_AND_AFFECTED_TIER_DECISION_CONSUMED`.
+
+### M8 — CPS/runtime/OMP pointer reconciliation
+
+CPS holds only live pointers: active contract ID, incident ID/state, current
+attempt ID, next consumer, re-entry condition and frontier. Runtime policy
+remains owned by its policy owner; incidents by their lifecycle owner; outcomes
+by outcome owners. Any disagreement is `RUNTIME_CPS_PROJECTION_MISMATCH` and
+routes through the existing reconciliation owner, never a manual text patch.
+
+Completion: `LIVE_POINTERS_MATCH_OWNER_BACKED_RUNTIME_AND_INCIDENT_TRUTH`.
+
+### M9 — Restart, concurrency and no-progress campaign
+
+Prove two revalidators yield one observation generation; two opportunity
+producers yield one fresh attempt; stale writers are rejected; and each crash
+boundary reconciles without duplicate successor. Prove correct STOP_SAFE does
+not create BDP churn, while repeated unchanged blockers produce a causal-chain
+repair frontier.
+
+Completion: `CAUSAL_CLOSURE_CONCURRENCY_RECOVERY_AND_NO_PROGRESS_PROVEN`.
+
+### M10 — Current VLESS production acceptance and implementation terminal
+
+Use the current VLESS incident as the acceptance subject: prove it remains
+open or recovered; obtain fresh failed probes if still open; materialize
+`CURRENT_ACTIVE_INCIDENT_REVALIDATED`; check the active standing policy; then
+obtain a fresh Candidate/Packet/lease or exact live STOP_SAFE. Execute one
+bounded action only if existing policy and runtime gates independently permit
+it. Consume verification, Outcome, Replay, Learning, scope update and the
+affected M6 tier decision.
+
+The implementation terminal is:
+
+`PERSISTENT_INCIDENT_CAUSAL_CLOSURE_RUNTIME_CONSUMED`
+
+It means every currently open incident has a durable compact state, causal
+lineage and exact successor/boundary; current VLESS re-entry was exercised;
+future incidents enter the same invariant automatically. It does not claim
+that no future incidents will arise or that all future actions are authorized.
+
+### V1.5 verification requirements
+
+Every Mission follows the existing focused tests, production caller/consumer,
+safe-deploy, replay, truth and convergence sequence. In addition, each must
+prove bounded storage growth, no full user list in the current projection,
+lineage in both directions, dual-axis correctness, partial-scope correctness,
+and zero forbidden effects unless an existing current contract allows the
+specific bounded action.
+
+## Historical Mission map — V1.4, non-executable context
 
 ### M0 — Existing capability and production binding reconciliation
 
@@ -807,7 +1093,7 @@ Completion contract:
 
 `ACTION_CLASS_AUTHORITY_DECISION_INDEPENDENTLY_CONSUMED`
 
-## Verification campaign
+## Historical V1.4 verification campaign — retained controls
 
 Every implementation Mission must run:
 
@@ -846,7 +1132,7 @@ in-process probe alone.
 - using legacy runtime policy as current CPS Authority;
 - changing Production Maturity from Engineering or shadow evidence.
 
-## Program terminal
+## Historical V1.4 program terminal — non-executable context
 
 `SERVICE_FAILURE_AUTOMATION_EVOLUTION_LOOP_PRODUCTION_CONSUMED_AND_CERTIFIED_BLAST_RADIUS_TIER_DECIDED`
 
@@ -860,6 +1146,14 @@ independently decided.
 It does not necessarily mean autonomous routing is enabled, Natural L8 is
 sufficient, Authority expanded or Production Maturity increased.
 
-## Exact first executable frontier
+## Historical V1.4 first frontier — superseded
 
 `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1`
+
+V1.5 replaces this with:
+
+`V7_INCIDENT_CAUSAL_CLOSURE_M0_CAUSAL_LOSS_AND_STORAGE_TOPOLOGY_AUDIT_V1`
+
+M0 is read-only. It must prove the exact live location and semantic owner of
+the compact incident projection before any schema, retention, partition or
+consumer change is proposed.

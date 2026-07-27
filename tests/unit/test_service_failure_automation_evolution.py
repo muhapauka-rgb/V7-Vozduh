@@ -72,6 +72,50 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_advisory_skips_expired_terminal_and_selects_open_revalidation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            expiry = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_old",
+                "source_incident_id": "sfinc_old",
+                "situation_id": "situation_old",
+                "decision_trace_id": "decision_old",
+                "terminal_outcome_classification": "EPISODE_EXPIRED_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "channel": "vless",
+                "observed_at": "2026-07-27T03:10:00+00:00",
+            }
+            revalidated = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_current",
+                "source_incident_id": "sfinc_current",
+                "situation_id": "situation_current",
+                "decision_trace_id": "decision_current",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "channel": "vless",
+                "observed_at": "2026-07-27T03:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in (revalidated, expiry)),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            result = planner.materialize_service_failure_automation_advisory({
+                "decisions": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }],
+            })
+            self.assertTrue(result["active"])
+            self.assertEqual(result["obligation"]["source_incident_id"], "sfinc_current")
+
     def test_passive_terminal_projects_compact_dual_lifecycle_and_omp_successor(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

@@ -10203,8 +10203,19 @@ class AutoswitchPlanner:
             provenance = str(row.get("event_provenance") or row.get("provenance") or "")
             evidence_class = str(row.get("evidence_class") or "")
             operator_event = provenance == "OPERATOR_INDUCED"
-            recovery_event = evidence_class == "PROBE_OBSERVED_RECOVERY_EVENT"
-            expiry_event = evidence_class == "PROBE_OBSERVED_EPISODE_EXPIRY"
+            source_incident_id = str(row.get("source_incident_id") or "")
+            # A recovery/expiry record without its parent incident is useful
+            # immutable diagnostics, but cannot legitimately own a compact
+            # incident or an OMP successor.  Do not turn it into a synthetic
+            # incident keyed by its event ID.
+            recovery_event = (
+                evidence_class == "PROBE_OBSERVED_RECOVERY_EVENT"
+                and bool(source_incident_id)
+            )
+            expiry_event = (
+                evidence_class == "PROBE_OBSERVED_EPISODE_EXPIRY"
+                and bool(source_incident_id)
+            )
             persistent_failure = (
                 provenance == "EXTERNAL_UNATTRIBUTED"
                 and evidence_class == "PROBE_OBSERVED_PRODUCTION_EVENT"
@@ -10637,7 +10648,15 @@ class AutoswitchPlanner:
             if str(row.get("object_type") or "") == "passive_production_event"
         ]
         candidates = []
+        correct_terminals_skipped = 0
         for row in passive:
+            terminal = str(row.get("terminal_outcome_classification") or "").upper()
+            if terminal.startswith(("RECOVERY", "EPISODE_EXPIRED")):
+                # These terminals are already consumed as no-action evidence.
+                # They must never outrank a newer open revalidation merely
+                # because they were appended later in the same batch.
+                correct_terminals_skipped += 1
+                continue
             obligation_id = self._service_failure_automation_obligation_id(row)
             if obligation_id and obligation_id not in existing:
                 candidates.append((str(row.get("observed_at") or row.get("created_at") or ""), obligation_id, row))
@@ -10645,7 +10664,8 @@ class AutoswitchPlanner:
             return {
                 "schema_version": "v7.service-failure-automation-advisory.v1",
                 "active": False,
-                "reason": "no_unmaterialized_passive_terminal",
+                "reason": "no_open_unmaterialized_passive_terminal",
+                "correct_terminals_skipped": correct_terminals_skipped,
                 "outcome_reconciliation": outcome_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
             }

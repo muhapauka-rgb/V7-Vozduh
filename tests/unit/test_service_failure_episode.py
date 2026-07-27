@@ -469,6 +469,38 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("passive_consumer_forbids_apply", result["blockers"])
         self.assertIn("passive_consumer_forbids_promote_authority_to", result["blockers"])
 
+    def test_passive_consumer_does_not_materialize_unbound_expiry_as_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_dir = root / "events"
+            state_dir = root / "state"
+            event_dir.mkdir()
+            state_dir.mkdir()
+            (event_dir / "service-failure-events.jsonl").write_text(
+                json.dumps({
+                    "event_id": "sxe_without_parent",
+                    "event_type": "SERVICE_FAILURE_EPISODE_EXPIRED",
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "evidence_class": "PROBE_OBSERVED_EPISODE_EXPIRY",
+                    "channel": "vless",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.event_dir = event_dir
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.service_signal_policy = {
+                "service_failure_persistence_samples": 3,
+                "service_failure_persistence_window_seconds": 180,
+            }
+            planner.l3_runtime_state = {}
+            result = planner._consume_passive_production_events()
+            self.assertFalse(result["active"])
+            self.assertEqual(result["reason"], "no_passive_capture_event")
+            self.assertFalse((state_dir / "l3-runtime-state.json").exists())
+
     def test_matrix_lifecycle_reports_passive_consumer_success_and_failure_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

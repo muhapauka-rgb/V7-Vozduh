@@ -72,6 +72,52 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_active_standing_policy_replaces_stale_one_use_authority_frontier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            closure = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_standing",
+                "source_incident_id": "sfinc_standing",
+                "situation_id": "situation_standing",
+                "decision_trace_id": "decision_standing",
+                "closure_state": "CAPTURED_STOP_SAFE",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "NATURAL_PRODUCTION_CANDIDATE",
+                "channel": "vless",
+                "affected_users": ["10.0.0.2"],
+                "observed_at": "2026-07-27T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner._standing_delegated_policy_status = lambda: {
+                "valid": True,
+                "blockers": [],
+                "contract_id": "sdpc_test",
+                "expires_at": "2026-08-27T00:00:00+00:00",
+            }
+            result = planner.materialize_service_failure_automation_advisory({
+                "decisions": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }],
+            })
+            obligation = result["obligation"]
+            self.assertEqual(obligation["stop_safe_classification"], "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED")
+            self.assertEqual(obligation["product_evolution_frontier"], "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION")
+            self.assertEqual(
+                obligation["action_class_execution_boundary"]["status"],
+                "STANDING_DELEGATED_POLICY_ACTIVE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            )
+            self.assertFalse(obligation["runtime_mutation_performed"])
+            self.assertEqual(obligation["users_moved"], 0)
+
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

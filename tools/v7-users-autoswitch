@@ -10276,6 +10276,39 @@ class AutoswitchPlanner:
             "V7_SERVICE_FAILURE_AUTOMATION_AUTHORITY_RECONCILIATION",
         )
 
+    def _standing_delegated_policy_status(self) -> dict[str, Any]:
+        """Read the existing standing-policy owner without treating it as a Packet grant.
+
+        The advisory/OMP lane must distinguish an expired legacy one-use
+        contract from an active owner-issued standing contract.  It still
+        cannot create a Candidate, Packet, lease or runtime action: the
+        bounded executor revalidates the fresh event and every live gate.
+        """
+        policy_root = getattr(self, "policy", {})
+        policy_root = policy_root if isinstance(policy_root, dict) else {}
+        contract = policy_root.get("delegated_autonomy_policy")
+        contract = contract if isinstance(contract, dict) else {}
+        args = getattr(self, "args", None)
+        audit_store = Path(getattr(
+            args,
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
+        validation = operator_execution.validate_standing_delegated_operational_policy(
+            contract,
+            audit_records=operator_execution.read_audit_records(audit_store),
+        )
+        return {
+            "valid": bool(validation.get("ok")),
+            "blockers": list(validation.get("errors") or []),
+            "contract_id": str(contract.get("contract_id") or ""),
+            "contract_hash": str(contract.get("contract_hash") or ""),
+            "expires_at": str(contract.get("expires_at") or ""),
+            "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+            "truth_source": "existing_delegated_autonomy_policy_and_operator_execution_audit",
+            "runtime_mutation_performed": False,
+        }
+
     def reconcile_service_failure_shadow_outcomes(self) -> dict[str, Any]:
         """Attach only exact, owner-backed execution outcomes to shadow rows."""
         shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
@@ -10403,6 +10436,37 @@ class AutoswitchPlanner:
             "users_moved": 0,
             "authority_expanded": False,
         }
+        standing_policy = self._standing_delegated_policy_status()
+        standing_policy_active = bool(standing_policy.get("valid"))
+        if standing_policy_active and classification == "STOP_SAFE_AUTHORITY_REQUIRED":
+            classification = "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+            reason = (
+                "the exact standing delegated policy is active; the existing "
+                "bounded executor must wait for and revalidate a fresh matching "
+                "service-failure event before any action"
+            )
+            product_frontier = "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
+            action_boundary = {
+                **action_boundary,
+                "status": "STANDING_DELEGATED_POLICY_ACTIVE_FRESH_EVENT_REVALIDATION_REQUIRED",
+                "blockers": [],
+                "standing_delegated_policy": standing_policy,
+                "next_required_objects": [
+                    "fresh_matching_service_failure_event",
+                    "fresh_candidate",
+                    "packet",
+                    "lease",
+                    "verification",
+                    "rollback",
+                ],
+                "execution_authorized": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
         obligation = {
             "schema_version": "v7.service-failure-automation-obligation.v1",
             "object_type": "service_failure_automation_obligation",
@@ -10434,7 +10498,11 @@ class AutoswitchPlanner:
             "responsibility_owner": "tools/v7-users-autoswitch",
             "product_evolution_frontier": product_frontier,
             "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
-            "authority_reconciliation": "CURRENT_CPS_GOVERNED_ONLY_REQUIRED_BEFORE_ANY_MOVE",
+            "authority_reconciliation": (
+                "STANDING_DELEGATED_POLICY_ACTIVE_REVALIDATE_FRESH_EVENT_BEFORE_ANY_MOVE"
+                if standing_policy_active else
+                "CURRENT_CPS_GOVERNED_ONLY_REQUIRED_BEFORE_ANY_MOVE"
+            ),
             "action_class_execution_boundary": action_boundary,
             "shadow_allowed_action_status": str(action_boundary.get("status") or "STOP_SAFE_ACTION_CLASS_BOUNDARY_NOT_EVALUATED"),
             "candidate_created": False,

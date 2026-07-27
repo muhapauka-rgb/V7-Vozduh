@@ -103,3 +103,41 @@ failure classes или safety gates не ослаблены.
 Повторная focused affected campaign: `138 tests PASS`.
 
 `SNAPSHOT_PREDECESSOR_REPAIR_READY_FOR_SAFE_DEPLOY_AND_AFFECTED_PRODUCTION_REPLAY`
+
+## Проверка длительного запуска и итоговая классификация
+
+После deploy snapshot-predecessor repair реальный production owner-cycle был
+завершён. Локальный получатель его большого JSON-ответа оставался ждать поток,
+что выглядело как зависание, но runtime-процесс уже завершился; его безопасно
+прервали только на локальной стороне. Это не restart, не timeout и не
+незавершённая production-транзакция.
+
+Durable production summary подтвердил, что snapshot defect устранён: Packet
+preview стал `READY`, а bounded executor дошёл до законной event gate. Он
+остановился без effects, потому что для активного standing contract отсутствует
+**fresh matching service-failure event**:
+
+- `final_verdict=GOVERNED_TRANSACTION_STOPPED`;
+- `transaction_status=STOP_SAFE`;
+- `stop_reason=delegated_policy_admission_denied`;
+- blocker=`FRESH_MATCHING_SERVICE_FAILURE_EVENT_MISSING`;
+- apply / restore barrier / routing mutation=`false`, users moved=`0`.
+
+Это не повторный запрос Authority и не packet defect. Active standing contract
+`sdpc_f200a060c720a12669248105` остаётся действующим в пределах исходного
+scope. Следующий допустимый вход — только owner-backed новый matching service
+failure; он запускает fresh Candidate → Packet → lease → live verification
+через существующий bounded executor.
+
+При проверке обнаружен один безопасный semantic producer-consumer gap:
+advisory/OMP consumer продолжал смотреть на устаревший one-use contract и
+неправильно публиковал `...AUTHORITY_RECONCILIATION`, хотя исполнитель уже
+правильно видел active standing policy. Исправление переводит именно этот
+случай в `STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED` и
+`V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`; оно не создаёт
+Candidate, Packet, lease или Authority request и не изменяет execution gates.
+
+Focused affected verification после исправления: **139 tests PASS**, compile
+и diff-check: **PASS**. Следующий шаг — обычный safe deploy этого
+producer-consumer semantic repair и affected production replay; ожидаемый
+terminal при отсутствии нового failure: `WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT`.

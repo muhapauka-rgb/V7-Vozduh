@@ -244,6 +244,13 @@ def normalize_regression_event(event, source=""):
         "failure_episode_id": str(event.get("failure_episode_id") or ""),
         "event_provenance": str(event.get("event_provenance") or event.get("provenance") or ""),
         "evidence_class": str(event.get("evidence_class") or ""),
+        # Preserve the compact failed-source denominator across the generic
+        # event boundary. It remains evidence only; packet and live gates
+        # independently decide whether action is legal.
+        "source_scope": (
+            dict(event.get("source_scope") or {})
+            if isinstance(event.get("source_scope"), dict) else {}
+        ),
         "capture_only": str(event.get("capture_only") or "").strip().lower() in {"1", "true", "yes", "on"},
     }
     return normalized

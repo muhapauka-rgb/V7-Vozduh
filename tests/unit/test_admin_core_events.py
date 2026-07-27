@@ -97,6 +97,12 @@ class EventsHelperTest(unittest.TestCase):
             "message": "Telegram failed",
             "updated_at": "2026-06-23T00:00:00Z",
             "confidence": 0.91,
+            "source_scope": {
+                "affected_scope_count": 2,
+                "affected_scope_fingerprint": "scope-test",
+                "source_channel": "vless",
+                "raw_user_list_stored": False,
+            },
         }
 
         first = normalize_regression_event(source_event)
@@ -109,6 +115,7 @@ class EventsHelperTest(unittest.TestCase):
         self.assertTrue(first["read_only"])
         self.assertTrue(first["preview_only"])
         self.assertFalse(first["synthetic_event"])
+        self.assertEqual(first["source_scope"]["affected_scope_fingerprint"], "scope-test")
 
     def test_readonly_event_consumer_routes_real_events_to_planner_preview_candidates(self):
         trace = build_readonly_event_consumer_trace(

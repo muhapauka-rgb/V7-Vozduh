@@ -1920,6 +1920,15 @@ def validate_nonzero_packet(packet, now):
                 errors.append("service_failure_causal_binding_identity_missing")
             if event_type not in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}:
                 errors.append("service_failure_causal_binding_event_type_invalid")
+            source_scope = causal_binding.get("source_scope")
+            source_scope = source_scope if isinstance(source_scope, dict) else {}
+            if (
+                int(source_scope.get("affected_scope_count") or 0) <= 0
+                or not str(source_scope.get("affected_scope_fingerprint") or "")
+                or str(source_scope.get("source_channel") or "") != bound_source
+                or bool(source_scope.get("raw_user_list_stored"))
+            ):
+                errors.append("service_failure_causal_binding_source_scope_invalid")
             rollback_source = str((rollback_items[0] if rollback_items else {}).get("rollback_target") or "")
             if not bound_source or bound_source != rollback_source:
                 errors.append("service_failure_causal_binding_source_mismatch")

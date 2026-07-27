@@ -2024,6 +2024,47 @@ class AutoswitchPlanner:
             },
         }
 
+    def _effective_service_failure_causal_binding(self, feedback_row: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a missing compact scope only from the immutable event owner.
+
+        Earlier governed outcomes can contain a valid event identity but lack
+        the compact source scope because the generic event projection dropped
+        it.  Do not rewrite history and never infer membership from time or a
+        current route: enrich the in-memory binding only when the exact
+        producer event confirms the same incident/channel and a valid compact
+        denominator.  New packets are rejected without that scope by the
+        packet owner.
+        """
+        raw = feedback_row.get("service_failure_causal_binding")
+        binding = dict(raw) if isinstance(raw, dict) else {}
+        scope = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
+        if scope:
+            return binding
+        event_id = str(binding.get("source_event_id") or "")
+        incident_id = str(binding.get("source_incident_id") or "")
+        channel = str(binding.get("source_channel") or "")
+        if not event_id or not incident_id or not channel:
+            return binding
+        event_dir = getattr(self, "event_dir", self.state_dir.parent / "events")
+        event_path = Path(event_dir) / "service-failure-events.jsonl"
+        for event in reversed(read_jsonl(event_path)[-2000:]):
+            if str(event.get("event_id") or "") != event_id:
+                continue
+            event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
+            if (
+                str(event.get("source_incident_id") or "") != incident_id
+                or str(event.get("channel") or event.get("object") or "") != channel
+                or to_int(event_scope.get("affected_scope_count"), 0) <= 0
+                or not str(event_scope.get("affected_scope_fingerprint") or "")
+                or str(event_scope.get("source_channel") or "") != channel
+                or bool_value(event_scope.get("raw_user_list_stored"))
+            ):
+                return binding
+            binding["source_scope"] = dict(event_scope)
+            binding["source_scope_resolution"] = "IMMUTABLE_EVENT_OWNER_BACKFILL"
+            return binding
+        return binding
+
     def _reconcile_incident_scope_accounting(
         self,
         *,
@@ -2063,8 +2104,7 @@ class AutoswitchPlanner:
         excluded_pointers: set[str] = set()
         rejected_feedback_ids: set[str] = set()
         for feedback_row in execution_rows:
-            binding = feedback_row.get("service_failure_causal_binding")
-            binding = binding if isinstance(binding, dict) else {}
+            binding = self._effective_service_failure_causal_binding(feedback_row)
             if str(binding.get("source_incident_id") or "") != source_incident_id:
                 continue
             verification = feedback_row.get("verification_result")
@@ -2175,7 +2215,7 @@ class AutoswitchPlanner:
             feedback_id = str(row.get("feedback_id") or row.get("object_id") or "")
             if not feedback_id or feedback_id in seen_feedback:
                 continue
-            binding = row.get("service_failure_causal_binding") if isinstance(row.get("service_failure_causal_binding"), dict) else {}
+            binding = self._effective_service_failure_causal_binding(row)
             bound_incident = str(binding.get("source_incident_id") or "")
             # Retain an unbound historical move from the same failed source as
             # an explicit *missing-binding* fact, never as incident membership.
@@ -2265,8 +2305,8 @@ class AutoswitchPlanner:
         for row in rows:
             if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
                 continue
-            binding = row.get("service_failure_causal_binding")
-            if not isinstance(binding, dict) or not binding:
+            binding = self._effective_service_failure_causal_binding(row)
+            if not binding:
                 continue
             source_incident_id = str(binding.get("source_incident_id") or "")
             source_event_id = str(binding.get("source_event_id") or "")

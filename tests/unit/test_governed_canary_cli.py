@@ -1357,6 +1357,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "event_provenance": "EXTERNAL_UNATTRIBUTED",
                 "observation_generation": "sfrev_bound",
                 "source_channel": "vless",
+                "source_scope": {
+                    "affected_scope_count": 2,
+                    "affected_scope_fingerprint": "scope-bound",
+                    "source_channel": "vless",
+                    "raw_user_list_stored": False,
+                },
             }
             result = module.materialize_governed_transaction_feedback(
                 state_dir=state,
@@ -1379,6 +1385,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(outcome["source_incident_id"], "sfinc_bound")
         self.assertEqual(outcome["source_event_id"], "sfrev_bound")
         self.assertEqual(outcome["service_failure_causal_binding"]["source_channel"], "vless")
+        self.assertEqual(outcome["service_failure_causal_binding"]["source_scope"]["affected_scope_count"], 2)
 
     def test_execute_governed_transaction_requires_explicit_transaction_confirmation(self):
         module = load_cli_module()

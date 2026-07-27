@@ -618,6 +618,44 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(record["last_execution_feedback_id"], outcome["feedback_id"])
         self.assertFalse(any(second["forbidden_effects"].values()))
 
+    def test_newer_owner_backed_scope_rotates_current_denominator_only(self):
+        """A newer revalidation replaces only current scope, never Outcome history."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        state = {}
+        incident_id = "sfinc_newer_scope"
+        old = {
+            "source_incident_id": incident_id,
+            "event_id": "sfrev_old_scope",
+            "source_event_ids": ["sfrev_old_scope"],
+            "channel": "vless",
+            "observed_at": "2026-07-27T12:00:00+00:00",
+            "source_scope": {
+                "source_channel": "vless", "affected_scope_count": 3,
+                "affected_scope_fingerprint": "scope_old",
+                "observed_at": "2026-07-27T12:00:00+00:00",
+            },
+        }
+        newer = {
+            **old,
+            "event_id": "sfrev_new_scope",
+            "source_event_ids": ["sfrev_new_scope"],
+            "observed_at": "2026-07-27T12:15:00+00:00",
+            "source_scope": {
+                "source_channel": "vless", "affected_scope_count": 2,
+                "affected_scope_fingerprint": "scope_new",
+                "observed_at": "2026-07-27T12:15:00+00:00",
+            },
+        }
+        planner._materialize_passive_incident_projection(state, old, terminal="STOP_SAFE_NO_ACTION")
+        projection = planner._materialize_passive_incident_projection(state, newer, terminal="STOP_SAFE_NO_ACTION")
+        record = state["incidents"][projection["incident_key"]]
+        self.assertEqual(record["current_source_scope"]["baseline_event_id"], "sfrev_new_scope")
+        self.assertEqual(record["current_source_scope"]["affected_scope_count"], 2)
+        self.assertEqual(
+            record["current_source_scope"]["supersedes_prior_scope_generation"]["rotation_reason"],
+            "FRESHER_OWNER_BACKED_SOURCE_SCOPE_GENERATION",
+        )
+
     def test_passive_consumer_does_not_materialize_unbound_expiry_as_incident(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

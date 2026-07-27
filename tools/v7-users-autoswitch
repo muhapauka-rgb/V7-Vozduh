@@ -1751,26 +1751,34 @@ class AutoswitchPlanner:
         source_scope = closure.get("source_scope") if isinstance(closure.get("source_scope"), dict) else {}
         source_scope_count = to_int(source_scope.get("affected_scope_count"), -1)
         source_scope_fingerprint = str(source_scope.get("affected_scope_fingerprint") or "")
-        # A first Matrix scope snapshot is the current accounting baseline for
-        # this continuing incident.  Preserve it across later revalidations:
-        # otherwise every successful failover would silently shrink the
-        # denominator and make full closure impossible to prove.
         # ``scope_accounting`` is the historical compatibility name for the
         # current-source denominator.  Keep it while exposing the semantic
         # name below: historical packet success must never be mistaken for
         # membership in this live source generation.
+        #
+        # A continuing incident may legitimately receive a newer Matrix
+        # observation after a bounded action.  Its source scope is the next
+        # live denominator, not a contradiction with the older denominator.
+        # Preserve every previous Outcome in the cumulative projection, but
+        # advance the compact current-source projection only from a strictly
+        # newer owner-backed source snapshot.  This prevents a stale event
+        # from silently shrinking scope while allowing current accounting to
+        # remain balanced after a verified action.
         existing_scope = (
             existing.get("current_source_scope")
             if isinstance(existing.get("current_source_scope"), dict)
             else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
         )
+        prior_scope_observed_at = str(existing_scope.get("baseline_observed_at") or "")
+        incoming_scope_observed_at = str(source_scope.get("observed_at") or closure.get("observed_at") or "")
+        scope_changed = (
+            to_int(existing_scope.get("affected_scope_count"), -1) != source_scope_count
+            or str(existing_scope.get("affected_scope_fingerprint") or "") != source_scope_fingerprint
+        )
         scope_rotation = bool(
             existing_scope
-            and str(existing_scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
-            and (
-                to_int(existing_scope.get("affected_scope_count"), -1) != source_scope_count
-                or str(existing_scope.get("affected_scope_fingerprint") or "") != source_scope_fingerprint
-            )
+            and scope_changed
+            and parse_ts(incoming_scope_observed_at) > parse_ts(prior_scope_observed_at)
         )
         if source_scope_count >= 0 and source_scope_fingerprint and (not existing_scope or scope_rotation):
             scope_accounting = {
@@ -1792,11 +1800,15 @@ class AutoswitchPlanner:
                 "live_registry_available": True,
                 "raw_user_list_stored": False,
                 "scope_generation": str(source_event_ids[0] if source_event_ids else closure.get("event_id") or ""),
-                "supersedes_invalid_scope": ({
+                "supersedes_prior_scope_generation": ({
                     "affected_scope_count": to_int(existing_scope.get("affected_scope_count"), -1),
                     "affected_scope_fingerprint": str(existing_scope.get("affected_scope_fingerprint") or ""),
                     "baseline_event_id": str(existing_scope.get("baseline_event_id") or ""),
-                    "invalidation_reason": "LIVE_ROUTE_SCOPE_NO_LONGER_RECONCILABLE_WITH_LEGACY_GENERATION",
+                    "rotation_reason": (
+                        "LIVE_ROUTE_SCOPE_NO_LONGER_RECONCILABLE_WITH_LEGACY_GENERATION"
+                        if str(existing_scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+                        else "FRESHER_OWNER_BACKED_SOURCE_SCOPE_GENERATION"
+                    ),
                 } if scope_rotation else {}),
             }
         else:

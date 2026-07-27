@@ -562,6 +562,32 @@ does not reduce the current source scope. Every packet-bound success therefore
 remains discoverable through existing immutable evidence while no historical
 success can silently manufacture present protection.
 
+### Step 2 automatic-drain invariants
+
+`CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` is an executable durable
+successor, not an operator-return state. For every bounded Tier-1 transaction,
+the existing owners must preserve one exact causal tuple across
+`Event -> Candidate -> Packet -> Outcome`: `source_incident_id`, fresh
+observation generation, source channel, and compact current-source scope
+count/fingerprint. An incomplete tuple is `STOP_SAFE`; a historical Packet,
+Candidate, lease, approval or route observation may never fill the gap.
+
+The existing Matrix lifecycle is the only regular wake source. It may create
+the next fresh probe generation and invoke the existing OMP/CPS consumer; this
+Program must not enable a timer, create a watcher or use an operator/Codex
+message as a required re-entry mechanism. Every transaction still independently
+checks source degradation, user/source membership, healthy target, capacity,
+standing policy, cooldown/anti-flap, fresh Candidate/Packet/lease, verification
+and rollback readiness.
+
+`max_users=1` and `max_concurrent_transactions=1` bound each transaction;
+they do not cap the number of transactions in one continuing incident. The
+runtime terminal `BOUNDED_AUTOMATIC_INCIDENT_DRAIN_RUNTIME_CONSUMED` proves an
+automatic successor-to-successor sequence, not whole-incident closure. Whole
+incident closure requires `CURRENT_SOURCE_SCOPE_EMPTY`, verified source
+recovery, or one exact owner-backed live blocker with durable automatic
+re-entry.
+
 Before every audit, test, certification lookup, owner discovery or capability
 decision, the existing Knowledge Plane is consumed through Canonical Reference,
 SYSTEM_MAP, Engineering Truth Lifecycle, ADRs, CPS, OMP and the relevant

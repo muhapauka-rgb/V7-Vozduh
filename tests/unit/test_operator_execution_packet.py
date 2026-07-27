@@ -220,6 +220,54 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertFalse(validation["ok"])
         self.assertIn("standing_delegated_policy_request_expired", validation["errors"])
 
+    def test_tier4_standing_policy_is_decidable_but_does_not_activate_without_authority(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                max_users=4,
+                now=now,
+            )
+            validation = validate_standing_delegated_policy_authority_request(
+                request,
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                now=now,
+            )
+            self.assertTrue(validation["ok"], validation["errors"])
+            self.assertEqual(request["policy"]["max_users_per_action"], 4)
+            self.assertEqual(request["policy"]["max_concurrent_transactions"], 1)
+            self.assertEqual(
+                request["policy"]["allowed_action_classes"],
+                ["channel hard-fail failover"],
+            )
+            self.assertEqual(request["per_action_law"]["max_users"], 4)
+            self.assertEqual(request["status"], "AWAITING_INDEPENDENT_AUTHORITY_DECISION")
+            register_standing_delegated_policy_request(
+                request, audit_store=audit_path, now=now,
+            )
+            activated = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            live = activated["contract"]
+            self.assertEqual(live["policy"]["max_users_per_action"], 4)
+            self.assertTrue(
+                validate_standing_delegated_operational_policy(
+                    live,
+                    now=now + timedelta(seconds=1),
+                )["ok"]
+            )
+
     def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
         template = {
             "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",

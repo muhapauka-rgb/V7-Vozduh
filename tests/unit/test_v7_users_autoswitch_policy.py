@@ -679,6 +679,39 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertTrue(result["remaining_forward_mutations_stopped"])
 
+    def test_cohort_circuit_breaker_stops_after_first_non_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=2)
+            args = self.args_for(root, ["--apply", "--max-selected-moves", "2", "--no-verify"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "op-cohort", "selected_move_hash": "hash-cohort"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                    {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                ],
+                "summary": {"selected_moves": 2},
+                "safety": {},
+            }
+            calls = []
+
+            def fail_first(ip, egress, reason):
+                calls.append(ip)
+                return subprocess.CompletedProcess(["v7-user-switch"], 1, stdout="failed")
+
+            planner._run_switch = fail_first
+            planner._validate_atomic_execution_envelope = lambda value: {"ok": True}
+            planner._l3_execution_eligibility = lambda value: {"ok": True, "active": False}
+            result = planner.apply(plan)
+
+        self.assertEqual(calls, ["10.0.0.2"])
+        self.assertTrue(result["remaining_forward_mutations_stopped"])
+        self.assertEqual(result["cohort_circuit_breaker"]["remaining_not_attempted"], 1)
+        self.assertEqual(result["results"][0]["terminal_outcome_classification"], "APPLY_FAILURE")
+
     def test_execution_control_open_denies_authority_promotion_before_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

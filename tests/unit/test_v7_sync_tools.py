@@ -57,7 +57,7 @@ class V7SyncToolsTest(unittest.TestCase):
             "`STOP_SAFE`",
         )
         result = self.lib.cps_live_state_consistency(stop_drift)
-        self.assertIn("cps_current_stop_divergence", result["errors"])
+        self.assertIn("delegated_policy_cps_stop_divergence", result["errors"])
 
         generation_drift = self.lib._replace_section_field(
             cps,
@@ -69,10 +69,12 @@ class V7SyncToolsTest(unittest.TestCase):
         result = self.lib.cps_live_state_consistency(generation_drift)
         self.assertIn("cps_generation_divergence", result["errors"])
 
-        stale_surface = cps.replace(
-            "`NO_CURRENT_EXECUTION; no fresh genuine Candidate; deliberate condition requires Engineering Authority`",
+        stale_surface = self.lib._replace_section_field(
+            cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_SAFE_NEXT_ACTION",
             "`READ_ONLY_BINDING_DIAGNOSIS_ONLY`",
-            1,
         )
         self.assertNotEqual(stale_surface, cps)
         result = self.lib.cps_live_state_consistency(stale_surface)
@@ -151,7 +153,10 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("/usr/local/bin/v7-governed-canary-dry-run-cycle", service)
         self.assertIn("--execute-l3-production-validation", service)
         self.assertIn("--confirm-l3-production-validation EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED", service)
-        self.assertIn("--max-users 1", service)
+        self.assertIn("--max-users 0", service)
+        self.assertIn("audited standing policy", (
+            ROOT / "tools" / "v7-governed-canary-dry-run-cycle"
+        ).read_text(encoding="utf-8"))
         self.assertNotIn("/usr/local/bin/v7-users-autoswitch --apply", service)
 
     def test_deploy_manifest_contains_runtime_fingerprint(self):

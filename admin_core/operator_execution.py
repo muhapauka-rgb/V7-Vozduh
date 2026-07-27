@@ -562,7 +562,15 @@ def standing_delegated_policy_contract_hash(contract):
     return sha256_json(canonical)
 
 
-def standing_delegated_operational_policy_template():
+SERVICE_FAILURE_DELEGATED_ACTION_CLASSES = {
+    1: "single-user governed candidate failover",
+    2: "channel hard-fail failover",
+    4: "channel hard-fail failover",
+}
+SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 4
+
+
+def standing_delegated_operational_policy_template(max_users=1):
     """Return the exact narrow scope consumed by the existing executor.
 
     The template is not Authority and cannot enable execution.  It keeps the
@@ -571,11 +579,19 @@ def standing_delegated_operational_policy_template():
     """
     from admin_core import autonomy_trust_acceleration
 
+    max_users = as_int(max_users, 0)
+    if max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+        raise PacketError("standing_delegated_policy_tier_not_engineering_qualified")
+    action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES[max_users]
     policy = copy.deepcopy(autonomy_trust_acceleration.DEFAULT_DELEGATED_AUTONOMY_POLICY)
     policy.update({
         "policy_state": "APPROVED",
         "current_mode": "DELEGATED_AUTONOMY",
         "target_mode": "DELEGATED_AUTONOMY",
+        "allowed_action_classes": [action_class],
+        "max_users_per_action": max_users,
+        "max_concurrent_transactions": 1,
+        "max_blast_radius": {"users": max_users},
         "runtime_apply_enabled": True,
         "current_action_class_contract_state": "STANDING_POLICY_ACTIVE",
         "operator_candidate_approval_required": False,
@@ -584,17 +600,22 @@ def standing_delegated_operational_policy_template():
         "self_expansion_allowed": False,
         "final_safe_mode": "OPEN",
     })
+    if max_users > 1:
+        policy.update({
+            "policy_id": f"dap_service_failure_tier{max_users}",
+            "policy_name": f"Bounded Service Failure Tier {max_users} Delegated Autonomy Policy",
+        })
     return policy
 
 
 def build_standing_delegated_policy_authority_request(
-    *, policy_generation_hash, active_program, now=None,
+    *, policy_generation_hash, active_program, max_users=1, now=None,
 ):
     """Build a short-lived request to activate the bounded standing policy."""
     from admin_core import autonomy_trust_acceleration
 
     now = now or utc_now()
-    policy = standing_delegated_operational_policy_template()
+    policy = standing_delegated_operational_policy_template(max_users=max_users)
     normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
     request = {
         "schema_version": STANDING_DELEGATED_POLICY_REQUEST_SCHEMA,
@@ -618,7 +639,7 @@ def build_standing_delegated_policy_authority_request(
             "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
             "packet_reuse": "FORBIDDEN",
             "lease_required": True,
-            "max_users": 1,
+            "max_users": int(policy["max_users_per_action"]),
             "max_concurrent_transactions": 1,
             "verification_required": True,
             "rollback_or_certified_no_rollback_required": True,
@@ -681,7 +702,13 @@ def validate_standing_delegated_policy_authority_request(
         errors.append("standing_delegated_policy_generation_missing")
     if request.get("policy_id") != STANDING_DELEGATED_POLICY_ID:
         errors.append("standing_delegated_policy_id_invalid")
-    expected = standing_delegated_operational_policy_template()
+    requested_policy = request.get("policy") if isinstance(request.get("policy"), dict) else {}
+    requested_max_users = as_int(requested_policy.get("max_users_per_action"), 0)
+    try:
+        expected = standing_delegated_operational_policy_template(max_users=requested_max_users)
+    except PacketError:
+        expected = {}
+        errors.append("standing_delegated_policy_tier_not_engineering_qualified")
     expected_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(expected)
     if request.get("policy") != expected or request.get("policy_template_hash") != sha256_json(expected):
         errors.append("standing_delegated_policy_template_invalid")
@@ -699,7 +726,7 @@ def validate_standing_delegated_policy_authority_request(
         "packet_generation": "FRESH_IMMEDIATELY_BEFORE_EXECUTION",
         "packet_reuse": "FORBIDDEN",
         "lease_required": True,
-        "max_users": 1,
+        "max_users": requested_max_users,
         "max_concurrent_transactions": 1,
         "verification_required": True,
         "rollback_or_certified_no_rollback_required": True,
@@ -734,11 +761,28 @@ def validate_standing_delegated_operational_policy(contract, *, now=None, audit_
     if contract.get("issuing_owner") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
         errors.append("standing_delegated_policy_contract_owner_invalid")
     policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
-    expected = standing_delegated_operational_policy_template()
+    requested_max_users = as_int(policy.get("max_users_per_action"), 0)
+    try:
+        expected = standing_delegated_operational_policy_template(max_users=requested_max_users)
+    except PacketError:
+        expected = {}
+        errors.append("standing_delegated_policy_tier_not_engineering_qualified")
     if autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy) != autonomy_trust_acceleration.normalized_delegated_autonomy_scope(expected):
         errors.append("standing_delegated_policy_contract_scope_invalid")
     if contract.get("policy_scope_hash") != autonomy_trust_acceleration.delegated_autonomy_scope_hash(expected):
         errors.append("standing_delegated_policy_contract_scope_hash_invalid")
+    law = contract.get("per_action_law") if isinstance(contract.get("per_action_law"), dict) else {}
+    if (
+        as_int(law.get("max_users"), 0) != requested_max_users
+        or as_int(law.get("max_concurrent_transactions"), 0) != 1
+        or law.get("candidate_identity") != "FRESH_ONLY"
+        or law.get("packet_reuse") != "FORBIDDEN"
+        or law.get("lease_required") is not True
+        or law.get("verification_required") is not True
+        or law.get("rollback_or_certified_no_rollback_required") is not True
+        or law.get("final_safe_mode") != "OPEN"
+    ):
+        errors.append("standing_delegated_policy_contract_per_action_law_invalid")
     request_binding = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     if (
         request_binding.get("decision") != "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"
@@ -1737,9 +1781,14 @@ def validate_approvals(packet, errors, *, now=None):
             errors.append("delegated_policy_not_approved")
         if authority.get("current_mode") != "DELEGATED_AUTONOMY":
             errors.append("delegated_policy_mode_invalid")
-        if authority.get("action_class") != "single-user governed candidate failover":
+        allowed_action_classes = set(normalized_scope.get("allowed_action_classes") or [])
+        if authority.get("action_class") not in allowed_action_classes:
             errors.append("delegated_policy_action_class_invalid")
-        if as_int(authority.get("max_users_per_transaction"), 0) != 1:
+        authorized_max_users = as_int(normalized_scope.get("max_users_per_action"), 0)
+        if (
+            authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+            or as_int(authority.get("max_users_per_transaction"), 0) != authorized_max_users
+        ):
             errors.append("delegated_policy_blast_radius_invalid")
         if as_int(authority.get("max_concurrent_transactions"), 0) != 1:
             errors.append("delegated_policy_concurrency_invalid")
@@ -1762,9 +1811,10 @@ def validate_approvals(packet, errors, *, now=None):
             if autonomy_trust_acceleration.normalized_delegated_autonomy_scope(normalized_delegated_scope) != normalized_scope:
                 errors.append("standing_delegated_policy_packet_scope_mismatch")
         if normalized_scope:
-            if normalized_scope.get("allowed_action_classes") != ["single-user governed candidate failover"]:
+            expected_action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(authorized_max_users, "")
+            if normalized_scope.get("allowed_action_classes") != [expected_action_class]:
                 errors.append("delegated_policy_normalized_action_classes_invalid")
-            if as_int(normalized_scope.get("max_users_per_action"), 0) != 1:
+            if authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
                 errors.append("delegated_policy_normalized_blast_radius_invalid")
             if as_int(normalized_scope.get("max_concurrent_transactions"), 0) != 1:
                 errors.append("delegated_policy_normalized_concurrency_invalid")
@@ -4139,6 +4189,13 @@ def main(argv=None):
         "--standing-policy-active-program",
         default="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
     )
+    parser.add_argument(
+        "--standing-policy-max-users",
+        type=int,
+        default=1,
+        choices=tuple(sorted(SERVICE_FAILURE_DELEGATED_ACTION_CLASSES)),
+        help="Exact engineering-qualified tier for a fresh standing-policy Authority request; never activates it.",
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
     parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
@@ -4159,6 +4216,7 @@ def main(argv=None):
             request = build_standing_delegated_policy_authority_request(
                 policy_generation_hash=sha256_file(Path(args.action_class_policy_file)),
                 active_program=args.standing_policy_active_program,
+                max_users=args.standing_policy_max_users,
             )
             registration = register_standing_delegated_policy_request(
                 request,

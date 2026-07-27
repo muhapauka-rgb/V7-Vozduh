@@ -1341,6 +1341,39 @@ def authorized_l3_budget_from_plan(plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def resolved_l3_requested_max_users(args: argparse.Namespace) -> dict[str, Any]:
+    """Resolve the Matrix cohort ceiling from the current Authority owner.
+
+    ``--max-users 0`` is a dynamic binding, not an unlimited value.  It reads
+    the exact audited standing policy and fails closed to one when that owner
+    is absent or invalid.
+    """
+    requested = int(getattr(args, "max_users", 0) or 0)
+    if requested > 0:
+        return {
+            "max_users": requested,
+            "source": "explicit_cli_ceiling",
+            "standing_policy_valid": False,
+        }
+    policy_root = read_json(Path(args.policy_file), {})
+    contract = policy_root.get("delegated_autonomy_policy")
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract if isinstance(contract, dict) else {},
+        audit_records=operator_execution.read_audit_records(
+            Path(args.operator_execution_audit_store),
+        ),
+    )
+    policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    max_users = int(policy.get("max_users_per_action") or 1) if validation.get("ok") else 1
+    return {
+        "max_users": max(1, max_users),
+        "source": "audited_standing_policy" if validation.get("ok") else "fail_closed_tier1",
+        "standing_policy_valid": bool(validation.get("ok")),
+        "standing_policy_contract_id": str((contract or {}).get("contract_id") or "") if isinstance(contract, dict) else "",
+        "blockers": list(validation.get("errors") or []),
+    }
+
+
 def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, Any], max_users: int) -> dict[str, Any]:
     constraints = packet.get("constraints") if isinstance(packet.get("constraints"), dict) else {}
     expected = packet.get("expected") if isinstance(packet.get("expected"), dict) else {}
@@ -1353,16 +1386,17 @@ def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, A
     targets = [str(item) for item in (constraints.get("allowed_targets") or []) if str(item)]
     selected_count = int(expected.get("selected_move_count") or 0)
     errors: list[str] = []
-    if action_class != "single-user governed candidate failover":
+    expected_action_class = operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(max_users, "")
+    if action_class != expected_action_class:
         errors.append("action_class_changed")
-    if selected_count != 1:
-        errors.append("selected_move_count_not_one")
-    if len(users) != 1:
-        errors.append("user_scope_not_one")
-    if len(targets) != 1:
-        errors.append("target_scope_not_one")
-    if max_users != 1:
-        errors.append("transaction_max_users_not_one")
+    if max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+        errors.append("transaction_max_users_not_engineering_qualified")
+    if selected_count < 1 or selected_count > max_users:
+        errors.append("selected_move_count_outside_authorized_tier")
+    if len(users) != selected_count:
+        errors.append("user_scope_mismatch")
+    if not targets or len(targets) > selected_count:
+        errors.append("target_scope_mismatch")
     return {
         "ok": not errors,
         "errors": errors,
@@ -1788,12 +1822,16 @@ def bounded_delegated_policy_admission(
         contract_validation.get("policy") if contract_validation.get("ok") else {},
     )
     selected_count = int(packet_preview.get("selected_move_count") or len(packet_preview.get("allowed_users") or []))
-    action_class = "single-user governed candidate failover" if selected_count == 1 else "UNKNOWN_ACTION_CLASS"
+    authorized_max_users = int(policy.get("max_users_per_action") or 0)
+    action_class = operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(
+        authorized_max_users,
+        "UNKNOWN_ACTION_CLASS",
+    )
     blockers = list(contract_validation.get("errors") or [])
     exact_requirements = {
         "policy_state": "APPROVED",
         "current_mode": "DELEGATED_AUTONOMY",
-        "max_users_per_action": 1,
+        "max_users_per_action": authorized_max_users,
         "max_concurrent_transactions": 1,
         "candidate_selection": "EXISTING_PLANNER_ONLY",
         "candidate_identity": "FRESH_ONLY",
@@ -1811,8 +1849,12 @@ def bounded_delegated_policy_admission(
             blockers.append(f"POLICY_{field.upper()}_MISMATCH")
     if action_class not in set(policy.get("allowed_action_classes") or []):
         blockers.append("ACTION_CLASS_NOT_ALLOWED")
-    if selected_count != 1:
-        blockers.append("BLAST_RADIUS_NOT_EXACTLY_ONE_USER")
+    if (
+        authorized_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+        or selected_count < 1
+        or selected_count > authorized_max_users
+    ):
+        blockers.append("BLAST_RADIUS_OUTSIDE_AUTHORIZED_TIER")
     if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
         blockers.append("LIVE_MACHINE_GATES_NOT_READY")
     if not packet_preview.get("operation_id") or not packet_preview.get("decision_id"):
@@ -1992,7 +2034,8 @@ def attach_l3_operation_scoped_binding(
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
-    requested_max_users = max(1, int(args.max_users))
+    requested_tier = resolved_l3_requested_max_users(args)
+    requested_max_users = int(requested_tier["max_users"])
 
     control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
     initial_control = operator_execution.autonomous_execution_control_state(control_file)
@@ -2058,8 +2101,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
         selected = operator_execution.selected_moves_from_plan(plan)
         auto_window_blockers = []
-        if requested_max_users != 1 or int(selected.get("selected_move_count") or 0) != 1:
-            auto_window_blockers.append("l3_auto_window_requires_exactly_one_user")
+        selected_count = int(selected.get("selected_move_count") or 0)
+        if (
+            requested_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+            or selected_count < 1
+            or selected_count > requested_max_users
+        ):
+            auto_window_blockers.append("l3_auto_window_outside_authorized_tier")
         for field in ("selected_move_hash", "source_bundle_hash", "snapshot_bundle_hash"):
             if not str(selected.get(field) or ""):
                 auto_window_blockers.append(f"l3_auto_window_{field}_missing")
@@ -2078,7 +2126,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             action_class="EMERGENCY_FAILOVER",
             source_bundle_hash=str(selected.get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str(selected.get("snapshot_bundle_hash") or ""),
-            max_users=1,
+            max_users=requested_max_users,
         )
         try:
             packet = operator_execution.packet_from_plan(
@@ -2103,7 +2151,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             selected_move_hash=str((packet.get("expected") or {}).get("selected_move_hash") or ""),
             source_bundle_hash=str((packet.get("expected") or {}).get("source_bundle_hash") or ""),
             snapshot_bundle_hash=str((packet.get("expected") or {}).get("snapshot_bundle_hash") or ""),
-            max_users=1,
+            max_users=requested_max_users,
         )
         if not preflight_control.get("allowed_forward_mutation"):
             return transaction_stop("autonomous_execution_control_denied_pre_lease", execution_control=preflight_control)
@@ -2292,6 +2340,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "target": target,
         "targets": targets,
         "requested_max_users": requested_max_users,
+        "requested_tier_resolution": requested_tier,
         "authorized_l3_budget": authorized_budget,
         "one_execution_attempt": constraints["selected_move_count"] == 1,
         "runtime_mutation_performed": bool(apply_result.get("applied")),

@@ -699,11 +699,12 @@ def runtime_authority_contract_status(
         audit_records=authority_audit_records or [],
     ) if standing else {"ok": False, "errors": ["standing_delegated_policy_missing"], "policy": {}}
     standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
+    standing_max_users = int(standing_scope.get("max_users_per_action") or 0)
     standing_exactly_bounded = (
         bool(standing_validation.get("ok"))
         and str(standing_scope.get("policy_state") or "") == "APPROVED"
         and str(standing_scope.get("current_mode") or "") == "DELEGATED_AUTONOMY"
-        and int(standing_scope.get("max_users_per_action") or 0) == 1
+        and standing_max_users in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
         and int(standing_scope.get("max_concurrent_transactions") or 0) == 1
         and str(standing_scope.get("candidate_identity") or "") == "FRESH_ONLY"
         and str(standing_scope.get("packet_generation") or "") == "FRESH_IMMEDIATELY_BEFORE_EXECUTION"
@@ -721,7 +722,7 @@ def runtime_authority_contract_status(
             "active_program": str(standing.get("active_program") or ""),
             "action_class": "GOVERNED_ONLY",
             "max_authority_class": "CANARY",
-            "max_users": 1,
+            "max_users": standing_max_users,
             "max_concurrent_transactions": 1,
             "subject": {"user_ip": ""},
             "expires_at": str(standing.get("expires_at") or ""),
@@ -1835,6 +1836,25 @@ class AutoswitchPlanner:
         policy.update((self.org_policy or {}).get("emergency_failover_autonomy", {}))
         if bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
             policy["enabled"] = True
+        standing_contract = (self.policy or {}).get("delegated_autonomy_policy")
+        standing_validation = operator_execution.validate_standing_delegated_operational_policy(
+            standing_contract if isinstance(standing_contract, dict) else {},
+            audit_records=operator_execution.read_audit_records(Path(getattr(
+                self.args,
+                "action_class_audit_store",
+                str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+            ))),
+        )
+        standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
+        standing_max_users = max(0, to_int(standing_scope.get("max_users_per_action"), 0))
+        if standing_validation.get("ok") and standing_max_users in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+            # The Authority contract, not a technical default, owns the
+            # effective cohort budget.  Current Tier-1 contracts therefore
+            # preserve today's behavior; an independently approved higher
+            # tier can be consumed without a second hard-coded ceiling.
+            policy["max_users_per_run"] = standing_max_users
+            policy["max_users_per_channel"] = standing_max_users
+            policy["standing_policy_budget_owner"] = operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER
         return policy
 
     def _load_l3_runtime_state(self) -> dict[str, Any]:
@@ -10819,7 +10839,16 @@ class AutoswitchPlanner:
                 "consumption_id": consumption_result["consumption"].get("consumption_id"),
                 "runtime_apply_started_after_consumption": True,
             }
-        for move in plan["selected_moves"]:
+        cohort_circuit_breaker = {
+            "owner": "tools/v7-users-autoswitch.apply",
+            "policy": "stop_remaining_forward_mutations_after_first_non_success",
+            "tripped": False,
+            "trigger_user": "",
+            "trigger_terminal": "",
+            "remaining_not_attempted": 0,
+        }
+        selected_moves = list(plan["selected_moves"])
+        for move_index, move in enumerate(selected_moves):
             item_control = self._execution_control_decision(
                 mutation_kind="forward",
                 action_class=self._execution_action_class(move.get("move_type", "")),
@@ -10904,6 +10933,14 @@ class AutoswitchPlanner:
                         row["rollback_verdict"] = "ROLLBACK_DENIED"
                         row["terminal_outcome_classification"] = "ROLLBACK_DENIED"
                         results.append(row)
+                        if len(selected_moves) > 1:
+                            cohort_circuit_breaker.update({
+                                "tripped": True,
+                                "trigger_user": str(row.get("user_ip") or ""),
+                                "trigger_terminal": "ROLLBACK_DENIED",
+                                "remaining_not_attempted": max(0, len(selected_moves) - move_index - 1),
+                            })
+                            break
                         continue
                     self._active_execution_control = rollback_control
                     rollback = self._run_switch(ip, current, "rollback")
@@ -10917,7 +10954,16 @@ class AutoswitchPlanner:
                 else:
                     row["terminal_outcome_classification"] = "SUCCESS"
             results.append(row)
+            if len(selected_moves) > 1 and row.get("terminal_outcome_classification") != "SUCCESS":
+                cohort_circuit_breaker.update({
+                    "tripped": True,
+                    "trigger_user": str(row.get("user_ip") or ""),
+                    "trigger_terminal": str(row.get("terminal_outcome_classification") or ""),
+                    "remaining_not_attempted": max(0, len(selected_moves) - move_index - 1),
+                })
+                break
         self._update_safety_after_apply(results)
+        plan.setdefault("safety", {})["cohort_circuit_breaker"] = cohort_circuit_breaker
         if emergency_mode:
             incident = plan.setdefault("safety", {}).get("l3_incident")
             if isinstance(incident, dict):
@@ -10930,7 +10976,14 @@ class AutoswitchPlanner:
                     surface["verification"] = "PASS" if incident["terminal_outcome"] == "SUCCESS" else "NON_SUCCESS"
                     surface["rollback"] = "COMPLETED" if incident["terminal_outcome"] == "ROLLBACK_SUCCESS" else ("FAILED" if incident["terminal_outcome"] == "ROLLBACK_FAILURE" else surface.get("rollback", "REQUIRED"))
                     surface["next_action"] = "close_outcome_and_report"
-        return {"applied": True, "results": results, "safety_file": str(self.safety_file), "l3_execution_eligibility": l3_eligibility if l3_eligibility.get("active") else {}}
+        return {
+            "applied": True,
+            "results": results,
+            "safety_file": str(self.safety_file),
+            "l3_execution_eligibility": l3_eligibility if l3_eligibility.get("active") else {},
+            "cohort_circuit_breaker": cohort_circuit_breaker,
+            "remaining_forward_mutations_stopped": cohort_circuit_breaker["tripped"],
+        }
 
     def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
         operation = plan.setdefault("operation", {})
@@ -11540,20 +11593,23 @@ class AutoswitchPlanner:
             if str(row.get("recommended_egress") or "")
             and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
         ]
-        chosen = sorted(movable, key=lambda row: str(row.get("user_ip") or ""))[:1]
+        authority_policy = getattr(self, "authority_budget_policy", {})
+        authority_safe_cohort = max(0, to_int(
+            authority_policy.get("current_allowed_user_budget") if isinstance(authority_policy, dict) else 0,
+            0,
+        ))
+        chosen = sorted(
+            movable,
+            key=lambda row: str(row.get("user_ip") or ""),
+        )[:max(1, authority_safe_cohort)]
         now = now_iso()
         affected = list(closure.get("affected_users") or [])
         current_affected_count = max(0, to_int(current_source_scope.get("affected_scope_count"), len(affected)))
         current_affected_fingerprint = str(current_source_scope.get("affected_scope_fingerprint") or "")
-        authority_policy = getattr(self, "authority_budget_policy", {})
         emergency_policy = getattr(self, "emergency_failover_policy", {})
         current_tier = max(0, to_int(
             emergency_policy.get("max_users_per_run") if isinstance(emergency_policy, dict) else 0,
             1,
-        ))
-        authority_safe_cohort = max(0, to_int(
-            authority_policy.get("current_allowed_user_budget") if isinstance(authority_policy, dict) else 0,
-            0,
         ))
         target_capacity_snapshot = {
             str(row.get("recommended_egress") or ""): row.get("capacity_decision")

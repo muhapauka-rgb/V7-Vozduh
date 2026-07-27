@@ -761,8 +761,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(updated_live["CURRENT_PROGRAM_EXECUTION_FRONTIER"].strip("`"), "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
             self.assertEqual(updated_live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
             self.assertEqual(updated_live["TIER_1_REUSE_CLASSIFICATION"].strip("`"), "REUSABLE_CERTIFIED_AND_APPROVED")
-            self.assertEqual(updated_live["TIER_2_REUSE_CLASSIFICATION"].strip("`"), "SCOPE_MISMATCH_EXACT_FIELDS")
-            self.assertIn("action_class", updated_live["TIER_2_REUSE_MISMATCH_FIELDS"])
+            self.assertEqual(
+                updated_live["TIER_2_REUSE_CLASSIFICATION"].strip("`"),
+                "ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED",
+            )
+            self.assertEqual(updated_live["TIER_2_REUSE_MISMATCH_FIELDS"].strip("`"), "Authority_scope_only")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CERTIFIED_TIER"].strip("`"), "TIER_1_CURRENT_CLASS")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"), "TIER_1_SINGLE_USER_SERIAL")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_CODEX"].strip("`"), "TRUE_MATRIX_RUNTIME_OWNER")
@@ -784,19 +787,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER",
             )
             self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_GENERIC_COHORT_PATH_MAX"].strip("`"), "48")
-            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX"].strip("`"), "1")
+            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX"].strip("`"), "4")
             self.assertEqual(updated_live["SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER"].strip("`"), "1")
             self.assertEqual(
                 updated_live["CAUSAL_M7_TIER_DECISION_CONSUMPTION"].strip("`"),
-                "HOLD_CURRENT_TIER_DECISION_CONSUMED",
+                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
-                "SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE",
+                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],
-                "HOLD_CURRENT_TIER_DECISION_CONSUMED",
+                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["tier_formula"]["generic_primitive_max"],
@@ -805,6 +808,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 result["action_class_reuse_projection"]["tier_formula"]["runtime_enabled_max"],
                 1,
+            )
+            tier_matrix = {
+                row["tier"]: row
+                for row in result["action_class_reuse_projection"]["service_failure_adapter_tier_matrix"]
+            }
+            self.assertEqual(tier_matrix[4]["exact_residual"], "independent_tier_4_Authority_decision")
+            self.assertIn(
+                "replay_duplicate_suppression_evidence_above_tier_4",
+                tier_matrix[5]["exact_residual"],
+            )
+            self.assertIn(
+                "packet_identity_preservation_evidence_above_tier_25",
+                tier_matrix[48]["exact_residual"],
             )
             self.assertEqual(updated_live["CURRENT_VLESS_AFFECTED_SCOPE"].strip("`"), "29")
             self.assertEqual(updated_live["CURRENT_VLESS_PROTECTED_SCOPE"].strip("`"), "2")

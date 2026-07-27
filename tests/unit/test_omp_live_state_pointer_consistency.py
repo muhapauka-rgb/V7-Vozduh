@@ -113,17 +113,21 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertEqual(result["contradiction_count"], 0)
         self.assertEqual(result["omp_contradiction_count"], 0)
 
-    def test_17_no_packet_lease_barrier_apply_or_movement(self):
+    def test_17_product_evolution_frontier_does_not_grant_packet_or_movement(self):
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry"
         ))
         self.assertTrue(live["CONTROLLED_RUN_PACKET_PREVIEW"].strip("`").startswith("NONE_OPEN"))
         self.assertTrue(live["CONTROLLED_RUN_EXECUTION_AUTHORIZED"].strip("`").startswith("NO_CURRENT_PACKET"))
-        movement = live["USER_MOVEMENT"].strip("`")
-        self.assertTrue(
-            movement.startswith("NO")
-            or "owner-authorized bounded controlled user movement" in movement
+        self.assertIn(
+            live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
+            {
+                "SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE",
+                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+            },
         )
+        movement = live["USER_MOVEMENT"].strip("`")
+        self.assertIn("no scope expansion", movement)
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_18_truth_consistency_is_go_only_when_omp_agrees(self):

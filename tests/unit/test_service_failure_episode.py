@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -59,6 +60,61 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(row["failure_state"], "RECOVERY_OBSERVED")
             self.assertEqual(row["failure_samples"], 0)
             self.assertEqual(row["recovery_samples"], 1)
+
+    def test_expected_http_response_is_visible_methodology_limit_not_failure_episode(self):
+        for http_code in ("404", "405"):
+            with self.subTest(http_code=http_code), mock.patch.object(
+                self.matrix.subprocess,
+                "run",
+                return_value=SimpleNamespace(
+                    stdout=f"{http_code} 0.101 0.202",
+                    stderr="curl: (22) The requested URL returned error",
+                    returncode=22,
+                ),
+            ):
+                observed = self.matrix.run_curl_check(
+                    "anthropic",
+                    {"label": "Anthropic", "url": "https://api.anthropic.com/"},
+                    "awg0",
+                    8,
+                )
+            self.assertTrue(observed["ok"])
+            self.assertTrue(observed["http_reachable"])
+            self.assertTrue(observed["limited"])
+            self.assertEqual(observed["status"], "HTTP_LIMITED")
+            self.assertFalse(self.matrix.service_failure_observed(observed))
+            episode = self.matrix.service_failure_episode(
+                {"failure_episode_id": "sfep_old", "ok": False, "status": "FAIL"},
+                observed,
+                egress_id="awg0",
+                service_id="anthropic",
+                observed_at="2026-07-27T03:00:00+00:00",
+                identity_generation="egid_test",
+            )
+            self.assertEqual(episode["probe_classification"], "HTTP_LIMITED")
+            self.assertEqual(episode["failure_state"], "RECOVERY_OBSERVED")
+            self.assertEqual(episode["failure_episode_id"], "")
+
+    def test_actual_http_server_error_remains_failure(self):
+        with mock.patch.object(
+            self.matrix.subprocess,
+            "run",
+            return_value=SimpleNamespace(
+                stdout="500 0.101 0.202",
+                stderr="curl: (22) The requested URL returned error",
+                returncode=22,
+            ),
+        ):
+            observed = self.matrix.run_curl_check(
+                "anthropic",
+                {"label": "Anthropic", "url": "https://api.anthropic.com/"},
+                "awg0",
+                8,
+            )
+        self.assertFalse(observed["ok"])
+        self.assertFalse(observed["http_reachable"])
+        self.assertEqual(observed["status"], "FAIL")
+        self.assertTrue(self.matrix.service_failure_observed(observed))
 
     def test_failure_episode_survives_production_timer_jitter_but_not_long_gap(self):
         self.assertEqual(

@@ -1636,6 +1636,243 @@ class AutoswitchPlanner:
         write_json_atomic(self.l3_runtime_state_file, state)
         self.l3_runtime_state = state
 
+    def _passive_incident_projection_key(self, source_incident_id: str) -> str:
+        """Return the deterministic key inside the existing L3 incident owner.
+
+        Passive service failures used to have an immutable closure and an OMP
+        receipt, but no compact current-state representation.  The key stays
+        in `l3-runtime-state.json:incidents`; it is not a second registry.
+        """
+        return "passive_" + sha256_json({
+            "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+            "source_incident_id": str(source_incident_id or ""),
+        })[:24]
+
+    def _materialize_passive_incident_projection(
+        self,
+        state: dict[str, Any],
+        closure: dict[str, Any],
+        *,
+        terminal: str,
+        recovery_observed: bool = False,
+        expiry_observed: bool = False,
+    ) -> dict[str, Any]:
+        """Project one passive terminal into the existing compact L3 state.
+
+        This is deliberately a state projection, not an execution attempt. It
+        retains identities/pointers and a count-plus-fingerprint scope only;
+        raw user lists remain in their producer-owned immutable evidence.
+        """
+        source_incident_id = str(closure.get("source_incident_id") or closure.get("object_id") or "")
+        if not source_incident_id:
+            return {"projected": False, "reason": "source_incident_id_missing"}
+        incidents = state.setdefault("incidents", {})
+        if not isinstance(incidents, dict):
+            incidents = {}
+            state["incidents"] = incidents
+        incident_key = self._passive_incident_projection_key(source_incident_id)
+        existing = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
+        source_event_ids = sorted({
+            str(item) for item in (closure.get("source_event_ids") or []) if str(item)
+        })
+        if not source_event_ids and str(closure.get("event_id") or ""):
+            source_event_ids = [str(closure.get("event_id") or "")]
+        source_hashes = closure.get("source_hashes") if isinstance(closure.get("source_hashes"), dict) else {}
+        affected_users = [str(item) for item in (closure.get("affected_users") or []) if str(item)]
+        scope_fingerprint = sha256_json({
+            "source_incident_id": source_incident_id,
+            "source_event_ids": source_event_ids,
+            "egress_identity_generation": str(closure.get("egress_identity_generation") or ""),
+            "channel": str(closure.get("channel") or ""),
+            "affected_users": sorted(affected_users),
+        })
+        incident_generation = str(closure.get("egress_identity_generation") or "") or (
+            "pigen_" + sha256_json({
+                "source_incident_id": source_incident_id,
+                "source_event_ids": source_event_ids,
+                "source_hashes": source_hashes,
+            })[:24]
+        )
+        observation_generation = "pobs_" + sha256_json({
+            "source_incident_id": source_incident_id,
+            "source_event_ids": source_event_ids,
+            "source_hashes": source_hashes,
+            "terminal": terminal,
+        })[:24]
+        transition_id = "ptr_" + sha256_json({
+            "incident_key": incident_key,
+            "observation_generation": observation_generation,
+            "terminal": terminal,
+        })[:24]
+        parent_transition_id = (
+            str(existing.get("parent_transition_id") or "")
+            if str(existing.get("observation_generation") or "") == observation_generation
+            else str(existing.get("transition_id") or "")
+        )
+        intent_closed = recovery_observed or expiry_observed
+        closure_reason = (
+            "RECOVERY_OBSERVED" if recovery_observed else
+            "EPISODE_EXPIRED_NEW_GENERATION_REQUIRED" if expiry_observed else ""
+        )
+        next_consumer = "" if intent_closed else "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory"
+        reentry_condition = (
+            "new owner-backed event starts the next generation"
+            if intent_closed else
+            "existing advisory materializes exactly one OMP obligation for this incident generation"
+        )
+        now = now_iso()
+        desired = {
+            **existing,
+            "schema_version": "v7.l3-runtime-incident-record.v2",
+            "incident_key": incident_key,
+            "incident_id": source_incident_id,
+            "incident_generation": incident_generation,
+            "observation_generation": observation_generation,
+            "parent_transition_id": parent_transition_id,
+            "transition_id": transition_id,
+            "status": "CLOSED" if intent_closed else "OPEN",
+            "incident_state": "INTENT_CLOSED" if intent_closed else "OPEN",
+            "channel_incident_state": "RECOVERED" if recovery_observed else ("EXPIRED" if expiry_observed else "OPEN"),
+            "attempt_terminal": terminal,
+            "attempt_id": "",
+            "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+            "opened_at": str(existing.get("opened_at") or now),
+            "closed_at": str(existing.get("closed_at") or now) if intent_closed else "",
+            "last_observed_at": str(
+                closure.get("observed_at") or closure.get("created_at")
+                or existing.get("last_observed_at") or now
+            ),
+            "channel": str(closure.get("channel") or ""),
+            "services": sorted({str(item) for item in (closure.get("services") or []) if str(item)}),
+            "failure_families": sorted({str(item) for item in (closure.get("failure_families") or []) if str(item)}),
+            "event_provenance": str(closure.get("event_provenance") or "UNKNOWN"),
+            "evidence_class": str(closure.get("evidence_class") or "UNKNOWN_EVENT"),
+            "source_event_ids": source_event_ids,
+            "source_hashes": source_hashes,
+            "situation_id": str(closure.get("situation_id") or ""),
+            "decision_trace_id": str(closure.get("decision_trace_id") or ""),
+            "obligation_id": str(existing.get("obligation_id") or ""),
+            "action_opportunity_id": "actionop_" + sha256_json({
+                "incident_key": incident_key,
+                "incident_generation": incident_generation,
+            })[:24],
+            "candidate_id": "",
+            "packet_id": "",
+            "lease_id": "",
+            "outcome_id": str(closure.get("object_id") or source_incident_id),
+            "learning_id": str(closure.get("learning_record_id") or ""),
+            "intent_scope_type": "COHORT",
+            "intent_scope_fingerprint": scope_fingerprint,
+            "intent_closure_reason": closure_reason,
+            "intent_closure_evidence_pointer": str(closure.get("object_id") or source_incident_id) if intent_closed else "",
+            "cohort_protection_intent": {
+                "state": "INTENT_CLOSED" if intent_closed else "UNRESOLVED",
+                "scope_type": "COHORT",
+                "scope_fingerprint": scope_fingerprint,
+                "affected_users_count": len(affected_users),
+            },
+            "user_protection_intent": {
+                "state": "INTENT_CLOSED" if intent_closed else "UNRESOLVED_COUNT_ONLY",
+                "affected_users_count": len(affected_users),
+                "scope_fingerprint": sha256_json({"incident_key": incident_key, "users": sorted(affected_users)}),
+                "raw_user_list_stored": False,
+            },
+            "next_required_consumer": next_consumer,
+            "reentry_condition": reentry_condition,
+            "causal_lineage": {
+                "source_incident_id": source_incident_id,
+                "source_event_ids": source_event_ids,
+                "situation_id": str(closure.get("situation_id") or ""),
+                "decision_trace_id": str(closure.get("decision_trace_id") or ""),
+                "outcome_id": str(closure.get("object_id") or source_incident_id),
+                "learning_id": str(closure.get("learning_record_id") or ""),
+                "parent_transition_id": parent_transition_id,
+            },
+            "causal_invariant": {
+                "name": "OPEN_INCIDENT_REQUIRES_SUCCESSOR_AND_REENTRY",
+                "valid": bool(intent_closed or (next_consumer and reentry_condition)),
+            },
+            "execution_performed": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "apply_executed": False,
+            "authority_expanded": False,
+            "production_maturity_changed": False,
+            "consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+            "feeds_next_runtime_cycle": True,
+        }
+        comparable_existing = {key: value for key, value in existing.items() if key != "updated_at"}
+        comparable_desired = {key: value for key, value in desired.items() if key != "updated_at"}
+        changed = comparable_existing != comparable_desired
+        if changed:
+            desired["updated_at"] = now
+            incidents[incident_key] = desired
+        return {
+            "projected": True,
+            "changed": changed,
+            "incident_key": incident_key,
+            "record": desired if changed else existing,
+        }
+
+    def reconcile_passive_causal_projections(self) -> dict[str, Any]:
+        """Backfill/verify compact passive projections through the same L3 owner.
+
+        This is a bounded-scope repair entrypoint for existing immutable
+        closures. It creates no event, Candidate, Packet, lease or execution.
+        New passive events materialize the identical projection inline.
+        """
+        rows = [
+            row for row in read_jsonl(self.state_dir / "closure-records.jsonl")
+            if str(row.get("object_type") or "") == "passive_production_event"
+        ]
+        state = self._load_l3_runtime_state()
+        changed = 0
+        projected = 0
+        for closure in sorted(rows, key=lambda row: str(row.get("created_at") or row.get("observed_at") or "")):
+            terminal = str(closure.get("terminal_outcome_classification") or "STOP_SAFE_NO_ACTION")
+            result = self._materialize_passive_incident_projection(
+                state,
+                closure,
+                terminal=terminal,
+                recovery_observed=terminal == "RECOVERY_OBSERVED_NO_ACTION",
+                expiry_observed=terminal == "EPISODE_EXPIRED_NO_ACTION",
+            )
+            projected += int(bool_value(result.get("projected")))
+            changed += int(bool_value(result.get("changed")))
+        incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+        passive_records = [
+            row for row in incidents.values()
+            if isinstance(row, dict) and str(row.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+        ]
+        invalid_open = sum(
+            1 for row in passive_records
+            if str(row.get("incident_state") or "") != "INTENT_CLOSED"
+            and (not str(row.get("next_required_consumer") or "") or not str(row.get("reentry_condition") or ""))
+        )
+        if changed:
+            self._write_l3_runtime_state(state)
+        return {
+            "schema_version": "v7.passive-incident-causal-projection-reconciliation.v1",
+            "active": bool(rows),
+            "projected_records": projected,
+            "changed_records": changed,
+            "passive_incident_records": len(passive_records),
+            "invalid_open_incidents": invalid_open,
+            "final_verdict": "PASS" if invalid_open == 0 else "INVALID_OPEN_INCIDENT_NO_SUCCESSOR",
+            "forbidden_effects": {
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": 0,
+                "rollback_apply": False,
+                "authority_change": False,
+                "production_maturity_change": False,
+            },
+        }
+
     def _l3_incident_attempt_count(self, incident_key: str) -> int:
         incidents = self.l3_runtime_state.get("incidents") if isinstance(self.l3_runtime_state.get("incidents"), dict) else {}
         incident = incidents.get(incident_key) if isinstance(incidents.get(incident_key), dict) else {}
@@ -10093,6 +10330,7 @@ class AutoswitchPlanner:
                 "observed_at": str(event.get("observed_at") or ""),
                 "situation_id": situation_id,
                 "decision_trace_id": decision_trace_id,
+                "learning_record_id": learning_id,
                 "terminal_outcome_classification": terminal,
                 "expected_terminal": terminal,
                 "deterministic_replay_fingerprint": replay_fingerprint,
@@ -10110,6 +10348,14 @@ class AutoswitchPlanner:
                 "users_moved": 0,
                 "apply_executed": False,
             }
+            projection = self._materialize_passive_incident_projection(
+                state,
+                base,
+                terminal=terminal,
+                recovery_observed=recovery_observed,
+                expiry_observed=expiry_observed,
+            )
+            base["incident_key"] = str(projection.get("incident_key") or "")
             decision_rows.append({
                 "schema_version": "v7.passive-production-event-decision-trace.v1",
                 **base,
@@ -10475,6 +10721,9 @@ class AutoswitchPlanner:
             "closure_state": "READY_FOR_OMP_CONSUMPTION",
             "created_at": now,
             "source_incident_id": str(closure.get("source_incident_id") or closure.get("object_id") or ""),
+            "incident_key": str(closure.get("incident_key") or self._passive_incident_projection_key(
+                str(closure.get("source_incident_id") or closure.get("object_id") or "")
+            )),
             "situation_id": str(closure.get("situation_id") or ""),
             "decision_trace_id": str(closure.get("decision_trace_id") or ""),
             "event_provenance": str(closure.get("event_provenance") or "UNKNOWN"),
@@ -10556,6 +10805,13 @@ class AutoswitchPlanner:
         if shadow_record and str(shadow_record.get("decision_id") or "") not in shadow_ids:
             append_jsonl(shadow_path, [shadow_record])
         state = self._load_l3_runtime_state()
+        projection = self._materialize_passive_incident_projection(
+            state,
+            closure,
+            terminal=str(closure.get("terminal_outcome_classification") or "STOP_SAFE_NO_ACTION"),
+            recovery_observed=str(closure.get("terminal_outcome_classification") or "") == "RECOVERY_OBSERVED_NO_ACTION",
+            expiry_observed=str(closure.get("terminal_outcome_classification") or "") == "EPISODE_EXPIRED_NO_ACTION",
+        )
         obligations = state.setdefault("service_failure_automation_obligations", {})
         if not isinstance(obligations, dict):
             obligations = {}
@@ -10566,6 +10822,21 @@ class AutoswitchPlanner:
             "classification": classification,
             "updated_at": now,
         }
+        incident_key = str(projection.get("incident_key") or obligation.get("incident_key") or "")
+        incidents = state.setdefault("incidents", {})
+        incident_record = incidents.get(incident_key) if isinstance(incidents, dict) and isinstance(incidents.get(incident_key), dict) else {}
+        if incident_record:
+            incident_record["obligation_id"] = obligation_id
+            incident_record["causal_lineage"] = {
+                **(incident_record.get("causal_lineage") if isinstance(incident_record.get("causal_lineage"), dict) else {}),
+                "obligation_id": obligation_id,
+                "action_opportunity_id": str(incident_record.get("action_opportunity_id") or ""),
+            }
+            if str(incident_record.get("incident_state") or "") != "INTENT_CLOSED":
+                incident_record["next_required_consumer"] = "tools/v7_sync_lib.consume_service_failure_automation_frontier"
+                incident_record["reentry_condition"] = "existing OMP consumer consumes the exact ready obligation under closure-records.lock"
+            incident_record["updated_at"] = now
+            incidents[incident_key] = incident_record
         self._write_l3_runtime_state(state)
         return {
             "schema_version": "v7.service-failure-automation-advisory.v1",
@@ -11569,6 +11840,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--reconcile-passive-causal-projections-only",
+        action="store_true",
+        help=(
+            "Backfill/verify compact passive incident causal projections through the existing "
+            "L3 state owner without planning, Candidate/Packet/lease creation or routing effects."
+        ),
+    )
+    parser.add_argument(
         "--action-class-contract-reconciliation-only",
         action="store_true",
         help=(
@@ -11726,6 +12005,51 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
     }
 
 
+def reconcile_passive_causal_projections_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Run the M1 compact projection repair through the existing autoswitch owner."""
+    forbidden = [
+        name for name in (
+            "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id", "approved_operation_id", "approved_selected_move_hash",
+            "approved_authority_generation", "approved_breaker_generation",
+            "approved_source_bundle_hash", "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result", "rollback_packet", "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": "v7.passive-incident-causal-projection-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [f"passive_causal_projection_forbids_{name}" for name in sorted(set(forbidden))],
+        }
+    planner = object.__new__(AutoswitchPlanner)
+    planner.args = args
+    planner.state_dir = Path(args.state_dir)
+    planner.event_dir = Path(args.event_dir)
+    planner.l3_runtime_state_file = planner.state_dir / "l3-runtime-state.json"
+    planner.l3_runtime_state = planner._load_l3_runtime_state()
+    result = planner.reconcile_passive_causal_projections()
+    return {
+        "schema_version": "v7.passive-incident-causal-projection-entrypoint.v1",
+        "status": "PASS" if result.get("final_verdict") == "PASS" else "STOP_SAFE_INVALID_PROJECTION",
+        "ok": result.get("final_verdict") == "PASS",
+        "mode": "PASSIVE_CAUSAL_PROJECTION_ONLY",
+        "owner": "existing tools/v7-users-autoswitch + l3-runtime-state.json",
+        "result": result,
+        "forbidden_effects": result.get("forbidden_effects") or {},
+    }
+
+
 def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
     """Close the STOP_SAFE -> policy-owner handoff on one coherent snapshot.
 
@@ -11815,6 +12139,10 @@ def main() -> int:
         return 0 if result.get("status") == "PASS" else 2
     if args.consume_service_failure_automation_only:
         result = consume_service_failure_automation_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
+    if args.reconcile_passive_causal_projections_only:
+        result = reconcile_passive_causal_projections_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     if args.action_class_contract_reconciliation_only:

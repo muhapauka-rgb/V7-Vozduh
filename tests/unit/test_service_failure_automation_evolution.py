@@ -72,6 +72,106 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_passive_terminal_projects_compact_dual_lifecycle_and_omp_successor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            closure = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_causal_1",
+                "source_incident_id": "sfinc_causal_1",
+                "source_event_ids": ["evt_causal_1"],
+                "source_hashes": {"service_matrix": "a" * 64},
+                "situation_id": "situation_causal_1",
+                "decision_trace_id": "decision_causal_1",
+                "learning_record_id": "learn_causal_1",
+                "closure_state": "CAPTURED_STOP_SAFE",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "NATURAL_PRODUCTION_CANDIDATE",
+                "channel": "vless",
+                "services": ["service-a"],
+                "failure_families": ["connection_reset"],
+                "affected_users": ["10.0.0.2", "10.0.0.3"],
+                "observed_at": "2026-07-27T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+
+            first = planner.reconcile_passive_causal_projections()
+            self.assertEqual(first["final_verdict"], "PASS")
+            self.assertEqual(first["changed_records"], 1)
+            self.assertEqual(first["invalid_open_incidents"], 0)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = next(iter(state["incidents"].values()))
+            self.assertEqual(record["incident_state"], "OPEN")
+            self.assertEqual(record["attempt_terminal"], "STOP_SAFE_NO_ACTION")
+            self.assertEqual(record["intent_scope_type"], "COHORT")
+            self.assertEqual(record["user_protection_intent"]["affected_users_count"], 2)
+            self.assertFalse(record["user_protection_intent"]["raw_user_list_stored"])
+            self.assertEqual(
+                record["next_required_consumer"],
+                "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
+            )
+            self.assertTrue(record["reentry_condition"])
+            self.assertFalse(record["runtime_mutation_performed"])
+            self.assertEqual(record["users_moved"], 0)
+            self.assertEqual(planner.reconcile_passive_causal_projections()["changed_records"], 0)
+
+            advisory = planner.materialize_service_failure_automation_advisory({
+                "decisions": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                }],
+            })
+            self.assertTrue(advisory["active"])
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = next(iter(state["incidents"].values()))
+            self.assertTrue(record["obligation_id"])
+            self.assertEqual(
+                record["next_required_consumer"],
+                "tools/v7_sync_lib.consume_service_failure_automation_frontier",
+            )
+            self.assertIn("closure-records.lock", record["reentry_condition"])
+
+    def test_closed_passive_recovery_closes_intent_without_erasing_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            closure = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_recovered",
+                "source_incident_id": "sfinc_recovered",
+                "source_event_ids": ["evt_recovered"],
+                "situation_id": "situation_recovered",
+                "decision_trace_id": "decision_recovered",
+                "learning_record_id": "learn_recovered",
+                "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "channel": "vless",
+                "affected_users": ["10.0.0.2"],
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+
+            result = planner.reconcile_passive_causal_projections()
+            self.assertEqual(result["final_verdict"], "PASS")
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = next(iter(state["incidents"].values()))
+            self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+            self.assertEqual(record["status"], "CLOSED")
+            self.assertEqual(record["intent_closure_reason"], "RECOVERY_OBSERVED")
+            self.assertEqual(record["causal_lineage"]["decision_trace_id"], "decision_recovered")
+            self.assertEqual(record["users_moved"], 0)
+            self.assertEqual(planner.reconcile_passive_causal_projections()["changed_records"], 0)
+
     def test_active_standing_policy_replaces_stale_one_use_authority_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

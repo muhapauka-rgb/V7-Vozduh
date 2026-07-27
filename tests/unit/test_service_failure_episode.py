@@ -691,6 +691,26 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["consumer_result"]["final_verdict"], "NO_PENDING_OBLIGATION")
 
+    def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):
+        payload = {
+            "updated": "2026-07-27T14:00:00+00:00",
+            "total": 1,
+            "ok_count": 1,
+            "results": [{"egress": "vless", "ok": False, "status": "FAIL", "output_tail": "x" * 100000}],
+            "bounded_delegated_service_failure_action": {
+                "status": "ACTION_COMPLETED",
+                "ok": True,
+                "users_moved": 1,
+                "consumer_result": {"packet_id": "pkt_test", "nested": "x" * 100000},
+            },
+        }
+        projection = self.refresh.compact_refresh_projection(payload)
+        serialized = json.dumps(projection)
+        self.assertLess(len(serialized), 5000)
+        self.assertEqual(projection["bounded_delegated_service_failure_action"]["consumer_result"]["packet_id"], "pkt_test")
+        self.assertNotIn("nested", serialized)
+        self.assertTrue(projection["candidate_or_execution_forbidden"])
+
 
 if __name__ == "__main__":
     unittest.main()

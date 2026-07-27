@@ -425,12 +425,91 @@ def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]
     }
 
 
+def _consumer_projection(payload: Any) -> dict[str, Any]:
+    """Keep a lifecycle receipt compact while leaving full truth with its owner.
+
+    Matrix refresh is an observation/wake producer, not an outcome registry.
+    Its child consumers already persist their complete facts in the existing
+    event, execution and closure owners.  Re-embedding whole child responses
+    here caused each periodic refresh to grow the next refresh's input.
+    """
+    value = payload if isinstance(payload, dict) else {}
+    result = value.get("consumer_result")
+    result = result if isinstance(result, dict) else {}
+    compact_result = {
+        key: result.get(key)
+        for key in (
+            "final_verdict", "status", "next_output", "legal_terminal",
+            "receipt_id", "obligation_id", "frontier_id", "packet_id",
+            "feedback_id", "outcome_id", "transaction_status",
+        )
+        if result.get(key) not in (None, "", [], {})
+    }
+    return {
+        key: value.get(key)
+        for key in (
+            "schema_version", "status", "ok", "started_at", "completed_at",
+            "returncode", "action_attempted", "action_completed",
+            "runtime_mutation_performed", "users_moved", "reason", "error",
+        )
+        if value.get(key) not in (None, "", [], {})
+    } | ({"consumer_result": compact_result} if compact_result else {})
+
+
+def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
+    """Project one refresh lifecycle without recursively storing child output.
+
+    Complete decision, packet, execution, verification, replay and Learning
+    evidence remains with the existing specialized owners.  This projection
+    retains only the Matrix caller/consumer receipt and explicit pointers.
+    """
+    results = [
+        {
+            key: row.get(key)
+            for key in ("egress", "status", "ok", "rc", "ok_count", "total", "elapsed_sec")
+            if row.get(key) not in (None, "", [], {})
+        }
+        for row in (payload.get("results") or [])
+        if isinstance(row, dict)
+    ]
+    projection = {
+        "schema_version": "v7.service-matrix-refresh-lifecycle-projection.v1",
+        "updated": payload.get("updated"),
+        "elapsed_sec": payload.get("elapsed_sec"),
+        "total": payload.get("total"),
+        "ok_count": payload.get("ok_count"),
+        "status": payload.get("status", "OK"),
+        "results": results,
+        "passive_failure_capture": payload.get("passive_failure_capture") or {},
+        "omp_product_frontiers": list(payload.get("omp_product_frontiers") or ()),
+        "omp_product_frontier_owner": payload.get("omp_product_frontier_owner", ""),
+        "next_output": payload.get("next_output", ""),
+        "evidence_owners": {
+            "matrix": "service-matrix.json",
+            "passive_events": "service-failure-events.jsonl",
+            "execution": "execution-events.jsonl",
+            "outcome_and_omp": "closure-records.jsonl",
+        },
+        "capture_only": True,
+        "candidate_or_execution_forbidden": True,
+        "full_child_payload_embedded": False,
+    }
+    for key in (
+        "passive_event_consumer", "service_failure_automation_advisory",
+        "service_failure_omp_consumer", "service_failure_post_action_omp_consumer",
+        "bounded_delegated_service_failure_action",
+    ):
+        if key in payload:
+            projection[key] = _consumer_projection(payload.get(key))
+    return projection
+
+
 def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
     try:
         event_dir.mkdir(parents=True, exist_ok=True)
         path = event_dir / f"service-matrix-refresh-{datetime.now(timezone.utc).strftime('%Y%m%d')}.jsonl"
         with path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+            fh.write(json.dumps(compact_refresh_projection(payload), ensure_ascii=False, sort_keys=True) + "\n")
     except OSError:
         pass
 
@@ -843,9 +922,10 @@ def main() -> int:
         if payload["omp_product_frontiers"] else
         "NO_NEW_MATERIAL_INCIDENT_OR_ALREADY_CONSUMED"
     )
-    write_json_atomic(summary_file, payload)
+    compact_payload = compact_refresh_projection(payload)
+    write_json_atomic(summary_file, compact_payload)
     append_event(Path(args.event_dir), payload)
-    print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
+    print(json.dumps(compact_payload, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0
 
 

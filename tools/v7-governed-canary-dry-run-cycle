@@ -11,6 +11,7 @@ enables daemons or runtime automation.
 from __future__ import annotations
 
 import argparse
+from collections import deque
 import copy
 import gzip
 import ipaddress
@@ -275,25 +276,41 @@ def jsonl_family_paths(path: Path) -> list[Path]:
 
 
 def read_jsonl_family(path: Path, limit: int = 5000) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+    """Read bounded JSONL without materializing an unbounded periodic journal."""
+    rows: deque[dict[str, Any]] = deque(maxlen=max(1, int(limit)))
     for item in jsonl_family_paths(path):
         try:
-            if item.suffix == ".gz":
-                text = gzip.open(item, "rt", encoding="utf-8", errors="replace").read()
-            else:
-                text = item.read_text(encoding="utf-8", errors="replace")
+            opener = gzip.open if item.suffix == ".gz" else open
+            with opener(item, "rt", encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    try:
+                        parsed = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if not isinstance(parsed, dict):
+                        continue
+                    # Legacy Matrix lifecycle rows could contain a complete
+                    # recursively embedded child response.  They are never an
+                    # execution authority; retain an honest compact receipt so
+                    # old journal growth cannot exhaust the live consumer.
+                    if item.name.startswith("service-matrix-refresh-") and len(line) > 65536:
+                        parsed = {
+                            "schema_version": "v7.legacy-service-matrix-refresh-projection.v1",
+                            "updated": parsed.get("updated"),
+                            "status": parsed.get("status", "OK"),
+                            "total": parsed.get("total"),
+                            "ok_count": parsed.get("ok_count"),
+                            "next_output": parsed.get("next_output", ""),
+                            "capture_only": True,
+                            "candidate_or_execution_forbidden": True,
+                            "source_file": item.name,
+                        }
+                    rows.append(parsed)
         except OSError:
             continue
-        for line in text.splitlines():
-            if not line.strip():
-                continue
-            try:
-                parsed = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(parsed, dict):
-                rows.append(parsed)
-    return rows[-max(1, int(limit)):]
+    return list(rows)
 
 
 def default_audit_dir(state_dir: Path) -> Path:

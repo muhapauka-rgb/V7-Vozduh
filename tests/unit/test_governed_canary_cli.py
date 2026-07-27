@@ -456,6 +456,27 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual({row["kind"] for row in rows}, {"natural-sentinel", "service-matrix"})
 
+    def test_event_reader_projects_oversized_legacy_matrix_rows_without_retaining_child_payload(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            event_dir = Path(tmp)
+            (event_dir / "service-matrix-refresh-20260727.jsonl").write_text(
+                json.dumps({
+                    "updated": "2026-07-27T14:00:00+00:00",
+                    "total": 7,
+                    "ok_count": 1,
+                    "next_output": "OMP_PRODUCT_FRONTIER_MATERIALIZED",
+                    "bounded_delegated_service_failure_action": {"consumer_result": {"nested": "x" * 100000}},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            rows = module.event_rows(event_dir, 100)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["schema_version"], "v7.legacy-service-matrix-refresh-projection.v1")
+        self.assertNotIn("bounded_delegated_service_failure_action", rows[0])
+        self.assertTrue(rows[0]["candidate_or_execution_forbidden"])
+
     def test_read_only_surface_gets_controlled_execution_source_binding(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

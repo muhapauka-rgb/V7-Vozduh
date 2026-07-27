@@ -8458,6 +8458,15 @@ def reconcile_service_failure_execution_feedback_to_cps(
             errors.append("execution_feedback_scope_raw_user_storage_forbidden")
         if affected_scope_count != protected_scope_count + unresolved_scope_count + excluded_scope_count:
             errors.append("execution_feedback_scope_accounting_unbalanced")
+        binding_scope = binding.get("source_scope")
+        binding_scope = binding_scope if isinstance(binding_scope, dict) else {}
+        if (
+            int(binding_scope.get("affected_scope_count") or -1) != affected_scope_count
+            or str(binding_scope.get("affected_scope_fingerprint") or "")
+            != str(scope_accounting.get("affected_scope_fingerprint") or "")
+            or str(binding_scope.get("source_channel") or "") != source_channel
+        ):
+            errors.append("execution_feedback_scope_binding_mismatch")
     if errors:
         return {
             "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",

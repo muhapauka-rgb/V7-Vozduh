@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-27T10:57:11+00:00
+State captured: 2026-07-27T15:59:11+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: The existing Matrix -> delegated Packet -> execution-feedback chain cons
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-27T10:57:11+00:00`
+Captured: `2026-07-27T15:59:11+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -30,10 +30,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING FRESH MATRIX REVALIDATION -> PLANNER -> NEW CANDIDATE/PACKET/LEASE PATH; DO NOT REUSE HISTORICAL OBJECTS` |
+| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; each next operation requires a new Candidate, Packet and lease under the existing standing policy` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_58B9CCFA6EBD` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_EXEC_4DDD08A6A9AF` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
@@ -57,7 +57,7 @@ This section is the single live volatile current-state surface. Older production
 | `CONTINUATION_ITERATION` | `75` |
 | `CONTINUATION_STOP_REASON` | `STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
-| `CURRENT_VLESS_SERVICE_INCIDENT` | `PARTIALLY_PROTECTED; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; fresh event sfrev_ef50d31f49207990f3ced76347ffd0a1; one bounded user 10.7.0.18 moved from vless to wireguard-1779454504-c43409; feedback execfb_7108319ce372188b72a31e0b; packet pkt_preview_c7764a4d410da230bdc3f8f3; remaining channel scope stays open and may only reenter on a fresh matching event; scope affected=55, protected=1, unresolved=54, excluded_or_recovered=0; fingerprint 1aa020c6ee887a1a1d437ee7fb7cbb15d5a44072f70e8c94cecc4dc74ae51530` |
+| `CURRENT_VLESS_SERVICE_INCIDENT` | `PARTIALLY_PROTECTED; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; fresh event sfe_0a4576b5485905eb6464b5abedabebc7; one bounded user 10.7.0.41 moved from vless to wireguard-1779454504-c43409; feedback execfb_a75b88f219e63f693deb8324; packet pkt_preview_ee76f866a91f0e16be390cb7; remaining channel scope stays open and may only reenter on a fresh matching event; scope affected=35, protected=1, unresolved=34, excluded_or_recovered=0; fingerprint e08abb73a68862d1f7cd730a80bf55c59236f7de16fa73240718039602c27273` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `PARTIAL_PROTECTION_EXECUTION_CONSUMED; no historical Event/Candidate/Packet/lease may be reused` |
 | `CURRENT_L8_CANDIDATE_STATUS` | `CAPTURED_NOT_CREDITED; grouped VLESS incident sfinc_be20296fba3d8a6a33e58a583f1b58db; provenance EXTERNAL_UNATTRIBUTED; Situation situation_ecfe85dceea8a2d7eb3ab995; Decision Trace decision_c410493f06b1a6f34432d7e2; replay NO_DRIFT; Learning delta 0; later expiry reconciliation situation_b82179e3d32bdccf4bf49e53; natural_production_present remains open` |
 | `NO_PROGRESS_FINGERPRINT` | `f6c8b76a3eb189517d7cdac79f709116e197c6d1c56a4d60d860756c200877e0` |
@@ -376,15 +376,15 @@ This section is the single live volatile current-state surface. Older production
 | `LAST_SERVICE_FAILURE_RECEIPT_ID` | `sfomp_9de75be9b0e39374d2c916e3` |
 | `LAST_SERVICE_FAILURE_RECEIPT_SOURCE_INCIDENT` | `sxe_85d1171940a4ea9bc6c3097ee79e3861` |
 | `LAST_SERVICE_FAILURE_EXECUTION_CONSUMPTION` | `PACKET_BOUND_FRESH_EVENT_OUTCOME_CONSUMED` |
-| `LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID` | `execfb_7108319ce372188b72a31e0b` |
+| `LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID` | `execfb_a75b88f219e63f693deb8324` |
 | `LAST_SERVICE_FAILURE_EXECUTION_OUTCOME` | `SUCCESS` |
-| `LAST_SERVICE_FAILURE_EXECUTION_PACKET` | `pkt_preview_c7764a4d410da230bdc3f8f3` |
-| `LAST_SERVICE_FAILURE_EXECUTION_SOURCE_EVENT` | `sfrev_ef50d31f49207990f3ced76347ffd0a1` |
+| `LAST_SERVICE_FAILURE_EXECUTION_PACKET` | `pkt_preview_ee76f866a91f0e16be390cb7` |
+| `LAST_SERVICE_FAILURE_EXECUTION_SOURCE_EVENT` | `sfe_0a4576b5485905eb6464b5abedabebc7` |
 | `LAST_SERVICE_FAILURE_EXECUTION_SOURCE_INCIDENT` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
-| `CURRENT_VLESS_AFFECTED_SCOPE` | `51` |
+| `CURRENT_VLESS_AFFECTED_SCOPE` | `35` |
 | `CURRENT_VLESS_PROTECTED_SCOPE` | `1` |
-| `CURRENT_VLESS_SCOPE_ACCOUNTING` | `ACCOUNTED; current route truth + exact source-scope lineage; raw user list not stored` |
-| `CURRENT_VLESS_UNRESOLVED_SCOPE` | `50` |
+| `CURRENT_VLESS_SCOPE_ACCOUNTING` | `ACCOUNTED; existing Matrix -> L3 -> CPS consumer; raw user list not stored` |
+| `CURRENT_VLESS_UNRESOLVED_SCOPE` | `34` |
 | `CURRENT_SERVICE_FAILURE_DETERMINISTIC_SEQUENCE` | `verified outcome -> scope reconciliation -> CPS/OMP successor -> fresh Matrix revalidation` |
 | `CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
 | `CURRENT_SERVICE_FAILURE_LEARNING_POINTER` | `learn_e16e4c543fa49dede6477238` |
@@ -407,7 +407,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-27T10:57:11+00:00`
+Generated At: `2026-07-27T15:59:11+00:00`
 
 Runtime Authority: `NONE`
 
@@ -420,8 +420,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_58B9CCFA6EBD` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_EXEC_4DDD08A6A9AF` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -451,8 +451,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_58B9CCFA6EBD` |
-| `current_transition_id` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `current_state_generation` | `cpsgen_SFA_EXEC_4DDD08A6A9AF` |
+| `current_transition_id` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
 | `smallest_existing_next_action_id` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -538,7 +538,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_58B9CCFA6EBD`; `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` | service failure automation obligation sfaob_188e1fced391bb8cccde7264 | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` | activation does not itself create Candidate/Packet/lease or move a user | `NONE` | STOP_SAFE CLASSIFICATION -> EXISTING BDP/OMP ROUTE OR LEGAL TERMINAL |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_EXEC_4DDD08A6A9AF`; `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` | service failure automation obligation sfaob_188e1fced391bb8cccde7264 | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` | activation does not itself create Candidate/Packet/lease or move a user | `NONE` | STOP_SAFE CLASSIFICATION -> EXISTING BDP/OMP ROUTE OR LEGAL TERMINAL |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

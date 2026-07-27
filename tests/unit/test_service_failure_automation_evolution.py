@@ -396,6 +396,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "service_failure_causal_binding": {
                     "source_incident_id": "sfinc_scope_source", "source_event_id": "sfrev_scope_source",
                     "source_event_ids": ["sfrev_scope_source"], "event_type": "SERVICE_FAILURE_REVALIDATED", "source_channel": "vless",
+                    "source_scope": {
+                        "source_channel": "vless", "affected_scope_count": 5,
+                        "affected_scope_fingerprint": "scope-fingerprint",
+                    },
                 },
                 "incident_scope_accounting": {
                     "status": "ACCOUNTED", "affected_scope_count": 5, "protected_scope_count": 1,
@@ -411,6 +415,27 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "PASS", result)
         self.assertEqual(self.sync._plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), "4")
         self.assertEqual(self.sync._plain_live_value(live, "CURRENT_SAFE_NEXT_ACTION").split()[0], "CONTINUE")
+
+    def test_source_cps_reconciliation_rejects_scope_from_another_generation(self):
+        feedback = {
+            "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_scope_mismatch",
+            "packet_id": "pkt_scope_mismatch", "source_channel": "vless", "target_channel": "awg3",
+            "terminal_outcome_classification": "SUCCESS", "verification_result": {"success": True},
+            "execution_outcome": {"runtime_mutation_performed": True, "users_moved": 1},
+            "service_failure_causal_binding": {
+                "source_incident_id": "sfinc_scope_mismatch", "source_event_id": "sfrev_scope_mismatch",
+                "event_type": "SERVICE_FAILURE_REVALIDATED", "source_channel": "vless",
+                "source_scope": {"source_channel": "vless", "affected_scope_count": 4, "affected_scope_fingerprint": "binding-scope"},
+            },
+            "incident_scope_accounting": {
+                "status": "ACCOUNTED", "affected_scope_count": 5, "protected_scope_count": 1,
+                "unresolved_scope_count": 4, "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "l3-scope", "raw_user_list_stored": False,
+            },
+        }
+        result = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback)
+        self.assertEqual(result["final_verdict"], "STOP_SAFE")
+        self.assertIn("execution_feedback_scope_binding_mismatch", result["errors"])
 
     def test_advisory_skips_expired_terminal_and_selects_open_revalidation(self):
         with tempfile.TemporaryDirectory() as tmp:

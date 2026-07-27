@@ -126,6 +126,33 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertTrue(str(data["runtime_snapshot_path"]).startswith(".v7/"))
         self.assertIn("runtime_snapshot_seed_path", data)
 
+    def test_fetches_one_accounted_production_feedback_envelope_read_only(self):
+        manifest = self.manifest()
+        manifest["production_ssh_target"] = "v7-vps"
+        envelope = {
+            "schema_version": "v7.execution-outcome-record.v1",
+            "feedback_id": "execfb_fetch", "packet_id": "pkt_fetch",
+            "service_failure_causal_binding": {"source_incident_id": "sfinc_fetch"},
+        }
+        command = (
+            "ssh", "v7-vps", "python3", "-c",
+            self.tool.SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT,
+        )
+        result = self.tool.fetch_accounted_service_failure_feedback(
+            manifest,
+            runner=FakeRunner({command: json.dumps(envelope)}),
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["remote_read"]["feedback_id"], "execfb_fetch")
+        self.assertTrue(result["remote_read"]["read_only"])
+
+    def test_rejects_invalid_production_ssh_target_before_remote_read(self):
+        manifest = self.manifest()
+        manifest["production_ssh_target"] = "v7-vps; unsafe"
+        result = self.tool.fetch_accounted_service_failure_feedback(manifest)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["errors"], ["production_ssh_target_invalid"])
+
     def test_local_verdict_detects_matching_workspace_and_branch(self):
         manifest = self.manifest()
         result = self.tool.combine_results(manifest, mode="local", runner=self.runner(), cwd=Path("/tmp/v7-work"))

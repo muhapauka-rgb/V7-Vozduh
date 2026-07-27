@@ -13,6 +13,7 @@ import argparse
 from datetime import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -173,6 +174,81 @@ def run_command(cmd: list[str], cwd: Optional[Path] = None, timeout: int = 10) -
         "rc": proc.returncode,
         "stdout": proc.stdout.strip(),
         "stderr": proc.stderr.strip(),
+    }
+
+
+# This static remote reader is an adapter between two existing owners only:
+# immutable production execution feedback and the compact L3 incident state.
+# It makes no production mutation, does not invoke the planner, and returns
+# one exact envelope for the existing source-CPS reconciliation consumer.
+SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT = r'''
+import json
+from pathlib import Path
+
+state_dir = Path("/opt/v7/egress/state")
+state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+records = [item for item in (state.get("incidents") or {}).values() if isinstance(item, dict)]
+records = [item for item in records if item.get("source_incident_id") or item.get("incident_id")]
+records.sort(key=lambda item: str(item.get("last_observed_at") or ""), reverse=True)
+for record in records:
+    feedback_id = str(record.get("last_execution_feedback_id") or "")
+    scope = record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {}
+    if not feedback_id or str(scope.get("status") or "") != "ACCOUNTED":
+        continue
+    for line in reversed((state_dir / "execution-events.jsonl").read_text(encoding="utf-8").splitlines()):
+        row = json.loads(line)
+        if row.get("schema_version") != "v7.execution-outcome-record.v1" or row.get("feedback_id") != feedback_id:
+            continue
+        binding = row.get("service_failure_causal_binding") if isinstance(row.get("service_failure_causal_binding"), dict) else {}
+        incident_id = str(record.get("source_incident_id") or record.get("incident_id") or "")
+        if str(binding.get("source_incident_id") or "") != incident_id:
+            continue
+        row["incident_scope_accounting"] = scope
+        row["source_cps_projection_provenance"] = {
+            "execution_owner": "/opt/v7/egress/state/execution-events.jsonl",
+            "compact_scope_owner": "/opt/v7/egress/state/l3-runtime-state.json",
+            "incident_id": incident_id,
+            "feedback_id": feedback_id,
+            "read_only": True,
+        }
+        print(json.dumps(row, sort_keys=True))
+        raise SystemExit(0)
+raise SystemExit("no_accounted_packet_bound_service_failure_feedback")
+'''.strip()
+
+
+def fetch_accounted_service_failure_feedback(
+    manifest: dict[str, Any], *, runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    """Read one current production Outcome plus matching L3 scope envelope."""
+    host = str(manifest.get("production_ssh_target") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", host):
+        return {"ok": False, "errors": ["production_ssh_target_invalid"]}
+    command = ["ssh", host, "python3", "-c", SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT]
+    result = runner(command, None, 20)
+    if not result.get("ok"):
+        return {
+            "ok": False,
+            "errors": ["production_service_failure_envelope_unreadable"],
+            "remote_read": {"host": host, "rc": result.get("rc"), "stderr": result.get("stderr", "")},
+        }
+    try:
+        envelope = json.loads(str(result.get("stdout") or ""))
+    except json.JSONDecodeError:
+        return {
+            "ok": False,
+            "errors": ["production_service_failure_envelope_invalid_json"],
+            "remote_read": {"host": host, "stdout": str(result.get("stdout") or "")[:300]},
+        }
+    return {
+        "ok": True,
+        "envelope": envelope,
+        "remote_read": {
+            "host": host,
+            "read_only": True,
+            "feedback_id": str(envelope.get("feedback_id") or ""),
+            "source_incident_id": str(((envelope.get("service_failure_causal_binding") or {}).get("source_incident_id") or "")),
+        },
     }
 
 
@@ -816,6 +892,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--consume-service-failure-automation-only", action="store_true", help="Consume one durable Service Failure automation obligation through the existing OMP owner without requiring the source CPS corpus on a binary-only production host.")
     parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
     parser.add_argument("--reconcile-service-failure-execution-feedback", default="", metavar="PATH", help="Atomically reconcile one exact packet-bound Service Failure execution feedback record into the canonical source CPS; never executes an action.")
+    parser.add_argument("--reconcile-service-failure-production-feedback", action="store_true", help="Read one exact packet-bound Outcome plus matching L3 scope from the configured production owner and atomically reconcile it into source CPS; never invokes Runtime action.")
     parser.add_argument("--reconcile-action-class-contract-request", default="", metavar="PATH", help="Atomically project one fresh read-only M5a action-class Authority request into the canonical source CPS; never approves, writes policy, or executes an action.")
     parser.add_argument("--reconcile-external-authority-boundary", action="store_true", help="Atomically restore the exact existing external-Authority CPS projection after a proven automatic-successor precedence defect; never issues policy or executes an action.")
     parser.add_argument("--reconcile-active-standing-delegated-policy", action="store_true", help="Read the existing production policy/audit status and atomically replace a stale CPS Authority-request projection; never issues a contract or executes an action.")
@@ -1060,6 +1137,32 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"service_failure_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.reconcile_service_failure_production_feedback:
+        try:
+            manifest = load_manifest(DEFAULT_MANIFEST)
+            fetched = fetch_accounted_service_failure_feedback(manifest)
+            if not fetched.get("ok"):
+                result = {
+                    "final_verdict": "STOP_SAFE",
+                    "errors": fetched.get("errors") or ["production_service_failure_feedback_unavailable"],
+                    "remote_read": fetched.get("remote_read", {}),
+                }
+            else:
+                result = sync_lib.reconcile_service_failure_execution_feedback_to_cps(
+                    fetched["envelope"], root=fsse_scenario_root(),
+                )
+                result["remote_read"] = fetched["remote_read"]
+                result["producer_consumer_link"] = (
+                    "production execution-events + L3 compact scope -> "
+                    "reconcile_service_failure_execution_feedback_to_cps"
+                )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            result = {"final_verdict": "STOP_SAFE", "errors": [f"production_service_failure_feedback_unreadable:{exc}"]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"service_failure_production_feedback_source_cps={result.get('final_verdict', 'STOP_SAFE')}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.reconcile_service_failure_execution_feedback:
         try:

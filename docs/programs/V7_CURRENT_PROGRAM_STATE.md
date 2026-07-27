@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-27T09:32:19+00:00
+State captured: 2026-07-27T10:04:00+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: The existing Matrix -> delegated Packet -> execution-feedback chain cons
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-27T09:32:19+00:00`
+Captured: `2026-07-27T10:04:00+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,31 +28,31 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; each next operation requires a new Candidate, Packet and lease under the existing standing policy` |
+| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING FRESH MATRIX REVALIDATION -> PLANNER -> NEW CANDIDATE/PACKET/LEASE PATH; DO NOT REUSE HISTORICAL OBJECTS` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_EXEC_31783E75021E` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_A13EAA4D415C` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `NONE` |
+| `CURRENT_EXECUTION_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_REAL_WORLD_LIMIT` |
+| `CONTINUATION_DECISION` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT` |
-| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `FRESH_MATCHING_SERVICE_FAILURE_EVENT` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY` |
+| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE` |
 | `TRANSACTION_TERMINAL_CLASS` | `SUCCESS` |
-| `PROGRAM_TERMINAL_CLASS` | `REAL_WORLD_LIMIT` |
-| `NEXT_MISSION_FORMED` | `FALSE` |
-| `NEXT_MISSION_ID` | `NONE` |
+| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `75` |
 | `CONTINUATION_STOP_REASON` | `STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN` |
@@ -82,25 +82,25 @@ This section is the single live volatile current-state surface. Older production
 | `EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS` | `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED` |
 | `HEARTBEAT_ROLE` | `WATCHDOG_FALLBACK` |
 | `IMMEDIATE_WAKE_OWNER` | `CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL` |
-| `LAST_WAKE_REQUEST_ID` | `02aec243f63378dff72a90ae689e7fab924b9f5c9869740a23ac597ac956511a` |
-| `LAST_DISPATCHED_WAKE_ID` | `02aec243f63378dff72a90ae689e7fab924b9f5c9869740a23ac597ac956511a` |
+| `LAST_WAKE_REQUEST_ID` | `351b7a501f0881c3ad36c0e265115d13e52242cd400f28560368d87c02673226` |
+| `LAST_DISPATCHED_WAKE_ID` | `NONE` |
 | `LAST_CONSUMED_WAKE_ID` | `NONE` |
-| `PENDING_WAKE_ID` | `NONE` |
-| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_V7_PPOLY_M6_0F34216737B1` |
-| `WAKE_TRANSITION_ID` | `PERMANENT_POLYGON_M6_TO_M7_FINAL_CERTIFICATION_FRONTIER_V1` |
-| `WAKE_REQUESTED_AT` | `2026-07-18T14:15:11.895437+00:00` |
-| `WAKE_DISPATCHED_AT` | `2026-07-18T14:20:18.474412+00:00` |
-| `WAKE_STARTED_AT` | `2026-07-18T14:50:22.762361+00:00` |
-| `WAKE_COMPLETED_AT` | `2026-07-18T14:50:27.130253+00:00` |
+| `PENDING_WAKE_ID` | `351b7a501f0881c3ad36c0e265115d13e52242cd400f28560368d87c02673226` |
+| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_SFA_A13EAA4D415C` |
+| `WAKE_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `WAKE_REQUESTED_AT` | `2026-07-27T10:04:00+00:00` |
+| `WAKE_DISPATCHED_AT` | `NONE` |
+| `WAKE_STARTED_AT` | `NONE` |
+| `WAKE_COMPLETED_AT` | `NONE` |
 | `MEASURED_WAKE_LATENCY_MS` | `9403022` |
 | `WRITER_BLOCKING_TIME_MS` | `3571.323` |
-| `WATCHDOG_STATE` | `ARMED_FALLBACK_ONLY` |
+| `WATCHDOG_STATE` | `ARMED_PENDING_IMMEDIATE_DISPATCH` |
 | `WATCHDOG_FALLBACK_COUNT` | `5` |
 | `WATCHDOG_RECOVERY_RESULT` | `PASS` |
 | `IMMEDIATE_INVOCATION_COUNT` | `10` |
 | `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `1` |
 | `OVERLAP_COUNT` | `0` |
-| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `HEARTBEAT_OVERLAP_FAILED_SAFE_RECOVERED_BY_ATOMIC_OWNER` |
+| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_REQUESTED` |
 | `REENTRY_ACTIVE_LEASE` | `NONE` |
 | `REENTRY_LAST_COMPLETED_ID` | `NONE` |
 | `REENTRY_LAST_TRIGGER_ID` | `e0e5650c8d5627e5df3356922008d00c8a15889c85c059c41cda124113cd4ab9` |
@@ -198,7 +198,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `single-user governed candidate failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -318,7 +318,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; v6 consumed and non-reusable; no declared L7 coverage cell remains` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_PACKET; current program waits only for natural L8 evidence` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `REAL_WORLD_LIMIT` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_RUNTIME_AUTHORITY; fresh event and existing policy gates remain required` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED_FOR_DECLARED_L7_COVERAGE; natural L8 remains external` |
@@ -340,7 +340,7 @@ This section is the single live volatile current-state surface. Older production
 | `POLYGON_MISSION_FRONTIER` | `NONE_NO_INDEPENDENT_SAFE_CRITERION` |
 | `L7_L8_PROGRAM_MISSION_FRONTIER` | `EVENT_DRIVEN:L7L8-AE-M5-NATURAL-EVIDENCE-CAPTURE` |
 | `ACTIVE_EXECUTION_FRONTIER` | `NONE` |
-| `EXTERNAL_REENTRY_FRONTIER` | `QUALIFYING_NATURAL_PRODUCTION_EVENT` |
+| `EXTERNAL_REENTRY_FRONTIER` | `PENDING:351b7a501f0881c3ad36c0e265115d13e52242cd400f28560368d87c02673226` |
 | `PHASE_6_ENGINEERING_STOP` | `NO_EXECUTABLE_ENGINEERING_FRONTIER` |
 | `PHASE_6_CONTROLLED_LANE_STOP` | `NONE_DECLARED_COVERAGE_CELLS_COMPLETE` |
 | `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT` |
@@ -381,10 +381,21 @@ This section is the single live volatile current-state surface. Older production
 | `LAST_SERVICE_FAILURE_EXECUTION_PACKET` | `pkt_preview_c7764a4d410da230bdc3f8f3` |
 | `LAST_SERVICE_FAILURE_EXECUTION_SOURCE_EVENT` | `sfrev_ef50d31f49207990f3ced76347ffd0a1` |
 | `LAST_SERVICE_FAILURE_EXECUTION_SOURCE_INCIDENT` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
-| `CURRENT_VLESS_AFFECTED_SCOPE` | `55` |
-| `CURRENT_VLESS_PROTECTED_SCOPE` | `1` |
-| `CURRENT_VLESS_SCOPE_ACCOUNTING` | `ACCOUNTED; existing Matrix -> L3 -> CPS consumer; raw user list not stored` |
-| `CURRENT_VLESS_UNRESOLVED_SCOPE` | `54` |
+| `CURRENT_VLESS_AFFECTED_SCOPE` | `53` |
+| `CURRENT_VLESS_PROTECTED_SCOPE` | `0` |
+| `CURRENT_VLESS_SCOPE_ACCOUNTING` | `ACCOUNTED; current route truth + exact source-scope lineage; raw user list not stored` |
+| `CURRENT_VLESS_UNRESOLVED_SCOPE` | `53` |
+| `CURRENT_SERVICE_FAILURE_DETERMINISTIC_SEQUENCE` | `verified outcome -> scope reconciliation -> CPS/OMP successor -> fresh Matrix revalidation` |
+| `CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
+| `CURRENT_SERVICE_FAILURE_LEARNING_POINTER` | `learn_e16e4c543fa49dede6477238` |
+| `CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER` | `tools/v7_sync_lib.continue_omp_engineering_control_loop` |
+| `CURRENT_SERVICE_FAILURE_REENTRY_CONDITION` | `existing OMP residual recomputation consumes a new owner-backed state change for V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
+| `CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE` | `0` |
+| `CURRENT_VLESS_INCIDENT_GENERATION` | `egid_be6367407f70e591005185a2` |
+| `CURRENT_VLESS_INCIDENT_ID` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
+| `CURRENT_VLESS_SCOPE_FINGERPRINT` | `07c292f68339f7ec87370d2608b4a8de650cc0af7f1a330d8dbc744112a65967` |
+| `INCIDENT_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `PRODUCT_EVOLUTION_FRONTIER` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -396,7 +407,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-27T09:32:19+00:00`
+Generated At: `2026-07-27T10:04:00+00:00`
 
 Runtime Authority: `NONE`
 
@@ -409,10 +420,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_EXEC_31783E75021E` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
-| `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_A13EAA4D415C` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -431,7 +442,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -440,9 +451,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_EXEC_31783E75021E` |
-| `current_transition_id` | `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` |
-| `smallest_existing_next_action_id` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
+| `current_state_generation` | `cpsgen_SFA_A13EAA4D415C` |
+| `current_transition_id` | `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` |
+| `smallest_existing_next_action_id` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1` |
@@ -453,13 +464,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `REAL_WORLD_LIMIT` |
+| `current_primary_stop` | `NONE` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `NO_INSIDE_APPROVED_POLICY` |
-| `last_responsible_link` | fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates |
+| `authority_required_now` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
+| `last_responsible_link` | production OMP receipt -> canonical source CPS reconciliation |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION |
+| `smallest_existing_next_action` | CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -494,7 +505,7 @@ The following joined table is the normalized live record. `Last link` represents
 | `CAP-U04` | Authority Evolution | OMP, authority policy, action-class ladder | `PARTIAL` | `COVERED_ENGINEERING_L1`; criterion `AUTHORITY_BOUNDARY_NO_EXPANSION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L1 absent declared dependency invalidation | U01/U07; unblocks U09 |
 | `CAP-U05` | Rollback | restore barrier, rollback manifest, execution feedback | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `ROLLBACK_CONTAINMENT_ENGINEERING_MATRIX` consumed through real packet/binding/lease/rollback/containment owners | engineering matrix result -> OMP consumer; production rollback/no-rollback evidence remains separate | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01; unblocks U02/U03/U09 |
 | `CAP-U06` | Recovery Admission | recovery admission, B8/B9/B10, A6 | `PARTIAL` | `COVERED_ENGINEERING_L3`; criterion `RECOVERY_ADMISSION_ENGINEERING_MATRIX` consumed; terminals BLOCKED/ELIGIBLE/LIMITED_RECOVERY/PROBING/QUARANTINED/RECOVERED_WATCH; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L3 absent declared dependency invalidation | U01/U03; may stop `REAL_WORLD_LIMIT`; unblocks U02/U09 |
-| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `COVERED_ENGINEERING_L4`; criterion `SHADOW_LEARNING_REPRESENTATION_MATRIX` consumed; terminals CAP_U07_SHADOW_LEARNING_ENGINEERING_CRITERION_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT` | V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
+| `CAP-U07` | Learning | feedback/learning, OMP, Canonical Reference | `WAITING_EXTERNAL_DEPENDENCY` | `COVERED_ENGINEERING_L4`; criterion `SHADOW_LEARNING_REPRESENTATION_MATRIX` consumed; terminals CAP_U07_SHADOW_LEARNING_ENGINEERING_CRITERION_CONSUMED; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L4 absent declared dependency invalidation | U01 complete; unblocks U04/U08/U09/U12/U17-U22 |
 | `CAP-U08` | Production Readiness | Production Maturity, OMP, CPS | `PARTIAL` | `COVERED_ENGINEERING_L6`; criterion `PRODUCTION_READINESS_PREPARATION_MATRIX` consumed; terminals PASS; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L6 absent declared dependency invalidation | U01/U03-U07; unblocks U09 |
 | `CAP-U09` | Production Autonomy | OMP, Runtime Model, Authority Evolution | `BLOCKED` | `COVERED_ENGINEERING_L6`; criterion `PRODUCTION_AUTONOMY_READINESS_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L6 absent declared dependency invalidation | U02-U08; terminal `PRODUCTION_AUTONOMY_CERTIFIED` |
 | `CAP-U10` | Observability | admin read models, evidence inventory, truth/convergence | `PARTIAL` | `COVERED_ENGINEERING_L2`; criterion `OBSERVABILITY_CONSUMER_COVERAGE_MATRIX` consumed; terminals PASS/STOP_SAFE; whole capability remains PARTIAL | criterion result -> OMP Permanent Polygon consumer; whole capability retains production lanes | `REAL_WORLD_LIMIT_CRITERION_L7_L8_ONLY` | WAIT_FOR_CONTROLLED_PRODUCTION_FIELD_VALIDITY_AND_NATURAL_PRODUCTION_REPRESENTATIVENESS; do not rerun L2 absent declared dependency invalidation | U01/U03/U05; unblocks U11/U14 |
@@ -527,7 +538,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_EXEC_31783E75021E`; `SERVICE_FAILURE_FRESH_EVENT_EXECUTION_FEEDBACK_CONSUMED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; activation does not itself create Candidate/Packet/lease or move a user | `REAL_WORLD_LIMIT` | fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_A13EAA4D415C`; `SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1` | service failure automation obligation sfaob_f24047ac0be8192ade327dd4 | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` | activation does not itself create Candidate/Packet/lease or move a user | `NONE` | STOP_SAFE CLASSIFICATION -> EXISTING BDP/OMP ROUTE OR LEGAL TERMINAL |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -595,7 +606,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `REAL_WORLD_LIMIT`; current stop is `REAL_WORLD_LIMIT`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

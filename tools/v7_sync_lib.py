@@ -16708,6 +16708,36 @@ def continue_omp_engineering_control_loop(
         bounded_iterations = max(1, min(int(iteration_budget), OMP_CONTINUATION_MAX_ITERATIONS))
         bounded_scenarios = max(1, min(int(scenario_budget), OMP_CONTINUATION_SCENARIO_BUDGET))
         bounded_repairs = max(0, min(int(repair_budget), OMP_CONTINUATION_REPAIR_BUDGET))
+        # Production is intentionally a binary/runtime deployment rather than
+        # a duplicate source-CPS owner.  A generic source-side Continue OMP
+        # invocation therefore has no legal input there.  Return a structured
+        # fail-closed terminal instead of an exception; the deployed Matrix
+        # caller continues to use its dedicated receipt-only consumer.
+        if not cps_path.is_file():
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "STOP_SAFE",
+                "program_terminal": "BINARY_ONLY_SOURCE_CPS_UNAVAILABLE",
+                "terminal_class": "EXTERNAL_OWNER_BOUNDARY",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "SOURCE_CPS_OWNER_REQUIRED",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "NONE_BINARY_ONLY_RUNTIME",
+                "exact_next_operator_command": "USE_EXISTING_PRODUCTION_RECEIPT_CONSUMER_OR_SOURCE_CPS_OWNER",
+                "exact_next_automatic_action": "NONE",
+                "transitions": [], "internal_iteration_count": 0,
+                "behavior_change": False,
+                "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+                "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False, "routing_mutation": False,
+                    "user_movement": False, "packet_execution": False,
+                    "restore_barrier_write": False, "rollback_apply": False,
+                    "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": ["source_cps_not_present_on_binary_only_runtime"],
+            }
         cps_text = cps_path.read_text(encoding="utf-8")
         live = _markdown_field_table(_markdown_section(
             cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",

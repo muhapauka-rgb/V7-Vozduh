@@ -174,6 +174,14 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["internal_iteration_count"], 0)
         self.assertEqual(cps.read_text(encoding="utf-8"), before)
 
+    def test_continue_omp_binary_only_runtime_is_structured_stop_safe(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = self.lib.continue_omp_engineering_control_loop(root=Path(directory))
+        self.assertEqual(result["final_verdict"], "STOP_SAFE")
+        self.assertEqual(result["program_terminal"], "BINARY_ONLY_SOURCE_CPS_UNAVAILABLE")
+        self.assertEqual(result["priority_decision"], "SOURCE_CPS_OWNER_REQUIRED")
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_completion_gate_requires_two_natural_separated_reentries(self):
         base = {
             "platform_owner": "CODEX_AUTOMATION_PLATFORM", "no_user_prompt": True,

@@ -839,6 +839,7 @@ def update_matrix(
                 f"{egress_id}|{identity.get('egress_identity_generation')}|{incident_started_at}"
             ).encode("utf-8")
         ).hexdigest()[:32]
+        fresh_failure_event_emitted = False
         for service_id, merged in persistent_rows.items():
             previous = (
                 (row.get("services") or {}).get(service_id)
@@ -861,6 +862,7 @@ def update_matrix(
                 merged["failure_event_id"] = event_id
                 merged["failure_event_emitted_at"] = observed_at
                 merged["source_incident_id"] = source_incident_id
+                fresh_failure_event_emitted = True
                 events.append({
                     "schema_version": "v7.service-failure-event.v3",
                     "event_id": event_id,
@@ -890,6 +892,70 @@ def update_matrix(
                     "provenance_reconciliation_required": True,
                     "candidate_or_execution_forbidden": True,
                 })
+        # A continuing episode must remain observable after its initial event
+        # has been consumed.  Reuse the existing Matrix JSONL producer and
+        # passive consumer: one compact correlated revalidation event carries
+        # a fresh observation generation, never a Candidate or execution
+        # permission.  Without this, an old STOP_SAFE/expiry terminal could
+        # hide a still-failing source until a wholly new outage occurred.
+        revalidation_rows = [
+            (service_id, merged)
+            for service_id, merged in persistent_rows.items()
+            if str(merged.get("failure_event_emitted_episode_id") or "")
+            and str(merged.get("source_incident_id") or "") == source_incident_id
+        ]
+        if revalidation_rows and not fresh_failure_event_emitted:
+            revalidation_basis = {
+                service_id: {
+                    "episode_id": str(merged.get("failure_episode_id") or ""),
+                    "family": str(merged.get("failure_family") or ""),
+                    "observed_at": str(merged.get("last_failure_at") or ""),
+                    "samples": int(merged.get("failure_samples") or 0),
+                }
+                for service_id, merged in sorted(revalidation_rows)
+            }
+            observation_generation = "sfrev_" + hashlib.sha256(
+                json.dumps(
+                    {
+                        "source_incident_id": source_incident_id,
+                        "identity_generation": identity.get("egress_identity_generation"),
+                        "rows": revalidation_basis,
+                    },
+                    ensure_ascii=True,
+                    sort_keys=True,
+                ).encode("utf-8")
+            ).hexdigest()[:32]
+            events.append({
+                "schema_version": "v7.service-failure-revalidation-event.v1",
+                "event_id": observation_generation,
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "natural_production_credit": False,
+                "channel": egress_id,
+                "service": "",
+                "source_incident_id": source_incident_id,
+                "observation_generation": observation_generation,
+                "failure_family": "CORRELATED_CONTINUING_SERVICE_FAILURE",
+                "failure_samples": max(int(row.get("failure_samples") or 0) for _, row in revalidation_rows),
+                "bad_for_seconds": max(to_float(row.get("bad_for_seconds")) for _, row in revalidation_rows),
+                "incident_started_at": incident_started_at,
+                "correlated_service_count": len(revalidation_rows),
+                "correlated_services": sorted(service_id for service_id, _ in revalidation_rows),
+                **identity,
+                "observed_at": max(str(row.get("last_failure_at") or observed_at) for _, row in revalidation_rows),
+                "source_files": [str(matrix_file)],
+                "source_hashes": {
+                    "correlated_matrix_observation": hashlib.sha256(
+                        json.dumps(revalidation_basis, ensure_ascii=True, sort_keys=True).encode("utf-8")
+                    ).hexdigest(),
+                },
+                "producer": "tools/v7-service-matrix-test.update_matrix",
+                "next_consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
+                "provenance_reconciliation_required": True,
+                "candidate_or_execution_forbidden": True,
+            })
         for service_id in list(services):
             if service_id not in SERVICE_CATALOG:
                 services.pop(service_id, None)

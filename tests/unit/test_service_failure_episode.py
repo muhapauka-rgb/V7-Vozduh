@@ -142,6 +142,40 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(row["failure_samples"], 1)
             self.assertNotEqual(row["failure_episode_id"], first_episode)
 
+    def test_continuing_persistent_episode_emits_fresh_revalidation_without_new_episode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            matrix_file = Path(tmp) / "service-matrix.json"
+            event_dir = Path(tmp) / "events"
+            first = {
+                "ok": False,
+                "status": "FAIL",
+                "tested_at": "2026-07-27T03:00:00+00:00",
+                "reason": "connection reset",
+            }
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": first}, 1,
+                event_dir=event_dir, persistence_samples=1,
+            )
+            second = dict(first, tested_at="2026-07-27T03:01:00+00:00")
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": second}, 1,
+                event_dir=event_dir, persistence_samples=1,
+            )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(
+                [row["event_type"] for row in events],
+                ["SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"],
+            )
+            revalidated = events[-1]
+            self.assertEqual(revalidated["evidence_class"], "PROBE_OBSERVED_PRODUCTION_EVENT")
+            self.assertTrue(revalidated["capture_only"])
+            self.assertFalse(revalidated["natural_production_credit"])
+            self.assertEqual(revalidated["correlated_services"], ["youtube"])
+            self.assertTrue(revalidated["observation_generation"].startswith("sfrev_"))
+
     def test_failure_family_and_registry_generation_split_episode(self):
         previous = {
             "ok": False,

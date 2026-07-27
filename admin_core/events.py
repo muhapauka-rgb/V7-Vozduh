@@ -195,7 +195,19 @@ def normalize_regression_event(event, source=""):
     profile = event_source_profile(inferred_source)
     severity = infer_event_severity(event)
     event_type = str(event.get("event_type") or event.get("type") or profile["event_type"])
-    object_id = str(event.get("channel") or event.get("egress") or event.get("user") or event.get("component") or "")
+    # Preserve an already-normalized projection when an existing downstream
+    # consumer receives it again.  Producers commonly use ``channel`` while
+    # consumers use ``object``; losing the latter on a second normalization
+    # would sever the source-bound safety check without changing the fact
+    # itself.
+    object_id = str(
+        event.get("channel")
+        or event.get("egress")
+        or event.get("object")
+        or event.get("user")
+        or event.get("component")
+        or ""
+    )
     event_id = str(event.get("event_id") or "")
     normalized = {
         "event_id": event_id or stable_event_hash({

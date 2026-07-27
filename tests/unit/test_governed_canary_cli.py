@@ -1197,6 +1197,36 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(result["allowed"], result)
         self.assertEqual(result["qualifying_service_failure_event"]["event_id"], "sfrev_unit")
 
+    def test_bounded_delegated_policy_normalizes_raw_matrix_revalidation_at_consumer_boundary(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            cycle = self.ready_cycle()
+            # This is the actual producer shape from v7-service-matrix-test,
+            # before the existing event normalization owner projects it.
+            cycle["event_consumer"] = {"events": [{
+                "event_id": "sfrev_raw_matrix",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "channel": "vless",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "source_incident_id": "sfinc_unit",
+                "observation_generation": "sfrev_raw_matrix",
+            }]}
+            result = module.bounded_delegated_policy_admission(
+                cycle["packet_preview"],
+                cycle,
+                live_policy_contract=policy_root["delegated_autonomy_policy"],
+                authority_audit_records=module.operator_execution.read_audit_records(
+                    Path(args.operator_execution_audit_store),
+                ),
+            )
+        self.assertTrue(result["allowed"], result)
+        self.assertEqual(result["qualifying_service_failure_event"]["object"], "vless")
+
     def test_bounded_delegated_policy_rejects_unbound_continuing_revalidation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

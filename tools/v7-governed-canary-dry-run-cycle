@@ -30,6 +30,7 @@ if str(ROOT) not in sys.path:
 
 from admin_core import (  # noqa: E402
     autonomy_trust_acceleration,
+    events,
     intelligence_workers,
     operation_scoped_binding,
     operator_execution,
@@ -1733,9 +1734,18 @@ def bounded_delegated_policy_admission(
         "SERVICE_FAILURE_REVALIDATED",
     }
     now = datetime.now(timezone.utc)
-    for event in reversed(event_rows if isinstance(event_rows, list) else []):
-        if not isinstance(event, dict):
+    for raw_event in reversed(event_rows if isinstance(event_rows, list) else []):
+        if not isinstance(raw_event, dict):
             continue
+        # Event JSONL producers use their canonical field names (for example
+        # ``channel`` and ``observed_at``).  The governed-cycle contract uses
+        # the existing normalized projection (``object`` and ``timestamp``).
+        # Normalize at this consumer boundary so a real fresh Matrix
+        # revalidation cannot disappear merely because the two existing
+        # owners name the same facts differently.  This does not grant any
+        # execution permission: every provenance, identity, freshness,
+        # Candidate, Packet and live gate below remains mandatory.
+        event = events.normalize_regression_event(raw_event)
         if str(event.get("event_type") or "") not in allowed_event_types:
             continue
         if source and str(event.get("object") or "") != source:

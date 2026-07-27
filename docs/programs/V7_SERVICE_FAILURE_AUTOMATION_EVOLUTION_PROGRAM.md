@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.5`
+Version: `1.6`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,74 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V1.6 revision record — generic movement reuse and adapter qualification
+
+V1.6 extends the existing evidence, CPS, OMP, Matrix, planner, governed
+movement, verification, rollback and Learning owners. It creates no Program,
+executor, certification system, registry, queue, Runtime or Authority owner.
+
+The revision separates three independently owned limits:
+
+```text
+generic movement engineering evidence
+service-failure adapter compatibility
+current Authority and live safety gates
+```
+
+The effective Runtime scope is always:
+
+```text
+min(
+  generic movement proven scope,
+  exact service-failure adapter compatible scope,
+  current independently approved Authority scope,
+  live target-capacity and verification-safe scope
+)
+```
+
+Historical movement evidence must be normalized dimension by dimension. A
+single maximum is forbidden when different dimensions have different proof:
+assignment mutation, route verification, service verification, rollback
+applied, certified no-rollback, replay/duplicate suppression, packet identity,
+partial-apply recovery, restart recovery, serial cohort size, parallel
+transactions, Outcome and Learning must remain separate.
+
+The historical actual scopes are `1, 2, 4, 5, 10, 25, 48`. The four-user
+rollback proof is a first-class evidence row; it must not be renamed Tier 5.
+The 48-user outcome is an actual 48-user partial-scope selection against a
+budget of 50. It is not proof of an exact 50-user execution or of partial-apply
+failure recovery.
+
+`GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE` and
+`SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER` are derived projections inside
+existing owners, not new technical or durable objects. The generic projection
+may reuse low-level assignment, route verification and governed execution
+evidence. Scenario-specific source/target selection, service verification,
+capacity and rollback/containment remain adapter obligations.
+
+Engineering compatibility is not Authority. Historical approval, Packet,
+lease or action-class scope must never be generalized. Runtime activation
+remains owned by the current Authority contract and cannot exceed its
+`max_users_per_transaction` or `max_concurrent_transactions`.
+
+Higher engineering compatibility may be calculated immediately, but Runtime
+promotion remains evidence-gated and Authority-owned. A recommendation may
+name the highest justified ceiling; activation follows the exact approved
+tier and uses adaptive waves with fresh live gates after every wave. A real
+incident action must be independently justified by service protection and
+must never be executed solely to manufacture bridge evidence.
+
+The current legal completion results include:
+
+- `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED`;
+- `HOLD_CURRENT_TIER_DECISION_CONSUMED`;
+- `NARROW_SCOPE_DECISION_CONSUMED`;
+- `DECLINE_DECISION_CONSUMED`.
+
+Thus a correct independent decision to retain Tier 1 completes the current
+reconciliation generation without pretending that engineering evidence,
+Authority or Runtime expanded.
 
 ## V1.5 revision record — current executable plan
 

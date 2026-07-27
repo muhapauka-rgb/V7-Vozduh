@@ -17357,14 +17357,91 @@ def _service_failure_action_class_reuse_projection(
         report_root=canonical_root,
         generated_at=utc_now(),
     )
+    primitive = historical.get("generic_movement_primitive")
+    primitive = primitive if isinstance(primitive, dict) else {}
     valid_rows = [
         row for row in (historical.get("certification_inventory") or [])
         if isinstance(row, dict) and row.get("current_validity") == "VALID_SUPPORTING_LAYER"
     ]
     valid_scopes = sorted({int(row.get("users") or 0) for row in valid_rows if int(row.get("users") or 0) > 0})
+    generic_mutation_max = int(primitive.get("production_assignment_mutation_proven_max_scope") or 0)
+    generic_route_verification_max = int(primitive.get("route_verification_proven_max_scope") or 0)
+    generic_rollback_applied_max = int(primitive.get("rollback_applied_proven_max_scope") or 0)
+    generic_no_rollback_max = int(primitive.get("certified_no_rollback_proven_max_scope") or 0)
+    generic_replay_max = int(primitive.get("replay_duplicate_suppression_proven_max_scope") or 0)
+    generic_packet_identity_max = int(primitive.get("packet_identity_preserved_proven_max_scope") or 0)
+    try:
+        current_authority_max = max(0, int(status.get("max_users_per_action") or 0))
+    except (TypeError, ValueError):
+        current_authority_max = 0
+    try:
+        current_concurrent_max = max(0, int(status.get("max_concurrent_transactions") or 0))
+    except (TypeError, ValueError):
+        current_concurrent_max = 0
+    # The existing generic cohort lifecycle is reusable, but the exact current
+    # standing-policy verifier and source/target capacity contract are proven
+    # only for one user.  Keep engineering compatibility separate from the
+    # current adapter proof and from Authority.
+    adapter_compatible_max = 1 if generic_mutation_max >= 1 else 0
+    target_capacity_safe_static_max = 1 if current_authority_max >= 1 else 0
+    runtime_enabled_max = min(
+        value for value in (
+            generic_mutation_max,
+            adapter_compatible_max,
+            current_authority_max,
+            target_capacity_safe_static_max,
+        )
+    ) if all((
+        generic_mutation_max,
+        adapter_compatible_max,
+        current_authority_max,
+        target_capacity_safe_static_max,
+    )) else 0
+    adapter_higher_tier_residuals = [
+        "exact_current_VLESS_to_healthy_target_cohort_contract",
+        "current_target_capacity_safe_scope_above_one",
+        "current_cohort_service_verification_contract_above_one",
+        "current_cohort_rollback_or_containment_contract_above_one",
+        "independent_higher_tier_Authority_decision",
+    ]
+    adapter_projection = {
+        "schema_version": "v7.service-failure-incident-drain-adapter-compatibility.v1",
+        "projection_name": "SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER",
+        "owner": "tools/v7_sync_lib._service_failure_action_class_reuse_projection",
+        "owner_mode": "EXISTING_CPS_OMP_DERIVED_PROJECTION",
+        "generic_assignment_bridge_max_scope": generic_mutation_max,
+        "generic_route_verification_bridge_max_scope": generic_route_verification_max,
+        "matrix_failure_detection": "CURRENT_PRODUCTION_PROVEN",
+        "incident_scope_binding": "CURRENT_PRODUCTION_PROVEN",
+        "exact_user_list_binding": "CURRENT_PRODUCTION_PROVEN",
+        "target_selection": "CURRENT_PRODUCTION_PROVEN_TIER_1",
+        "target_capacity_binding": "LIVE_PER_TRANSACTION_REQUIRED",
+        "target_capacity_safe_static_max_scope": target_capacity_safe_static_max,
+        "service_verification": "CURRENT_CONTRACT_PROVEN_TIER_1",
+        "rollback_or_containment": "CURRENT_CONTRACT_PROVEN_TIER_1",
+        "incident_lifecycle_return": "CURRENT_PRODUCTION_PROVEN",
+        "engineering_reusable_cohort_path_max_scope": generic_mutation_max,
+        "exact_current_adapter_compatible_max_scope": adapter_compatible_max,
+        "higher_tier_residuals": adapter_higher_tier_residuals,
+        "completion": "SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "new_owner_created": False,
+    }
+    adapter_fingerprint = hashlib.sha256(json.dumps(
+        adapter_projection,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    adapter_projection["evidence_fingerprint"] = adapter_fingerprint
     evidence_fingerprint = hashlib.sha256(json.dumps({
         "owner": historical.get("owner"),
         "valid_scopes": valid_scopes,
+        "generic_primitive_fingerprint": primitive.get("evidence_fingerprint"),
+        "adapter_fingerprint": adapter_fingerprint,
         "inventory": [
             {
                 "id": row.get("certification_id"),
@@ -17455,9 +17532,34 @@ def _service_failure_action_class_reuse_projection(
         "CURRENT_ACTION_CLASS": f"`{action_class}`",
         "CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS": "`RESULT_REUSED_VALID`",
         "CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT": f"`{evidence_fingerprint}`",
-        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_PATH`",
-        "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_EVIDENCE`",
-        "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_EVIDENCE`",
+        "GENERIC_MOVEMENT_PRIMITIVE_STATUS": "`GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED`",
+        "GENERIC_MOVEMENT_PRIMITIVE_OWNER": "`admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence`",
+        "GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT": f"`{str(primitive.get('evidence_fingerprint') or '')}`",
+        "GENERIC_MOVEMENT_ACTUAL_PROVEN_SCOPES": f"`{','.join(str(item) for item in (primitive.get('actual_proven_scopes') or [])) or 'NONE'}`",
+        "GENERIC_MOVEMENT_ASSIGNMENT_MUTATION_PROVEN_MAX": f"`{generic_mutation_max}`",
+        "GENERIC_MOVEMENT_ROUTE_VERIFICATION_PROVEN_MAX": f"`{generic_route_verification_max}`",
+        "GENERIC_MOVEMENT_SERVICE_VERIFICATION_ROLE": "`ADAPTER_BOUND_NOT_GENERIC_AUTHORITY`",
+        "GENERIC_MOVEMENT_ROLLBACK_APPLIED_PROVEN_MAX": f"`{generic_rollback_applied_max}`",
+        "GENERIC_MOVEMENT_CERTIFIED_NO_ROLLBACK_PROVEN_MAX": f"`{generic_no_rollback_max}`",
+        "GENERIC_MOVEMENT_PACKET_IDENTITY_PROVEN_MAX": f"`{generic_packet_identity_max}`",
+        "GENERIC_MOVEMENT_REPLAY_DUPLICATE_SUPPRESSION_PROVEN_MAX": f"`{generic_replay_max}`",
+        "GENERIC_MOVEMENT_PARTIAL_SCOPE_SELECTION": "`48_OF_50_SELECTION_PROVEN; NOT_PARTIAL_APPLY_FAILURE_RECOVERY`",
+        "GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY": "`NOT_PROVEN`",
+        "GENERIC_MOVEMENT_RESTART_RECOVERY": "`NOT_PROVEN_FOR_COHORT`",
+        "GENERIC_MOVEMENT_SERIAL_COHORT_PROVEN_MAX": f"`{int(primitive.get('serial_cohort_execution_proven_max_scope') or 0)}`",
+        "GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX": f"`{int(primitive.get('parallel_concurrent_transactions_proven_max') or 0)}`",
+        "GENERIC_MOVEMENT_AUTHORITY_AT_PRIMITIVE_LEVEL": "`NONE_BY_DESIGN`",
+        "SERVICE_FAILURE_ADAPTER_STATUS": "`SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER`",
+        "SERVICE_FAILURE_ADAPTER_OWNER": "`tools/v7_sync_lib._service_failure_action_class_reuse_projection`",
+        "SERVICE_FAILURE_ADAPTER_EVIDENCE_FINGERPRINT": f"`{adapter_fingerprint}`",
+        "SERVICE_FAILURE_ADAPTER_GENERIC_COHORT_PATH_MAX": f"`{generic_mutation_max}`",
+        "SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX": f"`{adapter_compatible_max}`",
+        "SERVICE_FAILURE_ADAPTER_HIGHER_TIER_RESIDUALS": f"`{','.join(adapter_higher_tier_residuals)}`",
+        "SERVICE_FAILURE_EFFECTIVE_TIER_FORMULA": "`min(generic_primitive,exact_adapter,current_Authority,live_capacity_and_verification)`",
+        "SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER": f"`{runtime_enabled_max}`",
+        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": f"`TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PATH_UP_TO_{generic_mutation_max}_SUPPORTING`",
+        "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": f"`TIER_1_CURRENT_CLASS; GENERIC_DIMENSIONS_NORMALIZED_UP_TO_{generic_mutation_max}`",
+        "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": "`TIER_1_CURRENT_CLASS; HIGHER_GENERIC_DIMENSIONS_SUPPORTING_ONLY`",
         "CURRENT_ACTION_CLASS_CERTIFIED_TIER": "`TIER_1_CURRENT_CLASS`",
         "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": "`TIER_1_CURRENT_STANDING_POLICY`",
         "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": "`TIER_1_SINGLE_USER_SERIAL`",
@@ -17484,6 +17586,8 @@ def _service_failure_action_class_reuse_projection(
         "TIER_1_REUSE_MISMATCH_FIELDS": "`NONE`",
         "TIER_2_REUSE_CLASSIFICATION": f"`{tier2}`",
         "TIER_2_REUSE_MISMATCH_FIELDS": f"`{tier2_mismatch}`",
+        "TIER_4_HISTORICAL_REUSE_CLASSIFICATION": "`GENERIC_EXECUTION_REUSABLE_ROLLBACK_APPLIED_PROVEN`",
+        "TIER_4_HISTORICAL_REUSE_MISMATCH_FIELDS": "`current_action_class,current_source_target_family,current_Authority`",
         "TIER_5_REUSE_CLASSIFICATION": f"`{tier5}`",
         "TIER_5_REUSE_MISMATCH_FIELDS": f"`{tier5_mismatch}`",
         "TIER_10_REUSE_CLASSIFICATION": f"`{tier10}`",
@@ -17494,11 +17598,13 @@ def _service_failure_action_class_reuse_projection(
         "TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS": f"`{tier48_mismatch}`",
         "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH_EXACT_FIELDS`",
         "BOUNDED_COHORT_REUSE_MISMATCH_FIELDS": "`action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope`",
-        "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`execution_path,blast_radius,verification,rollback_or_no_rollback,outcome`",
+        "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`assignment_mutation<=48,route_verification<=48,rollback_applied<=4,certified_no_rollback<=48,replay_duplicate_suppression<=4,packet_identity<=25,serial_cohort<=48,parallel_transactions<=1`",
         "CURRENT_ACTION_CLASS_NON_REUSABLE_AS": "`current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation`",
         "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_2`",
-        "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`exact current action/failure/source/target contract evidence plus independent Tier-2 Authority decision; no recertification of reusable execution safety dimensions`",
+        "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`selective current VLESS-to-healthy-target cohort bridge: live capacity, cohort service verification, rollback/containment and independent Tier-2 Authority; generic movement ladder must not be repeated`",
         "CAUSAL_M7_TIER_VERDICT": "`HOLD_CURRENT_TIER`",
+        "CAUSAL_M7_TIER_DECISION_CONSUMPTION": "`HOLD_CURRENT_TIER_DECISION_CONSUMED`",
+        "GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION": "`SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE; NO_GENERIC_LADDER_RERUN`",
         "CAUSAL_M8_SEMANTIC_ALIGNMENT": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVARIANT_STATUS": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVALID_STATES": f"`{','.join(str(item) for item in (causal.get('invalid_states') or [])) or 'NONE'}`",
@@ -17556,11 +17662,21 @@ def _service_failure_action_class_reuse_projection(
             "CURRENT_VLESS_SCOPE_PROJECTION_STATUS": "`PASS_CURRENT_ROUTE_AND_CUMULATIVE_LINEAGE_RECONCILED`",
         })
     return projection, {
-        "schema": "v7.service-failure-action-class-reuse-projection.v1",
+        "schema": "v7.service-failure-action-class-reuse-projection.v2",
         "owner": "admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence",
         "knowledge_reuse": "RESULT_REUSED_VALID",
         "evidence_fingerprint": evidence_fingerprint,
         "valid_historical_scopes": valid_scopes,
+        "generic_movement_primitive": primitive,
+        "service_failure_adapter": adapter_projection,
+        "tier_formula": {
+            "generic_primitive_max": generic_mutation_max,
+            "exact_adapter_compatible_max": adapter_compatible_max,
+            "current_authority_max": current_authority_max,
+            "current_target_capacity_safe_static_max": target_capacity_safe_static_max,
+            "runtime_enabled_max": runtime_enabled_max,
+            "max_concurrent_transactions": current_concurrent_max,
+        },
         "causal_integrity": causal,
         "program_portfolio": {
             "status": portfolio.get("program_portfolio_reconciliation_status"),
@@ -17569,6 +17685,8 @@ def _service_failure_action_class_reuse_projection(
             "programs": portfolio_rows,
         },
         "tier_verdict": "HOLD_CURRENT_TIER",
+        "tier_decision_consumption": "HOLD_CURRENT_TIER_DECISION_CONSUMED",
+        "legal_terminal": "HOLD_CURRENT_TIER_DECISION_CONSUMED",
         "current_incident": current_incident,
         "current_incident_projection_valid": incident_projection_valid,
         "incident_frontier": _plain_live_value(live, "INCIDENT_FRONTIER"),

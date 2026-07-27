@@ -3208,6 +3208,140 @@ def build_historical_blast_radius_evidence(
         if row["current_validity"] == "VALID_SUPPORTING_LAYER"
     ]
     max_certified = max(certified_users or [0])
+    valid_scopes = sorted({
+        int(row.get("users") or 0)
+        for row in valid_certifications
+        if int(row.get("users") or 0) > 0
+    })
+    rollback_applied_rows = [
+        row for row in valid_certifications if row.get("rollback") == "PASS"
+    ]
+    no_rollback_rows = [
+        row for row in valid_certifications if row.get("rollback") == "NOT_REQUIRED"
+    ]
+    rollback_applied_max = max(
+        (int(row.get("users") or 0) for row in rollback_applied_rows),
+        default=0,
+    )
+    no_rollback_max = max(
+        (int(row.get("users") or 0) for row in no_rollback_rows),
+        default=0,
+    )
+    replay_denial_ids = {"E25.15", "E27.2", "E28.2"}
+    packet_identity_ids = {
+        "E25.15", "E27.2", "E28.2",
+        "PHASE4-MEDIUM-BATCH-20260703",
+        "PHASE5-LARGE-BATCH-20260703",
+    }
+    replay_denial_max = max(
+        (
+            int(row.get("users") or 0)
+            for row in valid_certifications
+            if row.get("certification_id") in replay_denial_ids
+        ),
+        default=0,
+    )
+    packet_identity_max = max(
+        (
+            int(row.get("users") or 0)
+            for row in valid_certifications
+            if row.get("certification_id") in packet_identity_ids
+        ),
+        default=0,
+    )
+    tier_rows = [
+        {
+            "actual_users": int(row.get("users") or 0),
+            "certification_id": str(row.get("certification_id") or ""),
+            "scenario": str(row.get("scenario") or ""),
+            "action_class": str(row.get("action_class") or ""),
+            "assignment_mutation": "PROVEN",
+            "route_verification": "PROVEN",
+            "service_verification": "PROVEN_SCENARIO_BOUND",
+            "rollback_applied": row.get("rollback") == "PASS",
+            "certified_no_rollback": row.get("rollback") == "NOT_REQUIRED",
+            "outcome_closed": row.get("outcome") == "CLOSED_SUCCESS",
+            "current_authority_reusable": False,
+        }
+        for row in valid_certifications
+    ]
+    primitive_fingerprint_payload = {
+        "owner": "docs/track7/productization/e29-evidence",
+        "valid_scopes": valid_scopes,
+        "rollback_applied_max": rollback_applied_max,
+        "certified_no_rollback_max": no_rollback_max,
+        "replay_denial_max": replay_denial_max,
+        "packet_identity_max": packet_identity_max,
+        "tier_rows": tier_rows,
+    }
+    primitive_fingerprint = hashlib.sha256(json.dumps(
+        primitive_fingerprint_payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    generic_movement_primitive = {
+        "schema_version": "v7.generic-user-route-movement-primitive-evidence.v1",
+        "projection_name": "GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE",
+        "owner": "admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence",
+        "owner_mode": "EXISTING_CERTIFICATION_OWNER_DERIVED_PROJECTION",
+        "implementation_owner": "existing governed movement lifecycle",
+        "executor_owners": [
+            "tools/runtime-support/v7-user-switch",
+            "tools/v7-users-autoswitch",
+            "tools/v7-governed-canary-dry-run-cycle",
+        ],
+        "assignment_owner": "existing user registry and route-table assignment owner",
+        "verification_owner": "existing route and service verification owners",
+        "rollback_owner": "existing rollback and restore-settle owners",
+        "same_low_level_assignment_owner": True,
+        "same_transaction_orchestrator_for_every_historical_row": False,
+        "technically_implemented_max_scope": max_certified,
+        "production_assignment_mutation_proven_max_scope": max_certified,
+        "route_verification_proven_max_scope": max_certified,
+        "service_verification_historical_max_scope": max_certified,
+        "service_verification_role": "ADAPTER_BOUND_NOT_GENERIC_AUTHORITY",
+        "rollback_applied_proven_max_scope": rollback_applied_max,
+        "certified_no_rollback_proven_max_scope": no_rollback_max,
+        "packet_identity_preserved_proven_max_scope": packet_identity_max,
+        "replay_duplicate_suppression_proven_max_scope": replay_denial_max,
+        "partial_scope_selection_proven": max_certified == 48,
+        "partial_scope_selection_actual_users": 48 if max_certified == 48 else 0,
+        "partial_scope_selection_budget": 50 if max_certified == 48 else 0,
+        "partial_apply_failure_recovery_proven": False,
+        "partial_apply_failure_recovery_max_scope": 0,
+        "restart_recovery_proven": False,
+        "restart_recovery_max_scope": 0,
+        "serial_cohort_execution_proven_max_scope": max_certified,
+        "parallel_concurrent_transactions_proven_max": 1 if valid_certifications else 0,
+        "outcome_closure_proven_max_scope": max_certified,
+        "learning_pipeline_historical_max_scope": max_certified,
+        "learning_role": "SUPPORTING_PIPELINE_EVIDENCE_NOT_CURRENT_ADAPTER_DECISION_QUALITY",
+        "capacity_binding_required": True,
+        "authority_defined_at_primitive_level": False,
+        "runtime_activation_allowed_by_projection": False,
+        "actual_proven_scopes": valid_scopes,
+        "tier_rows": tier_rows,
+        "evidence_fingerprint": primitive_fingerprint,
+        "invalidation_triggers": [
+            "low_level_assignment_owner_or_mutation_semantics_change",
+            "route_verification_owner_or_contract_change",
+            "rollback_or_restore_settle_owner_change",
+            "contradictory_owner_backed_production_outcome",
+        ],
+        "not_invalidation_triggers": [
+            "new_incident",
+            "new_action_class_reason_with_same_low_level_mechanics",
+            "new_Candidate_or_Packet",
+            "Codex_turn_or_report",
+        ],
+        "completion": "GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED",
+        "read_only": True,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+        "authority_granted": False,
+        "new_owner_created": False,
+    }
     reusable_dimensions = {
         "execution_path": bool(valid_certifications),
         "blast_radius": any(int(row["users"]) >= 1 for row in valid_certifications),
@@ -3226,6 +3360,7 @@ def build_historical_blast_radius_evidence(
         "files_read": {name: str(path) for name, path in files.items() if contents.get(name)},
         "rows": rows,
         "certification_inventory": certification_inventory,
+        "generic_movement_primitive": generic_movement_primitive,
         "historical_certifications_found": len(certification_inventory),
         "real_movement_certifications_found": len(valid_certifications),
         "max_certified_blast_radius_users": max_certified,

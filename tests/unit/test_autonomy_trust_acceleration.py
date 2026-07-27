@@ -2418,6 +2418,26 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertFalse(evidence["reusable_dimensions"]["current_decision_context"])
         self.assertFalse(evidence["authority_granted"])
         self.assertFalse(evidence["runtime_apply_allowed"])
+        primitive = evidence["generic_movement_primitive"]
+        self.assertEqual(
+            primitive["completion"],
+            "GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED",
+        )
+        self.assertEqual(primitive["actual_proven_scopes"], [1, 2, 4, 5, 10, 25, 48])
+        self.assertEqual(primitive["production_assignment_mutation_proven_max_scope"], 48)
+        self.assertEqual(primitive["route_verification_proven_max_scope"], 48)
+        self.assertEqual(primitive["rollback_applied_proven_max_scope"], 4)
+        self.assertEqual(primitive["certified_no_rollback_proven_max_scope"], 48)
+        self.assertEqual(primitive["replay_duplicate_suppression_proven_max_scope"], 4)
+        self.assertEqual(primitive["packet_identity_preserved_proven_max_scope"], 25)
+        self.assertEqual(primitive["partial_scope_selection_actual_users"], 48)
+        self.assertEqual(primitive["partial_scope_selection_budget"], 50)
+        self.assertFalse(primitive["partial_apply_failure_recovery_proven"])
+        self.assertFalse(primitive["restart_recovery_proven"])
+        self.assertEqual(primitive["parallel_concurrent_transactions_proven_max"], 1)
+        self.assertFalse(primitive["authority_defined_at_primitive_level"])
+        self.assertFalse(primitive["runtime_activation_allowed_by_projection"])
+        self.assertFalse(primitive["new_owner_created"])
 
     def test_deployed_owner_consumes_repository_certified_provenance_without_reports(self):
         with tempfile.TemporaryDirectory() as tmp:

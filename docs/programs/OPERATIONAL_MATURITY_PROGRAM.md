@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.58`
+Version: `4.59`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -10150,3 +10150,71 @@ NEXT_LEGAL_STEP = EXISTING_OWNER_ISSUES_EXACT_UNEXPIRED_ONE_USE_CONTRACT_OR_REMA
 The repair changes neither the CPS Authority decision nor Production Maturity.
 It removes an unsafe stale projection; it cannot issue a contract, apply a
 Packet, move a user, write a restore barrier or enable a service/timer.
+
+## 42. Generic Movement Evidence Reuse And Service-Failure Adapter Law
+
+Classification: `PERMANENT_RULE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Evidence owner: existing historical movement/certification owners.
+Execution owner: existing governed movement lifecycle.
+Authority owner: existing delegated-policy Authority owner.
+
+Historical movement evidence must be consumed as a dimension matrix, not as
+one scalar tier. The existing owner projects:
+
+```text
+GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE
+SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER
+CURRENT_AUTHORITY
+RUNTIME_ENABLED_TIER
+```
+
+These names are projections inside existing owners. They are not new
+capabilities, registries, executors, certification systems or Authority
+objects.
+
+The generic projection may retain reusable assignment mutation, route
+verification, rollback/no-rollback, replay/duplicate suppression, packet
+identity, serial cohort, Outcome and Learning pipeline evidence. It must retain
+their different maxima. Service verification, capacity, source/target choice
+and incident-scope correctness remain adapter-bound.
+
+The exact historical actual scopes are `1,2,4,5,10,25,48`. Four-user
+rollback-applied evidence is preserved separately. A 48-user outcome against a
+50-user budget is partial-scope selection, not exact 50-user proof and not
+partial-apply failure recovery. Serial cohort evidence never proves parallel
+transaction concurrency.
+
+Runtime is fail-closed:
+
+```text
+RUNTIME_ENABLED_TIER =
+min(
+  GENERIC_CAPABILITY_MAX,
+  EXACT_ADAPTER_COMPATIBLE_MAX,
+  CURRENT_AUTHORITY_MAX,
+  LIVE_CAPACITY_AND_VERIFICATION_SAFE_MAX
+)
+```
+
+Historical Authority, Packet, lease or action-class identity is never
+generalized. Valid generic evidence may prevent a repeated certification
+ladder, but cannot activate a larger tier. Higher-tier activation requires the
+existing independent M7 Authority decision and fresh policy generation.
+
+Engineering compatibility and Authority recommendation may identify a larger
+ceiling. Runtime activation remains the exact approved tier and proceeds only
+through adaptive waves with fresh live gates. Every real action must be
+independently justified by service protection, not by a desire to manufacture
+evidence.
+
+Legal consumed outcomes are:
+
+- `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED`;
+- `HOLD_CURRENT_TIER_DECISION_CONSUMED`;
+- `NARROW_SCOPE_DECISION_CONSUMED`;
+- `DECLINE_DECISION_CONSUMED`.
+
+The current Matrix-owned incident drain remains independent and continues
+under its existing Tier-1 standing policy while this evidence projection is
+reconciled.

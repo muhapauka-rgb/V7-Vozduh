@@ -766,6 +766,42 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CERTIFIED_TIER"].strip("`"), "TIER_1_CURRENT_CLASS")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"), "TIER_1_SINGLE_USER_SERIAL")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_CODEX"].strip("`"), "TRUE_MATRIX_RUNTIME_OWNER")
+            self.assertEqual(
+                updated_live["GENERIC_MOVEMENT_PRIMITIVE_STATUS"].strip("`"),
+                "GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED",
+            )
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_ACTUAL_PROVEN_SCOPES"].strip("`"), "1,2,4,5,10,25,48")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_ASSIGNMENT_MUTATION_PROVEN_MAX"].strip("`"), "48")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_ROLLBACK_APPLIED_PROVEN_MAX"].strip("`"), "4")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_CERTIFIED_NO_ROLLBACK_PROVEN_MAX"].strip("`"), "48")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_REPLAY_DUPLICATE_SUPPRESSION_PROVEN_MAX"].strip("`"), "4")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_PACKET_IDENTITY_PROVEN_MAX"].strip("`"), "25")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY"].strip("`"), "NOT_PROVEN")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_RESTART_RECOVERY"].strip("`"), "NOT_PROVEN_FOR_COHORT")
+            self.assertEqual(updated_live["GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX"].strip("`"), "1")
+            self.assertEqual(
+                updated_live["SERVICE_FAILURE_ADAPTER_STATUS"].strip("`"),
+                "SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER",
+            )
+            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_GENERIC_COHORT_PATH_MAX"].strip("`"), "48")
+            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX"].strip("`"), "1")
+            self.assertEqual(updated_live["SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER"].strip("`"), "1")
+            self.assertEqual(
+                updated_live["CAUSAL_M7_TIER_DECISION_CONSUMPTION"].strip("`"),
+                "HOLD_CURRENT_TIER_DECISION_CONSUMED",
+            )
+            self.assertEqual(
+                result["action_class_reuse_projection"]["legal_terminal"],
+                "HOLD_CURRENT_TIER_DECISION_CONSUMED",
+            )
+            self.assertEqual(
+                result["action_class_reuse_projection"]["tier_formula"]["generic_primitive_max"],
+                48,
+            )
+            self.assertEqual(
+                result["action_class_reuse_projection"]["tier_formula"]["runtime_enabled_max"],
+                1,
+            )
             self.assertEqual(updated_live["CURRENT_VLESS_AFFECTED_SCOPE"].strip("`"), "29")
             self.assertEqual(updated_live["CURRENT_VLESS_PROTECTED_SCOPE"].strip("`"), "2")
             self.assertEqual(updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "27")

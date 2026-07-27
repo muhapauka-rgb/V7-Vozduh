@@ -1748,6 +1748,34 @@ class AutoswitchPlanner:
             source_event_ids = [str(closure.get("event_id") or "")]
         source_hashes = closure.get("source_hashes") if isinstance(closure.get("source_hashes"), dict) else {}
         affected_users = [str(item) for item in (closure.get("affected_users") or []) if str(item)]
+        source_scope = closure.get("source_scope") if isinstance(closure.get("source_scope"), dict) else {}
+        source_scope_count = to_int(source_scope.get("affected_scope_count"), -1)
+        source_scope_fingerprint = str(source_scope.get("affected_scope_fingerprint") or "")
+        # A first Matrix scope snapshot is the current accounting baseline for
+        # this continuing incident.  Preserve it across later revalidations:
+        # otherwise every successful failover would silently shrink the
+        # denominator and make full closure impossible to prove.
+        existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
+        if source_scope_count >= 0 and source_scope_fingerprint and not existing_scope:
+            scope_accounting = {
+                "schema_version": "v7.service-failure-incident-scope-accounting.v1",
+                "status": "ACCOUNTED",
+                "baseline_event_id": str(closure.get("event_id") or (source_event_ids[0] if source_event_ids else "")),
+                "baseline_observed_at": str(source_scope.get("observed_at") or closure.get("observed_at") or ""),
+                "affected_scope_count": source_scope_count,
+                "affected_scope_fingerprint": source_scope_fingerprint,
+                "protected_scope_count": 0,
+                "protected_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": []}),
+                "unresolved_scope_count": source_scope_count,
+                "unresolved_scope_fingerprint": source_scope_fingerprint,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "accounted_scope_count": source_scope_count,
+                "live_registry_available": True,
+                "raw_user_list_stored": False,
+            }
+        else:
+            scope_accounting = existing_scope
+        affected_count = to_int(scope_accounting.get("affected_scope_count"), len(affected_users))
         scope_fingerprint = sha256_json({
             "source_incident_id": source_incident_id,
             "source_event_ids": source_event_ids,
@@ -1838,11 +1866,11 @@ class AutoswitchPlanner:
                 "state": "INTENT_CLOSED" if intent_closed else "UNRESOLVED",
                 "scope_type": "COHORT",
                 "scope_fingerprint": scope_fingerprint,
-                "affected_users_count": len(affected_users),
+                "affected_users_count": affected_count,
             },
             "user_protection_intent": {
                 "state": "INTENT_CLOSED" if intent_closed else "UNRESOLVED_COUNT_ONLY",
-                "affected_users_count": len(affected_users),
+                "affected_users_count": affected_count,
                 "scope_fingerprint": sha256_json({"incident_key": incident_key, "users": sorted(affected_users)}),
                 "raw_user_list_stored": False,
             },
@@ -1857,6 +1885,13 @@ class AutoswitchPlanner:
                 "learning_id": str(closure.get("learning_record_id") or ""),
                 "parent_transition_id": parent_transition_id,
             },
+            "scope_accounting": scope_accounting,
+            "affected_scope_count": affected_count,
+            "affected_scope_fingerprint": str(scope_accounting.get("affected_scope_fingerprint") or scope_fingerprint),
+            "protected_scope_count": to_int(scope_accounting.get("protected_scope_count"), 0),
+            "protected_scope_fingerprint": str(scope_accounting.get("protected_scope_fingerprint") or ""),
+            "unresolved_scope_count": to_int(scope_accounting.get("unresolved_scope_count"), affected_count),
+            "unresolved_scope_fingerprint": str(scope_accounting.get("unresolved_scope_fingerprint") or ""),
             "causal_invariant": {
                 "name": "OPEN_INCIDENT_REQUIRES_SUCCESSOR_AND_REENTRY",
                 "valid": bool(intent_closed or (next_consumer and reentry_condition)),
@@ -1990,7 +2025,10 @@ class AutoswitchPlanner:
             if not existing:
                 rejected.append("execution_feedback_parent_incident_projection_missing")
                 continue
-            if str(existing.get("last_execution_feedback_id") or "") == feedback_id:
+            consumed_feedback_ids = {
+                str(item) for item in (existing.get("execution_feedback_ids") or []) if str(item)
+            }
+            if feedback_id in consumed_feedback_ids:
                 consumed += 1
                 continue
             terminal = str(row.get("terminal_outcome_classification") or "UNKNOWN")
@@ -2002,6 +2040,66 @@ class AutoswitchPlanner:
                 continue
             user = str(row.get("user") or "")
             user_fingerprint = sha256_json({"incident": source_incident_id, "user": user})
+            scope_source = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
+            existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
+            baseline_count = to_int(existing_scope.get("affected_scope_count"), -1)
+            baseline_fingerprint = str(existing_scope.get("affected_scope_fingerprint") or "")
+            if baseline_count < 0 and scope_source:
+                baseline_count = to_int(scope_source.get("affected_scope_count"), -1)
+                baseline_fingerprint = str(scope_source.get("affected_scope_fingerprint") or "")
+            scope_accounting: dict[str, Any] = {}
+            if baseline_count >= 0 and baseline_fingerprint:
+                baseline_at = str(existing_scope.get("baseline_observed_at") or scope_source.get("observed_at") or "")
+                successful_users: set[str] = set()
+                for feedback_row in rows:
+                    feedback_binding = feedback_row.get("service_failure_causal_binding")
+                    feedback_binding = feedback_binding if isinstance(feedback_binding, dict) else {}
+                    if str(feedback_binding.get("source_incident_id") or "") != source_incident_id:
+                        continue
+                    feedback_terminal = str(feedback_row.get("terminal_outcome_classification") or "")
+                    feedback_verification = feedback_row.get("verification_result") if isinstance(feedback_row.get("verification_result"), dict) else {}
+                    feedback_observed_at = str(feedback_row.get("outcome_observed_at") or feedback_row.get("created_at") or "")
+                    if feedback_terminal == "SUCCESS" and feedback_verification.get("success") is True and (not baseline_at or not feedback_observed_at or feedback_observed_at >= baseline_at):
+                        candidate_user = str(feedback_row.get("user") or "")
+                        if candidate_user:
+                            successful_users.add(candidate_user)
+                live_rows = parse_registry(self.state_dir / "users.registry")
+                live_current = {
+                    str(item.get("ip") or ""): str(item.get("current") or "")
+                    for item in live_rows
+                    if str(item.get("ip") or "") and (
+                        not str(item.get("enabled") or "") or bool_value(item.get("enabled"))
+                    )
+                }
+                # An absent live registry is an unknown state, not proof that
+                # a historical packet still protects its user.
+                live_registry_available = (self.state_dir / "users.registry").exists()
+                protected_users = sorted(
+                    item for item in successful_users
+                    if live_registry_available and live_current.get(item) and live_current.get(item) != source_channel
+                )
+                unresolved_users = sorted(
+                    item for item, current in live_current.items()
+                    if current == source_channel
+                ) if live_registry_available else []
+                accounted = len(protected_users) + len(unresolved_users)
+                valid = live_registry_available and baseline_count == accounted
+                scope_accounting = {
+                    "schema_version": "v7.service-failure-incident-scope-accounting.v1",
+                    "status": "ACCOUNTED" if valid else "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                    "baseline_event_id": str(existing_scope.get("baseline_event_id") or source_event_id),
+                    "baseline_observed_at": baseline_at,
+                    "affected_scope_count": baseline_count,
+                    "affected_scope_fingerprint": baseline_fingerprint,
+                    "protected_scope_count": len(protected_users),
+                    "protected_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": protected_users}),
+                    "unresolved_scope_count": len(unresolved_users),
+                    "unresolved_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": unresolved_users}),
+                    "explicitly_excluded_or_recovered_scope_count": 0,
+                    "accounted_scope_count": accounted,
+                    "live_registry_available": live_registry_available,
+                    "raw_user_list_stored": False,
+                }
             lineage = dict(existing.get("causal_lineage") or {})
             lineage.update({
                 "source_incident_id": source_incident_id,
@@ -2025,6 +2123,7 @@ class AutoswitchPlanner:
                 "outcome_id": feedback_id,
                 "learning_id": lineage["learning_id"],
                 "last_execution_feedback_id": feedback_id,
+                "execution_feedback_ids": sorted({*consumed_feedback_ids, feedback_id})[-500:],
                 "last_observed_at": str(row.get("outcome_observed_at") or row.get("created_at") or now_iso()),
                 "cohort_protection_intent": {
                     **(existing.get("cohort_protection_intent") if isinstance(existing.get("cohort_protection_intent"), dict) else {}),
@@ -2039,8 +2138,17 @@ class AutoswitchPlanner:
                     "intent_closure_evidence_pointer": feedback_id,
                     "raw_user_list_stored": False,
                 },
-                "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_shadow_outcomes",
-                "reentry_condition": "existing shadow/outcome consumer consumes exact packet-bound feedback; remaining channel scope continues on fresh owner-backed observation",
+                "scope_accounting": scope_accounting or existing_scope,
+                "next_required_consumer": (
+                    "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes"
+                    if scope_accounting and scope_accounting.get("status") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+                    else "tools/v7-users-autoswitch.reconcile_service_failure_shadow_outcomes"
+                ),
+                "reentry_condition": (
+                    "existing Matrix producer must provide a fresh compact source-scope snapshot before another action"
+                    if scope_accounting and scope_accounting.get("status") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+                    else "existing shadow/outcome consumer consumes exact packet-bound feedback; remaining channel scope continues on fresh owner-backed observation"
+                ),
                 "causal_lineage": lineage,
                 "causal_invariant": {
                     "name": "OPEN_INCIDENT_REQUIRES_SUCCESSOR_AND_REENTRY",
@@ -2055,6 +2163,15 @@ class AutoswitchPlanner:
                 "production_maturity_changed": False,
                 "consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
             }
+            if scope_accounting:
+                desired.update({
+                    "affected_scope_count": scope_accounting["affected_scope_count"],
+                    "affected_scope_fingerprint": scope_accounting["affected_scope_fingerprint"],
+                    "protected_scope_count": scope_accounting["protected_scope_count"],
+                    "protected_scope_fingerprint": scope_accounting["protected_scope_fingerprint"],
+                    "unresolved_scope_count": scope_accounting["unresolved_scope_count"],
+                    "unresolved_scope_fingerprint": scope_accounting["unresolved_scope_fingerprint"],
+                })
             incidents[incident_key] = desired
             changed += 1
             consumed += 1
@@ -10540,6 +10657,10 @@ class AutoswitchPlanner:
                 }),
                 "failure_samples": to_int(event.get("failure_samples"), 0),
                 "affected_users": list(event.get("affected_users") or []),
+                "source_scope": (
+                    dict(event.get("source_scope") or {})
+                    if isinstance(event.get("source_scope"), dict) else {}
+                ),
                 "observed_at": str(event.get("observed_at") or ""),
                 "situation_id": situation_id,
                 "decision_trace_id": decision_trace_id,

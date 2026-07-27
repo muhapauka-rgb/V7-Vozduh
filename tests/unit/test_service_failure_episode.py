@@ -176,6 +176,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(revalidated["correlated_services"], ["youtube"])
             self.assertTrue(revalidated["observation_generation"].startswith("sfrev_"))
 
+    def test_matrix_revalidation_captures_compact_source_scope_without_raw_users(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n"
+                "ip=10.0.0.4 current=awg0 enabled=1\n",
+                encoding="utf-8",
+            )
+            matrix_file = state_dir / "service-matrix.json"
+            event_dir = root / "events"
+            failure = {"ok": False, "status": "FAIL", "tested_at": "2026-07-27T03:00:00+00:00", "reason": "reset"}
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": failure}, 1,
+                event_dir=event_dir, persistence_samples=1, state_dir=state_dir,
+            )
+            event = json.loads((event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        self.assertEqual(event["source_scope"]["affected_scope_count"], 2)
+        self.assertTrue(event["source_scope"]["affected_scope_fingerprint"])
+        self.assertFalse(event["source_scope"]["raw_user_list_stored"])
+        self.assertNotIn("affected_users", event["source_scope"])
+
     def test_failure_family_and_registry_generation_split_episode(self):
         previous = {
             "ok": False,

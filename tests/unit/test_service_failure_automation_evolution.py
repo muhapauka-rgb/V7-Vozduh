@@ -120,6 +120,55 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["last_execution_feedback_id"], "execfb_bound")
         self.assertEqual(record["causal_lineage"]["source_event_ids"], ["sfrev_bound"])
 
+    def test_execution_reconciliation_keeps_compact_incident_scope_balance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_scope_bound"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=awg3 enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id,
+                    "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "scope_accounting": {
+                        "baseline_event_id": "sfrev_scope", "baseline_observed_at": "2026-07-27T03:00:00+00:00",
+                        "affected_scope_count": 2, "affected_scope_fingerprint": "scopehash",
+                    },
+                },
+            }}), encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_scope",
+                "source_channel": "vless", "target_channel": "awg3", "user": "10.0.0.2", "packet_id": "pkt_scope",
+                "terminal_outcome_classification": "SUCCESS", "outcome_observed_at": "2026-07-27T03:01:00+00:00",
+                "verification_result": {"success": True},
+                "service_failure_causal_binding": {
+                    "source_incident_id": incident_id, "source_event_id": "sfrev_scope",
+                    "source_event_ids": ["sfrev_scope"], "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "source_channel": "vless",
+                },
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            first = planner.reconcile_service_failure_execution_outcomes()
+            repeated = planner.reconcile_service_failure_execution_outcomes()
+            record = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))["incidents"][incident_key]
+        self.assertEqual(first["changed_records"], 1)
+        self.assertEqual(repeated["changed_records"], 0)
+        self.assertEqual(record["scope_accounting"]["status"], "ACCOUNTED")
+        self.assertEqual(record["protected_scope_count"], 1)
+        self.assertEqual(record["unresolved_scope_count"], 1)
+
     def test_exact_packet_bound_execution_feedback_updates_source_cps_without_new_action(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

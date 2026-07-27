@@ -197,6 +197,34 @@ def parse_registry(path: Path) -> list[dict[str, str]]:
     return rows
 
 
+def source_scope_snapshot(state_dir: Path, egress_id: str, *, observed_at: str) -> dict[str, Any]:
+    """Return the compact live source cohort owned by the existing registry.
+
+    The Matrix event remains the only durable observation producer.  It stores
+    neither a second user registry nor a raw user list: the latter stays with
+    ``users.registry``.  Count and a deterministic fingerprint let downstream
+    consumers prove that a continuing incident still has an accountable scope.
+    """
+    users = sorted({
+        str(row.get("ip") or "")
+        for row in parse_registry(state_dir / "users.registry")
+        if str(row.get("ip") or "")
+        and bool_value(row.get("enabled"), True)
+        and str(row.get("current") or "") == str(egress_id)
+    })
+    return {
+        "schema_version": "v7.service-failure-source-scope.v1",
+        "observed_at": observed_at,
+        "source_channel": str(egress_id),
+        "affected_scope_count": len(users),
+        "affected_scope_fingerprint": hashlib.sha256(
+            json.dumps({"source_channel": str(egress_id), "users": users}, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+        "raw_user_list_stored": False,
+        "owner": "users.registry via tools/v7-service-matrix-test",
+    }
+
+
 def safe_id(value: str, pattern: re.Pattern[str]) -> str:
     value = str(value or "").strip()
     return value if pattern.match(value) else ""
@@ -731,6 +759,7 @@ def update_matrix(
     persistence_samples: int = 3,
     persistence_window_seconds: int = 180,
     egress_identity: Optional[dict[str, str]] = None,
+    state_dir: Optional[Path] = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
@@ -740,6 +769,11 @@ def update_matrix(
         row = items.setdefault(egress_id, {})
         services = row.setdefault("services", {})
         observed_at = now_iso()
+        scope_snapshot = source_scope_snapshot(
+            state_dir or matrix_file.parent,
+            egress_id,
+            observed_at=observed_at,
+        )
         events: list[dict[str, Any]] = []
         event_path = (event_dir or DEFAULT_EVENT_DIR) / "service-failure-events.jsonl"
         identity = dict(egress_identity or canonical_egress_identity(
@@ -879,6 +913,7 @@ def update_matrix(
                     "incident_started_at": incident_started_at,
                     "correlated_service_count": len(persistent_rows),
                     "correlated_services": sorted(persistent_rows),
+                    "source_scope": scope_snapshot,
                     **identity,
                     "failure_samples": int(merged.get("failure_samples") or 0),
                     "bad_for_seconds": to_float(merged.get("bad_for_seconds")),
@@ -943,6 +978,7 @@ def update_matrix(
                 "incident_started_at": incident_started_at,
                 "correlated_service_count": len(revalidation_rows),
                 "correlated_services": sorted(service_id for service_id, _ in revalidation_rows),
+                "source_scope": scope_snapshot,
                 **identity,
                 "observed_at": max(str(row.get("last_failure_at") or observed_at) for _, row in revalidation_rows),
                 "source_files": [str(matrix_file)],
@@ -1041,6 +1077,7 @@ def main() -> int:
             persistence_samples=max(1, int(args.failure_persistence_samples or 3)),
             persistence_window_seconds=max(1, int(args.failure_persistence_window_seconds or 180)),
             egress_identity=identity,
+            state_dir=state_dir,
         )
     except TimeoutError:
         print(json.dumps({

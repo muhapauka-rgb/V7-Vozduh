@@ -2556,6 +2556,11 @@ def _execute_governed_transaction_with_guards_inner(
             "event_provenance": str(qualifying_service_failure_event.get("event_provenance") or ""),
             "observation_generation": str(qualifying_service_failure_event.get("observation_generation") or ""),
             "source_channel": str(qualifying_service_failure_event.get("object") or ""),
+            "source_scope": (
+                dict(qualifying_service_failure_event.get("source_scope") or {})
+                if isinstance(qualifying_service_failure_event.get("source_scope"), dict)
+                else {}
+            ),
         }
     source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""

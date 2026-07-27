@@ -6197,7 +6197,15 @@ def service_failure_active_incident_scope_projection(
             continue
         if str(record.get("source_incident_id") or record.get("incident_id") or "") != source_incident_id:
             continue
-        scope = record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {}
+        # The L3 owner now carries two intentionally non-interchangeable
+        # projections.  CPS consumes only the current-source denominator;
+        # cumulative packet lineage is forwarded as context and can never
+        # reduce the current failed-source scope by itself.
+        scope = (
+            record.get("current_source_scope")
+            if isinstance(record.get("current_source_scope"), dict)
+            else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
+        )
         affected = int(scope.get("affected_scope_count") or 0)
         protected = int(scope.get("protected_scope_count") or 0)
         unresolved = int(scope.get("unresolved_scope_count") or 0)
@@ -6209,8 +6217,11 @@ def service_failure_active_incident_scope_projection(
             or bool(scope.get("raw_user_list_stored"))
         ):
             return {}
+        cumulative = record.get("incident_cumulative_scope") if isinstance(record.get("incident_cumulative_scope"), dict) else {}
         return {
             **scope,
+            "current_source_scope": scope,
+            "incident_cumulative_scope": cumulative,
             "incident_id": source_incident_id,
             "incident_generation": str(record.get("incident_generation") or ""),
             "incident_state": str(record.get("incident_state") or ""),
@@ -6362,6 +6373,14 @@ def consume_service_failure_automation_frontier(
         "product_evolution_frontier": product_frontier,
         "next_action": next_action,
         "incident_scope_accounting": scope_projection,
+        "current_source_scope": (
+            dict(scope_projection.get("current_source_scope") or {})
+            if isinstance(scope_projection.get("current_source_scope"), dict) else dict(scope_projection)
+        ),
+        "incident_cumulative_scope": (
+            dict(scope_projection.get("incident_cumulative_scope") or {})
+            if isinstance(scope_projection.get("incident_cumulative_scope"), dict) else {}
+        ),
         "source_incident_frontier": incident_frontier,
         "source_product_evolution_frontier": product_frontier,
         "legal_terminal": legal_terminal,

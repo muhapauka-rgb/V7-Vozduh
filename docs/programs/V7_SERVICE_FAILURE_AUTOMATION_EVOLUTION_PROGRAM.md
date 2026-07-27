@@ -542,6 +542,44 @@ products into V7): [Apache Kafka log compaction](https://kafka.apache.org/40/des
 [OpenTelemetry context propagation](https://opentelemetry.io/docs/concepts/context-propagation/)
 and [Elastic data-stream lifecycle](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/data-stream-lifecycle.html).
 
+### Current-source scope, cumulative lineage and knowledge reuse
+
+The existing L3 incident record has two non-interchangeable compact views;
+both are derived from existing `users.registry`, Matrix and immutable
+execution/outcome owners.
+
+| View | Permitted meaning | Never permitted to do |
+| --- | --- | --- |
+| `CURRENT_SOURCE_SCOPE` | Current enabled users on the presently failed source generation, with `affected = protected + unresolved + excluded_or_recovered` backed by current route truth and the exact source fingerprint | count a historical packet success as a current member merely because it is old, successful, or has the same channel name |
+| `INCIDENT_CUMULATIVE_SCOPE` | Compact packet-bound lineage across the incident: feedback/Packet/Learning pointers and exactly one classification per success | become a second denominator, store a growing user list, or fabricate a missing causal binding |
+
+The cumulative classifications are exactly
+`CURRENT_INCIDENT_PROTECTED`, `HISTORICAL_PROTECTED_PRE_BASELINE`,
+`HISTORICAL_MOVED_INCIDENT_BINDING_MISSING`, `RETURNED_TO_SOURCE`,
+`RECOVERED_OR_EXCLUDED` and `OTHER_INCIDENT`. An unbound historical movement
+may remain visible only as `HISTORICAL_MOVED_INCIDENT_BINDING_MISSING`; it
+does not reduce the current source scope. Every packet-bound success therefore
+remains discoverable through existing immutable evidence while no historical
+success can silently manufacture present protection.
+
+Before every audit, test, certification lookup, owner discovery or capability
+decision, the existing Knowledge Plane is consumed through Canonical Reference,
+SYSTEM_MAP, Engineering Truth Lifecycle, ADRs, CPS, OMP and the relevant
+capability/certification owner. The resulting compact decision is
+`KNOWLEDGE_REUSE_AND_SELECTIVE_REVALIDATION`, with one classification for each
+Tier `1`, `2`, `5`, `10` and bounded cohort: `REUSABLE`, `APPROVED`,
+`INACTIVE`, `MISMATCHED`, `STALE` or `INVALIDATED`.
+
+The decision may request a revalidation only after an existing owner-backed
+invalidation trigger: a relevant implementation/dependency or policy/authority
+generation change, source/target topology or service-class change, a material
+scope/contract change, contradictory production evidence, a real
+verification/rollback failure, or a new approved tier. A new Codex turn,
+report, observation, incident, Candidate, Packet, lease expiry or prior
+successful attempt is never by itself an invalidation trigger. This is a
+derived field of existing owners, not an audit database or certification
+registry.
+
 ### Dual lifecycle and causal-lineage contract
 
 Every relevant record carries the applicable subset of this lineage:

@@ -247,6 +247,35 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["scope_accounting"]["status"], "INCIDENT_SCOPE_ACCOUNTING_BROKEN")
         self.assertEqual(record["protected_scope_count"], 0)
         self.assertEqual(record["scope_accounting"]["nonmember_or_stale_feedback_pointers"], ["execfb_old"])
+        self.assertEqual(record["current_source_scope"]["protected_scope_count"], 0)
+        self.assertEqual(
+            record["incident_cumulative_scope"]["classification_counts"]["HISTORICAL_PROTECTED_PRE_BASELINE"],
+            1,
+        )
+        self.assertEqual(record["incident_cumulative_scope"]["lineage_pointers"], ["execfb_old"])
+
+    def test_cumulative_scope_retains_missing_binding_without_claiming_current_membership(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text("ip=10.0.0.2 current=awg3 enabled=1\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            existing = {
+                "incident_id": "sfinc_current", "source_channel": "vless",
+                "scope_accounting": {"affected_scope_count": 1, "affected_scope_fingerprint": "freshscope"},
+            }
+            rows = [{
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_unbound",
+                "packet_id": "pkt_unbound", "source_channel": "vless", "target_channel": "awg3",
+                "user": "10.0.0.2", "terminal_outcome_classification": "SUCCESS",
+                "verification_result": {"success": True},
+            }]
+            cumulative = planner._reconcile_incident_cumulative_scope(existing=existing, execution_rows=rows)
+        self.assertEqual(cumulative["classification_counts"]["HISTORICAL_MOVED_INCIDENT_BINDING_MISSING"], 1)
+        self.assertEqual(cumulative["current_source_scope_fingerprint"], "freshscope")
+        self.assertEqual(cumulative["packet_bound_success_count"], 1)
+        self.assertFalse(cumulative["raw_user_list_stored"])
 
     def test_exact_packet_bound_execution_feedback_updates_source_cps_without_new_action(self):
         with tempfile.TemporaryDirectory() as tmp:

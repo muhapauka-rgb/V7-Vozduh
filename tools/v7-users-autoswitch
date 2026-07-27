@@ -1755,7 +1755,15 @@ class AutoswitchPlanner:
         # this continuing incident.  Preserve it across later revalidations:
         # otherwise every successful failover would silently shrink the
         # denominator and make full closure impossible to prove.
-        existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
+        # ``scope_accounting`` is the historical compatibility name for the
+        # current-source denominator.  Keep it while exposing the semantic
+        # name below: historical packet success must never be mistaken for
+        # membership in this live source generation.
+        existing_scope = (
+            existing.get("current_source_scope")
+            if isinstance(existing.get("current_source_scope"), dict)
+            else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
+        )
         scope_rotation = bool(
             existing_scope
             and str(existing_scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
@@ -1904,6 +1912,18 @@ class AutoswitchPlanner:
                 "parent_transition_id": parent_transition_id,
             },
             "scope_accounting": scope_accounting,
+            "current_source_scope": scope_accounting,
+            "incident_cumulative_scope": (
+                existing.get("incident_cumulative_scope")
+                if isinstance(existing.get("incident_cumulative_scope"), dict)
+                else {
+                    "schema_version": "v7.service-failure-incident-cumulative-scope.v1",
+                    "status": "NO_PACKET_BOUND_LINEAGE_YET",
+                    "source_incident_id": source_incident_id,
+                    "raw_user_list_stored": False,
+                    "lineage_pointers": [],
+                }
+            ),
             "affected_scope_count": affected_count,
             "affected_scope_fingerprint": str(scope_accounting.get("affected_scope_fingerprint") or scope_fingerprint),
             "protected_scope_count": to_int(scope_accounting.get("protected_scope_count"), 0),
@@ -2111,6 +2131,122 @@ class AutoswitchPlanner:
             "scope_membership_law": "EXACT_SOURCE_SCOPE_FINGERPRINT_AND_CURRENT_ROUTE",
         }
 
+    def _reconcile_incident_cumulative_scope(
+        self,
+        *,
+        existing: dict[str, Any],
+        execution_rows: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Preserve packet-bound history without altering the live denominator.
+
+        The existing immutable execution owner keeps full packet evidence.  The
+        L3 incident record stores only a compact, deduplicated classification
+        and lineage pointer per feedback.  In particular, an older success
+        does not decrement ``current_source_scope`` unless that scope's exact
+        fingerprint says it is a member.
+        """
+        source_incident_id = str(existing.get("source_incident_id") or existing.get("incident_id") or "")
+        source_channel = str(existing.get("channel") or existing.get("source_channel") or "")
+        current_scope = (
+            existing.get("current_source_scope")
+            if isinstance(existing.get("current_source_scope"), dict)
+            else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
+        )
+        if not source_incident_id or not source_channel:
+            return {}
+        live_rows = parse_registry(self.state_dir / "users.registry") if (self.state_dir / "users.registry").exists() else []
+        live_current = {
+            str(item.get("ip") or ""): str(item.get("current") or "")
+            for item in live_rows
+            if str(item.get("ip") or "") and (not str(item.get("enabled") or "") or bool_value(item.get("enabled")))
+        }
+        baseline_count = to_int(current_scope.get("affected_scope_count"), -1)
+        baseline_fingerprint = str(current_scope.get("affected_scope_fingerprint") or "")
+        entries: list[dict[str, Any]] = []
+        seen_feedback: set[str] = set()
+        for row in execution_rows:
+            if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
+                continue
+            terminal = str(row.get("terminal_outcome_classification") or "")
+            verification = row.get("verification_result") if isinstance(row.get("verification_result"), dict) else {}
+            if terminal not in {"SUCCESS", "ROLLBACK_SUCCESS"} or (terminal == "SUCCESS" and verification.get("success") is not True):
+                continue
+            feedback_id = str(row.get("feedback_id") or row.get("object_id") or "")
+            if not feedback_id or feedback_id in seen_feedback:
+                continue
+            binding = row.get("service_failure_causal_binding") if isinstance(row.get("service_failure_causal_binding"), dict) else {}
+            bound_incident = str(binding.get("source_incident_id") or "")
+            # Retain an unbound historical move from the same failed source as
+            # an explicit *missing-binding* fact, never as incident membership.
+            # A differently-bound event is retained only if an earlier compact
+            # projection already linked it; scanning all VLESS history into
+            # every active incident would violate bounded storage semantics.
+            same_source = str(row.get("source_channel") or "") == source_channel
+            prior = existing.get("incident_cumulative_scope") if isinstance(existing.get("incident_cumulative_scope"), dict) else {}
+            prior_entries = prior.get("entries") if isinstance(prior.get("entries"), list) else []
+            prior_known = any(isinstance(item, dict) and str(item.get("feedback_id") or "") == feedback_id for item in prior_entries)
+            if bound_incident and bound_incident != source_incident_id:
+                include = prior_known
+            else:
+                include = bound_incident == source_incident_id or (not bound_incident and same_source)
+            if not include:
+                continue
+            user = str(row.get("user") or "")
+            target = str(row.get("target_channel") or "")
+            current = str(live_current.get(user) or "")
+            scope = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
+            exact_current_member = (
+                bound_incident == source_incident_id
+                and str(scope.get("source_channel") or "") == source_channel
+                and to_int(scope.get("affected_scope_count"), -1) == baseline_count
+                and str(scope.get("affected_scope_fingerprint") or "") == baseline_fingerprint
+            )
+            if bound_incident and bound_incident != source_incident_id:
+                classification = "OTHER_INCIDENT"
+            elif bound_incident != source_incident_id:
+                classification = "HISTORICAL_MOVED_INCIDENT_BINDING_MISSING"
+            elif current == source_channel:
+                classification = "RETURNED_TO_SOURCE"
+            elif exact_current_member and target and current == target:
+                classification = "CURRENT_INCIDENT_PROTECTED"
+            elif current and current != source_channel:
+                classification = "HISTORICAL_PROTECTED_PRE_BASELINE"
+            else:
+                classification = "RECOVERED_OR_EXCLUDED"
+            entries.append({
+                "feedback_id": feedback_id,
+                "packet_id": str(row.get("packet_id") or ""),
+                "learning_id": str(((row.get("learning_record") or {}).get("learning_record_id") or "")),
+                "classification": classification,
+                "user_fingerprint": sha256_json({"incident": source_incident_id, "user": user}),
+                "source_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
+                "current_route_matches_packet_target": bool(target and current == target),
+            })
+            seen_feedback.add(feedback_id)
+        entries.sort(key=lambda item: str(item.get("feedback_id") or ""))
+        classification_counts = {
+            name: sum(1 for item in entries if item.get("classification") == name)
+            for name in (
+                "CURRENT_INCIDENT_PROTECTED", "HISTORICAL_PROTECTED_PRE_BASELINE",
+                "HISTORICAL_MOVED_INCIDENT_BINDING_MISSING", "RETURNED_TO_SOURCE",
+                "RECOVERED_OR_EXCLUDED", "OTHER_INCIDENT",
+            )
+        }
+        return {
+            "schema_version": "v7.service-failure-incident-cumulative-scope.v1",
+            "status": "LINEAGE_RECONCILED" if entries else "NO_PACKET_BOUND_LINEAGE_YET",
+            "source_incident_id": source_incident_id,
+            "current_source_scope_fingerprint": baseline_fingerprint,
+            "current_source_scope_count": baseline_count,
+            "packet_bound_success_count": len(entries),
+            "classification_counts": classification_counts,
+            "entries": entries,
+            "lineage_pointers": [item["feedback_id"] for item in entries],
+            "membership_basis": "PACKET_BOUND_CAUSAL_BINDING_AND_CURRENT_ROUTE_ONLY",
+            "cumulative_count_semantics": "PROVABLE_PACKET_BOUND_SUBSET_NOT_A_CURRENT_SOURCE_DENOMINATOR",
+            "raw_user_list_stored": False,
+        }
+
     def reconcile_service_failure_execution_outcomes(self) -> dict[str, Any]:
         """Consume exact packet-bound execution feedback into the same L3 incident state.
 
@@ -2165,11 +2301,12 @@ class AutoswitchPlanner:
                 continue
             user = str(row.get("user") or "")
             user_fingerprint = sha256_json({"incident": source_incident_id, "user": user})
-            existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
+            existing_scope = existing.get("current_source_scope") if isinstance(existing.get("current_source_scope"), dict) else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
             scope_accounting = self._reconcile_incident_scope_accounting(
                 existing=existing,
                 execution_rows=rows,
             )
+            cumulative_scope = self._reconcile_incident_cumulative_scope(existing=existing, execution_rows=rows)
             lineage = dict(existing.get("causal_lineage") or {})
             lineage.update({
                 "source_incident_id": source_incident_id,
@@ -2209,6 +2346,8 @@ class AutoswitchPlanner:
                     "raw_user_list_stored": False,
                 },
                 "scope_accounting": scope_accounting or existing_scope,
+                "current_source_scope": scope_accounting or existing_scope,
+                "incident_cumulative_scope": cumulative_scope,
                 "next_required_consumer": (
                     "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes"
                     if scope_accounting and scope_accounting.get("status") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
@@ -2260,6 +2399,8 @@ class AutoswitchPlanner:
                 continue
             desired_scope_fields = {
                 "scope_accounting": scope_accounting,
+                "current_source_scope": scope_accounting,
+                "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(existing=record, execution_rows=rows),
                 "affected_scope_count": scope_accounting["affected_scope_count"],
                 "affected_scope_fingerprint": scope_accounting["affected_scope_fingerprint"],
                 "protected_scope_count": scope_accounting["protected_scope_count"],

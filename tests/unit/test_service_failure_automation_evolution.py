@@ -725,6 +725,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "allowed_failure_families": ["channel_hard_fail", "service_specific_failure"],
                 "cooldown": {"per_user_seconds": 1800, "per_source_target_pair_seconds": 1800},
                 "anti_flap": "PASS",
+                "pending_tier_authority_request": {
+                    "status": "PENDING",
+                    "pending_count": 1,
+                    "request_id": "sdpauth_r1_" + ("d" * 24),
+                    "request_hash": "d" * 64,
+                    "created_at": "2026-07-28T00:00:00+00:00",
+                    "expires_at": "2099-01-02T00:00:00+00:00",
+                    "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                    "requested_max_users": 4,
+                    "max_concurrent_transactions": 1,
+                    "action_class": "channel hard-fail failover",
+                    "policy_scope_hash": "e" * 64,
+                    "decision_set": [
+                        "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                        "DECLINE",
+                    ],
+                },
                 "service_failure_causal_integrity": {
                     "schema_version": "v7.service-failure-causal-integrity-status.v1",
                     "final_verdict": "PASS", "invalid_states": [],
@@ -796,6 +813,24 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
                 "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_TIER_AUTHORITY_REQUEST_ID"].strip("`"),
+                "sdpauth_r1_" + ("d" * 24),
+            )
+            self.assertEqual(
+                updated_live["CURRENT_TIER_AUTHORITY_REQUEST_HASH"].strip("`"),
+                "d" * 64,
+            )
+            self.assertEqual(
+                updated_live["CURRENT_TIER_AUTHORITY_REQUESTED_MAX_USERS"].strip("`"),
+                "4",
+            )
+            self.assertEqual(
+                updated_live[
+                    "CURRENT_TIER_AUTHORITY_REQUEST_MAX_CONCURRENT_TRANSACTIONS"
+                ].strip("`"),
+                "1",
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],

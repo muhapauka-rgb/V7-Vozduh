@@ -13065,6 +13065,19 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         contract,
         audit_records=audit_records,
     )
+    pending_owner_result = operator_execution.latest_pending_standing_delegated_policy_request(
+        audit_records,
+    )
+    pending_request = (
+        pending_owner_result.get("request")
+        if isinstance(pending_owner_result.get("request"), dict)
+        else {}
+    )
+    pending_policy = (
+        pending_request.get("policy")
+        if isinstance(pending_request.get("policy"), dict)
+        else {}
+    )
     policy_scope = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     causal_integrity = service_failure_causal_integrity_status(Path(args.state_dir))
@@ -13104,6 +13117,26 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "expiry_enforced": True,
         "self_expansion_allowed": bool(policy_scope.get("self_expansion_allowed")),
         "service_failure_causal_integrity": causal_integrity,
+        "pending_tier_authority_request": {
+            "status": str(pending_owner_result.get("status") or "NONE"),
+            "pending_count": int(pending_owner_result.get("pending_count") or 0),
+            "request_id": str(pending_request.get("request_id") or ""),
+            "request_hash": str(pending_request.get("request_hash") or ""),
+            "created_at": str(pending_request.get("created_at") or ""),
+            "expires_at": str(pending_request.get("expires_at") or ""),
+            "active_program": str(pending_request.get("active_program") or ""),
+            "requested_max_users": int(pending_policy.get("max_users_per_action") or 0),
+            "max_concurrent_transactions": int(
+                pending_policy.get("max_concurrent_transactions") or 0
+            ),
+            "action_class": ",".join(sorted(
+                str(item)
+                for item in (pending_policy.get("allowed_action_classes") or [])
+                if str(item)
+            )),
+            "policy_scope_hash": str(pending_request.get("policy_scope_hash") or ""),
+            "decision_set": list(pending_request.get("decision_set") or []),
+        },
         "audit_provenance_verified": bool(validation.get("ok")),
         "blockers": list(validation.get("errors") or []),
         "forbidden_effects": {

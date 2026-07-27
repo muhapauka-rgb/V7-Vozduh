@@ -1294,6 +1294,42 @@ def _standing_delegated_policy_decision_records(records, request_id):
     ]
 
 
+def latest_pending_standing_delegated_policy_request(records, *, now=None):
+    """Return the newest valid undecided request held by the existing audit owner."""
+    now = now or utc_now()
+    records = records if isinstance(records, list) else []
+    decided = {
+        str(record.get("authority_request_id") or "")
+        for record in records
+        if record.get("record_type") == STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE
+    }
+    pending = []
+    for record in records:
+        if record.get("record_type") != STANDING_DELEGATED_POLICY_REQUEST_RECORD_TYPE:
+            continue
+        request = record.get("request") if isinstance(record.get("request"), dict) else {}
+        request_id = str(request.get("request_id") or record.get("authority_request_id") or "")
+        if not request_id or request_id in decided:
+            continue
+        validation = validate_standing_delegated_policy_authority_request(
+            request,
+            decision="DECLINE",
+            expected_request_id=request_id,
+            expected_request_hash=str(record.get("authority_request_hash") or ""),
+            now=now,
+            allow_decline=True,
+        )
+        if not validation.get("ok"):
+            continue
+        pending.append(request)
+    pending.sort(key=lambda request: (str(request.get("created_at") or ""), str(request.get("request_id") or "")))
+    return {
+        "status": "PENDING" if pending else "NONE",
+        "pending_count": len(pending),
+        "request": copy.deepcopy(pending[-1]) if pending else {},
+    }
+
+
 def register_standing_delegated_policy_request(
     request, *, audit_store=None, producer_id="tools/v7-operator-execution-packet", now=None,
 ):

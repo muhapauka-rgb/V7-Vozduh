@@ -55,6 +55,7 @@ from admin_core.operator_execution import (
     register_current_action_class_contract_request,
     current_action_class_contract_request_from_audit,
     issue_standing_delegated_policy_from_audit,
+    latest_pending_standing_delegated_policy_request,
     register_standing_delegated_policy_request,
     validate_standing_delegated_operational_policy,
     validate_standing_delegated_policy_authority_request,
@@ -219,6 +220,47 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
         self.assertFalse(validation["ok"])
         self.assertIn("standing_delegated_policy_request_expired", validation["errors"])
+
+    def test_latest_pending_standing_policy_request_reuses_audit_and_excludes_decided(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                max_users=4,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request, audit_store=audit_path, now=now,
+            )
+            pending = latest_pending_standing_delegated_policy_request(
+                read_audit_records(audit_path),
+                now=now + timedelta(seconds=1),
+            )
+            self.assertEqual(pending["status"], "PENDING")
+            self.assertEqual(pending["pending_count"], 1)
+            self.assertEqual(pending["request"]["request_id"], request["request_id"])
+            self.assertEqual(pending["request"]["policy"]["max_users_per_action"], 4)
+
+            issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now + timedelta(seconds=2),
+            )
+            consumed = latest_pending_standing_delegated_policy_request(
+                read_audit_records(audit_path),
+                now=now + timedelta(seconds=3),
+            )
+            self.assertEqual(consumed["status"], "NONE")
+            self.assertEqual(consumed["pending_count"], 0)
 
     def test_tier4_standing_policy_is_decidable_but_does_not_activate_without_authority(self):
         now = datetime(2026, 7, 28, tzinfo=timezone.utc)

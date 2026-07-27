@@ -17573,6 +17573,11 @@ def _service_failure_action_class_reuse_projection(
     cooldown = status.get("cooldown") if isinstance(status.get("cooldown"), dict) else {}
     action_class = str(status.get("action_class") or "single-user governed candidate failover")
     allowed_failures = ",".join(str(item) for item in (status.get("allowed_failure_families") or []) if str(item))
+    pending_tier_request = (
+        status.get("pending_tier_authority_request")
+        if isinstance(status.get("pending_tier_authority_request"), dict)
+        else {}
+    )
     projection = {
         "CURRENT_ACTION_CLASS": f"`{action_class}`",
         "CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS": "`RESULT_REUSED_VALID`",
@@ -17651,6 +17656,15 @@ def _service_failure_action_class_reuse_projection(
         "CURRENT_ACTION_CLASS_NON_REUSABLE_AS": "`current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation`",
         "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_4`",
         "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`independent exact Tier-4 Authority decision; current Tier-1 policy and Runtime remain unchanged until approval`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_STATUS": f"`{str(pending_tier_request.get('status') or 'NONE')}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_ID": f"`{str(pending_tier_request.get('request_id') or '')}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_HASH": f"`{str(pending_tier_request.get('request_hash') or '')}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_EXPIRES_AT": f"`{str(pending_tier_request.get('expires_at') or '')}`",
+        "CURRENT_TIER_AUTHORITY_REQUESTED_MAX_USERS": f"`{int(pending_tier_request.get('requested_max_users') or 0)}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_MAX_CONCURRENT_TRANSACTIONS": f"`{int(pending_tier_request.get('max_concurrent_transactions') or 0)}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_ACTION_CLASS": f"`{str(pending_tier_request.get('action_class') or '')}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_POLICY_SCOPE_HASH": f"`{str(pending_tier_request.get('policy_scope_hash') or '')}`",
+        "CURRENT_TIER_AUTHORITY_REQUEST_DECISION_SET": f"`{','.join(str(item) for item in (pending_tier_request.get('decision_set') or []) if str(item))}`",
         "CAUSAL_M7_TIER_VERDICT": "`RECOMMEND_EXACT_TIER_4_AUTHORITY_DECISION`",
         "CAUSAL_M7_TIER_DECISION_CONSUMPTION": "`EXACT_TIER_AUTHORITY_DECISION_REQUIRED`",
         "PRODUCT_EVOLUTION_FRONTIER": "`EXACT_TIER_AUTHORITY_DECISION_REQUIRED`",
@@ -17863,6 +17877,62 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "behavior_change": "NONE",
             "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
         }
+    pending_tier_request = status.get("pending_tier_authority_request")
+    if isinstance(pending_tier_request, dict) and pending_tier_request.get("status") == "PENDING":
+        pending_request_id = str(pending_tier_request.get("request_id") or "")
+        pending_request_hash = str(pending_tier_request.get("request_hash") or "")
+        pending_expires_at = str(pending_tier_request.get("expires_at") or "")
+        pending_scope_hash = str(pending_tier_request.get("policy_scope_hash") or "")
+        pending_max_users = _status_int(pending_tier_request.get("requested_max_users"))
+        pending_max_concurrent = _status_int(
+            pending_tier_request.get("max_concurrent_transactions")
+        )
+        if not re.fullmatch(r"sdpauth_r1_[0-9a-f]{24}", pending_request_id):
+            errors.append("runtime_pending_tier_request_id_invalid")
+        if (
+            not re.fullmatch(r"[0-9a-f]{64}", pending_request_hash)
+            or pending_request_id != f"sdpauth_r1_{pending_request_hash[:24]}"
+        ):
+            errors.append("runtime_pending_tier_request_hash_or_identity_invalid")
+        if not re.fullmatch(r"[0-9a-f]{64}", pending_scope_hash):
+            errors.append("runtime_pending_tier_request_scope_hash_invalid")
+        if pending_max_users not in {2, 4} or pending_max_concurrent != 1:
+            errors.append("runtime_pending_tier_request_bounds_invalid")
+        if (
+            str(pending_tier_request.get("active_program") or "")
+            != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
+        ):
+            errors.append("runtime_pending_tier_request_program_invalid")
+        try:
+            if _parse_iso_timestamp(pending_expires_at) <= datetime.now(timezone.utc):
+                errors.append("runtime_pending_tier_request_expired")
+        except (TypeError, ValueError):
+            errors.append("runtime_pending_tier_request_expiry_invalid")
+        if set(pending_tier_request.get("decision_set") or []) != {
+            "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            "DECLINE",
+        }:
+            errors.append("runtime_pending_tier_request_decision_set_invalid")
+        if errors:
+            return {
+                "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+                "final_verdict": "STOP_SAFE",
+                "errors": sorted(set(errors)),
+                "behavior_change": "NONE",
+                "forbidden_effects": {
+                    "policy_write": False,
+                    "contract_issuance": False,
+                    "candidate_creation": False,
+                    "packet_or_lease_creation": False,
+                    "restore_barrier_write": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_change": False,
+                },
+            }
     tier_projection, reuse_projection = _service_failure_action_class_reuse_projection(
         status, live, root=root,
     )

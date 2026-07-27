@@ -1756,9 +1756,17 @@ class AutoswitchPlanner:
         # otherwise every successful failover would silently shrink the
         # denominator and make full closure impossible to prove.
         existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
-        if source_scope_count >= 0 and source_scope_fingerprint and not existing_scope:
+        scope_rotation = bool(
+            existing_scope
+            and str(existing_scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+            and (
+                to_int(existing_scope.get("affected_scope_count"), -1) != source_scope_count
+                or str(existing_scope.get("affected_scope_fingerprint") or "") != source_scope_fingerprint
+            )
+        )
+        if source_scope_count >= 0 and source_scope_fingerprint and (not existing_scope or scope_rotation):
             scope_accounting = {
-                "schema_version": "v7.service-failure-incident-scope-accounting.v1",
+                "schema_version": "v7.service-failure-incident-scope-accounting.v2",
                 "status": "ACCOUNTED",
                 # ``closure.event_id`` can be the compact incident group id.
                 # The baseline must point to the producer event that supplied
@@ -1775,6 +1783,13 @@ class AutoswitchPlanner:
                 "accounted_scope_count": source_scope_count,
                 "live_registry_available": True,
                 "raw_user_list_stored": False,
+                "scope_generation": str(source_event_ids[0] if source_event_ids else closure.get("event_id") or ""),
+                "supersedes_invalid_scope": ({
+                    "affected_scope_count": to_int(existing_scope.get("affected_scope_count"), -1),
+                    "affected_scope_fingerprint": str(existing_scope.get("affected_scope_fingerprint") or ""),
+                    "baseline_event_id": str(existing_scope.get("baseline_event_id") or ""),
+                    "invalidation_reason": "LIVE_ROUTE_SCOPE_NO_LONGER_RECONCILABLE_WITH_LEGACY_GENERATION",
+                } if scope_rotation else {}),
             }
         else:
             scope_accounting = existing_scope

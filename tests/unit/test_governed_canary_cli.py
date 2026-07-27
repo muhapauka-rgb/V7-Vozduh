@@ -1227,6 +1227,33 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(result["allowed"], result)
         self.assertEqual(result["qualifying_service_failure_event"]["object"], "vless")
 
+    def test_event_reader_keeps_latest_event_for_each_channel_inside_bounded_window(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            event_dir = Path(tmp)
+            path = event_dir / "service-failure-events.jsonl"
+            rows = [
+                {
+                    "event_id": f"sfrev_noisy_{index}",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "channel": "1",
+                    "observed_at": datetime.now(timezone.utc).isoformat(),
+                }
+                for index in range(30)
+            ]
+            # Fresh VLESS is older than the generic final-25 cut, but is the
+            # exact source fact needed by its independently selected Packet.
+            rows.insert(0, {
+                "event_id": "sfrev_vless_kept",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "channel": "vless",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+            })
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            selected = module.event_rows(event_dir, 25)
+        self.assertLessEqual(len(selected), 25)
+        self.assertIn("sfrev_vless_kept", {row.get("event_id") for row in selected})
+
     def test_bounded_delegated_policy_rejects_unbound_continuing_revalidation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

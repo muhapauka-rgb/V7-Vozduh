@@ -327,7 +327,51 @@ def event_rows(event_dir: Path, limit: int) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for path in paths:
         rows.extend(read_jsonl_family(path, limit=per_source_limit))
-    return rows[-max(0, int(limit)):]
+    limit = max(0, int(limit))
+    if len(rows) <= limit:
+        return rows
+
+    # Retain a bounded, latest-per-semantic-source projection before filling
+    # the remainder by recency.  A busy unrelated channel must not be able to
+    # push a still-fresh VLESS (or any other channel) revalidation outside the
+    # executor's input window.  This is not a new store or selector: it is the
+    # existing JSONL reader preserving one most-recent producer fact for each
+    # (event type, affected object) within its existing bounded read budget.
+    # The downstream admission still accepts only an exact source-matching,
+    # fresh, provenance-bound event.
+    selected: list[tuple[int, dict[str, Any]]] = []
+    seen_semantic_sources: set[tuple[str, str]] = set()
+    for index in range(len(rows) - 1, -1, -1):
+        row = rows[index]
+        if not isinstance(row, dict):
+            continue
+        event_type = str(row.get("event_type") or row.get("type") or "")
+        affected_object = str(
+            row.get("channel")
+            or row.get("egress")
+            or row.get("object")
+            or row.get("user")
+            or row.get("component")
+            or ""
+        )
+        key = (event_type, affected_object)
+        if key in seen_semantic_sources:
+            continue
+        seen_semantic_sources.add(key)
+        selected.append((index, row))
+        if len(selected) >= limit:
+            break
+
+    selected_indexes = {index for index, _ in selected}
+    if len(selected) < limit:
+        for index in range(len(rows) - 1, -1, -1):
+            if index in selected_indexes or not isinstance(rows[index], dict):
+                continue
+            selected.append((index, rows[index]))
+            selected_indexes.add(index)
+            if len(selected) >= limit:
+                break
+    return [row for _, row in sorted(selected)]
 
 
 def planner_observe_executable() -> Path:

@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import shlex
 import tempfile
 import unittest
 from pathlib import Path
@@ -135,8 +136,8 @@ class V7TruthCheckTest(unittest.TestCase):
             "service_failure_causal_binding": {"source_incident_id": "sfinc_fetch"},
         }
         command = (
-            "ssh", "v7-vps", "python3", "-c",
-            self.tool.SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT,
+            "ssh", "v7-vps",
+            f"python3 -c {shlex.quote(self.tool.SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT)}",
         )
         result = self.tool.fetch_accounted_service_failure_feedback(
             manifest,

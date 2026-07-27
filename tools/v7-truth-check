@@ -14,6 +14,7 @@ from datetime import datetime
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -224,7 +225,10 @@ def fetch_accounted_service_failure_feedback(
     host = str(manifest.get("production_ssh_target") or "").strip()
     if not re.fullmatch(r"[A-Za-z0-9._-]+", host):
         return {"ok": False, "errors": ["production_ssh_target_invalid"]}
-    command = ["ssh", host, "python3", "-c", SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT]
+    # SSH joins trailing arguments into a remote shell command.  Keep the
+    # static script as one shell-quoted argument so the remote reader cannot
+    # be split into shell statements or reinterpret its source text.
+    command = ["ssh", host, f"python3 -c {shlex.quote(SERVICE_FAILURE_PRODUCTION_ENVELOPE_SCRIPT)}"]
     result = runner(command, None, 20)
     if not result.get("ok"):
         return {

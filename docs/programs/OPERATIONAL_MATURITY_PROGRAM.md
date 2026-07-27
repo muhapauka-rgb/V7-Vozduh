@@ -7886,9 +7886,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION`
-Resolved request: CPS holds one exact 24-hour standing delegated operational-policy request emitted and append-only registered by the existing production Authority owner. It may be independently approved once or declined. Approval activates only the narrow existing-planner, one-user, one-concurrent action class and does not itself create a Candidate, Packet or lease or move a user; all future qualifying Candidates must still be fresh and pass the existing bounded gates.
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`
+Resolved contract state: the existing production policy and its append-only Authority audit prove one active, still-fresh standing delegated operational-policy contract. CPS records that verified projection; it does not issue, renew or expand Authority. The next legal input is a fresh owner-backed matching service-failure event. It may then enter the existing planner only with fresh Candidate, Packet and lease identities, all live gates, `max_users=1` and `max_concurrent_transactions=1`.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8874,8 +8874,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION`
+Resolved current stop: `REAL_WORLD_LIMIT`
+Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`
 Current terminal report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

@@ -11241,6 +11241,25 @@ class AutoswitchPlanner:
             }
         _observed, obligation_id, closure = sorted(candidates, key=lambda row: row[0], reverse=True)[0]
         source = str(closure.get("channel") or "")
+        # The passive terminal is an immutable observation, not the live
+        # source denominator.  Before materializing an OMP obligation, reuse
+        # the existing execution-outcome reconciler and L3 incident record so
+        # the obligation carries the same current scope as CPS.  This prevents
+        # a historical closure with an empty compact user list from silently
+        # producing an ``affected_users_count=0`` successor for an open
+        # incident.  No route, Packet, lease, or policy is touched here.
+        pre_obligation_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        pre_obligation_state = self._load_l3_runtime_state()
+        pre_obligation_incident_key = str(closure.get("incident_key") or self._passive_incident_projection_key(
+            str(closure.get("source_incident_id") or closure.get("object_id") or "")
+        ))
+        pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
+        pre_obligation_incident = pre_obligation_incidents.get(pre_obligation_incident_key) if isinstance(pre_obligation_incidents.get(pre_obligation_incident_key), dict) else {}
+        current_source_scope = (
+            pre_obligation_incident.get("current_source_scope")
+            if isinstance(pre_obligation_incident.get("current_source_scope"), dict)
+            else (pre_obligation_incident.get("scope_accounting") if isinstance(pre_obligation_incident.get("scope_accounting"), dict) else {})
+        )
         decisions = [
             row for row in (plan.get("decisions") or [])
             if not source or str(row.get("current_egress") or "") == source
@@ -11254,6 +11273,8 @@ class AutoswitchPlanner:
         chosen = sorted(movable, key=lambda row: str(row.get("user_ip") or ""))[:1]
         now = now_iso()
         affected = list(closure.get("affected_users") or [])
+        current_affected_count = max(0, to_int(current_source_scope.get("affected_scope_count"), len(affected)))
+        current_affected_fingerprint = str(current_source_scope.get("affected_scope_fingerprint") or "")
         authority_policy = getattr(self, "authority_budget_policy", {})
         emergency_policy = getattr(self, "emergency_failover_policy", {})
         current_tier = max(0, to_int(
@@ -11329,11 +11350,19 @@ class AutoswitchPlanner:
             "evidence_class": str(closure.get("evidence_class") or "UNKNOWN_EVENT"),
             "channel": source,
             "failure_families": list(closure.get("failure_families") or []),
-            "affected_users_count": len(affected),
-            "aggregate_impact_users": len(affected),
+            "affected_users_count": current_affected_count,
+            "aggregate_impact_users": current_affected_count,
+            "current_source_scope": {
+                "affected_scope_count": current_affected_count,
+                "affected_scope_fingerprint": current_affected_fingerprint,
+                "protected_scope_count": max(0, to_int(current_source_scope.get("protected_scope_count"), 0)),
+                "unresolved_scope_count": max(0, to_int(current_source_scope.get("unresolved_scope_count"), current_affected_count)),
+                "explicitly_excluded_or_recovered_scope_count": max(0, to_int(current_source_scope.get("explicitly_excluded_or_recovered_scope_count"), 0)),
+                "raw_user_list_stored": False,
+            },
             "bounded_recommendation_users": len(chosen),
             "current_certified_blast_radius_tier": current_tier,
-            "requested_blast_radius_tier": min(len(affected), max(1, current_tier)),
+            "requested_blast_radius_tier": min(current_affected_count, max(1, current_tier)),
             "smallest_necessary_cohort": len(chosen),
             "maximum_capacity_safe_cohort": len(chosen),
             "current_authority_safe_cohort": authority_safe_cohort,
@@ -11390,7 +11419,7 @@ class AutoswitchPlanner:
                 "automation_obligation_id": obligation_id,
                 "situation_id": obligation["situation_id"],
                 "decision_trace_id": obligation["decision_trace_id"],
-                "aggregate_impact_users": len(affected),
+                "aggregate_impact_users": current_affected_count,
                 "bounded_recommendation_users": 1,
                 "execution_allowed_now": False,
                 "allowed_action_status": obligation["shadow_allowed_action_status"],
@@ -11447,6 +11476,7 @@ class AutoswitchPlanner:
             "obligation": obligation,
             "shadow_decision_id": str(shadow_record.get("decision_id") or ""),
             "outcome_reconciliation": outcome_reconciliation,
+            "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
             "final_scope_reconciliation": final_scope_reconciliation,
             "next_output": obligation["incident_frontier"] if product_frontier == "NONE" else product_frontier,
             "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False, "production_maturity_change": False},

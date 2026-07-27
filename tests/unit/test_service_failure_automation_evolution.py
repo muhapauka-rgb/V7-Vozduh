@@ -72,6 +72,57 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_live_scope"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n"
+                "ip=10.0.0.4 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id,
+                    "source_incident_id": incident_id, "source_channel": "vless", "channel": "vless",
+                    "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED", "affected_scope_count": 3,
+                        "affected_scope_fingerprint": "live-scope-fingerprint",
+                    },
+                    "current_source_scope": {
+                        "status": "ACCOUNTED", "affected_scope_count": 3,
+                        "affected_scope_fingerprint": "live-scope-fingerprint",
+                    },
+                },
+            }}), encoding="utf-8")
+            closure = {
+                "object_type": "passive_production_event", "object_id": incident_id,
+                "source_incident_id": incident_id, "incident_key": incident_key,
+                "situation_id": "situation_live_scope", "decision_trace_id": "decision_live_scope",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION", "channel": "vless",
+                # An old compact passive closure legitimately has no raw list.
+                "affected_users": [], "observed_at": "2026-07-27T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            result = planner.materialize_service_failure_automation_advisory({"decisions": [{
+                "user_ip": "10.0.0.2", "current_egress": "vless", "recommended_egress": "awg0",
+            }]})
+        self.assertTrue(result["active"])
+        self.assertEqual(result["obligation"]["affected_users_count"], 3)
+        self.assertEqual(result["obligation"]["current_source_scope"]["affected_scope_fingerprint"], "live-scope-fingerprint")
+        self.assertFalse(result["obligation"]["current_source_scope"]["raw_user_list_stored"])
+
     def test_active_incident_scope_bridge_accepts_only_balanced_compact_projection(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

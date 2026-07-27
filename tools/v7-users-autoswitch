@@ -10818,19 +10818,30 @@ class AutoswitchPlanner:
             grouped.setdefault(group_id, []).append(event)
         omp_frontiers: list[dict[str, Any]] = []
         for group_id, group_events in sorted(grouped.items()):
-            event = sorted(group_events, key=lambda item: str(item.get("event_id") or ""))[0]
+            # A source incident may contain a terminal expiry/recovery and a
+            # later revalidation in the same consumption batch.  Terminal
+            # state belongs to the newest owner-backed observation, never to
+            # an arbitrary event-id sort or to the mere presence of an older
+            # expiry.  Otherwise an active, newly revalidated failure becomes
+            # invisible and cannot reach the existing OMP successor.
+            def event_order(item: dict[str, Any]) -> tuple[float, str]:
+                observed = str(
+                    item.get("observed_at")
+                    or item.get("recovered_at")
+                    or item.get("created_at")
+                    or ""
+                )
+                return (parse_ts(observed), str(item.get("event_id") or ""))
+
+            ordered_group_events = sorted(group_events, key=event_order)
+            event = ordered_group_events[-1]
             source_event_ids = sorted(str(item["event_id"]) for item in group_events)
             event_id = group_id
             provenance_contract = passive_event_provenance_classification(event)
             operator_induced = provenance_contract["observation_provenance"] == "OPERATOR_INDUCED"
-            recovery_observed = any(
-                str(item.get("evidence_class") or "") == "PROBE_OBSERVED_RECOVERY_EVENT"
-                for item in group_events
-            )
-            expiry_observed = any(
-                str(item.get("evidence_class") or "") == "PROBE_OBSERVED_EPISODE_EXPIRY"
-                for item in group_events
-            )
+            latest_evidence_class = str(event.get("evidence_class") or "")
+            recovery_observed = latest_evidence_class == "PROBE_OBSERVED_RECOVERY_EVENT"
+            expiry_observed = latest_evidence_class == "PROBE_OBSERVED_EPISODE_EXPIRY"
             event_provenance = str(provenance_contract["observation_provenance"])
             evidence_class = (
                 str(provenance_contract["evidence_class"])
@@ -10912,6 +10923,21 @@ class AutoswitchPlanner:
                     if isinstance(event.get("source_scope"), dict) else {}
                 ),
                 "observed_at": str(event.get("observed_at") or ""),
+                "terminal_resolution": {
+                    "owner": "tools/v7-users-autoswitch._consume_passive_production_events",
+                    "basis": "LATEST_OWNER_BACKED_EVENT_IN_SOURCE_INCIDENT",
+                    "latest_event_id": str(event.get("event_id") or ""),
+                    "latest_event_observed_at": str(event.get("observed_at") or event.get("recovered_at") or event.get("created_at") or ""),
+                    "latest_evidence_class": latest_evidence_class,
+                    "superseded_terminal_event_ids": [
+                        str(item.get("event_id") or "")
+                        for item in ordered_group_events[:-1]
+                        if str(item.get("evidence_class") or "") in {
+                            "PROBE_OBSERVED_RECOVERY_EVENT",
+                            "PROBE_OBSERVED_EPISODE_EXPIRY",
+                        }
+                    ],
+                },
                 "situation_id": situation_id,
                 "decision_trace_id": decision_trace_id,
                 "learning_record_id": learning_id,

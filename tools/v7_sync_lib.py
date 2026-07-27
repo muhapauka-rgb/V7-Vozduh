@@ -16682,6 +16682,176 @@ def reconcile_service_failure_external_authority_boundary(
     }
 
 
+def reconcile_active_standing_delegated_policy_to_cps(
+    runtime_status: dict[str, Any], *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically replace a stale CPS Authority request with verified live policy truth.
+
+    The runtime status is produced by the existing policy plus append-only
+    operator-execution audit owner.  This function is only the CPS consumer:
+    it never issues or changes a contract and deliberately has no planner or
+    execution side effects.
+    """
+    status = runtime_status if isinstance(runtime_status, dict) else {}
+    errors: list[str] = []
+    required = {
+        "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+        "status": "PASS",
+        "contract_status": "ACTIVE",
+        "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "authority_decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+    }
+    for key, expected in required.items():
+        if str(status.get(key) or "") != expected:
+            errors.append(f"runtime_status_mismatch:{key}")
+    if status.get("ok") is not True or status.get("audit_provenance_verified") is not True:
+        errors.append("runtime_policy_audit_validation_not_passed")
+    contract_id = str(status.get("contract_id") or "")
+    contract_hash = str(status.get("contract_hash") or "")
+    request_id = str(status.get("authority_request_id") or "")
+    request_hash = str(status.get("authority_request_hash") or "")
+    expires_at = str(status.get("expires_at") or "")
+    scope_hash = str(status.get("policy_scope_hash") or "")
+    if not re.fullmatch(r"sdpc_[0-9a-f]{24}", contract_id):
+        errors.append("runtime_contract_id_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", contract_hash) or contract_id != f"sdpc_{contract_hash[:24]}":
+        errors.append("runtime_contract_hash_or_identity_invalid")
+    if not request_id.startswith("sdpauth_r1_") or not re.fullmatch(r"[0-9a-f]{64}", request_hash):
+        errors.append("runtime_authority_request_identity_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", scope_hash):
+        errors.append("runtime_policy_scope_hash_invalid")
+    try:
+        if _parse_iso_timestamp(expires_at) <= datetime.now(timezone.utc):
+            errors.append("runtime_contract_expired")
+    except (TypeError, ValueError):
+        errors.append("runtime_contract_expiry_invalid")
+    if errors:
+        return {
+            "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": sorted(set(errors)),
+            "behavior_change": "NONE",
+            "forbidden_effects": {
+                "policy_write": False, "contract_issuance": False, "candidate_creation": False,
+                "packet_or_lease_creation": False, "restore_barrier_write": False,
+                "runtime_apply": False, "routing_mutation": False, "user_movement": False,
+                "rollback_apply": False, "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        return {
+            "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": ["cps_active_program_mismatch"],
+            "behavior_change": "NONE",
+            "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
+        }
+    stale_request = _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_ID")
+    if stale_request and stale_request != request_id:
+        return {
+            "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": ["cps_runtime_authority_request_mismatch"],
+            "behavior_change": "NONE",
+            "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
+        }
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
+        "current_stop_condition": "REAL_WORLD_LIMIT",
+        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE",
+        "current_safe_next_action": (
+            "ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING "
+            "MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; "
+            "DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY"
+        ),
+        "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+        "current_state_generation": f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}",
+        "current_transition_id": "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1",
+        "current_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "current_program_execution_frontier": "NONE",
+        "current_execution_frontier": "NONE",
+        "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+        "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+        "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; fresh event and existing policy gates remain required",
+        "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+        "wip_smallest_existing_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "wip_smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "last_responsible_link": "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates",
+        "omp_continuation_pointer": (
+            "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
+            "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
+        ),
+        "sequence_execution_class": "existing Service Matrix fresh-event revalidation owner",
+        "sequence_expected_output": "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor",
+        "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
+        "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+        "program_terminal_class": "REAL_WORLD_LIMIT",
+        "program_terminal_state": "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "continuation_stop_reason": (
+            "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
+            "OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL "
+            "CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN"
+        ),
+        "no_progress_fingerprint": hashlib.sha256(json.dumps({
+            "contract_hash": contract_hash, "request_hash": request_hash,
+            "terminal": "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+        }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
+        "state_captured": utc_now(),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "CURRENT_AUTHORITY_REQUEST_STATUS": "`ACTIVE_OWNER_BACKED_STANDING_POLICY`",
+            "CURRENT_AUTHORITY_CONTRACT_ID": f"`{contract_id}`",
+            "CURRENT_AUTHORITY_CONTRACT_HASH": f"`{contract_hash}`",
+            "CURRENT_AUTHORITY_CONTRACT_EXPIRY": f"`{expires_at}`",
+            "CURRENT_AUTHORITY_POLICY_SCOPE_HASH": f"`{scope_hash}`",
+            "CURRENT_AUTHORITY_AUDIT_PROVENANCE": "`PASS_EXACTLY_ONE_APPROVAL_RECORD`",
+            "CURRENT_AUTHORITY_REQUEST_ID": f"`{request_id}`",
+            "CURRENT_AUTHORITY_REQUEST_HASH": f"`{request_hash}`",
+            "CURRENT_AUTHORITY_REQUEST_EXPIRY": f"`{expires_at}`",
+            "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": f"`{request_hash}`",
+            "CURRENT_AUTHORITY_REQUEST_SCOPE": "`STANDING_POLICY_ACTIVE; existing planner only; fresh Candidate/Packet/lease; max_users=1; max_concurrent_transactions=1; no reuse; all live gates remain required`",
+        },
+    )
+    return {
+        "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+        "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+        "atomic_update": atomic,
+        "contract_id": contract_id,
+        "contract_hash": contract_hash,
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "expires_at": expires_at,
+        "next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "behavior_change": "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS",
+        "forbidden_effects": {
+            "policy_write": False, "contract_issuance": False, "candidate_creation": False,
+            "packet_or_lease_creation": False, "restore_barrier_write": False,
+            "runtime_apply": False, "routing_mutation": False, "user_movement": False,
+            "rollback_apply": False, "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+        "errors": [] if atomic.get("ok") else atomic.get("errors") or ["atomic_cps_reconciliation_failed"],
+    }
+
+
 def continue_omp_engineering_control_loop(
     *,
     root: Path = ROOT,

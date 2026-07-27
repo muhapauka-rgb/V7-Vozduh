@@ -11885,6 +11885,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--standing-delegated-policy-status",
+        action="store_true",
+        help=(
+            "Read and validate the existing standing delegated-policy plus its append-only "
+            "Authority audit provenance.  This is status-only: it never writes policy, "
+            "creates execution artifacts, or enters the planner/apply path."
+        ),
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -12079,6 +12088,81 @@ def reconcile_passive_causal_projections_only(args: argparse.Namespace) -> dict[
     }
 
 
+def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Expose the existing policy/audit owner as a redacted read-only status.
+
+    This is deliberately narrower than the planner: it does not construct an
+    incident, Candidate, Packet or lease.  CPS reconciliation needs only the
+    already-authoritative contract identity and validation outcome, not the
+    policy body or an execution preflight.
+    """
+    forbidden = [
+        name for name in (
+            "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id", "approved_operation_id", "approved_selected_move_hash",
+            "approved_authority_generation", "approved_breaker_generation",
+            "approved_source_bundle_hash", "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result", "rollback_packet", "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [f"standing_policy_status_forbids_{name}" for name in sorted(set(forbidden))],
+            "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": 0},
+        }
+
+    policy_root = read_json(Path(args.policy_file), {})
+    policy_root = policy_root if isinstance(policy_root, dict) else {}
+    contract = policy_root.get("delegated_autonomy_policy")
+    contract = contract if isinstance(contract, dict) else {}
+    audit_records = operator_execution.read_audit_records(Path(args.action_class_audit_store))
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=audit_records,
+    )
+    decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    result = {
+        "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+        "status": "PASS" if validation.get("ok") else "STOP_SAFE_INVALID_STANDING_POLICY",
+        "ok": bool(validation.get("ok")),
+        "owner": "existing /etc/v7/policy.json + admin_core/operator_execution.py append-only audit",
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "contract_status": str(contract.get("status") or ""),
+        "issuing_owner": str(contract.get("issuing_owner") or ""),
+        "active_program": str(contract.get("active_program") or ""),
+        "issued_at": str(contract.get("issued_at") or ""),
+        "expires_at": str(contract.get("expires_at") or ""),
+        "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+        "authority_decision": str(decision.get("decision") or ""),
+        "authority_decision_id": str(decision.get("decision_id") or ""),
+        "authority_request_id": str(decision.get("request_id") or ""),
+        "authority_request_hash": str(decision.get("request_hash") or ""),
+        "audit_provenance_verified": bool(validation.get("ok")),
+        "blockers": list(validation.get("errors") or []),
+        "forbidden_effects": {
+            "policy_write": False, "contract_issuance": False, "candidate_created": False,
+            "packet_created": False, "lease_created": False, "restore_barrier_write": False,
+            "runtime_apply": False, "routing_mutation": False, "user_movement": 0,
+            "rollback_apply": False, "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+    return result
+
+
 def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
     """Close the STOP_SAFE -> policy-owner handoff on one coherent snapshot.
 
@@ -12162,6 +12246,10 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
 
 def main() -> int:
     args = build_arg_parser().parse_args()
+    if args.standing_delegated_policy_status:
+        result = standing_delegated_policy_status_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
     if args.consume_passive_events_only:
         result = consume_passive_events_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

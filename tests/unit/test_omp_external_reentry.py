@@ -174,6 +174,41 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["internal_iteration_count"], 0)
         self.assertEqual(cps.read_text(encoding="utf-8"), before)
 
+    def test_verified_active_standing_policy_replaces_stale_authority_request(self):
+        """The CPS consumer accepts only an already-valid policy/audit projection."""
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "ENGINEERING_AUTHORITY"),
+            ("CURRENT_NEXT_ACTION_ID", "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION"),
+            ("EXTERNAL_INPUT_REQUIRED", "TRUE"),
+            ("EXTERNAL_INPUT_TYPE", "EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_DECISION"),
+            ("CURRENT_AUTHORITY_REQUEST_ID", "sdpauth_r1_" + "a" * 24),
+        ):
+            self.replace_live(field, value)
+        contract_hash = "b" * 64
+        request_hash = "a" * 64
+        result = self.lib.reconcile_active_standing_delegated_policy_to_cps({
+            "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+            "status": "PASS", "ok": True, "audit_provenance_verified": True,
+            "contract_id": f"sdpc_{contract_hash[:24]}", "contract_hash": contract_hash,
+            "contract_status": "ACTIVE",
+            "active_program": self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+            "authority_decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            "authority_request_id": "sdpauth_r1_" + "a" * 24,
+            "authority_request_hash": request_hash,
+            "expires_at": "2026-08-27T00:00:00+00:00",
+            "policy_scope_hash": "c" * 64,
+        }, root=self.root)
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            (self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+            "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(self.lib._plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_STATUS"), "ACTIVE_OWNER_BACKED_STANDING_POLICY")
+        self.assertEqual(self.lib._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"), "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION")
+        self.assertEqual(self.lib._plain_live_value(live, "CURRENT_STOP_CONDITION"), "REAL_WORLD_LIMIT")
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_continue_omp_binary_only_runtime_is_structured_stop_safe(self):
         with tempfile.TemporaryDirectory() as directory:
             result = self.lib.continue_omp_engineering_control_loop(root=Path(directory))

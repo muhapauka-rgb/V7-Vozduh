@@ -627,6 +627,75 @@ def delegated_policy_consistency_check(repo_root: Path) -> dict[str, Any]:
     }
 
 
+def read_active_standing_policy_runtime_status(
+    manifest: dict[str, Any], *, runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    """Read only the redacted, existing policy/audit status from production."""
+    target = str(manifest.get("production_ssh_target") or "").strip()
+    if not target:
+        return {
+            "ok": False, "errors": ["production_ssh_target_not_configured"],
+            "status": {}, "command": [],
+        }
+    command = [
+        "ssh", target, "/usr/local/bin/v7-users-autoswitch",
+        "--standing-delegated-policy-status",
+    ]
+    result = runner(command, ROOT_DIR, 30)
+    raw = command_output(result)
+    try:
+        status = json.loads(raw)
+    except json.JSONDecodeError:
+        status = {}
+    if not isinstance(status, dict):
+        status = {}
+    errors: list[str] = []
+    if not result.get("ok"):
+        errors.append("production_status_command_failed")
+    if not status:
+        errors.append("production_status_not_json")
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "status": status,
+        "command": command,
+        "stderr": str(result.get("stderr") or ""),
+    }
+
+
+def reconcile_active_standing_policy_from_runtime(
+    *, root: Path = ROOT_DIR, runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    """Bridge the existing runtime policy/audit owner into the source CPS atomically."""
+    manifest = load_manifest(root / DEFAULT_MANIFEST)
+    runtime_status = read_active_standing_policy_runtime_status(manifest, runner=runner)
+    if not runtime_status.get("ok"):
+        return {
+            "schema": "v7.service-failure-standing-policy-runtime-cps-bridge.v1",
+            "final_verdict": "STOP_SAFE",
+            "runtime_status": runtime_status,
+            "errors": list(runtime_status.get("errors") or []),
+            "forbidden_effects": {
+                "policy_write": False, "contract_issuance": False, "candidate_creation": False,
+                "packet_or_lease_creation": False, "restore_barrier_write": False,
+                "runtime_apply": False, "routing_mutation": False, "user_movement": False,
+                "rollback_apply": False, "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+    reconciled = sync_lib.reconcile_active_standing_delegated_policy_to_cps(
+        runtime_status["status"], root=root,
+    )
+    return {
+        "schema": "v7.service-failure-standing-policy-runtime-cps-bridge.v1",
+        "final_verdict": reconciled.get("final_verdict", "STOP_SAFE"),
+        "runtime_status": runtime_status,
+        "reconciliation": reconciled,
+        "errors": reconciled.get("errors") or [],
+        "forbidden_effects": reconciled.get("forbidden_effects") or {},
+    }
+
+
 def combine_results(
     manifest: dict[str, Any],
     *,
@@ -748,6 +817,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
     parser.add_argument("--reconcile-action-class-contract-request", default="", metavar="PATH", help="Atomically project one fresh read-only M5a action-class Authority request into the canonical source CPS; never approves, writes policy, or executes an action.")
     parser.add_argument("--reconcile-external-authority-boundary", action="store_true", help="Atomically restore the exact existing external-Authority CPS projection after a proven automatic-successor precedence defect; never issues policy or executes an action.")
+    parser.add_argument("--reconcile-active-standing-delegated-policy", action="store_true", help="Read the existing production policy/audit status and atomically replace a stale CPS Authority-request projection; never issues a contract or executes an action.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -800,6 +870,13 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.reconcile_active_standing_delegated_policy:
+        result = reconcile_active_standing_policy_from_runtime(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"standing_delegated_policy_reconciliation={result.get('final_verdict', 'STOP_SAFE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.reconcile_external_authority_boundary:
         result = sync_lib.reconcile_service_failure_external_authority_boundary(root=ROOT_DIR)
         if args.json:

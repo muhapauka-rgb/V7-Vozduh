@@ -6064,6 +6064,8 @@ def reconcile_service_failure_omp_receipts_to_incident_state(
     for obligation_id, receipt in latest_by_obligation.items():
         incident_key = str(receipt.get("incident_key") or "")
         source_incident_id = str(receipt.get("source_incident_id") or "")
+        situation_id = str(receipt.get("situation_id") or "")
+        decision_trace_id = str(receipt.get("decision_trace_id") or "")
         matches = [
             (key, record)
             for key, record in incidents.items()
@@ -6072,7 +6074,15 @@ def reconcile_service_failure_omp_receipts_to_incident_state(
             and (
                 (incident_key and str(key) == incident_key)
                 or str(record.get("obligation_id") or "") == obligation_id
-                or (source_incident_id and str(record.get("incident_id") or "") == source_incident_id)
+                or (
+                    not incident_key
+                    and source_incident_id
+                    and situation_id
+                    and decision_trace_id
+                    and str(record.get("incident_id") or "") == source_incident_id
+                    and str(record.get("situation_id") or "") == situation_id
+                    and str(record.get("decision_trace_id") or "") == decision_trace_id
+                )
             )
         ]
         if not matches:

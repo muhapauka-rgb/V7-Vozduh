@@ -367,6 +367,45 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
             self.assertEqual(state["incidents"][incident_key]["omp_receipt_id"], "sfomp_m2_repair")
 
+    def test_m2_legacy_receipt_cannot_consume_new_generation_by_source_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_key = "passive_m2_strict"
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "schema_version": "v7.l3-runtime-state.v1",
+                "incidents": {
+                    incident_key: {
+                        "incident_key": incident_key,
+                        "incident_id": "sfinc_same_source",
+                        "incident_state": "OPEN",
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "situation_id": "situation_new_generation",
+                        "decision_trace_id": "decision_new_generation",
+                        "next_required_consumer": "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
+                        "reentry_condition": "fresh current generation",
+                    },
+                },
+            }), encoding="utf-8")
+            stale_receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "object_id": "sfomp_stale",
+                "automation_obligation_id": "sfaob_stale",
+                "closure_state": "OMP_CONSUMED",
+                "source_incident_id": "sfinc_same_source",
+                "situation_id": "situation_old_generation",
+                "decision_trace_id": "decision_old_generation",
+                "next_action": "HISTORICAL",
+                "consumed_at": "2026-07-26T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(stale_receipt) + "\n", encoding="utf-8")
+
+            result = self.sync.reconcile_service_failure_omp_receipts_to_incident_state(state_dir=state_dir)
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(result["changed_records"], 0)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            self.assertNotIn("omp_receipt_id", state["incidents"][incident_key])
+
     def test_existing_closure_owner_is_consumed_once_across_processes(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

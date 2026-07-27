@@ -8446,6 +8446,39 @@ def reconcile_service_failure_execution_feedback_to_cps(
         errors.append("execution_feedback_terminal_not_consumable")
     if execution.get("runtime_mutation_performed") is not True or int(execution.get("users_moved") or 0) != 1:
         errors.append("execution_feedback_exact_one_user_apply_not_proven")
+    # Validate the immutable feedback identity before looking at its compact
+    # scope projection.  A feedback id that CPS has already consumed is a
+    # no-op: the live L3 scope may legitimately have advanced since that
+    # outcome, so comparing an old Packet binding to the *new* scope would
+    # turn an idempotent replay into a false STOP_SAFE.
+    if errors:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": sorted(set(errors)),
+        }
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": [f"cps_unreadable:{exc}"],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": ["service_failure_program_not_active_in_cps"],
+        }
+    if _plain_live_value(live, "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID") == feedback_id:
+        return {
+            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
+            "final_verdict": "PASS", "status": "EXECUTION_FEEDBACK_ALREADY_CONSUMED",
+            "feedback_id": feedback_id, "behavior_change": False, "errors": [],
+        }
+
     scope_accounting = feedback.get("incident_scope_accounting")
     scope_accounting = scope_accounting if isinstance(scope_accounting, dict) else {}
     scope_available = bool(scope_accounting)
@@ -8476,22 +8509,6 @@ def reconcile_service_failure_execution_feedback_to_cps(
             "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
             "final_verdict": "STOP_SAFE", "errors": sorted(set(errors)),
         }
-    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
-    try:
-        cps_text = cps_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return {
-            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
-            "final_verdict": "STOP_SAFE", "errors": [f"cps_unreadable:{exc}"],
-        }
-    live = _markdown_field_table(_markdown_section(
-        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
-    ))
-    if _plain_live_value(live, "ACTIVE_PROGRAM") != SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
-        return {
-            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
-            "final_verdict": "STOP_SAFE", "errors": ["service_failure_program_not_active_in_cps"],
-        }
     fingerprint = hashlib.sha256(json.dumps({
         "feedback_id": feedback_id,
         "source_incident_id": source_incident_id,
@@ -8499,12 +8516,6 @@ def reconcile_service_failure_execution_feedback_to_cps(
         "packet_id": packet_id,
         "terminal": terminal,
     }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-    if _plain_live_value(live, "LAST_SERVICE_FAILURE_EXECUTION_FEEDBACK_ID") == feedback_id:
-        return {
-            "schema_version": "v7.service-failure-execution-feedback-source-cps-reconciliation.v1",
-            "final_verdict": "PASS", "status": "EXECUTION_FEEDBACK_ALREADY_CONSUMED",
-            "feedback_id": feedback_id, "behavior_change": False, "errors": [],
-        }
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "state_captured": utc_now(),

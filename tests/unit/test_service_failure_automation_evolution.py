@@ -416,6 +416,37 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(self.sync._plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), "4")
         self.assertEqual(self.sync._plain_live_value(live, "CURRENT_SAFE_NEXT_ACTION").split()[0], "CONTINUE")
 
+    def test_already_consumed_feedback_does_not_compare_against_newer_live_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md")
+            feedback = {
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_idempotent_scope",
+                "packet_id": "pkt_idempotent_scope", "user": "10.0.0.2", "source_channel": "vless", "target_channel": "awg3",
+                "terminal_outcome_classification": "SUCCESS", "verification_result": {"success": True},
+                "execution_outcome": {"runtime_mutation_performed": True, "users_moved": 1},
+                "service_failure_causal_binding": {
+                    "source_incident_id": "sfinc_idempotent_scope", "source_event_id": "sfrev_idempotent_scope",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED", "source_channel": "vless",
+                    "source_scope": {"source_channel": "vless", "affected_scope_count": 5, "affected_scope_fingerprint": "scope-before"},
+                },
+                "incident_scope_accounting": {
+                    "status": "ACCOUNTED", "affected_scope_count": 5, "protected_scope_count": 1,
+                    "unresolved_scope_count": 4, "explicitly_excluded_or_recovered_scope_count": 0,
+                    "affected_scope_fingerprint": "scope-before", "raw_user_list_stored": False,
+                },
+            }
+            first = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback, root=root)
+            feedback["incident_scope_accounting"].update({
+                "affected_scope_count": 4, "protected_scope_count": 1, "unresolved_scope_count": 3,
+                "affected_scope_fingerprint": "scope-after",
+            })
+            repeated = self.sync.reconcile_service_failure_execution_feedback_to_cps(feedback, root=root)
+        self.assertEqual(first["final_verdict"], "PASS", first)
+        self.assertEqual(repeated["final_verdict"], "PASS", repeated)
+        self.assertEqual(repeated["status"], "EXECUTION_FEEDBACK_ALREADY_CONSUMED")
+
     def test_source_cps_reconciliation_rejects_scope_from_another_generation(self):
         feedback = {
             "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_scope_mismatch",

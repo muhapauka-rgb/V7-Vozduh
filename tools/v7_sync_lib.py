@@ -6632,6 +6632,27 @@ def reconcile_service_failure_automation_receipt_to_cps(
             "state_captured": utc_now(),
             "current_state_generation": f"cpsgen_SFA_RECEIPT_{receipt_fingerprint[:12].upper()}",
             "current_transition_id": "SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1",
+            # This branch is reachable only when CPS already names the
+            # fresh-event wait, rather than an active Matrix drain.  Preserve
+            # the standing policy but normalize all coupled execution fields
+            # so a historical receipt cannot leave a ghost formed Mission.
+            "current_stop_condition": "REAL_WORLD_LIMIT",
+            "current_program_execution_frontier": "NONE",
+            "current_execution_frontier": "NONE",
+            "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+            "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+            "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+            "program_terminal_class": "REAL_WORLD_LIMIT",
+            "program_terminal_state": "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+            "omp_continuation_required": "FALSE",
+            "external_input_required": "TRUE",
+            "external_input_type": "FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+            "next_mission_formed": "FALSE",
+            "next_mission_id": "NONE",
+            "wip_current_primary_stop": "REAL_WORLD_LIMIT",
+            "wip_smallest_existing_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            "wip_smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            "smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
             "source_summary": (
                 "The existing Service Matrix lifecycle and existing OMP consumer preserve historical "
                 "safe terminals while the independently audit-verified standing delegated policy remains "
@@ -17270,54 +17291,109 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "behavior_change": "NONE",
             "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
         }
+    # A policy reconciliation is a read-only Authority-owner input.  It must
+    # never collapse a separately active, accounted incident drain into the
+    # older "wait for a future event" projection.  The Matrix owns that drain;
+    # this consumer merely confirms the policy gates that continue to govern
+    # every fresh per-user transaction.
+    active_incident_drain = all((
+        _plain_live_value(live, "CURRENT_NEXT_ACTION_ID") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        to_int(_plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), 0) > 0,
+    ))
+    # A malformed read-only runtime status must fail closed, not turn this
+    # reconciliation into an exception that could obscure the Matrix drain.
+    max_users = to_int(status.get("max_users_per_action"), 0)
+    max_concurrent = to_int(status.get("max_concurrent_transactions"), 0)
+    if max_users != 1 or max_concurrent != 1:
+        return {
+            "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["runtime_policy_not_exact_current_tier1_scope"],
+            "behavior_change": "NONE",
+            "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
+        }
+    tier_projection = {
+        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_PATH`",
+        "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_EVIDENCE`",
+        "CURRENT_ACTION_CLASS_CERTIFIED_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_ONLY`",
+        "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": "`TIER_1_CURRENT_STANDING_POLICY`",
+        "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": "`TIER_1_SINGLE_USER_SERIAL`",
+        "CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION": "`1`",
+        "CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS": "`1`",
+        "CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES": f"`{','.join(str(item) for item in status.get('allowed_failure_families', []) if str(item))}`",
+        "CURRENT_ACTION_CLASS_ALLOWED_SOURCE_TARGET_SCOPE": "`EXISTING_PLANNER_SAFE_TARGET_ONLY`",
+        "CURRENT_ACTION_CLASS_VERIFICATION_CONTRACT": "`EXISTING_LIVE_VERIFICATION_GATES_REQUIRED`",
+        "CURRENT_ACTION_CLASS_ROLLBACK_CONTRACT": "`EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED`",
+        "CURRENT_ACTION_CLASS_EXPIRY": f"`{expires_at}`",
+        "CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS": "`policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence`",
+        "CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS": "`verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke`",
+        "TIER_1_REUSE_CLASSIFICATION": "`REUSABLE_CERTIFIED_AND_APPROVED`",
+        "TIER_2_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
+        "TIER_5_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
+        "TIER_10_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
+        "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
+        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_2`",
+        "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`current failure-family and source-target scoped evidence plus independent Tier-2 Authority decision; historical batch evidence is supporting only`",
+        "CAUSAL_M7_TIER_VERDICT": "`HOLD_CURRENT_TIER`",
+    }
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
         "current_mode": "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
-        "current_stop_condition": "REAL_WORLD_LIMIT",
-        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE",
+        "current_stop_condition": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
+        "current_active_scope": (
+            "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
+            if active_incident_drain else "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE"
+        ),
         "current_safe_next_action": (
+            "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
+            "the active standing policy is revalidated for every one-user transaction; do not reuse historical identities"
+            if active_incident_drain else
             "ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING "
             "MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; "
             "DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY"
         ),
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
-        "current_state_generation": f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}",
-        "current_transition_id": "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1",
-        "current_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "current_program_execution_frontier": "NONE",
-        "current_execution_frontier": "NONE",
-        "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
-        "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+        "current_state_generation": f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_{'DRAIN' if active_incident_drain else 'WAIT'}",
+        "current_transition_id": "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2" if active_incident_drain else "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1",
+        "current_next_action_id": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "current_program_execution_frontier": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "NONE",
+        "current_execution_frontier": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "NONE",
+        "authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES" if active_incident_drain else "NO_INSIDE_APPROVED_POLICY",
+        "wip_authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES" if active_incident_drain else "NO_INSIDE_APPROVED_POLICY",
         "controlled_run_authority_required_now": "NO_RUNTIME_AUTHORITY; fresh event and existing policy gates remain required",
-        "wip_current_primary_stop": "REAL_WORLD_LIMIT",
-        "wip_smallest_existing_next_action_id": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "wip_smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "smallest_existing_next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "last_responsible_link": "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates",
+        "wip_current_primary_stop": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
+        "wip_smallest_existing_next_action_id": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "wip_smallest_existing_next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "smallest_existing_next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "last_responsible_link": "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor" if active_incident_drain else "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates",
         "omp_continuation_pointer": (
+            "The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor."
+            if active_incident_drain else
             "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
             "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
         ),
         "sequence_execution_class": "existing Service Matrix fresh-event revalidation owner",
         "sequence_expected_output": "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor",
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
-        "continuation_decision": "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
-        "program_terminal_class": "REAL_WORLD_LIMIT",
-        "program_terminal_state": "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
-        "omp_continuation_required": "FALSE",
-        "external_input_required": "TRUE",
-        "external_input_type": "FRESH_MATCHING_SERVICE_FAILURE_EVENT",
-        "next_mission_formed": "FALSE",
-        "next_mission_id": "NONE",
+        "continuation_decision": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
+        "program_terminal_class": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
+        "program_terminal_state": "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY" if active_incident_drain else "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+        "omp_continuation_required": "TRUE" if active_incident_drain else "FALSE",
+        "external_input_required": "FALSE" if active_incident_drain else "TRUE",
+        "external_input_type": "NONE" if active_incident_drain else "FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+        "next_mission_formed": "TRUE" if active_incident_drain else "FALSE",
+        "next_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else "NONE",
         "continuation_stop_reason": (
-            "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
+            "ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and one-user transaction admission under standing policy"
+            if active_incident_drain else "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
             "OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL "
             "CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN"
         ),
         "no_progress_fingerprint": hashlib.sha256(json.dumps({
             "contract_hash": contract_hash, "request_hash": request_hash,
-            "terminal": "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+            "terminal": "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
         }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
         "state_captured": utc_now(),
     })
@@ -17338,6 +17414,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CURRENT_AUTHORITY_REQUEST_EXPIRY": f"`{expires_at}`",
             "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": f"`{request_hash}`",
             "CURRENT_AUTHORITY_REQUEST_SCOPE": "`STANDING_POLICY_ACTIVE; existing planner only; fresh Candidate/Packet/lease; max_users=1; max_concurrent_transactions=1; no reuse; all live gates remain required`",
+            **tier_projection,
         },
     )
     return {
@@ -17349,8 +17426,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "request_id": request_id,
         "request_hash": request_hash,
         "expires_at": expires_at,
-        "next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "behavior_change": "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS",
+        "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "behavior_change": "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN" if active_incident_drain else "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS",
         "forbidden_effects": {
             "policy_write": False, "contract_issuance": False, "candidate_creation": False,
             "packet_or_lease_creation": False, "restore_barrier_write": False,

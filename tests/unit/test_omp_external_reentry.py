@@ -209,6 +209,9 @@ class OmpExternalReentryTest(unittest.TestCase):
             "authority_request_hash": request_hash,
             "expires_at": "2026-08-27T00:00:00+00:00",
             "policy_scope_hash": "c" * 64,
+            "max_users_per_action": 1,
+            "max_concurrent_transactions": 1,
+            "allowed_failure_families": ["channel_hard_fail"],
         }, root=self.root)
         self.assertEqual(result["final_verdict"], "PASS", result)
         live = self.lib._markdown_field_table(self.lib._markdown_section(

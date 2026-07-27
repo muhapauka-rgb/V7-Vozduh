@@ -699,6 +699,45 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertFalse(obligation["runtime_mutation_performed"])
             self.assertEqual(obligation["users_moved"], 0)
 
+    def test_policy_reconciliation_preserves_active_incident_drain_and_projects_tiers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
+            source = cps_path.read_text(encoding="utf-8")
+            live = self.sync._markdown_field_table(self.sync._markdown_section(
+                source, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            contract_hash = "a" * 64
+            runtime_status = {
+                "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+                "status": "PASS", "ok": True, "contract_status": "ACTIVE",
+                "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                "authority_decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                "audit_provenance_verified": True,
+                "contract_id": f"sdpc_{contract_hash[:24]}", "contract_hash": contract_hash,
+                "authority_request_id": live["CURRENT_AUTHORITY_REQUEST_ID"].strip("`"),
+                "authority_request_hash": "b" * 64,
+                "expires_at": "2099-01-01T00:00:00+00:00", "policy_scope_hash": "c" * 64,
+                "max_users_per_action": 1, "max_concurrent_transactions": 1,
+                "allowed_failure_families": ["channel_hard_fail", "service_specific_failure"],
+            }
+            result = self.sync.reconcile_active_standing_delegated_policy_to_cps(runtime_status, root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["next_action"], "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
+            updated = cps_path.read_text(encoding="utf-8")
+            updated_live = self.sync._markdown_field_table(self.sync._markdown_section(
+                updated, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(updated_live["CURRENT_PROGRAM_EXECUTION_FRONTIER"].strip("`"), "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
+            self.assertEqual(updated_live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
+            self.assertEqual(updated_live["TIER_1_REUSE_CLASSIFICATION"].strip("`"), "REUSABLE_CERTIFIED_AND_APPROVED")
+            self.assertEqual(updated_live["TIER_2_REUSE_CLASSIFICATION"].strip("`"), "SCOPE_MISMATCH")
+            self.assertEqual(updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"), "TIER_1_SINGLE_USER_SERIAL")
+
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

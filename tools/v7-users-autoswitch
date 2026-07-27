@@ -12856,6 +12856,7 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         contract,
         audit_records=audit_records,
     )
+    policy_scope = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -12874,6 +12875,18 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "authority_decision_id": str(decision.get("decision_id") or ""),
         "authority_request_id": str(decision.get("request_id") or ""),
         "authority_request_hash": str(decision.get("request_hash") or ""),
+        # These are the effective, redacted runtime bounds of the existing
+        # policy owner.  Historical certification budgets deliberately never
+        # appear here: consumers must not infer a current grant from them.
+        "action_class": ",".join(sorted(str(item) for item in (policy_scope.get("allowed_action_classes") or []) if str(item))),
+        "max_users_per_action": int(policy_scope.get("max_users_per_action") or 0),
+        "max_concurrent_transactions": int(policy_scope.get("max_concurrent_transactions") or 0),
+        "allowed_failure_families": sorted(str(item) for item in (policy_scope.get("allowed_failure_types") or []) if str(item)),
+        "allowed_source_target_scope": "EXISTING_PLANNER_SAFE_TARGET_ONLY",
+        "verification_contract": "EXISTING_LIVE_VERIFICATION_GATES_REQUIRED",
+        "rollback_contract": "EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED",
+        "expiry_enforced": True,
+        "self_expansion_allowed": bool(policy_scope.get("self_expansion_allowed")),
         "audit_provenance_verified": bool(validation.get("ok")),
         "blockers": list(validation.get("errors") or []),
         "forbidden_effects": {

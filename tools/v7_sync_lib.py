@@ -6506,8 +6506,11 @@ def consume_service_failure_automation_frontier(
                 "INCIDENT_FRONTIER": "`CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`",
                 "PRODUCT_EVOLUTION_FRONTIER": f"`{product_frontier}`",
                 "CURRENT_SERVICE_FAILURE_DETERMINISTIC_SEQUENCE": "`verified outcome -> scope reconciliation -> CPS/OMP successor -> fresh Matrix revalidation`",
-                "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": f"`{scope_projection.get('next_required_consumer') or 'tools/v7_sync_lib.consume_service_failure_automation_frontier'}`",
-                "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": f"`{scope_projection.get('reentry_condition') or 'existing OMP consumer consumes durable successor'}`",
+                # The deployed Matrix is the production owner of the next
+                # observation/revalidation.  Source CPS records that
+                # existing consumer explicitly; it is not a new scheduler.
+                "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
+                "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
                 "CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER": f"`{scope_projection.get('outcome_id') or ''}`",
                 "CURRENT_SERVICE_FAILURE_LEARNING_POINTER": f"`{scope_projection.get('learning_id') or ''}`",
             }
@@ -7809,10 +7812,18 @@ def heartbeat_program_reentry(
                         "overlap_count": _plain_live_value(fresh_live, "OVERLAP_COUNT") or "0",
                         "immediate_last_legal_terminal": "IMMEDIATE_REENTRY_REQUESTED" if successor_required else "IMMEDIATE_REENTRY_COMPLETED" if continue_ok else "IMMEDIATE_REENTRY_FAILED_SAFE",
                     })
+                    matrix_successor_overrides = (
+                        {
+                            "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
+                            "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
+                        }
+                        if matrix_owned_incident_drain else None
+                    )
                     post_update = atomic_reconcile_cps(
                         root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
                         state=final_state,
                         request_external_wake=False,
+                        section0_field_overrides=matrix_successor_overrides,
                     )
                     post_ok = post_update.get("ok") is True and post_update.get("post_write_reread") == "PASS"
                     transition_count = len(continue_result.get("transitions") or ())
@@ -19166,12 +19177,26 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         active_execution_frontier = live.get("ACTIVE_EXECUTION_FRONTIER", "").strip("`")
         pending_wake = live.get("PENDING_WAKE_ID", "").strip("`")
         active_lease = live.get("REENTRY_ACTIVE_LEASE", "").strip("`")
+        # A formed active-incident successor is also reachable when the
+        # already-deployed Matrix timer is explicitly recorded as its next
+        # consumer.  This is distinct from a generic formed Mission with no
+        # execution or wake: Matrix has a production caller and a fresh
+        # observation contract, while the source CPS heartbeat is only a
+        # mirror/watchdog and must not create a redundant self-wake.
+        matrix_runtime_successor = all((
+            live.get("ACTIVE_PROGRAM", "").strip("`") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+            live.get("CURRENT_NEXT_ACTION_ID", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+            live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+            live.get("CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER", "").strip("`") == "tools/v7-service-matrix-refresh-all",
+            live.get("CURRENT_SERVICE_FAILURE_REENTRY_CONDITION", "").strip("`") == "enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor",
+        ))
         if (
             next_formed == "TRUE"
             and current_execution in {"", "NONE"}
             and active_execution_frontier in {"", "NONE"}
             and pending_wake in {"", "NONE"}
             and active_lease in {"", "NONE"}
+            and not matrix_runtime_successor
         ):
             errors.append("omp_formed_mission_behaviorally_unreachable_no_execution_or_wake")
     if external == "TRUE":

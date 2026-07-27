@@ -265,6 +265,10 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertTrue(result["matrix_owned_incident_drain"])
         self.assertEqual(self.lib._plain_live_value(live, "PENDING_WAKE_ID"), "NONE")
         self.assertEqual(self.lib._plain_live_value(live, "WATCHDOG_STATE"), "ARMED_FALLBACK_ONLY")
+        self.assertEqual(
+            self.lib._plain_live_value(live, "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER"),
+            "tools/v7-service-matrix-refresh-all",
+        )
 
     def test_completion_gate_requires_two_natural_separated_reentries(self):
         base = {

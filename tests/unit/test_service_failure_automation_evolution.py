@@ -791,6 +791,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "HOLD_CURRENT_TIER_DECISION_CONSUMED",
             )
             self.assertEqual(
+                updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
+                "SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE",
+            )
+            self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],
                 "HOLD_CURRENT_TIER_DECISION_CONSUMED",
             )

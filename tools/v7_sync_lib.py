@@ -17604,6 +17604,7 @@ def _service_failure_action_class_reuse_projection(
         "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`selective current VLESS-to-healthy-target cohort bridge: live capacity, cohort service verification, rollback/containment and independent Tier-2 Authority; generic movement ladder must not be repeated`",
         "CAUSAL_M7_TIER_VERDICT": "`HOLD_CURRENT_TIER`",
         "CAUSAL_M7_TIER_DECISION_CONSUMPTION": "`HOLD_CURRENT_TIER_DECISION_CONSUMED`",
+        "PRODUCT_EVOLUTION_FRONTIER": "`SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE`",
         "GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION": "`SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE; NO_GENERIC_LADDER_RERUN`",
         "CAUSAL_M8_SEMANTIC_ALIGNMENT": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVARIANT_STATUS": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",

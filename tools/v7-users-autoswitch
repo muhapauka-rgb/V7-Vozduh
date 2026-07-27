@@ -1827,9 +1827,18 @@ class AutoswitchPlanner:
             if str(row.get("object_type") or "") == "passive_production_event"
         ]
         state = self._load_l3_runtime_state()
+        # Historical closures remain append-only evidence.  The compact current
+        # projection consumes only the latest terminal of each source incident;
+        # replaying an older terminal before the current one would otherwise
+        # rewrite the same state on every reconciliation.
+        latest_by_source: dict[str, dict[str, Any]] = {}
+        for closure in sorted(rows, key=lambda row: str(row.get("created_at") or row.get("observed_at") or "")):
+            source_incident_id = str(closure.get("source_incident_id") or closure.get("object_id") or "")
+            if source_incident_id:
+                latest_by_source[source_incident_id] = closure
         changed = 0
         projected = 0
-        for closure in sorted(rows, key=lambda row: str(row.get("created_at") or row.get("observed_at") or "")):
+        for closure in latest_by_source.values():
             terminal = str(closure.get("terminal_outcome_classification") or "STOP_SAFE_NO_ACTION")
             result = self._materialize_passive_incident_projection(
                 state,

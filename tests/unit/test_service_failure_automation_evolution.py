@@ -172,6 +172,47 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(record["users_moved"], 0)
             self.assertEqual(planner.reconcile_passive_causal_projections()["changed_records"], 0)
 
+    def test_compact_projection_uses_only_latest_historical_terminal_per_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            old = {
+                "object_type": "passive_production_event",
+                "object_id": "sfinc_history",
+                "source_incident_id": "sfinc_history",
+                "source_event_ids": ["evt_old"],
+                "situation_id": "situation_old",
+                "decision_trace_id": "decision_old",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "observed_at": "2026-07-26T00:00:00+00:00",
+            }
+            latest = {
+                **old,
+                "object_id": "sfinc_history_recovered",
+                "source_event_ids": ["evt_new"],
+                "situation_id": "situation_new",
+                "decision_trace_id": "decision_new",
+                "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                "observed_at": "2026-07-27T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(old) + "\n" + json.dumps(latest) + "\n", encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+
+            first = planner.reconcile_passive_causal_projections()
+            self.assertEqual(first["projected_records"], 1)
+            self.assertEqual(first["changed_records"], 1)
+            self.assertEqual(planner.reconcile_passive_causal_projections()["changed_records"], 0)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = next(iter(state["incidents"].values()))
+            self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+            self.assertEqual(record["decision_trace_id"], "decision_new")
+
     def test_active_standing_policy_replaces_stale_one_use_authority_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

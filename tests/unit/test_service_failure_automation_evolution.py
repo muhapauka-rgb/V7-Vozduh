@@ -72,6 +72,35 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_active_incident_scope_bridge_accepts_only_balanced_compact_projection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                "passive_scope": {
+                    "incident_id": "sfinc_scope_bridge", "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN", "next_required_consumer": "existing.consumer",
+                    "reentry_condition": "fresh Matrix observation",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED", "affected_scope_count": 3,
+                        "protected_scope_count": 1, "unresolved_scope_count": 2,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                        "affected_scope_fingerprint": "scope-fingerprint",
+                        "raw_user_list_stored": False,
+                    },
+                },
+            }}), encoding="utf-8")
+            scope = self.sync.service_failure_active_incident_scope_projection(
+                "sfinc_scope_bridge", state_dir=state_dir,
+            )
+            self.assertEqual(scope["unresolved_scope_count"], 2)
+            data = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            data["incidents"]["passive_scope"]["scope_accounting"]["unresolved_scope_count"] = 1
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps(data), encoding="utf-8")
+            self.assertEqual(
+                self.sync.service_failure_active_incident_scope_projection("sfinc_scope_bridge", state_dir=state_dir),
+                {},
+            )
+
     def test_packet_bound_execution_feedback_reconciles_only_its_existing_incident(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

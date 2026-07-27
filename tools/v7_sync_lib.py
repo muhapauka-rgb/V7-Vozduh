@@ -5971,6 +5971,7 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
 SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M2 = "CAUSAL_M2_ATOMIC_TRANSITION_AND_RECEIPT_LINKAGE"
+SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 = "CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION"
 
 
 def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
@@ -6162,6 +6163,57 @@ def service_failure_automation_state_dir(*, root: Path = ROOT, state_dir: Option
     return root / "egress" / "state"
 
 
+def service_failure_active_incident_scope_projection(
+    source_incident_id: str, *, state_dir: Path,
+) -> dict[str, Any]:
+    """Read the existing L3 compact scope projection for one incident.
+
+    This is a projection bridge only.  The lifecycle owner remains
+    ``l3-runtime-state.json``; CPS receives no user list and no inferred
+    historical route.  A malformed or unbalanced projection is ignored so it
+    cannot turn a live incident into a false executable frontier.
+    """
+    if not source_incident_id:
+        return {}
+    state_path = state_dir / "l3-runtime-state.json"
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    for record in incidents.values():
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("source_incident_id") or record.get("incident_id") or "") != source_incident_id:
+            continue
+        scope = record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {}
+        affected = int(scope.get("affected_scope_count") or 0)
+        protected = int(scope.get("protected_scope_count") or 0)
+        unresolved = int(scope.get("unresolved_scope_count") or 0)
+        excluded = int(scope.get("explicitly_excluded_or_recovered_scope_count") or 0)
+        if (
+            str(scope.get("status") or "") != "ACCOUNTED"
+            or affected != protected + unresolved + excluded
+            or not str(scope.get("affected_scope_fingerprint") or "")
+            or bool(scope.get("raw_user_list_stored"))
+        ):
+            return {}
+        return {
+            **scope,
+            "incident_id": source_incident_id,
+            "incident_generation": str(record.get("incident_generation") or ""),
+            "incident_state": str(record.get("incident_state") or ""),
+            "channel_incident_state": str(record.get("channel_incident_state") or ""),
+            "next_required_consumer": str(record.get("next_required_consumer") or ""),
+            "reentry_condition": str(record.get("reentry_condition") or ""),
+            "last_execution_feedback_id": str(record.get("last_execution_feedback_id") or ""),
+            "outcome_id": str(record.get("outcome_id") or ""),
+            "learning_id": str(record.get("learning_id") or ""),
+            "owner": "l3-runtime-state.json via tools/v7-users-autoswitch",
+        }
+    return {}
+
+
 def service_failure_automation_frontier(
     *, root: Path = ROOT, state_dir: Optional[Path] = None,
 ) -> dict[str, Any]:
@@ -6255,8 +6307,28 @@ def consume_service_failure_automation_frontier(
     classification = str(obligation.get("stop_safe_classification") or "STOP_SAFE_DATA_OR_EVIDENCE_GAP")
     product_frontier = str(obligation.get("product_evolution_frontier") or "NONE")
     incident_frontier = str(obligation.get("incident_frontier") or "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION")
-    next_action = product_frontier if product_frontier != "NONE" else incident_frontier
-    legal_terminal = classification == "CORRECT_SAFE_TERMINAL"
+    source_incident_id = str(obligation.get("source_incident_id") or "")
+    scope_projection = obligation.get("incident_scope_accounting")
+    scope_projection = scope_projection if isinstance(scope_projection, dict) else {}
+    if not scope_projection:
+        scope_projection = service_failure_active_incident_scope_projection(
+            source_incident_id, state_dir=resolved_state_dir,
+        )
+    active_incident_drain = (
+        str(scope_projection.get("status") or "") == "ACCOUNTED"
+        and int(scope_projection.get("unresolved_scope_count") or 0) > 0
+        and str(scope_projection.get("channel_incident_state") or "OPEN") != "RECOVERED"
+    )
+    # A continuing degraded source with an accountable unresolved cohort is an
+    # internal safe successor, never a REAL_WORLD_LIMIT.  The pre-existing
+    # fresh-event product frontier remains the revalidation input, while this
+    # canonical incident frontier prevents CPS from reporting NO_WORK.
+    next_action = (
+        "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        if active_incident_drain else
+        (product_frontier if product_frontier != "NONE" else incident_frontier)
+    )
+    legal_terminal = classification == "CORRECT_SAFE_TERMINAL" and not active_incident_drain
     authority_boundary = classification in {
         "STOP_SAFE_AUTHORITY_REQUIRED",
         "STOP_SAFE_EXTERNAL_OWNER_REQUIRED",
@@ -6270,7 +6342,7 @@ def consume_service_failure_automation_frontier(
         "consumed_at": utc_now(),
         "program_id": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
         "mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M2,
-        "source_incident_id": str(obligation.get("source_incident_id") or ""),
+        "source_incident_id": source_incident_id,
         "incident_key": str(obligation.get("incident_key") or ""),
         "situation_id": str(obligation.get("situation_id") or ""),
         "decision_trace_id": str(obligation.get("decision_trace_id") or ""),
@@ -6278,6 +6350,9 @@ def consume_service_failure_automation_frontier(
         "incident_frontier": incident_frontier,
         "product_evolution_frontier": product_frontier,
         "next_action": next_action,
+        "incident_scope_accounting": scope_projection,
+        "source_incident_frontier": incident_frontier,
+        "source_product_evolution_frontier": product_frontier,
         "legal_terminal": legal_terminal,
         "real_caller": "tools/v7-service-matrix-refresh-all",
         "real_consumer": "continue_omp_engineering_control_loop",
@@ -6313,7 +6388,18 @@ def consume_service_failure_automation_frontier(
         cps_text = cps_path.read_text(encoding="utf-8")
         state = _normalized_state_from_live_cps(cps_text)
         fingerprint = hashlib.sha256(json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
-        if authority_boundary:
+        if active_incident_drain:
+            stop_condition = "NONE"
+            continuation_decision = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            terminal_class = "NONE"
+            terminal_state = "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
+            external_input = "NONE"
+            authority_required = "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+            safe_next_action = (
+                "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING FRESH MATRIX "
+                "REVALIDATION -> PLANNER -> NEW CANDIDATE/PACKET/LEASE PATH; DO NOT REUSE HISTORICAL OBJECTS"
+            )
+        elif authority_boundary:
             stop_condition = "ENGINEERING_AUTHORITY"
             continuation_decision = "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
             terminal_class = "ENGINEERING_AUTHORITY"
@@ -6342,7 +6428,10 @@ def consume_service_failure_automation_frontier(
         state.update({
             "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
             "current_stop_condition": stop_condition,
-            "current_active_scope": "SERVICE_FAILURE_AUTOMATION_INCIDENT_AND_PRODUCT_EVOLUTION_FRONTIERS_ACTIVE",
+            "current_active_scope": (
+                "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
+                if active_incident_drain else "SERVICE_FAILURE_AUTOMATION_INCIDENT_AND_PRODUCT_EVOLUTION_FRONTIERS_ACTIVE"
+            ),
             "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
             "current_state_generation": f"cpsgen_SFA_{fingerprint[:12].upper()}",
             "current_transition_id": "SERVICE_FAILURE_AUTOMATION_M1_OMP_CONSUMED_V1",
@@ -6366,9 +6455,28 @@ def consume_service_failure_automation_frontier(
             "external_input_required": "FALSE" if not (legal_terminal or authority_boundary) else "TRUE",
             "external_input_type": external_input,
             "next_mission_formed": "TRUE" if not (legal_terminal or authority_boundary) else "FALSE",
-            "next_mission_id": SERVICE_FAILURE_AUTOMATION_M1 if not (legal_terminal or authority_boundary) else "NONE",
+            "next_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else (SERVICE_FAILURE_AUTOMATION_M1 if not (legal_terminal or authority_boundary) else "NONE"),
             "state_captured": utc_now(),
         })
+        scope_overrides = {}
+        if active_incident_drain:
+            scope_overrides = {
+                "CURRENT_VLESS_INCIDENT_ID": f"`{source_incident_id}`",
+                "CURRENT_VLESS_INCIDENT_GENERATION": f"`{scope_projection.get('incident_generation') or ''}`",
+                "CURRENT_VLESS_AFFECTED_SCOPE": f"`{int(scope_projection.get('affected_scope_count') or 0)}`",
+                "CURRENT_VLESS_PROTECTED_SCOPE": f"`{int(scope_projection.get('protected_scope_count') or 0)}`",
+                "CURRENT_VLESS_UNRESOLVED_SCOPE": f"`{int(scope_projection.get('unresolved_scope_count') or 0)}`",
+                "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE": f"`{int(scope_projection.get('explicitly_excluded_or_recovered_scope_count') or 0)}`",
+                "CURRENT_VLESS_SCOPE_FINGERPRINT": f"`{scope_projection.get('affected_scope_fingerprint') or ''}`",
+                "CURRENT_VLESS_SCOPE_ACCOUNTING": "`ACCOUNTED; current route truth + exact source-scope lineage; raw user list not stored`",
+                "INCIDENT_FRONTIER": "`CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`",
+                "PRODUCT_EVOLUTION_FRONTIER": f"`{product_frontier}`",
+                "CURRENT_SERVICE_FAILURE_DETERMINISTIC_SEQUENCE": "`verified outcome -> scope reconciliation -> CPS/OMP successor -> fresh Matrix revalidation`",
+                "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": f"`{scope_projection.get('next_required_consumer') or 'tools/v7_sync_lib.consume_service_failure_automation_frontier'}`",
+                "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": f"`{scope_projection.get('reentry_condition') or 'existing OMP consumer consumes durable successor'}`",
+                "CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER": f"`{scope_projection.get('outcome_id') or ''}`",
+                "CURRENT_SERVICE_FAILURE_LEARNING_POINTER": f"`{scope_projection.get('learning_id') or ''}`",
+            }
         atomic = atomic_reconcile_cps(
             cps_path,
             state=state,
@@ -6377,6 +6485,7 @@ def consume_service_failure_automation_frontier(
             # intentionally suppress a wake and remain external boundaries.
             request_external_wake=not (legal_terminal or authority_boundary),
             expected_generation=_plain_live_value(_markdown_field_table(_markdown_section(cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry")), "CURRENT_STATE_GENERATION"),
+            section0_field_overrides=scope_overrides,
         )
         if not atomic.get("ok"):
             return {

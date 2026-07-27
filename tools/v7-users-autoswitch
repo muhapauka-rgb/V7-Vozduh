@@ -11024,6 +11024,11 @@ class AutoswitchPlanner:
         append_jsonl(self.state_dir / "runtime-trust.jsonl", trust_rows)
         append_jsonl(self.state_dir / "closure-records.jsonl", closure_rows)
         self._write_l3_runtime_state(state)
+        # A passive observation may carry an older Matrix source snapshot.
+        # Before handing it to any downstream consumer, restore the compact
+        # current-source projection from the existing live-route owner.  This
+        # is read-model reconciliation only; it cannot make an action.
+        scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
         return {
             "active": True,
             "reason": "consumed",
@@ -11051,6 +11056,7 @@ class AutoswitchPlanner:
                     for row in rows
                 )
             ),
+            "scope_reconciliation": scope_reconciliation,
         }
 
     @staticmethod
@@ -11431,12 +11437,17 @@ class AutoswitchPlanner:
             incident_record["updated_at"] = now
             incidents[incident_key] = incident_record
         self._write_l3_runtime_state(state)
+        # This advisory writes an obligation after planning.  Reconcile once
+        # more so a stale passive closure cannot overwrite the current source
+        # generation between the pre-plan reconciliation and the consumer.
+        final_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
         return {
             "schema_version": "v7.service-failure-automation-advisory.v1",
             "active": True,
             "obligation": obligation,
             "shadow_decision_id": str(shadow_record.get("decision_id") or ""),
             "outcome_reconciliation": outcome_reconciliation,
+            "final_scope_reconciliation": final_scope_reconciliation,
             "next_output": obligation["incident_frontier"] if product_frontier == "NONE" else product_frontier,
             "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False, "production_maturity_change": False},
         }

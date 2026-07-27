@@ -25,6 +25,12 @@ class OmpHeartbeatRealConsumerTest(unittest.TestCase):
     def run_reentry(self, **overrides):
         return self.lib.heartbeat_program_reentry(event_time=EVENT_TIME, root=ROOT, **overrides)
 
+    def test_platform_heartbeat_target_matches_current_service_failure_task(self):
+        self.assertEqual(
+            self.lib.HEARTBEAT_TARGET_THREAD_ID,
+            "019f651d-542b-7c53-9a6c-504648e692ee",
+        )
+
     def test_natural_no_change_reaches_reconciliation_and_legal_consumer(self):
         result = self.run_reentry()
         self.assertEqual(result["final_verdict"], "PASS")

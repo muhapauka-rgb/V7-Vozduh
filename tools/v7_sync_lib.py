@@ -35,7 +35,11 @@ TRUTH_CHECK_PATH = ROOT / "tools" / "v7-truth-check"
 CPS_PATH = ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md"
 OMP_PATH = ROOT / "docs" / "programs" / "OPERATIONAL_MATURITY_PROGRAM.md"
 HEARTBEAT_AUTOMATION_ID = "v7-omp-external-reentry-heartbeat"
-HEARTBEAT_TARGET_THREAD_ID = "019f4b9f-dda6-7762-b26c-3ab651f0a67c"
+# The existing Codex Automation Platform heartbeat was rebound to the active
+# Service Failure Automation Evolution task on 2026-07-26.  Keep the
+# fail-closed contract aligned with that platform-owned target; accepting an
+# arbitrary caller-supplied thread id would weaken the boundary instead.
+HEARTBEAT_TARGET_THREAD_ID = "019f651d-542b-7c53-9a6c-504648e692ee"
 HEARTBEAT_SCHEDULE = "FREQ=MINUTELY;INTERVAL=30"
 EVENT_DRIVEN_REENTRY_MODE = "EVENT_DRIVEN_WITH_WATCHDOG"
 EVENT_DRIVEN_WAKE_OWNER = "CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL"

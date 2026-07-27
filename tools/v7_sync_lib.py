@@ -17224,6 +17224,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
     execution side effects.
     """
     status = runtime_status if isinstance(runtime_status, dict) else {}
+
+    def _status_int(value: Any) -> int:
+        """Fail closed for malformed bounds supplied by the read-only owner."""
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
     errors: list[str] = []
     required = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -17299,12 +17307,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
     active_incident_drain = all((
         _plain_live_value(live, "CURRENT_NEXT_ACTION_ID") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
         _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
-        to_int(_plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE"), 0) > 0,
+        _status_int(_plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE")) > 0,
     ))
     # A malformed read-only runtime status must fail closed, not turn this
     # reconciliation into an exception that could obscure the Matrix drain.
-    max_users = to_int(status.get("max_users_per_action"), 0)
-    max_concurrent = to_int(status.get("max_concurrent_transactions"), 0)
+    max_users = _status_int(status.get("max_users_per_action"))
+    max_concurrent = _status_int(status.get("max_concurrent_transactions"))
     if max_users != 1 or max_concurrent != 1:
         return {
             "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",

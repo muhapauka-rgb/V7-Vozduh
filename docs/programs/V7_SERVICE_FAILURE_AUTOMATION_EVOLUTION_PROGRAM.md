@@ -69,7 +69,12 @@ exist:
 | STOP/Intent Gap classification and BDP routing law | OMP Automation Gap Closure Cycle | `CONTRACT_COMPLETE_RUNTIME_BINDING_MISSING` |
 | Authority recommendation and action-class evolution | existing delegated-policy and L7/L8 owners | `IMPLEMENTED_HOLD_GOVERNED_ONLY` |
 
-The exact current broken link is:
+### Historical V1.4 discovery residual — closed, non-executable
+
+The following was the V1.4 broken link. It was closed by the durable
+obligation and real OMP consumer work and is retained only to explain prior
+evidence. M0 must not rediscover or repair it unless a fresh causal-loss audit
+proves a regression of this exact link:
 
 ```text
 service Matrix timer
@@ -78,12 +83,11 @@ service Matrix timer
 -> NO PROVEN DURABLE OMP CONSUMER
 ```
 
-An idempotent later Matrix run overwrites the summary with
+An idempotent later Matrix run overwrote the summary with
 `NO_NEW_MATERIAL_INCIDENT_OR_ALREADY_CONSUMED`, so a material frontier is not a
-durable unconsumed obligation. Production passive records remain durable, but
-their next OMP responsibility is not consumed. This applies equally to a
-failure that should lead to safe action and a `STOP_SAFE` / correct-`STAY`
-terminal that must explain why no action was legal.
+durable unconsumed obligation. V1.5's active residual is narrower: the passive
+path must share the compact continuing-incident projection with the execution
+path, so a consumed attempt or stale evidence never hides an open incident.
 
 ## Existing-owner law
 
@@ -391,8 +395,8 @@ verified result
 ```
 
 Transaction terminals, focused repair completion, tests, safe deploy,
-production caller verification, replay, Learning, Outcome consumption and an
-M6/M7 recommendation are not operator-return points while a safe successor
+production caller verification, replay, Learning, Outcome consumption and a
+`CAUSAL_M7_OUTCOME_TIER_DECISION` recommendation are not operator-return points while a safe successor
 exists. The existing event-driven Codex Automation Platform owner must receive
 one deterministic wake after the atomic successor projection; the watchdog is
 fallback only. Consumption and successor publication are interprocess
@@ -439,7 +443,7 @@ condition and stop. A new safe successor or a separately owner-issued scoped
 contract is required before it continues.
 
 After each owner-backed controlled outcome, replay and Learning, the existing
-M6/M7 owners recompute the progressive blast-radius ladder. `HOLD`, `FREEZE`,
+`CAUSAL_M7_OUTCOME_TIER_DECISION` owner recomputes the progressive blast-radius ladder. `HOLD`, `FREEZE`,
 `DEMOTE` and insufficient-evidence decisions remain exact legal outputs. An
 independently approved next tier produces a durable successor for the same
 existing execution lifecycle. At most one tier may advance per independently
@@ -510,6 +514,8 @@ state, not a new store. It contains only:
 - latest observation generation and failure family;
 - affected, protected and unresolved **scope summaries** (counts, cohort
   fingerprint and source pointers, never a growing user list);
+- `intent_scope_type`, `intent_scope_fingerprint`, `intent_closure_reason`
+  and `intent_closure_evidence_pointer`;
 - current certified tier, last attempt pointer and last terminal;
 - last responsible link, next consumer, re-entry condition and intent status;
 - lineage pointers to immutable records.
@@ -569,6 +575,29 @@ Two independent state axes are required:
 channel incident is `PARTIALLY_PROTECTED`; an expired packet is normally
 `OPEN_REVALIDATION_REQUIRED`, not incident closure.
 
+Protection scope has three distinct levels:
+
+```text
+Channel incident
+-> cohort protection intent
+-> user protection intent
+```
+
+For example, a successful action for user `U` may close only `U`'s intent;
+the channel remains `OPEN/PARTIALLY_PROTECTED` while another cohort is
+unresolved. A correct `STAY` is equally scoped: it closes only the exact fresh
+intent proven safe, never a wider channel incident by implication.
+
+The following invariants are mandatory and machine-checkable:
+
+```text
+incident_state != INTENT_CLOSED AND next_required_consumer is empty
+-> INVALID_OPEN_INCIDENT_NO_SUCCESSOR
+
+incident_state != INTENT_CLOSED AND reentry_condition is empty
+-> CAUSAL_LINEAGE_BROKEN
+```
+
 ### Active-incident revalidation law
 
 The required missing transition is:
@@ -610,6 +639,8 @@ blind refresh.
 
 ### M0 — Causal-loss and storage-topology audit
 
+Semantic Mission ID: `CAUSAL_M0_CAUSAL_LOSS_AND_STORAGE_AUDIT`.
+
 Read CPS/OMP, source, production state and every existing owner by behavior.
 For each current/recent material incident, prove the full lineage from Matrix
 observation to next consumer or exact terminal. Measure append growth,
@@ -621,6 +652,8 @@ Completion: `CAUSAL_LOSS_AND_SCALE_RESIDUAL_EXACTLY_PROVEN`.
 
 ### M1 — Dual lifecycle and compact incident projection
 
+Semantic Mission ID: `CAUSAL_M1_DUAL_LIFECYCLE_COMPACT_PROJECTION`.
+
 Extend the existing autoswitch incident state and existing closure transition
 records with the two axes, compact fields, scope summaries and lineage
 pointers. Preserve append-only history externally; migrate/reconcile current
@@ -631,6 +664,8 @@ Completion: `DUAL_LIFECYCLE_COMPACT_PROJECTION_CONSUMED_WITHOUT_SECOND_STORE`.
 
 ### M2 — Atomic causal transition and successor publication
 
+Semantic Mission ID: `CAUSAL_M2_ATOMIC_CAUSAL_TRANSITION`.
+
 Use the existing lock/CAS owner across selection of the current incident,
 generation validation, incident-state update, successor publication, CPS
 projection and receipt append. A crash between any stages must recover
@@ -640,6 +675,8 @@ generation fail closed.
 Completion: `INCIDENT_TRANSITION_EXACTLY_ONCE_AND_RECOVERABLE`.
 
 ### M3 — Current active incident revalidation
+
+Semantic Mission ID: `CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION`.
 
 Implement the active-incident revalidation transition through existing Matrix,
 passive capture and planner owners. Fresh failed probes of a continuing,
@@ -652,6 +689,8 @@ Completion: `CURRENT_ACTIVE_INCIDENT_REVALIDATED_TO_FRESH_SUCCESSOR_OR_EXACT_STO
 
 ### M4 — Intent-aware STOP_SAFE and Automation Gap routing
 
+Semantic Mission ID: `CAUSAL_M4_INTENT_AWARE_GAP_ROUTING`.
+
 Classify each attempt terminal against the continuing incident and its exact
 protection intent. Route only open engineering gaps through existing BDP/OMP;
 retain correct-STAY, Authority, external-owner and Natural L8 states as
@@ -662,6 +701,8 @@ Completion: `OPEN_INTENT_GAP_ROUTED_OR_CORRECT_INTENT_CLOSURE_PROVEN`.
 
 ### M5 — Polygon as engineering-closure substrate
 
+Semantic Mission ID: `CAUSAL_M5_POLYGON_ENGINEERING_CLOSURE`.
+
 Polygon receives the exact unresolved engineering cell and lineage. It may
 replay the causal chain, test target/capacity/rollback/anti-flap/partial-scope
 logic and prepare a controlled L7 opportunity for the existing production
@@ -670,7 +711,21 @@ claim L7 credit or manufacture Natural L8.
 
 Completion: `UNRESOLVED_ENGINEERING_CELL_REPLAYED_AND_OWNER_HANDOFF_READY`.
 
+### Production-effects boundary by Mission
+
+| Missions | Permitted production effect | Ownership rule |
+| --- | --- | --- |
+| `CAUSAL_M0`–`CAUSAL_M5` | none | discovery, projections, lineage, Polygon engineering work and controlled-opportunity preparation are read-only/non-mutating |
+| `CAUSAL_M6_CONTROLLED_ATTEMPT` | at most one bounded action | only through an active standing delegated policy and every existing fresh live gate; this Mission is the sole V1.5 execution owner |
+| `CAUSAL_M7`–`CAUSAL_M9` | no additional action | only owner-authorized observation, verification, rollback/no-rollback evidence, replay or Learning for the already-created attempt |
+| `CAUSAL_M10_VLESS_ACCEPTANCE` | no separate execution path | acceptance invokes the already deployed and verified `CAUSAL_M6_CONTROLLED_ATTEMPT` path; it may observe one bounded action only if that path independently admits it |
+
+No Mission may use this table to bypass Authority, freshness, Packet/lease,
+restore-barrier, rollback, capacity or blast-radius gates.
+
 ### M6 — Existing controlled action path and partial-scope handling
+
+Semantic Mission ID: `CAUSAL_M6_CONTROLLED_ATTEMPT`.
 
 Only when current policy and all fresh gates allow, use the existing planner →
 Candidate → Packet → lease → bounded executor path. A one-user outcome updates
@@ -682,14 +737,18 @@ Completion: `FRESH_BOUNDED_ATTEMPT_OUTCOME_OR_EXACT_CONTINUING_INCIDENT_STOP`.
 
 ### M7 — Outcome, replay, Learning and tier recommendation
 
+Semantic Mission ID: `CAUSAL_M7_OUTCOME_TIER_DECISION`.
+
 Reuse existing Outcome Passport, temporal verification, replay, Learning and
-M6 recommendation owners. Consume only the affected capability criteria;
+the `CAUSAL_M7_OUTCOME_TIER_DECISION` recommendation owner. Consume only the affected capability criteria;
 compare shadow with actual outcome; update the exact tier recommendation.
 No whole capability, Authority or Production Maturity may advance implicitly.
 
 Completion: `OUTCOME_LINEAGE_TO_LEARNING_AND_AFFECTED_TIER_DECISION_CONSUMED`.
 
 ### M8 — CPS/runtime/OMP pointer reconciliation
+
+Semantic Mission ID: `CAUSAL_M8_LIVE_POINTER_RECONCILIATION`.
 
 CPS holds only live pointers: active contract ID, incident ID/state, current
 attempt ID, next consumer, re-entry condition and frontier. Runtime policy
@@ -701,6 +760,8 @@ Completion: `LIVE_POINTERS_MATCH_OWNER_BACKED_RUNTIME_AND_INCIDENT_TRUTH`.
 
 ### M9 — Restart, concurrency and no-progress campaign
 
+Semantic Mission ID: `CAUSAL_M9_CONCURRENCY_RECOVERY_CAMPAIGN`.
+
 Prove two revalidators yield one observation generation; two opportunity
 producers yield one fresh attempt; stale writers are rejected; and each crash
 boundary reconciles without duplicate successor. Prove correct STOP_SAFE does
@@ -711,22 +772,32 @@ Completion: `CAUSAL_CLOSURE_CONCURRENCY_RECOVERY_AND_NO_PROGRESS_PROVEN`.
 
 ### M10 — Current VLESS production acceptance and implementation terminal
 
+Semantic Mission ID: `CAUSAL_M10_VLESS_ACCEPTANCE`.
+
 Use the current VLESS incident as the acceptance subject: prove it remains
 open or recovered; obtain fresh failed probes if still open; materialize
 `CURRENT_ACTIVE_INCIDENT_REVALIDATED`; check the active standing policy; then
 obtain a fresh Candidate/Packet/lease or exact live STOP_SAFE. Execute one
 bounded action only if existing policy and runtime gates independently permit
 it. Consume verification, Outcome, Replay, Learning, scope update and the
-affected M6 tier decision.
+affected `CAUSAL_M7_OUTCOME_TIER_DECISION` tier decision.
 
 The implementation terminal is:
 
 `PERSISTENT_INCIDENT_CAUSAL_CLOSURE_RUNTIME_CONSUMED`
 
-It means every currently open incident has a durable compact state, causal
-lineage and exact successor/boundary; current VLESS re-entry was exercised;
-future incidents enter the same invariant automatically. It does not claim
-that no future incidents will arise or that all future actions are authorized.
+It requires all of the following:
+
+- every current open incident is compactly projected;
+- the current VLESS incident is reconciled as open/recovered with its exact
+  scope and re-entry result;
+- no open incident lacks `next_required_consumer` or `reentry_condition`;
+- CPS/runtime/OMP pointers are owner-backed and aligned;
+- `CAUSAL_M7_OUTCOME_TIER_DECISION` is consumed for the affected tier;
+- a future non-test producer/consumer is certified to enter the same invariant.
+
+It does not claim that no future incidents will arise or that all future
+actions are authorized.
 
 ### V1.5 verification requirements
 

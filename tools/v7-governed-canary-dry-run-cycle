@@ -1726,6 +1726,11 @@ def bounded_delegated_policy_admission(
         "service_matrix_regression",
         "service_regression",
         "channel_quality_regression",
+        # The existing Service Matrix has a distinct causal event for a
+        # continuing failed episode.  It is a fresh observation generation of
+        # the same incident, not a second outage and not a reused Candidate.
+        "SERVICE_FAILURE_OBSERVED",
+        "SERVICE_FAILURE_REVALIDATED",
     }
     now = datetime.now(timezone.utc)
     for event in reversed(event_rows if isinstance(event_rows, list) else []):
@@ -1735,6 +1740,21 @@ def bounded_delegated_policy_admission(
             continue
         if source and str(event.get("object") or "") != source:
             continue
+        event_type = str(event.get("event_type") or "")
+        if event_type in {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}:
+            # Only accept the existing Matrix capture-only evidence contract.
+            # A hand-written event, missing incident identity, or a different
+            # provenance cannot manufacture the delegated-action trigger.
+            if not bool(event.get("capture_only")):
+                continue
+            if str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+                continue
+            if not str(event.get("source_incident_id") or ""):
+                continue
+            if event_type == "SERVICE_FAILURE_REVALIDATED" and not str(event.get("observation_generation") or ""):
+                continue
+            if event_type == "SERVICE_FAILURE_OBSERVED" and not str(event.get("failure_episode_id") or ""):
+                continue
         try:
             observed = datetime.fromisoformat(str(event.get("timestamp") or "").replace("Z", "+00:00"))
             if observed.tzinfo is None:

@@ -1168,6 +1168,63 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(result["allowed"])
         self.assertIn("FRESH_MATCHING_SERVICE_FAILURE_EVENT_MISSING", result["blockers"])
 
+    def test_bounded_delegated_policy_accepts_fresh_continuing_matrix_revalidation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            cycle = self.ready_cycle()
+            event = module.event_helpers.normalize_regression_event({
+                "event_id": "sfrev_unit",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "channel": "vless",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+                "capture_only": "true",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "source_incident_id": "sfinc_unit",
+                "observation_generation": "sfrev_unit",
+            })
+            cycle["event_consumer"] = {"events": [event]}
+            result = module.bounded_delegated_policy_admission(
+                cycle["packet_preview"],
+                cycle,
+                live_policy_contract=policy_root["delegated_autonomy_policy"],
+                authority_audit_records=module.operator_execution.read_audit_records(
+                    Path(args.operator_execution_audit_store),
+                ),
+            )
+        self.assertTrue(result["allowed"], result)
+        self.assertEqual(result["qualifying_service_failure_event"]["event_id"], "sfrev_unit")
+
+    def test_bounded_delegated_policy_rejects_unbound_continuing_revalidation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            cycle = self.ready_cycle()
+            cycle["event_consumer"] = {"events": [{
+                "event_id": "sfrev_unbound",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "object": "vless",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "source_incident_id": "sfinc_unit",
+                # No observation_generation: must remain fail-closed.
+            }]}
+            result = module.bounded_delegated_policy_admission(
+                cycle["packet_preview"],
+                cycle,
+                live_policy_contract=policy_root["delegated_autonomy_policy"],
+                authority_audit_records=module.operator_execution.read_audit_records(
+                    Path(args.operator_execution_audit_store),
+                ),
+            )
+        self.assertFalse(result["allowed"])
+        self.assertIn("FRESH_MATCHING_SERVICE_FAILURE_EVENT_MISSING", result["blockers"])
+
     def test_materialized_feedback_classifies_rollback_completed_as_rollback_success(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

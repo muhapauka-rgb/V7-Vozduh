@@ -222,6 +222,17 @@ def normalize_regression_event(event, source=""):
         "read_only": True,
         "preview_only": True,
         "synthetic_event": False,
+        # Preserve the existing Service Matrix causal binding for downstream
+        # bounded-delegated admission.  These are facts supplied by the
+        # producer, not execution permission: the executor still verifies
+        # freshness, source match, policy, Candidate, Packet and every live
+        # safety gate independently.
+        "source_incident_id": str(event.get("source_incident_id") or ""),
+        "observation_generation": str(event.get("observation_generation") or ""),
+        "failure_episode_id": str(event.get("failure_episode_id") or ""),
+        "event_provenance": str(event.get("event_provenance") or event.get("provenance") or ""),
+        "evidence_class": str(event.get("evidence_class") or ""),
+        "capture_only": str(event.get("capture_only") or "").strip().lower() in {"1", "true", "yes", "on"},
     }
     return normalized
 

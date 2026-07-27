@@ -141,3 +141,19 @@ Focused affected verification после исправления: **139 tests PAS
 и diff-check: **PASS**. Следующий шаг — обычный safe deploy этого
 producer-consumer semantic repair и affected production replay; ожидаемый
 terminal при отсутствии нового failure: `WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT`.
+
+## Закрытие repair
+
+Repair задеплоен штатным `tools/v7-safe-deploy` как
+`deploy-z8-14-Updatesystem-f53ad20-20260727T091319`. Manifest подтвердил
+единственную runtime-замену: `tools/v7-users-autoswitch`; рестарт,
+policy-write, restore barrier, apply, routing mutation и user movement не
+выполнялись.
+
+Production non-test caller существующего consumer вернул `PASS` и
+`no_unmaterialized_passive_terminal`, сохранив все forbidden effects нулевыми.
+Это корректный affected replay при отсутствии свежего matching failure: repair
+установлен и доступен, но не создаёт событие для его искусственной проверки.
+
+Итоговые truth и convergence: `PASS / FULLY_ALIGNED`, commit local/GitHub/
+production runtime: `f53ad20bc79e791a0be1a5f823149a20bbf1118f`.

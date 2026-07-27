@@ -16559,6 +16559,129 @@ def continue_phase6a_obligation_corpus(
     }
 
 
+def reconcile_service_failure_external_authority_boundary(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Restore an existing standing-policy Authority boundary atomically.
+
+    This is deliberately narrow remediation for a precedence bug in Continue
+    OMP.  It can only reconstruct the already-issued, still-fresh standing
+    delegated-policy request from CPS pointers.  It cannot issue the policy,
+    approve a request, create a Candidate/Packet/lease, or alter Runtime.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    cps_text = cps_path.read_text(encoding="utf-8")
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    required = {
+        "ACTIVE_PROGRAM": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "CURRENT_STOP_CONDITION": "ENGINEERING_AUTHORITY",
+        "CURRENT_NEXT_ACTION_ID": "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION",
+        "EXTERNAL_INPUT_REQUIRED": "TRUE",
+        "EXTERNAL_INPUT_TYPE": "EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_DECISION",
+    }
+    errors = [
+        f"boundary_mismatch:{key}"
+        for key, expected in required.items()
+        if _plain_live_value(live, key) != expected
+    ]
+    request_id = _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_ID")
+    request_hash = _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_HASH")
+    expires_at = _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_EXPIRY")
+    if not request_id.startswith("sdpauth_r1_"):
+        errors.append("standing_policy_request_id_missing")
+    if not re.fullmatch(r"[0-9a-f]{64}", request_hash):
+        errors.append("standing_policy_request_hash_invalid")
+    try:
+        if _parse_iso_timestamp(expires_at) <= datetime.now(timezone.utc):
+            errors.append("standing_policy_request_expired")
+    except (TypeError, ValueError):
+        errors.append("standing_policy_request_expiry_invalid")
+    if errors:
+        return {
+            "schema": "v7.service-failure-external-authority-boundary-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": errors,
+            "next_action": _plain_live_value(live, "CURRENT_NEXT_ACTION_ID") or "NONE",
+            "forbidden_effects": {
+                "policy_write": False, "candidate_creation": False, "packet_or_lease_creation": False,
+                "restore_barrier_write": False, "runtime_apply": False, "routing_mutation": False,
+                "user_movement": False, "rollback_apply": False, "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "current_stop_condition": "ENGINEERING_AUTHORITY",
+        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVATION",
+        "current_safe_next_action": (
+            "INDEPENDENT_DECISION_ON_EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_REQUEST; "
+            "DO NOT ACTIVATE WITHOUT THE EXACT REQUEST ID AND HASH"
+        ),
+        "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+        "current_state_generation": f"cpsgen_SFA_SDPA_{request_hash[:12].upper()}",
+        "current_transition_id": "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_REQUEST_READY_V1",
+        "current_next_action_id": "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION",
+        "current_program_execution_frontier": "NONE",
+        "current_execution_frontier": "NONE",
+        "continuation_decision": "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY",
+        "program_terminal_class": "ENGINEERING_AUTHORITY",
+        "program_terminal_state": "ENGINEERING_AUTHORITY_STANDING_DELEGATED_POLICY_REQUEST_READY",
+        "omp_continuation_required": "FALSE",
+        "external_input_required": "TRUE",
+        "external_input_type": "EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_DECISION",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE",
+        "continuation_stop_reason": (
+            "STANDING_DELEGATED_POLICY_IMPLEMENTED_DEPLOYED_AND_FAIL_CLOSED; "
+            "EXACT INDEPENDENT AUTHORITY DECISION REQUIRED ONCE"
+        ),
+        "no_progress_fingerprint": "60b7634b5e1b79cbdccae991ef34328a8f0d49659d4c17c5a4d3712307de28de",
+        "action_class_engineering_frontier": "POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1:CONSUMED",
+        "l8_observation_window": (
+            "PASSIVE_CAPTURE_PRODUCTION_CONSUMER_LIVE_FOR_CURRENT_AND_CHANNEL_HARD_FAILURE_ACTION_CLASSES; "
+            "EXTERNAL_UNATTRIBUTED CANDIDATES PRESERVED WITHOUT CREDIT; NATURAL_EVENT_CREATION_FORBIDDEN"
+        ),
+        "source_summary": (
+            "The existing Service Matrix lifecycle now consumes a live standing delegated-policy contract when independently activated and can carry each fresh qualifying service-failure Candidate through the existing bounded executor without per-Candidate approval; production deploy and fail-closed caller are verified, no contract is active, no Runtime/routing/user/Authority/maturity effect occurred, and one exact 24-hour standing-policy Authority request is pending."
+        ),
+        "state_captured": utc_now(),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        # Preserve both independently-consumed Engineering classifications as
+        # historical/action-class context without allowing either to displace
+        # the live Authority boundary again.
+        section0_field_overrides={
+            "ACTION_CLASS_ENGINEERING_FRONTIER": (
+                "`POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1:CONSUMED`"
+            ),
+            "NEXT_PRODUCT_ACTION_CLASS": "`NONE`",
+        },
+    )
+    return {
+        "schema": "v7.service-failure-external-authority-boundary-reconciliation.v1",
+        "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+        "atomic_update": atomic,
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "expires_at": expires_at,
+        "next_action": "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION",
+        "behavior_change": "EXTERNAL_AUTHORITY_BOUNDARY_RESTORED_AND_PREEMPTS_AUTOMATIC_SUCCESSORS",
+        "forbidden_effects": {
+            "policy_write": False, "candidate_creation": False, "packet_or_lease_creation": False,
+            "restore_barrier_write": False, "runtime_apply": False, "routing_mutation": False,
+            "user_movement": False, "rollback_apply": False, "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+        "errors": [] if atomic.get("ok") else atomic.get("errors") or ["atomic_cps_reconciliation_failed"],
+    }
+
+
 def continue_omp_engineering_control_loop(
     *,
     root: Path = ROOT,
@@ -16589,6 +16712,44 @@ def continue_omp_engineering_control_loop(
         live = _markdown_field_table(_markdown_section(
             cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
         ))
+        # An independently decidable Authority/input boundary is not an
+        # ordinary engineering frontier.  It must preempt every safe Polygon
+        # or capability successor, otherwise a read-only Continue OMP call
+        # can overwrite the live Authority projection with unrelated work.
+        # The return is intentionally a legal no-op: it neither consumes a
+        # service-failure obligation nor persists CPS, even when asked to do
+        # so.  The exact existing Authority owner remains the only consumer.
+        external_input_required = _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED") == "TRUE"
+        current_stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
+        current_next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+        if external_input_required and current_stop in {
+            "ENGINEERING_AUTHORITY", "OPERATIONAL_AUTHORITY", "REAL_WORLD_LIMIT",
+        }:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": f"{current_stop}_EXTERNAL_BOUNDARY_PRESERVED",
+                "terminal_class": current_stop,
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "EXTERNAL_BOUNDARY_PREEMPTS_AUTOMATION",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_INDEPENDENT_EXTERNAL_OWNER",
+                "exact_next_operator_command": current_next_action or "NONE",
+                "exact_next_automatic_action": "NONE",
+                "transitions": [],
+                "internal_iteration_count": 0,
+                "behavior_change": False,
+                "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+                "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False, "routing_mutation": False,
+                    "user_movement": False, "packet_execution": False,
+                    "restore_barrier_write": False, "rollback_apply": False,
+                    "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
         service_failure = service_failure_automation_frontier(root=root)
         if service_failure.get("final_verdict") == "READY":
             consumed = consume_service_failure_automation_frontier(

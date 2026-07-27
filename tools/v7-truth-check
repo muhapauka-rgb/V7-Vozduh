@@ -747,6 +747,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--consume-service-failure-automation-only", action="store_true", help="Consume one durable Service Failure automation obligation through the existing OMP owner without requiring the source CPS corpus on a binary-only production host.")
     parser.add_argument("--reconcile-service-failure-receipt", default="", metavar="PATH", help="Atomically reconcile one verified production Service Failure OMP receipt into the canonical source CPS.")
     parser.add_argument("--reconcile-action-class-contract-request", default="", metavar="PATH", help="Atomically project one fresh read-only M5a action-class Authority request into the canonical source CPS; never approves, writes policy, or executes an action.")
+    parser.add_argument("--reconcile-external-authority-boundary", action="store_true", help="Atomically restore the exact existing external-Authority CPS projection after a proven automatic-successor precedence defect; never issues policy or executes an action.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -799,6 +800,14 @@ def selected_mode(args: argparse.Namespace) -> str:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_arg_parser().parse_args(argv)
+    if args.reconcile_external_authority_boundary:
+        result = sync_lib.reconcile_service_failure_external_authority_boundary(root=ROOT_DIR)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"external_authority_boundary_reconciliation={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_action={result.get('next_action', 'NONE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
     if args.omp_polygon_ci_failure_repair_production_certification:
         certification_root = Path("/opt/v7") if ROOT_DIR == Path("/usr/local") else ROOT_DIR
         result = sync_lib.certify_polygon_ci_failure_repair_production_entrypoint(

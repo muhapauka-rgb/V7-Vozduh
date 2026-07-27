@@ -155,6 +155,25 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["reentry_outcome"], "REENTRY_BLOCKED_PROGRAM_TERMINAL")
         self.assertFalse(result["standard_entrypoint_invoked"])
 
+    def test_continue_omp_external_authority_preempts_product_successor(self):
+        """A manual Continue OMP cannot overwrite an independently owned stop."""
+        cps = self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "ENGINEERING_AUTHORITY"),
+            ("CURRENT_NEXT_ACTION_ID", "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION"),
+            ("EXTERNAL_INPUT_REQUIRED", "TRUE"),
+            ("EXTERNAL_INPUT_TYPE", "EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_DECISION"),
+        ):
+            self.replace_live(field, value)
+        before = cps.read_text(encoding="utf-8")
+        result = self.lib.continue_omp_engineering_control_loop(root=self.root, persist_cps=True)
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["priority_decision"], "EXTERNAL_BOUNDARY_PREEMPTS_AUTOMATION")
+        self.assertEqual(result["program_terminal"], "ENGINEERING_AUTHORITY_EXTERNAL_BOUNDARY_PRESERVED")
+        self.assertEqual(result["internal_iteration_count"], 0)
+        self.assertEqual(cps.read_text(encoding="utf-8"), before)
+
     def test_completion_gate_requires_two_natural_separated_reentries(self):
         base = {
             "platform_owner": "CODEX_AUTOMATION_PLATFORM", "no_user_prompt": True,

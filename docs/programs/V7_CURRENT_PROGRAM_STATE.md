@@ -30,7 +30,7 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME UNRECOVERED INCIDENT THROUGH A FRESH MATRIX REVALIDATION; each next operation requires a new Candidate, Packet and lease under the existing standing policy` |
+| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; the active standing policy is revalidated for every one-user transaction; do not reuse historical identities` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
 | `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_E7266E739EE2` |
 | `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
@@ -55,7 +55,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `75` |
-| `CONTINUATION_STOP_REASON` | `STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN` |
+| `CONTINUATION_STOP_REASON` | `ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and one-user transaction admission under standing policy` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `PARTIALLY_PROTECTED; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; fresh event sfrev_cbd35478e4877a5bf09780f0e671230f; one bounded user 10.7.0.45 moved from vless to wireguard-1779454504-c43409; feedback execfb_280dd6712e37aceccbcc5bfb; packet pkt_preview_65704a4837c45b0c50c11919; remaining channel scope stays open and may only reenter on a fresh matching event; scope affected=31, protected=1, unresolved=30, excluded_or_recovered=0; fingerprint 68da98f425aa71ffba21125e341a6d5fbf20f2c7239c41f65abaa84f354b3c82` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `PARTIAL_PROTECTION_EXECUTION_CONSUMED; no historical Event/Candidate/Packet/lease may be reused` |
@@ -396,6 +396,28 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_VLESS_SCOPE_FINGERPRINT` | `678077526706dee2bf3c0b4ec85e516207f5165342d14c79c3155fecc23ccc73` |
 | `INCIDENT_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 | `PRODUCT_EVOLUTION_FRONTIER` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
+| `BOUNDED_COHORT_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH` |
+| `CAUSAL_M7_TIER_VERDICT` | `HOLD_CURRENT_TIER` |
+| `CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES` | `channel_degradation,channel_hard_fail,service_specific_failure` |
+| `CURRENT_ACTION_CLASS_ALLOWED_SOURCE_TARGET_SCOPE` | `EXISTING_PLANNER_SAFE_TARGET_ONLY` |
+| `CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER` | `TIER_1_CURRENT_STANDING_POLICY` |
+| `CURRENT_ACTION_CLASS_CERTIFIED_TIER` | `HISTORICAL_XLARGE_BATCH_48_SUPPORTING_ONLY` |
+| `CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS` | `verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke` |
+| `CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL` | `current failure-family and source-target scoped evidence plus independent Tier-2 Authority decision; historical batch evidence is supporting only` |
+| `CURRENT_ACTION_CLASS_EXPIRY` | `2026-08-25T17:21:00.971884+00:00` |
+| `CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS` | `policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence` |
+| `CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS` | `1` |
+| `CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION` | `1` |
+| `CURRENT_ACTION_CLASS_NEXT_TIER` | `TIER_2` |
+| `CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER` | `HISTORICAL_XLARGE_BATCH_48_SUPPORTING_EVIDENCE` |
+| `CURRENT_ACTION_CLASS_ROLLBACK_CONTRACT` | `EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED` |
+| `CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER` | `TIER_1_SINGLE_USER_SERIAL` |
+| `CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER` | `HISTORICAL_XLARGE_BATCH_48_SUPPORTING_PATH` |
+| `CURRENT_ACTION_CLASS_VERIFICATION_CONTRACT` | `EXISTING_LIVE_VERIFICATION_GATES_REQUIRED` |
+| `TIER_10_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH` |
+| `TIER_1_REUSE_CLASSIFICATION` | `REUSABLE_CERTIFIED_AND_APPROVED` |
+| `TIER_2_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH` |
+| `TIER_5_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -441,7 +463,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities. |
+| `OMP_CONTINUATION_POINTER` | The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -467,7 +489,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `current_primary_stop` | `NONE` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
-| `last_responsible_link` | production OMP receipt -> canonical source CPS reconciliation |
+| `last_responsible_link` | existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
 | `smallest_existing_next_action` | CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN |

@@ -54,6 +54,8 @@ next=CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN
 - Production heartbeat после финального deploy: `PASS`,
   `REENTRY_COMPLETED`, consumer `tools/v7-service-matrix-refresh-all`,
   `ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON`.
+- Production `v7-service-matrix-refresh.timer`: `enabled` и `active`; его
+  последний owner-backed trigger был `2026-07-27 19:09:05 MSK`.
 - `tools/v7-truth-check --all --json`: PASS.
 - `tools/v7-convergence-status --json`: `ALIGNED`; local, GitHub и production
   runtime находятся на `e3c059a1f7eaa2168d96651a6df3b4aaf97112bc` на момент

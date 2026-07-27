@@ -861,6 +861,48 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
             self.assertEqual(result["receipt"]["object_id"], "sfomp_source_test")
             self.assertTrue(result["atomic_update"]["ok"])
 
+    def test_historical_safe_receipt_cannot_replace_active_standing_policy_frontier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs/programs").mkdir(parents=True)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
+            text = cps_path.read_text(encoding="utf-8")
+            for field, value in (
+                ("ACTIVE_PROGRAM", "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"),
+                ("CURRENT_AUTHORITY_REQUEST_STATUS", "ACTIVE_OWNER_BACKED_STANDING_POLICY"),
+                ("CURRENT_NEXT_ACTION_ID", "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"),
+            ):
+                text = self.sync._replace_section_field(
+                    text, "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry", field, f"`{value}`",
+                )
+            cps_path.write_text(text, encoding="utf-8")
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "object_id": "sfomp_historical_safe", "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_historical_safe",
+                "source_incident_id": "sfinc_historical_safe",
+                "situation_id": "situation_historical_safe",
+                "decision_trace_id": "decision_historical_safe",
+                "classification": "CORRECT_SAFE_TERMINAL",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "NONE",
+                "next_action": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "runtime_mutation_performed": False, "routing_mutation_performed": False,
+                "apply_executed": False, "authority_expanded": False,
+                "production_maturity_changed": False, "users_moved": 0,
+            }
+            result = self.sync.reconcile_service_failure_automation_receipt_to_cps(receipt, root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["status"], "HISTORICAL_RECEIPT_CONSUMED_ACTIVE_STANDING_POLICY_PRESERVED")
+            live = self.sync._markdown_field_table(self.sync._markdown_section(
+                cps_path.read_text(encoding="utf-8"), "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(self.sync._plain_live_value(live, "CURRENT_NEXT_ACTION_ID"), "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION")
+            self.assertEqual(self.sync._plain_live_value(live, "LAST_SERVICE_FAILURE_RECEIPT_ID"), "sfomp_historical_safe")
+
     def test_fresh_m5a_request_is_atomically_projected_without_contract_or_packet(self):
         template = {
             "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",

@@ -6438,6 +6438,87 @@ def reconcile_service_failure_automation_receipt_to_cps(
                 + [f"forbidden_effect:{key}" for key in forbidden]
             ),
         }
+    # A correctly consumed historical expiry/recovery terminal must not
+    # overwrite a newer, independently audit-verified standing-policy
+    # frontier.  Both facts are durable and useful: the receipt is consumed
+    # through CPS as history, while the newer policy remains the legal owner
+    # of the next fresh-event revalidation.  This avoids a producer ->
+    # consumer race where an older receipt silently resurrects a stale
+    # Authority boundary.
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+            "final_verdict": "STOP_SAFE", "errors": [f"cps_unreadable:{exc}"],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    receipt_id = str(receipt.get("object_id") or "")
+    active_standing_policy = (
+        _plain_live_value(live, "ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
+        and _plain_live_value(live, "CURRENT_AUTHORITY_REQUEST_STATUS") == "ACTIVE_OWNER_BACKED_STANDING_POLICY"
+        and _plain_live_value(live, "CURRENT_NEXT_ACTION_ID") == "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
+    )
+    historical_safe_terminal = str(receipt.get("classification") or "") == "CORRECT_SAFE_TERMINAL"
+    if active_standing_policy and historical_safe_terminal:
+        receipt_fingerprint = hashlib.sha256(json.dumps({
+            "receipt_id": receipt_id,
+            "source_incident_id": receipt["source_incident_id"],
+            "decision_trace_id": receipt["decision_trace_id"],
+            "classification": receipt["classification"],
+        }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        already_projected = _plain_live_value(live, "LAST_SERVICE_FAILURE_RECEIPT_ID") == receipt_id
+        if already_projected:
+            return {
+                "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+                "final_verdict": "PASS", "status": "RECEIPT_ALREADY_CONSUMED_ACTIVE_POLICY_PRESERVED",
+                "production_receipt_id": receipt_id, "receipt": receipt,
+                "behavior_change": False,
+                "next_output": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+                "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": False, "authority_expansion": False},
+                "errors": [],
+            }
+        state = _normalized_state_from_live_cps(cps_text)
+        state.update({
+            "state_captured": utc_now(),
+            "current_state_generation": f"cpsgen_SFA_RECEIPT_{receipt_fingerprint[:12].upper()}",
+            "current_transition_id": "SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1",
+            "source_summary": (
+                "The existing Service Matrix lifecycle and existing OMP consumer preserve historical "
+                "safe terminals while the independently audit-verified standing delegated policy remains "
+                "active; only a fresh matching owner-backed service-failure event may reenter planner "
+                "revalidation with new Candidate/Packet/lease identities."
+            ),
+        })
+        atomic = atomic_reconcile_cps(
+            cps_path,
+            state=state,
+            request_external_wake=False,
+            expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+            section0_field_overrides={
+                "LAST_SERVICE_FAILURE_RECEIPT_ID": f"`{receipt_id}`",
+                "LAST_SERVICE_FAILURE_RECEIPT_FINGERPRINT": f"`{receipt_fingerprint}`",
+                "LAST_SERVICE_FAILURE_RECEIPT_CLASSIFICATION": "`CORRECT_SAFE_TERMINAL`",
+                "LAST_SERVICE_FAILURE_RECEIPT_SOURCE_INCIDENT": f"`{receipt['source_incident_id']}`",
+                "LAST_SERVICE_FAILURE_RECEIPT_DECISION_TRACE": f"`{receipt['decision_trace_id']}`",
+                "LAST_SERVICE_FAILURE_RECEIPT_CONSUMPTION": "`HISTORICAL_CONSUMED_ACTIVE_STANDING_POLICY_FRONTIER_PRESERVED`",
+            },
+        )
+        return {
+            "schema_version": "v7.service-failure-automation-source-cps-reconciliation.v1",
+            "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+            "status": "HISTORICAL_RECEIPT_CONSUMED_ACTIVE_STANDING_POLICY_PRESERVED",
+            "atomic_update": atomic,
+            "production_receipt_id": receipt_id,
+            "receipt": receipt,
+            "behavior_change": bool(atomic.get("ok")),
+            "next_output": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": False, "authority_expansion": False},
+            "errors": [] if atomic.get("ok") else atomic.get("errors") or ["cps_receipt_projection_failed"],
+        }
     obligation = {
         "automation_obligation_id": receipt["automation_obligation_id"],
         "source_incident_id": receipt["source_incident_id"],

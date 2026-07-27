@@ -1206,6 +1206,159 @@ def acquire_service_matrix_lock(state_dir: Path, timeout_sec: int, *, enabled: b
             time.sleep(0.25)
 
 
+def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
+    """Validate the existing compact incident owner without mutating it.
+
+    This is a read-only projection of ``l3-runtime-state.json``.  It creates no
+    incident or successor; it gives policy/CPS consumers exact invalid-state
+    names instead of allowing an incomplete causal record to look executable.
+    """
+    state_path = Path(state_dir) / "l3-runtime-state.json"
+    state = read_json(state_path, {})
+    incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    if not state_path.exists():
+        return {
+            "schema_version": "v7.service-failure-causal-integrity-status.v1",
+            "status": "NOT_AVAILABLE",
+            "final_verdict": "NOT_APPLICABLE",
+            "state_path": str(state_path),
+            "incident_count": 0,
+            "open_incident_count": 0,
+            "invalid_states": [],
+            "read_only": True,
+        }
+
+    invalid_states: set[str] = set()
+    open_incidents = 0
+    checked_incidents = 0
+    open_incident_projections: list[dict[str, Any]] = []
+    for record in incidents.values():
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("authority_object") or "") != "PASSIVE_SERVICE_FAILURE_CAPTURE":
+            continue
+        checked_incidents += 1
+        closed = str(record.get("incident_state") or "") == "INTENT_CLOSED"
+        if not closed:
+            open_incidents += 1
+            next_consumer = str(record.get("next_required_consumer") or "")
+            reentry = str(record.get("reentry_condition") or "")
+            if not next_consumer:
+                invalid_states.add("INVALID_OPEN_INCIDENT_NO_SUCCESSOR")
+            if not reentry:
+                invalid_states.add("CAUSAL_LINEAGE_BROKEN")
+            if bool(record.get("durable_successor_published")) and not next_consumer:
+                invalid_states.add("DURABLE_SUCCESSOR_WITHOUT_CONSUMER")
+            if str(record.get("attempt_terminal") or "") not in {
+                "", "SUCCESS", "ROLLBACK_SUCCESS", "RECOVERY_OBSERVED_NO_ACTION",
+                "EPISODE_EXPIRED_NO_ACTION",
+            } and not next_consumer:
+                invalid_states.add("NONTERMINAL_RESULT_WITHOUT_DURABLE_SUCCESSOR")
+
+        scope = (
+            record.get("current_source_scope")
+            if isinstance(record.get("current_source_scope"), dict)
+            else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
+        )
+        if scope:
+            affected = to_int(scope.get("affected_scope_count"), -1)
+            protected = to_int(scope.get("protected_scope_count"), -1)
+            unresolved = to_int(scope.get("unresolved_scope_count"), -1)
+            excluded = to_int(scope.get("explicitly_excluded_or_recovered_scope_count"), -1)
+            if min(affected, protected, unresolved, excluded) < 0 or affected != protected + unresolved + excluded:
+                invalid_states.add("INCIDENT_SCOPE_ACCOUNTING_BROKEN")
+
+        cumulative = (
+            record.get("incident_cumulative_scope")
+            if isinstance(record.get("incident_cumulative_scope"), dict) else {}
+        )
+        entries = cumulative.get("entries") if isinstance(cumulative.get("entries"), list) else []
+        pointers = {
+            str(item) for item in (cumulative.get("lineage_pointers") or []) if str(item)
+        }
+        entry_pointers = {
+            str(item.get("feedback_id") or "")
+            for item in entries if isinstance(item, dict) and str(item.get("feedback_id") or "")
+        }
+        consumed_feedback = {
+            str(item) for item in (record.get("execution_feedback_ids") or []) if str(item)
+        }
+        if pointers != entry_pointers or not consumed_feedback.issubset(pointers):
+            invalid_states.add("CURRENT_SCOPE_REPLACES_CUMULATIVE_HISTORY")
+        last_feedback = str(record.get("last_execution_feedback_id") or "")
+        if last_feedback and (
+            last_feedback not in pointers
+            or not scope
+            or str(scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+        ):
+            invalid_states.add("SUCCESSFUL_ATTEMPT_WITHOUT_SCOPE_UPDATE")
+        if cumulative and scope:
+            cumulative_fingerprint = str(cumulative.get("current_source_scope_fingerprint") or "")
+            current_fingerprint = str(scope.get("affected_scope_fingerprint") or "")
+            if cumulative_fingerprint and current_fingerprint and cumulative_fingerprint != current_fingerprint:
+                invalid_states.add("CURRENT_SCOPE_REPLACES_CUMULATIVE_HISTORY")
+        if not closed:
+            lineage = record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}
+            open_incident_projections.append({
+                "incident_id": str(record.get("incident_id") or ""),
+                "incident_generation": str(record.get("incident_generation") or record.get("generation") or ""),
+                "source_channel": str(record.get("channel") or record.get("source_channel") or ""),
+                "incident_state": str(record.get("incident_state") or ""),
+                "affected_scope_count": max(0, to_int(scope.get("affected_scope_count"), 0)),
+                "protected_scope_count": max(0, to_int(scope.get("protected_scope_count"), 0)),
+                "unresolved_scope_count": max(0, to_int(scope.get("unresolved_scope_count"), 0)),
+                "explicitly_excluded_or_recovered_scope_count": max(
+                    0, to_int(scope.get("explicitly_excluded_or_recovered_scope_count"), 0)
+                ),
+                "affected_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
+                "protected_scope_fingerprint": str(scope.get("protected_scope_fingerprint") or ""),
+                "unresolved_scope_fingerprint": str(scope.get("unresolved_scope_fingerprint") or ""),
+                "explicitly_excluded_or_recovered_scope_fingerprint": str(
+                    scope.get("explicitly_excluded_or_recovered_scope_fingerprint") or ""
+                ),
+                "packet_bound_success_count": max(0, to_int(cumulative.get("packet_bound_success_count"), 0)),
+                "cumulative_lineage_count": len(entries),
+                "last_execution_feedback_id": str(record.get("last_execution_feedback_id") or ""),
+                "last_outcome_id": str(record.get("outcome_id") or ""),
+                "last_learning_id": str(record.get("learning_id") or lineage.get("learning_id") or ""),
+                "last_packet_id": str(record.get("packet_id") or lineage.get("packet_id") or ""),
+                "next_required_consumer": str(record.get("next_required_consumer") or ""),
+                "reentry_condition": str(record.get("reentry_condition") or ""),
+                "last_observed_at": str(record.get("last_observed_at") or ""),
+                "raw_user_list_stored": False,
+            })
+
+    return {
+        "schema_version": "v7.service-failure-causal-integrity-status.v1",
+        "status": "PASS" if not invalid_states else "STOP_SAFE",
+        "final_verdict": "PASS" if not invalid_states else "STOP_SAFE",
+        "state_path": str(state_path),
+        "incident_count": checked_incidents,
+        "open_incident_count": open_incidents,
+        "open_incident_projections": sorted(
+            open_incident_projections,
+            key=lambda item: (
+                str(item.get("source_channel") or ""),
+                str(item.get("incident_id") or ""),
+                str(item.get("incident_generation") or ""),
+            ),
+        ),
+        "invalid_states": sorted(invalid_states),
+        "read_only": True,
+        "forbidden_effects": {
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_change": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
 @dataclass
 class User:
     ip: str
@@ -12858,6 +13011,8 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
     )
     policy_scope = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    causal_integrity = service_failure_causal_integrity_status(Path(args.state_dir))
+    cooldown = policy_scope.get("cooldown") if isinstance(policy_scope.get("cooldown"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
         "status": "PASS" if validation.get("ok") else "STOP_SAFE_INVALID_STANDING_POLICY",
@@ -12885,8 +13040,14 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "allowed_source_target_scope": "EXISTING_PLANNER_SAFE_TARGET_ONLY",
         "verification_contract": "EXISTING_LIVE_VERIFICATION_GATES_REQUIRED",
         "rollback_contract": "EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED",
+        "cooldown": {
+            "per_user_seconds": int(cooldown.get("per_user_seconds") or 0),
+            "per_source_target_pair_seconds": int(cooldown.get("per_source_target_pair_seconds") or 0),
+        },
+        "anti_flap": str(policy_scope.get("required_anti_flap") or ""),
         "expiry_enforced": True,
         "self_expansion_allowed": bool(policy_scope.get("self_expansion_allowed")),
+        "service_failure_causal_integrity": causal_integrity,
         "audit_provenance_verified": bool(validation.get("ok")),
         "blockers": list(validation.get("errors") or []),
         "forbidden_effects": {

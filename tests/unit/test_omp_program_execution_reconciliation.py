@@ -187,6 +187,27 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
         self.assertEqual(phase7["status"], "STAGE_BLOCKED_DEPENDENCY")
         self.assertEqual((result["runtime_impact"], result["production_impact"], result["authority_impact"]), ("NONE", "NONE", "NONE"))
 
+    def test_32_every_program_has_one_exact_portfolio_state_and_successor_contract(self):
+        result = self.reconcile()
+        allowed = {
+            "COMPLETE_CONSUMED",
+            "ACTIVE_WITH_DURABLE_SUCCESSOR",
+            "MERGED_INTO_OMP",
+            "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY",
+        }
+        for row in result["program_inventory"]:
+            self.assertIn(row["portfolio_state"], allowed, row)
+            self.assertTrue(row["canonical_owner"], row)
+            self.assertTrue(row["terminal_or_successor"], row)
+            if row["portfolio_state"] in {
+                "ACTIVE_WITH_DURABLE_SUCCESSOR",
+                "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY",
+            }:
+                self.assertTrue(row["next_consumer"], row)
+                self.assertTrue(row["reentry_condition"], row)
+        self.assertEqual(result["program_portfolio_reconciliation_status"], "PASS")
+        self.assertRegex(result["program_portfolio_fingerprint"], r"^[0-9a-f]{64}$")
+
 
 if __name__ == "__main__":
     unittest.main()

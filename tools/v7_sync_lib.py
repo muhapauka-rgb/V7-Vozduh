@@ -171,7 +171,7 @@ NORMALIZED_CPS_LIVE_STATE = {
     "continuation_stop_reason": "MISSION_7_DEPLOYMENT_TRUTH_REQUIRED",
     "no_progress_fingerprint": "b4374bb3c64b7f8c3619033a0498c828618add937c33c940369e72356dd65b28",
     "program_reconciliation_footprint_class": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
-    "program_reconciliation_real_callers": "3",
+    "program_reconciliation_real_callers": "4",
     "program_reconciliation_test_callers": "4",
     "omp_automation_level": "FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED",
     "heartbeat_status": "ACTIVE",
@@ -5020,6 +5020,125 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
     live_state = _markdown_field_table(_markdown_section(
         cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
     ))
+    # Extend the established program reconciliation owner with the exact
+    # lifecycle vocabulary used by OMP.  This is a derived projection of the
+    # same canonical documents/CPS fields, not a second program registry.
+    known_ids = {str(row.get("program_id") or "") for row in inventory}
+    if SERVICE_FAILURE_AUTOMATION_PROGRAM_ID not in known_ids and (
+        _plain_live_value(live_state, "ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
+    ):
+        inventory.append({
+            "program_id": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+            "type": "ACTIVE_EXECUTION_PROGRAM",
+            "document_status": "APPROVED_EXECUTION_PLAN",
+            "execution_status": "ACTIVE_INCIDENT_DRAIN",
+        })
+    service_lifecycle_id = _plain_live_value(live_state, "SERVICE_FAILURE_LIFECYCLE_PROGRAM_ID")
+    if service_lifecycle_id and service_lifecycle_id not in known_ids:
+        inventory.append({
+            "program_id": service_lifecycle_id,
+            "type": "PRODUCT_ENGINEERING_PROGRAM",
+            "document_status": "CANONICAL",
+            "execution_status": _plain_live_value(
+                live_state, "SERVICE_FAILURE_LIFECYCLE_PROGRAM_STATUS",
+            ) or "UNKNOWN",
+        })
+    if "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM" not in known_ids:
+        inventory.append({
+            "program_id": "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
+            "type": "EVIDENCE_AND_AUTHORITY_PROGRAM",
+            "document_status": "CANONICAL",
+            "execution_status": _plain_live_value(
+                live_state, "ENGINEERING_PROGRAM_STATUS",
+            ) or "UNKNOWN",
+        })
+
+    current_next = _plain_live_value(live_state, "CURRENT_NEXT_ACTION_ID")
+    matrix_consumer = _plain_live_value(
+        live_state, "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER",
+    )
+    matrix_reentry = _plain_live_value(
+        live_state, "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION",
+    )
+    unresolved_scope = _plain_live_value(live_state, "CURRENT_VLESS_UNRESOLVED_SCOPE")
+    for row in inventory:
+        program_id = str(row.get("program_id") or "")
+        execution_status = str(row.get("execution_status") or "")
+        if program_id == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+            portfolio_state = "ACTIVE_WITH_DURABLE_SUCCESSOR"
+            residual = f"current VLESS unresolved scope={unresolved_scope or 'UNKNOWN'}"
+            next_consumer = matrix_consumer or "tools/v7-service-matrix-refresh-all"
+            reentry = matrix_reentry or "enabled Matrix timer performs fresh observation"
+            authority_boundary = "CURRENT_TIER_1_STANDING_POLICY_ONLY; NO_SELF_EXPANSION"
+        elif execution_status in {
+            "TERMINAL_COMPLETE", "EXECUTED_FOR_CURRENT_PROJECT_SCOPE",
+            "COMPLETE_CONSUMED_PRODUCTION_DEPLOYED",
+        }:
+            portfolio_state = "COMPLETE_CONSUMED"
+            residual = "NONE"
+            next_consumer = "NONE"
+            reentry = "declared canonical invalidation trigger only"
+            authority_boundary = "NONE"
+        elif program_id in {"OMP", "AEP"} or execution_status in {
+            "PHASE_6_ACTIVE_MULTI_LANE", "IN_PROGRESS", "CONTINUOUSLY_CONSUMED",
+        }:
+            portfolio_state = "ACTIVE_WITH_DURABLE_SUCCESSOR"
+            residual = (
+                "qualifying Natural L8 owner-backed evidence"
+                if program_id == "AEP" else current_next or "existing owner residual recomputation"
+            )
+            next_consumer = (
+                "existing passive L8 capture owner"
+                if program_id == "AEP" else matrix_consumer or "existing OMP consumer"
+            )
+            reentry = (
+                "qualifying Natural L8 event"
+                if program_id == "AEP" else matrix_reentry or "owner-backed state change"
+            )
+            authority_boundary = "NO_IMPLICIT_AUTHORITY_OR_MATURITY_CHANGE"
+        elif execution_status in {"CONSUMED_NOT_TERMINAL"} or row.get("type") == "SUPPORTING_REFERENCE":
+            portfolio_state = "MERGED_INTO_OMP"
+            residual = "NONE_INDEPENDENT"
+            next_consumer = "OMP"
+            reentry = "OMP-owned dependency invalidation only"
+            authority_boundary = "NONE"
+        elif execution_status.startswith("L7_CONTROLLED_"):
+            portfolio_state = "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY"
+            residual = "qualifying Natural L8 evidence"
+            next_consumer = "existing passive L8 capture owner"
+            reentry = "qualifying Natural L8 event"
+            authority_boundary = "NATURAL_L8_CANNOT_BE_MANUFACTURED"
+        elif "COMPLETE_CONSUMED" in execution_status:
+            portfolio_state = "COMPLETE_CONSUMED"
+            residual = "NONE"
+            next_consumer = "NONE"
+            reentry = "declared canonical invalidation trigger only"
+            authority_boundary = "NONE"
+        else:
+            portfolio_state = "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY"
+            residual = f"existing owner stage residual: {execution_status or 'UNKNOWN'}"
+            next_consumer = "existing OMP program reconciliation consumer"
+            reentry = "owner-backed stage output or declared dependency change"
+            authority_boundary = "NO_AUTHORITY_INFERRED"
+        row.update({
+            "portfolio_state": portfolio_state,
+            "canonical_owner": f"existing {row.get('type') or 'PROGRAM'} owner + OMP/CPS projection",
+            "current_mission": current_next if program_id in {SERVICE_FAILURE_AUTOMATION_PROGRAM_ID, "OMP"} else execution_status,
+            "last_consumed_output": execution_status,
+            "unresolved_residual": residual,
+            "next_consumer": next_consumer,
+            "reentry_condition": reentry,
+            "evidence_class": "OWNER_BACKED_CANONICAL_PROJECTION",
+            "authority_boundary": authority_boundary,
+            "terminal_or_successor": portfolio_state,
+        })
+    portfolio_fingerprint = hashlib.sha256(json.dumps(
+        inventory, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    portfolio_state_counts: dict[str, int] = {}
+    for row in inventory:
+        state_name = str(row.get("portfolio_state") or "UNKNOWN")
+        portfolio_state_counts[state_name] = portfolio_state_counts.get(state_name, 0) + 1
     current_stop = live_state.get("CURRENT_STOP_CONDITION", "").strip("`")
     production_certified_terminal = all((
         current_stop == "REAL_WORLD_LIMIT",
@@ -5098,6 +5217,9 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
     return {
         "schema": "v7-omp-program-execution-reconciliation/v1",
         "program_inventory": inventory,
+        "program_portfolio_reconciliation_status": "PASS" if not errors else "STOP_SAFE",
+        "program_portfolio_fingerprint": portfolio_fingerprint,
+        "program_portfolio_state_counts": portfolio_state_counts,
         "programs_discovered": len(inventory),
         "stages": stages,
         "program_stages_total": len(stages),
@@ -7087,6 +7209,13 @@ def _normalized_state_from_live_cps(cps_text: str) -> dict[str, str]:
         projected = field_aliases.get(key, key.upper())
         if projected in live:
             state[key] = _plain_live_value(live, projected)
+    # The source call graph is the existing owner for these two footprint
+    # counters.  Recompute them whenever CPS is atomically rendered so adding
+    # or removing a real consumer cannot strand every later CPS writer behind
+    # a stale self-referential footprint value.
+    call_sites = python_function_call_sites(ROOT, "program_execution_reconciliation")
+    state["program_reconciliation_real_callers"] = str(call_sites["real_caller_count"])
+    state["program_reconciliation_test_callers"] = str(call_sites["test_caller_count"])
     optional_l7_l8_projection_fields = {
         "l7_l8_ae_material_outcomes": "L7_L8_AE_MATERIAL_OUTCOMES",
         "l7_l8_ae_duplicate_decision": "L7_L8_AE_DUPLICATE_DECISION",
@@ -17213,6 +17342,222 @@ def reconcile_service_failure_external_authority_boundary(
     }
 
 
+def _service_failure_action_class_reuse_projection(
+    status: dict[str, Any], live: dict[str, str], *, root: Path,
+) -> tuple[dict[str, str], dict[str, Any]]:
+    """Project existing certification/evidence owners into exact tier truth."""
+    from admin_core import autonomy_trust_acceleration as evidence_owner
+
+    canonical_root = (
+        root
+        if (root / "docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md").is_file()
+        else ROOT
+    )
+    historical = evidence_owner.build_historical_blast_radius_evidence(
+        report_root=canonical_root,
+        generated_at=utc_now(),
+    )
+    valid_rows = [
+        row for row in (historical.get("certification_inventory") or [])
+        if isinstance(row, dict) and row.get("current_validity") == "VALID_SUPPORTING_LAYER"
+    ]
+    valid_scopes = sorted({int(row.get("users") or 0) for row in valid_rows if int(row.get("users") or 0) > 0})
+    evidence_fingerprint = hashlib.sha256(json.dumps({
+        "owner": historical.get("owner"),
+        "valid_scopes": valid_scopes,
+        "inventory": [
+            {
+                "id": row.get("certification_id"),
+                "users": row.get("users"),
+                "action_class": row.get("action_class"),
+                "scenario": row.get("scenario"),
+                "validity": row.get("current_validity"),
+                "reusable_dimensions": row.get("reusable_dimensions"),
+            }
+            for row in valid_rows
+        ],
+        "runtime_contract": status.get("contract_hash"),
+        "runtime_scope": status.get("policy_scope_hash"),
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+    def supporting_scope(users: int, mismatch_fields: str) -> tuple[str, str]:
+        if users not in valid_scopes:
+            return "INSUFFICIENT_EVIDENCE", "historical_owner_has_no_valid_exact_scope"
+        return "SCOPE_MISMATCH_EXACT_FIELDS", mismatch_fields
+
+    tier2, tier2_mismatch = supporting_scope(
+        2,
+        "action_class,failure_family,source_family,target_family,verification_contract,"
+        "rollback_contract,cohort_semantics,Authority_scope",
+    )
+    tier5, tier5_mismatch = supporting_scope(
+        5,
+        "action_class,source_family,target_family,verification_contract,rollback_contract,"
+        "cohort_semantics,Authority_scope",
+    )
+    tier10, tier10_mismatch = supporting_scope(
+        10,
+        "action_class,source_family,target_family,verification_contract,rollback_contract,"
+        "cohort_semantics,Authority_scope",
+    )
+    tier25, tier25_mismatch = supporting_scope(
+        25,
+        "action_class,source_family,target_family,verification_contract,rollback_contract,"
+        "cohort_semantics,Authority_scope",
+    )
+    tier48, tier48_mismatch = supporting_scope(
+        48,
+        "action_class,source_family,target_family,verification_contract,rollback_contract,"
+        "cohort_semantics,Authority_scope,certified_budget_vs_actual_users",
+    )
+    causal = status.get("service_failure_causal_integrity")
+    causal = causal if isinstance(causal, dict) else {}
+    causal_verdict = str(causal.get("final_verdict") or "NOT_AVAILABLE")
+    open_incidents = [
+        row for row in (causal.get("open_incident_projections") or [])
+        if isinstance(row, dict)
+    ]
+    cps_incident_id = _plain_live_value(live, "CURRENT_VLESS_INCIDENT_ID")
+    matching_incidents = [
+        row for row in open_incidents
+        if cps_incident_id and str(row.get("incident_id") or "") == cps_incident_id
+    ]
+    if len(matching_incidents) != 1:
+        matching_incidents = [
+            row for row in open_incidents
+            if str(row.get("source_channel") or "").casefold() == "vless"
+        ]
+    current_incident = matching_incidents[0] if len(matching_incidents) == 1 else {}
+    incident_projection_valid = bool(
+        causal_verdict == "PASS"
+        and current_incident
+        and str(current_incident.get("next_required_consumer") or "")
+        and str(current_incident.get("reentry_condition") or "")
+    )
+    portfolio = program_execution_reconciliation(
+        load_program_execution_sources(canonical_root), root=canonical_root,
+    )
+    portfolio_rows = [
+        row for row in (portfolio.get("program_inventory") or []) if isinstance(row, dict)
+    ]
+    active_programs = sorted(
+        str(row.get("program_id") or "") for row in portfolio_rows
+        if row.get("portfolio_state") == "ACTIVE_WITH_DURABLE_SUCCESSOR"
+    )
+    blocked_programs = sorted(
+        str(row.get("program_id") or "") for row in portfolio_rows
+        if row.get("portfolio_state") == "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY"
+    )
+    cooldown = status.get("cooldown") if isinstance(status.get("cooldown"), dict) else {}
+    action_class = str(status.get("action_class") or "single-user governed candidate failover")
+    allowed_failures = ",".join(str(item) for item in (status.get("allowed_failure_families") or []) if str(item))
+    projection = {
+        "CURRENT_ACTION_CLASS": f"`{action_class}`",
+        "CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS": "`RESULT_REUSED_VALID`",
+        "CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT": f"`{evidence_fingerprint}`",
+        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_PATH`",
+        "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_EVIDENCE`",
+        "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": "`TIER_1_CURRENT_CLASS; HISTORICAL_48_OTHER_CLASS_SUPPORTING_EVIDENCE`",
+        "CURRENT_ACTION_CLASS_CERTIFIED_TIER": "`TIER_1_CURRENT_CLASS`",
+        "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": "`TIER_1_CURRENT_STANDING_POLICY`",
+        "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": "`TIER_1_SINGLE_USER_SERIAL`",
+        "CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION": "`1`",
+        "CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS": "`1`",
+        "CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES": f"`{allowed_failures}`",
+        "CURRENT_ACTION_CLASS_ALLOWED_SOURCE_FAMILIES": "`CURRENT_INCIDENT_SOURCE_BOUND_BY_FRESH_MATRIX_AND_PLANNER`",
+        "CURRENT_ACTION_CLASS_ALLOWED_TARGET_FAMILIES": "`CURRENT_HEALTHY_TARGET_BOUND_BY_FRESH_PLANNER_CAPACITY_AND_POLICY_GATES`",
+        "CURRENT_ACTION_CLASS_ALLOWED_SOURCE_TARGET_SCOPE": "`EXISTING_PLANNER_SAFE_TARGET_ONLY`",
+        "CURRENT_ACTION_CLASS_VERIFICATION_CONTRACT": "`EXISTING_LIVE_VERIFICATION_GATES_REQUIRED`",
+        "CURRENT_ACTION_CLASS_ROLLBACK_CONTRACT": "`EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED`",
+        "CURRENT_ACTION_CLASS_COOLDOWN": (
+            f"`per_user={int(cooldown.get('per_user_seconds') or 0)};"
+            f"source_target_pair={int(cooldown.get('per_source_target_pair_seconds') or 0)}`"
+        ),
+        "CURRENT_ACTION_CLASS_ANTI_FLAP": f"`{str(status.get('anti_flap') or 'PASS_REQUIRED')}`",
+        "CURRENT_ACTION_CLASS_EXPIRY": f"`{str(status.get('expires_at') or '')}`",
+        "CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS": "`policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence`",
+        "CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS": "`verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke`",
+        "CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_OPERATOR": "`TRUE_INSIDE_CURRENT_POLICY_ONLY`",
+        "CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_CODEX": "`TRUE_MATRIX_RUNTIME_OWNER`",
+        "CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_RECERTIFICATION": "`TRUE_UNLESS_DECLARED_INVALIDATION_TRIGGER`",
+        "TIER_1_REUSE_CLASSIFICATION": "`REUSABLE_CERTIFIED_AND_APPROVED`",
+        "TIER_1_REUSE_MISMATCH_FIELDS": "`NONE`",
+        "TIER_2_REUSE_CLASSIFICATION": f"`{tier2}`",
+        "TIER_2_REUSE_MISMATCH_FIELDS": f"`{tier2_mismatch}`",
+        "TIER_5_REUSE_CLASSIFICATION": f"`{tier5}`",
+        "TIER_5_REUSE_MISMATCH_FIELDS": f"`{tier5_mismatch}`",
+        "TIER_10_REUSE_CLASSIFICATION": f"`{tier10}`",
+        "TIER_10_REUSE_MISMATCH_FIELDS": f"`{tier10_mismatch}`",
+        "TIER_25_HISTORICAL_REUSE_CLASSIFICATION": f"`{tier25}`",
+        "TIER_25_HISTORICAL_REUSE_MISMATCH_FIELDS": f"`{tier25_mismatch}`",
+        "TIER_48_HISTORICAL_REUSE_CLASSIFICATION": f"`{tier48}`",
+        "TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS": f"`{tier48_mismatch}`",
+        "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH_EXACT_FIELDS`",
+        "BOUNDED_COHORT_REUSE_MISMATCH_FIELDS": "`action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope`",
+        "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`execution_path,blast_radius,verification,rollback_or_no_rollback,outcome`",
+        "CURRENT_ACTION_CLASS_NON_REUSABLE_AS": "`current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation`",
+        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_2`",
+        "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`exact current action/failure/source/target contract evidence plus independent Tier-2 Authority decision; no recertification of reusable execution safety dimensions`",
+        "CAUSAL_M7_TIER_VERDICT": "`HOLD_CURRENT_TIER`",
+        "CAUSAL_M8_SEMANTIC_ALIGNMENT": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
+        "CAUSAL_M9_RUNTIME_INVARIANT_STATUS": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
+        "CAUSAL_M9_RUNTIME_INVALID_STATES": f"`{','.join(str(item) for item in (causal.get('invalid_states') or [])) or 'NONE'}`",
+        "CAUSAL_M10_CURRENT_INCIDENT_STATUS": (
+            "`ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR`"
+            if incident_projection_valid and int(current_incident.get("unresolved_scope_count") or 0) > 0
+            else "`SOURCE_SCOPE_EMPTY_OR_RECOVERY_RECONCILIATION_REQUIRED`"
+        ),
+        "PROGRAM_PORTFOLIO_RECONCILIATION_STATUS": f"`{str(portfolio.get('program_portfolio_reconciliation_status') or 'STOP_SAFE')}`",
+        "PROGRAM_PORTFOLIO_RECONCILIATION_OWNER": "`tools/v7_sync_lib.program_execution_reconciliation`",
+        "PROGRAM_PORTFOLIO_RECONCILIATION_FINGERPRINT": f"`{str(portfolio.get('program_portfolio_fingerprint') or '')}`",
+        "PROGRAM_PORTFOLIO_PROGRAM_COUNT": f"`{len(portfolio_rows)}`",
+        "PROGRAM_PORTFOLIO_STATE_COUNTS": f"`{json.dumps(portfolio.get('program_portfolio_state_counts') or {}, sort_keys=True, separators=(',', ':'))}`",
+        "PROGRAM_PORTFOLIO_ACTIVE_WITH_DURABLE_SUCCESSOR": f"`{','.join(active_programs) or 'NONE'}`",
+        "PROGRAM_PORTFOLIO_BLOCKED_WITH_EXACT_OWNER_AND_REENTRY": f"`{','.join(blocked_programs) or 'NONE'}`",
+    }
+    if incident_projection_valid:
+        projection.update({
+            "CURRENT_VLESS_INCIDENT_ID": f"`{str(current_incident.get('incident_id') or '')}`",
+            "CURRENT_VLESS_INCIDENT_GENERATION": f"`{str(current_incident.get('incident_generation') or '')}`",
+            "CURRENT_VLESS_AFFECTED_SCOPE": f"`{int(current_incident.get('affected_scope_count') or 0)}`",
+            "CURRENT_VLESS_PROTECTED_SCOPE": f"`{int(current_incident.get('protected_scope_count') or 0)}`",
+            "CURRENT_VLESS_UNRESOLVED_SCOPE": f"`{int(current_incident.get('unresolved_scope_count') or 0)}`",
+            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE": f"`{int(current_incident.get('explicitly_excluded_or_recovered_scope_count') or 0)}`",
+            "CURRENT_VLESS_AFFECTED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('affected_scope_fingerprint') or '')}`",
+            "CURRENT_VLESS_PROTECTED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('protected_scope_fingerprint') or '')}`",
+            "CURRENT_VLESS_UNRESOLVED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('unresolved_scope_fingerprint') or '')}`",
+            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('explicitly_excluded_or_recovered_scope_fingerprint') or '')}`",
+            "CURRENT_VLESS_LAST_EXECUTION_FEEDBACK_ID": f"`{str(current_incident.get('last_execution_feedback_id') or '')}`",
+            "CURRENT_VLESS_LAST_OUTCOME_ID": f"`{str(current_incident.get('last_outcome_id') or '')}`",
+            "CURRENT_VLESS_LAST_LEARNING_ID": f"`{str(current_incident.get('last_learning_id') or '')}`",
+            "CURRENT_VLESS_LAST_PACKET_ID": f"`{str(current_incident.get('last_packet_id') or '')}`",
+            "CURRENT_VLESS_NEXT_REQUIRED_CONSUMER": f"`{str(current_incident.get('next_required_consumer') or '')}`",
+            "CURRENT_VLESS_REENTRY_CONDITION": f"`{str(current_incident.get('reentry_condition') or '')}`",
+            "CURRENT_VLESS_SCOPE_PROJECTION_OWNER": "`tools/v7-users-autoswitch.service_failure_causal_integrity_status`",
+            "CURRENT_VLESS_SCOPE_PROJECTION_STATUS": "`PASS_CURRENT_ROUTE_AND_CUMULATIVE_LINEAGE_RECONCILED`",
+        })
+    return projection, {
+        "schema": "v7.service-failure-action-class-reuse-projection.v1",
+        "owner": "admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence",
+        "knowledge_reuse": "RESULT_REUSED_VALID",
+        "evidence_fingerprint": evidence_fingerprint,
+        "valid_historical_scopes": valid_scopes,
+        "causal_integrity": causal,
+        "program_portfolio": {
+            "status": portfolio.get("program_portfolio_reconciliation_status"),
+            "fingerprint": portfolio.get("program_portfolio_fingerprint"),
+            "state_counts": portfolio.get("program_portfolio_state_counts"),
+            "programs": portfolio_rows,
+        },
+        "tier_verdict": "HOLD_CURRENT_TIER",
+        "current_incident": current_incident,
+        "current_incident_projection_valid": incident_projection_valid,
+        "incident_frontier": _plain_live_value(live, "INCIDENT_FRONTIER"),
+        "authority_expansion": False,
+        "runtime_activation_change": False,
+    }
+
+
 def reconcile_active_standing_delegated_policy_to_cps(
     runtime_status: dict[str, Any], *, root: Path = ROOT,
 ) -> dict[str, Any]:
@@ -17245,6 +17590,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             errors.append(f"runtime_status_mismatch:{key}")
     if status.get("ok") is not True or status.get("audit_provenance_verified") is not True:
         errors.append("runtime_policy_audit_validation_not_passed")
+    causal_integrity = status.get("service_failure_causal_integrity")
+    causal_integrity = causal_integrity if isinstance(causal_integrity, dict) else {}
+    if causal_integrity.get("schema_version") != "v7.service-failure-causal-integrity-status.v1":
+        errors.append("runtime_service_failure_causal_integrity_missing")
+    elif causal_integrity.get("final_verdict") != "PASS":
+        errors.extend(
+            f"runtime_service_failure_causal_integrity:{item}"
+            for item in (causal_integrity.get("invalid_states") or ["unknown"])
+        )
     contract_id = str(status.get("contract_id") or "")
     contract_hash = str(status.get("contract_hash") or "")
     request_id = str(status.get("authority_request_id") or "")
@@ -17321,30 +17675,16 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "behavior_change": "NONE",
             "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
         }
-    tier_projection = {
-        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_PATH`",
-        "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_EVIDENCE`",
-        "CURRENT_ACTION_CLASS_CERTIFIED_TIER": "`HISTORICAL_XLARGE_BATCH_48_SUPPORTING_ONLY`",
-        "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": "`TIER_1_CURRENT_STANDING_POLICY`",
-        "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": "`TIER_1_SINGLE_USER_SERIAL`",
-        "CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION": "`1`",
-        "CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS": "`1`",
-        "CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES": f"`{','.join(str(item) for item in status.get('allowed_failure_families', []) if str(item))}`",
-        "CURRENT_ACTION_CLASS_ALLOWED_SOURCE_TARGET_SCOPE": "`EXISTING_PLANNER_SAFE_TARGET_ONLY`",
-        "CURRENT_ACTION_CLASS_VERIFICATION_CONTRACT": "`EXISTING_LIVE_VERIFICATION_GATES_REQUIRED`",
-        "CURRENT_ACTION_CLASS_ROLLBACK_CONTRACT": "`EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED`",
-        "CURRENT_ACTION_CLASS_EXPIRY": f"`{expires_at}`",
-        "CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS": "`policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence`",
-        "CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS": "`verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke`",
-        "TIER_1_REUSE_CLASSIFICATION": "`REUSABLE_CERTIFIED_AND_APPROVED`",
-        "TIER_2_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
-        "TIER_5_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
-        "TIER_10_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
-        "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH`",
-        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_2`",
-        "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": "`current failure-family and source-target scoped evidence plus independent Tier-2 Authority decision; historical batch evidence is supporting only`",
-        "CAUSAL_M7_TIER_VERDICT": "`HOLD_CURRENT_TIER`",
-    }
+    tier_projection, reuse_projection = _service_failure_action_class_reuse_projection(
+        status, live, root=root,
+    )
+    runtime_incident = reuse_projection.get("current_incident")
+    runtime_incident = runtime_incident if isinstance(runtime_incident, dict) else {}
+    runtime_active_incident_drain = bool(
+        reuse_projection.get("current_incident_projection_valid")
+        and _status_int(runtime_incident.get("unresolved_scope_count")) > 0
+    )
+    active_incident_drain = active_incident_drain or runtime_active_incident_drain
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
@@ -17435,6 +17775,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "request_hash": request_hash,
         "expires_at": expires_at,
         "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "action_class_reuse_projection": reuse_projection,
         "behavior_change": "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN" if active_incident_drain else "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS",
         "forbidden_effects": {
             "policy_write": False, "contract_issuance": False, "candidate_creation": False,

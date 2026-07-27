@@ -723,6 +723,32 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "expires_at": "2099-01-01T00:00:00+00:00", "policy_scope_hash": "c" * 64,
                 "max_users_per_action": 1, "max_concurrent_transactions": 1,
                 "allowed_failure_families": ["channel_hard_fail", "service_specific_failure"],
+                "cooldown": {"per_user_seconds": 1800, "per_source_target_pair_seconds": 1800},
+                "anti_flap": "PASS",
+                "service_failure_causal_integrity": {
+                    "schema_version": "v7.service-failure-causal-integrity-status.v1",
+                    "final_verdict": "PASS", "invalid_states": [],
+                    "open_incident_projections": [{
+                        "incident_id": live["CURRENT_VLESS_INCIDENT_ID"].strip("`"),
+                        "incident_generation": "generation-runtime-current",
+                        "source_channel": "vless",
+                        "incident_state": "PARTIALLY_PROTECTED",
+                        "affected_scope_count": 29,
+                        "protected_scope_count": 2,
+                        "unresolved_scope_count": 27,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                        "affected_scope_fingerprint": "affected-runtime-current",
+                        "protected_scope_fingerprint": "protected-runtime-current",
+                        "unresolved_scope_fingerprint": "unresolved-runtime-current",
+                        "explicitly_excluded_or_recovered_scope_fingerprint": "excluded-runtime-current",
+                        "last_execution_feedback_id": "execfb_runtime_current",
+                        "last_outcome_id": "outcome_runtime_current",
+                        "last_learning_id": "learning_runtime_current",
+                        "last_packet_id": "packet_runtime_current",
+                        "next_required_consumer": "tools/v7-service-matrix-refresh-all",
+                        "reentry_condition": "fresh Matrix observation of the same incident",
+                    }],
+                },
             }
             result = self.sync.reconcile_active_standing_delegated_policy_to_cps(runtime_status, root=root)
             self.assertEqual(result["final_verdict"], "PASS", result)
@@ -735,8 +761,114 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(updated_live["CURRENT_PROGRAM_EXECUTION_FRONTIER"].strip("`"), "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
             self.assertEqual(updated_live["OMP_CONTINUATION_REQUIRED"].strip("`"), "TRUE")
             self.assertEqual(updated_live["TIER_1_REUSE_CLASSIFICATION"].strip("`"), "REUSABLE_CERTIFIED_AND_APPROVED")
-            self.assertEqual(updated_live["TIER_2_REUSE_CLASSIFICATION"].strip("`"), "SCOPE_MISMATCH")
+            self.assertEqual(updated_live["TIER_2_REUSE_CLASSIFICATION"].strip("`"), "SCOPE_MISMATCH_EXACT_FIELDS")
+            self.assertIn("action_class", updated_live["TIER_2_REUSE_MISMATCH_FIELDS"])
+            self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CERTIFIED_TIER"].strip("`"), "TIER_1_CURRENT_CLASS")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"), "TIER_1_SINGLE_USER_SERIAL")
+            self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_CODEX"].strip("`"), "TRUE_MATRIX_RUNTIME_OWNER")
+            self.assertEqual(updated_live["CURRENT_VLESS_AFFECTED_SCOPE"].strip("`"), "29")
+            self.assertEqual(updated_live["CURRENT_VLESS_PROTECTED_SCOPE"].strip("`"), "2")
+            self.assertEqual(updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "27")
+            self.assertEqual(updated_live["CURRENT_VLESS_LAST_OUTCOME_ID"].strip("`"), "outcome_runtime_current")
+            self.assertEqual(updated_live["CURRENT_VLESS_SCOPE_PROJECTION_STATUS"].strip("`"), "PASS_CURRENT_ROUTE_AND_CUMULATIVE_LINEAGE_RECONCILED")
+
+    def test_causal_integrity_status_names_missing_successor_scope_and_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "broken": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_state": "PARTIALLY_PROTECTED",
+                        "attempt_terminal": "STOP_SAFE",
+                        "durable_successor_published": True,
+                        "last_execution_feedback_id": "execfb_missing",
+                        "execution_feedback_ids": ["execfb_missing"],
+                        "current_source_scope": {
+                            "status": "ACCOUNTED",
+                            "affected_scope_count": 3,
+                            "protected_scope_count": 1,
+                            "unresolved_scope_count": 1,
+                            "explicitly_excluded_or_recovered_scope_count": 0,
+                            "affected_scope_fingerprint": "new-generation",
+                        },
+                        "incident_cumulative_scope": {
+                            "current_source_scope_fingerprint": "old-generation",
+                            "entries": [],
+                            "lineage_pointers": [],
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
+        self.assertEqual(status["final_verdict"], "STOP_SAFE")
+        self.assertEqual(status["invalid_states"], [
+            "CAUSAL_LINEAGE_BROKEN",
+            "CURRENT_SCOPE_REPLACES_CUMULATIVE_HISTORY",
+            "DURABLE_SUCCESSOR_WITHOUT_CONSUMER",
+            "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+            "INVALID_OPEN_INCIDENT_NO_SUCCESSOR",
+            "NONTERMINAL_RESULT_WITHOUT_DURABLE_SUCCESSOR",
+            "SUCCESSFUL_ATTEMPT_WITHOUT_SCOPE_UPDATE",
+        ])
+
+    def test_causal_integrity_status_accepts_open_incident_with_durable_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "valid": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_state": "PARTIALLY_PROTECTED",
+                        "attempt_terminal": "SUCCESS",
+                        "next_required_consumer": "tools/v7-service-matrix-refresh-all",
+                        "reentry_condition": "fresh Matrix observation",
+                        "last_execution_feedback_id": "execfb_valid",
+                        "execution_feedback_ids": ["execfb_valid"],
+                        "current_source_scope": {
+                            "status": "ACCOUNTED",
+                            "affected_scope_count": 3,
+                            "protected_scope_count": 1,
+                            "unresolved_scope_count": 2,
+                            "explicitly_excluded_or_recovered_scope_count": 0,
+                            "affected_scope_fingerprint": "current-generation",
+                        },
+                        "incident_cumulative_scope": {
+                            "current_source_scope_fingerprint": "current-generation",
+                            "packet_bound_success_count": 1,
+                            "entries": [{"feedback_id": "execfb_valid"}],
+                            "lineage_pointers": ["execfb_valid"],
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
+        self.assertEqual(status["final_verdict"], "PASS", status)
+        self.assertEqual(status["open_incident_count"], 1)
+        self.assertEqual(status["open_incident_projections"], [{
+            "incident_id": "",
+            "incident_generation": "",
+            "source_channel": "",
+            "incident_state": "PARTIALLY_PROTECTED",
+            "affected_scope_count": 3,
+            "protected_scope_count": 1,
+            "unresolved_scope_count": 2,
+            "explicitly_excluded_or_recovered_scope_count": 0,
+            "affected_scope_fingerprint": "current-generation",
+            "protected_scope_fingerprint": "",
+            "unresolved_scope_fingerprint": "",
+            "explicitly_excluded_or_recovered_scope_fingerprint": "",
+            "packet_bound_success_count": 1,
+            "cumulative_lineage_count": 1,
+            "last_execution_feedback_id": "execfb_valid",
+            "last_outcome_id": "",
+            "last_learning_id": "",
+            "last_packet_id": "",
+            "next_required_consumer": "tools/v7-service-matrix-refresh-all",
+            "reentry_condition": "fresh Matrix observation",
+            "last_observed_at": "",
+            "raw_user_list_stored": False,
+        }])
 
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:

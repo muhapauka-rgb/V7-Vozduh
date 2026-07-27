@@ -175,6 +175,7 @@ class OmpExternalReentryTest(unittest.TestCase):
             ("CURRENT_NEXT_ACTION_ID", "V7_SERVICE_FAILURE_STANDING_DELEGATED_POLICY_AUTHORITY_DECISION"),
             ("EXTERNAL_INPUT_REQUIRED", "TRUE"),
             ("EXTERNAL_INPUT_TYPE", "EXACT_STANDING_DELEGATED_OPERATIONAL_POLICY_DECISION"),
+            ("PRODUCT_EVOLUTION_FRONTIER", "SAFE_INDEPENDENT_PRODUCT_EVOLUTION_SUCCESSOR"),
         ):
             self.replace_live(field, value)
         before = cps.read_text(encoding="utf-8")
@@ -184,6 +185,14 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["program_terminal"], "ENGINEERING_AUTHORITY_EXTERNAL_BOUNDARY_PRESERVED")
         self.assertEqual(result["internal_iteration_count"], 0)
         self.assertEqual(cps.read_text(encoding="utf-8"), before)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            before, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(
+            self.lib._plain_live_value(live, "PRODUCT_EVOLUTION_FRONTIER"),
+            "SAFE_INDEPENDENT_PRODUCT_EVOLUTION_SUCCESSOR",
+        )
 
     def test_verified_active_standing_policy_replaces_stale_authority_request(self):
         """The CPS consumer accepts only an already-valid policy/audit projection."""
@@ -212,6 +221,12 @@ class OmpExternalReentryTest(unittest.TestCase):
             "max_users_per_action": 1,
             "max_concurrent_transactions": 1,
             "allowed_failure_families": ["channel_hard_fail"],
+            "cooldown": {"per_user_seconds": 1800, "per_source_target_pair_seconds": 1800},
+            "anti_flap": "PASS",
+            "service_failure_causal_integrity": {
+                "schema_version": "v7.service-failure-causal-integrity-status.v1",
+                "final_verdict": "PASS", "invalid_states": [],
+            },
         }, root=self.root)
         self.assertEqual(result["final_verdict"], "PASS", result)
         live = self.lib._markdown_field_table(self.lib._markdown_section(

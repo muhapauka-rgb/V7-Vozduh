@@ -282,6 +282,91 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             second = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
             self.assertEqual(second["final_verdict"], "NO_PENDING_OBLIGATION")
 
+    def test_m2_receipt_is_materialized_into_existing_passive_projection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_key = "passive_m2_test"
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "schema_version": "v7.l3-runtime-state.v1",
+                "incidents": {
+                    incident_key: {
+                        "incident_key": incident_key,
+                        "incident_id": "sfinc_m2_test",
+                        "incident_state": "OPEN",
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "next_required_consumer": "tools/v7_sync_lib.consume_service_failure_automation_frontier",
+                        "reentry_condition": "ready obligation",
+                        "transition_id": "ptr_m2_test",
+                    },
+                },
+            }), encoding="utf-8")
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_m2_test",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "created_at": "2026-07-27T00:00:00+00:00",
+                "incident_key": incident_key,
+                "source_incident_id": "sfinc_m2_test",
+                "situation_id": "situation_m2_test",
+                "decision_trace_id": "decision_m2_test",
+                "stop_safe_classification": "STOP_SAFE_DATA_OR_EVIDENCE_GAP",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(obligation) + "\n", encoding="utf-8")
+
+            result = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(result["incident_projection_reconciliation"]["final_verdict"], "PASS")
+            self.assertEqual(result["incident_projection_reconciliation"]["changed_records"], 1)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = state["incidents"][incident_key]
+            self.assertEqual(record["omp_consumption_state"], "OMP_CONSUMED")
+            self.assertTrue(record["omp_receipt_id"])
+            self.assertEqual(record["next_required_consumer"], "tools/v7_sync_lib.continue_omp_engineering_control_loop")
+            self.assertFalse(result["receipt"]["runtime_mutation_performed"])
+            self.assertEqual(result["receipt"]["users_moved"], 0)
+
+    def test_m2_repairs_interrupted_receipt_projection_without_second_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_key = "passive_m2_repair"
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "schema_version": "v7.l3-runtime-state.v1",
+                "incidents": {
+                    incident_key: {
+                        "incident_key": incident_key,
+                        "incident_id": "sfinc_m2_repair",
+                        "incident_state": "OPEN",
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "next_required_consumer": "tools/v7_sync_lib.consume_service_failure_automation_frontier",
+                        "reentry_condition": "ready obligation",
+                        "transition_id": "ptr_m2_repair",
+                    },
+                },
+            }), encoding="utf-8")
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "object_id": "sfomp_m2_repair",
+                "automation_obligation_id": "sfaob_m2_repair",
+                "closure_state": "OMP_CONSUMED",
+                "incident_key": incident_key,
+                "source_incident_id": "sfinc_m2_repair",
+                "next_action": "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR",
+                "consumed_at": "2026-07-27T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+
+            result = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
+            self.assertEqual(result["final_verdict"], "NO_PENDING_OBLIGATION", result)
+            self.assertEqual(result["incident_projection_reconciliation"]["changed_records"], 1)
+            rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len(rows), 1)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["incidents"][incident_key]["omp_receipt_id"], "sfomp_m2_repair")
+
     def test_existing_closure_owner_is_consumed_once_across_processes(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

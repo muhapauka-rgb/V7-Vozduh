@@ -5970,6 +5970,7 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
 SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
+SERVICE_FAILURE_AUTOMATION_CAUSAL_M2 = "CAUSAL_M2_ATOMIC_TRANSITION_AND_RECEIPT_LINKAGE"
 
 
 def _read_jsonl_records(path: Path) -> list[dict[str, Any]]:
@@ -5994,6 +5995,152 @@ def _append_jsonl_record(path: Path, row: dict[str, Any]) -> None:
         handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _write_json_object_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Atomically update the existing L3 compact-state owner.
+
+    JSONL closures remain the immutable transaction source. This function only
+    materializes their durable receipt into the existing state read model.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.tmp.", dir=str(path.parent))
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, sort_keys=True)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            temporary.unlink()
+
+
+def reconcile_service_failure_omp_receipts_to_incident_state(
+    *, state_dir: Path,
+) -> dict[str, Any]:
+    """Materialize immutable OMP receipts in the existing compact L3 state.
+
+    The receipt is the linearization point under `closure-records.lock`.
+    Reconciliation is idempotent and also repairs an interrupted receipt ->
+    read-model handoff on the next existing consumer invocation.
+    """
+    resolved_state_dir = Path(state_dir)
+    closure_path = resolved_state_dir / "closure-records.jsonl"
+    state_path = resolved_state_dir / "l3-runtime-state.json"
+    rows = _read_jsonl_records(closure_path)
+    receipts = [
+        row for row in rows
+        if str(row.get("object_type") or "") == "service_failure_automation_omp_consumption"
+        and str(row.get("closure_state") or "") == "OMP_CONSUMED"
+    ]
+    state = _read_json_object(state_path)
+    incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    if not receipts:
+        return {
+            "schema_version": "v7.service-failure-omp-receipt-incident-reconciliation.v1",
+            "receipt_count": 0, "projected_receipts": 0, "changed_records": 0,
+            "missing_incident_projections": 0, "invalid_open_incidents": 0,
+            "final_verdict": "PASS", "read_model_written": False,
+        }
+    latest_by_obligation: dict[str, dict[str, Any]] = {}
+    for receipt in sorted(receipts, key=lambda row: str(row.get("consumed_at") or "")):
+        obligation_id = str(receipt.get("automation_obligation_id") or "")
+        if obligation_id:
+            latest_by_obligation[obligation_id] = receipt
+    changed = 0
+    projected = 0
+    missing = 0
+    for obligation_id, receipt in latest_by_obligation.items():
+        incident_key = str(receipt.get("incident_key") or "")
+        source_incident_id = str(receipt.get("source_incident_id") or "")
+        matches = [
+            (key, record)
+            for key, record in incidents.items()
+            if isinstance(record, dict)
+            and str(record.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+            and (
+                (incident_key and str(key) == incident_key)
+                or str(record.get("obligation_id") or "") == obligation_id
+                or (source_incident_id and str(record.get("incident_id") or "") == source_incident_id)
+            )
+        ]
+        if not matches:
+            # Pre-M1 test/legacy obligations remain valid OMP evidence. A M1
+            # obligation explicitly carries its compact key and must never
+            # silently lose the producer -> consumer link.
+            if incident_key:
+                missing += 1
+            continue
+        for key, record in matches:
+            if str(record.get("incident_state") or "") == "INTENT_CLOSED":
+                continue
+            desired = {
+                **record,
+                "obligation_id": obligation_id,
+                "omp_consumption_state": "OMP_CONSUMED",
+                "omp_receipt_id": str(receipt.get("object_id") or ""),
+                "omp_receipt_transition_id": "omptr_" + hashlib.sha256(
+                    str(receipt.get("object_id") or obligation_id).encode("utf-8")
+                ).hexdigest()[:24],
+                "next_required_consumer": "tools/v7_sync_lib.continue_omp_engineering_control_loop",
+                "reentry_condition": (
+                    "existing OMP residual recomputation consumes a new owner-backed "
+                    f"state change for {str(receipt.get('next_action') or 'NONE')}"
+                ),
+                "causal_lineage": {
+                    **(record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}),
+                    "obligation_id": obligation_id,
+                    "omp_receipt_id": str(receipt.get("object_id") or ""),
+                    "parent_transition_id": str(record.get("transition_id") or ""),
+                },
+                "causal_invariant": {
+                    "name": "OPEN_INCIDENT_REQUIRES_SUCCESSOR_AND_REENTRY",
+                    "valid": True,
+                },
+            }
+            comparable_record = {name: value for name, value in record.items() if name != "updated_at"}
+            comparable_desired = {name: value for name, value in desired.items() if name != "updated_at"}
+            if comparable_record != comparable_desired:
+                desired["updated_at"] = utc_now()
+                incidents[key] = desired
+                changed += 1
+            projected += 1
+    invalid_open = sum(
+        1 for record in incidents.values()
+        if isinstance(record, dict)
+        and str(record.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+        and str(record.get("incident_state") or "") != "INTENT_CLOSED"
+        and (not str(record.get("next_required_consumer") or "") or not str(record.get("reentry_condition") or ""))
+    )
+    final_verdict = "PASS" if not missing and not invalid_open else (
+        "CAUSAL_LINEAGE_BROKEN" if missing else "INVALID_OPEN_INCIDENT_NO_SUCCESSOR"
+    )
+    if changed:
+        state["schema_version"] = str(state.get("schema_version") or "v7.l3-runtime-state.v1")
+        state["updated"] = utc_now()
+        state["incidents"] = incidents
+        _write_json_object_atomic(state_path, state)
+    return {
+        "schema_version": "v7.service-failure-omp-receipt-incident-reconciliation.v1",
+        "receipt_count": len(latest_by_obligation),
+        "projected_receipts": projected,
+        "changed_records": changed,
+        "missing_incident_projections": missing,
+        "invalid_open_incidents": invalid_open,
+        "final_verdict": final_verdict,
+        "read_model_written": bool(changed),
+    }
 
 
 def service_failure_automation_state_dir(*, root: Path = ROOT, state_dir: Optional[Path] = None) -> Path:
@@ -6071,6 +6218,16 @@ def consume_service_failure_automation_frontier(
             finally:
                 fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
 
+    pre_receipt_reconciliation = reconcile_service_failure_omp_receipts_to_incident_state(
+        state_dir=resolved_state_dir,
+    )
+    if pre_receipt_reconciliation.get("final_verdict") != "PASS":
+        return {
+            "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": ["existing_omp_receipt_compact_projection_invalid"],
+            "incident_projection_reconciliation": pre_receipt_reconciliation,
+        }
     frontier = service_failure_automation_frontier(root=root, state_dir=resolved_state_dir)
     obligation = obligation_override if isinstance(obligation_override, dict) else (
         frontier.get("selected") if isinstance(frontier.get("selected"), dict) else {}
@@ -6080,6 +6237,7 @@ def consume_service_failure_automation_frontier(
             "schema_version": "v7.service-failure-automation-omp-consumption.v1",
             "final_verdict": "NO_PENDING_OBLIGATION",
             "frontier": frontier,
+            "incident_projection_reconciliation": pre_receipt_reconciliation,
             "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
             "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
         }
@@ -6101,8 +6259,9 @@ def consume_service_failure_automation_frontier(
         "closure_state": "OMP_CONSUMED",
         "consumed_at": utc_now(),
         "program_id": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
-        "mission_id": SERVICE_FAILURE_AUTOMATION_M1,
+        "mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M2,
         "source_incident_id": str(obligation.get("source_incident_id") or ""),
+        "incident_key": str(obligation.get("incident_key") or ""),
         "situation_id": str(obligation.get("situation_id") or ""),
         "decision_trace_id": str(obligation.get("decision_trace_id") or ""),
         "classification": classification,
@@ -6119,6 +6278,25 @@ def consume_service_failure_automation_frontier(
         "authority_expanded": False,
         "production_maturity_changed": False,
     }
+    receipt_reconciliation: dict[str, Any] = pre_receipt_reconciliation
+    if record_receipt:
+        # The durable receipt is the linearization point.  The compact L3
+        # projection is materialized while the same existing owner lock is
+        # held; an interrupted post-receipt write is repaired by the preflight
+        # reconciliation above, never by issuing a second receipt.
+        _append_jsonl_record(Path(frontier["closure_path"]), receipt)
+        receipt_reconciliation = reconcile_service_failure_omp_receipts_to_incident_state(
+            state_dir=resolved_state_dir,
+        )
+        if receipt_reconciliation.get("final_verdict") != "PASS":
+            return {
+                "schema_version": "v7.service-failure-automation-omp-consumption.v1",
+                "final_verdict": "STOP_SAFE",
+                "frontier": frontier,
+                "receipt": receipt,
+                "incident_projection_reconciliation": receipt_reconciliation,
+                "errors": ["omp_receipt_written_compact_projection_requires_existing_owner_repair"],
+            }
     atomic: dict[str, Any] = {"ok": True, "status": "CPS_PERSIST_NOT_REQUESTED"}
     if persist_cps:
         cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
@@ -6199,13 +6377,12 @@ def consume_service_failure_automation_frontier(
                 "atomic_update": atomic,
                 "errors": atomic.get("errors") or ["cps_update_failed"],
             }
-    if record_receipt:
-        _append_jsonl_record(Path(frontier["closure_path"]), receipt)
     return {
         "schema_version": "v7.service-failure-automation-omp-consumption.v1",
         "final_verdict": "PASS",
         "frontier": frontier,
         "receipt": receipt,
+        "incident_projection_reconciliation": receipt_reconciliation,
         "atomic_update": atomic,
         "real_caller": receipt["real_caller"],
         "real_consumer": receipt["real_consumer"],

@@ -68,10 +68,44 @@ Matrix -> planner -> fresh Candidate/Packet/lease путь. Реальная nex
 live gates независимо разрешат её; иначе legal output —
 `STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED` с automatic re-entry.
 
-## Residual
+## Final production verification
 
-Перед окончательным Step 2 требуется deploy совместимого исправления, которое
-передаёт новую source generation в cumulative projection в том же cycle. До
-этого historical lineage уже не влияет на routing, но её context fingerprint
-в receipt относится к предыдущей generation и не может считаться финальным
-reconciliation result.
+Последовательные deploy через `tools/v7-safe-deploy` прошли с `PASS`; каждый
+manifest изменял только существующих owners. Последний runtime commit:
+`3c09fe32eee958b54b86bc39a58a905b8b45d442`.
+
+Исправлены три причинные связи общего характера:
+
+- свежая revalidation после historical expiry снова открывает incident, а не
+  наследует старый terminal;
+- successor выбирается по live affected scope, поэтому zero-scope incident не
+  вытесняет incident с пользователями;
+- compact source scope сохраняется через generic event -> Packet -> Outcome,
+  а старый Outcome без этого поля может быть учтён только по своему exact
+  immutable Matrix event pointer.
+
+Обычный production lifecycle подтвердил VLESS degradation (`1/14` сервисов),
+выполнил ровно один bounded Tier-1 action в рамках уже активной standing
+policy, затем получил verification `SUCCESS`, `rollback = NOT_REQUIRED` и
+owner-backed Learning. Никаких Authority expansion или Production Maturity
+changes не было.
+
+После outcome и read-only reconciliation текущая generation сбалансирована:
+
+```text
+51 affected = 1 currently protected + 50 unresolved + 0 excluded/recovered
+```
+
+Атомарный source CPS/OMP receipt установил
+`CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`. `tools/v7-truth-check --all`
+и `tools/v7-convergence-status --json` завершились `PASS`.
+
+## Legal terminal / next frontier
+
+`STEP_2_ACTIVE_INCIDENT_DRAIN_CONTINUES`.
+
+Это не program terminal: 50 пользователей всё ещё имеют current route на
+degraded VLESS. Следующий owner — existing Matrix -> passive event ->
+advisory -> OMP -> standing-policy bounded executor. Он может выполнить
+только один fresh scoped action при всех live gates; иначе обязан сохранить
+`STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED` и automatic re-entry.

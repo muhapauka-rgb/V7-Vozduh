@@ -2136,6 +2136,7 @@ class AutoswitchPlanner:
         *,
         existing: dict[str, Any],
         execution_rows: list[dict[str, Any]],
+        current_source_scope: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Preserve packet-bound history without altering the live denominator.
 
@@ -2147,7 +2148,7 @@ class AutoswitchPlanner:
         """
         source_incident_id = str(existing.get("source_incident_id") or existing.get("incident_id") or "")
         source_channel = str(existing.get("channel") or existing.get("source_channel") or "")
-        current_scope = (
+        current_scope = current_source_scope if isinstance(current_source_scope, dict) else (
             existing.get("current_source_scope")
             if isinstance(existing.get("current_source_scope"), dict)
             else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
@@ -2306,7 +2307,11 @@ class AutoswitchPlanner:
                 existing=existing,
                 execution_rows=rows,
             )
-            cumulative_scope = self._reconcile_incident_cumulative_scope(existing=existing, execution_rows=rows)
+            cumulative_scope = self._reconcile_incident_cumulative_scope(
+                existing=existing,
+                execution_rows=rows,
+                current_source_scope=scope_accounting or existing_scope,
+            )
             lineage = dict(existing.get("causal_lineage") or {})
             lineage.update({
                 "source_incident_id": source_incident_id,
@@ -2400,7 +2405,11 @@ class AutoswitchPlanner:
             desired_scope_fields = {
                 "scope_accounting": scope_accounting,
                 "current_source_scope": scope_accounting,
-                "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(existing=record, execution_rows=rows),
+                "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(
+                    existing=record,
+                    execution_rows=rows,
+                    current_source_scope=scope_accounting,
+                ),
                 "affected_scope_count": scope_accounting["affected_scope_count"],
                 "affected_scope_fingerprint": scope_accounting["affected_scope_fingerprint"],
                 "protected_scope_count": scope_accounting["protected_scope_count"],

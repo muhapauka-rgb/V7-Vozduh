@@ -252,6 +252,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             record["incident_cumulative_scope"]["classification_counts"]["HISTORICAL_PROTECTED_PRE_BASELINE"],
             1,
         )
+        self.assertEqual(record["incident_cumulative_scope"]["current_source_scope_fingerprint"], "newscope")
         self.assertEqual(record["incident_cumulative_scope"]["lineage_pointers"], ["execfb_old"])
 
     def test_cumulative_scope_retains_missing_binding_without_claiming_current_membership(self):

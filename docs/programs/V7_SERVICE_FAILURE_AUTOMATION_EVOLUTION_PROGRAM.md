@@ -391,7 +391,7 @@ verified result
 -> atomic CPS projection
 -> residual recomputation
 -> durable exact successor
--> existing event-driven Continue OMP re-entry
+-> existing runtime or event-driven consumer
 ```
 
 Transaction terminals, focused repair completion, tests, safe deploy,
@@ -401,6 +401,14 @@ exists. The existing event-driven Codex Automation Platform owner must receive
 one deterministic wake after the atomic successor projection; the watchdog is
 fallback only. Consumption and successor publication are interprocess
 exact-once through the existing closure owner.
+
+For an active Service Failure drain, the already-enabled production
+`v7-service-matrix-refresh.timer` is the primary successor consumer. After
+the source CPS has mirrored a verified Outcome and the existing OMP owner has
+acknowledged `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`, no additional
+Codex wake is published: the next fresh revalidation belongs to that Matrix
+timer. Codex remains only a source-CPS mirror/watchdog at this boundary; it
+does not own Candidate, Packet, lease, apply, routing or user movement.
 
 The wake is suppressed only for an exact independent `ENGINEERING_AUTHORITY`
 or `OPERATIONAL_AUTHORITY` decision, a fully reconciled `REAL_WORLD_LIMIT`, an

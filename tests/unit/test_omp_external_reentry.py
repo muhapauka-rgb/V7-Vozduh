@@ -85,6 +85,17 @@ class OmpExternalReentryTest(unittest.TestCase):
             "exact_next_operator_command": "Continue OMP", "errors": [],
         }
 
+    def fake_matrix_drain_runner(self, _root):
+        return {
+            "final_verdict": "PASS", "subprocess_returncode": 0,
+            "real_caller": "continue_omp_engineering_control_loop",
+            "real_consumer": "tools/v7-service-matrix-refresh-all",
+            "priority_decision": "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON",
+            "transitions": [{"transaction_terminal": "ACTIVE_INCIDENT_DRAIN_SUCCESSOR_ACKNOWLEDGED"}],
+            "program_terminal": "NONE_ACTIVE_INCIDENT_DRAIN_CONTINUES",
+            "exact_next_operator_command": "NONE_AUTOMATIC_MATRIX_REVALIDATION", "errors": [],
+        }
+
     def run_reentry(self, event_time="2026-07-18T08:59:00Z", **overrides):
         return self.lib.heartbeat_program_reentry(
             event_time=event_time, root=self.root, execute_continue_omp=True,
@@ -232,6 +243,28 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["exact_next_automatic_action"], "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
         self.assertFalse(any(result["forbidden_effects"].values()))
         self.assertFalse(any(result["forbidden_effects"].values()))
+
+    def test_matrix_owned_incident_drain_does_not_schedule_another_codex_wake(self):
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CURRENT_NEXT_ACTION_ID", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("OMP_CONTINUATION_REQUIRED", "TRUE"),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+            ("NEXT_MISSION_FORMED", "TRUE"),
+            ("NEXT_MISSION_ID", self.lib.SERVICE_FAILURE_AUTOMATION_CAUSAL_M3),
+        ):
+            self.replace_live(field, value)
+        result = self.run_reentry(continue_runner=self.fake_matrix_drain_runner)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            (self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+            "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertTrue(result["matrix_owned_incident_drain"])
+        self.assertEqual(self.lib._plain_live_value(live, "PENDING_WAKE_ID"), "NONE")
+        self.assertEqual(self.lib._plain_live_value(live, "WATCHDOG_STATE"), "ARMED_FALLBACK_ONLY")
 
     def test_completion_gate_requires_two_natural_separated_reentries(self):
         base = {

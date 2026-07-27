@@ -7730,13 +7730,28 @@ def heartbeat_program_reentry(
                         "## 0. Authoritative Live Current State",
                         "## Authoritative Unfinished Capability Closure Registry",
                     ))
+                    # An active Service-Failure incident is continued by the
+                    # production-owned Matrix timer.  Once the external
+                    # bridge has mirrored its verified outcome into source
+                    # CPS and the existing OMP loop has acknowledged that
+                    # Matrix consumer, scheduling another Codex wake adds no
+                    # consumer and creates a self-sustaining observer loop.
+                    # Keep external re-entry for engineering frontiers, but
+                    # let this already-deployed runtime owner own the next
+                    # fresh revalidation.
+                    matrix_owned_incident_drain = (
+                        continue_result.get("priority_decision")
+                        == "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON"
+                        and continue_result.get("real_consumer")
+                        == "tools/v7-service-matrix-refresh-all"
+                    )
                     successor_required = all((
                         continue_ok,
                         _plain_live_value(latest_live, "OMP_CONTINUATION_REQUIRED") == "TRUE",
                         _plain_live_value(latest_live, "EXTERNAL_INPUT_REQUIRED") == "FALSE",
                         _plain_live_value(latest_live, "NEXT_MISSION_FORMED") == "TRUE",
                         _plain_live_value(latest_live, "NEXT_MISSION_ID") not in {"", "NONE"},
-                    ))
+                    )) and not matrix_owned_incident_drain
                     successor_projection = dict(latest_live)
                     successor_projection["CURRENT_STATE_GENERATION"] = completed_generation
                     successor_projection["CURRENT_TRANSITION_ID"] = "EXTERNAL_REENTRY_COMPLETED_V1"
@@ -7827,6 +7842,7 @@ def heartbeat_program_reentry(
                         "watchdog_recovery": watchdog_recovery,
                         "continue_omp_result": continue_result, "atomic_pre_trigger_state": pre_update,
                         "atomic_post_trigger_state": post_update,
+                        "matrix_owned_incident_drain": matrix_owned_incident_drain,
                         "reentry_outcome": "REENTRY_COMPLETED" if continue_ok and post_ok else "REENTRY_FAILED_SAFE",
                         "no_overlap": True, "duplicate_suppression": True, "no_user_prompt": True,
                         "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",

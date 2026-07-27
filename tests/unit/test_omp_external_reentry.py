@@ -270,6 +270,34 @@ class OmpExternalReentryTest(unittest.TestCase):
             "tools/v7-service-matrix-refresh-all",
         )
 
+    def test_matrix_owned_stale_bridge_is_acknowledged_without_rerun(self):
+        stale_event = "a" * 64
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CURRENT_NEXT_ACTION_ID", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("OMP_CONTINUATION_REQUIRED", "TRUE"),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+            ("NEXT_MISSION_FORMED", "TRUE"),
+            ("NEXT_MISSION_ID", self.lib.SERVICE_FAILURE_AUTOMATION_CAUSAL_M3),
+            ("PENDING_WAKE_ID", stale_event),
+            ("LAST_DISPATCHED_WAKE_ID", stale_event),
+            ("REENTRY_ACTIVE_LEASE", "omplease_stale_bridge"),
+        ):
+            self.replace_live(field, value)
+        result = self.run_reentry(continue_runner=self.fake_matrix_drain_runner)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            (self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8"),
+            "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(result["reentry_outcome"], "MATRIX_RUNTIME_SUCCESSOR_ACKNOWLEDGED")
+        self.assertFalse(result["standard_entrypoint_invoked"])
+        self.assertTrue(result["consumer_invoked"])
+        self.assertEqual(self.lib._plain_live_value(live, "PENDING_WAKE_ID"), "NONE")
+        self.assertEqual(self.lib._plain_live_value(live, "REENTRY_ACTIVE_LEASE"), "NONE")
+
     def test_completion_gate_requires_two_natural_separated_reentries(self):
         base = {
             "platform_owner": "CODEX_AUTOMATION_PLATFORM", "no_user_prompt": True,

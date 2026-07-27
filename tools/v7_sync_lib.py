@@ -7231,6 +7231,16 @@ def heartbeat_dependency_fingerprint(cps_text: str) -> str:
     return hashlib.sha256(graph.encode("utf-8")).hexdigest()
 
 
+def _matrix_runtime_successor_is_explicit(live: dict[str, str]) -> bool:
+    """True only for the existing Matrix-owned active-incident continuation."""
+    value = lambda key: _plain_live_value(live, key)
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_NEXT_ACTION_ID") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+    ))
+
+
 def _external_reentry_lease_path(root: Path) -> Path:
     identity = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
     return Path(tempfile.gettempdir()) / f"v7-omp-external-reentry-{identity}.lease.json"
@@ -7488,6 +7498,54 @@ def heartbeat_program_reentry(
     if execute_continue_omp and not event_identity_override and pending_wake_id not in {"", "NONE"}:
         recovery_pending = _plain_live_value(live, "WATCHDOG_STATE") == "PENDING_WATCHDOG_RECOVERY"
         if last_dispatched_wake_id == pending_wake_id and not recovery_pending:
+            # A pre-acknowledgement process from an older binary may have
+            # exited after acquiring its local lease but before it could
+            # record completion.  When the lease is absent and the only live
+            # successor is the already-deployed Matrix continuation, clear
+            # that stale bridge state atomically.  We do not rerun OMP or
+            # schedule another wake: Matrix remains the existing owner.
+            resolved_lease_path = lease_path or _external_reentry_lease_path(root)
+            if _matrix_runtime_successor_is_explicit(live) and not resolved_lease_path.exists():
+                acknowledged_at = datetime.now(timezone.utc)
+                acknowledgement_generation = f"cpsgen_V7_MATRIX_ACK_{pending_wake_id[:12].upper()}"
+                acknowledgement_state = normalized_cps_live_state({
+                    **_normalized_state_from_live_cps(cps_text),
+                    "state_captured": acknowledged_at.isoformat(),
+                    "current_state_generation": acknowledgement_generation,
+                    "current_transition_id": "MATRIX_RUNTIME_SUCCESSOR_ACKNOWLEDGED_V1",
+                    "reentry_active_lease": "NONE",
+                    "reentry_last_completed_id": f"matrixack_{pending_wake_id[:24]}",
+                    "reentry_platform_health": "PASS",
+                    "last_consumed_wake_id": pending_wake_id,
+                    "pending_wake_id": "NONE",
+                    "wake_started_at": _plain_live_value(live, "WAKE_STARTED_AT") or acknowledged_at.isoformat(),
+                    "wake_completed_at": acknowledged_at.isoformat(),
+                    "watchdog_state": "ARMED_FALLBACK_ONLY",
+                    "immediate_last_legal_terminal": "MATRIX_RUNTIME_SUCCESSOR_ACKNOWLEDGED",
+                })
+                acknowledgement = atomic_reconcile_cps(
+                    root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md",
+                    state=acknowledgement_state,
+                    request_external_wake=False,
+                    expected_generation=current_generation,
+                    section0_field_overrides={
+                        "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
+                        "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
+                    },
+                )
+                return {
+                    "schema": "v7-omp-event-driven-watchdog/v1",
+                    "event_id": pending_wake_id,
+                    "reentry_outcome": "MATRIX_RUNTIME_SUCCESSOR_ACKNOWLEDGED" if acknowledgement.get("ok") else "REENTRY_FAILED_SAFE",
+                    "standard_entrypoint_invoked": False,
+                    "consumer_invoked": bool(acknowledgement.get("ok")),
+                    "matrix_owned_incident_drain": True,
+                    "watchdog_fallback": False,
+                    "atomic_update": acknowledgement,
+                    "final_verdict": "PASS" if acknowledgement.get("ok") else "STOP_SAFE",
+                    "runtime_impact": "NONE", "production_impact": "NONE", "authority_impact": "NONE",
+                    "errors": acknowledgement.get("errors") or [],
+                }
             return {
                 "schema": "v7-omp-event-driven-watchdog/v1",
                 "event_id": pending_wake_id,
@@ -19184,9 +19242,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         # observation contract, while the source CPS heartbeat is only a
         # mirror/watchdog and must not create a redundant self-wake.
         matrix_runtime_successor = all((
-            live.get("ACTIVE_PROGRAM", "").strip("`") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
-            live.get("CURRENT_NEXT_ACTION_ID", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
-            live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+            _matrix_runtime_successor_is_explicit(live),
             live.get("CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER", "").strip("`") == "tools/v7-service-matrix-refresh-all",
             live.get("CURRENT_SERVICE_FAILURE_REENTRY_CONDITION", "").strip("`") == "enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor",
         ))

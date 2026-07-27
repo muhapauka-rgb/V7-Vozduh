@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-27T04:58:46+00:00
+State captured: 2026-07-27T05:06:27+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: The existing Service Matrix lifecycle now consumes a live standing delegated-policy contract when independently activated and can carry each fresh qualifying service-failure Candidate through the existing bounded executor without per-Candidate approval; production deploy and fail-closed caller are verified, no contract is active, no Runtime/routing/user/Authority/maturity effect occurred, and one exact 24-hour standing-policy Authority request is pending.
+Source: The existing Service Matrix lifecycle and existing OMP consumer preserve historical safe terminals while the independently audit-verified standing delegated policy remains active; only a fresh matching owner-backed service-failure event may reenter planner revalidation with new Candidate/Packet/lease identities.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-27T04:58:46+00:00`
+Captured: `2026-07-27T05:06:27+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,8 +32,8 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE` |
 | `CURRENT_SAFE_NEXT_ACTION` | `ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_F200A060C720` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECEIPT_F027DD0AA93D` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
@@ -369,6 +369,12 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_AUTHORITY_CONTRACT_HASH` | `f200a060c720a1266924810589c25b01dc077c1385cd1260e79dab86bb6101fd` |
 | `CURRENT_AUTHORITY_CONTRACT_ID` | `sdpc_f200a060c720a12669248105` |
 | `CURRENT_AUTHORITY_POLICY_SCOPE_HASH` | `f610dbd87f9d8e5b63d69538138340ace04c9799ac42ebedd205206eee9f723e` |
+| `LAST_SERVICE_FAILURE_RECEIPT_CLASSIFICATION` | `CORRECT_SAFE_TERMINAL` |
+| `LAST_SERVICE_FAILURE_RECEIPT_CONSUMPTION` | `HISTORICAL_CONSUMED_ACTIVE_STANDING_POLICY_FRONTIER_PRESERVED` |
+| `LAST_SERVICE_FAILURE_RECEIPT_DECISION_TRACE` | `decision_356fe5f1626216ac1974b138` |
+| `LAST_SERVICE_FAILURE_RECEIPT_FINGERPRINT` | `f027dd0aa93dde9b8d2962a355edce837f85553e70186a9b4831c74fdc8220e9` |
+| `LAST_SERVICE_FAILURE_RECEIPT_ID` | `sfomp_9de75be9b0e39374d2c916e3` |
+| `LAST_SERVICE_FAILURE_RECEIPT_SOURCE_INCIDENT` | `sxe_85d1171940a4ea9bc6c3097ee79e3861` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -380,7 +386,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-27T04:58:46+00:00`
+Generated At: `2026-07-27T05:06:27+00:00`
 
 Runtime Authority: `NONE`
 
@@ -393,8 +399,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_F200A060C720` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_RECEIPT_F027DD0AA93D` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -424,8 +430,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_SDPC_F200A060C720` |
-| `current_transition_id` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `current_state_generation` | `cpsgen_SFA_RECEIPT_F027DD0AA93D` |
+| `current_transition_id` | `SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1` |
 | `smallest_existing_next_action_id` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -511,7 +517,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_SDPC_F200A060C720`; `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; activation does not itself create Candidate/Packet/lease or move a user | `REAL_WORLD_LIMIT` | fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_RECEIPT_F027DD0AA93D`; `SERVICE_FAILURE_AUTOMATION_HISTORICAL_RECEIPT_CONSUMED_NO_TERMINAL_OVERRIDE_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; activation does not itself create Candidate/Packet/lease or move a user | `REAL_WORLD_LIMIT` | fresh qualifying evidence -> owner audit -> recommendation or continued no-change boundary |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

@@ -10841,11 +10841,23 @@ class AutoswitchPlanner:
             state["passive_event_consumptions"] = consumed
         new_events = [row for row in events if str(row["event_id"]) not in consumed]
         if not new_events:
+            # A Matrix cycle can consume its passive observation before it
+            # performs a bounded governed action.  The action's immutable
+            # Outcome is then newer than the passive event but there is no
+            # second event for this consumer to discover.  Reconcile that
+            # existing packet-bound Outcome before the idempotent return so a
+            # continuing incident cannot lose its causal successor merely
+            # because event consumption is (correctly) exact-once.
+            #
+            # This is compact-state reconciliation only.  It cannot enter the
+            # planner, create Candidate/Packet/lease, or cause Runtime apply.
+            scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
             return {
                 "active": True,
                 "reason": "already_consumed_idempotent",
                 "event_ids": sorted(event_by_id),
                 "records": {"outcome": 0, "decision_trace": 0, "learning": 0, "closure": 0},
+                "scope_reconciliation": scope_reconciliation,
             }
         now = now_iso()
         outcome_rows: list[dict[str, Any]] = []

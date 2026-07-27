@@ -545,6 +545,79 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("passive_consumer_forbids_apply", result["blockers"])
         self.assertIn("passive_consumer_forbids_promote_authority_to", result["blockers"])
 
+    def test_passive_idempotent_reentry_consumes_new_packet_bound_outcome(self):
+        """An already-consumed observation must not hide a newer action Outcome."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            incident_id = "sfinc_idempotent_outcome"
+            source_scope = {
+                "source_channel": "vless",
+                "affected_scope_count": 1,
+                "affected_scope_fingerprint": "scope_idempotent_outcome",
+                "observed_at": "2026-07-27T12:00:00+00:00",
+            }
+            event = {
+                "event_id": "sfrev_idempotent_outcome",
+                "source_incident_id": incident_id,
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "channel": "vless",
+                "service": "youtube",
+                "failure_episode_id": "sfep_idempotent_outcome",
+                "failure_samples": 3,
+                "bad_for_seconds": 180,
+                "observed_at": "2026-07-27T12:00:00+00:00",
+                "source_hashes": {"service_row": "hash"},
+                "source_scope": source_scope,
+            }
+            (event_dir / "service-failure-events.jsonl").write_text(json.dumps(event) + "\n", encoding="utf-8")
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=awg3 enabled=1\n", encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--consume-passive-events-only",
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(root / "missing-policy.json"),
+                "--org-policy-file", str(root / "missing-org-policy.json"),
+            ])
+            first = self.autoswitch.consume_passive_events_only(args)
+            self.assertEqual(first["result"]["reason"], "consumed")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "feedback_id": "execfb_idempotent_outcome",
+                "source_channel": "vless",
+                "target_channel": "awg3",
+                "user": "10.0.0.2",
+                "packet_id": "pkt_idempotent_outcome",
+                "terminal_outcome_classification": "SUCCESS",
+                "verification_result": {"success": True},
+                "service_failure_causal_binding": {
+                    "source_incident_id": incident_id,
+                    "source_event_id": event["event_id"],
+                    "source_event_ids": [event["event_id"]],
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "source_channel": "vless",
+                    "source_scope": source_scope,
+                },
+            }
+            with (state_dir / "execution-events.jsonl").open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(outcome) + "\n")
+            second = self.autoswitch.consume_passive_events_only(args)
+            third = self.autoswitch.consume_passive_events_only(args)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            record = next(item for item in state["incidents"].values() if item.get("incident_id") == incident_id)
+        self.assertEqual(second["result"]["reason"], "already_consumed_idempotent")
+        self.assertEqual(second["result"]["scope_reconciliation"]["consumed_records"], 1)
+        self.assertEqual(third["result"]["scope_reconciliation"]["changed_records"], 0)
+        self.assertEqual(record["last_execution_feedback_id"], outcome["feedback_id"])
+        self.assertFalse(any(second["forbidden_effects"].values()))
+
     def test_passive_consumer_does_not_materialize_unbound_expiry_as_incident(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -215,6 +215,22 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertEqual(result["program_terminal"], "BINARY_ONLY_SOURCE_CPS_UNAVAILABLE")
         self.assertEqual(result["priority_decision"], "SOURCE_CPS_OWNER_REQUIRED")
+
+    def test_active_incident_drain_preempts_generic_polygon_selection(self):
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CURRENT_NEXT_ACTION_ID", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+        ):
+            self.replace_live(field, value)
+        result = self.lib.continue_omp_engineering_control_loop(root=self.root, persist_cps=True)
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(result["priority_decision"], "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON")
+        self.assertEqual(result["real_consumer"], "tools/v7-service-matrix-refresh-all")
+        self.assertEqual(result["exact_next_automatic_action"], "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN")
+        self.assertFalse(any(result["forbidden_effects"].values()))
         self.assertFalse(any(result["forbidden_effects"].values()))
 
     def test_completion_gate_requires_two_natural_separated_reentries(self):

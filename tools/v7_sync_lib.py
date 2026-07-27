@@ -17347,6 +17347,50 @@ def continue_omp_engineering_control_loop(
         external_input_required = _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED") == "TRUE"
         current_stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
         current_next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+        # An active Service-Failure drain has a dedicated production Matrix
+        # consumer.  It must preempt the generic Polygon selector: invoking
+        # that selector here can consume unrelated engineering work and then
+        # attempt to project an obsolete terminal over the live incident.
+        # This acknowledgement is deliberately effect-free; the existing
+        # Matrix timer owns the next fresh revalidation and any admitted
+        # packet-bound action under the standing policy.
+        active_incident_drain = (
+            _plain_live_value(live, "ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
+            and current_next_action == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            and _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
+            == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        )
+        if active_incident_drain:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "NONE_ACTIVE_INCIDENT_DRAIN_CONTINUES",
+                "terminal_class": "NONE",
+                "trigger": "service-failure Matrix lifecycle",
+                "entrypoint": "tools/v7-service-matrix-refresh-all",
+                "priority_decision": "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "tools/v7-service-matrix-refresh-all",
+                "exact_next_operator_command": "NONE_AUTOMATIC_MATRIX_REVALIDATION",
+                "exact_next_automatic_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                "transitions": [{
+                    "transaction_terminal": "ACTIVE_INCIDENT_DRAIN_SUCCESSOR_ACKNOWLEDGED",
+                    "mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3,
+                    "next_output": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "ACTIVE_INCIDENT_SUCCESSOR_RETAINED_FOR_EXISTING_MATRIX_CONSUMER",
+                "runtime_impact": "NONE", "production_impact": "NONE", "routing_impact": "NONE",
+                "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False, "routing_mutation": False,
+                    "user_movement": False, "packet_execution": False,
+                    "restore_barrier_write": False, "rollback_apply": False,
+                    "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
         if external_input_required and current_stop in {
             "ENGINEERING_AUTHORITY", "OPERATIONAL_AUTHORITY", "REAL_WORLD_LIMIT",
         }:

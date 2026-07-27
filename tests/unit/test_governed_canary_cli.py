@@ -9,7 +9,7 @@ from unittest import mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from admin_core import autonomy_trust_acceleration, operator_execution
+from admin_core import autonomy_trust_acceleration, events as event_helpers, operator_execution
 
 
 def load_cli_module():
@@ -1175,7 +1175,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             args = self.transaction_args(root, open_control=True)
             policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
             cycle = self.ready_cycle()
-            event = module.event_helpers.normalize_regression_event({
+            event = event_helpers.normalize_regression_event({
                 "event_id": "sfrev_unit",
                 "event_type": "SERVICE_FAILURE_REVALIDATED",
                 "channel": "vless",

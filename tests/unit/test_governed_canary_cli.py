@@ -477,6 +477,26 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertNotIn("bounded_delegated_service_failure_action", rows[0])
         self.assertTrue(rows[0]["candidate_or_execution_forbidden"])
 
+    def test_compact_transaction_receipt_preserves_terminal_without_embedded_cycle(self):
+        module = load_cli_module()
+        receipt = module.compact_transaction_result({
+            "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+            "transaction_status": "STOP_SAFE",
+            "stop_reason": "atomic_execution_envelope_source_changed",
+            "fresh_packet_id": "pkt_unit",
+            "users_moved": 0,
+            "cycle": {"large": "x" * 100000},
+            "service_failure_causal_binding": {
+                "source_incident_id": "sfinc_unit",
+                "source_event_id": "sfrev_unit",
+                "source_scope": {"affected_scope_count": 1},
+            },
+        })
+        self.assertEqual(receipt["stop_reason"], "atomic_execution_envelope_source_changed")
+        self.assertEqual(receipt["service_failure_causal_binding"]["source_incident_id"], "sfinc_unit")
+        self.assertNotIn("cycle", receipt)
+        self.assertFalse(receipt["full_cycle_embedded"])
+
     def test_read_only_surface_gets_controlled_execution_source_binding(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

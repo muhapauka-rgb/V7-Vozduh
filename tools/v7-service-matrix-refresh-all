@@ -153,6 +153,7 @@ def run_bounded_delegated_service_failure_action(
         "--event-dir", str(event_dir),
         "--policy-file", str(policy_file),
         "--max-users", "1",
+        "--compact-transaction-receipt",
         "--pretty",
     ]
     started_at = now_iso()

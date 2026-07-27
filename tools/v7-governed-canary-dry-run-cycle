@@ -1221,6 +1221,54 @@ def transaction_stop(reason: str, *, cycle: dict[str, Any] | None = None, **extr
     }
 
 
+def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Emit a bounded lifecycle receipt for a caller that already has owners.
+
+    The full in-process cycle may include large diagnostic snapshots.  Matrix
+    needs only the terminal and immutable owner pointers; Packet, execution,
+    outcome and Learning remain durably owned by their existing stores.
+    """
+    result = result if isinstance(result, dict) else {}
+    receipt = {
+        "schema_version": "v7.governed-execution-transaction-receipt.v1",
+        "full_cycle_embedded": False,
+        "evidence_owners": {
+            "packet_and_lease": "operator-execution-lease.json",
+            "execution_and_outcome": "execution-events.jsonl",
+            "governance": "operator-execution-audit.jsonl + governance-lifecycle.jsonl",
+            "learning": "closure-records.jsonl",
+        },
+    }
+    for key in (
+        "final_verdict", "transaction_status", "stop_reason", "fresh_packet_id",
+        "decision_id", "operation_id", "selected_move_hash", "user", "source",
+        "target", "one_execution_attempt", "runtime_mutation_performed",
+        "restore_barrier_written_now", "apply_executed", "verification_result",
+        "rollback_attempted", "rollback_result", "a4_evidence_updated",
+        "users_moved", "runtime_automation_enabled", "authority_expanded",
+    ):
+        if key in result:
+            receipt[key] = result.get(key)
+    binding = result.get("service_failure_causal_binding")
+    if isinstance(binding, dict):
+        receipt["service_failure_causal_binding"] = {
+            key: binding.get(key)
+            for key in (
+                "source_incident_id", "source_event_id", "observation_generation",
+                "source_channel", "event_type", "event_provenance", "source_scope",
+            )
+            if binding.get(key) not in (None, "", [], {})
+        }
+    feedback = result.get("feedback_materialization")
+    if isinstance(feedback, dict):
+        receipt["feedback_materialization"] = {
+            key: feedback.get(key)
+            for key in ("materialized", "feedback_id", "outcome_id", "learning_record_id", "reason")
+            if feedback.get(key) not in (None, "", [], {})
+        }
+    return receipt
+
+
 def reset_completed_restore_barrier_for_fresh_l3_validation(
     restore_barrier_file: Path,
     execution_lease_state: dict[str, Any],
@@ -3194,6 +3242,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
     parser.add_argument("--execute-bounded-delegated-transaction", action="store_true")
+    parser.add_argument(
+        "--compact-transaction-receipt",
+        action="store_true",
+        help="Emit only the bounded lifecycle receipt; full facts remain with existing owners.",
+    )
     parser.add_argument("--confirm-governed-transaction", default="")
     parser.add_argument("--execute-l3-production-validation", action="store_true")
     parser.add_argument("--confirm-l3-production-validation", default="")
@@ -3322,7 +3375,8 @@ def main(argv=None) -> int:
             audit_dir=audit_dir,
             lease_file=lease_file,
         )
-        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        output = compact_transaction_result(result) if args.compact_transaction_receipt else result
+        print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED" else 2
     execution_lease = operator_execution.load_execution_lease(lease_file)
     execution_lease_state = operator_execution.execution_lease_state(execution_lease)

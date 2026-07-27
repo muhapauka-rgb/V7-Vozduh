@@ -6634,8 +6634,12 @@ def reconcile_service_failure_automation_receipt_to_cps(
         "situation_id": receipt["situation_id"],
         "decision_trace_id": receipt["decision_trace_id"],
         "stop_safe_classification": receipt["classification"],
-        "incident_frontier": receipt.get("incident_frontier") or receipt["next_action"],
-        "product_evolution_frontier": receipt.get("product_evolution_frontier") or "NONE",
+        "incident_frontier": receipt.get("source_incident_frontier") or receipt.get("incident_frontier") or receipt["next_action"],
+        "product_evolution_frontier": receipt.get("source_product_evolution_frontier") or receipt.get("product_evolution_frontier") or "NONE",
+        "incident_scope_accounting": (
+            dict(receipt.get("incident_scope_accounting") or {})
+            if isinstance(receipt.get("incident_scope_accounting"), dict) else {}
+        ),
         "last_responsible_link": "production OMP receipt -> canonical source CPS reconciliation",
     }
     result = consume_service_failure_automation_frontier(

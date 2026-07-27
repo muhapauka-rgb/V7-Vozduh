@@ -771,6 +771,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "27")
             self.assertEqual(updated_live["CURRENT_VLESS_LAST_OUTCOME_ID"].strip("`"), "outcome_runtime_current")
             self.assertEqual(updated_live["CURRENT_VLESS_SCOPE_PROJECTION_STATUS"].strip("`"), "PASS_CURRENT_ROUTE_AND_CUMULATIVE_LINEAGE_RECONCILED")
+            self.assertIn("affected=29, protected=2, unresolved=27", updated_live["CURRENT_VLESS_SERVICE_INCIDENT"])
+            self.assertEqual(
+                updated_live["CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL"].strip("`"),
+                "NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor",
+            )
 
     def test_causal_integrity_status_names_missing_successor_scope_and_history(self):
         with tempfile.TemporaryDirectory() as tmp:

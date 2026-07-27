@@ -17516,18 +17516,37 @@ def _service_failure_action_class_reuse_projection(
         "PROGRAM_PORTFOLIO_BLOCKED_WITH_EXACT_OWNER_AND_REENTRY": f"`{','.join(blocked_programs) or 'NONE'}`",
     }
     if incident_projection_valid:
+        affected = int(current_incident.get("affected_scope_count") or 0)
+        protected = int(current_incident.get("protected_scope_count") or 0)
+        unresolved = int(current_incident.get("unresolved_scope_count") or 0)
+        excluded = int(current_incident.get("explicitly_excluded_or_recovered_scope_count") or 0)
+        incident_id = str(current_incident.get("incident_id") or "")
+        incident_generation = str(current_incident.get("incident_generation") or "")
+        last_feedback = str(current_incident.get("last_execution_feedback_id") or "")
+        cumulative_count = int(current_incident.get("cumulative_lineage_count") or 0)
         projection.update({
-            "CURRENT_VLESS_INCIDENT_ID": f"`{str(current_incident.get('incident_id') or '')}`",
-            "CURRENT_VLESS_INCIDENT_GENERATION": f"`{str(current_incident.get('incident_generation') or '')}`",
-            "CURRENT_VLESS_AFFECTED_SCOPE": f"`{int(current_incident.get('affected_scope_count') or 0)}`",
-            "CURRENT_VLESS_PROTECTED_SCOPE": f"`{int(current_incident.get('protected_scope_count') or 0)}`",
-            "CURRENT_VLESS_UNRESOLVED_SCOPE": f"`{int(current_incident.get('unresolved_scope_count') or 0)}`",
-            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE": f"`{int(current_incident.get('explicitly_excluded_or_recovered_scope_count') or 0)}`",
+            "CURRENT_VLESS_SERVICE_INCIDENT": (
+                f"`ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident {incident_id}; "
+                f"generation {incident_generation}; current route-backed scope affected={affected}, "
+                f"protected={protected}, unresolved={unresolved}, excluded_or_recovered={excluded}; "
+                f"cumulative packet-bound lineage={cumulative_count}; last feedback {last_feedback or 'NONE'}`"
+            ),
+            "CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL": (
+                "`NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor`"
+                if unresolved > 0 else
+                "`SOURCE_SCOPE_EMPTY_OR_RECOVERY_RECONCILIATION_REQUIRED`"
+            ),
+            "CURRENT_VLESS_INCIDENT_ID": f"`{incident_id}`",
+            "CURRENT_VLESS_INCIDENT_GENERATION": f"`{incident_generation}`",
+            "CURRENT_VLESS_AFFECTED_SCOPE": f"`{affected}`",
+            "CURRENT_VLESS_PROTECTED_SCOPE": f"`{protected}`",
+            "CURRENT_VLESS_UNRESOLVED_SCOPE": f"`{unresolved}`",
+            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE": f"`{excluded}`",
             "CURRENT_VLESS_AFFECTED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('affected_scope_fingerprint') or '')}`",
             "CURRENT_VLESS_PROTECTED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('protected_scope_fingerprint') or '')}`",
             "CURRENT_VLESS_UNRESOLVED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('unresolved_scope_fingerprint') or '')}`",
             "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE_FINGERPRINT": f"`{str(current_incident.get('explicitly_excluded_or_recovered_scope_fingerprint') or '')}`",
-            "CURRENT_VLESS_LAST_EXECUTION_FEEDBACK_ID": f"`{str(current_incident.get('last_execution_feedback_id') or '')}`",
+            "CURRENT_VLESS_LAST_EXECUTION_FEEDBACK_ID": f"`{last_feedback}`",
             "CURRENT_VLESS_LAST_OUTCOME_ID": f"`{str(current_incident.get('last_outcome_id') or '')}`",
             "CURRENT_VLESS_LAST_LEARNING_ID": f"`{str(current_incident.get('last_learning_id') or '')}`",
             "CURRENT_VLESS_LAST_PACKET_ID": f"`{str(current_incident.get('last_packet_id') or '')}`",

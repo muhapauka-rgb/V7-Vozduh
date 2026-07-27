@@ -711,6 +711,24 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("nested", serialized)
         self.assertTrue(projection["candidate_or_execution_forbidden"])
 
+    def test_compact_matrix_receipt_retains_nested_outcome_pointer_without_payload(self):
+        projection = self.refresh.compact_refresh_projection({
+            "bounded_delegated_service_failure_action": {
+                "status": "ACTION_COMPLETED", "ok": True,
+                "consumer_result": {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "feedback_materialization": {
+                        "feedback_id": "execfb_unit", "learning_record_id": "learn_unit",
+                        "nested": "x" * 100000,
+                    },
+                },
+            },
+        })
+        receipt = projection["bounded_delegated_service_failure_action"]["consumer_result"]
+        self.assertEqual(receipt["feedback_id"], "execfb_unit")
+        self.assertEqual(receipt["learning_record_id"], "learn_unit")
+        self.assertNotIn("nested", json.dumps(projection))
+
 
 if __name__ == "__main__":
     unittest.main()

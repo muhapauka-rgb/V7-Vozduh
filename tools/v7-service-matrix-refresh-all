@@ -446,6 +446,15 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         )
         if result.get(key) not in (None, "", [], {})
     }
+    # A governed executor keeps the full Outcome with the execution owner,
+    # but its bounded receipt deliberately nests this one immutable pointer.
+    # Preserve the pointer (not the nested payload) so the Matrix lifecycle
+    # can prove which existing post-action consumer owns the next step.
+    feedback = result.get("feedback_materialization")
+    feedback = feedback if isinstance(feedback, dict) else {}
+    for key in ("feedback_id", "outcome_id", "learning_record_id"):
+        if feedback.get(key) not in (None, "", [], {}):
+            compact_result.setdefault(key, feedback.get(key))
     return {
         key: value.get(key)
         for key in (
@@ -497,7 +506,8 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
     }
     for key in (
         "passive_event_consumer", "service_failure_automation_advisory",
-        "service_failure_omp_consumer", "service_failure_post_action_omp_consumer",
+        "service_failure_omp_consumer", "service_failure_post_action_passive_consumer",
+        "service_failure_post_action_omp_consumer",
         "bounded_delegated_service_failure_action",
     ):
         if key in payload:
@@ -914,6 +924,17 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         if payload["bounded_delegated_service_failure_action"].get("action_completed"):
+            # The first passive/L3 pass precedes the bounded action.  Its
+            # packet-bound Outcome is appended only after that pass, so run
+            # the same existing consumer once more before asking OMP to
+            # select the successor.  This is reconciliation only: it cannot
+            # create a Candidate/Packet/lease or mutate routing.
+            payload["service_failure_post_action_passive_consumer"] = run_passive_consumer(
+                str(args.passive_consumer),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                timeout_sec=int(args.passive_consumer_timeout_sec),
+            )
             payload["service_failure_post_action_omp_consumer"] = run_service_failure_omp_consumer(
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
             )

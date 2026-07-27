@@ -1760,7 +1760,10 @@ class AutoswitchPlanner:
             scope_accounting = {
                 "schema_version": "v7.service-failure-incident-scope-accounting.v1",
                 "status": "ACCOUNTED",
-                "baseline_event_id": str(closure.get("event_id") or (source_event_ids[0] if source_event_ids else "")),
+                # ``closure.event_id`` can be the compact incident group id.
+                # The baseline must point to the producer event that supplied
+                # the immutable scope snapshot, not to that derived group.
+                "baseline_event_id": str(source_event_ids[0] if source_event_ids else closure.get("event_id") or ""),
                 "baseline_observed_at": str(source_scope.get("observed_at") or closure.get("observed_at") or ""),
                 "affected_scope_count": source_scope_count,
                 "affected_scope_fingerprint": source_scope_fingerprint,
@@ -1986,6 +1989,113 @@ class AutoswitchPlanner:
             },
         }
 
+    def _reconcile_incident_scope_accounting(
+        self,
+        *,
+        existing: dict[str, Any],
+        execution_rows: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Recompute one active incident denominator from live route truth.
+
+        A packet outcome is not membership in a later source-scope generation.
+        It can reduce that generation only when its immutable causal binding
+        carries the exact same count-plus-fingerprint snapshot.  This avoids
+        treating an old successful move as protection for users that were not
+        in the current failed-source denominator.
+        """
+        existing_scope = existing.get("scope_accounting")
+        if not isinstance(existing_scope, dict):
+            return {}
+        source_incident_id = str(existing.get("source_incident_id") or existing.get("incident_id") or "")
+        source_channel = str(existing.get("channel") or existing.get("source_channel") or "")
+        baseline_count = to_int(existing_scope.get("affected_scope_count"), -1)
+        baseline_fingerprint = str(existing_scope.get("affected_scope_fingerprint") or "")
+        if not source_incident_id or not source_channel or baseline_count < 0 or not baseline_fingerprint:
+            return {}
+
+        live_registry_available = (self.state_dir / "users.registry").exists()
+        live_rows = parse_registry(self.state_dir / "users.registry") if live_registry_available else []
+        live_current = {
+            str(item.get("ip") or ""): str(item.get("current") or "")
+            for item in live_rows
+            if str(item.get("ip") or "") and (
+                not str(item.get("enabled") or "") or bool_value(item.get("enabled"))
+            )
+        }
+        protected_users: set[str] = set()
+        excluded_users: set[str] = set()
+        protected_pointers: set[str] = set()
+        excluded_pointers: set[str] = set()
+        rejected_feedback_ids: set[str] = set()
+        for feedback_row in execution_rows:
+            binding = feedback_row.get("service_failure_causal_binding")
+            binding = binding if isinstance(binding, dict) else {}
+            if str(binding.get("source_incident_id") or "") != source_incident_id:
+                continue
+            verification = feedback_row.get("verification_result")
+            verification = verification if isinstance(verification, dict) else {}
+            if str(feedback_row.get("terminal_outcome_classification") or "") != "SUCCESS" or verification.get("success") is not True:
+                continue
+            feedback_id = str(feedback_row.get("feedback_id") or feedback_row.get("object_id") or "")
+            scope = binding.get("source_scope")
+            scope = scope if isinstance(scope, dict) else {}
+            scope_matches = (
+                str(scope.get("source_channel") or "") == source_channel
+                and to_int(scope.get("affected_scope_count"), -1) == baseline_count
+                and str(scope.get("affected_scope_fingerprint") or "") == baseline_fingerprint
+            )
+            if not scope_matches:
+                if feedback_id:
+                    rejected_feedback_ids.add(feedback_id)
+                continue
+            user = str(feedback_row.get("user") or "")
+            target = str(feedback_row.get("target_channel") or "")
+            current = str(live_current.get(user) or "")
+            if user and target and current == target:
+                protected_users.add(user)
+                if feedback_id:
+                    protected_pointers.add(feedback_id)
+            elif user and current and current != source_channel:
+                # Route truth says this bounded member left the failed source,
+                # but not through the packet's verified target.  Preserve it as
+                # an explicit, non-protection closure rather than guessing.
+                excluded_users.add(user)
+                if feedback_id:
+                    excluded_pointers.add(feedback_id)
+
+        unresolved_users = {
+            user for user, current in live_current.items() if current == source_channel
+        } if live_registry_available else set()
+        # Categories are disjoint by construction: a user on source is
+        # unresolved; a matching target is protected; another live route is
+        # explicitly excluded/recovered only with exact packet lineage.
+        protected_users -= unresolved_users
+        excluded_users -= unresolved_users | protected_users
+        accounted = len(protected_users) + len(unresolved_users) + len(excluded_users)
+        valid = live_registry_available and baseline_count == accounted
+        return {
+            "schema_version": "v7.service-failure-incident-scope-accounting.v2",
+            "status": "ACCOUNTED" if valid else "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+            "baseline_event_id": str(existing_scope.get("baseline_event_id") or ""),
+            "baseline_observed_at": str(existing_scope.get("baseline_observed_at") or ""),
+            "affected_scope_count": baseline_count,
+            "affected_scope_fingerprint": baseline_fingerprint,
+            "protected_scope_count": len(protected_users),
+            "protected_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(protected_users)}),
+            "protected_scope_lineage_pointers": sorted(protected_pointers),
+            "unresolved_scope_count": len(unresolved_users),
+            "unresolved_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(unresolved_users)}),
+            "unresolved_scope_route_truth_owner": "state/users.registry",
+            "explicitly_excluded_or_recovered_scope_count": len(excluded_users),
+            "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(excluded_users)}),
+            "explicitly_excluded_or_recovered_lineage_pointers": sorted(excluded_pointers),
+            "nonmember_or_stale_feedback_pointers": sorted(rejected_feedback_ids),
+            "accounted_scope_count": accounted,
+            "live_registry_available": live_registry_available,
+            "raw_user_list_stored": False,
+            "scope_membership_law": "EXACT_SOURCE_SCOPE_FINGERPRINT_AND_CURRENT_ROUTE",
+        }
+
     def reconcile_service_failure_execution_outcomes(self) -> dict[str, Any]:
         """Consume exact packet-bound execution feedback into the same L3 incident state.
 
@@ -2040,66 +2150,11 @@ class AutoswitchPlanner:
                 continue
             user = str(row.get("user") or "")
             user_fingerprint = sha256_json({"incident": source_incident_id, "user": user})
-            scope_source = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
             existing_scope = existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {}
-            baseline_count = to_int(existing_scope.get("affected_scope_count"), -1)
-            baseline_fingerprint = str(existing_scope.get("affected_scope_fingerprint") or "")
-            if baseline_count < 0 and scope_source:
-                baseline_count = to_int(scope_source.get("affected_scope_count"), -1)
-                baseline_fingerprint = str(scope_source.get("affected_scope_fingerprint") or "")
-            scope_accounting: dict[str, Any] = {}
-            if baseline_count >= 0 and baseline_fingerprint:
-                baseline_at = str(existing_scope.get("baseline_observed_at") or scope_source.get("observed_at") or "")
-                successful_users: set[str] = set()
-                for feedback_row in rows:
-                    feedback_binding = feedback_row.get("service_failure_causal_binding")
-                    feedback_binding = feedback_binding if isinstance(feedback_binding, dict) else {}
-                    if str(feedback_binding.get("source_incident_id") or "") != source_incident_id:
-                        continue
-                    feedback_terminal = str(feedback_row.get("terminal_outcome_classification") or "")
-                    feedback_verification = feedback_row.get("verification_result") if isinstance(feedback_row.get("verification_result"), dict) else {}
-                    feedback_observed_at = str(feedback_row.get("outcome_observed_at") or feedback_row.get("created_at") or "")
-                    if feedback_terminal == "SUCCESS" and feedback_verification.get("success") is True and (not baseline_at or not feedback_observed_at or feedback_observed_at >= baseline_at):
-                        candidate_user = str(feedback_row.get("user") or "")
-                        if candidate_user:
-                            successful_users.add(candidate_user)
-                live_rows = parse_registry(self.state_dir / "users.registry")
-                live_current = {
-                    str(item.get("ip") or ""): str(item.get("current") or "")
-                    for item in live_rows
-                    if str(item.get("ip") or "") and (
-                        not str(item.get("enabled") or "") or bool_value(item.get("enabled"))
-                    )
-                }
-                # An absent live registry is an unknown state, not proof that
-                # a historical packet still protects its user.
-                live_registry_available = (self.state_dir / "users.registry").exists()
-                protected_users = sorted(
-                    item for item in successful_users
-                    if live_registry_available and live_current.get(item) and live_current.get(item) != source_channel
-                )
-                unresolved_users = sorted(
-                    item for item, current in live_current.items()
-                    if current == source_channel
-                ) if live_registry_available else []
-                accounted = len(protected_users) + len(unresolved_users)
-                valid = live_registry_available and baseline_count == accounted
-                scope_accounting = {
-                    "schema_version": "v7.service-failure-incident-scope-accounting.v1",
-                    "status": "ACCOUNTED" if valid else "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
-                    "baseline_event_id": str(existing_scope.get("baseline_event_id") or source_event_id),
-                    "baseline_observed_at": baseline_at,
-                    "affected_scope_count": baseline_count,
-                    "affected_scope_fingerprint": baseline_fingerprint,
-                    "protected_scope_count": len(protected_users),
-                    "protected_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": protected_users}),
-                    "unresolved_scope_count": len(unresolved_users),
-                    "unresolved_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": unresolved_users}),
-                    "explicitly_excluded_or_recovered_scope_count": 0,
-                    "accounted_scope_count": accounted,
-                    "live_registry_available": live_registry_available,
-                    "raw_user_list_stored": False,
-                }
+            scope_accounting = self._reconcile_incident_scope_accounting(
+                existing=existing,
+                execution_rows=rows,
+            )
             lineage = dict(existing.get("causal_lineage") or {})
             lineage.update({
                 "source_incident_id": source_incident_id,
@@ -2175,6 +2230,36 @@ class AutoswitchPlanner:
             incidents[incident_key] = desired
             changed += 1
             consumed += 1
+        # Scope truth is a live-route projection, not a side effect of the
+        # first feedback consumer.  Recompute it even when every immutable
+        # feedback id was already consumed; otherwise a generation-local
+        # result can remain stale forever after a deploy or a route change.
+        for incident_key, record in list(incidents.items()):
+            if not isinstance(record, dict):
+                continue
+            scope_accounting = self._reconcile_incident_scope_accounting(
+                existing=record,
+                execution_rows=rows,
+            )
+            if not scope_accounting:
+                continue
+            desired_scope_fields = {
+                "scope_accounting": scope_accounting,
+                "affected_scope_count": scope_accounting["affected_scope_count"],
+                "affected_scope_fingerprint": scope_accounting["affected_scope_fingerprint"],
+                "protected_scope_count": scope_accounting["protected_scope_count"],
+                "protected_scope_fingerprint": scope_accounting["protected_scope_fingerprint"],
+                "unresolved_scope_count": scope_accounting["unresolved_scope_count"],
+                "unresolved_scope_fingerprint": scope_accounting["unresolved_scope_fingerprint"],
+            }
+            if scope_accounting.get("status") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN":
+                desired_scope_fields.update({
+                    "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+                    "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
+                })
+            if any(record.get(key) != value for key, value in desired_scope_fields.items()):
+                incidents[incident_key] = {**record, **desired_scope_fields}
+                changed += 1
         if changed:
             state["incidents"] = incidents
             self._write_l3_runtime_state(state)

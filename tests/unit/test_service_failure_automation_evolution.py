@@ -137,6 +137,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
                 incident_key: {
                     "incident_key": incident_key, "incident_id": incident_id,
+                    "source_channel": "vless",
                     "incident_state": "OPEN", "channel_incident_state": "OPEN",
                     "scope_accounting": {
                         "baseline_event_id": "sfrev_scope", "baseline_observed_at": "2026-07-27T03:00:00+00:00",
@@ -153,6 +154,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "source_incident_id": incident_id, "source_event_id": "sfrev_scope",
                     "source_event_ids": ["sfrev_scope"], "event_type": "SERVICE_FAILURE_REVALIDATED",
                     "source_channel": "vless",
+                    "source_scope": {
+                        "source_channel": "vless", "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "scopehash",
+                    },
                 },
             }
             (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
@@ -168,6 +173,51 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["scope_accounting"]["status"], "ACCOUNTED")
         self.assertEqual(record["protected_scope_count"], 1)
         self.assertEqual(record["unresolved_scope_count"], 1)
+
+    def test_scope_reconciliation_rejects_historical_feedback_without_matching_generation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_scope_generation"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=awg3 enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id, "source_channel": "vless",
+                    "scope_accounting": {
+                        "baseline_event_id": "sfrev_new", "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "newscope",
+                    },
+                },
+            }}), encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_old",
+                "source_channel": "vless", "target_channel": "awg3", "user": "10.0.0.2",
+                "terminal_outcome_classification": "SUCCESS", "verification_result": {"success": True},
+                "service_failure_causal_binding": {
+                    "source_incident_id": incident_id, "source_event_id": "sfrev_old",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED", "source_channel": "vless",
+                    "source_scope": {"source_channel": "vless", "affected_scope_count": 2,
+                                     "affected_scope_fingerprint": "oldscope"},
+                },
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner.reconcile_service_failure_execution_outcomes()
+            record = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))["incidents"][incident_key]
+        self.assertEqual(record["scope_accounting"]["status"], "INCIDENT_SCOPE_ACCOUNTING_BROKEN")
+        self.assertEqual(record["protected_scope_count"], 0)
+        self.assertEqual(record["scope_accounting"]["nonmember_or_stale_feedback_pointers"], ["execfb_old"])
 
     def test_exact_packet_bound_execution_feedback_updates_source_cps_without_new_action(self):
         with tempfile.TemporaryDirectory() as tmp:

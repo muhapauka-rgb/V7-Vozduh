@@ -1987,6 +1987,7 @@ def delegated_policy_live_state_consistency(
     live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
+    active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") in {
             "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
@@ -2026,6 +2027,8 @@ def delegated_policy_live_state_consistency(
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
         if phase3_acceptance_frontier else
+        "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+        if active_incident_drain_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
         if heartbeat_reentry_active else
         "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY"
@@ -2123,6 +2126,8 @@ def delegated_policy_live_state_consistency(
         cells = [cell.strip() for cell in sequence_one.strip().strip("|").split("|")]
         sequence_stop = cells[5].strip("`") if len(cells) > 5 else ""
     stop_consistent = (
+        (active_incident_drain_frontier and stop == registry_stop == wip_stop == "NONE")
+        or
         len({stop, registry_stop, sequence_stop}) == 1
         and (
             independent_program_frontier
@@ -2329,7 +2334,11 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
 
     expected_projection = {
         "DEPENDENCY_GRAPH_VERSION": "v7.omp-capability-dependency-graph.v1",
-        "CURRENT_EXECUTION_FRONTIER": ",".join(ready) or "NONE",
+        "CURRENT_EXECUTION_FRONTIER": (
+            "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            if live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            else ",".join(ready) or "NONE"
+        ),
         "WAITING_CAPABILITIES": ",".join(waiting) or "NONE",
         "READY_CAPABILITIES": ",".join(ready) or "NONE",
         "BLOCKED_CAPABILITIES": ",".join(blocked) or "NONE",
@@ -2381,6 +2390,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
             )
             waiting_input_frontier = program_frontier.startswith("WAITING_INPUT:")
+            active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if waiting_input_frontier:
                 if (
                     continuation != "FALSE" or external != "TRUE"
@@ -2400,6 +2410,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
                 errors.append("program_frontier_stopped_program")
             expected_decision = (
+                "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain_frontier else
                 continuation_decision if waiting_input_frontier else
                 "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
                 "WAIT_EXTERNAL_TRIGGER" if heartbeat_reentry_active else
@@ -19635,6 +19646,7 @@ def cps_live_state_consistency(
         errors.append("cps_transition_divergence")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
+    active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     next_projection = {
         next_action,
         registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", ""),
@@ -19660,7 +19672,7 @@ def cps_live_state_consistency(
             and wip_stop != stop
             and not split_authority_natural_boundary
         )
-        or (independent_program_frontier and "REAL_WORLD_LIMIT" not in wip_stop)
+        or (independent_program_frontier and not active_incident_drain_frontier and "REAL_WORLD_LIMIT" not in wip_stop)
     ):
         errors.append("cps_current_stop_divergence")
     if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith(normalized["authority_required_now"]):

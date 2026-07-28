@@ -146,13 +146,65 @@ def run_bounded_delegated_service_failure_action(
             "runtime_mutation_performed": False,
             "users_moved": 0,
         }
+    policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
+    per_action_law = (
+        contract.get("per_action_law")
+        if isinstance(contract.get("per_action_law"), dict)
+        else {}
+    )
+    blast_radius = (
+        policy.get("max_blast_radius")
+        if isinstance(policy.get("max_blast_radius"), dict)
+        else {}
+    )
+    try:
+        policy_max_users = int(policy.get("max_users_per_action") or 0)
+        law_max_users = int(per_action_law.get("max_users") or 0)
+        blast_max_users = int(blast_radius.get("users") or 0)
+        policy_concurrency = int(policy.get("max_concurrent_transactions") or 0)
+        law_concurrency = int(per_action_law.get("max_concurrent_transactions") or 0)
+        expires_at = datetime.fromisoformat(str(contract.get("expires_at") or "").replace("Z", "+00:00"))
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        policy_max_users = law_max_users = blast_max_users = 0
+        policy_concurrency = law_concurrency = 0
+        expires_at = datetime.min.replace(tzinfo=timezone.utc)
+    allowed_action_classes = [
+        str(item)
+        for item in (policy.get("allowed_action_classes") or [])
+        if str(item)
+    ]
+    exact_limit_valid = (
+        bool(str(contract.get("contract_id") or ""))
+        and bool(str(contract.get("contract_hash") or ""))
+        and expires_at > datetime.now(timezone.utc)
+        and str(policy.get("policy_state") or "") == "APPROVED"
+        and bool_value(policy.get("runtime_apply_enabled"))
+        and not bool_value(policy.get("self_expansion_allowed"))
+        and bool(allowed_action_classes)
+        and policy_max_users > 0
+        and policy_max_users == law_max_users == blast_max_users
+        and policy_concurrency == law_concurrency == 1
+    )
+    if not exact_limit_valid:
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "STOP_SAFE_INVALID_STANDING_POLICY_SCOPE",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "blockers": ["standing_policy_transaction_limit_not_exactly_owner_backed"],
+            "contract_id": str(contract.get("contract_id") or ""),
+        }
     command = [
         executor,
         "--execute-bounded-delegated-transaction",
         "--state-dir", str(state_dir),
         "--event-dir", str(event_dir),
         "--policy-file", str(policy_file),
-        "--max-users", "1",
+        "--max-users", str(policy_max_users),
         "--compact-transaction-receipt",
         "--pretty",
     ]
@@ -208,6 +260,10 @@ def run_bounded_delegated_service_failure_action(
         "action_completed": completed,
         "runtime_mutation_performed": bool(parsed.get("runtime_mutation_performed") or parsed.get("apply_executed")),
         "users_moved": int(parsed.get("users_moved") or 0),
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "admitted_max_users": policy_max_users,
+        "max_concurrent_transactions": policy_concurrency,
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
     }
 
@@ -442,7 +498,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         for key in (
             "final_verdict", "status", "next_output", "legal_terminal",
             "receipt_id", "obligation_id", "frontier_id", "packet_id",
-            "feedback_id", "outcome_id", "transaction_status",
+            "feedback_id", "outcome_id", "transaction_status", "stop_reason",
+            "blockers",
         )
         if result.get(key) not in (None, "", [], {})
     }
@@ -461,6 +518,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "schema_version", "status", "ok", "started_at", "completed_at",
             "returncode", "action_attempted", "action_completed",
             "runtime_mutation_performed", "users_moved", "reason", "error",
+            "contract_id", "contract_hash", "admitted_max_users",
+            "max_concurrent_transactions", "blockers",
         )
         if value.get(key) not in (None, "", [], {})
     } | ({"consumer_result": compact_result} if compact_result else {})

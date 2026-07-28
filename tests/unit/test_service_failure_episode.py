@@ -740,15 +740,37 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(inactive["status"], "INACTIVE_NO_STANDING_POLICY")
             self.assertFalse(inactive["action_attempted"])
 
+            valid_policy = {
+                "delegated_autonomy_policy": {
+                    "status": "ACTIVE",
+                    "contract_id": "sdpc_test_tier4",
+                    "contract_hash": "a" * 64,
+                    "expires_at": "2099-08-27T02:06:51+00:00",
+                    "policy": {
+                        "allowed_action_classes": ["channel hard-fail failover"],
+                        "max_users_per_action": 4,
+                        "max_concurrent_transactions": 1,
+                        "max_blast_radius": {"users": 4},
+                        "policy_state": "APPROVED",
+                        "runtime_apply_enabled": True,
+                        "self_expansion_allowed": False,
+                    },
+                    "per_action_law": {
+                        "max_users": 4,
+                        "max_concurrent_transactions": 1,
+                    },
+                },
+            }
             policy_file.write_text(
-                json.dumps({"delegated_autonomy_policy": {"status": "ACTIVE"}}),
+                json.dumps(valid_policy),
                 encoding="utf-8",
             )
             executor = root / "executor"
             executor.write_text(
                 "#!/usr/bin/env python3\n"
-                "import json\n"
-                "print(json.dumps({'final_verdict':'STOP_SAFE','users_moved':0,'apply_executed':False}))\n"
+                "import json, sys\n"
+                "max_users=sys.argv[sys.argv.index('--max-users')+1]\n"
+                "print(json.dumps({'final_verdict':'STOP_SAFE','users_moved':0,'apply_executed':False,'max_users_argument':max_users}))\n"
                 "raise SystemExit(2)\n",
                 encoding="utf-8",
             )
@@ -763,6 +785,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(stop["status"], "STOP_SAFE")
             self.assertTrue(stop["action_attempted"])
             self.assertEqual(stop["users_moved"], 0)
+            self.assertEqual(stop["admitted_max_users"], 4)
+            self.assertEqual(stop["max_concurrent_transactions"], 1)
+            self.assertEqual(stop["consumer_result"]["max_users_argument"], "4")
+            self.assertEqual(stop["contract_id"], "sdpc_test_tier4")
 
             executor.write_text(
                 "#!/usr/bin/env python3\n"
@@ -784,6 +810,33 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertTrue(governed_stop["ok"])
             self.assertEqual(governed_stop["status"], "STOP_SAFE")
             self.assertFalse(governed_stop["runtime_mutation_performed"])
+
+            invalid_policy = json.loads(json.dumps(valid_policy))
+            invalid_policy["delegated_autonomy_policy"]["per_action_law"]["max_users"] = 1
+            policy_file.write_text(json.dumps(invalid_policy), encoding="utf-8")
+            invalid = self.refresh.run_bounded_delegated_service_failure_action(
+                str(root / "missing-executor"),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertTrue(invalid["ok"])
+            self.assertEqual(invalid["status"], "STOP_SAFE_INVALID_STANDING_POLICY_SCOPE")
+            self.assertFalse(invalid["action_attempted"])
+            self.assertEqual(invalid["users_moved"], 0)
+
+            expired_policy = json.loads(json.dumps(valid_policy))
+            expired_policy["delegated_autonomy_policy"]["expires_at"] = "2020-01-01T00:00:00+00:00"
+            policy_file.write_text(json.dumps(expired_policy), encoding="utf-8")
+            expired = self.refresh.run_bounded_delegated_service_failure_action(
+                str(root / "missing-executor"),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertTrue(expired["ok"])
+            self.assertEqual(expired["status"], "STOP_SAFE_INVALID_STANDING_POLICY_SCOPE")
+            self.assertFalse(expired["action_attempted"])
 
     def test_matrix_lifecycle_treats_no_pending_omp_obligation_as_legal_noop(self):
         completed = mock.Mock(

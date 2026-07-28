@@ -7886,9 +7886,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`
-Resolved contract state: the existing production policy and its append-only Authority audit prove one active, still-fresh Tier-4 standing delegated operational-policy contract. CPS records that verified projection; it does not issue, renew or expand Authority. The next legal input is a fresh owner-backed matching service-failure event. It may then enter the existing planner only with fresh Candidate, Packet and lease identities, all live gates, `max_users=4` and `max_concurrent_transactions=1`. The latest ordinary Matrix generation found `CURRENT_SOURCE_SCOPE_EMPTY`, so no cohort, Candidate, Packet, lease or production effect may be fabricated to obtain Tier-4 evidence.
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION`
+Resolved contract state: the existing production policy and its append-only Authority audit prove one active, still-fresh Tier-48 standing delegated operational-policy contract with `max_users=48`, `max_concurrent_transactions=1` and self-expansion forbidden. The current source incident scope is empty. The independent T48-M8 product frontier is blocked because the existing controlled-production pool contains four enabled certification users in total and at most three on one active controlled source; the first honest cohort requires five. CPS records that verified projection; it does not create identities, reclassify ordinary customers, perform setup movement, issue or expand Authority. Exact re-entry is five or more existing-owner-authorized enabled certification users assigned to one active controlled source, or a separate exact Engineering Authority decision for a lawful controlled-condition/pool change.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8874,10 +8874,10 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `REAL_WORLD_LIMIT`
-Resolved current next action: `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION`
-Current terminal report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
-Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
+Resolved current stop: `ENGINEERING_AUTHORITY`
+Resolved current next action: `V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION`
+Current terminal report: `docs/reports/engineering/2026-07-28_173732_tier48_activation_and_controlled_pool_boundary.md`
+Latest consumed report: `docs/reports/engineering/2026-07-28_173732_tier48_activation_and_controlled_pool_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

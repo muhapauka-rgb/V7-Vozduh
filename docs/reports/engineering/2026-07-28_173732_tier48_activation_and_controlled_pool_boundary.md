@@ -163,6 +163,10 @@ Source-CPS existing consumer завершил
 - `CAUSAL_M7_TIER_DECISION_CONSUMPTION=SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED`;
 - `T48_M8_STATUS=ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY`.
 
+OMP current-state references в разделах 20.2 и 26 обновлены на те же exact
+stop, next action, Tier-48 contract и pool boundary. Исторические snapshot
+разделы не использованы как scheduling truth.
+
 Прямой production `v7-truth-check --all` не является допустимым source-CPS
 consumer: binary-only production layout не содержит source manifest
 `docs/track7/runtime-convergence/V7_TRUTH_MANIFEST.json`. Это не runtime defect;

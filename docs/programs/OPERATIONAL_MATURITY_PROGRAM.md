@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.61`
+Version: `4.62`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -93,6 +93,17 @@ V4.57 closes the service-failure lifecycle and multi-lane product-evolution resi
 V4.58 closes the missing durable consumer link from the existing service Matrix lifecycle to OMP. A passive Situation/Decision/Outcome terminal is materialized once as an append-only obligation through the existing closure owner, classified immediately as correct safety, data/evidence, existing capability, implementation, Authority or external-owner responsibility, and consumed once by the standard Continue OMP entrypoint. The same existing autoswitch planner supplies a bounded incident decision and the existing shadow owner receives at most one current-tier counterfactual record; an exact later owner-backed execution outcome is compared automatically, while absence of execution is never fabricated as an outcome. Incident and Product Evolution are parallel projections of one existing OMP frontier. A safe target without a current one-use contract stops at the exact `ENGINEERING_AUTHORITY` boundary. This adds no queue, Planner, Runtime, Authority owner or route action, and grants no L8, routing, user-movement or Production Maturity credit.
 
 V4.61 closes the controlled-certification-substrate Authority producer/consumer gap inside the existing operator-execution audit, standing-policy status and CPS/OMP projection owners. One exact registered request may receive one append-only independently attributed `APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN` or `DECLINE`; concurrent duplicates are suppressed, stale/hash/scope mismatches fail closed, and an expiry-only replacement preserves one semantic fingerprint without coexisting as a second active request. The ordinary-production scalar remains bounded by the ordinary proven Runtime tier, while the controlled-certification tier is projected on a separate contextual axis. A pending request is the exact top-level CPS/OMP Authority frontier and cannot collapse back into a generic pool-reconciliation loop. Approval only publishes the existing incremental M8 substrate successor; it does not itself provision identities, create a Candidate/Packet/lease, execute a campaign, move users, expand ordinary-production Authority, credit production evidence, or change Production Maturity.
+
+V4.62 makes controlled-source isolation a mandatory producer/consumer
+precondition inside the same certification-pool, Authority-status and CPS
+owners. An active controlled source is campaign-eligible only when current
+registry truth proves zero enabled non-certification users on it. An approval
+bound to a mixed source cannot be transferred to another source or consumed
+for setup; it fails closed with zero production effects. The existing request
+producer may select an already-existing empty eligible source candidate and
+register one fresh exact independently decidable request. No new source,
+owner, registry, Runtime, Planner, campaign engine or Authority system is
+created.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -7890,7 +7901,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY`
-Resolved contract state: the existing production policy and its append-only Authority audit prove one active Tier-48 controlled-certification ceiling with `max_concurrent_transactions=1`, while ordinary-production Runtime remains Tier-4. The existing controlled pool has four enabled certification users in total and at most three on one active controlled source. Exact request `cpsauth_r1_7b3cf7eab9af58a7a3839aaa` is registered, unexpired and `PENDING`; no second request, identity provisioning, classification, assignment, controlled condition or campaign effect is legal before the independent existing Authority owner records one exact decision.
+Resolved contract state: the existing production policy and its append-only Authority audit prove one active Tier-48 controlled-certification ceiling with `max_concurrent_transactions=1`, while ordinary-production Runtime remains Tier-4. Request `cpsauth_r1_7b3cf7eab9af58a7a3839aaa` was approved but is bound to a mixed source containing enabled non-certification users and therefore cannot be consumed. The existing owner registered fresh exact request `cpsauth_r1_d27d985e237c9582656b26e7`, hash `d27d985e237c9582656b26e75e36a1dd3ef9a602cd8e87f7a793033d8e97cc5c`, bound to existing empty isolated source candidate `1`; it is `PENDING`. No identity provisioning, classification, assignment, controlled condition or campaign effect is legal before the independent Authority owner decides this exact request.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8878,7 +8889,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY`
-Current terminal report: `docs/reports/engineering/2026-07-28_173732_tier48_activation_and_controlled_pool_boundary.md`
+Current terminal report: `docs/reports/engineering/2026-07-28_220000_controlled_source_isolation_repair_and_fresh_authority_boundary.md`
 Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`

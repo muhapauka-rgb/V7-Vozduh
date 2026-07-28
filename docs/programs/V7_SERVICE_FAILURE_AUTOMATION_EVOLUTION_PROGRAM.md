@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.2`
+Version: `2.3`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,9 +9,35 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V2.2 active executable revision — exact M8/M9/M10 ownership and Authority-decision consumption
+## V2.3 active executable revision — controlled-source isolation admission
 
-V2.2 is the only active executable revision. It extends the existing V2.1
+V2.3 extends the existing V2.2 execution map without creating a Program,
+Mission, owner, registry, Planner, Runtime, Authority system, queue, watcher
+or campaign path.
+
+A deliberate controlled-source condition is legal only when the current route
+and registry owners prove that the exact source contains zero enabled
+non-certification users. Certification-user count alone is not pool readiness.
+
+```text
+exact source
+-> current enabled assignments
+-> certification-only classification for every assigned identity
+-> zero non-certification users
+-> controlled-source isolation PASS
+```
+
+An approval hash-bound to a source that fails this invariant remains valid only
+for its exact source and cannot be consumed for provisioning, assignment,
+degradation or campaign execution. OMP must fail closed, preserve zero
+production effects, select only an already-existing empty eligible source
+candidate through the same registry/assignment owners, and form one fresh
+independently decidable exact request. Authority never transfers between
+source identities by implication.
+
+## V2.2 retained executable revision — exact M8/M9/M10 ownership and Authority-decision consumption
+
+V2.2 is the retained executable base under V2.3. It extends the existing V2.1
 Program and owners; it creates no Program, Mission, Authority owner, policy
 owner, Planner, Runtime, registry, evidence store, queue, watcher, scheduler or
 execution path.

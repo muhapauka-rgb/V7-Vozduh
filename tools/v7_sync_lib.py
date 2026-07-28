@@ -18223,6 +18223,31 @@ def reconcile_active_standing_delegated_policy_to_cps(
         runtime_active_incident_drain
         if runtime_incident_projection_valid else active_incident_drain
     )
+    controlled_pool_max = _status_int(
+        (
+            status.get("controlled_certification_pool")
+            if isinstance(status.get("controlled_certification_pool"), dict)
+            else {}
+        ).get("max_enabled_certification_users_on_one_active_source")
+    )
+    tier48_active = max_users == 48
+    m8_pool_boundary = tier48_active and controlled_pool_max < 5
+    m8_pool_ready = tier48_active and controlled_pool_max >= 5
+    if active_incident_drain:
+        primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        primary_stop = "NONE"
+    elif m8_pool_boundary:
+        primary_next_action = "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
+        primary_stop = "ENGINEERING_AUTHORITY"
+    elif m8_pool_ready:
+        primary_next_action = (
+            "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
+        )
+        primary_stop = "NONE"
+    else:
+        primary_next_action = "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
+        primary_stop = "REAL_WORLD_LIMIT"
+    omp_should_continue = active_incident_drain or m8_pool_ready
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
@@ -18231,62 +18256,155 @@ def reconcile_active_standing_delegated_policy_to_cps(
             str(status.get("action_class") or "")
             or _plain_live_value(live, "CURRENT_ACTION_CLASS")
         ),
-        "current_stop_condition": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
+        "current_stop_condition": primary_stop,
         "current_active_scope": (
             "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
-            if active_incident_drain else "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE"
+            if active_incident_drain else
+            "SERVICE_FAILURE_TIER48_CONTROLLED_CERTIFICATION"
+            if tier48_active else
+            "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE"
         ),
         "current_safe_next_action": (
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
+            "RECONCILE THE EXISTING CONTROLLED PRODUCTION CERTIFICATION POOL; REQUIRE FIVE OR MORE OWNER-AUTHORIZED ENABLED CERTIFICATION USERS ON ONE ACTIVE CONTROLLED SOURCE; DO NOT RECLASSIFY OR MOVE ORDINARY CUSTOMERS"
+            if m8_pool_boundary else
+            "PREPARE THE EXISTING T48-M8 CONTROLLED SERVICE FAILURE CERTIFICATION PLAN AND SAFE COHORT THROUGH EXISTING OWNERS; DO NOT FABRICATE A PRODUCTION OUTCOME"
+            if m8_pool_ready else
             "ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING "
             "MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; "
             "DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY"
         ),
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
-        "current_state_generation": f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_{'DRAIN' if active_incident_drain else 'WAIT'}",
-        "current_transition_id": "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2" if active_incident_drain else "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1",
-        "current_next_action_id": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "current_program_execution_frontier": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "NONE",
-        "current_execution_frontier": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "NONE",
-        "authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES" if active_incident_drain else "NO_INSIDE_APPROVED_POLICY",
-        "wip_authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES" if active_incident_drain else "NO_INSIDE_APPROVED_POLICY",
+        "current_state_generation": (
+            f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
+            f"{'DRAIN' if active_incident_drain else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+        ),
+        "current_transition_id": (
+            "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
+            if active_incident_drain else
+            "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_BOUNDARY_RECONCILED_V1"
+            if m8_pool_boundary else
+            "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_READY_RECONCILED_V1"
+            if m8_pool_ready else
+            "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1"
+        ),
+        "current_next_action_id": primary_next_action,
+        "current_program_execution_frontier": (
+            primary_next_action if active_incident_drain or m8_pool_ready else
+            "WAITING_INPUT:CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
+            if m8_pool_boundary else
+            "NONE"
+        ),
+        "current_execution_frontier": (
+            primary_next_action if active_incident_drain or m8_pool_ready else "NONE"
+        ),
+        "authority_required_now": (
+            "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+            if active_incident_drain else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
+            if m8_pool_boundary else
+            "NO_INSIDE_APPROVED_POLICY"
+        ),
+        "wip_authority_required_now": (
+            "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+            if active_incident_drain else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
+            if m8_pool_boundary else
+            "NO_INSIDE_APPROVED_POLICY"
+        ),
         "controlled_run_authority_required_now": (
             "NO_ADDITIONAL_AUTHORITY_INSIDE_ACTIVE_STANDING_POLICY; "
             "fresh event and existing policy gates remain required"
         ),
-        "wip_current_primary_stop": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
-        "wip_smallest_existing_next_action_id": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "wip_smallest_existing_next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "smallest_existing_next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
-        "last_responsible_link": "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor" if active_incident_drain else "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates",
+        "wip_current_primary_stop": (
+            "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
+            if m8_pool_boundary else
+            primary_stop
+        ),
+        "wip_smallest_existing_next_action_id": primary_next_action,
+        "wip_smallest_existing_next_action": primary_next_action,
+        "smallest_existing_next_action": primary_next_action,
+        "last_responsible_link": (
+            "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
+            if active_incident_drain else
+            "existing Controlled Production Certification Program user/registry/assignment owners -> T48-M8 pool readiness projection -> OMP"
+            if tier48_active else
+            "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates"
+        ),
         "omp_continuation_pointer": (
             "The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor."
             if active_incident_drain else
+            "The existing T48-M8 consumer re-enters automatically when one active controlled source contains five or more owner-authorized enabled certification users."
+            if tier48_active else
             "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
             "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
         ),
-        "sequence_execution_class": "existing Service Matrix fresh-event revalidation owner",
-        "sequence_expected_output": "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor",
+        "sequence_execution_class": (
+            "existing Controlled Production Certification Program pool readiness owner"
+            if tier48_active and not active_incident_drain else
+            "existing Service Matrix fresh-event revalidation owner"
+        ),
+        "sequence_expected_output": (
+            "owner-authorized controlled pool -> T48-M8 certification plan and safe cohort"
+            if tier48_active and not active_incident_drain else
+            "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
+        ),
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
-        "continuation_decision": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "PROGRAM_TERMINAL_REAL_WORLD_LIMIT",
-        "program_terminal_class": "NONE" if active_incident_drain else "REAL_WORLD_LIMIT",
-        "program_terminal_state": "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY" if active_incident_drain else "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
-        "omp_continuation_required": "TRUE" if active_incident_drain else "FALSE",
-        "external_input_required": "FALSE" if active_incident_drain else "TRUE",
-        "external_input_type": "NONE" if active_incident_drain else "FRESH_MATCHING_SERVICE_FAILURE_EVENT",
-        "next_mission_formed": "TRUE" if active_incident_drain else "FALSE",
-        "next_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else "NONE",
+        "continuation_decision": (
+            primary_next_action if omp_should_continue else
+            "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY" if m8_pool_boundary else
+            "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
+        ),
+        "program_terminal_class": (
+            "NONE" if omp_should_continue else
+            "ENGINEERING_AUTHORITY" if m8_pool_boundary else
+            "REAL_WORLD_LIMIT"
+        ),
+        "program_terminal_state": (
+            "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
+            if active_incident_drain else
+            "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
+            if m8_pool_boundary else
+            "NONE_T48_M8_CONTROLLED_POOL_READY"
+            if m8_pool_ready else
+            "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
+        ),
+        "omp_continuation_required": "TRUE" if omp_should_continue else "FALSE",
+        "external_input_required": "TRUE" if m8_pool_boundary or not omp_should_continue else "FALSE",
+        "external_input_type": (
+            "CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
+            if m8_pool_boundary else
+            "NONE" if omp_should_continue else
+            "FRESH_MATCHING_SERVICE_FAILURE_EVENT"
+        ),
+        "next_mission_formed": "TRUE" if omp_should_continue else "FALSE",
+        "next_mission_id": (
+            SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else
+            "T48-M8" if m8_pool_ready else
+            "NONE"
+        ),
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
-            if active_incident_drain else "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
+            if active_incident_drain else
+            "TIER48 AUTHORITY AND RUNTIME ACTIVE; EXISTING CONTROLLED CERTIFICATION POOL HAS FEWER THAN FIVE OWNER-AUTHORIZED USERS ON ONE ACTIVE CONTROLLED SOURCE; ORDINARY CUSTOMER RECLASSIFICATION AND UNAUTHORIZED SETUP MOVEMENT FORBIDDEN"
+            if m8_pool_boundary else
+            "TIER48 CONTROLLED CERTIFICATION POOL READY; EXISTING T48-M8 OWNER MUST PREPARE THE CONTROLLED PLAN AND SAFE COHORT"
+            if m8_pool_ready else
+            "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
             "OWNER-BACKED SERVICE-FAILURE EVENT IS CURRENTLY ADMITTED; HISTORICAL "
             "CANDIDATE/PACKET/LEASE/APPROVAL REUSE IS FORBIDDEN"
         ),
         "no_progress_fingerprint": hashlib.sha256(json.dumps({
             "contract_hash": contract_hash, "request_hash": request_hash,
-            "terminal": "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
+            "terminal": (
+                "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else
+                "T48_M8_CONTROLLED_POOL_BOUNDARY" if m8_pool_boundary else
+                "T48_M8_CONTROLLED_POOL_READY" if m8_pool_ready else
+                "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
+            ),
+            "controlled_pool_max": controlled_pool_max,
         }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
         "state_captured": utc_now(),
     })
@@ -18319,9 +18437,17 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "request_id": request_id,
         "request_hash": request_hash,
         "expires_at": expires_at,
-        "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain else "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+        "next_action": primary_next_action,
         "action_class_reuse_projection": reuse_projection,
-        "behavior_change": "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN" if active_incident_drain else "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS",
+        "behavior_change": (
+            "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN"
+            if active_incident_drain else
+            "TIER48_ACTIVE_CONTROLLED_POOL_BOUNDARY_ATOMICALLY_PROJECTED"
+            if m8_pool_boundary else
+            "TIER48_CONTROLLED_POOL_READY_SUCCESSOR_ATOMICALLY_PROJECTED"
+            if m8_pool_ready else
+            "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS"
+        ),
         "forbidden_effects": {
             "policy_write": False, "contract_issuance": False, "candidate_creation": False,
             "packet_or_lease_creation": False, "restore_barrier_write": False,

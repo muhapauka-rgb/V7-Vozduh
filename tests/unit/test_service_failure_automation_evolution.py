@@ -262,6 +262,20 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "id=controlled enabled=1 controlled_certification_source=1\n",
                 encoding="utf-8",
             )
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": {
+                    "controlled": {
+                        "services": {
+                            "google": {
+                                "ok": True,
+                                "status": "OK",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                },
+            }), encoding="utf-8")
             policy_file = root / "policy.json"
             policy_file.write_text(
                 json.dumps({"delegated_autonomy_policy": {"contract_id": "sdpc", "contract_hash": "h"}}),
@@ -321,6 +335,20 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "production_assignment_allowed=false\n",
                 encoding="utf-8",
             )
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": {
+                    "spare": {
+                        "services": {
+                            "google": {
+                                "ok": True,
+                                "status": "OK",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                },
+            }), encoding="utf-8")
             policy_file = root / "policy.json"
             policy_file.write_text(
                 json.dumps({
@@ -767,6 +795,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 )
             )
             self.assertEqual(
+                baseline_blocked["final_verdict"], "PASS",
+                baseline_blocked,
+            )
+            self.assertEqual(
                 baseline_blocked["next_action"],
                 "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED",
             )
@@ -788,6 +820,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 baseline_live["AUTHORITY_REQUIRED_NOW"].strip("`"),
                 "NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER",
+            )
+            self.assertEqual(
+                baseline_live["PROGRAM_TERMINAL_CLASS"].strip("`"),
+                "EXTERNAL_OWNER_REQUIRED",
+            )
+            self.assertEqual(
+                baseline_live["PROGRAM_TERMINAL_STATE"].strip("`"),
+                "EXTERNAL_OWNER_REQUIRED_EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

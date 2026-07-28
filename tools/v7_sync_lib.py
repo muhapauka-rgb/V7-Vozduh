@@ -1988,6 +1988,10 @@ def delegated_policy_live_state_consistency(
         live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE"
         and live_stop == "ENGINEERING_AUTHORITY"
     )
+    external_owner_terminal = (
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE"
+        and live_stop == "EXTERNAL_OWNER_REQUIRED"
+    )
     live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
@@ -2027,6 +2031,8 @@ def delegated_policy_live_state_consistency(
     expected_authority = (
         "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
         if engineering_authority_terminal else
+        "NO_NEW_AUTHORITY_REQUIRED"
+        if external_owner_terminal else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
@@ -2137,6 +2143,7 @@ def delegated_policy_live_state_consistency(
             independent_program_frontier
             or len({stop, wip_stop, cap_stop}) == 1
             or engineering_authority_terminal
+            or external_owner_terminal
         )
         and (not independent_program_frontier or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop)
     )
@@ -18572,7 +18579,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event and existing policy gates remain required"
         ),
         "wip_current_primary_stop": (
-            "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; APPROVED_SOURCE_HAS_NO_FRESH_HEALTHY_BASELINE"
+            "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_SOURCE_HAS_NO_FRESH_HEALTHY_BASELINE"
             if m8_approved_source_baseline_blocked else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_REQUEST_SOURCE_NOT_ISOLATED"
             if m8_approved_source_invalid else
@@ -18710,7 +18717,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_terminal_state": (
             "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
             if active_incident_drain else
-            primary_next_action
+            f"EXTERNAL_OWNER_REQUIRED_{primary_next_action}"
             if m8_approved_source_baseline_blocked else
             "NONE_T48_M8_SUBSTRATE_AUTHORITY_APPROVED_SUCCESSOR_READY"
             if m8_substrate_approved else

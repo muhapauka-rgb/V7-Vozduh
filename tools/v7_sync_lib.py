@@ -17577,7 +17577,11 @@ def _service_failure_action_class_reuse_projection(
         if row.get("portfolio_state") == "BLOCKED_WITH_EXACT_OWNER_AND_REENTRY"
     )
     cooldown = status.get("cooldown") if isinstance(status.get("cooldown"), dict) else {}
-    action_class = str(status.get("action_class") or "single-user governed candidate failover")
+    action_class = (
+        str(status.get("action_class") or "")
+        or _plain_live_value(live, "CURRENT_ACTION_CLASS")
+        or "single-user governed candidate failover"
+    )
     allowed_failures = ",".join(str(item) for item in (status.get("allowed_failure_families") or []) if str(item))
     pending_tier_request = (
         status.get("pending_tier_authority_request")
@@ -17751,7 +17755,9 @@ def _service_failure_action_class_reuse_projection(
         "CAUSAL_M10_CURRENT_INCIDENT_STATUS": (
             "`ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR`"
             if incident_projection_valid and int(current_incident.get("unresolved_scope_count") or 0) > 0
-            else "`SOURCE_SCOPE_EMPTY_OR_RECOVERY_RECONCILIATION_REQUIRED`"
+            else "`CURRENT_SOURCE_SCOPE_EMPTY`"
+            if incident_projection_valid else
+            "`RECOVERY_RECONCILIATION_REQUIRED`"
         ),
         "PROGRAM_PORTFOLIO_RECONCILIATION_STATUS": f"`{str(portfolio.get('program_portfolio_reconciliation_status') or 'STOP_SAFE')}`",
         "PROGRAM_PORTFOLIO_RECONCILIATION_OWNER": "`tools/v7_sync_lib.program_execution_reconciliation`",
@@ -17784,7 +17790,7 @@ def _service_failure_action_class_reuse_projection(
             "CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL": (
                 "`NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor`"
                 if unresolved > 0 else
-                "`SOURCE_SCOPE_EMPTY_OR_RECOVERY_RECONCILIATION_REQUIRED`"
+                "`CURRENT_SOURCE_SCOPE_EMPTY; no eligible source users; next ordinary Matrix observation owns reentry`"
             ),
             "CURRENT_VLESS_INCIDENT_ID": f"`{incident_id}`",
             "CURRENT_VLESS_INCIDENT_GENERATION": f"`{incident_generation}`",

@@ -1266,6 +1266,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
         receipt["service_failure_causal_binding"] = {
             key: binding.get(key)
             for key in (
+                "automation_obligation_id", "omp_consumption_id",
                 "source_incident_id", "source_event_id", "observation_generation",
                 "source_channel", "event_type", "event_provenance", "source_scope",
             )
@@ -2118,6 +2119,145 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
     }
 
 
+def service_failure_obligation_execution_binding(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+) -> dict[str, Any]:
+    """Bind cohort execution to one current consumed incident obligation.
+
+    Matrix owns selection of the current obligation.  This executor independently
+    re-reads the durable obligation, its OMP receipt, and a fresh capture-only
+    observation before allowing the existing planner to materialize anything.
+    """
+    expected_obligation_id = str(
+        getattr(args, "expected_service_failure_obligation_id", "") or ""
+    )
+    expected_incident_id = str(
+        getattr(args, "expected_service_failure_incident_id", "") or ""
+    )
+    expected_scope_fingerprint = str(
+        getattr(args, "expected_service_failure_scope_fingerprint", "") or ""
+    )
+    expected_source = str(getattr(args, "approved_source", "") or "")
+    blockers: list[str] = []
+    for value, reason in (
+        (expected_obligation_id, "service_failure_obligation_id_missing"),
+        (expected_incident_id, "service_failure_incident_id_missing"),
+        (expected_scope_fingerprint, "service_failure_scope_fingerprint_missing"),
+        (expected_source, "service_failure_source_missing"),
+    ):
+        if not value:
+            blockers.append(reason)
+
+    closure_rows = read_jsonl_family(state_dir / "closure-records.jsonl", limit=20000)
+    obligations = [
+        row for row in closure_rows
+        if str(row.get("object_type") or "") == "service_failure_automation_obligation"
+        and str(row.get("automation_obligation_id") or row.get("object_id") or "")
+        == expected_obligation_id
+    ]
+    obligation = obligations[-1] if obligations else {}
+    scope = (
+        obligation.get("current_source_scope")
+        if isinstance(obligation.get("current_source_scope"), dict)
+        else {}
+    )
+    if not obligation:
+        blockers.append("service_failure_obligation_not_durable")
+    else:
+        if str(obligation.get("closure_state") or "") != "READY_FOR_OMP_CONSUMPTION":
+            blockers.append("service_failure_obligation_not_ready")
+        if str(obligation.get("source_incident_id") or "") != expected_incident_id:
+            blockers.append("service_failure_obligation_incident_mismatch")
+        if str(obligation.get("channel") or "") != expected_source:
+            blockers.append("service_failure_obligation_source_mismatch")
+        if str(scope.get("affected_scope_fingerprint") or "") != expected_scope_fingerprint:
+            blockers.append("service_failure_obligation_scope_fingerprint_mismatch")
+        if int(scope.get("affected_scope_count") or 0) <= 0:
+            blockers.append("service_failure_obligation_affected_scope_empty")
+        if int(scope.get("unresolved_scope_count") or 0) <= 0:
+            blockers.append("service_failure_obligation_unresolved_scope_empty")
+        if str(obligation.get("stop_safe_classification") or "") != (
+            "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        ):
+            blockers.append("service_failure_obligation_not_actionable")
+
+    consumptions = [
+        row for row in closure_rows
+        if str(row.get("object_type") or "") == "service_failure_automation_omp_consumption"
+        and str(row.get("automation_obligation_id") or "") == expected_obligation_id
+        and str(row.get("source_incident_id") or "") == expected_incident_id
+    ]
+    consumption = consumptions[-1] if consumptions else {}
+    if not consumption:
+        blockers.append("service_failure_obligation_omp_consumption_missing")
+    else:
+        if str(consumption.get("closure_state") or "") != "OMP_CONSUMED":
+            blockers.append("service_failure_obligation_not_omp_consumed")
+        if bool(consumption.get("runtime_mutation_performed")):
+            blockers.append("service_failure_obligation_consumption_mutated_runtime")
+        if bool(consumption.get("routing_mutation_performed")):
+            blockers.append("service_failure_obligation_consumption_mutated_routing")
+        if int(consumption.get("users_moved") or 0) != 0:
+            blockers.append("service_failure_obligation_consumption_moved_users")
+
+    allowed_types = {"SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"}
+    matching_events: list[dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+    for raw in read_jsonl_family(event_dir / "service-failure-events.jsonl", limit=20000):
+        event = events.normalize_regression_event(raw)
+        if str(event.get("event_type") or "") not in allowed_types:
+            continue
+        if str(event.get("source_incident_id") or "") != expected_incident_id:
+            continue
+        if str(event.get("object") or "") != expected_source:
+            continue
+        if not bool(event.get("capture_only")):
+            continue
+        if str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+            continue
+        event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
+        if str(event_scope.get("affected_scope_fingerprint") or "") != expected_scope_fingerprint:
+            continue
+        if int(event_scope.get("affected_scope_count") or 0) <= 0:
+            continue
+        try:
+            observed = datetime.fromisoformat(
+                str(event.get("timestamp") or "").replace("Z", "+00:00")
+            )
+            if observed.tzinfo is None:
+                observed = observed.replace(tzinfo=timezone.utc)
+            age_seconds = (now - observed.astimezone(timezone.utc)).total_seconds()
+        except (TypeError, ValueError):
+            continue
+        if 0 <= age_seconds <= 1800:
+            matching_events.append(event)
+    event = matching_events[-1] if matching_events else {}
+    if not event:
+        blockers.append("fresh_matching_service_failure_event_missing")
+
+    source_event_id = str(event.get("event_id") or "")
+    return {
+        "schema_version": "v7.service-failure-causal-binding.v1",
+        "status": "BOUND" if not blockers else "STOP_SAFE",
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "automation_obligation_id": expected_obligation_id,
+        "omp_consumption_id": str(consumption.get("object_id") or ""),
+        "source_incident_id": expected_incident_id,
+        "source_event_id": source_event_id,
+        "source_event_ids": [source_event_id] if source_event_id else [],
+        "event_type": str(event.get("event_type") or ""),
+        "event_provenance": str(event.get("event_provenance") or ""),
+        "observation_generation": str(event.get("observation_generation") or ""),
+        "source_channel": expected_source,
+        "source_scope": dict(event.get("source_scope") or {}),
+        "obligation_scope": dict(scope),
+    }
+
+
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
@@ -2225,6 +2365,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 delegated_policy_authority=copy.deepcopy(
                     getattr(args, "_standing_delegated_policy_authority", {}) or {},
                 ),
+                service_failure_causal_binding=copy.deepcopy(
+                    getattr(args, "_service_failure_causal_binding", {}) or {},
+                ),
             )
         except Exception as exc:
             return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
@@ -2263,6 +2406,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 breaker_generation=str(preflight_control.get("generation") or ""),
                 delegated_policy_authority=copy.deepcopy(
                     getattr(args, "_standing_delegated_policy_authority", {}) or {},
+                ),
+                service_failure_causal_binding=copy.deepcopy(
+                    getattr(args, "_service_failure_causal_binding", {}) or {},
                 ),
             )
         except Exception as exc:
@@ -2554,6 +2700,17 @@ def _execute_governed_transaction_with_guards_inner(
                 "standing_delegated_cohort_policy_binding_invalid",
                 standing_delegated_policy_binding=policy_binding,
             )
+        causal_binding = service_failure_obligation_execution_binding(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+        )
+        if not causal_binding.get("ok"):
+            return transaction_stop(
+                "standing_delegated_cohort_service_failure_binding_invalid",
+                standing_delegated_policy_binding=policy_binding,
+                service_failure_causal_binding=causal_binding,
+            )
         cohort_args = argparse.Namespace(**vars(args))
         # This is an internal compatibility gate on the existing L3 cohort
         # executor.  Authority comes only from the audited standing contract
@@ -2562,6 +2719,7 @@ def _execute_governed_transaction_with_guards_inner(
         cohort_args._standing_delegated_policy_authority = copy.deepcopy(
             policy_binding.get("delegated_policy_authority") or {},
         )
+        cohort_args._service_failure_causal_binding = copy.deepcopy(causal_binding)
         result = execute_l3_production_validation(
             cohort_args,
             state_dir=state_dir,
@@ -3412,6 +3570,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--execute-bounded-delegated-transaction", action="store_true")
     parser.add_argument("--expected-standing-policy-contract-id", default="")
     parser.add_argument("--expected-standing-policy-contract-hash", default="")
+    parser.add_argument("--expected-service-failure-obligation-id", default="")
+    parser.add_argument("--expected-service-failure-incident-id", default="")
+    parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
     parser.add_argument(
         "--compact-transaction-receipt",
         action="store_true",

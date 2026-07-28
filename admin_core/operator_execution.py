@@ -2015,8 +2015,12 @@ def validate_nonzero_packet(packet, now):
                 or bool(source_scope.get("raw_user_list_stored"))
             ):
                 errors.append("service_failure_causal_binding_source_scope_invalid")
-            rollback_source = str((rollback_items[0] if rollback_items else {}).get("rollback_target") or "")
-            if not bound_source or bound_source != rollback_source:
+            rollback_sources = {
+                str(item.get("rollback_target") or "")
+                for item in rollback_items
+                if isinstance(item, dict) and str(item.get("rollback_target") or "")
+            }
+            if not bound_source or rollback_sources != {bound_source}:
                 errors.append("service_failure_causal_binding_source_mismatch")
     if errors:
         return {"ok": False, "verdict": "DENY_PACKET_INVALID", "errors": sorted(set(errors))}
@@ -3956,6 +3960,7 @@ def packet_from_plan(
     ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS,
     breaker_generation="",
     delegated_policy_authority=None,
+    service_failure_causal_binding=None,
 ):
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
@@ -4027,6 +4032,10 @@ def packet_from_plan(
         },
         "governance_owner": CANONICAL_CLEARANCE_OWNER,
     }
+    if service_failure_causal_binding:
+        packet["service_failure_causal_binding"] = copy.deepcopy(
+            service_failure_causal_binding
+        )
     packet_hash = sha256_bytes(canonical_json(packet).encode("utf-8"))
     packet["approved_plan_lock"] = approved_plan_lock_from_selected(selected, packet, packet_hash)
     validation = validate_packet(packet, now=now)

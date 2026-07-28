@@ -765,6 +765,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 json.dumps(valid_policy),
                 encoding="utf-8",
             )
+            obligation = {
+                "schema_version": "v7.service-failure-automation-obligation.v1",
+                "object_type": "service_failure_automation_obligation",
+                "object_id": "sfaob_test_tier4",
+                "automation_obligation_id": "sfaob_test_tier4",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "source_incident_id": "sfinc_test_tier4",
+                "channel": "vless",
+                "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+                "bounded_recommendation_users": 4,
+                "current_source_scope": {
+                    "affected_scope_count": 4,
+                    "protected_scope_count": 0,
+                    "unresolved_scope_count": 4,
+                    "explicitly_excluded_or_recovered_scope_count": 0,
+                    "affected_scope_fingerprint": "scope-test-tier4",
+                    "raw_user_list_stored": False,
+                },
+            }
             executor = root / "executor"
             executor.write_text(
                 "#!/usr/bin/env python3\n"
@@ -780,6 +799,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 state_dir=state_dir,
                 event_dir=event_dir,
                 policy_file=policy_file,
+                service_failure_obligation=obligation,
             )
             self.assertTrue(stop["ok"])
             self.assertEqual(stop["status"], "STOP_SAFE")
@@ -798,6 +818,22 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 command[command.index("--expected-standing-policy-contract-hash") + 1],
                 "a" * 64,
             )
+            self.assertEqual(
+                command[command.index("--expected-service-failure-obligation-id") + 1],
+                "sfaob_test_tier4",
+            )
+            self.assertEqual(
+                command[command.index("--expected-service-failure-incident-id") + 1],
+                "sfinc_test_tier4",
+            )
+            self.assertEqual(
+                command[command.index("--expected-service-failure-scope-fingerprint") + 1],
+                "scope-test-tier4",
+            )
+            self.assertEqual(
+                command[command.index("--approved-source") + 1],
+                "vless",
+            )
 
             executor.write_text(
                 "#!/usr/bin/env python3\n"
@@ -815,6 +851,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 state_dir=state_dir,
                 event_dir=event_dir,
                 policy_file=policy_file,
+                service_failure_obligation=obligation,
             )
             self.assertTrue(governed_stop["ok"])
             self.assertEqual(governed_stop["status"], "STOP_SAFE")
@@ -846,6 +883,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertTrue(expired["ok"])
             self.assertEqual(expired["status"], "STOP_SAFE_INVALID_STANDING_POLICY_SCOPE")
             self.assertFalse(expired["action_attempted"])
+
+            zero_scope = json.loads(json.dumps(obligation))
+            zero_scope["current_source_scope"]["affected_scope_count"] = 0
+            zero_scope["current_source_scope"]["unresolved_scope_count"] = 0
+            policy_file.write_text(json.dumps(valid_policy), encoding="utf-8")
+            no_action = self.refresh.run_bounded_delegated_service_failure_action(
+                str(root / "missing-executor"),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+                service_failure_obligation=zero_scope,
+            )
+            self.assertEqual(no_action["status"], "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY")
+            self.assertFalse(no_action["action_attempted"])
+            self.assertEqual(no_action["users_moved"], 0)
+
+            missing = self.refresh.run_bounded_delegated_service_failure_action(
+                str(root / "missing-executor"),
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+            )
+            self.assertEqual(missing["status"], "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION")
+            self.assertFalse(missing["action_attempted"])
 
     def test_matrix_lifecycle_treats_no_pending_omp_obligation_as_legal_noop(self):
         completed = mock.Mock(

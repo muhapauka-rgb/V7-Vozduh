@@ -3,6 +3,7 @@ import importlib.machinery
 import importlib.util
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from admin_core import operation_scoped_binding as binding
@@ -178,6 +179,43 @@ class OperationScopedBindingTest(unittest.TestCase):
             direct = binding.read_binding(state_dir=state, snapshot_root=snapshots, selected=selected)
         self.assertEqual(result["source_hashes"], direct["source_hashes"])
         self.assertEqual(result["schema_version"], binding.SCHEMA_VERSION)
+
+    def test_low_level_gate_uses_atomic_cohort_builder_for_multiple_moves(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-users-autoswitch"
+        loader = importlib.machinery.SourceFileLoader("v7_users_autoswitch_cohort_binding_test", str(tool_path))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        tool = importlib.util.module_from_spec(spec)
+        loader.exec_module(tool)
+        planner = tool.AutoswitchPlanner.__new__(tool.AutoswitchPlanner)
+        planner.state_dir = Path("/state")
+        planner.intelligence_snapshot_root = Path("/snapshots")
+        selected = [
+            {"user_ip": "10.7.0.2", "current_egress": "vless", "recommended_egress": "awg3"},
+            {"user_ip": "10.7.0.3", "current_egress": "vless", "recommended_egress": "awg3"},
+        ]
+        expected = {
+            "schema_version": binding.SCHEMA_VERSION,
+            "status": "BOUND",
+            "source_bundle_hash": "cohort-bundle",
+        }
+        with mock.patch.object(
+            tool.operation_scoped_binding,
+            "read_cohort_binding",
+            return_value=expected,
+        ) as cohort, mock.patch.object(
+            tool.operation_scoped_binding,
+            "read_binding",
+        ) as single:
+            result = planner._operation_scoped_source_binding(
+                {"selected_moves": selected}
+            )
+        self.assertEqual(result, expected)
+        cohort.assert_called_once_with(
+            state_dir=Path("/state"),
+            snapshot_root=Path("/snapshots"),
+            selected_moves=selected,
+        )
+        single.assert_not_called()
 
 
 if __name__ == "__main__":

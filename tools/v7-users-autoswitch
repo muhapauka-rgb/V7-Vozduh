@@ -8630,14 +8630,26 @@ class AutoswitchPlanner:
         }
 
     def _operation_scoped_source_binding(self, plan: dict[str, Any]) -> dict[str, Any]:
-        selected = next(
-            (row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)),
-            {},
-        )
-        return operation_scoped_binding.read_binding(
+        selected = [
+            row for row in (plan.get("selected_moves") or [])
+            if isinstance(row, dict)
+        ]
+        if not selected:
+            return {
+                "schema_version": operation_scoped_binding.SCHEMA_VERSION,
+                "status": "STOP_SAFE",
+                "reason": "operation_scoped_binding_selected_moves_missing",
+            }
+        if len(selected) == 1:
+            return operation_scoped_binding.read_binding(
+                state_dir=self.state_dir,
+                snapshot_root=self.intelligence_snapshot_root,
+                selected=selected[0],
+            )
+        return operation_scoped_binding.read_cohort_binding(
             state_dir=self.state_dir,
             snapshot_root=self.intelligence_snapshot_root,
-            selected=selected,
+            selected_moves=selected,
         )
 
     def _snapshot_source_bundle(self) -> dict[str, Any]:
@@ -9461,17 +9473,24 @@ class AutoswitchPlanner:
             and set(approved_source_hashes) == set(operation_scoped_binding.SOURCE_KEYS)
         )
         if operation_scoped:
-            if len(selected) != 1:
+            if not selected:
                 return {
                     "clearance_generation_ok": False,
-                    "clearance_generation_reason": "restore_barrier_operation_scoped_binding_requires_one_move",
-                    "current_selected_moves_count": len(selected),
+                    "clearance_generation_reason": "restore_barrier_operation_scoped_binding_selected_moves_missing",
+                    "current_selected_moves_count": 0,
                 }
-            binding = operation_scoped_binding.read_binding(
-                state_dir=self.state_dir,
-                snapshot_root=self.intelligence_snapshot_root,
-                selected=selected[0],
-            )
+            if len(selected) == 1:
+                binding = operation_scoped_binding.read_binding(
+                    state_dir=self.state_dir,
+                    snapshot_root=self.intelligence_snapshot_root,
+                    selected=selected[0],
+                )
+            else:
+                binding = operation_scoped_binding.read_cohort_binding(
+                    state_dir=self.state_dir,
+                    snapshot_root=self.intelligence_snapshot_root,
+                    selected_moves=selected,
+                )
             binding_reasons = []
             if binding.get("status") != "BOUND":
                 binding_reasons.append("operation_scoped_binding_not_bound")

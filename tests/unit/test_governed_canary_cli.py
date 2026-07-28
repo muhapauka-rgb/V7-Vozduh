@@ -1470,6 +1470,61 @@ class GovernedCanaryCliTest(unittest.TestCase):
             args.max_users = 4
             args.expected_standing_policy_contract_id = contract["contract_id"]
             args.expected_standing_policy_contract_hash = contract_hash
+            args.expected_service_failure_obligation_id = "sfaob_tier4"
+            args.expected_service_failure_incident_id = "sfinc_tier4"
+            args.expected_service_failure_scope_fingerprint = "scope-tier4"
+            args.approved_source = "vless"
+            closure_rows = [
+                {
+                    "object_type": "service_failure_automation_obligation",
+                    "object_id": "sfaob_tier4",
+                    "automation_obligation_id": "sfaob_tier4",
+                    "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                    "source_incident_id": "sfinc_tier4",
+                    "channel": "vless",
+                    "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+                    "current_source_scope": {
+                        "affected_scope_count": 4,
+                        "unresolved_scope_count": 4,
+                        "affected_scope_fingerprint": "scope-tier4",
+                        "source_channel": "vless",
+                        "raw_user_list_stored": False,
+                    },
+                },
+                {
+                    "object_type": "service_failure_automation_omp_consumption",
+                    "object_id": "sfomp_tier4",
+                    "automation_obligation_id": "sfaob_tier4",
+                    "source_incident_id": "sfinc_tier4",
+                    "closure_state": "OMP_CONSUMED",
+                    "runtime_mutation_performed": False,
+                    "routing_mutation_performed": False,
+                    "users_moved": 0,
+                },
+            ]
+            (root / "state" / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in closure_rows) + "\n",
+                encoding="utf-8",
+            )
+            (root / "events" / "service-failure-events.jsonl").write_text(
+                json.dumps({
+                    "event_id": "sfrev_tier4",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "channel": "vless",
+                    "observed_at": datetime.now(timezone.utc).isoformat(),
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "source_incident_id": "sfinc_tier4",
+                    "observation_generation": "sfrev_tier4",
+                    "source_scope": {
+                        "affected_scope_count": 4,
+                        "affected_scope_fingerprint": "scope-tier4",
+                        "source_channel": "vless",
+                        "raw_user_list_stored": False,
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
             exact_binding = module.standing_delegated_cohort_execution_binding(args)
             packet = module.operator_execution.packet_from_plan(
                 self.ready_l3_plan(),
@@ -1516,9 +1571,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED",
         )
         delegated_authority = calls[0]._standing_delegated_policy_authority
+        causal_binding = calls[0]._service_failure_causal_binding
         self.assertEqual(delegated_authority["standing_policy_contract"]["contract_id"], contract["contract_id"])
         self.assertEqual(delegated_authority["max_users_per_transaction"], 4)
         self.assertTrue(delegated_authority["authority_audit_verified"])
+        self.assertEqual(causal_binding["automation_obligation_id"], "sfaob_tier4")
+        self.assertEqual(causal_binding["source_event_id"], "sfrev_tier4")
         self.assertTrue(result["standing_delegated_policy_binding"]["authority_audit_verified"])
         self.assertEqual(result["standing_delegated_policy_binding"]["max_users_per_action"], 4)
         self.assertTrue(result["runtime_automation_enabled"])

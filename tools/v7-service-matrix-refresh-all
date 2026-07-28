@@ -123,6 +123,7 @@ def run_bounded_delegated_service_failure_action(
     state_dir: Path,
     event_dir: Path,
     policy_file: Path,
+    service_failure_obligation: Optional[dict[str, Any]] = None,
     timeout_sec: int = 180,
 ) -> dict[str, Any]:
     """Close the existing event -> planner -> bounded executor consumer link.
@@ -198,6 +199,77 @@ def run_bounded_delegated_service_failure_action(
             "blockers": ["standing_policy_transaction_limit_not_exactly_owner_backed"],
             "contract_id": str(contract.get("contract_id") or ""),
         }
+    obligation = (
+        service_failure_obligation
+        if isinstance(service_failure_obligation, dict)
+        else {}
+    )
+    source_scope = (
+        obligation.get("current_source_scope")
+        if isinstance(obligation.get("current_source_scope"), dict)
+        else {}
+    )
+    source = str(obligation.get("channel") or "")
+    incident_id = str(obligation.get("source_incident_id") or "")
+    obligation_id = str(obligation.get("automation_obligation_id") or "")
+    scope_fingerprint = str(source_scope.get("affected_scope_fingerprint") or "")
+    affected_scope = int(source_scope.get("affected_scope_count") or 0)
+    unresolved_scope = int(source_scope.get("unresolved_scope_count") or 0)
+    recommendation_users = int(obligation.get("bounded_recommendation_users") or 0)
+    classification = str(obligation.get("stop_safe_classification") or "")
+    obligation_identity_valid = (
+        str(obligation.get("object_type") or "") == "service_failure_automation_obligation"
+        and str(obligation.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
+        and bool(source and incident_id and obligation_id and scope_fingerprint)
+    )
+    if not obligation_identity_valid:
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "blockers": ["exact_current_service_failure_obligation_missing_or_invalid"],
+            "contract_id": str(contract.get("contract_id") or ""),
+        }
+    if affected_scope <= 0 or unresolved_scope <= 0:
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "source": source,
+            "source_incident_id": incident_id,
+            "automation_obligation_id": obligation_id,
+            "affected_scope": affected_scope,
+            "unresolved_scope": unresolved_scope,
+            "contract_id": str(contract.get("contract_id") or ""),
+            "contract_hash": str(contract.get("contract_hash") or ""),
+            "admitted_max_users": policy_max_users,
+            "max_concurrent_transactions": policy_concurrency,
+        }
+    if (
+        classification != "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        or recommendation_users <= 0
+    ):
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "source": source,
+            "source_incident_id": incident_id,
+            "automation_obligation_id": obligation_id,
+            "classification": classification,
+            "bounded_recommendation_users": recommendation_users,
+            "blockers": ["current_incident_has_no_owner_backed_actionable_recommendation"],
+            "contract_id": str(contract.get("contract_id") or ""),
+        }
     command = [
         executor,
         "--execute-bounded-delegated-transaction",
@@ -207,6 +279,10 @@ def run_bounded_delegated_service_failure_action(
         "--max-users", str(policy_max_users),
         "--expected-standing-policy-contract-id", str(contract.get("contract_id") or ""),
         "--expected-standing-policy-contract-hash", str(contract.get("contract_hash") or ""),
+        "--expected-service-failure-obligation-id", obligation_id,
+        "--expected-service-failure-incident-id", incident_id,
+        "--expected-service-failure-scope-fingerprint", scope_fingerprint,
+        "--approved-source", source,
         "--compact-transaction-receipt",
         "--pretty",
     ]
@@ -269,6 +345,9 @@ def run_bounded_delegated_service_failure_action(
         "contract_hash": str(contract.get("contract_hash") or ""),
         "admitted_max_users": policy_max_users,
         "max_concurrent_transactions": policy_concurrency,
+        "source": source,
+        "source_incident_id": incident_id,
+        "automation_obligation_id": obligation_id,
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
     }
 
@@ -517,17 +596,33 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     for key in ("feedback_id", "outcome_id", "learning_record_id"):
         if feedback.get(key) not in (None, "", [], {}):
             compact_result.setdefault(key, feedback.get(key))
-    return {
+    causal = result.get("service_failure_causal_binding")
+    causal = causal if isinstance(causal, dict) else {}
+    compact_causal = {
+        key: causal.get(key)
+        for key in (
+            "automation_obligation_id", "omp_consumption_id",
+            "source_incident_id", "source_event_id", "observation_generation",
+            "source_channel", "event_type", "event_provenance",
+        )
+        if causal.get(key) not in (None, "", [], {})
+    }
+    projected = {
         key: value.get(key)
         for key in (
             "schema_version", "status", "ok", "started_at", "completed_at",
             "returncode", "action_attempted", "action_completed",
             "runtime_mutation_performed", "users_moved", "reason", "error",
             "contract_id", "contract_hash", "admitted_max_users",
-            "max_concurrent_transactions", "blockers",
+            "max_concurrent_transactions", "blockers", "source",
+            "source_incident_id", "automation_obligation_id",
+            "affected_scope", "unresolved_scope",
         )
         if value.get(key) not in (None, "", [], {})
     } | ({"consumer_result": compact_result} if compact_result else {})
+    if compact_causal:
+        projected["service_failure_causal_binding"] = compact_causal
+    return projected
 
 
 def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
@@ -985,6 +1080,11 @@ def main() -> int:
             state_dir=state_dir,
             event_dir=Path(args.event_dir),
             policy_file=Path(args.policy_file),
+            service_failure_obligation=(
+                advisory_payload.get("obligation")
+                if isinstance(advisory_payload.get("obligation"), dict)
+                else {}
+            ),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         if payload["bounded_delegated_service_failure_action"].get("action_completed"):

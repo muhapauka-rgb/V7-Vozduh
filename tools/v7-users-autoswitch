@@ -697,6 +697,23 @@ def parse_registry(path: Path) -> list[dict[str, str]]:
 CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS = 3600
 
 
+def read_flat_state(path: Path) -> dict[str, str]:
+    """Read an existing compact key=value state owner without copying raw logs."""
+    result: dict[str, str] = {}
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except FileNotFoundError:
+        return result
+    for line in lines:
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key:
+            result[key] = value.strip()
+    return result
+
+
 def controlled_certification_source_health_status(
     state_dir: Path,
     source_id: str,
@@ -708,7 +725,8 @@ def controlled_certification_source_health_status(
     can deliberately fail and later restore that source.  Keep service details
     with ``service-matrix.json`` and expose only counts plus a fingerprint here.
     """
-    matrix_path = Path(state_dir) / "service-matrix.json"
+    state_dir = Path(state_dir)
+    matrix_path = state_dir / "service-matrix.json"
     matrix = read_json(matrix_path, {})
     items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
     row = items.get(str(source_id or ""))
@@ -750,11 +768,72 @@ def controlled_certification_source_health_status(
         status = "STOP_SAFE_BASELINE_UNHEALTHY"
     else:
         status = "PASS_HEALTHY_BASELINE"
+
+    diagnose = read_flat_state(state_dir / "egress-diagnose.state")
+    diagnostic_reason = str(
+        diagnose.get(f"{source_id}_diagnose_reason") or "NOT_OBSERVED"
+    )
+    diagnostic_severity = str(
+        diagnose.get(f"{source_id}_diagnose_severity") or "UNKNOWN"
+    )
+    diagnostic_detail = str(
+        diagnose.get(f"{source_id}_diagnose_detail") or ""
+    )
+    source_row = next((
+        value for value in parse_registry(state_dir / "egress.registry")
+        if str(value.get("id") or "") == str(source_id or "")
+    ), {})
+    config_path = Path(
+        str(source_row.get("config") or source_row.get("config_path") or "")
+    )
+    config_fingerprint = (
+        sha256_file(config_path)
+        if str(config_path) and config_path.is_file()
+        else ""
+    )
+    root_cause_class = "NONE"
+    exact_external_resource = "NONE"
+    exact_external_owner = "NONE"
+    exact_required_input = "NONE"
+    why_existing_owners_cannot_supply_it = "NONE"
+    failed_producer_consumer_link = "NONE"
+    if (
+        status == "STOP_SAFE_BASELINE_UNHEALTHY"
+        and diagnostic_severity == "FAIL"
+        and diagnostic_reason == "curl_failed_and_handshake_stale"
+        and "handshake_age_seconds=999999" in diagnostic_detail
+    ):
+        # Interface/process/route presence plus a never-established handshake
+        # cannot distinguish a dead remote peer from revoked or mismatched
+        # remote key material.  Both require the same independent external
+        # input, so keep the classification honest and fail closed.
+        root_cause_class = "EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED"
+        exact_external_resource = (
+            f"AMNEZIAWG_REMOTE_PEER_OR_MATCHING_PROFILE_FOR_SOURCE_{source_id}"
+        )
+        exact_external_owner = (
+            "EXTERNAL_AMNEZIAWG_PEER_OR_CREDENTIAL_PROVIDER"
+        )
+        exact_required_input = (
+            "OWNER_VERIFIED_REACHABLE_REMOTE_PEER_WITH_MATCHING_KEY_MATERIAL_"
+            "OR_REPLACEMENT_WORKING_PROFILE_FOR_THE_EXACT_APPROVED_SOURCE"
+        )
+        why_existing_owners_cannot_supply_it = (
+            "LOCAL_V7_OWNERS_CAN_RELOAD_AND_VERIFY_THE_EXISTING_PROFILE_BUT_"
+            "CANNOT_REPAIR_THE_REMOTE_PEER_OR_ISSUE_MATCHING_EXTERNAL_KEYS"
+        )
+        failed_producer_consumer_link = (
+            "EXTERNAL_AMNEZIAWG_PEER_RESPONSE_OR_MATCHING_PROFILE"
+            "->LOCAL_HANDSHAKE->MATRIX_BASELINE"
+        )
     return {
-        "schema_version": "v7.controlled-certification-source-health.v1",
+        "schema_version": "v7.controlled-certification-source-health.v2",
         "status": status,
         "ok": status == "PASS_HEALTHY_BASELINE",
         "source_id": str(source_id or ""),
+        "source_protocol": str(source_row.get("protocol") or ""),
+        "source_interface": str(source_row.get("interface") or ""),
+        "source_config_fingerprint": config_fingerprint,
         "matrix_updated": matrix_updated,
         "age_seconds": round(age_seconds, 3) if age_seconds >= 0 else -1,
         "max_age_seconds": CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS,
@@ -763,8 +842,28 @@ def controlled_certification_source_health_status(
         "hard_failure_count": hard_failures,
         "observation_fingerprint": sha256_json(observations),
         "raw_service_details_stored": False,
-        "owner": "existing service-matrix.json via tools/v7-service-matrix-test",
+        "diagnostic_updated": str(diagnose.get("updated") or ""),
+        "diagnostic_reason": diagnostic_reason,
+        "diagnostic_severity": diagnostic_severity,
+        "diagnostic_detail": diagnostic_detail,
+        "root_cause_class": root_cause_class,
+        "exact_external_resource": exact_external_resource,
+        "exact_external_owner": exact_external_owner,
+        "exact_required_input": exact_required_input,
+        "why_existing_owners_cannot_supply_it": (
+            why_existing_owners_cannot_supply_it
+        ),
+        "failed_producer_consumer_link": failed_producer_consumer_link,
+        "owner": (
+            "existing service-matrix.json via tools/v7-service-matrix-test + "
+            "existing egress-diagnose.state via tools/v7-egress-diagnose"
+        ),
         "reentry_condition": (
+            "owner-verified remote peer or matching profile is restored; "
+            "then a fresh Matrix observation proves at least one reachable "
+            "service and zero hard service failures on the exact source"
+            if root_cause_class == "EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED"
+            else
             "fresh Matrix observation proves at least one reachable service "
             "and zero hard service failures on the exact source"
         ),

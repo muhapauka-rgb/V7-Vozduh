@@ -18357,6 +18357,45 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "STOP_SAFE_SOURCE_BASELINE_"
         )
     )
+    controlled_substrate_source_health = (
+        controlled_substrate_authority.get("source_baseline_health")
+        if isinstance(
+            controlled_substrate_authority.get("source_baseline_health"),
+            dict,
+        )
+        else {}
+    )
+    controlled_substrate_root_cause = str(
+        controlled_substrate_source_health.get("root_cause_class") or "UNKNOWN"
+    )
+    controlled_substrate_external_resource = str(
+        controlled_substrate_source_health.get("exact_external_resource")
+        or "UNKNOWN"
+    )
+    controlled_substrate_external_owner = str(
+        controlled_substrate_source_health.get("exact_external_owner")
+        or "UNKNOWN"
+    )
+    controlled_substrate_required_input = str(
+        controlled_substrate_source_health.get("exact_required_input")
+        or "EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE"
+    )
+    controlled_substrate_owner_limit = str(
+        controlled_substrate_source_health.get(
+            "why_existing_owners_cannot_supply_it"
+        )
+        or "UNKNOWN"
+    )
+    controlled_substrate_failed_link = str(
+        controlled_substrate_source_health.get(
+            "failed_producer_consumer_link"
+        )
+        or "UNKNOWN"
+    )
+    controlled_substrate_reentry = str(
+        controlled_substrate_source_health.get("reentry_condition")
+        or "fresh healthy Matrix baseline on the exact approved source"
+    )
     controlled_substrate_source_id = str(
         controlled_substrate_authority.get("source_id") or ""
     )
@@ -18484,7 +18523,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
-            "RETAIN THE APPROVED HASH-BOUND CERTIFICATION SCOPE WITHOUT EXECUTION; THE EXISTING MATRIX OWNER MUST PROVE A FRESH HEALTHY BASELINE ON THE EXACT SOURCE BEFORE ANY CONTROLLED CONDITION OR CAMPAIGN STAGE"
+            "RETAIN THE APPROVED HASH-BOUND CERTIFICATION SCOPE WITHOUT EXECUTION; "
+            f"OBTAIN {controlled_substrate_required_input}; THEN THE EXISTING MATRIX "
+            "OWNER MUST PROVE A FRESH HEALTHY BASELINE ON THE EXACT SOURCE BEFORE "
+            "ANY CONTROLLED CONDITION OR CAMPAIGN STAGE"
             if m8_approved_source_baseline_blocked else
             "FORM ONE FRESH EXACT EXISTING-AUTHORITY REQUEST BOUND TO AN EXISTING ISOLATED SOURCE CANDIDATE; DO NOT PROVISION, CLASSIFY, ASSIGN, DEGRADE OR EXECUTE BEFORE THAT DISTINCT SOURCE BINDING IS APPROVED"
             if m8_approved_source_invalid else
@@ -18597,7 +18639,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "last_responsible_link": (
             "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
             if active_incident_drain else
-            "exact approved controlled source -> existing service-matrix baseline health owner -> existing egress/external substrate owner -> fresh healthy baseline -> controlled condition owner"
+            controlled_substrate_failed_link
+            + " -> existing service-matrix baseline health owner -> controlled condition owner"
             if m8_approved_source_baseline_blocked else
             "approved controlled-substrate request source isolation recheck -> fresh exact request bound to an existing isolated source candidate -> independent Authority owner"
             if m8_approved_source_invalid else
@@ -18652,7 +18695,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
         ),
         "program_frontier_input": (
-            f"Exact approved certification source {controlled_substrate_source_id or 'UNKNOWN'} is isolated but its Matrix baseline is {controlled_substrate_source_precondition}; deliberate condition and campaign execution are forbidden until recovery"
+            f"Exact approved certification source {controlled_substrate_source_id or 'UNKNOWN'} "
+            f"is isolated but its Matrix baseline is {controlled_substrate_source_precondition}; "
+            f"root_cause={controlled_substrate_root_cause}; "
+            f"external_resource={controlled_substrate_external_resource}; deliberate "
+            "condition and campaign execution are forbidden until recovery"
             if m8_approved_source_baseline_blocked else
             "Prior controlled-substrate approval is hash-bound to a source that currently contains non-certification users; deliberate controlled failure is forbidden"
             if m8_approved_source_invalid else
@@ -18736,7 +18783,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else "FALSE"
         ),
         "external_input_type": (
-            "EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE"
+            controlled_substrate_required_input
             if m8_approved_source_baseline_blocked else
             "EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECISION"
             if m8_exact_authority_boundary else
@@ -18757,7 +18804,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
             if active_incident_drain else
-            f"APPROVED CERTIFICATION SOURCE {controlled_substrate_source_id or 'UNKNOWN'} HAS NO FRESH HEALTHY BASELINE ({controlled_substrate_source_precondition}); RESTART DID NOT RESTORE ITS EXTERNAL PEER; CAMPAIGN WILL REENTER ONLY FROM A FRESH HEALTHY MATRIX OBSERVATION"
+            f"APPROVED CERTIFICATION SOURCE {controlled_substrate_source_id or 'UNKNOWN'} "
+            f"HAS NO FRESH HEALTHY BASELINE ({controlled_substrate_source_precondition}); "
+            f"ROOT CAUSE={controlled_substrate_root_cause}; "
+            f"EXTERNAL RESOURCE={controlled_substrate_external_resource}; "
+            f"EXTERNAL OWNER={controlled_substrate_external_owner}; "
+            f"REQUIRED INPUT={controlled_substrate_required_input}; "
+            f"REENTRY={controlled_substrate_reentry}"
             if m8_approved_source_baseline_blocked else
             "APPROVED REQUEST CANNOT BE CONSUMED: ITS EXACT SOURCE CONTAINS ENABLED NON-CERTIFICATION USERS; FORM ONE FRESH HASH-BOUND REQUEST FOR AN EXISTING ISOLATED SOURCE CANDIDATE"
             if m8_approved_source_invalid else
@@ -18786,6 +18839,16 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
             ),
             "controlled_pool_max": controlled_pool_max,
+            "controlled_source_observation_fingerprint": str(
+                controlled_substrate_source_health.get(
+                    "observation_fingerprint"
+                )
+                or ""
+            ),
+            "controlled_source_diagnostic_reason": str(
+                controlled_substrate_source_health.get("diagnostic_reason")
+                or ""
+            ),
         }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
         "state_captured": utc_now(),
     })
@@ -18809,6 +18872,33 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CURRENT_AUTHORITY_REQUEST_EXPIRY": f"`{expires_at}`",
             "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": f"`{request_hash}`",
             "CURRENT_AUTHORITY_REQUEST_SCOPE": f"`STANDING_POLICY_ACTIVE; existing planner only; fresh Candidate/Packet/lease; max_users={max_users}; max_concurrent_transactions=1; no reuse; all live gates remain required`",
+            "CONTROLLED_SOURCE_ROOT_CAUSE_CLASS": (
+                f"`{controlled_substrate_root_cause}`"
+            ),
+            "EXACT_EXTERNAL_RESOURCE": (
+                f"`{controlled_substrate_external_resource}`"
+            ),
+            "EXACT_EXTERNAL_OWNER": (
+                f"`{controlled_substrate_external_owner}`"
+            ),
+            "EXACT_REQUIRED_INPUT": (
+                f"`{controlled_substrate_required_input}`"
+            ),
+            "WHY_EXISTING_OWNERS_CANNOT_SUPPLY_IT": (
+                f"`{controlled_substrate_owner_limit}`"
+            ),
+            "CURRENT_POOL_AND_CAMPAIGN_STATE": (
+                f"`48 dedicated certification identities on exact source "
+                f"{controlled_substrate_source_id or 'UNKNOWN'}; stages "
+                "5,10,25,48 unexecuted`"
+            ),
+            "NEXT_CONSUMER": (
+                "`existing service-matrix baseline consumer -> existing "
+                "T48-M8 controlled campaign owner`"
+            ),
+            "AUTOMATIC_REENTRY_CONDITION": (
+                f"`{controlled_substrate_reentry}`"
+            ),
             **tier_projection,
         },
     )

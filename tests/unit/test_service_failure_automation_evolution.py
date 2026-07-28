@@ -194,8 +194,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state_dir = Path(tmp)
             state_dir.joinpath("users.registry").write_text("", encoding="utf-8")
             state_dir.joinpath("egress.registry").write_text(
-                "id=healthy type=interface interface=wg1 enabled=1\n"
-                "id=dead type=interface interface=wg2 enabled=1\n",
+                "id=healthy protocol=wireguard type=interface interface=wg1 enabled=1\n"
+                "id=dead protocol=amneziawg type=interface interface=wg2 enabled=1\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress-diagnose.state").write_text(
+                "updated=2099-01-01T00:00:00Z\n"
+                "healthy_diagnose_reason=OK\n"
+                "healthy_diagnose_severity=OK\n"
+                "healthy_diagnose_detail=handshake_age_seconds=10\n"
+                "dead_diagnose_reason=curl_failed_and_handshake_stale\n"
+                "dead_diagnose_severity=FAIL\n"
+                "dead_diagnose_detail=handshake_age_seconds=999999\n",
                 encoding="utf-8",
             )
             state_dir.joinpath("service-matrix.json").write_text(json.dumps({
@@ -247,6 +257,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertFalse(
             candidates["dead"]["baseline_health"]["raw_service_details_stored"]
+        )
+        self.assertEqual(
+            candidates["dead"]["baseline_health"]["root_cause_class"],
+            "EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED",
+        )
+        self.assertEqual(
+            candidates["dead"]["baseline_health"]["exact_external_owner"],
+            "EXTERNAL_AMNEZIAWG_PEER_OR_CREDENTIAL_PROVIDER",
+        )
+        self.assertEqual(
+            candidates["dead"]["baseline_health"]["failed_producer_consumer_link"],
+            "EXTERNAL_AMNEZIAWG_PEER_RESPONSE_OR_MATCHING_PROFILE"
+            "->LOCAL_HANDSHAKE->MATRIX_BASELINE",
+        )
+        self.assertEqual(
+            candidates["healthy"]["baseline_health"]["root_cause_class"],
+            "NONE",
         )
 
     def test_substrate_authority_entrypoint_reuses_existing_owner_and_has_zero_effects(self):
@@ -828,6 +855,15 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 baseline_live["PROGRAM_TERMINAL_STATE"].strip("`"),
                 "EXTERNAL_OWNER_REQUIRED_EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED",
+            )
+            self.assertEqual(
+                baseline_live["CONTROLLED_SOURCE_ROOT_CAUSE_CLASS"].strip("`"),
+                "UNKNOWN",
+            )
+            self.assertEqual(
+                baseline_live["CURRENT_POOL_AND_CAMPAIGN_STATE"].strip("`"),
+                "48 dedicated certification identities on exact source 1; "
+                "stages 5,10,25,48 unexecuted",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

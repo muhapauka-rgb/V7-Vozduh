@@ -8877,7 +8877,7 @@ Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION`
 Current terminal report: `docs/reports/engineering/2026-07-28_173732_tier48_activation_and_controlled_pool_boundary.md`
-Latest consumed report: `docs/reports/engineering/2026-07-28_173732_tier48_activation_and_controlled_pool_boundary.md`
+Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

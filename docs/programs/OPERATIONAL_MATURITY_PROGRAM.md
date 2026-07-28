@@ -7899,9 +7899,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY`
-Resolved contract state: the existing production policy and its append-only Authority audit prove one active Tier-48 controlled-certification ceiling with `max_concurrent_transactions=1`, while ordinary-production Runtime remains Tier-4. Request `cpsauth_r1_7b3cf7eab9af58a7a3839aaa` was approved but is bound to a mixed source containing enabled non-certification users and therefore cannot be consumed. The existing owner registered fresh exact request `cpsauth_r1_d27d985e237c9582656b26e7`, hash `d27d985e237c9582656b26e75e36a1dd3ef9a602cd8e87f7a793033d8e97cc5c`, bound to existing empty isolated source candidate `1`; it is `PENDING`. No identity provisioning, classification, assignment, controlled condition or campaign effect is legal before the independent Authority owner decides this exact request.
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED`
+Resolved contract state: the existing production policy and its append-only Authority audit prove one active Tier-48 controlled-certification ceiling with `max_concurrent_transactions=1`, while ordinary-production Runtime remains Tier-4. Exact request `cpsauth_r1_d27d985e237c9582656b26e7`, hash `d27d985e237c9582656b26e75e36a1dd3ef9a602cd8e87f7a793033d8e97cc5c`, is `APPROVED` for its four explicitly named non-transitive subscopes and remains bound to isolated source `1`. Existing identity, registry and assignment owners provisioned and classified 48 dedicated certification identities on that source with zero ordinary customers. A fresh production Matrix observation proves `0/14` reachable services and `14/14` hard failures, so no controlled condition or progressive `5 -> 10 -> 25 -> 48` campaign stage is legal until the exact source's external egress owner restores a healthy baseline. This is `EXTERNAL_OWNER_REQUIRED`, not a new Authority request; a fresh healthy Matrix observation is the durable automatic re-entry condition.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8887,8 +8887,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY`
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED`
 Current terminal report: `docs/reports/engineering/2026-07-28_220000_controlled_source_isolation_repair_and_fresh_authority_boundary.md`
 Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

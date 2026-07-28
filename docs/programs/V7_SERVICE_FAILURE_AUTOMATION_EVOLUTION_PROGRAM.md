@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.7`
+Version: `1.8`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,84 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V1.8 revision record — Tier 4 activated and natural Matrix boundary proven
+
+V1.8 consumes the exact independent decision recorded in V1.7 through the
+existing Authority owner. It does not create a Program, owner, queue,
+registry, Planner, Runtime, certification path or Authority path.
+
+The active owner-backed contract is:
+
+- contract ID: `sdpc_a3cd9882bf0850010a6e37b5`;
+- contract hash:
+  `a3cd9882bf0850010a6e37b5e1fbbadcf7e2865fa6002b2fe30a9a2e219a0e25`;
+- request ID: `sdpauth_r1_ed99070cd98caa0f054ffb6e`;
+- request hash:
+  `ed99070cd98caa0f054ffb6e244cf901bde0034a84d0696cd33e5bb1385d820d`;
+- policy scope hash:
+  `cdd21744e65ad49b69d0a88c9c3df7ee3244766cbdc71bee913bbd2b3c9d4ccb`;
+- issued: `2026-07-28T02:06:51.026478+00:00`;
+- expires: `2026-08-27T02:06:51.026478+00:00`;
+- action class: `channel hard-fail failover`;
+- maximum users per transaction: `4`;
+- maximum concurrent transactions: `1`;
+- source/target: fresh existing-planner safe target only;
+- fresh Candidate, Packet and lease required; reuse forbidden;
+- live capacity, target-health, cooldown and anti-flap gates required;
+- per-user and aggregate verification required;
+- rollback or certified no-rollback and cohort circuit breaker required;
+- final safe mode: `OPEN`;
+- self-expansion: forbidden.
+
+Authority, Runtime, CPS and OMP now independently agree:
+
+| Projection | Current value |
+| --- | --- |
+| engineering-compatible tier | `Tier 4` |
+| Authority-approved tier | `Tier 4` |
+| Runtime-enabled tier | `Tier 4`, serial only |
+| production-proven action-class tier | `Tier 1`; Tier 4 awaits its first qualifying natural cohort outcome |
+| incident frontier | `CURRENT_SOURCE_SCOPE_EMPTY` |
+| Product Evolution frontier | `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED` |
+
+The existing CPS consumer was extended only to accept an approved tier
+transition when the old active request and the new Runtime request differ but
+the CPS-preserved pending request preimage exactly matches request ID/hash,
+policy scope hash, action class, max users and concurrency. Every other
+mismatch remains `STOP_SAFE`.
+
+After activation, no Matrix command was invoked manually. The enabled
+`v7-service-matrix-refresh.timer` started the ordinary owner cycle at
+`2026-07-28T02:28:48+00:00`. It completed successfully and advanced the VLESS
+observation from `2026-07-28T02:13:42.685967+00:00` to
+`2026-07-28T02:28:49.259364+00:00`.
+
+The current route-backed VLESS scope is:
+
+```text
+affected=0
+protected=0
+unresolved=0
+excluded_or_recovered=0
+cumulative packet-bound success lineage=63
+```
+
+Therefore the ordinary Matrix owner correctly produced no fresh Candidate,
+Packet, lease, target selection, capacity reservation, cohort execution,
+verification, rollback/no-rollback, Outcome, Replay or Learning record.
+Manufacturing one by moving a user back to VLESS or manually invoking Matrix
+is forbidden. The exact legal terminal is:
+
+`CURRENT_SOURCE_SCOPE_EMPTY`.
+
+The durable re-entry remains the existing ordinary Matrix observation. On the
+next genuine matching service failure with one or more eligible source users,
+the existing planner may select up to four users only if every live gate
+passes. That first natural Tier-4 cohort transaction must then produce the
+full Event/Candidate/Packet/lease, per-user and aggregate verification,
+circuit-breaker, rollback/no-rollback, Outcome, Replay, Learning and updated
+scope evidence. It must not repeat the generic 1/2/4/5/10/25/48 ladder.
 
 ## V1.7 revision record — adapter bridge consumed and exact Authority handoff
 

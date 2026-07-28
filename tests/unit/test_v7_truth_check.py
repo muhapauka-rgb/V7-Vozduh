@@ -5,6 +5,7 @@ import shlex
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -126,6 +127,127 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertTrue(required.issubset(data))
         self.assertTrue(str(data["runtime_snapshot_path"]).startswith(".v7/"))
         self.assertIn("runtime_snapshot_seed_path", data)
+
+    def test_external_baseline_heartbeat_avoids_write_when_projection_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps.parent.mkdir(parents=True)
+            cps.write_text(
+                "## 0. Authoritative Live Current State\n\n"
+                "| Field | Current Value |\n| --- | --- |\n"
+                "| `CURRENT_NEXT_ACTION_ID` | "
+                "`EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED` |\n"
+                "| `CONTROLLED_SOURCE_ROOT_CAUSE_CLASS` | "
+                "`EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED` |\n"
+                "| `EXACT_EXTERNAL_RESOURCE` | "
+                "`AMNEZIAWG_REMOTE_PEER_OR_MATCHING_PROFILE_FOR_SOURCE_1` |\n"
+                "| `EXACT_EXTERNAL_OWNER` | "
+                "`EXTERNAL_AMNEZIAWG_PEER_OR_CREDENTIAL_PROVIDER` |\n"
+                "| `EXACT_REQUIRED_INPUT` | `matching_profile` |\n\n"
+                "## Authoritative Unfinished Capability Closure Registry\n",
+                encoding="utf-8",
+            )
+            status = {
+                "controlled_certification_substrate_authority": {
+                    "source_precondition_status": (
+                        "STOP_SAFE_SOURCE_BASELINE_UNHEALTHY"
+                    ),
+                    "source_baseline_health": {
+                        "root_cause_class": (
+                            "EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED"
+                        ),
+                        "exact_external_resource": (
+                            "AMNEZIAWG_REMOTE_PEER_OR_MATCHING_PROFILE_FOR_SOURCE_1"
+                        ),
+                        "exact_external_owner": (
+                            "EXTERNAL_AMNEZIAWG_PEER_OR_CREDENTIAL_PROVIDER"
+                        ),
+                        "exact_required_input": "matching_profile",
+                    },
+                },
+            }
+            with (
+                mock.patch.object(
+                    self.tool, "load_manifest",
+                    return_value={"production_ssh_target": "v7-vps"},
+                ),
+                mock.patch.object(
+                    self.tool,
+                    "read_active_standing_policy_runtime_status",
+                    return_value={
+                        "ok": True, "errors": [], "status": status,
+                    },
+                ),
+                mock.patch.object(
+                    self.tool.sync_lib,
+                    "reconcile_active_standing_delegated_policy_to_cps",
+                ) as reconcile,
+            ):
+                result = self.tool.consume_controlled_source_baseline_reentry(
+                    root=root,
+                )
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(
+                result["consumer_decision"],
+                "LEGAL_NO_ACTION_EXTERNAL_BASELINE_UNCHANGED",
+            )
+            self.assertFalse(result["cps_mutated"])
+            reconcile.assert_not_called()
+
+    def test_external_baseline_heartbeat_consumes_health_and_releases_successor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps.parent.mkdir(parents=True)
+            cps.write_text(
+                "## 0. Authoritative Live Current State\n\n"
+                "| Field | Current Value |\n| --- | --- |\n"
+                "| `CURRENT_NEXT_ACTION_ID` | "
+                "`EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED` |\n\n"
+                "## Authoritative Unfinished Capability Closure Registry\n",
+                encoding="utf-8",
+            )
+            status = {
+                "controlled_certification_substrate_authority": {
+                    "source_precondition_status": "PASS",
+                    "source_baseline_health": {
+                        "root_cause_class": "NONE",
+                    },
+                },
+            }
+            with (
+                mock.patch.object(
+                    self.tool, "load_manifest",
+                    return_value={"production_ssh_target": "v7-vps"},
+                ),
+                mock.patch.object(
+                    self.tool,
+                    "read_active_standing_policy_runtime_status",
+                    return_value={
+                        "ok": True, "errors": [], "status": status,
+                    },
+                ),
+                mock.patch.object(
+                    self.tool.sync_lib,
+                    "reconcile_active_standing_delegated_policy_to_cps",
+                    return_value={
+                        "final_verdict": "PASS",
+                        "errors": [],
+                    },
+                ) as reconcile,
+            ):
+                result = self.tool.consume_controlled_source_baseline_reentry(
+                    root=root,
+                )
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertTrue(result["ready_for_heartbeat"])
+            self.assertTrue(result["cps_mutated"])
+            self.assertEqual(
+                result["consumer_decision"],
+                "HEALTHY_BASELINE_CONSUMED_CONTINUE_EXISTING_T48_SUCCESSOR",
+            )
+            reconcile.assert_called_once_with(status, root=root)
 
     def test_fetches_one_accounted_production_feedback_envelope_read_only(self):
         manifest = self.manifest()

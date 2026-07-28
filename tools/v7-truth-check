@@ -794,6 +794,152 @@ def reconcile_active_standing_policy_from_runtime(
     }
 
 
+CONTROLLED_SOURCE_BASELINE_EXTERNAL_FRONTIER = (
+    "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED"
+)
+
+
+def consume_controlled_source_baseline_reentry(
+    *,
+    root: Path = ROOT_DIR,
+    runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    """Poll the existing baseline owner only at its exact external frontier.
+
+    The already-enabled OMP heartbeat is the watchdog; this function does not
+    create a new scheduler or state owner.  An unchanged blocked projection is
+    a legal no-write result.  A healthy or materially changed projection is
+    atomically consumed through the existing standing-policy CPS bridge.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+            "applicable": True,
+            "ready_for_heartbeat": False,
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"cps_unreadable:{exc}"],
+        }
+    live = sync_lib._markdown_field_table(sync_lib._markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
+    if next_action != CONTROLLED_SOURCE_BASELINE_EXTERNAL_FRONTIER:
+        return {
+            "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+            "applicable": False,
+            "ready_for_heartbeat": False,
+            "final_verdict": "PASS",
+            "errors": [],
+        }
+
+    manifest = load_manifest(root / DEFAULT_MANIFEST)
+    runtime_status = read_active_standing_policy_runtime_status(
+        manifest, runner=runner,
+    )
+    if not runtime_status.get("ok"):
+        return {
+            "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+            "applicable": True,
+            "ready_for_heartbeat": False,
+            "final_verdict": "STOP_SAFE",
+            "runtime_status": runtime_status,
+            "errors": list(runtime_status.get("errors") or []),
+        }
+    status = runtime_status.get("status")
+    status = status if isinstance(status, dict) else {}
+    authority = status.get("controlled_certification_substrate_authority")
+    authority = authority if isinstance(authority, dict) else {}
+    health = authority.get("source_baseline_health")
+    health = health if isinstance(health, dict) else {}
+    precondition = str(
+        authority.get("source_precondition_status")
+        or "STOP_SAFE_BASELINE_NOT_OBSERVED"
+    )
+    projection = {
+        "CONTROLLED_SOURCE_ROOT_CAUSE_CLASS": str(
+            health.get("root_cause_class") or "UNKNOWN"
+        ),
+        "EXACT_EXTERNAL_RESOURCE": str(
+            health.get("exact_external_resource") or "UNKNOWN"
+        ),
+        "EXACT_EXTERNAL_OWNER": str(
+            health.get("exact_external_owner") or "UNKNOWN"
+        ),
+        "EXACT_REQUIRED_INPUT": str(
+            health.get("exact_required_input")
+            or "EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE"
+        ),
+    }
+    unchanged = all(
+        live.get(key, "").strip("`") == value
+        for key, value in projection.items()
+    )
+    blocked = precondition.startswith("STOP_SAFE_SOURCE_BASELINE_")
+    if blocked and unchanged:
+        return {
+            "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+            "applicable": True,
+            "ready_for_heartbeat": False,
+            "consumer_invoked": True,
+            "consumer_decision": "LEGAL_NO_ACTION_EXTERNAL_BASELINE_UNCHANGED",
+            "cps_mutated": False,
+            "source_precondition_status": precondition,
+            "root_cause_class": projection[
+                "CONTROLLED_SOURCE_ROOT_CAUSE_CLASS"
+            ],
+            "next_trigger_policy": "EXISTING_HEARTBEAT_WATCHDOG_ONLY",
+            "final_verdict": "PASS",
+            "runtime_impact": "NONE",
+            "production_impact": "NONE",
+            "authority_impact": "NONE",
+            "errors": [],
+        }
+
+    reconciled = sync_lib.reconcile_active_standing_delegated_policy_to_cps(
+        status, root=root,
+    )
+    if reconciled.get("final_verdict") != "PASS":
+        return {
+            "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+            "applicable": True,
+            "ready_for_heartbeat": False,
+            "consumer_invoked": True,
+            "consumer_decision": "STOP_SAFE_BASELINE_CPS_RECONCILIATION_FAILED",
+            "cps_mutated": False,
+            "source_precondition_status": precondition,
+            "reconciliation": reconciled,
+            "final_verdict": "STOP_SAFE",
+            "errors": reconciled.get("errors") or [
+                "baseline_cps_reconciliation_failed"
+            ],
+        }
+    ready = precondition == "PASS"
+    return {
+        "schema": "v7.controlled-source-baseline-heartbeat-bridge.v1",
+        "applicable": True,
+        "ready_for_heartbeat": ready,
+        "consumer_invoked": True,
+        "consumer_decision": (
+            "HEALTHY_BASELINE_CONSUMED_CONTINUE_EXISTING_T48_SUCCESSOR"
+            if ready else
+            "MATERIAL_EXTERNAL_BASELINE_STATE_CHANGE_CONSUMED_STOP_SAFE"
+        ),
+        "cps_mutated": True,
+        "source_precondition_status": precondition,
+        "reconciliation": reconciled,
+        "final_verdict": "PASS",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "errors": [],
+    }
+
+
 def combine_results(
     manifest: dict[str, Any],
     *,
@@ -1393,27 +1539,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         # active incident with an unreadable or mismatched producer envelope
         # must not be silently reentered as though its causal state were fresh.
         try:
-            manifest = load_manifest(DEFAULT_MANIFEST)
-            expected_incident_id = current_vless_incident_id(ROOT_DIR)
-            fetched = (
-                fetch_accounted_service_failure_feedback(
-                    manifest, expected_incident_id=expected_incident_id,
-                ) if expected_incident_id else
-                {"ok": False, "errors": ["canonical_vless_incident_identity_missing"]}
+            baseline_bridge = consume_controlled_source_baseline_reentry(
+                root=ROOT_DIR,
             )
-            if not fetched.get("ok"):
-                result = {
-                    "final_verdict": "STOP_SAFE",
-                    "errors": fetched.get("errors") or ["production_service_failure_feedback_unavailable"],
-                    "production_feedback_bridge": fetched,
-                }
-            else:
-                bridge = sync_lib.reconcile_service_failure_execution_feedback_to_cps(
-                    fetched["envelope"], root=ROOT_DIR,
-                )
-                if bridge.get("final_verdict") != "PASS":
-                    result = {"final_verdict": "STOP_SAFE", "errors": bridge.get("errors") or ["production_feedback_cps_reconciliation_failed"], "production_feedback_bridge": bridge}
-                else:
+            if baseline_bridge.get("applicable"):
+                if (
+                    baseline_bridge.get("final_verdict") == "PASS"
+                    and baseline_bridge.get("ready_for_heartbeat")
+                ):
                     result = sync_lib.heartbeat_program_reentry(
                         event_time=args.heartbeat_event_time,
                         automation_id=args.heartbeat_automation_id,
@@ -1425,11 +1558,47 @@ def main(argv: Optional[list[str]] = None) -> int:
                         execute_continue_omp=True,
                         root=ROOT_DIR,
                     )
-                    result["production_feedback_bridge"] = {
-                        **bridge,
-                        "remote_read": fetched["remote_read"],
-                        "producer_consumer_link": "production execution-events + L3 compact scope -> source CPS -> OMP heartbeat",
+                    result["production_baseline_bridge"] = baseline_bridge
+                else:
+                    result = baseline_bridge
+            else:
+                manifest = load_manifest(DEFAULT_MANIFEST)
+                expected_incident_id = current_vless_incident_id(ROOT_DIR)
+                fetched = (
+                    fetch_accounted_service_failure_feedback(
+                        manifest, expected_incident_id=expected_incident_id,
+                    ) if expected_incident_id else
+                    {"ok": False, "errors": ["canonical_vless_incident_identity_missing"]}
+                )
+                if not fetched.get("ok"):
+                    result = {
+                        "final_verdict": "STOP_SAFE",
+                        "errors": fetched.get("errors") or ["production_service_failure_feedback_unavailable"],
+                        "production_feedback_bridge": fetched,
                     }
+                else:
+                    bridge = sync_lib.reconcile_service_failure_execution_feedback_to_cps(
+                        fetched["envelope"], root=ROOT_DIR,
+                    )
+                    if bridge.get("final_verdict") != "PASS":
+                        result = {"final_verdict": "STOP_SAFE", "errors": bridge.get("errors") or ["production_feedback_cps_reconciliation_failed"], "production_feedback_bridge": bridge}
+                    else:
+                        result = sync_lib.heartbeat_program_reentry(
+                            event_time=args.heartbeat_event_time,
+                            automation_id=args.heartbeat_automation_id,
+                            target_thread_id=args.heartbeat_target_thread_id,
+                            project_id=args.heartbeat_project_id,
+                            target_capability=args.heartbeat_target_capability,
+                            seen_event_ids=args.heartbeat_seen_event_id,
+                            seen_wakeup_run_ids=args.heartbeat_seen_wakeup_id,
+                            execute_continue_omp=True,
+                            root=ROOT_DIR,
+                        )
+                        result["production_feedback_bridge"] = {
+                            **bridge,
+                            "remote_read": fetched["remote_read"],
+                            "producer_consumer_link": "production execution-events + L3 compact scope -> source CPS -> OMP heartbeat",
+                        }
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             result = {"final_verdict": "STOP_SAFE", "errors": [f"production_feedback_heartbeat_bridge_unreadable:{exc}"]}
         if args.json:

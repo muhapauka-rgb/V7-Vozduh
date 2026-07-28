@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.0`
+Version: `2.1`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,14 +9,14 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V2.0 active executable revision — project-wide Tier-48 movement certification and Service Failure controlled cohort proof
+## V2.1 active executable revision — Tier-48 controlled campaign and ordinary Runtime reconciliation
 
-V2.0 is the only active executable plan in this file. V1.9 and earlier
+V2.1 is the only active executable plan in this file. V2.0 and earlier
 revisions remain historical owner-backed evidence and implementation context;
 they must not dispatch duplicate Missions, repeat valid production movements
 or override fresh CPS truth.
 
-V2.0 continues
+V2.1 continues
 `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` through its existing
 `PRODUCT_EVOLUTION_FRONTIER`. It creates no new Program, Mission group,
 Planner, Runtime, registry, queue, watcher, scheduler, executor, Authority
@@ -43,7 +43,7 @@ Its purpose is to:
 7. consume Outcome, Replay and Learning and return the result to the existing
    incident, capability, CPS and OMP owners.
 
-### V2.0 current owner-backed baseline
+### V2.1 current owner-backed baseline
 
 The following are discovery inputs, not permanent assumptions. Mission
 `T48-M0` must re-read their current owners and classify each item as
@@ -64,8 +64,8 @@ work begins:
 - Service Failure is engineering-qualified, Authority-approved and
   Runtime-enabled at maximum four users per transaction, concurrency one;
 - the Service Failure production-proven action-class scope is lower than its
-  current engineering/Authority/Runtime scope until a qualifying positive
-  cohort outcome exists;
+current engineering/Authority/Runtime scope until a qualifying positive
+cohort outcome exists;
 - the last owner-backed VLESS active source scope was empty.
 
 No item may be accepted solely because it appears in this document or a
@@ -73,9 +73,101 @@ historical report. CPS owns volatile state. Capability, certification,
 assignment, Packet, lease, Outcome, Replay, Learning and Authority owners must
 provide the current evidence and dependency fingerprints.
 
-### V2.0 global execution law
+### V2.1 controlled/ordinary dual-axis law
 
-All engineering-owned gaps discovered by V2.0 continue automatically through
+Authority ceiling, controlled-certification Runtime, ordinary-production
+Runtime, controlled-production proof and ordinary-production proof are
+independent owner-backed axes:
+
+```text
+AUTHORITY_APPROVED_MAX
+CONTROLLED_CERTIFICATION_RUNTIME_MAX
+ORDINARY_PRODUCTION_RUNTIME_MAX
+CONTROLLED_PRODUCTION_PROVEN_MAX
+ORDINARY_PRODUCTION_PROVEN_MAX
+```
+
+An Authority maximum must never become an ordinary-production Runtime maximum
+by implication. Until the controlled Service Failure outcomes at
+`5 -> 10 -> 25 -> 48` are consumed, the current safe projection is:
+
+```text
+AUTHORITY_APPROVED_MAX = 48
+CONTROLLED_CERTIFICATION_RUNTIME_MAX = 48
+ORDINARY_PRODUCTION_RUNTIME_MAX = 4
+CONTROLLED_PRODUCTION_PROVEN_MAX = 0
+ORDINARY_PRODUCTION_PROVEN_MAX = 4
+```
+
+The exact executor must prove `CONTROLLED_CERTIFICATION_CONTEXT` from the
+current controlled-source owner and every immutable cohort member's
+certification-only identity. Missing or mixed context selects the ordinary
+maximum and fails closed; the contract is neither rewritten nor silently
+expanded.
+
+### V2.1 coordinated substrate Authority law
+
+If the existing pool cannot reach 48 through already-authorized owners, one
+existing-owner Authority package may coordinate these explicitly independent
+subscopes:
+
+1. dedicated identity provisioning;
+2. certification-only classification and assignment;
+3. deliberate controlled-source condition and restoration;
+4. progressive `5 -> 10 -> 25 -> 48` campaign execution.
+
+Approval is non-transitive. Every admitted subscope must be named by the exact
+decision; one scope never implicitly grants another. The request covers the
+whole Tier-48 substrate once, not one request per campaign stage.
+
+### V2.1 inter-stage reset and re-arm law
+
+Every successful or safely contained stage must close through:
+
+```text
+stage Outcome
+-> source restoration
+-> certification identity baseline restoration
+-> assignment verification
+-> new incident generation
+-> fresh controlled condition
+-> next stage
+```
+
+Setup, reset and cleanup are not certification evidence. Each stage requires a
+fresh Situation, cohort, Candidate, Packet and lease. The effective cohort is
+the minimum of every current mandatory owner-backed bound; a missing,
+`UNKNOWN`, zero or negative mandatory bound is `STOP_SAFE`.
+
+Full identity lists remain only in existing registry, Packet and Outcome
+owners. CPS stores counts, fingerprints and lineage pointers.
+
+### V2.1 ordinary Runtime decision law
+
+Controlled proof through 48 does not automatically activate ordinary Tier 48.
+After T48-M9 the existing independent Authority/Runtime owner must consume one
+verdict:
+
+- `ACTIVATE_ORDINARY_TIER_48`;
+- `HOLD_ORDINARY_TIER_4`;
+- `RECOMMEND_NARROW_SCOPE`;
+- `DEMOTE_OR_FREEZE`;
+- `INSUFFICIENT_EVIDENCE`.
+
+The successful Program terminal requires that verdict to be consumed, not that
+Tier 48 necessarily be activated. This extends the same Program completion
+contract and creates no new Program or Authority owner.
+
+### V2.1 no-progress law
+
+Three identical engineering-owned no-progress generations route the smallest
+producer-consumer repair automatically. An unchanged Authority or external
+resource fingerprint remains one durable boundary and must not generate
+repeated requests, reports, deploys or heartbeat churn.
+
+### V2.1 global execution law
+
+All engineering-owned gaps discovered by V2.1 continue automatically through
 existing owners:
 
 ```text
@@ -109,7 +201,7 @@ A report, test, commit, deploy, replay, Mission completion, empty historical
 incident, intermediate certification result or heartbeat boundary is not a
 Program terminal while a safe engineering successor exists.
 
-### V2.0 knowledge reuse and invalidation law
+### V2.1 knowledge reuse and invalidation law
 
 Before every audit, test, certification lookup, Polygon campaign or
 implementation:
@@ -135,7 +227,7 @@ The following are not invalidation triggers by themselves:
 Real movements at `1,2,4,5,10,25,48` must not be repeated merely to recreate
 generic evidence.
 
-### V2.0 evidence and state separation law
+### V2.1 evidence and state separation law
 
 The following projections are independent and must never be collapsed:
 
@@ -166,7 +258,7 @@ Polygon, deterministic replay, fault injection, shadow execution and process
 simulation are Engineering Evidence. They cannot become a production Outcome,
 Natural L8 evidence, Authority, Runtime activation or Production Maturity.
 
-### V2.0 numeric scope and action-class identity law
+### V2.1 numeric scope and action-class identity law
 
 `Tier`, Authority class, action class, `max_users_per_transaction` and observed
 cohort size are different fields. A historical class alias or a budget such as
@@ -185,7 +277,7 @@ Every projection and contract must carry:
 An increased policy number alone is not qualification, Authority or Runtime
 enablement.
 
-## V2.0 executable Mission map
+## V2.1 executable Mission map
 
 ### T48-M0 — Fresh owner and evidence reconciliation
 
@@ -776,7 +868,7 @@ unit. Do not create report/deploy churn after every individual scenario.
 Reports are historical evidence only. Durable knowledge and evidence
 fingerprints belong to their existing canonical owners.
 
-## V2.0 production-effects boundaries
+## V2.1 production-effects boundaries
 
 | Mission | Production effects |
 | --- | --- |
@@ -799,7 +891,7 @@ owner-backed contract:
 - Production Maturity change;
 - ordinary-customer use solely for certification.
 
-## V2.0 final completion contract
+## V2.1 final completion contract
 
 The successful Program terminal is:
 
@@ -817,6 +909,8 @@ AND
 SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED
 AND
 SERVICE_FAILURE_CONTROLLED_PRODUCTION_COHORT_OUTCOMES_CONSUMED_THROUGH_48
+AND
+ORDINARY_PRODUCTION_RUNTIME_DECISION_CONSUMED
 ```
 
 This terminal proves project-wide generic movement engineering guarantees and

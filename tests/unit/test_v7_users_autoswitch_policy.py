@@ -264,6 +264,118 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def _runtime_scope_gate_fixture(self, *, controlled: bool):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.emergency_failover_policy = {
+            "enabled": True,
+            "max_users_per_run": 4,
+            "max_users_per_channel": 4,
+            "require_restore_barrier": False,
+            "require_rollback": False,
+            "require_verification": False,
+            "retry_budget_per_incident": 1,
+            "runtime_scope_axes": {
+                "authority_approved_max": 48,
+                "controlled_certification_runtime_max": 48,
+                "ordinary_production_runtime_max": 4,
+            },
+        }
+        planner.args = mock.Mock(
+            source_egress="",
+            rollback_on_verify_fail=True,
+            verify=True,
+            emergency_failover_autonomy=True,
+            apply=False,
+        )
+        planner.authority_budget_policy = {"current_allowed_user_budget": 48}
+        planner.generation = {"planner_generation_id": "generation"}
+        moves = [{
+            "user_ip": f"10.7.0.{index + 2}",
+            "current_egress": "controlled" if controlled else "ordinary",
+            "recommended_egress": "target",
+            "move_type": "failover",
+        } for index in range(6)]
+        source = "controlled" if controlled else "ordinary"
+        context = {
+            "active": True,
+            "incident_source": source,
+            "incident_key": "incident",
+            "scope": {
+                "source_failed": True,
+                "controlled_certification_failure": {
+                    "confirmed": controlled,
+                },
+            },
+        }
+        proof = {
+            "confirmed": controlled,
+            "certification_user_in_scope": controlled,
+        }
+        with mock.patch.object(
+            planner,
+            "_l3_active_incident_source_context",
+            return_value=context,
+        ), mock.patch.object(
+            planner,
+            "_controlled_certification_failure_context",
+            return_value=proof,
+        ), mock.patch.object(
+            planner,
+            "_emergency_failover_move_evidence",
+            side_effect=lambda move: {
+                "ok": True,
+                "blockers": [],
+                "user_ip": move["user_ip"],
+                "current_egress": move["current_egress"],
+                "recommended_egress": move["recommended_egress"],
+                "current_failures": [{"service": "telegram"}],
+                "current_channel_failure": {},
+            },
+        ), mock.patch.object(
+            planner,
+            "_l3_wake_decision",
+            return_value={"accepted": True, "blockers": []},
+        ), mock.patch.object(
+            planner,
+            "_l3_incident_attempt_count",
+            return_value=0,
+        ), mock.patch.object(
+            planner,
+            "_l3_semantic_attempt_signature",
+            return_value="attempt",
+        ), mock.patch.object(
+            planner,
+            "_l3_consumed_retry_attempts",
+            return_value=[],
+        ):
+            selected, gate = planner._emergency_failover_authority_gate(
+                moves,
+                {},
+            )
+        return selected, gate
+
+    def test_ordinary_service_failure_is_capped_to_proven_tier4(self):
+        selected, gate = self._runtime_scope_gate_fixture(controlled=False)
+
+        self.assertEqual(len(selected), 4)
+        self.assertEqual(
+            gate["runtime_scope"]["context"],
+            "ORDINARY_PRODUCTION_SERVICE_FAILURE",
+        )
+        self.assertEqual(gate["effective_max_users_per_run"], 4)
+        self.assertFalse(gate["runtime_scope"]["authority_expanded"])
+
+    def test_exact_controlled_certification_context_can_consume_tier48_ceiling(self):
+        selected, gate = self._runtime_scope_gate_fixture(controlled=True)
+
+        self.assertEqual(len(selected), 6)
+        self.assertEqual(
+            gate["runtime_scope"]["context"],
+            "CONTROLLED_CERTIFICATION_CONTEXT",
+        )
+        self.assertEqual(gate["effective_max_users_per_run"], 48)
+        self.assertEqual(gate["runtime_scope"]["authority_approved_max"], 48)
+
     def test_action_contract_reconciliation_consumes_precontract_l3_wake_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

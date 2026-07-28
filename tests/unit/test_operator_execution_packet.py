@@ -17,9 +17,11 @@ from admin_core.operator_execution import (
     autonomous_execution_control_state,
     build_autonomous_execution_control_state,
     build_current_action_class_contract_authority_request,
+    build_controlled_certification_substrate_authority_request,
     build_standing_delegated_policy_authority_request,
     standing_delegated_operational_policy_template,
     standing_delegated_policy_contract_hash,
+    standing_delegated_policy_runtime_axes,
     cancel_execution_lease,
     containment_forward_fix_classification,
     create_execution_lease_from_packet,
@@ -57,6 +59,8 @@ from admin_core.operator_execution import (
     issue_standing_delegated_policy_from_audit,
     latest_pending_standing_delegated_policy_request,
     register_standing_delegated_policy_request,
+    register_controlled_certification_substrate_authority_request,
+    validate_controlled_certification_substrate_authority_request,
     validate_standing_delegated_operational_policy,
     validate_standing_delegated_policy_authority_request,
     read_audit_records,
@@ -336,6 +340,82 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertFalse(request["policy"]["self_expansion_allowed"])
         self.assertNotIn("contract_id", request)
         self.assertNotIn("contract_hash", request)
+
+    def test_tier48_runtime_axes_separate_controlled_from_ordinary_proof(self):
+        request = build_standing_delegated_policy_authority_request(
+            policy_generation_hash="a" * 64,
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            max_users=48,
+            now=datetime(2026, 7, 28, tzinfo=timezone.utc),
+        )
+        contract = {
+            "policy": request["policy"],
+            "contract_id": "historical",
+            "contract_hash": "historical",
+        }
+        axes = standing_delegated_policy_runtime_axes(contract)
+
+        self.assertEqual(axes["authority_approved_max"], 48)
+        self.assertEqual(axes["controlled_certification_runtime_max"], 48)
+        self.assertEqual(axes["ordinary_production_runtime_max"], 4)
+        self.assertEqual(axes["controlled_production_proven_max"], 0)
+        self.assertEqual(axes["ordinary_production_proven_max"], 4)
+        self.assertFalse(axes["contract_rewritten"])
+        self.assertFalse(axes["authority_expanded"])
+
+    def test_controlled_certification_substrate_request_is_one_exact_non_transitive_package(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        pool = {
+            "total_enabled_certification_users": 4,
+            "max_enabled_certification_users_on_one_active_source": 3,
+            "fingerprint": "f" * 64,
+            "registry_hashes": {
+                "users_registry": "a" * 64,
+                "egress_registry": "b" * 64,
+            },
+        }
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status=pool,
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        validation = validate_controlled_certification_substrate_authority_request(
+            request,
+            decision="DECLINE",
+            now=now,
+        )
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertEqual(request["scope"]["campaign_stages"], [5, 10, 25, 48])
+        self.assertEqual(request["scope"]["target_total_certification_identities"], 48)
+        self.assertFalse(request["scope"]["ordinary_customer_involvement"])
+        self.assertTrue(request["subscope_law"]["no_implicit_cross_grant"])
+        self.assertEqual(
+            {row["id"] for row in request["coordinated_subscopes"]},
+            {
+                "IDENTITY_PROVISIONING",
+                "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+                "CONTROLLED_SOURCE_CONDITION",
+                "PROGRESSIVE_CAMPAIGN_EXECUTION",
+            },
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            first = register_controlled_certification_substrate_authority_request(
+                request,
+                audit_store=audit,
+                now=now,
+            )
+            second = register_controlled_certification_substrate_authority_request(
+                request,
+                audit_store=audit,
+                now=now,
+            )
+        self.assertEqual(first["status"], "REGISTERED")
+        self.assertEqual(second["status"], "ALREADY_REGISTERED_EXACT")
 
     def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
         template = {

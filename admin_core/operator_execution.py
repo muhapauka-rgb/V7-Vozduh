@@ -114,6 +114,16 @@ STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE = "standing_delegated_operational
 STANDING_DELEGATED_POLICY_REQUEST_TTL_SECONDS = 24 * 60 * 60
 STANDING_DELEGATED_POLICY_MAX_TTL_SECONDS = 30 * 24 * 60 * 60
 STANDING_DELEGATED_POLICY_ID = "dap_default_tier1_readonly"
+CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA = (
+    "v7.controlled-certification-substrate-engineering-authority-request.v1"
+)
+CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE = (
+    "controlled_certification_substrate_authority_request_emitted"
+)
+CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS = 24 * 60 * 60
+CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL = (
+    "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
+)
 CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
     "no_safe_target",
     "stale_or_changed_situation",
@@ -573,6 +583,338 @@ SERVICE_FAILURE_DELEGATED_ACTION_CLASSES = {
 }
 GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS = 48
 SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 48
+SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX_USERS = 4
+SERVICE_FAILURE_CONTROLLED_PRODUCTION_PROVEN_MAX_USERS = 0
+
+
+def standing_delegated_policy_runtime_axes(
+    contract,
+    *,
+    ordinary_production_proven_max=SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX_USERS,
+    controlled_production_proven_max=SERVICE_FAILURE_CONTROLLED_PRODUCTION_PROVEN_MAX_USERS,
+):
+    """Project the independently different Authority/evidence/Runtime axes.
+
+    A standing Authority ceiling is not itself production proof.  The current
+    Tier-48 contract predates an explicit execution-context field, so its
+    approved maximum remains intact while Runtime fails safely to the
+    owner-backed ordinary-production proof floor.  The larger ceiling is
+    available only when the executor independently proves the exact controlled
+    certification context for every member.
+
+    This is a read model over the existing Authority and certification owners;
+    it neither rewrites the contract nor creates a second policy owner.
+    """
+    contract = contract if isinstance(contract, dict) else {}
+    policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
+    authority_approved = max(0, as_int(policy.get("max_users_per_action"), 0))
+    ordinary_proven = max(0, as_int(ordinary_production_proven_max, 0))
+    controlled_proven = max(0, as_int(controlled_production_proven_max, 0))
+    controlled_runtime = authority_approved
+    ordinary_runtime = min(authority_approved, ordinary_proven)
+    return {
+        "schema_version": "v7.service-failure-runtime-scope-axes.v1",
+        "authority_approved_max": authority_approved,
+        "controlled_certification_runtime_max": controlled_runtime,
+        "ordinary_production_runtime_max": ordinary_runtime,
+        "controlled_production_proven_max": controlled_proven,
+        "ordinary_production_proven_max": ordinary_proven,
+        "context_selection": "EXACT_EXECUTOR_PROOF_REQUIRED",
+        "legacy_contract_context": (
+            "UNSCOPED_CONTEXT_RECONCILED_BY_EXISTING_RUNTIME_GATE"
+            if authority_approved
+            else "NO_ACTIVE_AUTHORITY"
+        ),
+        "ordinary_runtime_narrowing_reason": (
+            "controlled_service_failure_outcomes_5_10_25_48_not_yet_consumed"
+            if authority_approved > ordinary_runtime
+            else "NONE"
+        ),
+        "contract_rewritten": False,
+        "authority_expanded": False,
+        "owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "evidence_owner": "existing Controlled Production Certification Program",
+    }
+
+
+def controlled_certification_substrate_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def build_controlled_certification_substrate_authority_request(
+    *,
+    active_program,
+    source_id,
+    current_pool_status,
+    current_policy_contract_id,
+    current_policy_contract_hash,
+    target_total=48,
+    now=None,
+):
+    """Build one coordinated, independently decidable Tier-48 substrate request.
+
+    The request is produced by the existing operator-execution Authority owner.
+    Its four subscopes are explicit and non-transitive: approving identity
+    provisioning does not implicitly approve assignment, controlled
+    degradation, or execution.  A later decision must name the exact combined
+    request and every admitted subscope.
+    """
+    now = now or utc_now()
+    pool = current_pool_status if isinstance(current_pool_status, dict) else {}
+    target_total = max(0, as_int(target_total, 0))
+    current_total = max(0, as_int(pool.get("total_enabled_certification_users"), 0))
+    current_on_source = max(
+        0,
+        as_int(pool.get("max_enabled_certification_users_on_one_active_source"), 0),
+    )
+    registry_hashes = (
+        pool.get("registry_hashes")
+        if isinstance(pool.get("registry_hashes"), dict)
+        else {}
+    )
+    request = {
+        "schema_version": CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (
+            now + timedelta(seconds=CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS)
+        ).isoformat(),
+        "decision_set": [CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL, "DECLINE"],
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "active_program": str(active_program or ""),
+        "mission": "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION",
+        "scope": {
+            "target_total_certification_identities": target_total,
+            "max_new_certification_identities": target_total,
+            "certification_only": True,
+            "ordinary_customer_involvement": False,
+            "billing_or_customer_entitlement": False,
+            "real_customer_workload_dependency": False,
+            "source_id": str(source_id or ""),
+            "single_controlled_source_required": True,
+            "campaign_stages": [5, 10, 25, 48],
+            "max_concurrent_transactions": 1,
+            "automatic_stage_progression": True,
+            "self_expansion_allowed": False,
+        },
+        "current_owner_backed_state": {
+            "total_enabled_certification_users": current_total,
+            "max_enabled_certification_users_on_source": current_on_source,
+            "pool_fingerprint": str(pool.get("fingerprint") or ""),
+            "users_registry_hash": str(registry_hashes.get("users_registry") or ""),
+            "egress_registry_hash": str(registry_hashes.get("egress_registry") or ""),
+            "active_policy_contract_id": str(current_policy_contract_id or ""),
+            "active_policy_contract_hash": str(current_policy_contract_hash or ""),
+        },
+        "coordinated_subscopes": [
+            {
+                "id": "IDENTITY_PROVISIONING",
+                "owner": "existing v7-user-create-from-ipam + users.registry owner",
+                "exact_action": "create up to the requested total dedicated identities",
+                "independent_admission_required": True,
+            },
+            {
+                "id": "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+                "owner": "existing users.registry + assignment owner",
+                "exact_action": "mark certification-only and assign to the exact controlled source",
+                "independent_admission_required": True,
+            },
+            {
+                "id": "CONTROLLED_SOURCE_CONDITION",
+                "owner": "existing v7-egress-set-state + Controlled Production owner",
+                "exact_action": "materialize and restore one bounded controlled failure per stage",
+                "independent_admission_required": True,
+            },
+            {
+                "id": "PROGRESSIVE_CAMPAIGN_EXECUTION",
+                "owner": "existing Matrix/Packet/lease/cohort transaction owners",
+                "exact_action": "execute 5 -> 10 -> 25 -> 48 with fresh gates and reset between stages",
+                "independent_admission_required": True,
+            },
+        ],
+        "subscope_law": {
+            "approval_is_non_transitive": True,
+            "every_subscope_must_be_named_by_decision": True,
+            "no_implicit_cross_grant": True,
+            "setup_and_cleanup_are_not_evidence": True,
+        },
+        "per_stage_reset_law": {
+            "sequence": [
+                "stage_outcome",
+                "source_restoration",
+                "certification_identity_baseline_restoration",
+                "assignment_verification",
+                "new_incident_generation",
+                "fresh_controlled_condition",
+                "next_stage",
+            ],
+            "fresh_candidate_packet_lease_required": True,
+            "packet_reuse_forbidden": True,
+        },
+        "verification_and_containment": {
+            "per_user_verification_required": True,
+            "aggregate_verification_required": True,
+            "rollback_or_certified_no_rollback_required": True,
+            "cohort_circuit_breaker_required": True,
+            "final_safe_mode": "OPEN",
+            "cleanup_and_retirement_required": True,
+        },
+        "kill_switch": {
+            "owner": "existing autonomous execution control owner",
+            "required": True,
+            "stop_before_next_member_or_stage": True,
+        },
+        "forbidden_effects": [
+            "ordinary_customer_reclassification",
+            "ordinary_customer_movement_for_certification",
+            "authority_self_expansion",
+            "parallel_transactions_above_one",
+            "packet_or_lease_reuse",
+            "production_maturity_change",
+            "natural_l8_claim",
+        ],
+        "reentry_condition": (
+            "exact Authority decision admits or declines every coordinated subscope; "
+            "on approval, the existing provisioning and Controlled Production owners "
+            "revalidate the current registries before any write"
+        ),
+    }
+    request_hash = controlled_certification_substrate_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"cpsauth_r1_{request_hash[:24]}"
+    return request
+
+
+def validate_controlled_certification_substrate_authority_request(
+    request,
+    *,
+    decision="DECLINE",
+    expected_request_id="",
+    expected_request_hash="",
+    now=None,
+):
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    if request.get("schema_version") != CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA:
+        errors.append("controlled_certification_substrate_request_schema_invalid")
+    if controlled_certification_substrate_request_hash(request) != request_hash:
+        errors.append("controlled_certification_substrate_request_hash_mismatch")
+    if request_id != f"cpsauth_r1_{request_hash[:24]}":
+        errors.append("controlled_certification_substrate_request_identity_mismatch")
+    if expected_request_id and request_id != expected_request_id:
+        errors.append("controlled_certification_substrate_expected_request_mismatch")
+    if expected_request_hash and request_hash != expected_request_hash:
+        errors.append("controlled_certification_substrate_expected_hash_mismatch")
+    if request.get("status") != "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION":
+        errors.append("controlled_certification_substrate_request_not_pending")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("controlled_certification_substrate_request_expired")
+    except PacketError:
+        errors.append("controlled_certification_substrate_request_expiry_invalid")
+    if decision not in set(request.get("decision_set") or []):
+        errors.append("controlled_certification_substrate_decision_not_allowed")
+    if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("controlled_certification_substrate_owner_invalid")
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    if as_int(scope.get("target_total_certification_identities"), 0) != 48:
+        errors.append("controlled_certification_substrate_target_invalid")
+    if as_int(scope.get("max_new_certification_identities"), 0) != 48:
+        errors.append("controlled_certification_substrate_creation_ceiling_invalid")
+    if scope.get("certification_only") is not True or scope.get("ordinary_customer_involvement") is not False:
+        errors.append("controlled_certification_substrate_identity_scope_invalid")
+    if scope.get("campaign_stages") != [5, 10, 25, 48]:
+        errors.append("controlled_certification_substrate_campaign_invalid")
+    if as_int(scope.get("max_concurrent_transactions"), 0) != 1:
+        errors.append("controlled_certification_substrate_concurrency_invalid")
+    subscopes = request.get("coordinated_subscopes")
+    if not isinstance(subscopes, list) or {
+        str(row.get("id") or "") for row in subscopes if isinstance(row, dict)
+    } != {
+        "IDENTITY_PROVISIONING",
+        "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+        "CONTROLLED_SOURCE_CONDITION",
+        "PROGRESSIVE_CAMPAIGN_EXECUTION",
+    }:
+        errors.append("controlled_certification_substrate_subscopes_invalid")
+    law = request.get("subscope_law") if isinstance(request.get("subscope_law"), dict) else {}
+    if (
+        law.get("approval_is_non_transitive") is not True
+        or law.get("every_subscope_must_be_named_by_decision") is not True
+        or law.get("no_implicit_cross_grant") is not True
+    ):
+        errors.append("controlled_certification_substrate_subscope_law_invalid")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "expires_at": str(request.get("expires_at") or ""),
+    }
+
+
+def register_controlled_certification_substrate_authority_request(
+    request,
+    *,
+    audit_store=None,
+    producer_id="tools/v7-users-autoswitch",
+    now=None,
+):
+    """Append the exact request preimage through the existing Authority audit."""
+    now = now or utc_now()
+    validation = validate_controlled_certification_substrate_authority_request(
+        request,
+        decision="DECLINE",
+        now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(
+            validation.get("errors")
+            or ["controlled_certification_substrate_request_invalid"]
+        ))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    records = read_audit_records(audit_store)
+    existing = [
+        record for record in records
+        if record.get("record_type") == CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE
+        and str(record.get("authority_request_id") or "") == request["request_id"]
+    ]
+    if existing:
+        if (
+            len(existing) != 1
+            or existing[0].get("authority_request_hash") != request["request_hash"]
+            or existing[0].get("request") != request
+        ):
+            raise PacketError("controlled_certification_substrate_request_audit_identity_conflict")
+        return {
+            "status": "ALREADY_REGISTERED_EXACT",
+            "request_id": request["request_id"],
+            "request_hash": request["request_hash"],
+            "audit_store": str(audit_store),
+            "audit_write": False,
+        }
+    append_record(audit_store, {
+        "schema_version": "v7.controlled-certification-substrate-authority-audit.v1",
+        "record_type": CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE,
+        "authority_request_id": request["request_id"],
+        "authority_request_hash": request["request_hash"],
+        "request": copy.deepcopy(request),
+        "producer": str(producer_id or "tools/v7-users-autoswitch"),
+        "created_at": now.isoformat(),
+    })
+    return {
+        "status": "REGISTERED",
+        "request_id": request["request_id"],
+        "request_hash": request["request_hash"],
+        "audit_store": str(audit_store),
+        "audit_write": True,
+    }
 
 
 def standing_delegated_operational_policy_template(max_users=1):

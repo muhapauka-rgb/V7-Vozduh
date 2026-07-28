@@ -2153,13 +2153,20 @@ class AutoswitchPlanner:
         standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
         standing_max_users = max(0, to_int(standing_scope.get("max_users_per_action"), 0))
         if standing_validation.get("ok") and standing_max_users in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
-            # The Authority contract, not a technical default, owns the
-            # effective cohort budget.  Current Tier-1 contracts therefore
-            # preserve today's behavior; an independently approved higher
-            # tier can be consumed without a second hard-coded ceiling.
-            policy["max_users_per_run"] = standing_max_users
-            policy["max_users_per_channel"] = standing_max_users
+            runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
+                standing_validation.get("contract") or standing_contract
+            )
+            # Authority owns the maximum possible budget, while evidence and
+            # the exact execution context own the Runtime budget.  An
+            # unscoped legacy Tier-48 contract must not expose ordinary users
+            # above the currently proven ordinary-production floor.  The
+            # controlled ceiling is selected later only after every member is
+            # independently proven to be a certification identity on a
+            # controlled source.
+            policy["max_users_per_run"] = int(runtime_axes["ordinary_production_runtime_max"])
+            policy["max_users_per_channel"] = int(runtime_axes["ordinary_production_runtime_max"])
             policy["standing_policy_budget_owner"] = operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER
+            policy["runtime_scope_axes"] = runtime_axes
         return policy
 
     def _load_l3_runtime_state(self) -> dict[str, Any]:
@@ -3599,6 +3606,81 @@ class AutoswitchPlanner:
                     "override_reason": "requested_source_egress_has_failed_source_scope",
                 }
         gate["incident_source_continuity"] = incident_source_continuity
+        runtime_axes = (
+            policy.get("runtime_scope_axes")
+            if isinstance(policy.get("runtime_scope_axes"), dict)
+            else {}
+        )
+        scope = (
+            incident_source_continuity.get("scope")
+            if isinstance(incident_source_continuity.get("scope"), dict)
+            else {}
+        )
+        controlled_failure = (
+            scope.get("controlled_certification_failure")
+            if isinstance(scope.get("controlled_certification_failure"), dict)
+            else {}
+        )
+        context_moves = list(selected) if selected else list(evidence_candidates or [])
+        context_source = str(incident_source_continuity.get("incident_source") or "")
+        controlled_members = []
+        for move in context_moves:
+            user_ip = str(move.get("user_ip") or "")
+            source = str(move.get("current_egress") or "")
+            proof = self._controlled_certification_failure_context(source, user_ip=user_ip)
+            controlled_members.append({
+                "user_ip": user_ip,
+                "source": source,
+                "confirmed": bool_value(proof.get("confirmed")),
+                "certification_user_in_scope": bool_value(proof.get("certification_user_in_scope")),
+            })
+        exact_controlled_context = bool(
+            context_moves
+            and context_source
+            and bool_value(controlled_failure.get("confirmed"))
+            and all(
+                row["confirmed"]
+                and row["certification_user_in_scope"]
+                and row["source"] == context_source
+                for row in controlled_members
+            )
+        )
+        ordinary_runtime_max = max(
+            0,
+            to_int(
+                runtime_axes.get("ordinary_production_runtime_max"),
+                policy.get("max_users_per_run", 1),
+            ),
+        )
+        controlled_runtime_max = max(
+            0,
+            to_int(
+                runtime_axes.get("controlled_certification_runtime_max"),
+                ordinary_runtime_max,
+            ),
+        )
+        selected_runtime_max = (
+            controlled_runtime_max if exact_controlled_context else ordinary_runtime_max
+        )
+        gate["runtime_scope"] = {
+            "schema_version": "v7.service-failure-execution-context-proof.v1",
+            "context": (
+                "CONTROLLED_CERTIFICATION_CONTEXT"
+                if exact_controlled_context
+                else "ORDINARY_PRODUCTION_SERVICE_FAILURE"
+            ),
+            "exact_controlled_context": exact_controlled_context,
+            "incident_source": context_source,
+            "member_count": len(controlled_members),
+            "member_scope_fingerprint": sha256_json(controlled_members),
+            "raw_member_list_stored": False,
+            "authority_approved_max": to_int(runtime_axes.get("authority_approved_max"), 0),
+            "controlled_certification_runtime_max": controlled_runtime_max,
+            "ordinary_production_runtime_max": ordinary_runtime_max,
+            "selected_runtime_max": selected_runtime_max,
+            "contract_rewritten": False,
+            "authority_expanded": False,
+        }
         if not enabled:
             gate["wake"] = self._l3_wake_decision(policy, [])
             return selected, gate
@@ -3648,8 +3730,20 @@ class AutoswitchPlanner:
             else:
                 blockers.extend(str(reason) for reason in evidence.get("blockers") or [])
 
-        max_run = max(0, to_int(policy.get("max_users_per_run"), 1))
-        max_channel = max(0, to_int(policy.get("max_users_per_channel"), max_run or 1))
+        max_run = min(
+            selected_runtime_max,
+            max(0, to_int(policy.get("max_users_per_run"), selected_runtime_max or 1)),
+        )
+        max_channel = min(
+            selected_runtime_max,
+            max(0, to_int(policy.get("max_users_per_channel"), max_run or 1)),
+        )
+        if exact_controlled_context:
+            # The global policy is intentionally narrowed to the ordinary
+            # floor.  Only this exact member/source proof may consume the
+            # separately projected controlled-certification ceiling.
+            max_run = controlled_runtime_max
+            max_channel = controlled_runtime_max
         if bool_value(approved_envelope.get("ok")):
             approved_run_limit = max(0, min(
                 to_int(approved_envelope.get("selected_move_count"), len(eligible)),
@@ -4013,7 +4107,9 @@ class AutoswitchPlanner:
         }
 
     def _controlled_certification_failure_context(self, source: str, *, user_ip: str = "") -> dict[str, Any]:
-        egress = self.egress.get(source)
+        egress_rows = getattr(self, "egress", {})
+        egress_rows = egress_rows if isinstance(egress_rows, dict) else {}
+        egress = egress_rows.get(source)
         if not egress:
             return {"confirmed": False, "reason": "source_not_found"}
         registry = egress.raw.get("registry") if isinstance(egress.raw.get("registry"), dict) else {}
@@ -4022,7 +4118,7 @@ class AutoswitchPlanner:
         source_unavailable = (not egress.enabled) or egress_state in {"maintenance", "disabled", "quarantine", "down"}
         certification_users = sorted(
             user.ip
-            for user in self.users
+            for user in (getattr(self, "users", []) or [])
             if user.enabled
             and str(user.current) == source
             and bool_value(user.raw.get("certification_user"))
@@ -11931,6 +12027,9 @@ class AutoswitchPlanner:
             contract,
             audit_records=operator_execution.read_audit_records(audit_store),
         )
+        runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
+            validation.get("contract") or contract
+        )
         return {
             "valid": bool(validation.get("ok")),
             "blockers": list(validation.get("errors") or []),
@@ -11938,6 +12037,7 @@ class AutoswitchPlanner:
             "contract_hash": str(contract.get("contract_hash") or ""),
             "expires_at": str(contract.get("expires_at") or ""),
             "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+            "runtime_scope_axes": runtime_axes,
             "truth_source": "existing_delegated_autonomy_policy_and_operator_execution_audit",
             "runtime_mutation_performed": False,
         }
@@ -12108,10 +12208,22 @@ class AutoswitchPlanner:
             to_int(current_source_scope.get("unresolved_scope_count"), current_affected_count),
         )
         emergency_policy = getattr(self, "emergency_failover_policy", {})
-        current_tier = max(0, to_int(
-            emergency_policy.get("max_users_per_run") if isinstance(emergency_policy, dict) else 0,
-            1,
-        ))
+        emergency_policy = emergency_policy if isinstance(emergency_policy, dict) else {}
+        runtime_axes = (
+            emergency_policy.get("runtime_scope_axes")
+            if isinstance(emergency_policy.get("runtime_scope_axes"), dict)
+            else {}
+        )
+        controlled_source_context = self._controlled_certification_failure_context(source)
+        current_tier = max(
+            0,
+            to_int(
+                runtime_axes.get("controlled_certification_runtime_max")
+                if bool_value(controlled_source_context.get("confirmed"))
+                else runtime_axes.get("ordinary_production_runtime_max"),
+                emergency_policy.get("max_users_per_run", 1),
+            ),
+        )
         standing_policy = self._standing_delegated_policy_status()
         standing_policy_active = bool(standing_policy.get("valid"))
         standing_expiry = str(standing_policy.get("expires_at") or "")
@@ -12206,6 +12318,11 @@ class AutoswitchPlanner:
             },
             "bounded_recommendation_users": len(chosen),
             "current_certified_blast_radius_tier": current_tier,
+            "runtime_scope_context": (
+                "CONTROLLED_CERTIFICATION_CONTEXT"
+                if bool_value(controlled_source_context.get("confirmed"))
+                else "ORDINARY_PRODUCTION_SERVICE_FAILURE"
+            ),
             "requested_blast_radius_tier": min(current_affected_count, max(1, current_tier)),
             "smallest_necessary_cohort": min(unresolved_count, len(movable)),
             "maximum_capacity_safe_cohort": int(
@@ -13348,6 +13465,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--prepare-controlled-certification-substrate-authority-request",
+        action="store_true",
+        help=(
+            "Build and append one exact Tier-48 certification-substrate/campaign "
+            "Engineering Authority request through the existing operator audit. "
+            "Never writes policy, creates users, changes assignments or enters apply."
+        ),
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -13602,6 +13728,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         else {}
     )
     policy_scope = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
+        validation.get("contract") or contract
+    )
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     causal_integrity = service_failure_causal_integrity_status(Path(args.state_dir))
     controlled_pool = controlled_certification_pool_status(Path(args.state_dir))
@@ -13629,6 +13758,20 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "action_class": ",".join(sorted(str(item) for item in (policy_scope.get("allowed_action_classes") or []) if str(item))),
         "max_users_per_action": int(policy_scope.get("max_users_per_action") or 0),
         "max_concurrent_transactions": int(policy_scope.get("max_concurrent_transactions") or 0),
+        "runtime_scope_axes": runtime_axes,
+        "authority_approved_max": int(runtime_axes["authority_approved_max"]),
+        "controlled_certification_runtime_max": int(
+            runtime_axes["controlled_certification_runtime_max"]
+        ),
+        "ordinary_production_runtime_max": int(
+            runtime_axes["ordinary_production_runtime_max"]
+        ),
+        "controlled_production_proven_max": int(
+            runtime_axes["controlled_production_proven_max"]
+        ),
+        "ordinary_production_proven_max": int(
+            runtime_axes["ordinary_production_proven_max"]
+        ),
         "allowed_failure_families": sorted(str(item) for item in (policy_scope.get("allowed_failure_types") or []) if str(item)),
         "allowed_source_target_scope": "EXISTING_PLANNER_SAFE_TARGET_ONLY",
         "verification_contract": "EXISTING_LIVE_VERIFICATION_GATES_REQUIRED",
@@ -13673,6 +13816,135 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         },
     }
     return result
+
+
+def controlled_certification_substrate_authority_request_only(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Prepare the one coordinated M8 boundary through existing owners only."""
+    forbidden = [
+        name for name in (
+            "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id", "approved_operation_id", "approved_selected_move_hash",
+            "approved_authority_generation", "approved_breaker_generation",
+            "approved_source_bundle_hash", "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result", "rollback_packet", "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": "v7.controlled-certification-substrate-authority-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [
+                f"controlled_certification_substrate_request_forbids_{name}"
+                for name in sorted(set(forbidden))
+            ],
+        }
+
+    policy_root = read_json(Path(args.policy_file), {})
+    policy_root = policy_root if isinstance(policy_root, dict) else {}
+    contract = policy_root.get("delegated_autonomy_policy")
+    contract = contract if isinstance(contract, dict) else {}
+    audit_store = Path(args.action_class_audit_store)
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=operator_execution.read_audit_records(audit_store),
+    )
+    pool = controlled_certification_pool_status(Path(args.state_dir))
+    sources = [
+        row for row in (pool.get("active_source_projections") or [])
+        if isinstance(row, dict) and str(row.get("source_id") or "")
+    ]
+    sources.sort(
+        key=lambda row: (
+            int(row.get("enabled_certification_users_on_source") or 0),
+            str(row.get("source_id") or ""),
+        ),
+        reverse=True,
+    )
+    source_id = str((sources[0] if sources else {}).get("source_id") or "")
+    blockers = []
+    if not validation.get("ok"):
+        blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
+    if int((validation.get("policy") or {}).get("max_users_per_action") or 0) != 48:
+        blockers.append("tier48_standing_policy_required")
+    if not source_id:
+        blockers.append("active_controlled_source_required")
+    if blockers:
+        return {
+            "schema_version": "v7.controlled-certification-substrate-authority-entrypoint.v1",
+            "status": "STOP_SAFE_PREDECESSOR_REQUIRED",
+            "ok": False,
+            "blockers": sorted(set(str(item) for item in blockers)),
+            "controlled_certification_pool": pool,
+            "forbidden_effects": {
+                "audit_write": False,
+                "policy_write": False,
+                "registry_write": False,
+                "identity_creation": False,
+                "assignment_change": False,
+                "controlled_condition": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": 0,
+                "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+    request = operator_execution.build_controlled_certification_substrate_authority_request(
+        active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        source_id=source_id,
+        current_pool_status=pool,
+        current_policy_contract_id=str(contract.get("contract_id") or ""),
+        current_policy_contract_hash=str(contract.get("contract_hash") or ""),
+    )
+    registration = (
+        operator_execution.register_controlled_certification_substrate_authority_request(
+            request,
+            audit_store=audit_store,
+            producer_id="tools/v7-users-autoswitch",
+        )
+    )
+    return {
+        "schema_version": "v7.controlled-certification-substrate-authority-entrypoint.v1",
+        "status": "PASS",
+        "ok": True,
+        "authority_classification": "ENGINEERING_AUTHORITY",
+        "request": request,
+        "registration": registration,
+        "next_required_consumer": "existing independent Authority owner",
+        "reentry_condition": request["reentry_condition"],
+        "forbidden_effects": {
+            "audit_write": bool(registration.get("audit_write")),
+            "policy_write": False,
+            "registry_write": False,
+            "identity_creation": False,
+            "assignment_change": False,
+            "controlled_condition": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
 
 
 def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
@@ -13758,6 +14030,10 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
 
 def main() -> int:
     args = build_arg_parser().parse_args()
+    if args.prepare_controlled_certification_substrate_authority_request:
+        result = controlled_certification_substrate_authority_request_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
     if args.standing_delegated_policy_status:
         result = standing_delegated_policy_status_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

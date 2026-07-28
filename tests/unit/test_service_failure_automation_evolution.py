@@ -173,6 +173,61 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertNotIn("10.7.0.16", rendered)
             self.assertNotIn("10.0.0.2", rendered)
 
+    def test_substrate_authority_entrypoint_reuses_existing_owner_and_has_zero_effects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.16 enabled=1 current=controlled certification_user=1\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=controlled enabled=1 controlled_certification_source=1\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({"delegated_autonomy_policy": {"contract_id": "sdpc", "contract_hash": "h"}}),
+                encoding="utf-8",
+            )
+            audit = root / "audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--policy-file", str(policy_file),
+                "--action-class-audit-store", str(audit),
+            ])
+            request = {
+                "request_id": "cpsauth_r1_unit",
+                "request_hash": "hash",
+                "reentry_condition": "decision",
+            }
+            with mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": {"max_users_per_action": 48}},
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "build_controlled_certification_substrate_authority_request",
+                return_value=request,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "register_controlled_certification_substrate_authority_request",
+                return_value={"status": "REGISTERED", "audit_write": True},
+            ):
+                result = (
+                    self.autoswitch
+                    .controlled_certification_substrate_authority_request_only(args)
+                )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["authority_classification"], "ENGINEERING_AUTHORITY")
+        self.assertTrue(result["forbidden_effects"]["audit_write"])
+        self.assertFalse(result["forbidden_effects"]["policy_write"])
+        self.assertFalse(result["forbidden_effects"]["registry_write"])
+        self.assertFalse(result["forbidden_effects"]["identity_creation"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_tier48_active_projects_exact_m8_pool_terminal(self):
         cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
             encoding="utf-8",

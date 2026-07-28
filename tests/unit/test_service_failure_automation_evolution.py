@@ -362,7 +362,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(detail["legal_terminal"], expected)
 
-    def test_tier48_pool_boundary_replaces_stale_fresh_event_primary_frontier(self):
+    def test_tier48_pending_substrate_request_is_exact_primary_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
@@ -403,6 +403,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "anti_flap": "PASS",
                 "pending_tier_authority_request": {
                     "status": "NONE", "pending_count": 0,
+                },
+                "controlled_certification_substrate_authority": {
+                    "status": "PENDING",
+                    "request_id": "cpsauth_r1_exact",
+                    "request_hash": "e" * 64,
+                    "created_at": "2026-07-28T00:00:00+00:00",
+                    "expires_at": "2099-01-01T00:00:00+00:00",
+                    "semantic_request_fingerprint": "f" * 64,
+                    "decision": "",
+                    "decision_id": "",
+                    "actor_id": "",
+                    "admitted_subscopes": [],
                 },
                 "controlled_certification_pool": {
                     "status": "CONTROLLED_CERTIFICATION_POOL_INSUFFICIENT_FOR_TIER_5",
@@ -447,7 +459,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(result["final_verdict"], "PASS", result)
             self.assertEqual(
                 result["next_action"],
-                "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION",
+                "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY",
             )
             updated_live = self.sync._markdown_field_table(
                 self.sync._markdown_section(
@@ -462,15 +474,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 updated_live["CURRENT_NEXT_ACTION_ID"].strip("`"),
-                "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION",
+                "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY",
             )
             self.assertEqual(
                 updated_live["PROGRAM_TERMINAL_STATE"].strip("`"),
-                "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY",
+                "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_PROGRAM_EXECUTION_FRONTIER"].strip("`"),
+                "WAITING_INPUT:ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY",
             )
             self.assertEqual(
                 updated_live["EXTERNAL_INPUT_TYPE"].strip("`"),
-                "CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY",
+                "EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECISION",
             )
             self.assertNotEqual(
                 updated_live["PROGRAM_TERMINAL_STATE"].strip("`"),

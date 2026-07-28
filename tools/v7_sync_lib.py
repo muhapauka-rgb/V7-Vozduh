@@ -18331,9 +18331,16 @@ def reconcile_active_standing_delegated_policy_to_cps(
         and controlled_pool_max < 5
         and controlled_substrate_status == "APPROVED"
     )
+    m8_exact_authority_boundary = (
+        tier48_active
+        and controlled_pool_max < 5
+        and controlled_substrate_status
+        in {"PENDING", "EXPIRED", "DECLINED"}
+    )
     m8_pool_boundary = (
         tier48_active
         and controlled_pool_max < 5
+        and not m8_exact_authority_boundary
         and not m8_substrate_approved
     )
     m8_pool_ready = tier48_active and controlled_pool_max >= 5
@@ -18345,6 +18352,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED"
         )
         primary_stop = "NONE"
+    elif m8_exact_authority_boundary:
+        # Consume the exact status already derived by the existing projection
+        # owner.  Do not collapse it back into the older generic pool request,
+        # which could cause a duplicate request or repeated reconciliation.
+        primary_next_action = str(
+            reuse_projection.get("product_evolution_frontier")
+            or "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY"
+        )
+        primary_stop = "ENGINEERING_AUTHORITY"
     elif m8_pool_boundary:
         primary_next_action = "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
         primary_stop = "ENGINEERING_AUTHORITY"
@@ -18381,6 +18397,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "BUILD ONLY THE EXACT INCREMENTAL CERTIFICATION-IDENTITY DELTA FOR TIER 5 THROUGH THE EXISTING IDENTITY, REGISTRY AND ASSIGNMENT OWNERS; REVALIDATE THE APPROVED REQUEST BEFORE EVERY WRITE"
             if m8_substrate_approved else
+            "OBTAIN ONLY THE INDEPENDENT EXISTING-AUTHORITY DECISION FOR THE EXACT REGISTERED CONTROLLED-SUBSTRATE REQUEST; DO NOT CREATE A SECOND REQUEST OR ANY SUBSTRATE/CAMPAIGN EFFECT"
+            if m8_exact_authority_boundary else
             "RECONCILE THE EXISTING CONTROLLED PRODUCTION CERTIFICATION POOL; REQUIRE FIVE OR MORE OWNER-AUTHORIZED ENABLED CERTIFICATION USERS ON ONE ACTIVE CONTROLLED SOURCE; DO NOT RECLASSIFY OR MOVE ORDINARY CUSTOMERS"
             if m8_pool_boundary else
             "PREPARE THE EXISTING T48-M8 CONTROLLED SERVICE FAILURE CERTIFICATION PLAN AND SAFE COHORT THROUGH EXISTING OWNERS; DO NOT FABRICATE A PRODUCTION OUTCOME"
@@ -18392,13 +18410,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
             if active_incident_drain else
             "SERVICE_FAILURE_TIER48_M8_SUBSTRATE_AUTHORITY_APPROVED_REENTRY_V1"
             if m8_substrate_approved else
+            "SERVICE_FAILURE_TIER48_M8_EXACT_SUBSTRATE_AUTHORITY_BOUNDARY_RECONCILED_V1"
+            if m8_exact_authority_boundary else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_BOUNDARY_RECONCILED_V1"
             if m8_pool_boundary else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_READY_RECONCILED_V1"
@@ -18408,6 +18428,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_next_action_id": primary_next_action,
         "current_program_execution_frontier": (
             primary_next_action if active_incident_drain or m8_substrate_approved or m8_pool_ready else
+            f"WAITING_INPUT:{primary_next_action}"
+            if m8_exact_authority_boundary else
             "WAITING_INPUT:CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
             "NONE"
@@ -18420,6 +18442,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
             if m8_substrate_approved else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION"
+            if m8_exact_authority_boundary else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
             "NO_INSIDE_APPROVED_POLICY"
@@ -18429,6 +18453,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
             if m8_substrate_approved else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION"
+            if m8_exact_authority_boundary else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
             "NO_INSIDE_APPROVED_POLICY"
@@ -18440,6 +18466,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_current_primary_stop": (
             "NONE_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
             if m8_substrate_approved else
+            "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; EXACT_CONTROLLED_SUBSTRATE_DECISION_PENDING"
+            if m8_exact_authority_boundary else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
             if m8_pool_boundary else
             primary_stop
@@ -18452,6 +18480,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "exact controlled-substrate Authority decision -> existing certification identity/registry/assignment owners -> incremental Tier-5 pool -> T48-M8 safe-cohort consumer"
             if m8_substrate_approved else
+            "exact registered controlled-substrate request -> independent existing Authority owner -> append-only decision audit -> CPS/OMP residual"
+            if m8_exact_authority_boundary else
             "existing Controlled Production Certification Program user/registry/assignment owners -> T48-M8 pool readiness projection -> OMP"
             if tier48_active else
             "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates"
@@ -18461,6 +18491,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "The exact approved controlled-substrate decision is consumed by the existing T48-M8 owner, which creates only the current incremental pool delta and publishes the safe-cohort successor."
             if m8_substrate_approved else
+            "The existing Authority owner independently decides the exact registered controlled-substrate request; the deployed status consumer then publishes the approved safe successor or the exact decline/expiry residual."
+            if m8_exact_authority_boundary else
             "The existing T48-M8 consumer re-enters automatically when one active controlled source contains five or more owner-authorized enabled certification users."
             if tier48_active else
             "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
@@ -18469,6 +18501,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "sequence_execution_class": (
             "existing Controlled Production Certification Program incremental substrate owner"
             if m8_substrate_approved else
+            "existing independent Authority owner plus operator-execution append-only audit consumer"
+            if m8_exact_authority_boundary else
             "existing Controlled Production Certification Program pool readiness owner"
             if tier48_active and not active_incident_drain else
             "existing Service Matrix fresh-event revalidation owner"
@@ -18476,6 +18510,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "sequence_expected_output": (
             "approved exact substrate request -> incremental Tier-5 certification pool -> T48-M8 certification plan and safe cohort"
             if m8_substrate_approved else
+            "exact APPROVE or DECLINE decision -> append-only audit -> exact CPS/OMP residual"
+            if m8_exact_authority_boundary else
             "owner-authorized controlled pool -> T48-M8 certification plan and safe cohort"
             if tier48_active and not active_incident_drain else
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
@@ -18483,6 +18519,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_frontier_input": (
             "Tier-48 controlled-substrate Authority decision is approved and audit-backed; current pool remains below the first controlled cohort floor"
             if m8_substrate_approved else
+            f"exact registered controlled-substrate request status={controlled_substrate_status}; request_id={controlled_substrate_authority.get('request_id') or 'NONE'}"
+            if m8_exact_authority_boundary else
             "Tier-48 Authority and Runtime are active; current certification-pool projection is owner-backed and below the first controlled cohort floor"
             if m8_pool_boundary else
             "Tier-48 Authority, Runtime and certification-pool readiness are owner-backed"
@@ -18492,6 +18530,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_frontier_owner": (
             "existing Controlled Production Certification Program identity, registry and assignment owners"
             if m8_substrate_approved else
+            "existing independent Authority owner and operator-execution append-only audit owner"
+            if m8_exact_authority_boundary else
             "existing Controlled Production Certification Program user, registry, assignment and Authority owners"
             if tier48_active and not active_incident_drain else
             state["program_frontier_owner"]
@@ -18499,6 +18539,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_frontier_expected_output": (
             "exact incremental identity delta to Tier 5 -> pool readiness -> existing T48-M8 plan/safe-cohort consumer"
             if m8_substrate_approved else
+            f"exact request status={controlled_substrate_status} -> append-only independent decision or expiry-only semantic replacement -> existing T48-M8 consumer"
+            if m8_exact_authority_boundary else
             "five or more dedicated certification users on one active controlled source -> existing T48-M8 plan/safe-cohort consumer; otherwise exact Engineering Authority boundary retained"
             if m8_pool_boundary else
             "controlled plan and safe cohort -> existing T48-M9 progressive production proof"
@@ -18508,12 +18550,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
         "continuation_decision": (
             primary_next_action if omp_should_continue else
-            "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY" if m8_pool_boundary else
+            "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
+            if m8_exact_authority_boundary or m8_pool_boundary else
             "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
         ),
         "program_terminal_class": (
             "NONE" if omp_should_continue else
-            "ENGINEERING_AUTHORITY" if m8_pool_boundary else
+            "ENGINEERING_AUTHORITY"
+            if m8_exact_authority_boundary or m8_pool_boundary else
             "REAL_WORLD_LIMIT"
         ),
         "program_terminal_state": (
@@ -18521,6 +18565,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "NONE_T48_M8_SUBSTRATE_AUTHORITY_APPROVED_SUCCESSOR_READY"
             if m8_substrate_approved else
+            primary_next_action
+            if m8_exact_authority_boundary else
             "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
             if m8_pool_boundary else
             "NONE_T48_M8_CONTROLLED_POOL_READY"
@@ -18528,8 +18574,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
         ),
         "omp_continuation_required": "TRUE" if omp_should_continue else "FALSE",
-        "external_input_required": "TRUE" if m8_pool_boundary or not omp_should_continue else "FALSE",
+        "external_input_required": (
+            "TRUE"
+            if m8_exact_authority_boundary or m8_pool_boundary or not omp_should_continue
+            else "FALSE"
+        ),
         "external_input_type": (
+            "EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECISION"
+            if m8_exact_authority_boundary else
             "CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
             "NONE" if omp_should_continue else
@@ -18547,6 +18599,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if active_incident_drain else
             "EXACT CONTROLLED-SUBSTRATE AUTHORITY DECISION APPROVED; EXISTING T48-M8 OWNER MUST BUILD ONLY THE INCREMENTAL TIER-5 CERTIFICATION POOL DELTA AND REVALIDATE EVERY OWNER BEFORE WRITE"
             if m8_substrate_approved else
+            f"EXACT CONTROLLED-SUBSTRATE REQUEST STATUS={controlled_substrate_status}; NO SUBSTRATE, CAMPAIGN OR ORDINARY-PRODUCTION EFFECT IS LEGAL BEFORE THE EXISTING INDEPENDENT AUTHORITY OWNER DECIDES THE REGISTERED REQUEST"
+            if m8_exact_authority_boundary else
             "TIER48 AUTHORITY AND RUNTIME ACTIVE; EXISTING CONTROLLED CERTIFICATION POOL HAS FEWER THAN FIVE OWNER-AUTHORIZED USERS ON ONE ACTIVE CONTROLLED SOURCE; ORDINARY CUSTOMER RECLASSIFICATION AND UNAUTHORIZED SETUP MOVEMENT FORBIDDEN"
             if m8_pool_boundary else
             "TIER48 CONTROLLED CERTIFICATION POOL READY; EXISTING T48-M8 OWNER MUST PREPARE THE CONTROLLED PLAN AND SAFE COHORT"

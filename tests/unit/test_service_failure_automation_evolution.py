@@ -492,6 +492,52 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 updated_live["PROGRAM_TERMINAL_STATE"].strip("`"),
                 "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT",
             )
+            runtime_status["controlled_certification_substrate_authority"].update({
+                "status": "APPROVED",
+                "decision": (
+                    "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
+                ),
+                "decision_id": "cpsdec_exact",
+                "actor_id": "independent-authority-owner",
+                "admitted_subscopes": [
+                    "IDENTITY_PROVISIONING",
+                    "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+                    "CONTROLLED_SOURCE_CONDITION",
+                    "PROGRESSIVE_CAMPAIGN_EXECUTION",
+                ],
+            })
+            approved = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(approved["final_verdict"], "PASS", approved)
+            self.assertEqual(
+                approved["next_action"],
+                "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED",
+            )
+            approved_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                approved_live["CURRENT_EXECUTION_FRONTIER"].strip("`"), "NONE",
+            )
+            self.assertEqual(
+                approved_live["CONTINUATION_DECISION"].strip("`"),
+                "CONTINUE_PROGRAM_FRONTIER",
+            )
+            self.assertEqual(
+                approved_live["CURRENT_STOP_CONDITION"].strip("`"), "NONE",
+            )
+            self.assertTrue(
+                approved_live["AUTHORITY_REQUIRED_NOW"].strip("`").startswith(
+                    "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
+                )
+            )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):
         with tempfile.TemporaryDirectory() as tmp:

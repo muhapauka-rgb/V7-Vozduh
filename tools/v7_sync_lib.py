@@ -18435,12 +18435,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NONE"
         ),
         "current_execution_frontier": (
-            primary_next_action if active_incident_drain or m8_substrate_approved or m8_pool_ready else "NONE"
+            primary_next_action if active_incident_drain else "NONE"
         ),
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
-            "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
+            "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
             if m8_substrate_approved else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION"
             if m8_exact_authority_boundary else
@@ -18451,7 +18451,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
-            "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
+            "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
             if m8_substrate_approved else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION"
             if m8_exact_authority_boundary else
@@ -18549,7 +18549,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
         "continuation_decision": (
-            primary_next_action if omp_should_continue else
+            primary_next_action if active_incident_drain else
+            "CONTINUE_PROGRAM_FRONTIER"
+            if m8_substrate_approved or m8_pool_ready else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
             if m8_exact_authority_boundary or m8_pool_boundary else
             "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"

@@ -115,7 +115,9 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         self.assertIn("--omp-scenario-execution", source)
         self.assertIn("execute_future_scale_scenario", source)
         self.assertIn("V7_FSSE_SCENARIO_ROOT", source)
-        self.assertIn("root=fsse_scenario_root()", source)
+        self.assertIn("scenario_root = fsse_scenario_root()", source)
+        self.assertIn("polygon_production_certification_layout", source)
+        self.assertIn('root=Path("/opt/v7")', source)
 
 
 if __name__ == "__main__":

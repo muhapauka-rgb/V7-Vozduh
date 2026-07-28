@@ -10216,5 +10216,57 @@ Legal consumed outcomes are:
 - `DECLINE_DECISION_CONSUMED`.
 
 The current Matrix-owned incident drain remains independent and continues
-under its existing Tier-1 standing policy while this evidence projection is
-reconciled.
+under its exact active Tier-4 standing policy while this evidence projection
+is reconciled. Runtime remains serial and every attempt retains the current
+incident, scope and live-gate contracts.
+
+## 43. Incident-Bound Tier Cohort Admission And Atomic Revalidation Law
+
+Classification: `PERMANENT_RULE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Incident owner: existing Service Failure obligation and OMP consumption
+owners.
+Execution owner: existing governed movement lifecycle.
+Authority owner: existing delegated-policy Authority owner.
+
+A standing delegated policy is necessary but is not sufficient to enter the
+Service Failure cohort planner. Every bounded production attempt must also be
+bound to one current durable incident obligation, its exact OMP consumption
+receipt and one fresh matching capture-only event.
+
+```text
+VALID_STANDING_POLICY
+AND
+CURRENT_DURABLE_OBLIGATION
+AND
+MATCHING_OMP_CONSUMPTION
+AND
+FRESH_MATCHING_CAPTURE_EVENT
+AND
+POSITIVE_CURRENT_SOURCE_SCOPE
+-> PLANNER_MATERIALIZATION_ELIGIBLE
+```
+
+Missing, stale, mismatched or empty incident scope stops before Candidate,
+Packet, lease, restore-barrier write or apply. A generic balancing
+recommendation must never enter a Service Failure action merely because the
+standing tier permits the same movement count.
+
+For a cohort, operation-scoped source and snapshot truth is one atomic
+all-member binding. Both Packet creation and restore-barrier revalidation must
+use the same deterministic cohort projection. Reducing a cohort to its first
+member is invalid.
+
+The Matrix lifecycle owns compact caller/consumer pointers only. Complete
+Packet, execution, Outcome and Learning facts remain in their existing
+specialized owners. Empty-scope production proof is a valid safe terminal but
+is not a Tier movement Outcome and cannot advance the production-proven tier.
+
+The legal empty-scope terminal is:
+
+`STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY`.
+
+The durable successor remains the ordinary enabled Matrix timer. The next
+genuine positive-scope matching incident may automatically re-enter the
+existing planner under the current exact tier, without Codex or operator
+continuation and without reusing any Candidate, Packet or lease.

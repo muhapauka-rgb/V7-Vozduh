@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.8`
+Version: `1.9`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,92 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V1.9 revision record — incident-bound Matrix admission and atomic cohort revalidation
+
+V1.9 closes two existing producer-consumer defects discovered by the first
+natural Tier-4 caller. It creates no Program, owner, queue, registry, Planner,
+Runtime, certification path or Authority path.
+
+The first post-activation natural Matrix generation reached the existing L3
+cohort executor, but its selected moves belonged to ordinary healthy-channel
+balancing rather than the current Service Failure obligation. The same
+attempt's downstream operation-scoped verifier compared the approved
+four-member cohort with a one-member binding. It stopped before apply with
+zero movement, but it proved these exact defects:
+
+```text
+standing Tier-4 policy
+-> generic planner selection not bound to current incident obligation
+-> cohort approved from one atomic read
+-> downstream revalidation reduced to first member only
+-> STOP_SAFE atomic source mismatch
+```
+
+The existing owners now enforce:
+
+```text
+current durable Service Failure obligation
+AND matching OMP consumption
+AND fresh capture-only event
+AND exact incident/source/scope fingerprint
+-> existing planner
+-> fresh Candidate/Packet/lease
+-> all-member atomic cohort revalidation
+```
+
+An empty or unresolved-zero current source scope stops inside the Matrix owner
+before invoking the executor. A positive scope may enter the executor only
+with the exact obligation, incident, source and scope fingerprint passed by
+the Matrix generation and independently re-read from the durable closure and
+event owners. Packet lineage carries that causal binding. Every cohort member
+is then revalidated from one stable source/snapshot read; no first-member
+projection is permitted.
+
+Implementation commits:
+
+- `432fdbbf786b80b2e3f5a1e60efe2139a54b4309` — existing Tier-4 cohort
+  execution path and standing-policy binding;
+- `038568d4c78b91f108da1f91d154e89f6bdc273e` — exact incident-obligation
+  admission plus all-member downstream revalidation.
+
+Production deploy:
+
+- deploy ID:
+  `deploy-z8-14-Updatesystem-038568d-20260728T110359`;
+- exact changed Runtime files:
+  `tools/v7-users-autoswitch`,
+  `tools/v7-governed-canary-dry-run-cycle`,
+  `tools/v7-service-matrix-refresh-all`,
+  `admin_core/operator_execution.py`.
+
+No Matrix command was invoked manually. The first fully post-deploy timer
+generation ran from `2026-07-28T04:18:28+00:00` to
+`2026-07-28T04:19:46+00:00` and produced:
+
+```text
+obligation = sfaob_bbb80ec875743dbf720c8395
+source incident = sfinc_79c7265b16283934089d5119f65455dd
+source = 1
+affected = 0
+unresolved = 0
+terminal = STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY
+action_attempted = false
+Candidate/Packet/lease = none
+restore-barrier write/apply/movement = none
+```
+
+The route owner also contains one `current=vless` registry row,
+`10.7.0.7`, but it is disabled (`enabled=0`) and therefore is not a member of
+the active Service Failure source scope. Current VLESS active affected and
+unresolved counts remain zero.
+
+This production result proves the caller and fail-closed empty-scope consumer.
+It does not prove a Tier-4 movement outcome. The first genuine positive-scope
+incident must still produce fresh Event/Candidate/Packet/lease, per-user and
+aggregate verification, circuit-breaker, rollback/no-rollback, Outcome,
+Replay, Learning and scope update. Tier 5 remains outside the current
+Authority and must not start from this result.
 
 ## V1.8 revision record — Tier 4 activated and natural Matrix boundary proven
 

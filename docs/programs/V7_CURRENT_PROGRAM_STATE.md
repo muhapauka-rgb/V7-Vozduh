@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-28T02:34:46+00:00
+State captured: 2026-07-28T04:19:46+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: The existing Matrix -> delegated Packet -> execution-feedback chain cons
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-28T02:34:46+00:00`
+Captured: `2026-07-28T04:19:46+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,8 +32,8 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE` |
 | `CURRENT_SAFE_NEXT_ACTION` | `ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
@@ -369,6 +369,16 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_AUTHORITY_CONTRACT_HASH` | `a3cd9882bf0850010a6e37b5e1fbbadcf7e2865fa6002b2fe30a9a2e219a0e25` |
 | `CURRENT_AUTHORITY_CONTRACT_ID` | `sdpc_a3cd9882bf0850010a6e37b5` |
 | `CURRENT_AUTHORITY_POLICY_SCOPE_HASH` | `cdd21744e65ad49b69d0a88c9c3df7ee3244766cbdc71bee913bbd2b3c9d4ccb` |
+| `CURRENT_TIER4_MATRIX_CALLER_STATUS` | `PRODUCTION_CALLER_CONSUMED_STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY` |
+| `CURRENT_TIER4_MATRIX_CALLER_OBLIGATION_ID` | `sfaob_bbb80ec875743dbf720c8395` |
+| `CURRENT_TIER4_MATRIX_CALLER_SOURCE_INCIDENT_ID` | `sfinc_79c7265b16283934089d5119f65455dd` |
+| `CURRENT_TIER4_MATRIX_CALLER_SOURCE` | `1` |
+| `CURRENT_TIER4_MATRIX_CALLER_ACTION_ATTEMPTED` | `FALSE` |
+| `CURRENT_TIER4_MATRIX_CALLER_USERS_MOVED` | `0` |
+| `CURRENT_TIER4_MATRIX_CALLER_RUNTIME_MUTATION` | `FALSE` |
+| `CURRENT_TIER4_MATRIX_CALLER_PRODUCTION_WINDOW` | `2026-07-28T04:18:28+00:00..2026-07-28T04:19:46+00:00` |
+| `CURRENT_SERVICE_FAILURE_INCIDENT_BINDING_STATUS` | `PRODUCTION_PROVEN; exact current obligation gates planner entry; empty scope stops before Candidate/Packet/lease` |
+| `CURRENT_SERVICE_FAILURE_COHORT_BINDING_STATUS` | `IMPLEMENTED_TESTED_DEPLOYED; atomic all-member source/snapshot revalidation; positive-scope production Outcome still required` |
 | `LAST_SERVICE_FAILURE_RECEIPT_CLASSIFICATION` | `CORRECT_SAFE_TERMINAL` |
 | `LAST_SERVICE_FAILURE_RECEIPT_CONSUMPTION` | `HISTORICAL_CONSUMED_ACTIVE_STANDING_POLICY_FRONTIER_PRESERVED` |
 | `LAST_SERVICE_FAILURE_RECEIPT_DECISION_TRACE` | `decision_356fe5f1626216ac1974b138` |
@@ -525,8 +535,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -556,8 +566,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
-| `current_transition_id` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
+| `current_state_generation` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
+| `current_transition_id` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
 | `smallest_existing_next_action_id` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -643,7 +653,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT`; `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; activation does not itself create Candidate/Packet/lease or move a user | `REAL_WORLD_LIMIT` | fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D`; `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; exact current incident obligation and positive scope are required before Candidate/Packet/lease | `REAL_WORLD_LIMIT` | fresh event -> exact obligation/OMP receipt -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

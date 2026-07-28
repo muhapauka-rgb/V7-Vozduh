@@ -208,3 +208,20 @@ owner-authorized assignment достаточного состава на оди�
 До выполнения re-entry condition `T48-M9` не начинается, evidence не
 фабрикуется, обычные клиенты не перемещаются. CPS, OMP и Runtime сохраняют
 активный Tier-48 contract и точный durable successor.
+
+## Финальная truth/convergence
+
+- `tools/v7-truth-check --all --json`: `PASS`,
+  `convergence_status=FULLY_ALIGNED`;
+- CPS: `ATOMIC_CPS_LIVE_STATE_CONSISTENT`;
+- local/GitHub source commits: совпадают;
+- production runtime commit:
+  `0fa3b7b8c0427507175405df74a91c286078e3d4`;
+- более новый source commit содержит только CPS/OMP/report documentation;
+  classification: `DOCS_ONLY_MISMATCH`, `deployment_required=false`, `PASS`;
+- `tools/v7-convergence-status --json`: `PASS`, `status=ALIGNED`;
+- deploy delta mismatches: `0`;
+- local и production hashes всех allowlisted runtime artifacts совпадают.
+
+Существующие чужие documentation-only изменения в рабочем дереве сохранены и
+не включены в commits этой работы.

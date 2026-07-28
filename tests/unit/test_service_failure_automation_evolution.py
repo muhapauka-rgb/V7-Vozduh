@@ -868,6 +868,169 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor",
             )
 
+    def test_policy_reconciliation_consumes_exact_pending_tier4_transition_and_closes_empty_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
+            source = cps_path.read_text(encoding="utf-8")
+            live = self.sync._markdown_field_table(self.sync._markdown_section(
+                source, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            contract_hash = "a" * 64
+            runtime_status = {
+                "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+                "status": "PASS", "ok": True, "contract_status": "ACTIVE",
+                "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                "authority_decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                "audit_provenance_verified": True,
+                "contract_id": f"sdpc_{contract_hash[:24]}",
+                "contract_hash": contract_hash,
+                "authority_request_id": live[
+                    "CURRENT_TIER_AUTHORITY_REQUEST_ID"
+                ].strip("`"),
+                "authority_request_hash": live[
+                    "CURRENT_TIER_AUTHORITY_REQUEST_HASH"
+                ].strip("`"),
+                "expires_at": "2099-01-01T00:00:00+00:00",
+                "policy_scope_hash": live[
+                    "CURRENT_TIER_AUTHORITY_REQUEST_POLICY_SCOPE_HASH"
+                ].strip("`"),
+                "action_class": live[
+                    "CURRENT_TIER_AUTHORITY_REQUEST_ACTION_CLASS"
+                ].strip("`"),
+                "max_users_per_action": 4,
+                "max_concurrent_transactions": 1,
+                "allowed_failure_families": [
+                    "channel_hard_fail", "service_specific_failure",
+                ],
+                "cooldown": {
+                    "per_user_seconds": 1800,
+                    "per_source_target_pair_seconds": 1800,
+                },
+                "anti_flap": "PASS",
+                "pending_tier_authority_request": {
+                    "status": "NONE", "pending_count": 0,
+                },
+                "service_failure_causal_integrity": {
+                    "schema_version": "v7.service-failure-causal-integrity-status.v1",
+                    "final_verdict": "PASS", "invalid_states": [],
+                    "open_incident_projections": [{
+                        "incident_id": live["CURRENT_VLESS_INCIDENT_ID"].strip("`"),
+                        "incident_generation": "generation-runtime-drained",
+                        "source_channel": "vless",
+                        "incident_state": "SOURCE_SCOPE_EMPTY",
+                        "affected_scope_count": 0,
+                        "protected_scope_count": 0,
+                        "unresolved_scope_count": 0,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                        "affected_scope_fingerprint": "affected-empty",
+                        "protected_scope_fingerprint": "protected-empty",
+                        "unresolved_scope_fingerprint": "unresolved-empty",
+                        "explicitly_excluded_or_recovered_scope_fingerprint": "excluded-empty",
+                        "last_execution_feedback_id": "execfb_last",
+                        "last_outcome_id": "outcome_last",
+                        "last_learning_id": "learning_last",
+                        "last_packet_id": "packet_last",
+                        "next_required_consumer": "tools/v7-service-matrix-refresh-all",
+                        "reentry_condition": "fresh Matrix observation",
+                    }],
+                },
+            }
+            result = self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                runtime_status, root=root,
+            )
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(
+                result["next_action"],
+                "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            )
+            updated = cps_path.read_text(encoding="utf-8")
+            updated_live = self.sync._markdown_field_table(self.sync._markdown_section(
+                updated, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+            ))
+            self.assertEqual(
+                updated_live["CURRENT_AUTHORITY_REQUEST_ID"].strip("`"),
+                runtime_status["authority_request_id"],
+            )
+            self.assertEqual(
+                updated_live["CURRENT_TIER_AUTHORITY_REQUEST_STATUS"].strip("`"),
+                "ACTIVATED",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER"].strip("`"),
+                "TIER_4_CURRENT_STANDING_POLICY",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"),
+                "TIER_4_SERIAL_COHORT",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER"].strip("`"),
+                "TIER_1_CURRENT_CLASS; TIER_4_ACTIVE_AWAITING_FIRST_NATURAL_COHORT_OUTCOME",
+            )
+            self.assertEqual(
+                updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
+                "EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED",
+            )
+            self.assertEqual(
+                updated_live["INCIDENT_FRONTIER"].strip("`"),
+                "CURRENT_SOURCE_SCOPE_EMPTY",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "0",
+            )
+            self.assertEqual(
+                result["action_class_reuse_projection"]["legal_terminal"],
+                "EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED",
+            )
+            tier_matrix = {
+                row["tier"]: row
+                for row in result["action_class_reuse_projection"][
+                    "service_failure_adapter_tier_matrix"
+                ]
+            }
+            self.assertEqual(tier_matrix[4]["exact_residual"], "NONE")
+
+    def test_policy_reconciliation_rejects_unproven_tier_request_transition(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md", cps_path)
+            contract_hash = "a" * 64
+            runtime_status = {
+                "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
+                "status": "PASS", "ok": True, "contract_status": "ACTIVE",
+                "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                "authority_decision": "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                "audit_provenance_verified": True,
+                "contract_id": f"sdpc_{contract_hash[:24]}",
+                "contract_hash": contract_hash,
+                "authority_request_id": "sdpauth_r1_" + ("f" * 24),
+                "authority_request_hash": "f" * 64,
+                "expires_at": "2099-01-01T00:00:00+00:00",
+                "policy_scope_hash": "e" * 64,
+                "action_class": "channel hard-fail failover",
+                "max_users_per_action": 4,
+                "max_concurrent_transactions": 1,
+                "service_failure_causal_integrity": {
+                    "schema_version": "v7.service-failure-causal-integrity-status.v1",
+                    "final_verdict": "PASS", "invalid_states": [],
+                    "open_incident_projections": [],
+                },
+            }
+            result = self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                runtime_status, root=root,
+            )
+            self.assertEqual(result["final_verdict"], "STOP_SAFE")
+            self.assertEqual(
+                result["errors"], ["cps_runtime_authority_request_mismatch"],
+            )
+
     def test_causal_integrity_status_names_missing_successor_scope_and_history(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

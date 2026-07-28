@@ -166,7 +166,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 result["max_enabled_certification_users_on_one_active_source"], 3,
             )
-            self.assertEqual(result["missing_users_for_tier_5"], 2)
+            self.assertEqual(result["missing_users_for_tier_5"], 5)
+            self.assertEqual(
+                result[
+                    "max_enabled_certification_users_on_one_isolated_active_source"
+                ],
+                0,
+            )
+            self.assertEqual(result["mixed_controlled_source_count"], 1)
+            self.assertEqual(
+                result["exact_blocker"],
+                "active_controlled_source_contains_non_certification_users",
+            )
+            self.assertFalse(
+                result["active_source_projections"][0][
+                    "source_isolated_for_controlled_failure"
+                ]
+            )
             self.assertFalse(result["raw_user_list_stored"])
             self.assertFalse(result["ordinary_customer_reclassification_allowed"])
             rendered = json.dumps(result, sort_keys=True)
@@ -227,6 +243,73 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(result["forbidden_effects"]["registry_write"])
         self.assertFalse(result["forbidden_effects"]["identity_creation"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
+    def test_substrate_request_selects_existing_empty_isolated_source_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.16 enabled=1 current=mixed certification_user=1\n"
+                "ip=10.0.0.2 enabled=1 current=mixed\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=mixed type=interface enabled=1 controlled_certification_source=1\n"
+                "id=spare type=interface protocol=wireguard enabled=1\n"
+                "id=execution type=interface enabled=1 execution_reserved=1 "
+                "production_assignment_allowed=false\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc",
+                        "contract_hash": "h",
+                    },
+                }),
+                encoding="utf-8",
+            )
+            audit = root / "audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--policy-file", str(policy_file),
+                "--action-class-audit-store", str(audit),
+            ])
+            captured = {}
+
+            def build_request(**kwargs):
+                captured.update(kwargs)
+                return {
+                    "request_id": "cpsauth_r1_isolated",
+                    "request_hash": "hash",
+                    "reentry_condition": "decision",
+                }
+
+            with mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={
+                    "ok": True,
+                    "policy": {"max_users_per_action": 48},
+                },
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "build_controlled_certification_substrate_authority_request",
+                side_effect=build_request,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "register_controlled_certification_substrate_authority_request",
+                return_value={"status": "REGISTERED", "audit_write": True},
+            ):
+                result = (
+                    self.autoswitch
+                    .controlled_certification_substrate_authority_request_only(args)
+                )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(captured["source_id"], "spare")
 
     def test_tier48_active_projects_exact_m8_pool_terminal(self):
         cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
@@ -536,6 +619,53 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertTrue(
                 approved_live["AUTHORITY_REQUIRED_NOW"].strip("`").startswith(
                     "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
+                )
+            )
+            runtime_status[
+                "controlled_certification_substrate_authority"
+            ]["source_precondition_status"] = (
+                "STOP_SAFE_MIXED_OR_UNAVAILABLE_SOURCE"
+            )
+            runtime_status["controlled_certification_pool"].update({
+                "max_enabled_certification_users_on_one_isolated_active_source": 0,
+                "mixed_controlled_source_count": 1,
+                "exact_blocker": (
+                    "active_controlled_source_contains_non_certification_users"
+                ),
+            })
+            invalid_source = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                invalid_source["final_verdict"], "PASS", invalid_source,
+            )
+            self.assertEqual(
+                invalid_source["next_action"],
+                "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_ISOLATED_SOURCE_REQUEST_REQUIRED",
+            )
+            invalid_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                invalid_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "ENGINEERING_AUTHORITY",
+            )
+            self.assertEqual(
+                invalid_live["CURRENT_EXECUTION_FRONTIER"].strip("`"), "NONE",
+            )
+            self.assertEqual(
+                invalid_live["CURRENT_PROGRAM_EXECUTION_FRONTIER"].strip("`"),
+                "WAITING_INPUT:ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_ISOLATED_SOURCE_REQUEST_REQUIRED",
+            )
+            self.assertTrue(
+                invalid_live["AUTHORITY_REQUIRED_NOW"].strip("`").startswith(
+                    "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
                 )
             )
 

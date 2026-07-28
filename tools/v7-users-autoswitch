@@ -706,6 +706,10 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         if bool_value(row.get("certification_user"))
         and bool_value(row.get("enabled", "1"))
     ]
+    enabled_users = [
+        row for row in users
+        if bool_value(row.get("enabled", "1"))
+    ]
     active_sources = [
         row for row in egress
         if bool_value(row.get("controlled_certification_source"))
@@ -720,6 +724,14 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
             row for row in enabled_certification_users
             if str(row.get("current") or "") == source_id
         ]
+        assigned_enabled = [
+            row for row in enabled_users
+            if str(row.get("current") or "") == source_id
+        ]
+        assigned_non_certification = [
+            row for row in assigned_enabled
+            if not bool_value(row.get("certification_user"))
+        ]
         group_aligned = [
             row for row in assigned
             if not source_group
@@ -730,17 +742,67 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
             "certification_group": source_group,
             "enabled_certification_users_on_source": len(assigned),
             "group_aligned_certification_users_on_source": len(group_aligned),
+            "enabled_non_certification_users_on_source": len(
+                assigned_non_certification
+            ),
+            "source_isolated_for_controlled_failure": (
+                not assigned_non_certification
+            ),
         })
     max_users_on_one_source = max(
         (int(row["enabled_certification_users_on_source"]) for row in source_rows),
         default=0,
     )
+    isolated_source_rows = [
+        row for row in source_rows
+        if bool(row.get("source_isolated_for_controlled_failure"))
+    ]
+    max_users_on_one_isolated_source = max(
+        (
+            int(row["enabled_certification_users_on_source"])
+            for row in isolated_source_rows
+        ),
+        default=0,
+    )
+    assigned_source_ids = {
+        str(row.get("current") or "")
+        for row in enabled_users
+        if str(row.get("current") or "")
+    }
+    isolated_source_candidates = []
+    for source in sorted(egress, key=lambda row: str(row.get("id") or "")):
+        source_id = str(source.get("id") or "")
+        if (
+            not source_id
+            or source_id in assigned_source_ids
+            or not bool_value(source.get("enabled", "1"))
+            or str(source.get("state") or "").lower()
+            in {"disabled", "maintenance"}
+            or bool_value(source.get("execution_reserved"))
+            or str(source.get("production_assignment_allowed") or "").lower()
+            in {"0", "false", "no"}
+            or str(source.get("type") or "") != "interface"
+        ):
+            continue
+        isolated_source_candidates.append({
+            "source_id": source_id,
+            "protocol": str(source.get("protocol") or ""),
+            "controlled_certification_marker_present": bool_value(
+                source.get("controlled_certification_source")
+            ),
+            "enabled_assigned_users": 0,
+            "source_isolated_for_controlled_failure": True,
+        })
     ladder = (5, 10, 25, 48)
     next_required_tier = next(
-        (tier for tier in ladder if max_users_on_one_source < tier),
+        (tier for tier in ladder if max_users_on_one_isolated_source < tier),
         48,
     )
-    tier5_ready = max_users_on_one_source >= 5
+    tier5_ready = max_users_on_one_isolated_source >= 5
+    mixed_source_count = len([
+        row for row in source_rows
+        if int(row.get("enabled_non_certification_users_on_source") or 0) > 0
+    ])
     projection = {
         "schema_version": "v7.controlled-certification-pool-status.v1",
         "owner": "existing users.registry + egress.registry certification markers",
@@ -752,16 +814,26 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         "total_enabled_certification_users": len(enabled_certification_users),
         "active_controlled_source_count": len(active_sources),
         "max_enabled_certification_users_on_one_active_source": max_users_on_one_source,
+        "max_enabled_certification_users_on_one_isolated_active_source": (
+            max_users_on_one_isolated_source
+        ),
+        "mixed_controlled_source_count": mixed_source_count,
         "next_required_tier": next_required_tier,
-        "missing_users_for_tier_5": max(0, 5 - max_users_on_one_source),
+        "missing_users_for_tier_5": max(
+            0, 5 - max_users_on_one_isolated_source
+        ),
         "tier_readiness": {
-            str(tier): max_users_on_one_source >= tier for tier in ladder
+            str(tier): max_users_on_one_isolated_source >= tier
+            for tier in ladder
         },
         "active_source_projections": source_rows,
+        "isolated_source_candidates": isolated_source_candidates,
         "raw_user_list_stored": False,
         "ordinary_customer_reclassification_allowed": False,
         "exact_blocker": (
             "NONE" if tier5_ready else
+            "active_controlled_source_contains_non_certification_users"
+            if mixed_source_count and not isolated_source_rows else
             "fewer_than_5_enabled_certification_users_on_one_active_controlled_source"
         ),
         "responsible_existing_owner": (
@@ -770,7 +842,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         ),
         "reentry_condition": (
             "five_or_more_existing_owner_authorized_enabled_certification_users_are_"
-            "assigned_to_one_active_controlled_source"
+            "assigned_to_one_active_controlled_source_with_zero_enabled_"
+            "non_certification_users"
         ),
         "read_only": True,
         "registry_hashes": {
@@ -13722,6 +13795,16 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             audit_records,
         )
     )
+    controlled_substrate_request = (
+        controlled_substrate_authority.get("request")
+        if isinstance(controlled_substrate_authority.get("request"), dict)
+        else {}
+    )
+    controlled_substrate_scope = (
+        controlled_substrate_request.get("scope")
+        if isinstance(controlled_substrate_request.get("scope"), dict)
+        else {}
+    )
     pending_request = (
         pending_owner_result.get("request")
         if isinstance(pending_owner_result.get("request"), dict)
@@ -13739,6 +13822,23 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     causal_integrity = service_failure_causal_integrity_status(Path(args.state_dir))
     controlled_pool = controlled_certification_pool_status(Path(args.state_dir))
+    controlled_substrate_source_id = str(
+        controlled_substrate_scope.get("source_id") or ""
+    )
+    controlled_substrate_source_projection = next((
+        row
+        for row in (
+            controlled_pool.get("active_source_projections") or []
+        )
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "")
+        == controlled_substrate_source_id
+    ), {})
+    controlled_substrate_source_isolated = bool(
+        controlled_substrate_source_projection.get(
+            "source_isolated_for_controlled_failure"
+        )
+    )
     cooldown = policy_scope.get("cooldown") if isinstance(policy_scope.get("cooldown"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -13808,6 +13908,18 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             "actor_id": str(controlled_substrate_authority.get("actor_id") or ""),
             "admitted_subscopes": list(
                 controlled_substrate_authority.get("admitted_subscopes") or []
+            ),
+            "source_id": controlled_substrate_source_id,
+            "source_currently_active_controlled": bool(
+                controlled_substrate_source_projection
+            ),
+            "source_currently_isolated": (
+                controlled_substrate_source_isolated
+            ),
+            "source_precondition_status": (
+                "PASS"
+                if controlled_substrate_source_isolated
+                else "STOP_SAFE_MIXED_OR_UNAVAILABLE_SOURCE"
             ),
         },
         "pending_tier_authority_request": {
@@ -13888,7 +14000,11 @@ def controlled_certification_substrate_authority_request_only(
     pool = controlled_certification_pool_status(Path(args.state_dir))
     sources = [
         row for row in (pool.get("active_source_projections") or [])
-        if isinstance(row, dict) and str(row.get("source_id") or "")
+        if (
+            isinstance(row, dict)
+            and str(row.get("source_id") or "")
+            and bool(row.get("source_isolated_for_controlled_failure"))
+        )
     ]
     sources.sort(
         key=lambda row: (
@@ -13897,14 +14013,22 @@ def controlled_certification_substrate_authority_request_only(
         ),
         reverse=True,
     )
-    source_id = str((sources[0] if sources else {}).get("source_id") or "")
+    source_candidate = sources[0] if sources else {}
+    if not source_candidate:
+        candidates = [
+            row for row in (pool.get("isolated_source_candidates") or [])
+            if isinstance(row, dict) and str(row.get("source_id") or "")
+        ]
+        candidates.sort(key=lambda row: str(row.get("source_id") or ""))
+        source_candidate = candidates[0] if candidates else {}
+    source_id = str(source_candidate.get("source_id") or "")
     blockers = []
     if not validation.get("ok"):
         blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
     if int((validation.get("policy") or {}).get("max_users_per_action") or 0) != 48:
         blockers.append("tier48_standing_policy_required")
     if not source_id:
-        blockers.append("active_controlled_source_required")
+        blockers.append("isolated_controlled_source_or_existing_candidate_required")
     if blockers:
         return {
             "schema_version": "v7.controlled-certification-substrate-authority-entrypoint.v1",

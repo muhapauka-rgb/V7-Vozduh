@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.6`
+Version: `1.7`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,78 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V1.7 revision record — adapter bridge consumed and exact Authority handoff
+
+V1.7 records the consumed result of the V1.6 Product Evolution frontier. It
+does not create a Program, owner, queue, registry, Planner, Runtime,
+certification path or Authority path.
+
+The existing historical evidence owner was reused without repeating the
+1/2/4/5/10/25/48 movement ladder. The generic movement evidence fingerprint
+remains:
+
+`7ad9511f521e0a906bd0e9dff33de401e9bbf86f4187722d61b27a48c11b7040`.
+
+The existing Service Failure owners were selectively extended and connected:
+
+```text
+existing standing-policy Authority audit
+-> read-only pending request projection
+-> existing autoswitch status owner
+-> existing truth-check production caller
+-> atomic CPS/OMP consumer
+```
+
+The exact engineering result is:
+
+```text
+GENERIC_MOVEMENT_CAPABILITY_REUSED
+AND
+SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER
+```
+
+The qualified maximum is `Tier 4`, serial execution only. The adapter now
+binds the existing incident, exact immutable cohort, fresh Candidate/Packet/
+lease identities, existing assignment and route owners, per-user plus
+aggregate service verification, cohort circuit breaker, rollback/containment,
+Outcome, Replay, Learning and scope reconciliation. Runtime activation did not
+change.
+
+The current independent scopes remain:
+
+| Projection | Current value |
+| --- | --- |
+| generic movement engineering evidence | scopes `1,2,4,5,10,25,48`; serial cohort up to `48` |
+| exact Service Failure adapter compatibility | `Tier 4` |
+| current Authority-approved tier | `Tier 1` |
+| Runtime-enabled tier | `Tier 1`, concurrency `1` |
+| current incident lane | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| Product Evolution lane | `EXACT_TIER_AUTHORITY_DECISION_REQUIRED` |
+
+Tiers 5 and above retain exact selective residuals. They require owner-backed
+replay/duplicate-suppression evidence above four, partial-apply containment or
+rollback evidence above four, and for Tier 48 packet-identity preservation
+above 25. These are not grounds to repeat already valid generic movement
+certification.
+
+The existing Authority audit owns exactly one pending Tier-4 decision package:
+
+- request: `sdpauth_r1_ed99070cd98caa0f054ffb6e`;
+- hash:
+  `ed99070cd98caa0f054ffb6e244cf901bde0034a84d0696cd33e5bb1385d820d`;
+- expires: `2026-07-28T19:22:36.056237+00:00`;
+- requested max users per transaction: `4`;
+- max concurrent transactions: `1`;
+- action class: `channel hard-fail failover`;
+- decision set:
+  `APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY` or `DECLINE`.
+
+This request is a decision input, not Authority. It must not write policy or
+activate Runtime unless the existing Authority owner consumes one exact
+independent decision while the request remains current. The active Tier-1
+Matrix drain remains independent and must not be paused or manually invoked by
+Product Evolution work.
 
 ## V1.6 revision record — generic movement reuse and adapter qualification
 

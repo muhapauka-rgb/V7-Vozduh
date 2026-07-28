@@ -169,8 +169,8 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
         self.assertIn("COMPLETE", runtime_impact)
         self.assertIn("final Admin Safe Mode OPEN", runtime_impact)
         movement = live["USER_MOVEMENT"].strip("`")
-        self.assertTrue(movement.startswith("YES;"))
-        self.assertIn("owner-authorized bounded controlled user movement", movement)
+        self.assertIn("BOUNDED_USER_MOVED", movement)
+        self.assertIn("no scope expansion", movement)
         self.assertIn("state=OPEN", live["ADMIN_SAFE_MODE_LIVE_STATE"])
 
     def test_21_approved_policy_with_packet_approval_required_fails(self):
@@ -330,7 +330,7 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
 
     def test_40_next_scenario_mismatch_fails_derived_projection_gate(self):
         drift = self.lib._replace_section_field(self.cps, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", "NEXT_SCENARIO_ID", "`HEALTHY_BASELINE_SMALL`")
-        self.assertEqual(self.validate(drift)["current_state_derived_projection_consistency"], "FAIL")
+        self.assertEqual(self.validate_expected(drift)["current_state_derived_projection_consistency"], "FAIL")
 
     def test_41_sequence_head_binds_scenario_and_execution_class(self):
         row = next(line for line in self.cps.splitlines() if line.startswith("| `1` |"))

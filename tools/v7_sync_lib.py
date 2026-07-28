@@ -18351,6 +18351,25 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if tier48_active and not active_incident_drain else
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
         ),
+        "program_frontier_input": (
+            "Tier-48 Authority and Runtime are active; current certification-pool projection is owner-backed and below the first controlled cohort floor"
+            if m8_pool_boundary else
+            "Tier-48 Authority, Runtime and certification-pool readiness are owner-backed"
+            if m8_pool_ready else
+            state["program_frontier_input"]
+        ),
+        "program_frontier_owner": (
+            "existing Controlled Production Certification Program user, registry, assignment and Authority owners"
+            if tier48_active and not active_incident_drain else
+            state["program_frontier_owner"]
+        ),
+        "program_frontier_expected_output": (
+            "five or more dedicated certification users on one active controlled source -> existing T48-M8 plan/safe-cohort consumer; otherwise exact Engineering Authority boundary retained"
+            if m8_pool_boundary else
+            "controlled plan and safe cohort -> existing T48-M9 progressive production proof"
+            if m8_pool_ready else
+            state["program_frontier_expected_output"]
+        ),
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
         "continuation_decision": (
             primary_next_action if omp_should_continue else
@@ -21014,9 +21033,17 @@ def cps_live_state_consistency(
     else:
         sequence_cells = [cell.strip() for cell in sequence_rows[0].strip().strip("|").split("|")]
         sequence_stop = sequence_cells[5].strip("`") if len(sequence_cells) > 5 else ""
+        required_sequence_tokens = [
+            generation,
+            transition,
+            next_action,
+            normalized["program_frontier_owner"],
+        ]
+        if not independent_program_frontier:
+            required_sequence_tokens.append(normalized["next_scenario_id"])
         if sequence_stop != stop or not all(
             token in sequence_rows[0]
-            for token in (generation, transition, next_action, normalized["next_scenario_id"], normalized["program_frontier_owner"])
+            for token in required_sequence_tokens
         ):
             errors.append("cps_sequence_position_1_divergence")
 

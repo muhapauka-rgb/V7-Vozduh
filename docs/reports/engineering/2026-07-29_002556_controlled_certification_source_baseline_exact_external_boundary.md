@@ -140,6 +140,44 @@ Forbidden effects:
 После такого owner-backed state change существующая campaign должна продолжить
 без нового Program и без повторной generic Tier-48 certification.
 
+## Automatic re-entry consumer proof
+
+Первоначальная проекция корректно описывала re-entry condition, но production
+heartbeat ещё не потреблял exact controlled-source baseline frontier. Этот
+producer-consumer residual закрыт расширением уже существующего
+`tools/v7-truth-check --omp-heartbeat-reentry`; новый watcher, scheduler,
+registry или Program не создавался.
+
+Машинная семантика:
+
+- пока exact external baseline не изменился, heartbeat вызывает существующий
+  production status owner, подтверждает тот же blocker и завершает
+  `LEGAL_NO_ACTION_EXTERNAL_BASELINE_UNCHANGED` без CPS write и без churn;
+- когда status owner вернёт здоровый exact source, тот же heartbeat атомарно
+  reconciles CPS и в этом же вызове передаёт управление существующему OMP
+  successor для T48-M8 campaign;
+- unrelated frontiers продолжают использовать прежний heartbeat path.
+
+Verification:
+
+- unit proof нового bridge: blocked/no-write и recovered/release-successor;
+- полный affected suite после изменения: `119/119 PASS`;
+- commit: `c841667a15c6ed2e35492d010d67be9d48d836f2`;
+- safe-deploy manifest: единственный runtime delta
+  `tools/v7-truth-check`;
+- deploy:
+  `deploy-z8-14-Updatesystem-c841667-20260729T003659`;
+- production non-test heartbeat:
+  `PASS`, `consumer_invoked=true`,
+  `consumer_decision=LEGAL_NO_ACTION_EXTERNAL_BASELINE_UNCHANGED`,
+  `cps_mutated=false`,
+  `root_cause_class=EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED`;
+- production/Runtime/Authority impacts: `NONE`.
+
+Таким образом, после восстановления remote peer/profile оператору или Codex
+не требуется вручную публиковать `continue`: переход к существующему campaign
+consumer привязан к уже работающему внешнему heartbeat.
+
 ## Итог
 
 Текущий prompt выполнен до доказанной независимой внешней границы. Финальный

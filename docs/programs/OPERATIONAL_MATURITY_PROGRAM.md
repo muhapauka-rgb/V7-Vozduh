@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.59`
+Version: `4.60`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -10270,3 +10270,73 @@ The durable successor remains the ordinary enabled Matrix timer. The next
 genuine positive-scope matching incident may automatically re-enter the
 existing planner under the current exact tier, without Codex or operator
 continuation and without reusing any Candidate, Packet or lease.
+
+## 44. Tier-48 Generic Movement And Adaptive Cohort Separation Law
+
+Classification: `PERMANENT_RULE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Generic capability owner:
+`admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence`.
+Scenario adapter and Runtime owner: the existing Service Matrix, Planner,
+autoswitch, Packet, lease, verification, rollback/containment, Outcome,
+Replay and Learning owners.
+Authority owner: the existing delegated-policy Authority owner.
+
+Production evidence, Engineering certification, scenario-adapter
+compatibility, Authority and Runtime are independent axes. An Engineering
+Polygon or implementation guarantee can raise only the engineering-certified
+maximum. It cannot rewrite historical production evidence, grant Authority,
+enable Runtime, move a user or increase Production Maturity.
+
+The generic bounded cohort transaction is one logical transaction with one
+immutable cohort fingerprint, Candidate, Packet, lease, source/target binding,
+per-member subreceipts, exact applied/unapplied/failed sets, circuit breaker,
+rollback or bounded containment, final safe-mode decision, Outcome,
+Replay/Learning lineage and successor. Member writes may remain serial.
+`max_concurrent_transactions=1` is unchanged. A checkpoint from the same
+operation forbids duplicate forward apply and routes causal closure through
+the existing owners; Packet reuse is never a restart mechanism.
+
+For every current incident generation the existing Planner computes:
+
+```text
+effective_cohort_limit =
+min(
+  incident_required_scope,
+  eligible_source_scope,
+  generic_engineering_certified_scope,
+  adapter_compatible_scope,
+  capacity_safe_scope,
+  authority_safe_scope,
+  runtime_safe_scope,
+  verification_safe_scope,
+  rollback_containment_safe_scope,
+  circuit_breaker_safe_scope,
+  request_safe_scope
+)
+```
+
+Every bound carries its existing owner, value, fingerprint, freshness and
+reason. Unknown or stale mandatory bounds fail closed. Count alone is
+insufficient: selected member load must remain within the existing target
+capacity and reserve contract. The durable obligation, Candidate preparation
+and Runtime caller must preserve the same exact selected cohort fingerprint,
+bound set and limiting bound.
+
+Generic mechanics may be reused by Service Failure, governed movement,
+maintenance, recovery, migration and capacity adapters, but every adapter
+retains its own trigger, source scope, target selection, capacity,
+verification, containment and Authority delta. An unqualified adapter is an
+explicit residual; it does not invalidate the generic primitive or block an
+independent qualified adapter.
+
+When the generic and Service Failure engineering maxima reach 48 while current
+Authority is smaller, the only legal Product Evolution frontier is:
+
+`EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED`.
+
+That independent request may bind maximum 48 and concurrency one. Approval
+does not itself certify Service Failure production behavior. Controlled
+adapter outcomes progress `5 -> 10 -> 25 -> 48`, each with fresh identities
+and live gates, and stop on the first unsafe terminal. Valid generic
+certification is reused and must not be ceremonially rerun.

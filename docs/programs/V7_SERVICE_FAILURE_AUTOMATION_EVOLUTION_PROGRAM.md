@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `1.9`
+Version: `2.0`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,831 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.0 active executable revision — project-wide Tier-48 movement certification and Service Failure controlled cohort proof
+
+V2.0 is the only active executable plan in this file. V1.9 and earlier
+revisions remain historical owner-backed evidence and implementation context;
+they must not dispatch duplicate Missions, repeat valid production movements
+or override fresh CPS truth.
+
+V2.0 continues
+`V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` through its existing
+`PRODUCT_EVOLUTION_FRONTIER`. It creates no new Program, Mission group,
+Planner, Runtime, registry, queue, watcher, scheduler, executor, Authority
+owner, certification owner, evidence store or truth owner.
+
+The admitted residual is:
+
+`PROJECT_WIDE_GENERIC_USER_ROUTE_MOVEMENT_CERTIFICATION_TO_TIER_48`.
+
+Its purpose is to:
+
+1. reconcile and normalize the already-existing project-wide generic movement
+   primitive;
+2. selectively close only its exact engineering guarantee gaps through scope
+   48;
+3. bind existing scenario adapters to that primitive without duplicating the
+   movement ladder;
+4. qualify the Service Failure adapter through scope 48;
+5. obtain exactly one independent existing-owner Authority decision for the
+   resulting Service Failure action class;
+6. after Authority and Runtime activation, prove the Service Failure adapter
+   bridge with real controlled bounded-cohort production outcomes through
+   scope 48;
+7. consume Outcome, Replay and Learning and return the result to the existing
+   incident, capability, CPS and OMP owners.
+
+### V2.0 current owner-backed baseline
+
+The following are discovery inputs, not permanent assumptions. Mission
+`T48-M0` must re-read their current owners and classify each item as
+`VALID_REUSABLE`, `STALE`, `INVALIDATED`, `MISMATCHED` or `NOT_FOUND` before
+work begins:
+
+- real generic governed movement scopes have been recorded at
+  `1,2,4,5,10,25,48`;
+- generic assignment mutation, route verification, serial cohort execution
+  and Outcome closure have evidence through scope `48`;
+- generic Packet identity preservation is directly evidenced through scope
+  `25`;
+- generic rollback apply and replay/duplicate suppression are directly
+  evidenced through scope `4`;
+- parallel concurrent transactions are evidenced only at `1`;
+- `GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE` already exists as a normalized
+  projection;
+- Service Failure is engineering-qualified, Authority-approved and
+  Runtime-enabled at maximum four users per transaction, concurrency one;
+- the Service Failure production-proven action-class scope is lower than its
+  current engineering/Authority/Runtime scope until a qualifying positive
+  cohort outcome exists;
+- the last owner-backed VLESS active source scope was empty.
+
+No item may be accepted solely because it appears in this document or a
+historical report. CPS owns volatile state. Capability, certification,
+assignment, Packet, lease, Outcome, Replay, Learning and Authority owners must
+provide the current evidence and dependency fingerprints.
+
+### V2.0 global execution law
+
+All engineering-owned gaps discovered by V2.0 continue automatically through
+existing owners:
+
+```text
+discover exact cause
+-> reuse existing capability
+-> implement the smallest residual
+-> focused verification
+-> safe deploy when Runtime code changed
+-> real non-test caller and consumer
+-> affected replay
+-> truth and convergence
+-> atomic CPS/OMP projection
+-> residual recomputation
+-> durable successor
+-> event-driven Continue OMP
+```
+
+Do not return to the operator for owner discovery, code gaps, missing
+producer-consumer links, stale fixtures, test failures, replay gaps, Polygon
+scenario gaps, safely repairable deploy issues, CPS/OMP reconciliation or
+canonical knowledge updates.
+
+Stop only at:
+
+- one exact independent Authority decision;
+- an exact external-owner/access input that cannot be produced by existing
+  safe engineering owners;
+- an irreducible physical safety boundary.
+
+A report, test, commit, deploy, replay, Mission completion, empty historical
+incident, intermediate certification result or heartbeat boundary is not a
+Program terminal while a safe engineering successor exists.
+
+### V2.0 knowledge reuse and invalidation law
+
+Before every audit, test, certification lookup, Polygon campaign or
+implementation:
+
+1. locate the existing canonical truth object;
+2. identify its owner and evidence fingerprint;
+3. read its dependency and implementation fingerprints;
+4. evaluate only declared invalidation triggers;
+5. when no trigger occurred, emit `RESULT_REUSED_VALID`;
+6. do not repeat the corresponding real movement, certification or broad test
+   campaign;
+7. selectively revalidate only the changed property and its consumers.
+
+The following are not invalidation triggers by themselves:
+
+- a new Codex context or report;
+- a new incident, Candidate or Packet;
+- Packet or lease expiry;
+- Runtime restart;
+- CPS compaction;
+- a different business reason for using the same generic movement primitive.
+
+Real movements at `1,2,4,5,10,25,48` must not be repeated merely to recreate
+generic evidence.
+
+### V2.0 evidence and state separation law
+
+The following projections are independent and must never be collapsed:
+
+```text
+GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_MAX
+GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX
+SERVICE_FAILURE_ADAPTER_ENGINEERING_COMPATIBLE_MAX
+SERVICE_FAILURE_ADAPTER_CONTROLLED_PRODUCTION_PROVEN_MAX
+SERVICE_FAILURE_AUTHORITY_APPROVED_MAX
+SERVICE_FAILURE_RUNTIME_ENABLED_MAX
+CURRENT_LIVE_CAPACITY_SAFE_MAX
+```
+
+Generic production evidence proves the shared movement primitive. Service
+Failure controlled-production evidence proves only the scenario bridge:
+
+```text
+incident
+-> exact source/unresolved scope
+-> exact bounded cohort
+-> safe target and capacity
+-> generic movement primitive
+-> scenario verification/containment
+-> incident scope reconciliation
+```
+
+Polygon, deterministic replay, fault injection, shadow execution and process
+simulation are Engineering Evidence. They cannot become a production Outcome,
+Natural L8 evidence, Authority, Runtime activation or Production Maturity.
+
+### V2.0 numeric scope and action-class identity law
+
+`Tier`, Authority class, action class, `max_users_per_transaction` and observed
+cohort size are different fields. A historical class alias or a budget such as
+`50` must not silently stand for exact scope `48`.
+
+Every projection and contract must carry:
+
+- exact numeric maximum users per transaction;
+- exact maximum concurrent transactions;
+- action class and failure class;
+- engineering-certified maximum;
+- Authority-approved maximum;
+- Runtime-enabled maximum;
+- currently selected cohort count and fingerprint.
+
+An increased policy number alone is not qualification, Authority or Runtime
+enablement.
+
+## V2.0 executable Mission map
+
+### T48-M0 — Fresh owner and evidence reconciliation
+
+Read fresh CPS, OMP, the current program file, generic movement capability
+projection, assignment owner, Packet/lease owners, verification,
+rollback/containment, Outcome, Replay, Learning, Polygon, controlled-production
+and Authority owners.
+
+Produce an exact matrix for scopes `1,2,4,5,10,25,48` covering:
+
+- assignment mutation;
+- exact cohort identity;
+- Packet identity and generation;
+- lease identity;
+- exact-once and duplicate suppression;
+- partial-scope selection;
+- partial-apply recovery;
+- route and generic-result verification;
+- rollback apply or accepted stronger containment;
+- circuit breaker and final safe mode;
+- restart recovery and stale-writer rejection;
+- Outcome, Replay and Learning;
+- serial cohort execution;
+- parallel transaction maximum.
+
+Do not infer absence from a missing report field. Inspect current
+implementation behavior and immutable owner artifacts first.
+
+Completion:
+
+`TIER48_CURRENT_OWNER_EVIDENCE_AND_EXACT_RESIDUAL_RECONCILED`.
+
+### T48-M1 — Normalize the existing generic movement primitive
+
+Normalize, do not recreate, `GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE` under the
+existing capability and certification owners.
+
+The primitive accepts:
+
+- exact user/cohort identity and fingerprint;
+- exact source and target assignments;
+- maximum users and concurrency;
+- Candidate, Packet generation and lease;
+- capacity contract;
+- verification contract;
+- rollback/containment contract;
+- cooldown, anti-flap and final safe-mode contract.
+
+It owns or delegates through existing owners:
+
+```text
+cohort input
+-> Candidate
+-> Packet
+-> lease
+-> assignment mutation
+-> route verification
+-> generic result verification
+-> rollback/containment
+-> Outcome
+-> Replay
+-> Learning
+-> terminal
+```
+
+It must not decide why a movement is required, whether a channel failed, which
+users belong to a scenario, which target is preferable or whether Authority
+permits the action. Those remain scenario-adapter, Planner and policy
+responsibilities.
+
+Publish one machine-readable projection through the existing owner:
+
+```text
+GENERIC_MOVEMENT_PRIMITIVE_ID
+IMPLEMENTATION_OWNER
+EXECUTOR_OWNER
+ASSIGNMENT_OWNER
+PACKET_OWNER
+LEASE_OWNER
+VERIFICATION_OWNER
+ROLLBACK_CONTAINMENT_OWNER
+OUTCOME_OWNER
+REPLAY_OWNER
+LEARNING_OWNER
+
+TECHNICALLY_IMPLEMENTED_MAX_SCOPE
+PRODUCTION_PROVEN_MAX_SCOPE
+ENGINEERING_CERTIFIED_MAX_SCOPE
+PACKET_IDENTITY_PROVEN_MAX_SCOPE
+REPLAY_DUPLICATE_PROVEN_MAX_SCOPE
+ROLLBACK_OR_CONTAINMENT_PROVEN_MAX_SCOPE
+PARTIAL_APPLY_RECOVERY_MAX_SCOPE
+RESTART_RECOVERY_MAX_SCOPE
+SERIAL_COHORT_MAX_SCOPE
+PARALLEL_TRANSACTION_MAXIMUM
+
+EVIDENCE_FINGERPRINTS
+DEPENDENCY_FINGERPRINTS
+IMPLEMENTATION_FINGERPRINTS
+INVALIDATION_TRIGGERS
+REUSE_RULE
+```
+
+Completion:
+
+`GENERIC_MOVEMENT_PRIMITIVE_CURRENT_CONTRACT_NORMALIZED`.
+
+### T48-M2 — Canonical adaptive cohort selection contract
+
+Reuse the existing Planner, capacity, policy, incident and Authority gates.
+Do not create a cohort optimizer or second Planner.
+
+For every fresh incident generation, calculate independently:
+
+```text
+incident_required_scope
+eligible_source_scope
+generic_certified_scope
+adapter_compatible_scope
+capacity_safe_scope
+authority_safe_scope
+runtime_safe_scope
+verification_safe_scope
+rollback_containment_safe_scope
+circuit_breaker_safe_scope
+request_safe_scope
+```
+
+Each bound must contain:
+
+```text
+owner
+value
+fingerprint
+measured_at
+expires_at or freshness rule
+reason
+```
+
+`UNKNOWN`, stale or owner-mismatched status for any mandatory bound is
+`STOP_SAFE`, never an ignored value.
+
+The numeric limit is:
+
+```text
+effective_cohort_limit =
+min(all current proven positive mandatory bounds)
+```
+
+The exact cohort is selected from:
+
+```text
+eligible users
+INTERSECT current source scope
+INTERSECT unresolved incident scope
+INTERSECT current policy scope
+INTERSECT target-compatible scope
+```
+
+Selection must also satisfy the existing load/capacity owner:
+
+```text
+effective_cohort_load
+<= target_available_load_after_required_reserve
+```
+
+Per-user load may differ. Capacity-safe selection must therefore use the
+existing target-capacity and reserve contract, not only a user count.
+
+The durable obligation, Candidate preparation and Runtime caller must expose
+the same:
+
+- incident-required count and fingerprint;
+- eligible set fingerprint;
+- exact selected cohort fingerprint;
+- every bound and limiting bound;
+- effective cohort count and load;
+- selected target allocation;
+- exclusion reasons;
+- next-tier blocker.
+
+The current placeholder behavior in which
+`smallest_necessary_cohort` and `maximum_capacity_safe_cohort` merely mirror an
+already chosen list, or `effective_cohort` remains zero despite an actionable
+selection, is an exact existing-owner engineering residual.
+
+For a hard-failed source, the overall protection intent may cover the full
+unresolved scope while one bounded transaction remains limited by
+`effective_cohort_limit`. `max_users_per_transaction` must not become
+`max_transactions_per_incident=1`.
+
+Completion:
+
+`ADAPTIVE_COUNT_LOAD_AND_EXACT_COHORT_SELECTION_CONSUMED`.
+
+### T48-M3 — Tier-48 generic engineering guarantee closure through existing evidence and Polygon
+
+Close each exact missing generic guarantee through the smallest safe method,
+in this order:
+
+1. reusable historical production evidence;
+2. deterministic replay;
+3. Permanent Polygon;
+4. controlled fault injection;
+5. process crash and concurrency simulation;
+6. minimal repair of the existing responsible owner;
+7. selective controlled production only when the property cannot be proven
+   otherwise and current Authority already permits it.
+
+Mandatory Polygon and replay coverage includes:
+
+#### Cohort identity and Packet integrity
+
+- 48 selected users and exact cohort fingerprint;
+- reordered input;
+- one removed member;
+- one added unauthorized member;
+- stale incident generation;
+- stale or duplicate Packet;
+- expired lease;
+- mixed source or target cohort.
+
+#### Partial apply and containment
+
+For scopes `5,10,25,48`, inject failure:
+
+- before first mutation;
+- after member one;
+- at midpoint;
+- before the final member;
+- after all writes but before verification;
+- during verification;
+- during rollback;
+- after rollback but before Outcome.
+
+Prove exact applied, unapplied and failed sets; no user outside the cohort;
+safe preservation of successful members; rollback or bounded containment;
+circuit breaker; final safe mode; and no retry with the same Packet.
+
+#### Crash and restart recovery
+
+Inject process termination:
+
+- after Candidate creation;
+- after Packet creation;
+- after lease acquisition;
+- after partial mutation;
+- before scope reconciliation;
+- after Outcome before Replay;
+- after CPS projection before receipt;
+- after receipt before successor acknowledgement.
+
+Prove checkpoint recovery, exactly one legal transition and no duplicate user
+movement.
+
+#### Duplicate and stale-consumer rejection
+
+At `5,10,25,48`, cover duplicate Event, Candidate, Packet, Matrix wake and
+heartbeat; concurrent consumers; and a stale writer following a newer
+generation.
+
+#### Capacity and verification
+
+At `5,10,25,48`, cover sufficient capacity, exact reserve boundary, reserve
+violation, capacity loss after planning, target degradation during apply,
+aggregate failure, one-member exception, multi-member exception and temporal
+regression.
+
+A verified bounded containment contract may satisfy the generic safety
+requirement when the existing certification owner proves it equal to or
+stronger than full rollback. Do not manufacture Natural L8 or relabel Polygon
+evidence as production evidence.
+
+Completion requires:
+
+```text
+GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_MAX = 48
+GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX = 48
+SERIAL_COHORT_MAX_SCOPE = 48
+PACKET_IDENTITY_PROVEN_MAX_SCOPE = 48
+REPLAY_DUPLICATE_PROVEN_MAX_SCOPE = 48
+ROLLBACK_OR_CONTAINMENT_PROVEN_MAX_SCOPE = 48
+PARTIAL_APPLY_RECOVERY_MAX_SCOPE = 48
+RESTART_RECOVERY_MAX_SCOPE = 48
+PARALLEL_TRANSACTION_MAXIMUM = 1
+```
+
+Completion:
+
+`GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_AND_PRODUCTION_EVIDENCE_REUSED_TO_48`.
+
+### T48-M4 — Bounded cohort transaction semantics
+
+The multi-user execution unit is:
+
+`BOUNDED_COHORT_TRANSACTION`.
+
+It is logically one transaction but must not be described as physically atomic
+when member mutations are applied serially.
+
+One transaction has:
+
+- one immutable cohort fingerprint;
+- one Candidate;
+- one Packet and generation;
+- one lease;
+- one incident/source/target binding;
+- per-member subreceipts;
+- exact applied, unapplied and failed sets;
+- per-member verification;
+- aggregate verification;
+- circuit breaker;
+- partial-apply rollback or containment;
+- one final safe-mode decision;
+- one cohort Outcome;
+- one Replay/Learning lineage;
+- one successor.
+
+Crash recovery resumes from the exact owner-backed checkpoint. Packet reuse is
+forbidden. Four, ten or 48 internal member operations must not create four, ten
+or 48 OMP, Authority or Codex cycles.
+
+`max_concurrent_transactions=1` remains unchanged. Internal serial member
+application is not evidence of parallel transaction support and is not a
+failure to perform a multi-user cohort transaction.
+
+Completion:
+
+`BOUNDED_COHORT_TRANSACTION_EXACTLY_ONCE_AND_PARTIAL_APPLY_SAFE`.
+
+### T48-M5 — Project-wide adapter inheritance and Service Failure bridge
+
+Discover existing scenario adapters that call, or should call, the same
+generic primitive, including Service Failure, planned maintenance,
+capacity/load balancing, provider degradation, manual governed recovery and
+planned route/provider migration.
+
+Do not create duplicate executors or rerun the generic tier ladder for an
+adapter.
+
+For every discovered real adapter project:
+
+```text
+ADAPTER_ID
+SCENARIO_OWNER
+GENERIC_PRIMITIVE_ID
+GENERIC_MAX_REUSED
+ADAPTER_COMPATIBLE_MAX
+SOURCE_SCOPE_CONTRACT
+TARGET_SELECTION_CONTRACT
+CAPACITY_CONTRACT
+SCENARIO_VERIFICATION_DELTA
+SCENARIO_ROLLBACK_CONTAINMENT_DELTA
+START_CONDITIONS
+STOP_CONDITIONS
+AUTHORITY_SCOPE
+RUNTIME_ENABLED_SCOPE
+EXACT_RESIDUAL
+```
+
+An unimplemented or hypothetical adapter must not block Service Failure
+qualification. Record its exact residual through the existing capability owner
+and continue with the active Service Failure bridge.
+
+For Service Failure, reuse the corrected obligation, incident, source-scope and
+all-member cohort binding. Close only scenario-specific deltas through
+`5,10,25,48`:
+
+- failed-source and unresolved-scope membership;
+- target suitability and capacity reserve;
+- cohort service verification;
+- partial-apply rollback/containment delta;
+- Matrix successor and cumulative incident scope reconciliation.
+
+Use Polygon, replay and fault injection for safely simulatable properties. Do
+not wait for a new natural outage to close engineering-only requirements. Do
+not move ordinary production users merely to manufacture evidence.
+
+Completion:
+
+`PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND`
+
+and:
+
+`SERVICE_FAILURE_ADAPTER_ENGINEERING_COMPATIBLE_TO_48`.
+
+### T48-M6 — Canonical capability, CPS and OMP projection
+
+Publish one compact projection through existing capability, certification, CPS
+and OMP owners:
+
+```text
+GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_MAX
+GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX
+
+ADAPTERS:
+  adapter identity
+  engineering-compatible maximum
+  controlled-production-proven maximum
+  Authority-approved maximum
+  Runtime-enabled maximum
+  current live capacity-safe maximum
+  exact residual
+```
+
+Absence of Authority must not be reported as absence of technical capability.
+Absence of a current incident must not invalidate reusable engineering
+certification. Valid knowledge with no declared invalidation trigger must be
+consumed without another broad audit or movement campaign.
+
+Completion:
+
+`TIER48_GENERIC_AND_ADAPTER_CAPABILITY_TRUTH_ATOMICALLY_CONSUMED`.
+
+### T48-M7 — One independent Authority and Runtime activation decision
+
+After `T48-M3` through `T48-M6` are owner-backed, re-read existing Authority.
+If a still-valid exact contract covers Service Failure maximum 48, concurrency
+one and every required safety term, consume it as
+`EXISTING_AUTHORITY_REUSED`.
+
+Otherwise produce exactly one independent existing-owner request:
+
+`EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED`.
+
+The request binds:
+
+- generic engineering-certified maximum and reusable production evidence;
+- Service Failure engineering-compatible maximum;
+- exact maximum users per bounded cohort transaction `48`;
+- maximum concurrent transactions `1`;
+- exact action and failure classes;
+- source and target families selected only by the fresh existing Planner;
+- live target capacity and reserve;
+- Candidate, Packet, lease and no-reuse law;
+- immutable cohort and per-member subreceipts;
+- per-member and aggregate verification;
+- partial-apply circuit breaker;
+- rollback/containment and final safe mode;
+- cooldown and anti-flap;
+- expiry, freeze, demotion and kill conditions;
+- evidence and dependency fingerprints;
+- exact policy delta;
+- `APPROVE` or `DECLINE`.
+
+No Engineering result may implicitly become Operational Authority. Do not
+activate maximum 48 before the independent decision.
+
+After approval, the existing Authority, policy, CPS, OMP and Runtime owners
+must atomically expose the same exact maximum and contract identity. Activation
+alone is not Service Failure controlled-production certification.
+
+Completion:
+
+`SERVICE_FAILURE_TIER48_AUTHORITY_DECIDED`
+
+and:
+
+`SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED`.
+
+### T48-M8 — Polygon-prepared controlled production cohort
+
+After Authority and Runtime activation, the Permanent Polygon identifies the
+exact missing Service Failure adapter production cells and prepares one
+controlled certification plan through existing owners.
+
+Polygon may:
+
+- choose a reproducible controlled Service Failure condition;
+- reuse an existing test/certification cohort;
+- verify all engineering invariants before production admission;
+- prepare fresh Situation, Decision, exact cohorts, targets, capacity
+  contracts, verification and rollback/containment;
+- hand the plan to the existing controlled-production certification owner.
+
+Polygon may not:
+
+- create a production Outcome itself;
+- move ordinary customers solely to manufacture evidence;
+- grant Authority;
+- bypass Packet, lease, restore-barrier, capacity, verification or containment
+  gates;
+- relabel controlled evidence as Natural L8.
+
+If no current certification cohort exists, first determine whether it can be
+safely created through the existing Polygon, test-user and certification
+owners without moving ordinary customers, acquiring a new external resource or
+expanding Authority. When safe and already owner-authorized, create it and
+continue automatically.
+
+Only when this is impossible may the Program emit:
+
+`ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY`.
+
+That terminal must name the exact missing pool/input, why existing owners
+cannot create it safely, the responsible existing owner, the requested input
+and the automatic re-entry condition.
+
+Completion:
+
+`CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_READY`.
+
+### T48-M9 — Progressive controlled Service Failure adapter proof
+
+Execute one owner-authorized controlled certification plan:
+
+```text
+controlled Service Failure condition
+-> bounded cohort 5
+-> verification and incident reconciliation
+-> bounded cohort 10
+-> verification and incident reconciliation
+-> bounded cohort 25
+-> verification and incident reconciliation
+-> bounded cohort 48
+-> verification and incident reconciliation
+-> Outcome
+-> Replay
+-> Learning
+-> capability/CPS/OMP consumption
+```
+
+This progression does not repeat generic assignment, exact-once or route
+mutation certification. It validates only the Service Failure scenario bridge.
+
+Every next cohort starts automatically after the previous cohort reaches an
+owner-backed success terminal and all fresh live gates pass. No new Codex
+prompt or Authority decision is required inside the already-approved scope.
+
+Each step requires:
+
+- a fresh incident/scenario generation;
+- a fresh exact cohort, Candidate, Packet and lease;
+- current target health, capacity and reserve;
+- current policy, cooldown and anti-flap;
+- per-member and aggregate verification;
+- real verifier-driven rollback or accepted containment when triggered;
+- one cohort Outcome and incident scope update;
+- affected Replay and Learning consumption;
+- circuit-breaker stop before the next cohort on any unsafe result.
+
+Do not directly invoke rollback to manufacture a terminal. Do not reuse a
+Packet, lease, cohort identity, Outcome or incident generation.
+
+If current safe capacity or an existing controlled cohort is smaller than the
+next step, preserve completed lower-step evidence and emit the exact
+owner-backed re-entry condition. Do not downgrade engineering compatibility or
+repeat completed steps.
+
+Completion:
+
+`SERVICE_FAILURE_CONTROLLED_PRODUCTION_COHORT_OUTCOMES_CONSUMED_THROUGH_48`.
+
+### T48-M10 — Automatic continuation, verification and final closure
+
+Every non-terminal result follows:
+
+```text
+verified output
+-> existing OMP consumer
+-> atomic CPS projection
+-> residual recomputation
+-> one durable successor
+-> one existing event-driven consumer
+-> next safe Mission
+```
+
+Heartbeat is fallback only. After three unchanged no-progress generations,
+record the unchanged input fingerprint, exact blocked property, last
+responsible producer-consumer link and smallest repair; execute the repair
+automatically when it is engineering-owned.
+
+For every changed owner:
+
+- perform semantic topology discovery;
+- run focused tests and affected deterministic replay;
+- run only the affected Tier-48 Polygon/fault cells;
+- verify cross-process exact-once and forbidden effects;
+- commit and push owned changes;
+- use `tools/v7-safe-deploy` only when Runtime files changed and its manifest is
+  exact;
+- prove a real non-test caller and consumer;
+- run truth and convergence;
+- reconcile local, GitHub and production identities.
+
+Batch logically related owner changes into one bounded verification and deploy
+unit. Do not create report/deploy churn after every individual scenario.
+Reports are historical evidence only. Durable knowledge and evidence
+fingerprints belong to their existing canonical owners.
+
+## V2.0 production-effects boundaries
+
+| Mission | Production effects |
+| --- | --- |
+| `T48-M0`–`T48-M6` | none; discovery, reuse, implementation, replay, Polygon and certification projection only |
+| `T48-M7` | Authority request/decision and exact Runtime activation only through existing independent owners; no user movement |
+| `T48-M8` | controlled-plan and safe-cohort preparation only; no production Outcome may be fabricated |
+| `T48-M9` | bounded production cohort actions only through the active exact Authority contract and every fresh live gate |
+| `T48-M10` | verification/replay only; no additional action except a separately owner-authorized affected replay |
+
+At every phase, forbidden unless explicitly admitted by the current exact
+owner-backed contract:
+
+- routing mutation or user movement;
+- Packet execution;
+- restore-barrier write;
+- rollback apply;
+- Authority expansion;
+- concurrency increase;
+- self-expansion;
+- Production Maturity change;
+- ordinary-customer use solely for certification.
+
+## V2.0 final completion contract
+
+The successful Program terminal is:
+
+```text
+GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_TO_48
+AND
+GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_TO_48
+AND
+PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND
+AND
+SERVICE_FAILURE_ADAPTER_ENGINEERING_COMPATIBLE_TO_48
+AND
+SERVICE_FAILURE_TIER48_AUTHORITY_DECIDED
+AND
+SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED
+AND
+SERVICE_FAILURE_CONTROLLED_PRODUCTION_COHORT_OUTCOMES_CONSUMED_THROUGH_48
+```
+
+This terminal proves project-wide generic movement engineering guarantees and
+reused generic production evidence through scope 48, plus real controlled
+production proof of the Service Failure adapter bridge through scope 48. It
+does not claim Natural L8, parallel transaction support above one,
+self-expanding Authority, production routing autonomy or increased Production
+Maturity.
+
+If the engineering work is complete but no independently admissible controlled
+cohort can be created, the only partial terminal is:
+
+`ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY`.
+
+It is not Program completion and must retain an exact durable automatic re-entry
+condition.
 
 ## V1.9 revision record — incident-bound Matrix admission and atomic cohort revalidation
 

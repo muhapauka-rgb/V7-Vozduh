@@ -59,6 +59,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "current_egress": "vless",
                     "recommended_egress": "awg0",
                     "reason": ["healthy_target"],
+                    "capacity_decision": {
+                        "projected_load": {"users": 1, "hard_limit": 10},
+                    },
                 }],
             }
             first = planner.materialize_service_failure_automation_advisory(plan)
@@ -71,6 +74,70 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertFalse(second["active"])
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
+
+    def test_adaptive_cohort_uses_exact_count_load_and_authority_bounds(self):
+        moves = [{
+            "user_ip": f"10.0.0.{index + 2}",
+            "current_egress": "vless",
+            "recommended_egress": "awg0",
+            "capacity_weight": 2 if index == 0 else 1,
+            "capacity_decision": {
+                "projected_load": {
+                    "users": index + 1,
+                    "hard_limit": 48,
+                    "required_reserve": 2,
+                },
+            },
+        } for index in range(12)]
+        contract = self.autoswitch.build_service_failure_adaptive_cohort_contract(
+            moves,
+            incident_required_scope=48,
+            generic_certified_scope=48,
+            adapter_compatible_scope=48,
+            authority_safe_scope=4,
+            runtime_safe_scope=4,
+            verification_safe_scope=48,
+            rollback_containment_safe_scope=48,
+            circuit_breaker_safe_scope=48,
+            request_safe_scope=4,
+            measured_at="2026-07-28T00:00:00+00:00",
+            expires_at="2026-07-28T01:00:00+00:00",
+        )
+        self.assertEqual(contract["status"], "MOVE_READY_WITHIN_EXISTING_AUTHORITY")
+        self.assertEqual(contract["effective_cohort"], 4)
+        self.assertEqual(contract["effective_cohort_load"], 5)
+        self.assertEqual(len(contract["selected_members"]), 4)
+        self.assertIn("authority_safe_scope", contract["limiting_bounds"])
+        self.assertIn("runtime_safe_scope", contract["limiting_bounds"])
+        self.assertTrue(contract["cohort_fingerprint"])
+        self.assertTrue(all(row["fingerprint"] for row in contract["bounds"].values()))
+
+    def test_adaptive_cohort_separates_shadow_from_zero_authority(self):
+        moves = [{
+            "user_ip": f"10.0.0.{index + 2}",
+            "current_egress": "vless",
+            "recommended_egress": "awg0",
+            "capacity_decision": {
+                "projected_load": {"users": index + 1, "hard_limit": 10},
+            },
+        } for index in range(4)]
+        contract = self.autoswitch.build_service_failure_adaptive_cohort_contract(
+            moves,
+            incident_required_scope=4,
+            generic_certified_scope=48,
+            adapter_compatible_scope=48,
+            authority_safe_scope=0,
+            runtime_safe_scope=4,
+            verification_safe_scope=48,
+            rollback_containment_safe_scope=48,
+            circuit_breaker_safe_scope=48,
+            request_safe_scope=4,
+            measured_at="2026-07-28T00:00:00+00:00",
+        )
+        self.assertEqual(contract["status"], "STOP_SAFE")
+        self.assertEqual(contract["effective_cohort"], 0)
+        self.assertEqual(len(contract["bounded_shadow_moves"]), 4)
+        self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -783,7 +850,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED",
             )
             self.assertEqual(updated_live["TIER_2_REUSE_MISMATCH_FIELDS"].strip("`"), "Authority_scope_only")
-            self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CERTIFIED_TIER"].strip("`"), "TIER_1_CURRENT_CLASS")
+            self.assertEqual(
+                updated_live["CURRENT_ACTION_CLASS_CERTIFIED_TIER"].strip("`"),
+                "TIER_48_ENGINEERING_QUALIFIED; TIER_1_AUTHORITY_ACTIVE; "
+                "TIER_1_SERVICE_FAILURE_PRODUCTION_PROVEN",
+            )
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"), "TIER_1_SINGLE_USER_SERIAL")
             self.assertEqual(updated_live["CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_CODEX"].strip("`"), "TRUE_MATRIX_RUNTIME_OWNER")
             self.assertEqual(
@@ -798,21 +869,43 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(updated_live["GENERIC_MOVEMENT_PACKET_IDENTITY_PROVEN_MAX"].strip("`"), "25")
             self.assertEqual(updated_live["GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY"].strip("`"), "NOT_PROVEN")
             self.assertEqual(updated_live["GENERIC_MOVEMENT_RESTART_RECOVERY"].strip("`"), "NOT_PROVEN_FOR_COHORT")
+            self.assertEqual(
+                updated_live["GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX"].strip("`"),
+                "48",
+            )
+            self.assertEqual(
+                updated_live["GENERIC_MOVEMENT_ENGINEERING_PACKET_IDENTITY_MAX"].strip("`"),
+                "48",
+            )
+            self.assertEqual(
+                updated_live["GENERIC_MOVEMENT_ENGINEERING_REPLAY_DUPLICATE_MAX"].strip("`"),
+                "48",
+            )
+            self.assertEqual(
+                updated_live[
+                    "GENERIC_MOVEMENT_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_MAX"
+                ].strip("`"),
+                "48",
+            )
+            self.assertEqual(
+                updated_live["GENERIC_MOVEMENT_ENGINEERING_RESTART_RECOVERY_MAX"].strip("`"),
+                "48",
+            )
             self.assertEqual(updated_live["GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX"].strip("`"), "1")
             self.assertEqual(
                 updated_live["SERVICE_FAILURE_ADAPTER_STATUS"].strip("`"),
                 "SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER",
             )
             self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_GENERIC_COHORT_PATH_MAX"].strip("`"), "48")
-            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX"].strip("`"), "4")
+            self.assertEqual(updated_live["SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX"].strip("`"), "48")
             self.assertEqual(updated_live["SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER"].strip("`"), "1")
             self.assertEqual(
                 updated_live["CAUSAL_M7_TIER_DECISION_CONSUMPTION"].strip("`"),
-                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
-                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 updated_live["CURRENT_TIER_AUTHORITY_REQUEST_ID"].strip("`"),
@@ -834,7 +927,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],
-                "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["tier_formula"]["generic_primitive_max"],
@@ -848,13 +941,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 row["tier"]: row
                 for row in result["action_class_reuse_projection"]["service_failure_adapter_tier_matrix"]
             }
-            self.assertEqual(tier_matrix[4]["exact_residual"], "independent_tier_4_Authority_decision")
+            self.assertEqual(
+                tier_matrix[4]["exact_residual"],
+                "covered_only_by_independent_exact_tier_48_Authority_decision",
+            )
             self.assertIn(
-                "replay_duplicate_suppression_evidence_above_tier_4",
+                "controlled_service_failure_adapter_outcome_tier_5",
                 tier_matrix[5]["exact_residual"],
             )
             self.assertIn(
-                "packet_identity_preservation_evidence_above_tier_25",
+                "controlled_service_failure_adapter_outcome_tier_48",
                 tier_matrix[48]["exact_residual"],
             )
             self.assertEqual(updated_live["CURRENT_VLESS_AFFECTED_SCOPE"].strip("`"), "29")
@@ -958,7 +1054,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 updated_live["CURRENT_TIER_AUTHORITY_REQUEST_STATUS"].strip("`"),
-                "ACTIVATED",
+                "NONE",
             )
             self.assertEqual(
                 updated_live["CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER"].strip("`"),
@@ -970,11 +1066,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 updated_live["CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER"].strip("`"),
-                "TIER_1_CURRENT_CLASS; TIER_4_ACTIVE_AWAITING_FIRST_NATURAL_COHORT_OUTCOME",
+                "TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_TO_48; "
+                "SERVICE_FAILURE_CONTROLLED_TIERS_5_10_25_48_PENDING",
             )
             self.assertEqual(
                 updated_live["PRODUCT_EVOLUTION_FRONTIER"].strip("`"),
-                "EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED",
+                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
             )
             self.assertEqual(
                 updated_live["INCIDENT_FRONTIER"].strip("`"),
@@ -985,7 +1082,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],
-                "EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED",
+                "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED",
             )
             tier_matrix = {
                 row["tier"]: row

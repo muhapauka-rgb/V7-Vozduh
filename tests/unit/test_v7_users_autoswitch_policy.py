@@ -711,6 +711,152 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(result["remaining_forward_mutations_stopped"])
         self.assertEqual(result["cohort_circuit_breaker"]["remaining_not_attempted"], 1)
         self.assertEqual(result["results"][0]["terminal_outcome_classification"], "APPLY_FAILURE")
+        checkpoint = result["bounded_cohort_transaction"]
+        self.assertEqual(checkpoint["state"], "CONTAINED_STOP_SAFE")
+        self.assertEqual(checkpoint["failed_or_contained"], ["10.0.0.2"])
+        self.assertEqual(checkpoint["unapplied"], ["10.0.0.3"])
+        self.assertEqual(len(checkpoint["subreceipts"]), 1)
+
+    def test_bounded_cohort_checkpoint_blocks_duplicate_forward_apply_after_restart(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=2)
+            args = self.args_for(root, ["--apply", "--max-selected-moves", "2", "--no-verify"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "op-restart", "selected_move_hash": "hash-restart"},
+                "selected_moves": [
+                    {"user_ip": "10.0.0.2", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                    {"user_ip": "10.0.0.3", "current_egress": "1", "recommended_egress": "vless", "move_type": "rebalance"},
+                ],
+                "summary": {"selected_moves": 2},
+                "safety": {},
+            }
+            calls = []
+
+            def fail_first(ip, egress, reason):
+                calls.append(ip)
+                return subprocess.CompletedProcess(["v7-user-switch"], 1, stdout="failed")
+
+            planner._run_switch = fail_first
+            planner._validate_atomic_execution_envelope = lambda value: {"ok": True}
+            planner._l3_execution_eligibility = lambda value: {"ok": True, "active": False}
+            first = planner.apply(plan)
+            second = planner.apply(plan)
+
+        self.assertEqual(calls, ["10.0.0.2"])
+        self.assertEqual(first["bounded_cohort_transaction"]["state"], "CONTAINED_STOP_SAFE")
+        self.assertFalse(second["applied"])
+        self.assertEqual(
+            second["reason"],
+            "bounded_cohort_restart_recovery_checkpoint_requires_causal_closure",
+        )
+        self.assertEqual(
+            second["bounded_cohort_transaction"]["cohort_fingerprint"],
+            first["bounded_cohort_transaction"]["cohort_fingerprint"],
+        )
+
+    def test_bounded_cohort_transaction_records_48_member_success_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=48)
+            args = self.args_for(root, ["--apply", "--max-selected-moves", "48"])
+            planner = self.tool.AutoswitchPlanner(args)
+            selected = [
+                {
+                    "user_ip": f"10.0.0.{index + 2}",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "move_type": "rebalance",
+                    "selected_move_index": index,
+                }
+                for index in range(48)
+            ]
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {"operation_id": "op-tier48", "selected_move_hash": "hash-tier48"},
+                "selected_moves": selected,
+                "summary": {"selected_moves": 48},
+                "safety": {},
+            }
+            calls = []
+            planner._run_switch = lambda ip, egress, reason: (
+                calls.append(ip)
+                or subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok")
+            )
+            planner._verify_routes_for_apply = lambda *_args: subprocess.CompletedProcess(
+                ["verify"], 0, stdout="ok",
+            )
+            planner._validate_atomic_execution_envelope = lambda value: {"ok": True}
+            planner._l3_execution_eligibility = lambda value: {"ok": True, "active": False}
+            result = planner.apply(plan)
+
+        self.assertEqual(len(calls), 48)
+        checkpoint = result["bounded_cohort_transaction"]
+        self.assertEqual(checkpoint["state"], "SUCCESS")
+        self.assertEqual(checkpoint["member_count"], 48)
+        self.assertEqual(len(checkpoint["subreceipts"]), 48)
+        self.assertEqual(len(checkpoint["applied_successfully"]), 48)
+        self.assertEqual(checkpoint["failed_or_contained"], [])
+        self.assertEqual(checkpoint["unapplied"], [])
+
+    def test_bounded_cohort_transaction_contains_midstream_failure_at_tier48(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=48)
+            args = self.args_for(root, ["--apply", "--max-selected-moves", "48"])
+            planner = self.tool.AutoswitchPlanner(args)
+            selected = [
+                {
+                    "user_ip": f"10.0.0.{index + 2}",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "move_type": "rebalance",
+                    "selected_move_index": index,
+                }
+                for index in range(48)
+            ]
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {
+                    "operation_id": "op-tier48-partial",
+                    "selected_move_hash": "hash-tier48-partial",
+                },
+                "selected_moves": selected,
+                "summary": {"selected_moves": 48},
+                "safety": {},
+            }
+            calls = []
+
+            def fail_at_twenty_five(ip, egress, reason):
+                calls.append(ip)
+                return subprocess.CompletedProcess(
+                    ["v7-user-switch"],
+                    1 if len(calls) == 25 else 0,
+                    stdout="failed" if len(calls) == 25 else "ok",
+                )
+
+            planner._run_switch = fail_at_twenty_five
+            planner._verify_routes_for_apply = lambda *_args: subprocess.CompletedProcess(
+                ["verify"], 0, stdout="ok",
+            )
+            planner._validate_atomic_execution_envelope = lambda value: {"ok": True}
+            planner._l3_execution_eligibility = lambda value: {"ok": True, "active": False}
+            result = planner.apply(plan)
+
+        self.assertEqual(len(calls), 25)
+        checkpoint = result["bounded_cohort_transaction"]
+        self.assertEqual(checkpoint["state"], "CONTAINED_STOP_SAFE")
+        self.assertEqual(len(checkpoint["subreceipts"]), 25)
+        self.assertEqual(len(checkpoint["applied_successfully"]), 24)
+        self.assertEqual(checkpoint["failed_or_contained"], ["10.0.0.26"])
+        self.assertEqual(len(checkpoint["unapplied"]), 23)
+        self.assertTrue(result["remaining_forward_mutations_stopped"])
+        self.assertEqual(result["cohort_circuit_breaker"]["remaining_not_attempted"], 23)
 
     def test_execution_control_open_denies_authority_promotion_before_write(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -25,6 +25,10 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         cls.scenario = next(row for row in corpus["scenarios"] if row["SCENARIO_ID"] == "CAPACITY_BOUNDARY")
         cls.state = cls.lib.materialize_future_scale_isolated_state(cls.scenario)
         cls.result = cls.lib.execute_future_scale_scenario("CAPACITY_BOUNDARY", root=ROOT)
+        cls.tier48_containment_result = cls.lib.execute_future_scale_scenario(
+            "PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER",
+            root=ROOT,
+        )
 
     def test_01_capacity_scenario_binds_all_required_invariants(self):
         self.assertTrue(set(self.lib.FUTURE_SCALE_EXECUTION_REQUIRED_CAPACITY_INVARIANTS).issubset(self.scenario["INVARIANT_IDS"]))
@@ -83,11 +87,22 @@ class FutureScalePolygonExecutionHarnessTest(unittest.TestCase):
         self.assertEqual(self.result["resource_bounds"]["max_users"], 10_000)
         self.assertEqual(self.result["resource_bounds"]["max_channels"], 100)
 
-    def test_12_real_consumer_preserves_exhausted_frontier_after_replay(self):
+    def test_12_real_consumer_selectively_invalidates_changed_tier48_containment_cell(self):
         consumer = self.result["consumer_result"]
         self.assertEqual(consumer["final_verdict"], "PASS")
         self.assertTrue(consumer["consumed"])
         self.assertEqual(consumer["behavior_change"], "SCENARIO_COVERED_AND_NEXT_FRONTIER_MATERIALIZED")
+        self.assertEqual(
+            consumer["next_scenario_id"],
+            "PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER",
+        )
+        self.assertFalse(consumer["frontier"]["FRONTIER_EXHAUSTED"])
+
+    def test_12b_changed_tier48_containment_cell_replays_to_exhaustion(self):
+        result = self.tier48_containment_result
+        self.assertEqual(result["final_verdict"], "PASS", result.get("errors"))
+        consumer = result["consumer_result"]
+        self.assertTrue(consumer["consumed"])
         self.assertEqual(consumer["next_scenario_id"], "NONE")
         self.assertTrue(consumer["frontier"]["FRONTIER_EXHAUSTED"])
 

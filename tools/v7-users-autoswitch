@@ -419,6 +419,214 @@ def sha256_json(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def build_service_failure_adaptive_cohort_contract(
+    movable: list[dict[str, Any]],
+    *,
+    incident_required_scope: int,
+    generic_certified_scope: int,
+    adapter_compatible_scope: int,
+    authority_safe_scope: int,
+    runtime_safe_scope: int,
+    verification_safe_scope: int,
+    rollback_containment_safe_scope: int,
+    circuit_breaker_safe_scope: int,
+    request_safe_scope: int,
+    measured_at: str,
+    expires_at: str = "",
+) -> dict[str, Any]:
+    """Project one exact Service Failure cohort through existing safety owners.
+
+    This is a bounded projection, not a Planner or an Authority decision.  The
+    input rows have already been selected by the existing Planner and carry its
+    projected per-target capacity decisions.  The helper makes every numeric
+    bound and the exact selected set explicit so downstream OMP/Matrix owners
+    cannot silently turn a policy maximum into the actual cohort size.
+    """
+    unique: list[dict[str, Any]] = []
+    seen_users: set[str] = set()
+    exclusions: list[dict[str, str]] = []
+    for row in movable:
+        user = str(row.get("user_ip") or "")
+        source = str(row.get("current_egress") or "")
+        target = str(row.get("recommended_egress") or "")
+        if not user or not source or not target or source == target:
+            exclusions.append({"user_ip": user, "reason": "invalid_or_non_movement_row"})
+            continue
+        if user in seen_users:
+            exclusions.append({"user_ip": user, "reason": "duplicate_user_identity"})
+            continue
+        seen_users.add(user)
+        unique.append(dict(row))
+
+    capacity_safe: list[dict[str, Any]] = []
+    target_loads: dict[str, dict[str, Any]] = {}
+    for row in unique:
+        user = str(row.get("user_ip") or "")
+        target = str(row.get("recommended_egress") or "")
+        decision = row.get("capacity_decision")
+        decision = decision if isinstance(decision, dict) else {}
+        projected = decision.get("projected_load")
+        projected = projected if isinstance(projected, dict) else {}
+        hard_limit = max(0, to_int(projected.get("hard_limit"), 0))
+        projected_users = max(0, to_int(projected.get("users"), 0))
+        user_payload = row.get("user") if isinstance(row.get("user"), dict) else {}
+        load_weight = max(1, to_int(
+            row.get("capacity_weight")
+            or row.get("load_weight")
+            or user_payload.get("capacity_weight")
+            or 1,
+            1,
+        ))
+        reserve = max(0, to_int(
+            projected.get("required_reserve")
+            or projected.get("reserve_users")
+            or 0,
+            0,
+        ))
+        if hard_limit <= 0:
+            exclusions.append({"user_ip": user, "reason": "capacity_bound_unknown"})
+            continue
+        target_state = target_loads.setdefault(target, {
+            "capacity_limit": hard_limit,
+            "required_reserve": reserve,
+            "current_load": max(0, projected_users - 1),
+            "selected_load": 0,
+            "selected_users": [],
+            "unit": "CAPACITY_WEIGHT_UNIT",
+        })
+        target_state["capacity_limit"] = min(
+            int(target_state["capacity_limit"]), hard_limit,
+        )
+        target_state["required_reserve"] = max(
+            int(target_state["required_reserve"]), reserve,
+        )
+        available_after_reserve = max(
+            0,
+            int(target_state["capacity_limit"])
+            - int(target_state["required_reserve"])
+            - int(target_state["current_load"]),
+        )
+        if int(target_state["selected_load"]) + load_weight > available_after_reserve:
+            exclusions.append({"user_ip": user, "reason": "target_capacity_or_reserve_limit"})
+            continue
+        target_state["selected_load"] = int(target_state["selected_load"]) + load_weight
+        target_state["selected_users"].append(user)
+        capacity_safe.append({**row, "capacity_weight": load_weight})
+
+    bounds_spec = {
+        "incident_required_scope": (
+            max(0, int(incident_required_scope)),
+            "existing Service Failure incident scope owner",
+            "current unresolved protection intent",
+        ),
+        "eligible_source_scope": (
+            len(unique),
+            "existing autoswitch Planner",
+            "unique current-source users with a different eligible target",
+        ),
+        "generic_certified_scope": (
+            max(0, int(generic_certified_scope)),
+            "existing generic movement certification owner",
+            "engineering-certified generic primitive ceiling",
+        ),
+        "adapter_compatible_scope": (
+            max(0, int(adapter_compatible_scope)),
+            "existing Service Failure adapter owner",
+            "scenario bridge engineering-compatible ceiling",
+        ),
+        "capacity_safe_scope": (
+            len(capacity_safe),
+            "existing target capacity and reserve owner",
+            "exact Planner rows within current per-target capacity",
+        ),
+        "authority_safe_scope": (
+            max(0, int(authority_safe_scope)),
+            operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+            "current independently issued Authority maximum",
+        ),
+        "runtime_safe_scope": (
+            max(0, int(runtime_safe_scope)),
+            "tools/v7-users-autoswitch._emergency_failover_policy",
+            "current Runtime-enabled transaction maximum",
+        ),
+        "verification_safe_scope": (
+            max(0, int(verification_safe_scope)),
+            "existing per-user and aggregate verification owner",
+            "currently qualified verification ceiling",
+        ),
+        "rollback_containment_safe_scope": (
+            max(0, int(rollback_containment_safe_scope)),
+            "existing rollback and containment owner",
+            "currently qualified rollback/containment ceiling",
+        ),
+        "circuit_breaker_safe_scope": (
+            max(0, int(circuit_breaker_safe_scope)),
+            "tools/v7-users-autoswitch.apply",
+            "stop-after-first-non-success cohort circuit breaker ceiling",
+        ),
+        "request_safe_scope": (
+            max(0, int(request_safe_scope)),
+            "existing Matrix/controlled-production caller",
+            "exact current caller request ceiling",
+        ),
+    }
+    bounds: dict[str, dict[str, Any]] = {}
+    for name, (value, owner, reason) in bounds_spec.items():
+        semantic = {"name": name, "owner": owner, "value": value, "reason": reason}
+        bounds[name] = {
+            **semantic,
+            "fingerprint": sha256_json(semantic),
+            "measured_at": measured_at,
+            "expires_at": expires_at,
+            "freshness": "CURRENT_GENERATION",
+        }
+    mandatory_values = [int(row["value"]) for row in bounds.values()]
+    effective_limit = min(mandatory_values) if mandatory_values else 0
+    selected = capacity_safe[:effective_limit] if effective_limit > 0 else []
+    shadow_bound_names = [
+        name for name in bounds
+        if name != "authority_safe_scope"
+    ]
+    shadow_values = [int(bounds[name]["value"]) for name in shadow_bound_names]
+    shadow_limit = min(shadow_values) if shadow_values else 0
+    shadow_selected = capacity_safe[:shadow_limit] if shadow_limit > 0 else []
+    cohort_semantic = [{
+        "user_ip": str(row.get("user_ip") or ""),
+        "source": str(row.get("current_egress") or ""),
+        "target": str(row.get("recommended_egress") or ""),
+        "capacity_weight": int(row.get("capacity_weight") or 1),
+    } for row in selected]
+    cohort_fingerprint = sha256_json({"members": cohort_semantic})
+    limiting_bounds = sorted(
+        name for name, row in bounds.items()
+        if int(row["value"]) == effective_limit
+    )
+    return {
+        "schema_version": "v7.service-failure-adaptive-cohort-contract.v1",
+        "owner": "tools/v7-users-autoswitch",
+        "planner_owner_reused": True,
+        "authority_granted": False,
+        "runtime_mutation_performed": False,
+        "bounds": bounds,
+        "effective_cohort_limit": effective_limit,
+        "effective_cohort": len(selected),
+        "effective_cohort_load": sum(int(row.get("capacity_weight") or 1) for row in selected),
+        "load_unit": "CAPACITY_WEIGHT_UNIT",
+        "target_loads_after_reserve": target_loads,
+        "selected_moves": selected,
+        "bounded_shadow_limit": shadow_limit,
+        "bounded_shadow_moves": shadow_selected,
+        "selected_members": cohort_semantic,
+        "cohort_fingerprint": cohort_fingerprint,
+        "limiting_bounds": limiting_bounds,
+        "excluded_members": exclusions,
+        "status": "MOVE_READY_WITHIN_EXISTING_AUTHORITY" if selected else "STOP_SAFE",
+        "blockers": [] if selected else [
+            "one_or_more_mandatory_cohort_bounds_are_zero_or_unknown",
+        ],
+    }
+
+
 PASSIVE_EVENT_PROVENANCE_CONTRACT = {
     "OPERATOR_INDUCED": {
         "evidence_class": "OPERATOR_INDUCED_PRODUCTION_EVENT",
@@ -1866,6 +2074,7 @@ class AutoswitchPlanner:
         state.setdefault("processed_event_ids", [])
         state.setdefault("passive_event_consumptions", {})
         state.setdefault("service_failure_automation_obligations", {})
+        state.setdefault("bounded_cohort_transactions", {})
         state.setdefault("capability", {})
         state.setdefault("updated", "")
         return state
@@ -1877,6 +2086,97 @@ class AutoswitchPlanner:
         state["processed_event_ids"] = processed[-500:]
         write_json_atomic(self.l3_runtime_state_file, state)
         self.l3_runtime_state = state
+
+    def _bounded_cohort_checkpoint(
+        self,
+        plan: dict[str, Any],
+        selected_moves: list[dict[str, Any]],
+        *,
+        results: Optional[list[dict[str, Any]]] = None,
+        terminal_state: str = "IN_PROGRESS",
+        terminal_reason: str = "",
+    ) -> dict[str, Any]:
+        """Persist compact per-member progress in the existing L3 state owner."""
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+        barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
+        approved_lock = barrier.get("approved_plan_lock") if isinstance(barrier.get("approved_plan_lock"), dict) else {}
+        operation_id = str(operation.get("operation_id") or "")
+        selected_hash = str(operation.get("selected_move_hash") or "")
+        members = [{
+            "user_ip": str(row.get("user_ip") or ""),
+            "source": str(row.get("current_egress") or ""),
+            "target": str(row.get("recommended_egress") or ""),
+            "index": index,
+        } for index, row in enumerate(selected_moves)]
+        cohort_fingerprint = sha256_json({"members": members})
+        state = self._load_l3_runtime_state()
+        transactions = state.setdefault("bounded_cohort_transactions", {})
+        existing = transactions.get(operation_id)
+        existing = existing if isinstance(existing, dict) else {}
+        if existing and (
+            str(existing.get("selected_move_hash") or "") != selected_hash
+            or str(existing.get("cohort_fingerprint") or "") != cohort_fingerprint
+        ):
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "reason": "bounded_cohort_checkpoint_identity_mismatch",
+                "checkpoint": existing,
+            }
+        result_rows = list(results or [])
+        subreceipts = [{
+            "index": int(row.get("selected_move_index") or index),
+            "user_ip": str(row.get("user_ip") or ""),
+            "source": str(row.get("from") or ""),
+            "target": str(row.get("to") or ""),
+            "apply_rc": row.get("rc"),
+            "verify_rc": row.get("verify_rc"),
+            "service_verify_rc": row.get("service_verify_rc"),
+            "rollback_rc": row.get("rollback_rc"),
+            "terminal": str(row.get("terminal_outcome_classification") or ""),
+        } for index, row in enumerate(result_rows)]
+        attempted = {str(row.get("user_ip") or "") for row in result_rows}
+        successful = {
+            str(row.get("user_ip") or "")
+            for row in result_rows
+            if str(row.get("terminal_outcome_classification") or "") == "SUCCESS"
+        }
+        failed = sorted(attempted - successful)
+        unapplied = [
+            row["user_ip"] for row in members
+            if row["user_ip"] not in attempted
+        ]
+        checkpoint = {
+            "schema_version": "v7.bounded-cohort-transaction-checkpoint.v1",
+            "owner": "tools/v7-users-autoswitch:l3-runtime-state",
+            "operation_id": operation_id,
+            "packet_id": str(
+                barrier.get("packet_id")
+                or approved_lock.get("packet_id")
+                or approved_lock.get("approved_packet_id")
+                or ""
+            ),
+            "selected_move_hash": selected_hash,
+            "cohort_fingerprint": cohort_fingerprint,
+            "member_count": len(members),
+            "members": members,
+            "subreceipts": subreceipts,
+            "applied_successfully": sorted(successful),
+            "failed_or_contained": failed,
+            "unapplied": unapplied,
+            "next_member_index": len(result_rows),
+            "state": terminal_state,
+            "terminal_reason": terminal_reason,
+            "packet_reuse_for_new_transaction": "FORBIDDEN",
+            "restart_semantics": "RESUME_CAUSAL_CLOSURE_FROM_CHECKPOINT_NO_DUPLICATE_FORWARD_APPLY",
+            "updated_at": now_iso(),
+        }
+        transactions[operation_id] = checkpoint
+        # This compact checkpoint belongs to the existing L3 state owner.  It
+        # is not a second execution registry.
+        self._write_l3_runtime_state(state)
+        return {"ok": True, "status": terminal_state, "checkpoint": checkpoint}
 
     def _passive_incident_projection_key(self, source_incident_id: str) -> str:
         """Return the deterministic key inside the existing L3 incident owner.
@@ -10867,6 +11167,46 @@ class AutoswitchPlanner:
             "remaining_not_attempted": 0,
         }
         selected_moves = list(plan["selected_moves"])
+        bounded_checkpoint_enabled = len(selected_moves) > 1
+        bounded_checkpoint: dict[str, Any] = {}
+        if bounded_checkpoint_enabled:
+            operation_id_for_checkpoint = str(
+                (plan.get("operation") or {}).get("operation_id") or ""
+            )
+            state_before = self._load_l3_runtime_state()
+            prior_checkpoint = (
+                (state_before.get("bounded_cohort_transactions") or {}).get(
+                    operation_id_for_checkpoint,
+                )
+                if isinstance(state_before.get("bounded_cohort_transactions"), dict)
+                else {}
+            )
+            prior_checkpoint = prior_checkpoint if isinstance(prior_checkpoint, dict) else {}
+            if prior_checkpoint:
+                return {
+                    "applied": False,
+                    "reason": "bounded_cohort_restart_recovery_checkpoint_requires_causal_closure",
+                    "bounded_cohort_transaction": prior_checkpoint,
+                    "remaining_forward_mutations_stopped": True,
+                    "packet_reuse_for_new_transaction": "FORBIDDEN",
+                }
+            bounded_checkpoint = self._bounded_cohort_checkpoint(
+                plan,
+                selected_moves,
+                results=[],
+                terminal_state="IN_PROGRESS",
+                terminal_reason="before_first_member_mutation",
+            )
+            if not bounded_checkpoint.get("ok"):
+                return {
+                    "applied": False,
+                    "reason": str(
+                        bounded_checkpoint.get("reason")
+                        or "bounded_cohort_checkpoint_initialization_failed"
+                    ),
+                    "bounded_cohort_transaction": bounded_checkpoint.get("checkpoint") or {},
+                    "remaining_forward_mutations_stopped": True,
+                }
         for move_index, move in enumerate(selected_moves):
             item_control = self._execution_control_decision(
                 mutation_kind="forward",
@@ -10879,12 +11219,21 @@ class AutoswitchPlanner:
                 max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
             )
             if not item_control.get("allowed_forward_mutation"):
+                if bounded_checkpoint_enabled:
+                    bounded_checkpoint = self._bounded_cohort_checkpoint(
+                        plan,
+                        selected_moves,
+                        results=results,
+                        terminal_state="STOP_SAFE",
+                        terminal_reason="autonomous_execution_control_changed_during_batch",
+                    )
                 return {
                     "applied": bool(results),
                     "reason": "autonomous_execution_control_changed_during_batch",
                     "results": results,
                     "execution_control": item_control,
                     "remaining_forward_mutations_stopped": True,
+                    "bounded_cohort_transaction": bounded_checkpoint.get("checkpoint") or {},
                 }
             self._active_execution_control = item_control
             ip = move["user_ip"]
@@ -10952,6 +11301,14 @@ class AutoswitchPlanner:
                         row["rollback_verdict"] = "ROLLBACK_DENIED"
                         row["terminal_outcome_classification"] = "ROLLBACK_DENIED"
                         results.append(row)
+                        if bounded_checkpoint_enabled:
+                            bounded_checkpoint = self._bounded_cohort_checkpoint(
+                                plan,
+                                selected_moves,
+                                results=results,
+                                terminal_state="IN_PROGRESS",
+                                terminal_reason="member_terminal_recorded",
+                            )
                         if len(selected_moves) > 1:
                             cohort_circuit_breaker.update({
                                 "tripped": True,
@@ -10973,6 +11330,14 @@ class AutoswitchPlanner:
                 else:
                     row["terminal_outcome_classification"] = "SUCCESS"
             results.append(row)
+            if bounded_checkpoint_enabled:
+                bounded_checkpoint = self._bounded_cohort_checkpoint(
+                    plan,
+                    selected_moves,
+                    results=results,
+                    terminal_state="IN_PROGRESS",
+                    terminal_reason="member_terminal_recorded",
+                )
             if len(selected_moves) > 1 and row.get("terminal_outcome_classification") != "SUCCESS":
                 cohort_circuit_breaker.update({
                     "tripped": True,
@@ -10981,6 +11346,25 @@ class AutoswitchPlanner:
                     "remaining_not_attempted": max(0, len(selected_moves) - move_index - 1),
                 })
                 break
+        if bounded_checkpoint_enabled:
+            cohort_success = (
+                len(results) == len(selected_moves)
+                and all(
+                    str(row.get("terminal_outcome_classification") or "") == "SUCCESS"
+                    for row in results
+                )
+            )
+            bounded_checkpoint = self._bounded_cohort_checkpoint(
+                plan,
+                selected_moves,
+                results=results,
+                terminal_state="SUCCESS" if cohort_success else "CONTAINED_STOP_SAFE",
+                terminal_reason=(
+                    "all_members_verified"
+                    if cohort_success
+                    else "circuit_breaker_or_member_non_success"
+                ),
+            )
         self._update_safety_after_apply(results)
         plan.setdefault("safety", {})["cohort_circuit_breaker"] = cohort_circuit_breaker
         if emergency_mode:
@@ -11002,6 +11386,7 @@ class AutoswitchPlanner:
             "l3_execution_eligibility": l3_eligibility if l3_eligibility.get("active") else {},
             "cohort_circuit_breaker": cohort_circuit_breaker,
             "remaining_forward_mutations_stopped": cohort_circuit_breaker["tripped"],
+            "bounded_cohort_transaction": bounded_checkpoint.get("checkpoint") or {},
         }
 
     def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
@@ -11617,19 +12002,38 @@ class AutoswitchPlanner:
             authority_policy.get("current_allowed_user_budget") if isinstance(authority_policy, dict) else 0,
             0,
         ))
-        chosen = sorted(
-            movable,
-            key=lambda row: str(row.get("user_ip") or ""),
-        )[:max(1, authority_safe_cohort)]
         now = now_iso()
         affected = list(closure.get("affected_users") or [])
         current_affected_count = max(0, to_int(current_source_scope.get("affected_scope_count"), len(affected)))
         current_affected_fingerprint = str(current_source_scope.get("affected_scope_fingerprint") or "")
+        unresolved_count = max(
+            0,
+            to_int(current_source_scope.get("unresolved_scope_count"), current_affected_count),
+        )
         emergency_policy = getattr(self, "emergency_failover_policy", {})
         current_tier = max(0, to_int(
             emergency_policy.get("max_users_per_run") if isinstance(emergency_policy, dict) else 0,
             1,
         ))
+        standing_policy = self._standing_delegated_policy_status()
+        standing_policy_active = bool(standing_policy.get("valid"))
+        standing_expiry = str(standing_policy.get("expires_at") or "")
+        request_safe_scope = current_tier
+        adaptive_cohort = build_service_failure_adaptive_cohort_contract(
+            movable,
+            incident_required_scope=unresolved_count,
+            generic_certified_scope=operator_execution.GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS,
+            adapter_compatible_scope=operator_execution.SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS,
+            authority_safe_scope=authority_safe_cohort,
+            runtime_safe_scope=current_tier,
+            verification_safe_scope=operator_execution.SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS,
+            rollback_containment_safe_scope=operator_execution.SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS,
+            circuit_breaker_safe_scope=operator_execution.SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS,
+            request_safe_scope=request_safe_scope,
+            measured_at=now,
+            expires_at=standing_expiry,
+        )
+        chosen = list(adaptive_cohort.get("bounded_shadow_moves") or [])
         target_capacity_snapshot = {
             str(row.get("recommended_egress") or ""): row.get("capacity_decision")
             for row in chosen if str(row.get("recommended_egress") or "")
@@ -11647,8 +12051,6 @@ class AutoswitchPlanner:
             "users_moved": 0,
             "authority_expanded": False,
         }
-        standing_policy = self._standing_delegated_policy_status()
-        standing_policy_active = bool(standing_policy.get("valid"))
         if standing_policy_active and classification == "STOP_SAFE_AUTHORITY_REQUIRED":
             classification = "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
             reason = (
@@ -11701,17 +12103,22 @@ class AutoswitchPlanner:
                 "affected_scope_count": current_affected_count,
                 "affected_scope_fingerprint": current_affected_fingerprint,
                 "protected_scope_count": max(0, to_int(current_source_scope.get("protected_scope_count"), 0)),
-                "unresolved_scope_count": max(0, to_int(current_source_scope.get("unresolved_scope_count"), current_affected_count)),
+                "unresolved_scope_count": unresolved_count,
                 "explicitly_excluded_or_recovered_scope_count": max(0, to_int(current_source_scope.get("explicitly_excluded_or_recovered_scope_count"), 0)),
                 "raw_user_list_stored": False,
             },
             "bounded_recommendation_users": len(chosen),
             "current_certified_blast_radius_tier": current_tier,
             "requested_blast_radius_tier": min(current_affected_count, max(1, current_tier)),
-            "smallest_necessary_cohort": len(chosen),
-            "maximum_capacity_safe_cohort": len(chosen),
+            "smallest_necessary_cohort": min(unresolved_count, len(movable)),
+            "maximum_capacity_safe_cohort": int(
+                ((adaptive_cohort.get("bounds") or {}).get("capacity_safe_scope") or {}).get("value") or 0
+            ),
             "current_authority_safe_cohort": authority_safe_cohort,
-            "effective_cohort": 0,
+            "effective_cohort": int(adaptive_cohort.get("effective_cohort") or 0),
+            "effective_cohort_load": int(adaptive_cohort.get("effective_cohort_load") or 0),
+            "effective_cohort_fingerprint": str(adaptive_cohort.get("cohort_fingerprint") or ""),
+            "adaptive_cohort_contract": adaptive_cohort,
             "target_capacity_snapshot": target_capacity_snapshot,
             "next_tier_blocking_evidence_cell": "current action-class authority and real outcome coverage",
             "stop_safe_classification": classification,

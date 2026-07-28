@@ -199,8 +199,11 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         )
         result = self.lib.program_execution_reconciliation(sources)
         self.assertTrue(result["scenario_frontier_consumer_invoked"])
-        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_FRONTIER_EXHAUSTED")
-        self.assertEqual(result["scenario_frontier"]["NEXT_SCENARIO_ID"], "NONE")
+        self.assertEqual(result["scenario_frontier_decision"], "SCENARIO_READY")
+        self.assertEqual(
+            result["scenario_frontier"]["NEXT_SCENARIO_ID"],
+            "PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER",
+        )
         live = self.lib._markdown_field_table(self.lib._markdown_section(
             sources["cps"], "## 0. Authoritative Live Current State",
             "## Authoritative Unfinished Capability Closure Registry",
@@ -208,6 +211,7 @@ class FutureScalePolygonFoundationTest(unittest.TestCase):
         self.assertEqual(
             result["executable_program_frontier"],
             [
+                "PHASE6A_SCENARIO:PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER",
                 "PHASE6_PRODUCT_ENGINEERING:"
                 "POLYGON-ACTION-CLASS-SERVICE_PLANE_PARTIAL_FAILURE-ENGINEERING-G1"
             ],

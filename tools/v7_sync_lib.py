@@ -17370,6 +17370,25 @@ def _service_failure_action_class_reuse_projection(
     generic_no_rollback_max = int(primitive.get("certified_no_rollback_proven_max_scope") or 0)
     generic_replay_max = int(primitive.get("replay_duplicate_suppression_proven_max_scope") or 0)
     generic_packet_identity_max = int(primitive.get("packet_identity_preserved_proven_max_scope") or 0)
+    engineering_certified_max = max(
+        (int(item) for item in (primitive.get("engineering_certified_scopes") or []) if int(item) > 0),
+        default=0,
+    )
+    engineering_packet_identity_max = int(
+        primitive.get("engineering_packet_identity_preserved_max_scope") or 0
+    )
+    engineering_replay_max = int(
+        primitive.get("engineering_replay_duplicate_suppression_max_scope") or 0
+    )
+    engineering_partial_apply_max = int(
+        primitive.get("engineering_partial_apply_containment_max_scope") or 0
+    )
+    engineering_restart_max = int(
+        primitive.get("engineering_restart_recovery_max_scope") or 0
+    )
+    engineering_serial_max = int(
+        primitive.get("engineering_serial_cohort_execution_max_scope") or 0
+    )
     try:
         current_authority_max = max(0, int(status.get("max_users_per_action") or 0))
     except (TypeError, ValueError):
@@ -17378,17 +17397,20 @@ def _service_failure_action_class_reuse_projection(
         current_concurrent_max = max(0, int(status.get("max_concurrent_transactions") or 0))
     except (TypeError, ValueError):
         current_concurrent_max = 0
-    # The existing packet/executor/feedback path is cohort-shaped already.
-    # Selective qualification closes the service-failure binding only through
-    # the strongest directly reusable rollback + replay evidence.  Higher
-    # historical movement scopes remain useful supporting evidence, but do
-    # not silently become current Service Failure authority.
+    # Production evidence and engineering compatibility are deliberately
+    # independent axes.  Historical production outcomes remain unchanged,
+    # while deterministic Polygon/implementation guarantees may qualify the
+    # existing adapter mechanically without granting Authority.
     adapter_compatible_max = min(
         generic_mutation_max,
         generic_route_verification_max,
-        generic_rollback_applied_max,
-        generic_replay_max,
-        4,
+        engineering_certified_max,
+        engineering_packet_identity_max,
+        engineering_replay_max,
+        engineering_partial_apply_max,
+        engineering_restart_max,
+        engineering_serial_max,
+        48,
     )
     target_capacity_safe_static_max = adapter_compatible_max
     runtime_enabled_max = min(
@@ -17404,30 +17426,27 @@ def _service_failure_action_class_reuse_projection(
         current_authority_max,
         target_capacity_safe_static_max,
     )) else 0
-    tier4_active = bool(
-        current_authority_max >= 4
-        and runtime_enabled_max >= 4
+    tier48_active = bool(
+        current_authority_max >= 48
+        and runtime_enabled_max >= 48
         and current_concurrent_max == 1
     )
-    adapter_higher_tier_residuals = [
-        "tier_5_plus_replay_duplicate_suppression_owner_backed_evidence",
-        "tier_5_plus_partial_apply_containment_or_rollback_owner_backed_evidence",
-        "tier_48_packet_identity_preservation_owner_backed_evidence",
-    ]
-    if not tier4_active:
-        adapter_higher_tier_residuals.append("independent_tier_4_Authority_decision")
+    adapter_higher_tier_residuals = []
+    if adapter_compatible_max < 48:
+        adapter_higher_tier_residuals.append("exact_engineering_adapter_residual_below_tier_48")
+    if current_authority_max < 48:
+        adapter_higher_tier_residuals.append("independent_exact_tier_48_Authority_decision")
+    adapter_higher_tier_residuals.append(
+        "controlled_service_failure_adapter_outcomes_5_10_25_48_after_Authority"
+    )
     tier_rows: list[dict[str, Any]] = []
     for tier in (1, 2, 4, 5, 10, 25, 48):
         within_adapter = tier <= adapter_compatible_max
         exact_residuals: list[str] = []
-        if tier > generic_rollback_applied_max:
-            exact_residuals.append("rollback_or_containment_evidence_above_tier_4")
-        if tier > generic_replay_max:
-            exact_residuals.append("replay_duplicate_suppression_evidence_above_tier_4")
-        if tier > generic_packet_identity_max:
-            exact_residuals.append("packet_identity_preservation_evidence_above_tier_25")
         if within_adapter and tier > current_authority_max:
-            exact_residuals.append(f"independent_tier_{tier}_Authority_decision")
+            exact_residuals.append("covered_only_by_independent_exact_tier_48_Authority_decision")
+        if tier >= 5:
+            exact_residuals.append(f"controlled_service_failure_adapter_outcome_tier_{tier}")
         tier_rows.append({
             "tier": tier,
             "generic_execution_reusable": tier <= generic_mutation_max,
@@ -17436,15 +17455,20 @@ def _service_failure_action_class_reuse_projection(
             "capacity_binding": "PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE",
             "service_verification": "PASS_PER_USER_PLUS_AGGREGATE_TERMINAL" if within_adapter else "SELECTIVE_REVALIDATION_REQUIRED",
             "rollback_or_containment": (
-                "ROLLBACK_APPLY_PROVEN_AND_COHORT_CIRCUIT_BREAKER"
-                if tier <= generic_rollback_applied_max else
-                "SELECTIVE_ROLLBACK_OR_CONTAINMENT_EVIDENCE_REQUIRED"
+                "PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER"
+                if tier <= engineering_partial_apply_max else "SELECTIVE_REVALIDATION_REQUIRED"
             ),
-            "packet_identity": "PASS" if tier <= generic_packet_identity_max else "EVIDENCE_REQUIRED",
-            "replay_duplicate_suppression": "PASS" if tier <= generic_replay_max else "EVIDENCE_REQUIRED",
+            "packet_identity": (
+                "PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING"
+                if tier <= engineering_packet_identity_max else "SELECTIVE_REVALIDATION_REQUIRED"
+            ),
+            "replay_duplicate_suppression": (
+                "PASS_ENGINEERING_EXACT_ONCE"
+                if tier <= engineering_replay_max else "SELECTIVE_REVALIDATION_REQUIRED"
+            ),
             "restart_recovery": (
-                "PASS_FAIL_CLOSED_ACTIVE_LEASE_AND_PACKET_REUSE_DENIAL"
-                if within_adapter else "SELECTIVE_REVALIDATION_REQUIRED"
+                "PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL"
+                if tier <= engineering_restart_max else "SELECTIVE_REVALIDATION_REQUIRED"
             ),
             "authority_status": (
                 "ACTIVE" if tier <= current_authority_max else "INDEPENDENT_DECISION_REQUIRED"
@@ -17452,8 +17476,81 @@ def _service_failure_action_class_reuse_projection(
             "runtime_status": "ACTIVE" if tier <= runtime_enabled_max else "NOT_ACTIVATED",
             "exact_residual": ",".join(exact_residuals) or "NONE",
         })
+    project_wide_adapters = [
+        {
+            "adapter_id": "SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER",
+            "scenario_owner": "existing Service Matrix incident and autoswitch owners",
+            "generic_primitive_id": "GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE",
+            "generic_max_reused": generic_mutation_max,
+            "adapter_compatible_max": adapter_compatible_max,
+            "source_scope_contract": "failed source plus unresolved incident scope",
+            "target_selection_contract": "fresh existing Planner safe target only",
+            "capacity_contract": "live per-transaction target capacity and reserve",
+            "scenario_verification_delta": "per-user plus aggregate failed-source service verification",
+            "scenario_rollback_containment_delta": "bounded checkpoint plus cohort circuit breaker",
+            "start_conditions": "fresh incident generation and every live gate",
+            "stop_conditions": "source recovery, no safe target, capacity loss, verification or containment failure",
+            "authority_scope": current_authority_max,
+            "runtime_enabled_scope": runtime_enabled_max,
+            "exact_residual": (
+                "independent exact Tier-48 Authority decision and controlled adapter outcomes 5,10,25,48"
+                if not tier48_active else "controlled adapter outcomes 5,10,25,48"
+            ),
+        },
+        {
+            "adapter_id": "CAPACITY_LOAD_REBALANCE_ADAPTER",
+            "scenario_owner": "tools/v7-users-autoswitch Planner load and capacity gates",
+            "generic_primitive_id": "GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE",
+            "generic_max_reused": generic_mutation_max,
+            "adapter_compatible_max": 0,
+            "source_scope_contract": "planner-selected imbalance scope",
+            "target_selection_contract": "existing ranked capacity-safe target",
+            "capacity_contract": "existing load hard-limit and reserve owner",
+            "scenario_verification_delta": "selective adapter qualification required",
+            "scenario_rollback_containment_delta": "generic contract reusable; adapter trigger delta unqualified",
+            "start_conditions": "existing rebalance policy and current load evidence",
+            "stop_conditions": "capacity, policy, cooldown, anti-flap or verification gate",
+            "authority_scope": 0,
+            "runtime_enabled_scope": 0,
+            "exact_residual": "adapter-specific trigger, verification and Authority qualification",
+        },
+        {
+            "adapter_id": "PLANNED_MAINTENANCE_MIGRATION_ADAPTER",
+            "scenario_owner": "tools/v7-egress-set-state plus existing governed movement owners",
+            "generic_primitive_id": "GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE",
+            "generic_max_reused": generic_mutation_max,
+            "adapter_compatible_max": 0,
+            "source_scope_contract": "owner-declared maintenance source",
+            "target_selection_contract": "existing Planner target required",
+            "capacity_contract": "existing live capacity owner required",
+            "scenario_verification_delta": "maintenance intent and completion binding required",
+            "scenario_rollback_containment_delta": "generic contract reusable; maintenance delta unqualified",
+            "start_conditions": "owner-authorized maintenance intent",
+            "stop_conditions": "users remain assigned, no safe target or missing Authority",
+            "authority_scope": 0,
+            "runtime_enabled_scope": 0,
+            "exact_residual": "adapter-specific intent, consumer and Authority qualification",
+        },
+        {
+            "adapter_id": "MANUAL_GOVERNED_RECOVERY_OR_ROUTE_MIGRATION_ADAPTER",
+            "scenario_owner": "existing operator execution Packet and governed-canary owners",
+            "generic_primitive_id": "GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE",
+            "generic_max_reused": generic_mutation_max,
+            "adapter_compatible_max": generic_mutation_max,
+            "source_scope_contract": "exact operator-approved Packet cohort",
+            "target_selection_contract": "exact Packet target",
+            "capacity_contract": "execution-time recheck owner",
+            "scenario_verification_delta": "historical production evidence owner",
+            "scenario_rollback_containment_delta": "historical rollback or certified no-rollback owner",
+            "start_conditions": "fresh exact governed Packet and lease",
+            "stop_conditions": "Packet, lease, capacity, verification or Authority mismatch",
+            "authority_scope": 0,
+            "runtime_enabled_scope": 0,
+            "exact_residual": "no reusable standing Authority; scenario remains explicitly governed",
+        },
+    ]
     adapter_projection = {
-        "schema_version": "v7.service-failure-incident-drain-adapter-compatibility.v1",
+        "schema_version": "v7.service-failure-incident-drain-adapter-compatibility.v2",
         "projection_name": "SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER",
         "owner": "tools/v7_sync_lib._service_failure_action_class_reuse_projection",
         "owner_mode": "EXISTING_CPS_OMP_DERIVED_PROJECTION",
@@ -17463,17 +17560,20 @@ def _service_failure_action_class_reuse_projection(
         "incident_scope_binding": "CURRENT_PRODUCTION_PROVEN",
         "exact_user_list_binding": "CURRENT_PRODUCTION_PROVEN",
         "target_selection": "EXISTING_PLANNER_EXACT_TARGET_BINDING_REUSED_UP_TO_TIER_4",
+        "target_selection_engineering_scope": "EXISTING_PLANNER_EXACT_TARGET_BINDING_TO_TIER_48",
         "target_capacity_binding": "LIVE_PER_TRANSACTION_REQUIRED",
         "target_capacity_safe_static_max_scope": target_capacity_safe_static_max,
-        "service_verification": "PER_USER_PLUS_AGGREGATE_TERMINAL_QUALIFIED_UP_TO_TIER_4",
-        "rollback_or_containment": "ROLLBACK_APPLY_AND_COHORT_CIRCUIT_BREAKER_QUALIFIED_UP_TO_TIER_4",
-        "packet_identity_and_replay": "DIRECTLY_PROVEN_UP_TO_TIER_4",
-        "restart_recovery": "FAIL_CLOSED_ACTIVE_LEASE_AND_PACKET_REUSE_DENIAL",
+        "service_verification": "PER_USER_PLUS_AGGREGATE_ENGINEERING_CONTRACT_TO_TIER_48",
+        "rollback_or_containment": "PARTIAL_APPLY_CHECKPOINT_AND_COHORT_CIRCUIT_BREAKER_ENGINEERING_QUALIFIED_TO_TIER_48",
+        "packet_identity_and_replay": "EXACT_COHORT_PACKET_AND_DUPLICATE_FORWARD_APPLY_DENIAL_ENGINEERING_QUALIFIED_TO_TIER_48",
+        "restart_recovery": "CHECKPOINT_CAUSAL_CLOSURE_AND_PACKET_REUSE_DENIAL_TO_TIER_48",
         "incident_lifecycle_return": "CURRENT_PRODUCTION_PROVEN",
-        "engineering_reusable_cohort_path_max_scope": generic_mutation_max,
+        "engineering_reusable_cohort_path_max_scope": engineering_certified_max,
         "exact_current_adapter_compatible_max_scope": adapter_compatible_max,
         "higher_tier_residuals": adapter_higher_tier_residuals,
         "tier_matrix": tier_rows,
+        "project_wide_adapter_inheritance": project_wide_adapters,
+        "project_wide_adapter_inheritance_status": "PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND",
         "completion": "SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER",
         "read_only": True,
         "runtime_mutation_performed": False,
@@ -17589,7 +17689,7 @@ def _service_failure_action_class_reuse_projection(
         else {}
     )
     pending_tier_request_active = pending_tier_request.get("status") == "PENDING"
-    tier_request_active_projection = tier4_active and not pending_tier_request_active
+    tier_request_active_projection = tier48_active and not pending_tier_request_active
     tier_request_status = (
         "ACTIVATED" if tier_request_active_projection
         else str(pending_tier_request.get("status") or "NONE")
@@ -17629,12 +17729,12 @@ def _service_failure_action_class_reuse_projection(
         )
     )
     tier_verdict = (
-        "EXACT_TIER_4_RUNTIME_AUTHORITY_ACTIVATED"
-        if tier4_active else "RECOMMEND_EXACT_TIER_4_AUTHORITY_DECISION"
+        "EXACT_TIER_48_RUNTIME_AUTHORITY_ACTIVATED"
+        if tier48_active else "RECOMMEND_EXACT_TIER_48_AUTHORITY_DECISION"
     )
     tier_decision_consumption = (
-        "EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED"
-        if tier4_active else "EXACT_TIER_AUTHORITY_DECISION_REQUIRED"
+        "SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED"
+        if tier48_active else "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED"
     )
     projection = {
         "CURRENT_ACTION_CLASS": f"`{action_class}`",
@@ -17654,6 +17754,15 @@ def _service_failure_action_class_reuse_projection(
         "GENERIC_MOVEMENT_PARTIAL_SCOPE_SELECTION": "`48_OF_50_SELECTION_PROVEN; NOT_PARTIAL_APPLY_FAILURE_RECOVERY`",
         "GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY": "`NOT_PROVEN`",
         "GENERIC_MOVEMENT_RESTART_RECOVERY": "`NOT_PROVEN_FOR_COHORT`",
+        "GENERIC_MOVEMENT_ENGINEERING_EVIDENCE_CLASS": f"`{str(primitive.get('engineering_evidence_class') or 'NONE')}`",
+        "GENERIC_MOVEMENT_ENGINEERING_CERTIFICATION_STATUS": f"`{str(primitive.get('engineering_certification_status') or 'NOT_PROVEN')}`",
+        "GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_SCOPES": f"`{','.join(str(item) for item in (primitive.get('engineering_certified_scopes') or [])) or 'NONE'}`",
+        "GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX": f"`{engineering_certified_max}`",
+        "GENERIC_MOVEMENT_ENGINEERING_PACKET_IDENTITY_MAX": f"`{engineering_packet_identity_max}`",
+        "GENERIC_MOVEMENT_ENGINEERING_REPLAY_DUPLICATE_MAX": f"`{engineering_replay_max}`",
+        "GENERIC_MOVEMENT_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_MAX": f"`{engineering_partial_apply_max}`",
+        "GENERIC_MOVEMENT_ENGINEERING_RESTART_RECOVERY_MAX": f"`{engineering_restart_max}`",
+        "GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS": f"`{json.dumps(primitive.get('engineering_implementation_fingerprints') or {}, sort_keys=True, separators=(',', ':'))}`",
         "GENERIC_MOVEMENT_SERIAL_COHORT_PROVEN_MAX": f"`{int(primitive.get('serial_cohort_execution_proven_max_scope') or 0)}`",
         "GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX": f"`{int(primitive.get('parallel_concurrent_transactions_proven_max') or 0)}`",
         "GENERIC_MOVEMENT_AUTHORITY_AT_PRIMITIVE_LEVEL": "`NONE_BY_DESIGN`",
@@ -17664,23 +17773,19 @@ def _service_failure_action_class_reuse_projection(
         "SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX": f"`{adapter_compatible_max}`",
         "SERVICE_FAILURE_ADAPTER_HIGHER_TIER_RESIDUALS": f"`{','.join(adapter_higher_tier_residuals)}`",
         "SERVICE_FAILURE_ADAPTER_TIER_MATRIX": f"`{json.dumps(tier_rows, sort_keys=True, separators=(',', ':'))}`",
+        "PROJECT_WIDE_ADAPTER_INHERITANCE_STATUS": "`PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND`",
+        "PROJECT_WIDE_ADAPTER_INHERITANCE": f"`{json.dumps(project_wide_adapters, sort_keys=True, separators=(',', ':'))}`",
         "SERVICE_FAILURE_EFFECTIVE_TIER_FORMULA": "`min(generic_primitive,exact_adapter,current_Authority,live_capacity_and_verification)`",
         "SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER": f"`{runtime_enabled_max}`",
-        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": (
-            "`TIER_4_CURRENT_CLASS`" if tier4_active
-            else f"`TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PATH_UP_TO_{generic_mutation_max}_SUPPORTING`"
-        ),
-        "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": (
-            "`TIER_4_CURRENT_CLASS`" if tier4_active
-            else f"`TIER_1_CURRENT_CLASS; GENERIC_DIMENSIONS_NORMALIZED_UP_TO_{generic_mutation_max}`"
-        ),
+        "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": f"`TIER_{adapter_compatible_max}_CURRENT_CLASS_ENGINEERING`",
+        "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": f"`TIER_{adapter_compatible_max}_CURRENT_CLASS_ENGINEERING`",
         "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": (
-            "`TIER_1_CURRENT_CLASS; TIER_4_ACTIVE_AWAITING_FIRST_NATURAL_COHORT_OUTCOME`"
-            if tier4_active else "`TIER_1_CURRENT_CLASS; HIGHER_GENERIC_DIMENSIONS_SUPPORTING_ONLY`"
+            "`TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_TO_48; "
+            "SERVICE_FAILURE_CONTROLLED_TIERS_5_10_25_48_PENDING`"
         ),
         "CURRENT_ACTION_CLASS_CERTIFIED_TIER": (
-            "`TIER_1_CURRENT_CLASS; TIER_4_ENGINEERING_QUALIFIED_AND_AUTHORITY_ACTIVE`"
-            if tier4_active else "`TIER_1_CURRENT_CLASS`"
+            f"`TIER_{adapter_compatible_max}_ENGINEERING_QUALIFIED; "
+            f"TIER_{current_authority_max}_AUTHORITY_ACTIVE; TIER_1_SERVICE_FAILURE_PRODUCTION_PROVEN`"
         ),
         "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": f"`TIER_{current_authority_max}_CURRENT_STANDING_POLICY`",
         "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": (
@@ -17710,31 +17815,30 @@ def _service_failure_action_class_reuse_projection(
         "TIER_1_REUSE_MISMATCH_FIELDS": "`NONE`",
         "TIER_2_REUSE_CLASSIFICATION": (
             "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE`"
-            if tier4_active else "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED`"
+            if current_authority_max >= 2 else "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED`"
         ),
-        "TIER_2_REUSE_MISMATCH_FIELDS": "`NONE`" if tier4_active else "`Authority_scope_only`",
+        "TIER_2_REUSE_MISMATCH_FIELDS": "`NONE`" if current_authority_max >= 2 else "`Authority_scope_only`",
         "TIER_4_HISTORICAL_REUSE_CLASSIFICATION": (
-            "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE_AWAITING_NATURAL_COHORT_OUTCOME`"
-            if tier4_active else "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED`"
+            "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE_CONTROLLED_OUTCOME_PENDING`"
+            if current_authority_max >= 4 else "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_REQUIRED`"
         ),
-        "TIER_4_HISTORICAL_REUSE_MISMATCH_FIELDS": "`NONE`" if tier4_active else "`Authority_scope_only`",
-        "TIER_5_REUSE_CLASSIFICATION": f"`{tier5}`",
-        "TIER_5_REUSE_MISMATCH_FIELDS": f"`{tier5_mismatch}`",
-        "TIER_10_REUSE_CLASSIFICATION": f"`{tier10}`",
-        "TIER_10_REUSE_MISMATCH_FIELDS": f"`{tier10_mismatch}`",
-        "TIER_25_HISTORICAL_REUSE_CLASSIFICATION": f"`{tier25}`",
-        "TIER_25_HISTORICAL_REUSE_MISMATCH_FIELDS": f"`{tier25_mismatch}`",
-        "TIER_48_HISTORICAL_REUSE_CLASSIFICATION": f"`{tier48}`",
-        "TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS": f"`{tier48_mismatch}`",
-        "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`SCOPE_MISMATCH_EXACT_FIELDS`",
-        "BOUNDED_COHORT_REUSE_MISMATCH_FIELDS": "`action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope`",
-        "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`assignment_mutation<=48,route_verification<=48,rollback_applied<=4,certified_no_rollback<=48,replay_duplicate_suppression<=4,packet_identity<=25,serial_cohort<=48,parallel_transactions<=1`",
+        "TIER_4_HISTORICAL_REUSE_MISMATCH_FIELDS": "`NONE`" if current_authority_max >= 4 else "`Authority_scope_only`",
+        "TIER_5_REUSE_CLASSIFICATION": "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED`",
+        "TIER_5_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcome`",
+        "TIER_10_REUSE_CLASSIFICATION": "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED`",
+        "TIER_10_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcome`",
+        "TIER_25_HISTORICAL_REUSE_CLASSIFICATION": "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED`",
+        "TIER_25_HISTORICAL_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcome`",
+        "TIER_48_HISTORICAL_REUSE_CLASSIFICATION": "`ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED`",
+        "TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcome`",
+        "BOUNDED_COHORT_REUSE_CLASSIFICATION": "`ENGINEERING_QUALIFIED_TO_48_PRODUCTION_ADAPTER_EVIDENCE_SEPARATE`",
+        "BOUNDED_COHORT_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcomes_5_10_25_48`",
+        "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`production_assignment_mutation<=48,production_route_verification<=48,production_rollback_applied<=4,production_certified_no_rollback<=48,engineering_packet_identity<=48,engineering_replay_duplicate_suppression<=48,engineering_partial_apply_containment<=48,engineering_restart_recovery<=48,engineering_serial_cohort<=48,parallel_transactions<=1`",
         "CURRENT_ACTION_CLASS_NON_REUSABLE_AS": "`current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation`",
-        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_5_SELECTIVE_REVALIDATION_REQUIRED`" if tier4_active else "`TIER_4`",
+        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_48_INDEPENDENT_AUTHORITY_DECISION`",
         "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": (
-            "`first natural Tier-4 cohort Outcome/Replay/Learning; then exact Tier-5 selective residual only; no generic ladder rerun`"
-            if tier4_active else
-            "`independent exact Tier-4 Authority decision; current Tier-1 policy and Runtime remain unchanged until approval`"
+            "`one independent exact Tier-48 Authority decision; then controlled Service Failure "
+            "adapter outcomes 5->10->25->48; no generic ladder rerun`"
         ),
         "CURRENT_TIER_AUTHORITY_REQUEST_STATUS": f"`{tier_request_status}`",
         "CURRENT_TIER_AUTHORITY_REQUEST_ID": f"`{tier_request_id}`",
@@ -17821,6 +17925,7 @@ def _service_failure_action_class_reuse_projection(
         "service_failure_adapter": adapter_projection,
         "tier_formula": {
             "generic_primitive_max": generic_mutation_max,
+            "generic_engineering_certified_max": engineering_certified_max,
             "exact_adapter_compatible_max": adapter_compatible_max,
             "current_authority_max": current_authority_max,
             "current_target_capacity_safe_static_max": target_capacity_safe_static_max,
@@ -17828,6 +17933,7 @@ def _service_failure_action_class_reuse_projection(
             "max_concurrent_transactions": current_concurrent_max,
         },
         "service_failure_adapter_tier_matrix": tier_rows,
+        "project_wide_adapter_inheritance": project_wide_adapters,
         "causal_integrity": causal,
         "program_portfolio": {
             "status": portfolio.get("program_portfolio_reconciliation_status"),
@@ -17981,7 +18087,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
     # reconciliation into an exception that could obscure the Matrix drain.
     max_users = _status_int(status.get("max_users_per_action"))
     max_concurrent = _status_int(status.get("max_concurrent_transactions"))
-    if max_users not in {1, 2, 4} or max_concurrent != 1:
+    if max_users not in {1, 2, 4, 5, 10, 25, 48} or max_concurrent != 1:
         return {
             "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
             "final_verdict": "STOP_SAFE",
@@ -18008,7 +18114,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             errors.append("runtime_pending_tier_request_hash_or_identity_invalid")
         if not re.fullmatch(r"[0-9a-f]{64}", pending_scope_hash):
             errors.append("runtime_pending_tier_request_scope_hash_invalid")
-        if pending_max_users not in {2, 4} or pending_max_concurrent != 1:
+        if pending_max_users not in {2, 4, 5, 10, 25, 48} or pending_max_concurrent != 1:
             errors.append("runtime_pending_tier_request_bounds_invalid")
         if (
             str(pending_tier_request.get("active_program") or "")

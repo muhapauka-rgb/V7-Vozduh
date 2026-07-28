@@ -2434,6 +2434,19 @@ class AutonomyTrustAccelerationTest(unittest.TestCase):
         self.assertEqual(primitive["partial_scope_selection_budget"], 50)
         self.assertFalse(primitive["partial_apply_failure_recovery_proven"])
         self.assertFalse(primitive["restart_recovery_proven"])
+        self.assertEqual(
+            primitive["engineering_certification_status"],
+            "ENGINEERING_BOUNDED_COHORT_CONTRACT_PROVEN_TO_TIER_48",
+        )
+        self.assertEqual(primitive["engineering_certified_scopes"], [1, 2, 4, 5, 10, 25, 48])
+        self.assertEqual(primitive["engineering_exact_cohort_identity_max_scope"], 48)
+        self.assertEqual(primitive["engineering_packet_identity_preserved_max_scope"], 48)
+        self.assertEqual(primitive["engineering_replay_duplicate_suppression_max_scope"], 48)
+        self.assertEqual(primitive["engineering_partial_apply_containment_max_scope"], 48)
+        self.assertEqual(primitive["engineering_restart_recovery_max_scope"], 48)
+        self.assertEqual(primitive["engineering_serial_cohort_execution_max_scope"], 48)
+        self.assertEqual(primitive["engineering_max_concurrent_transactions"], 1)
+        self.assertEqual(len(primitive["engineering_guarantee_matrix"]), 7)
         self.assertEqual(primitive["parallel_concurrent_transactions_proven_max"], 1)
         self.assertFalse(primitive["authority_defined_at_primitive_level"])
         self.assertFalse(primitive["runtime_activation_allowed_by_projection"])

@@ -566,8 +566,13 @@ SERVICE_FAILURE_DELEGATED_ACTION_CLASSES = {
     1: "single-user governed candidate failover",
     2: "channel hard-fail failover",
     4: "channel hard-fail failover",
+    5: "channel hard-fail failover",
+    10: "channel hard-fail failover",
+    25: "channel hard-fail failover",
+    48: "channel hard-fail failover",
 }
-SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 4
+GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS = 48
+SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 48
 
 
 def standing_delegated_operational_policy_template(max_users=1):

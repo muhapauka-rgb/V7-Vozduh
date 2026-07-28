@@ -310,6 +310,33 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 )["ok"]
             )
 
+    def test_tier48_standing_policy_request_is_exact_and_non_activating(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_standing_delegated_policy_authority_request(
+            policy_generation_hash="a" * 64,
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            max_users=48,
+            now=now,
+        )
+        validation = validate_standing_delegated_policy_authority_request(
+            request,
+            decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            now=now,
+        )
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertEqual(request["status"], "AWAITING_INDEPENDENT_AUTHORITY_DECISION")
+        self.assertEqual(request["policy"]["max_users_per_action"], 48)
+        self.assertEqual(request["policy"]["max_concurrent_transactions"], 1)
+        self.assertEqual(
+            request["policy"]["allowed_action_classes"],
+            ["channel hard-fail failover"],
+        )
+        self.assertEqual(request["per_action_law"]["max_users"], 48)
+        self.assertFalse(request["policy"]["self_expansion_allowed"])
+        self.assertNotIn("contract_id", request)
+        self.assertNotIn("contract_hash", request)
+
     def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
         template = {
             "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",

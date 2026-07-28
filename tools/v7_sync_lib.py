@@ -17348,6 +17348,12 @@ def _service_failure_action_class_reuse_projection(
     """Project existing certification/evidence owners into exact tier truth."""
     from admin_core import autonomy_trust_acceleration as evidence_owner
 
+    def projection_int(value: Any) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
     canonical_root = (
         root
         if (root / "docs/programs/V7_STAGE2_KNOWLEDGE_ENGINEERING_PROGRAM.md").is_file()
@@ -17688,6 +17694,21 @@ def _service_failure_action_class_reuse_projection(
         if isinstance(status.get("pending_tier_authority_request"), dict)
         else {}
     )
+    controlled_pool = (
+        status.get("controlled_certification_pool")
+        if isinstance(status.get("controlled_certification_pool"), dict)
+        else {}
+    )
+    controlled_pool_status = str(controlled_pool.get("status") or "NOT_PROJECTED")
+    controlled_pool_max = projection_int(
+        controlled_pool.get("max_enabled_certification_users_on_one_active_source")
+    )
+    controlled_pool_total = projection_int(
+        controlled_pool.get("total_enabled_certification_users")
+    )
+    controlled_pool_missing_tier5 = max(
+        0, projection_int(controlled_pool.get("missing_users_for_tier_5"))
+    )
     pending_tier_request_active = pending_tier_request.get("status") == "PENDING"
     tier_request_active_projection = tier48_active and not pending_tier_request_active
     tier_request_status = (
@@ -17736,6 +17757,22 @@ def _service_failure_action_class_reuse_projection(
         "SERVICE_FAILURE_TIER48_RUNTIME_ACTIVATION_DECIDED"
         if tier48_active else "EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED"
     )
+    if not tier48_active:
+        product_evolution_frontier = tier_decision_consumption
+        m8_status = "NOT_ADMITTED_BEFORE_TIER48_AUTHORITY"
+        m8_legal_terminal = tier_decision_consumption
+    elif controlled_pool_max < 5:
+        product_evolution_frontier = (
+            "ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
+        )
+        m8_status = product_evolution_frontier
+        m8_legal_terminal = product_evolution_frontier
+    else:
+        product_evolution_frontier = (
+            "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
+        )
+        m8_status = "CONTROLLED_CERTIFICATION_POOL_READY_FOR_TIER_5"
+        m8_legal_terminal = product_evolution_frontier
     projection = {
         "CURRENT_ACTION_CLASS": f"`{action_class}`",
         "CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS": "`RESULT_REUSED_VALID`",
@@ -17835,10 +17872,13 @@ def _service_failure_action_class_reuse_projection(
         "BOUNDED_COHORT_REUSE_MISMATCH_FIELDS": "`Authority_scope,controlled_service_failure_outcomes_5_10_25_48`",
         "CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS": "`production_assignment_mutation<=48,production_route_verification<=48,production_rollback_applied<=4,production_certified_no_rollback<=48,engineering_packet_identity<=48,engineering_replay_duplicate_suppression<=48,engineering_partial_apply_containment<=48,engineering_restart_recovery<=48,engineering_serial_cohort<=48,parallel_transactions<=1`",
         "CURRENT_ACTION_CLASS_NON_REUSABLE_AS": "`current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation`",
-        "CURRENT_ACTION_CLASS_NEXT_TIER": "`TIER_48_INDEPENDENT_AUTHORITY_DECISION`",
+        "CURRENT_ACTION_CLASS_NEXT_TIER": (
+            "`TIER_5_CONTROLLED_SERVICE_FAILURE_ADAPTER_OUTCOME`"
+            if tier48_active else "`TIER_48_INDEPENDENT_AUTHORITY_DECISION`"
+        ),
         "CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL": (
-            "`one independent exact Tier-48 Authority decision; then controlled Service Failure "
-            "adapter outcomes 5->10->25->48; no generic ladder rerun`"
+            f"`{product_evolution_frontier}; controlled Service Failure adapter outcomes "
+            "5->10->25->48; no generic ladder rerun`"
         ),
         "CURRENT_TIER_AUTHORITY_REQUEST_STATUS": f"`{tier_request_status}`",
         "CURRENT_TIER_AUTHORITY_REQUEST_ID": f"`{tier_request_id}`",
@@ -17851,8 +17891,19 @@ def _service_failure_action_class_reuse_projection(
         "CURRENT_TIER_AUTHORITY_REQUEST_DECISION_SET": f"`{tier_request_decision_set}`",
         "CAUSAL_M7_TIER_VERDICT": f"`{tier_verdict}`",
         "CAUSAL_M7_TIER_DECISION_CONSUMPTION": f"`{tier_decision_consumption}`",
-        "PRODUCT_EVOLUTION_FRONTIER": f"`{tier_decision_consumption}`",
-        "GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION": f"`{tier_decision_consumption}; NO_GENERIC_LADDER_RERUN`",
+        "PRODUCT_EVOLUTION_FRONTIER": f"`{product_evolution_frontier}`",
+        "GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION": f"`{product_evolution_frontier}; NO_GENERIC_LADDER_RERUN`",
+        "T48_M8_STATUS": f"`{m8_status}`",
+        "T48_M8_LEGAL_TERMINAL": f"`{m8_legal_terminal}`",
+        "CONTROLLED_CERTIFICATION_POOL_STATUS": f"`{controlled_pool_status}`",
+        "CONTROLLED_CERTIFICATION_POOL_FINGERPRINT": f"`{str(controlled_pool.get('fingerprint') or '')}`",
+        "CONTROLLED_CERTIFICATION_POOL_TOTAL_ENABLED_USERS": f"`{controlled_pool_total}`",
+        "CONTROLLED_CERTIFICATION_POOL_ACTIVE_SOURCE_COUNT": f"`{projection_int(controlled_pool.get('active_controlled_source_count'))}`",
+        "CONTROLLED_CERTIFICATION_POOL_MAX_USERS_ON_ONE_ACTIVE_SOURCE": f"`{controlled_pool_max}`",
+        "CONTROLLED_CERTIFICATION_POOL_MISSING_USERS_FOR_TIER_5": f"`{controlled_pool_missing_tier5}`",
+        "CONTROLLED_CERTIFICATION_POOL_EXACT_BLOCKER": f"`{str(controlled_pool.get('exact_blocker') or 'pool_projection_unavailable')}`",
+        "CONTROLLED_CERTIFICATION_POOL_RESPONSIBLE_OWNER": f"`{str(controlled_pool.get('responsible_existing_owner') or 'existing Controlled Production Certification Program owners')}`",
+        "CONTROLLED_CERTIFICATION_POOL_REENTRY_CONDITION": f"`{str(controlled_pool.get('reentry_condition') or 'fresh owner-backed pool projection')}`",
         "CAUSAL_M8_SEMANTIC_ALIGNMENT": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVARIANT_STATUS": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVALID_STATES": f"`{','.join(str(item) for item in (causal.get('invalid_states') or [])) or 'NONE'}`",
@@ -17943,7 +17994,9 @@ def _service_failure_action_class_reuse_projection(
         },
         "tier_verdict": tier_verdict,
         "tier_decision_consumption": tier_decision_consumption,
-        "legal_terminal": tier_decision_consumption,
+        "legal_terminal": m8_legal_terminal,
+        "product_evolution_frontier": product_evolution_frontier,
+        "controlled_certification_pool": controlled_pool,
         "current_incident": current_incident,
         "current_incident_projection_valid": incident_projection_valid,
         "incident_frontier": (

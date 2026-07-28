@@ -139,6 +139,92 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(len(contract["bounded_shadow_moves"]), 4)
         self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
+    def test_controlled_certification_pool_projection_is_compact_and_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("users.registry").write_text(
+                "\n".join([
+                    "ip=10.7.0.16 enabled=1 current=controlled certification_user=1 certification_group=pool",
+                    "ip=10.7.0.17 enabled=1 current=controlled certification_user=1 certification_group=pool",
+                    "ip=10.7.0.18 enabled=1 current=controlled certification_user=1 certification_group=pool",
+                    "ip=10.7.0.19 enabled=1 current=other certification_user=1 certification_group=pool",
+                    "ip=10.0.0.2 enabled=1 current=controlled",
+                ]) + "\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=controlled enabled=1 controlled_certification_source=1 certification_group=pool\n"
+                "id=other enabled=1\n",
+                encoding="utf-8",
+            )
+            result = self.autoswitch.controlled_certification_pool_status(state_dir)
+            self.assertEqual(
+                result["status"],
+                "CONTROLLED_CERTIFICATION_POOL_INSUFFICIENT_FOR_TIER_5",
+            )
+            self.assertEqual(result["total_enabled_certification_users"], 4)
+            self.assertEqual(
+                result["max_enabled_certification_users_on_one_active_source"], 3,
+            )
+            self.assertEqual(result["missing_users_for_tier_5"], 2)
+            self.assertFalse(result["raw_user_list_stored"])
+            self.assertFalse(result["ordinary_customer_reclassification_allowed"])
+            rendered = json.dumps(result, sort_keys=True)
+            self.assertNotIn("10.7.0.16", rendered)
+            self.assertNotIn("10.0.0.2", rendered)
+
+    def test_tier48_active_projects_exact_m8_pool_terminal(self):
+        cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
+            encoding="utf-8",
+        )
+        live = self.sync._markdown_field_table(self.sync._markdown_section(
+            cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        status = {
+            "max_users_per_action": 48,
+            "max_concurrent_transactions": 1,
+            "action_class": "channel hard-fail failover",
+            "contract_hash": "a" * 64,
+            "policy_scope_hash": "b" * 64,
+            "authority_request_id": "sdpauth_r1_" + ("c" * 24),
+            "authority_request_hash": "c" * 64,
+            "expires_at": "2099-01-01T00:00:00+00:00",
+            "allowed_failure_families": ["channel_hard_fail"],
+            "pending_tier_authority_request": {"status": "NONE"},
+            "service_failure_causal_integrity": {
+                "final_verdict": "PASS",
+                "invalid_states": [],
+                "open_incident_projections": [],
+            },
+            "controlled_certification_pool": {
+                "status": "CONTROLLED_CERTIFICATION_POOL_INSUFFICIENT_FOR_TIER_5",
+                "fingerprint": "d" * 64,
+                "total_enabled_certification_users": 4,
+                "active_controlled_source_count": 1,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "missing_users_for_tier_5": 2,
+                "exact_blocker": "fewer_than_5_enabled_certification_users_on_one_active_controlled_source",
+                "responsible_existing_owner": "existing Controlled Production owners",
+                "reentry_condition": "five users on one controlled source",
+            },
+        }
+        projection, detail = self.sync._service_failure_action_class_reuse_projection(
+            status, live, root=ROOT,
+        )
+        expected = (
+            "ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
+        )
+        self.assertEqual(projection["PRODUCT_EVOLUTION_FRONTIER"].strip("`"), expected)
+        self.assertEqual(projection["T48_M8_STATUS"].strip("`"), expected)
+        self.assertEqual(detail["legal_terminal"], expected)
+        self.assertEqual(
+            detail["controlled_certification_pool"][
+                "max_enabled_certification_users_on_one_active_source"
+            ],
+            3,
+        )
+
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

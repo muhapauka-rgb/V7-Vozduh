@@ -17,6 +17,7 @@ import gzip
 import ipaddress
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -48,6 +49,9 @@ DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
 DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE = Path("/opt/v7/audit/operator-execution-audit.jsonl")
 SELECTED_MOVE_SEMANTIC_FIELDS = ("reason", "important_services", "candidates", "scores", "service_failover")
+CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE = (
+    "controlled_certification_substrate_effect"
+)
 
 
 def to_int(value: Any, default: int = 0) -> int:
@@ -1148,6 +1152,444 @@ def controlled_certification_repair_preflight(
         "users_moved": 0,
         "rollback_attempted": False,
         "authority_expanded": False,
+    }
+
+
+def approved_controlled_certification_substrate_binding(
+    *,
+    audit_store: Path,
+    request_id: str,
+    request_hash: str,
+    required_subscopes: set[str],
+) -> dict[str, Any]:
+    """Bind setup/campaign work to one exact existing Authority decision."""
+    records = operator_execution.read_audit_records(audit_store)
+    status = operator_execution.controlled_certification_substrate_authority_status(
+        records,
+    )
+    request = status.get("request") if isinstance(status.get("request"), dict) else {}
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    admitted = set(str(item) for item in (status.get("admitted_subscopes") or []))
+    blockers: list[str] = []
+    if str(status.get("status") or "") != "APPROVED":
+        blockers.append("controlled_substrate_authority_not_approved")
+    if str(status.get("request_id") or "") != str(request_id or ""):
+        blockers.append("controlled_substrate_request_id_mismatch")
+    if str(status.get("request_hash") or "") != str(request_hash or ""):
+        blockers.append("controlled_substrate_request_hash_mismatch")
+    if str(status.get("decision") or "") != (
+        operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+    ):
+        blockers.append("controlled_substrate_decision_not_exact_approval")
+    missing = sorted(set(required_subscopes) - admitted)
+    if missing:
+        blockers.extend(
+            f"controlled_substrate_subscope_not_admitted:{item}"
+            for item in missing
+        )
+    if str(request.get("active_program") or "") != (
+        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+    ):
+        blockers.append("controlled_substrate_active_program_mismatch")
+    if not str(scope.get("source_id") or ""):
+        blockers.append("controlled_substrate_source_missing")
+    if scope.get("certification_only") is not True:
+        blockers.append("controlled_substrate_certification_only_required")
+    if scope.get("ordinary_customer_involvement") is not False:
+        blockers.append("controlled_substrate_ordinary_customer_scope_forbidden")
+    if int(scope.get("max_concurrent_transactions") or 0) != 1:
+        blockers.append("controlled_substrate_concurrency_not_one")
+    if list(scope.get("campaign_stages") or []) != [5, 10, 25, 48]:
+        blockers.append("controlled_substrate_campaign_stages_changed")
+    return {
+        "schema_version": "v7.controlled-certification-substrate-binding.v1",
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "request_id": str(status.get("request_id") or ""),
+        "request_hash": str(status.get("request_hash") or ""),
+        "decision_id": str(status.get("decision_id") or ""),
+        "source_id": str(scope.get("source_id") or ""),
+        "scope": scope,
+        "request": request,
+        "admitted_subscopes": sorted(admitted),
+        "new_authority_created": False,
+        "authority_expanded": False,
+    }
+
+
+def _controlled_substrate_owned_identity_rows(
+    *,
+    leases_file: Path,
+    users: list[dict[str, Any]],
+    name_prefix: str,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    leases = read_registry(leases_file)
+    users_by_ip = {
+        str(row.get("ip") or ""): row
+        for row in users
+        if str(row.get("ip") or "")
+    }
+    owned: list[dict[str, Any]] = []
+    blockers: list[str] = []
+    for lease in leases:
+        name = str(lease.get("user") or "")
+        if not name.startswith(name_prefix):
+            continue
+        ip = str(lease.get("ip") or "")
+        row = users_by_ip.get(ip, {})
+        if str(lease.get("status") or "") != "active":
+            blockers.append(f"controlled_substrate_owned_lease_not_active:{name}")
+        if not row:
+            blockers.append(f"controlled_substrate_owned_user_missing:{name}")
+        owned.append({
+            "name": name,
+            "device": str(lease.get("device") or ""),
+            "ip": ip,
+            "lease": lease,
+            "user": row,
+        })
+    owned.sort(key=lambda row: str(row.get("name") or ""))
+    return owned, blockers
+
+
+def provision_approved_controlled_certification_substrate(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    audit_dir: Path,
+) -> dict[str, Any]:
+    """Provision the approved dedicated pool through existing owners only.
+
+    Identity and assignment truth remain in IPAM/users/egress registries.  This
+    consumer stores only one compact append-only completion receipt.
+    """
+    audit_store = Path(args.operator_execution_audit_store)
+    request_id = str(args.controlled_certification_substrate_request_id or "")
+    request_hash = str(args.controlled_certification_substrate_request_hash or "")
+    binding = approved_controlled_certification_substrate_binding(
+        audit_store=audit_store,
+        request_id=request_id,
+        request_hash=request_hash,
+        required_subscopes={
+            "IDENTITY_PROVISIONING",
+            "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+        },
+    )
+    if not binding.get("ok"):
+        return transaction_stop(
+            "controlled_substrate_authority_binding_invalid",
+            controlled_substrate_binding=binding,
+        )
+    source = str(binding.get("source_id") or "")
+    scope = binding.get("scope") if isinstance(binding.get("scope"), dict) else {}
+    target_total = int(scope.get("target_total_certification_identities") or 0)
+    max_new = int(scope.get("max_new_certification_identities") or 0)
+    if target_total != 48 or max_new != 48:
+        return transaction_stop(
+            "controlled_substrate_identity_ceiling_changed",
+            target_total=target_total,
+            max_new=max_new,
+        )
+    name_prefix = f"cert-t48-{request_hash[:8]}-"
+    group = f"t48-{request_hash[:12]}"
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", source):
+        return transaction_stop("controlled_substrate_source_id_unsafe")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", group):
+        return transaction_stop("controlled_substrate_group_unsafe")
+
+    egress = read_registry(state_dir / "egress.registry")
+    source_rows = [row for row in egress if str(row.get("id") or "") == source]
+    if len(source_rows) != 1:
+        return transaction_stop("controlled_substrate_source_not_unique")
+    source_row = source_rows[0]
+    if str(source_row.get("enabled") or "1").lower() not in {
+        "1", "true", "yes",
+    }:
+        return transaction_stop("controlled_substrate_source_not_enabled")
+
+    users = read_registry(state_dir / "users.registry")
+    leases_file = Path(args.ipam_leases_file)
+    owned, owned_blockers = _controlled_substrate_owned_identity_rows(
+        leases_file=leases_file,
+        users=users,
+        name_prefix=name_prefix,
+    )
+    owned_ips = {str(row.get("ip") or "") for row in owned}
+    unrelated = [
+        str(row.get("ip") or "")
+        for row in users
+        if str(row.get("current") or "") == source
+        and str(row.get("enabled") or "1").lower() in {"1", "true", "yes"}
+        and str(row.get("ip") or "") not in owned_ips
+        and str(row.get("certification_user") or "").lower()
+        not in {"1", "true", "yes"}
+    ]
+    blockers = list(owned_blockers)
+    if unrelated:
+        blockers.append(
+            "controlled_substrate_source_contains_non_certification_users"
+        )
+    if len(owned) > target_total:
+        blockers.append("controlled_substrate_owned_identity_count_above_scope")
+    if blockers:
+        return transaction_stop(
+            "controlled_substrate_preflight_failed",
+            blockers=sorted(set(blockers)),
+            source=source,
+            owned_identity_count=len(owned),
+            unrelated_user_count=len(unrelated),
+        )
+    if (
+        args.confirm_controlled_certification_substrate_provisioning
+        != "PROVISION_APPROVED_CONTROLLED_CERTIFICATION_SUBSTRATE"
+    ):
+        return {
+            "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+            "final_verdict": "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY",
+            "read_only": True,
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision_id": str(binding.get("decision_id") or ""),
+            "source": source,
+            "target_total": target_total,
+            "existing_owned_identities": len(owned),
+            "identities_to_create": target_total - len(owned),
+            "ordinary_customer_count": 0,
+            "raw_identity_list_stored": False,
+            "controlled_substrate_binding": binding,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+        }
+
+    created_count = 0
+    classified_count = 0
+    with operator_execution.current_action_class_contract_policy_lock(
+        audit_store,
+    ):
+        records = operator_execution.read_audit_records(audit_store)
+        prior = [
+            row for row in records
+            if row.get("record_type") == CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE
+            and str(row.get("authority_request_id") or "") == request_id
+            and str(row.get("authority_request_hash") or "") == request_hash
+            and str(row.get("effect_class") or "") == (
+                "IDENTITY_POOL_PROVISIONED_AND_CLASSIFIED"
+            )
+        ]
+        if prior:
+            return {
+                "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+                "final_verdict": "CONTROLLED_CERTIFICATION_SUBSTRATE_ALREADY_CONSUMED",
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "source": source,
+                "receipt_id": str(prior[-1].get("receipt_id") or ""),
+                "audit_write": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+                "authority_expanded": False,
+            }
+        for index in range(1, target_total + 1):
+            name = f"{name_prefix}{index:02d}"
+            users = read_registry(state_dir / "users.registry")
+            owned, owned_blockers = _controlled_substrate_owned_identity_rows(
+                leases_file=leases_file,
+                users=users,
+                name_prefix=name_prefix,
+            )
+            if owned_blockers:
+                return transaction_stop(
+                    "controlled_substrate_owned_identity_drift",
+                    blockers=owned_blockers,
+                    completed_identity_count=len(owned),
+                )
+            matches = [row for row in owned if row.get("name") == name]
+            if len(matches) > 1:
+                return transaction_stop(
+                    "controlled_substrate_owned_identity_duplicate",
+                    identity_name=name,
+                )
+            if not matches:
+                proc = subprocess.run(
+                    [
+                        str(args.identity_provisioner),
+                        "--name", name,
+                        "--device", name,
+                        "--egress", source,
+                        "--apply", "--confirm", "CREATE_IPAM_USER",
+                    ],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=240,
+                    check=False,
+                )
+                if proc.returncode != 0:
+                    return transaction_stop(
+                        "controlled_substrate_identity_provisioning_failed",
+                        identity_index=index,
+                        returncode=proc.returncode,
+                        output_tail=(proc.stdout or "")[-2000:],
+                        created_count=created_count,
+                    )
+                parsed_ip = ""
+                for line in (proc.stdout or "").splitlines():
+                    if line.startswith("ip="):
+                        parsed_ip = line.split("=", 1)[1].strip()
+                if not parsed_ip:
+                    return transaction_stop(
+                        "controlled_substrate_identity_provisioning_receipt_invalid",
+                        identity_index=index,
+                        created_count=created_count,
+                    )
+                created_count += 1
+                identity_ip = parsed_ip
+            else:
+                identity_ip = str(matches[0].get("ip") or "")
+            user_rows = [
+                row for row in read_registry(state_dir / "users.registry")
+                if str(row.get("ip") or "") == identity_ip
+            ]
+            if len(user_rows) != 1:
+                return transaction_stop(
+                    "controlled_substrate_created_user_not_unique",
+                    identity_index=index,
+                )
+            user_row = user_rows[0]
+            if str(user_row.get("current") or "") != source:
+                return transaction_stop(
+                    "controlled_substrate_created_user_assignment_mismatch",
+                    identity_index=index,
+                )
+            is_classified = (
+                str(user_row.get("certification_user") or "").lower()
+                in {"1", "true", "yes"}
+                and str(user_row.get("certification_group") or "") == group
+            )
+            if not is_classified:
+                marker = subprocess.run(
+                    [
+                        str(args.egress_state_owner),
+                        source, "certification-scope",
+                        "--certification-users", identity_ip,
+                        "--certification-group", group,
+                        "--apply",
+                    ],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=240,
+                    check=False,
+                )
+                if marker.returncode != 0:
+                    return transaction_stop(
+                        "controlled_substrate_classification_failed",
+                        identity_index=index,
+                        returncode=marker.returncode,
+                        output_tail=(marker.stdout or "")[-2000:],
+                        created_count=created_count,
+                        classified_count=classified_count,
+                    )
+                classified_count += 1
+
+        users = read_registry(state_dir / "users.registry")
+        owned, owned_blockers = _controlled_substrate_owned_identity_rows(
+            leases_file=leases_file,
+            users=users,
+            name_prefix=name_prefix,
+        )
+        final_blockers = list(owned_blockers)
+        eligible = []
+        for row in owned:
+            user_row = row.get("user") if isinstance(row.get("user"), dict) else {}
+            if (
+                str(user_row.get("current") or "") == source
+                and str(user_row.get("enabled") or "1").lower()
+                in {"1", "true", "yes"}
+                and str(user_row.get("certification_user") or "").lower()
+                in {"1", "true", "yes"}
+                and str(user_row.get("certification_group") or "") == group
+            ):
+                eligible.append(str(row.get("ip") or ""))
+        current_non_cert = [
+            str(row.get("ip") or "")
+            for row in users
+            if str(row.get("current") or "") == source
+            and str(row.get("enabled") or "1").lower()
+            in {"1", "true", "yes"}
+            and str(row.get("certification_user") or "").lower()
+            not in {"1", "true", "yes"}
+        ]
+        if len(eligible) != target_total:
+            final_blockers.append(
+                "controlled_substrate_final_eligible_count_mismatch"
+            )
+        if current_non_cert:
+            final_blockers.append(
+                "controlled_substrate_final_non_certification_users_present"
+            )
+        if final_blockers:
+            return transaction_stop(
+                "controlled_substrate_final_verification_failed",
+                blockers=sorted(set(final_blockers)),
+                eligible_count=len(eligible),
+                non_certification_count=len(current_non_cert),
+            )
+        identity_fingerprint = operator_execution.sha256_json(sorted(eligible))
+        receipt_id = "cpsfx_" + operator_execution.sha256_json({
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision_id": binding.get("decision_id"),
+            "source": source,
+            "identity_fingerprint": identity_fingerprint,
+            "identity_count": len(eligible),
+        })[:24]
+        receipt = operator_execution.append_record(audit_store, {
+            "schema_version": "v7.controlled-certification-substrate-effect.v1",
+            "record_type": CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE,
+            "receipt_id": receipt_id,
+            "effect_class": "IDENTITY_POOL_PROVISIONED_AND_CLASSIFIED",
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "authority_decision_id": str(binding.get("decision_id") or ""),
+            "source_id": source,
+            "identity_count": len(eligible),
+            "identity_fingerprint": identity_fingerprint,
+            "raw_identity_list_stored": False,
+            "ordinary_customer_count": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    return {
+        "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+        "final_verdict": "CONTROLLED_CERTIFICATION_SUBSTRATE_PROVISIONED",
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision_id": str(binding.get("decision_id") or ""),
+        "source": source,
+        "target_total": target_total,
+        "eligible_identity_count": target_total,
+        "identity_fingerprint": identity_fingerprint,
+        "created_count": created_count,
+        "classified_count": classified_count,
+        "ordinary_customer_count": 0,
+        "raw_identity_list_stored": False,
+        "receipt_id": str(receipt.get("receipt_id") or receipt_id),
+        "audit_write": True,
+        "identity_creation": created_count,
+        "assignment_change": created_count,
+        "classification_change": classified_count,
+        "controlled_condition": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_apply": created_count > 0,
+        "routing_mutation_performed": created_count > 0,
+        "users_moved": 0,
+        "authority_expanded": False,
+        "production_maturity_change": False,
     }
 
 
@@ -3594,6 +4036,34 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cleanup-controlled-certification-condition", action="store_true")
     parser.add_argument("--confirm-controlled-certification-cleanup", default="")
     parser.add_argument("--verify-controlled-certification-preflight", action="store_true")
+    parser.add_argument(
+        "--provision-controlled-certification-substrate",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--confirm-controlled-certification-substrate-provisioning",
+        default="",
+    )
+    parser.add_argument(
+        "--controlled-certification-substrate-request-id",
+        default="",
+    )
+    parser.add_argument(
+        "--controlled-certification-substrate-request-hash",
+        default="",
+    )
+    parser.add_argument(
+        "--ipam-leases-file",
+        default="/opt/v7/ipam/leases.registry",
+    )
+    parser.add_argument(
+        "--identity-provisioner",
+        default="v7-user-create-from-ipam",
+    )
+    parser.add_argument(
+        "--egress-state-owner",
+        default="v7-egress-set-state",
+    )
     parser.add_argument("--engineering-authority-request-file", default="")
     parser.add_argument("--engineering-authority-decision", default="")
     parser.add_argument("--engineering-authority-request-id", default="")
@@ -3629,6 +4099,23 @@ def main(argv=None) -> int:
     snapshot_root = Path(args.snapshot_root) if args.snapshot_root else state_dir / "intelligence"
     audit_dir = Path(args.audit_dir) if args.audit_dir else default_audit_dir(state_dir)
     lease_file = Path(args.execution_lease_file) if args.execution_lease_file else state_dir / "operator-execution-lease.json"
+    if args.provision_controlled_certification_substrate:
+        result = provision_approved_controlled_certification_substrate(
+            args,
+            state_dir=state_dir,
+            audit_dir=audit_dir,
+        )
+        print(json.dumps(
+            result,
+            ensure_ascii=False,
+            indent=2 if args.pretty else None,
+            sort_keys=True,
+        ))
+        return 0 if result.get("final_verdict") in {
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY",
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_PROVISIONED",
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_ALREADY_CONSUMED",
+        } else 2
     if args.verify_controlled_certification_preflight:
         result = controlled_certification_repair_preflight(
             args,

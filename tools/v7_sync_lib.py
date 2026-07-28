@@ -18341,12 +18341,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else "UNKNOWN"
         )
     )
+    controlled_substrate_source_precondition_accepted = (
+        controlled_substrate_source_precondition
+        in {"PASS", "PASS_READY_FOR_APPROVED_SETUP"}
+    )
     tier48_active = max_users == 48
     m8_approved_source_invalid = (
         tier48_active
         and controlled_substrate_status == "APPROVED"
-        and controlled_substrate_source_precondition
-        != "PASS"
+        and not controlled_substrate_source_precondition_accepted
     )
     m8_substrate_approved = (
         tier48_active

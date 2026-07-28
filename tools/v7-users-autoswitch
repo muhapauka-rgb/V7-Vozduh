@@ -13834,8 +13834,22 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         and str(row.get("source_id") or "")
         == controlled_substrate_source_id
     ), {})
+    controlled_substrate_candidate_projection = next((
+        row
+        for row in (
+            controlled_pool.get("isolated_source_candidates") or []
+        )
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "")
+        == controlled_substrate_source_id
+    ), {})
     controlled_substrate_source_isolated = bool(
         controlled_substrate_source_projection.get(
+            "source_isolated_for_controlled_failure"
+        )
+    )
+    controlled_substrate_candidate_isolated = bool(
+        controlled_substrate_candidate_projection.get(
             "source_isolated_for_controlled_failure"
         )
     )
@@ -13916,9 +13930,14 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             "source_currently_isolated": (
                 controlled_substrate_source_isolated
             ),
+            "source_currently_eligible_isolated_candidate": (
+                controlled_substrate_candidate_isolated
+            ),
             "source_precondition_status": (
                 "PASS"
                 if controlled_substrate_source_isolated
+                else "PASS_READY_FOR_APPROVED_SETUP"
+                if controlled_substrate_candidate_isolated
                 else "STOP_SAFE_MIXED_OR_UNAVAILABLE_SOURCE"
             ),
         },

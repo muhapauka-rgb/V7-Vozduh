@@ -242,6 +242,72 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(ordinary["selection_status"], "STOP_SAFE")
         self.assertIn("identity_not_in_durable_legacy_certification_pool", ordinary["blockers"])
 
+    def test_approved_substrate_provisioning_preflight_is_read_only(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "users.registry").write_text("", encoding="utf-8")
+            (state / "egress.registry").write_text(
+                "id=1 type=interface enabled=1 interface=wg-test\n",
+                encoding="utf-8",
+            )
+            leases = root / "leases.registry"
+            leases.write_text("", encoding="utf-8")
+            audit = root / "operator-execution-audit.jsonl"
+            audit.write_text("", encoding="utf-8")
+            args = argparse.Namespace(
+                operator_execution_audit_store=str(audit),
+                controlled_certification_substrate_request_id="cpsauth_r1_test",
+                controlled_certification_substrate_request_hash="a" * 64,
+                confirm_controlled_certification_substrate_provisioning="",
+                ipam_leases_file=str(leases),
+                identity_provisioner="v7-user-create-from-ipam",
+                egress_state_owner="v7-egress-set-state",
+            )
+            binding = {
+                "ok": True,
+                "blockers": [],
+                "decision_id": "cpsdec_test",
+                "source_id": "1",
+                "scope": {
+                    "target_total_certification_identities": 48,
+                    "max_new_certification_identities": 48,
+                },
+            }
+            before_users = (state / "users.registry").read_text(encoding="utf-8")
+            before_egress = (state / "egress.registry").read_text(encoding="utf-8")
+            with mock.patch.object(
+                module,
+                "approved_controlled_certification_substrate_binding",
+                return_value=binding,
+            ), mock.patch.object(module.subprocess, "run") as run:
+                result = (
+                    module.provision_approved_controlled_certification_substrate(
+                        args,
+                        state_dir=state,
+                        audit_dir=root,
+                    )
+                )
+            self.assertEqual(
+                result["final_verdict"],
+                "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY",
+            )
+            self.assertEqual(result["identities_to_create"], 48)
+            self.assertEqual(result["ordinary_customer_count"], 0)
+            self.assertFalse(result["runtime_mutation_performed"])
+            self.assertFalse(result["routing_mutation_performed"])
+            run.assert_not_called()
+            self.assertEqual(
+                (state / "users.registry").read_text(encoding="utf-8"),
+                before_users,
+            )
+            self.assertEqual(
+                (state / "egress.registry").read_text(encoding="utf-8"),
+                before_egress,
+            )
+
     def test_controlled_cleanup_admits_only_exact_certification_pre_state(self):
         module = load_cli_module()
         selected = module.controlled_certification_cleanup_selection(

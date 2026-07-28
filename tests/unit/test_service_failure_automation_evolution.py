@@ -668,6 +668,24 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
                 )
             )
+            runtime_status[
+                "controlled_certification_substrate_authority"
+            ]["source_precondition_status"] = (
+                "PASS_READY_FOR_APPROVED_SETUP"
+            )
+            isolated_candidate = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                isolated_candidate["final_verdict"], "PASS",
+                isolated_candidate,
+            )
+            self.assertEqual(
+                isolated_candidate["next_action"],
+                "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED",
+            )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):
         with tempfile.TemporaryDirectory() as tmp:

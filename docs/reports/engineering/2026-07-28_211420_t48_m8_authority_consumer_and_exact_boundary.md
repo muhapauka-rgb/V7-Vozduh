@@ -190,3 +190,18 @@ exact append-only DECLINE
 ```
 
 Expiry не создаёт второй semantic request: допускается только linked expiry replacement с тем же semantic fingerprint и без одновременного второго active request.
+
+## 8. Финальная truth/convergence проверка
+
+После runtime deploy, production consumer replay, CPS/OMP reconciliation и provenance refresh:
+
+- `tools/v7-truth-check --all --json`: `PASS`;
+- blockers: `NONE`;
+- Runtime access: `READY`;
+- Runtime truth: `KNOWN`;
+- State truth: `KNOWN`;
+- local/GitHub/production convergence: `FULLY_ALIGNED`;
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`;
+- delegated-policy contradiction count: `0`.
+
+Единственное предупреждение `documentation_dirty_ignored` относится к ранее существовавшим пользовательским отчётам вне scope этой Mission; они не включались ни в один из её коммитов или deploy manifest.

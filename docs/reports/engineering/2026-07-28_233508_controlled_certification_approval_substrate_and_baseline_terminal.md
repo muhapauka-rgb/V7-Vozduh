@@ -88,13 +88,14 @@ This proves the generic path cannot bypass the approved progressive campaign.
 ## 6. Tests and truth
 
 - Focused repaired-path tests: PASS.
-- Full affected set: all non-CPS tests passed; the four initial failures were the expected stale OMP current-pointer projection.
+- Full affected set after CPS/OMP pointer reconciliation: `252/252 PASS`.
 - CPS/OMP pointer correction suite: `46/46 PASS`.
 - CPS current state generation: `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_SOURCE_BASELINE_BLOCKED`.
 - CPS transition: `SERVICE_FAILURE_TIER48_M8_APPROVED_SOURCE_BASELINE_BLOCKED_V1`.
 - `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`, zero blockers.
 - `tools/v7-convergence-status --json`: `PASS`.
-- Local, GitHub and production Runtime deploy identity: `128aed11d53a820be020a8593715a6f8fe7ce092`.
+- Runtime binary payload commit: `128aed11d53a820be020a8593715a6f8fe7ce092`.
+- The final report commit is synchronized to GitHub and production through a zero-runtime-delta provenance deploy; its self-referential commit identity is intentionally not embedded in this report.
 
 ## 7. Exact legal terminal and re-entry
 

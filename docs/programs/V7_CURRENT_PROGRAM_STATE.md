@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-28T04:19:46+00:00
+State captured: 2026-07-28T10:06:03+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: The existing Matrix -> delegated Packet -> execution-feedback chain cons
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-28T04:19:46+00:00`
+Captured: `2026-07-28T10:06:03+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -32,8 +32,8 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE` |
 | `CURRENT_SAFE_NEXT_ACTION` | `ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING MATRIX -> PLANNER -> FRESH CANDIDATE/PACKET/LEASE -> LIVE GATES PATH; DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
@@ -405,30 +405,30 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_VLESS_INCIDENT_ID` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
 | `CURRENT_VLESS_SCOPE_FINGERPRINT` | `678077526706dee2bf3c0b4ec85e516207f5165342d14c79c3155fecc23ccc73` |
 | `INCIDENT_FRONTIER` | `CURRENT_SOURCE_SCOPE_EMPTY` |
-| `PRODUCT_EVOLUTION_FRONTIER` | `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED` |
-| `BOUNDED_COHORT_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH_EXACT_FIELDS` |
-| `CAUSAL_M7_TIER_VERDICT` | `EXACT_TIER_4_RUNTIME_AUTHORITY_ACTIVATED` |
+| `PRODUCT_EVOLUTION_FRONTIER` | `EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED` |
+| `BOUNDED_COHORT_REUSE_CLASSIFICATION` | `ENGINEERING_QUALIFIED_TO_48_PRODUCTION_ADAPTER_EVIDENCE_SEPARATE` |
+| `CAUSAL_M7_TIER_VERDICT` | `RECOMMEND_EXACT_TIER_48_AUTHORITY_DECISION` |
 | `CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES` | `channel_degradation,channel_hard_fail,service_specific_failure` |
 | `CURRENT_ACTION_CLASS_ALLOWED_SOURCE_TARGET_SCOPE` | `EXISTING_PLANNER_SAFE_TARGET_ONLY` |
 | `CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER` | `TIER_4_CURRENT_STANDING_POLICY` |
-| `CURRENT_ACTION_CLASS_CERTIFIED_TIER` | `TIER_1_CURRENT_CLASS; TIER_4_ENGINEERING_QUALIFIED_AND_AUTHORITY_ACTIVE` |
+| `CURRENT_ACTION_CLASS_CERTIFIED_TIER` | `TIER_48_ENGINEERING_QUALIFIED; TIER_4_AUTHORITY_ACTIVE; TIER_1_SERVICE_FAILURE_PRODUCTION_PROVEN` |
 | `CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS` | `verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke` |
-| `CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL` | `first natural Tier-4 cohort Outcome/Replay/Learning; then exact Tier-5 selective residual only; no generic ladder rerun` |
+| `CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL` | `one independent exact Tier-48 Authority decision; then controlled Service Failure adapter outcomes 5->10->25->48; no generic ladder rerun` |
 | `CURRENT_ACTION_CLASS_EXPIRY` | `2026-08-27T02:06:51.026478+00:00` |
 | `CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS` | `policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence` |
 | `CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS` | `1` |
 | `CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION` | `4` |
-| `CURRENT_ACTION_CLASS_NEXT_TIER` | `TIER_5_SELECTIVE_REVALIDATION_REQUIRED` |
-| `CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER` | `TIER_1_CURRENT_CLASS; TIER_4_ACTIVE_AWAITING_FIRST_NATURAL_COHORT_OUTCOME` |
+| `CURRENT_ACTION_CLASS_NEXT_TIER` | `TIER_48_INDEPENDENT_AUTHORITY_DECISION` |
+| `CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER` | `TIER_1_CURRENT_CLASS; GENERIC_MOVEMENT_PRODUCTION_EVIDENCE_REUSED_TO_48; SERVICE_FAILURE_CONTROLLED_TIERS_5_10_25_48_PENDING` |
 | `CURRENT_ACTION_CLASS_ROLLBACK_CONTRACT` | `EXISTING_LIVE_ROLLBACK_READINESS_REQUIRED` |
 | `CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER` | `TIER_4_SERIAL_COHORT` |
-| `CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER` | `TIER_4_CURRENT_CLASS` |
+| `CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER` | `TIER_48_CURRENT_CLASS_ENGINEERING` |
 | `CURRENT_ACTION_CLASS_VERIFICATION_CONTRACT` | `EXISTING_LIVE_VERIFICATION_GATES_REQUIRED` |
-| `TIER_10_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH_EXACT_FIELDS` |
+| `TIER_10_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED` |
 | `TIER_1_REUSE_CLASSIFICATION` | `REUSABLE_CERTIFIED_AND_APPROVED` |
 | `TIER_2_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE` |
-| `TIER_5_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH_EXACT_FIELDS` |
-| `BOUNDED_COHORT_REUSE_MISMATCH_FIELDS` | `action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope` |
+| `TIER_5_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED` |
+| `BOUNDED_COHORT_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcomes_5_10_25_48` |
 | `CAUSAL_M10_CURRENT_INCIDENT_STATUS` | `CURRENT_SOURCE_SCOPE_EMPTY` |
 | `CAUSAL_M8_SEMANTIC_ALIGNMENT` | `PASS` |
 | `CAUSAL_M9_RUNTIME_INVALID_STATES` | `NONE` |
@@ -440,11 +440,11 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_OPERATOR` | `TRUE_INSIDE_CURRENT_POLICY_ONLY` |
 | `CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_RECERTIFICATION` | `TRUE_UNLESS_DECLARED_INVALIDATION_TRIGGER` |
 | `CURRENT_ACTION_CLASS_COOLDOWN` | `per_user=1800;source_target_pair=1800` |
-| `CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER` | `TIER_4_CURRENT_CLASS` |
-| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `06b281220067309b7a89ad70c6142dd2dbd0aed5f3bb6a83ad72aabb36acf89f` |
+| `CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER` | `TIER_48_CURRENT_CLASS_ENGINEERING` |
+| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `633ab9ac44522fa1e636825f5f73cd495ce87eab31882b80de19e280afc76ee6` |
 | `CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS` | `RESULT_REUSED_VALID` |
 | `CURRENT_ACTION_CLASS_NON_REUSABLE_AS` | `current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation` |
-| `CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS` | `assignment_mutation<=48,route_verification<=48,rollback_applied<=4,certified_no_rollback<=48,replay_duplicate_suppression<=4,packet_identity<=25,serial_cohort<=48,parallel_transactions<=1` |
+| `CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS` | `production_assignment_mutation<=48,production_route_verification<=48,production_rollback_applied<=4,production_certified_no_rollback<=48,engineering_packet_identity<=48,engineering_replay_duplicate_suppression<=48,engineering_partial_apply_containment<=48,engineering_restart_recovery<=48,engineering_serial_cohort<=48,parallel_transactions<=1` |
 | `CURRENT_VLESS_AFFECTED_SCOPE_FINGERPRINT` | `0d2c79e45b3545deef05c48881c988c5c4d45aff7f0bbe2aa7cc189a323f1dda` |
 | `CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE_FINGERPRINT` | `7b6307f34672f5fa2712e9b0a76a58d87325b4737930bfabb3cb83158c7c37e1` |
 | `CURRENT_VLESS_LAST_EXECUTION_FEEDBACK_ID` | `execfb_f5770df829554ffabe72278c` |
@@ -464,25 +464,25 @@ This section is the single live volatile current-state surface. Older production
 | `PROGRAM_PORTFOLIO_RECONCILIATION_OWNER` | `tools/v7_sync_lib.program_execution_reconciliation` |
 | `PROGRAM_PORTFOLIO_RECONCILIATION_STATUS` | `PASS` |
 | `PROGRAM_PORTFOLIO_STATE_COUNTS` | `{"ACTIVE_WITH_DURABLE_SUCCESSOR":9,"BLOCKED_WITH_EXACT_OWNER_AND_REENTRY":15,"COMPLETE_CONSUMED":4,"MERGED_INTO_OMP":2}` |
-| `TIER_10_REUSE_MISMATCH_FIELDS` | `action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope` |
+| `TIER_10_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcome` |
 | `TIER_1_REUSE_MISMATCH_FIELDS` | `NONE` |
-| `TIER_25_HISTORICAL_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH_EXACT_FIELDS` |
-| `TIER_25_HISTORICAL_REUSE_MISMATCH_FIELDS` | `action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope` |
+| `TIER_25_HISTORICAL_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED` |
+| `TIER_25_HISTORICAL_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcome` |
 | `TIER_2_REUSE_MISMATCH_FIELDS` | `NONE` |
-| `TIER_48_HISTORICAL_REUSE_CLASSIFICATION` | `SCOPE_MISMATCH_EXACT_FIELDS` |
-| `TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS` | `action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope,certified_budget_vs_actual_users` |
-| `TIER_5_REUSE_MISMATCH_FIELDS` | `action_class,source_family,target_family,verification_contract,rollback_contract,cohort_semantics,Authority_scope` |
-| `CAUSAL_M7_TIER_DECISION_CONSUMPTION` | `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED` |
+| `TIER_48_HISTORICAL_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED` |
+| `TIER_48_HISTORICAL_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcome` |
+| `TIER_5_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcome` |
+| `CAUSAL_M7_TIER_DECISION_CONSUMPTION` | `EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED` |
 | `GENERIC_MOVEMENT_ACTUAL_PROVEN_SCOPES` | `1,2,4,5,10,25,48` |
 | `GENERIC_MOVEMENT_ASSIGNMENT_MUTATION_PROVEN_MAX` | `48` |
 | `GENERIC_MOVEMENT_AUTHORITY_AT_PRIMITIVE_LEVEL` | `NONE_BY_DESIGN` |
 | `GENERIC_MOVEMENT_CERTIFIED_NO_ROLLBACK_PROVEN_MAX` | `48` |
-| `GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION` | `EXACT_TIER_RUNTIME_AUTHORITY_ACTIVATED; NO_GENERIC_LADDER_RERUN` |
+| `GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION` | `EXACT_TIER48_SERVICE_FAILURE_AUTHORITY_DECISION_REQUIRED; NO_GENERIC_LADDER_RERUN` |
 | `GENERIC_MOVEMENT_PACKET_IDENTITY_PROVEN_MAX` | `25` |
 | `GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX` | `1` |
 | `GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY` | `NOT_PROVEN` |
 | `GENERIC_MOVEMENT_PARTIAL_SCOPE_SELECTION` | `48_OF_50_SELECTION_PROVEN; NOT_PARTIAL_APPLY_FAILURE_RECOVERY` |
-| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `7ad9511f521e0a906bd0e9dff33de401e9bbf86f4187722d61b27a48c11b7040` |
+| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `fa169b6b0825174da59451ef8fff38c5dbc72b7b23d937e3168ff52f2ceb1b9b` |
 | `GENERIC_MOVEMENT_PRIMITIVE_OWNER` | `admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence` |
 | `GENERIC_MOVEMENT_PRIMITIVE_STATUS` | `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED` |
 | `GENERIC_MOVEMENT_REPLAY_DUPLICATE_SUPPRESSION_PROVEN_MAX` | `4` |
@@ -491,26 +491,37 @@ This section is the single live volatile current-state surface. Older production
 | `GENERIC_MOVEMENT_ROUTE_VERIFICATION_PROVEN_MAX` | `48` |
 | `GENERIC_MOVEMENT_SERIAL_COHORT_PROVEN_MAX` | `48` |
 | `GENERIC_MOVEMENT_SERVICE_VERIFICATION_ROLE` | `ADAPTER_BOUND_NOT_GENERIC_AUTHORITY` |
-| `SERVICE_FAILURE_ADAPTER_EVIDENCE_FINGERPRINT` | `c351d8dc025d4d883e8eaa201fa6a36d486a2cfbb8c81feb4e1c1bd3798e7095` |
-| `SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX` | `4` |
+| `SERVICE_FAILURE_ADAPTER_EVIDENCE_FINGERPRINT` | `282cbc7b2ca9c3ebe3218e94ee389f083b1fbd8131d4f399878cf0d9b53877da` |
+| `SERVICE_FAILURE_ADAPTER_EXACT_COMPATIBLE_MAX` | `48` |
 | `SERVICE_FAILURE_ADAPTER_GENERIC_COHORT_PATH_MAX` | `48` |
-| `SERVICE_FAILURE_ADAPTER_HIGHER_TIER_RESIDUALS` | `tier_5_plus_replay_duplicate_suppression_owner_backed_evidence,tier_5_plus_partial_apply_containment_or_rollback_owner_backed_evidence,tier_48_packet_identity_preservation_owner_backed_evidence` |
+| `SERVICE_FAILURE_ADAPTER_HIGHER_TIER_RESIDUALS` | `independent_exact_tier_48_Authority_decision,controlled_service_failure_adapter_outcomes_5_10_25_48_after_Authority` |
 | `SERVICE_FAILURE_ADAPTER_OWNER` | `tools/v7_sync_lib._service_failure_action_class_reuse_projection` |
 | `SERVICE_FAILURE_ADAPTER_STATUS` | `SERVICE_FAILURE_ADAPTER_BRIDGE_QUALIFIED_TO_EXACT_MAXIMUM_TIER` |
 | `SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER` | `4` |
 | `SERVICE_FAILURE_EFFECTIVE_TIER_FORMULA` | `min(generic_primitive,exact_adapter,current_Authority,live_capacity_and_verification)` |
-| `TIER_4_HISTORICAL_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE_AWAITING_NATURAL_COHORT_OUTCOME` |
+| `TIER_4_HISTORICAL_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE_CONTROLLED_OUTCOME_PENDING` |
 | `TIER_4_HISTORICAL_REUSE_MISMATCH_FIELDS` | `NONE` |
-| `SERVICE_FAILURE_ADAPTER_TIER_MATRIX` | `[{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"PASS","restart_recovery":"PASS_FAIL_CLOSED_ACTIVE_LEASE_AND_PACKET_REUSE_DENIAL","rollback_or_containment":"ROLLBACK_APPLY_PROVEN_AND_COHORT_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":1},{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"PASS","restart_recovery":"PASS_FAIL_CLOSED_ACTIVE_LEASE_AND_PACKET_REUSE_DENIAL","rollback_or_containment":"ROLLBACK_APPLY_PROVEN_AND_COHORT_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":2},{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"PASS","restart_recovery":"PASS_FAIL_CLOSED_ACTIVE_LEASE_AND_PACKET_REUSE_DENIAL","rollback_or_containment":"ROLLBACK_APPLY_PROVEN_AND_COHORT_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":4},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"SUPPORTING_ONLY","exact_residual":"rollback_or_containment_evidence_above_tier_4,replay_duplicate_suppression_evidence_above_tier_4","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"EVIDENCE_REQUIRED","restart_recovery":"SELECTIVE_REVALIDATION_REQUIRED","rollback_or_containment":"SELECTIVE_ROLLBACK_OR_CONTAINMENT_EVIDENCE_REQUIRED","runtime_status":"NOT_ACTIVATED","service_verification":"SELECTIVE_REVALIDATION_REQUIRED","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":5},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"SUPPORTING_ONLY","exact_residual":"rollback_or_containment_evidence_above_tier_4,replay_duplicate_suppression_evidence_above_tier_4","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"EVIDENCE_REQUIRED","restart_recovery":"SELECTIVE_REVALIDATION_REQUIRED","rollback_or_containment":"SELECTIVE_ROLLBACK_OR_CONTAINMENT_EVIDENCE_REQUIRED","runtime_status":"NOT_ACTIVATED","service_verification":"SELECTIVE_REVALIDATION_REQUIRED","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":10},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"SUPPORTING_ONLY","exact_residual":"rollback_or_containment_evidence_above_tier_4,replay_duplicate_suppression_evidence_above_tier_4","generic_execution_reusable":true,"packet_identity":"PASS","replay_duplicate_suppression":"EVIDENCE_REQUIRED","restart_recovery":"SELECTIVE_REVALIDATION_REQUIRED","rollback_or_containment":"SELECTIVE_ROLLBACK_OR_CONTAINMENT_EVIDENCE_REQUIRED","runtime_status":"NOT_ACTIVATED","service_verification":"SELECTIVE_REVALIDATION_REQUIRED","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":25},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"SUPPORTING_ONLY","exact_residual":"rollback_or_containment_evidence_above_tier_4,replay_duplicate_suppression_evidence_above_tier_4,packet_identity_preservation_evidence_above_tier_25","generic_execution_reusable":true,"packet_identity":"EVIDENCE_REQUIRED","replay_duplicate_suppression":"EVIDENCE_REQUIRED","restart_recovery":"SELECTIVE_REVALIDATION_REQUIRED","rollback_or_containment":"SELECTIVE_ROLLBACK_OR_CONTAINMENT_EVIDENCE_REQUIRED","runtime_status":"NOT_ACTIVATED","service_verification":"SELECTIVE_REVALIDATION_REQUIRED","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":48}]` |
-| `CURRENT_TIER_AUTHORITY_REQUESTED_MAX_USERS` | `4` |
+| `SERVICE_FAILURE_ADAPTER_TIER_MATRIX` | `[{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":1},{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":2},{"authority_status":"ACTIVE","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"NONE","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"ACTIVE","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":4},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"covered_only_by_independent_exact_tier_48_Authority_decision,controlled_service_failure_adapter_outcome_tier_5","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"NOT_ACTIVATED","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":5},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"covered_only_by_independent_exact_tier_48_Authority_decision,controlled_service_failure_adapter_outcome_tier_10","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"NOT_ACTIVATED","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":10},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"covered_only_by_independent_exact_tier_48_Authority_decision,controlled_service_failure_adapter_outcome_tier_25","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"NOT_ACTIVATED","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":25},{"authority_status":"INDEPENDENT_DECISION_REQUIRED","capacity_binding":"PASS_EXISTING_LIVE_PER_TRANSACTION_CAPACITY_GATE","cohort_binding":"PASS_EXACT_IMMUTABLE_PACKET_COHORT","exact_residual":"covered_only_by_independent_exact_tier_48_Authority_decision,controlled_service_failure_adapter_outcome_tier_48","generic_execution_reusable":true,"packet_identity":"PASS_ENGINEERING_EXACT_COHORT_PACKET_BINDING","replay_duplicate_suppression":"PASS_ENGINEERING_EXACT_ONCE","restart_recovery":"PASS_CHECKPOINT_AND_DUPLICATE_FORWARD_APPLY_DENIAL","rollback_or_containment":"PASS_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_AND_CIRCUIT_BREAKER","runtime_status":"NOT_ACTIVATED","service_verification":"PASS_PER_USER_PLUS_AGGREGATE_TERMINAL","target_compatibility":"PASS_SAME_ASSIGNMENT_AND_ROUTE_SCHEMA","tier":48}]` |
+| `CURRENT_TIER_AUTHORITY_REQUESTED_MAX_USERS` | `48` |
 | `CURRENT_TIER_AUTHORITY_REQUEST_ACTION_CLASS` | `channel hard-fail failover` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_DECISION_SET` | `APPROVED_CONSUMED` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_EXPIRES_AT` | `2026-07-28T19:22:36.056237+00:00` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_HASH` | `ed99070cd98caa0f054ffb6e244cf901bde0034a84d0696cd33e5bb1385d820d` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_ID` | `sdpauth_r1_ed99070cd98caa0f054ffb6e` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_DECISION_SET` | `APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY,DECLINE` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_EXPIRES_AT` | `2026-07-29T10:05:20.106430+00:00` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_HASH` | `e3aecc34f26ffbff4fdc169c10b9e4f13c693e374e24d71c6f00ed03e88fd600` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_ID` | `sdpauth_r1_e3aecc34f26ffbff4fdc169c` |
 | `CURRENT_TIER_AUTHORITY_REQUEST_MAX_CONCURRENT_TRANSACTIONS` | `1` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_POLICY_SCOPE_HASH` | `cdd21744e65ad49b69d0a88c9c3df7ee3244766cbdc71bee913bbd2b3c9d4ccb` |
-| `CURRENT_TIER_AUTHORITY_REQUEST_STATUS` | `ACTIVATED` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_POLICY_SCOPE_HASH` | `1c716df6801e28c004613e23d27ef66702cfc7e8c489a274f210435b723271e0` |
+| `CURRENT_TIER_AUTHORITY_REQUEST_STATUS` | `PENDING` |
+| `GENERIC_MOVEMENT_ENGINEERING_CERTIFICATION_STATUS` | `ENGINEERING_BOUNDED_COHORT_CONTRACT_PROVEN_TO_TIER_48` |
+| `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX` | `48` |
+| `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_SCOPES` | `1,2,4,5,10,25,48` |
+| `GENERIC_MOVEMENT_ENGINEERING_EVIDENCE_CLASS` | `POLYGON_AND_IMPLEMENTATION_CONTRACT` |
+| `GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS` | `{"admin_core/operation_scoped_binding.py":"8a341ef6fe9d5602f695a9aedc633b2ea41fe81aabb3cce16cefe7f8cc645ac2","admin_core/operator_execution.py":"589911d39f90b04c679364cc12c48ab4fe84775dc7678866f504b4e1eec23741","tools/v7-governed-canary-dry-run-cycle":"06a40bbbb8299e1db53c528d22e18fb962ec450529fa1bcf6e8f02358bdf3cd9","tools/v7-users-autoswitch":"ca01b299516a8f62da5da4a7f39d89f738dca2b4cbec08d7e899f43a7535b610"}` |
+| `GENERIC_MOVEMENT_ENGINEERING_PACKET_IDENTITY_MAX` | `48` |
+| `GENERIC_MOVEMENT_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_MAX` | `48` |
+| `GENERIC_MOVEMENT_ENGINEERING_REPLAY_DUPLICATE_MAX` | `48` |
+| `GENERIC_MOVEMENT_ENGINEERING_RESTART_RECOVERY_MAX` | `48` |
+| `PROJECT_WIDE_ADAPTER_INHERITANCE` | `[{"adapter_compatible_max":48,"adapter_id":"SERVICE_FAILURE_INCIDENT_DRAIN_ADAPTER","authority_scope":4,"capacity_contract":"live per-transaction target capacity and reserve","exact_residual":"independent exact Tier-48 Authority decision and controlled adapter outcomes 5,10,25,48","generic_max_reused":48,"generic_primitive_id":"GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE","runtime_enabled_scope":4,"scenario_owner":"existing Service Matrix incident and autoswitch owners","scenario_rollback_containment_delta":"bounded checkpoint plus cohort circuit breaker","scenario_verification_delta":"per-user plus aggregate failed-source service verification","source_scope_contract":"failed source plus unresolved incident scope","start_conditions":"fresh incident generation and every live gate","stop_conditions":"source recovery, no safe target, capacity loss, verification or containment failure","target_selection_contract":"fresh existing Planner safe target only"},{"adapter_compatible_max":0,"adapter_id":"CAPACITY_LOAD_REBALANCE_ADAPTER","authority_scope":0,"capacity_contract":"existing load hard-limit and reserve owner","exact_residual":"adapter-specific trigger, verification and Authority qualification","generic_max_reused":48,"generic_primitive_id":"GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE","runtime_enabled_scope":0,"scenario_owner":"tools/v7-users-autoswitch Planner load and capacity gates","scenario_rollback_containment_delta":"generic contract reusable; adapter trigger delta unqualified","scenario_verification_delta":"selective adapter qualification required","source_scope_contract":"planner-selected imbalance scope","start_conditions":"existing rebalance policy and current load evidence","stop_conditions":"capacity, policy, cooldown, anti-flap or verification gate","target_selection_contract":"existing ranked capacity-safe target"},{"adapter_compatible_max":0,"adapter_id":"PLANNED_MAINTENANCE_MIGRATION_ADAPTER","authority_scope":0,"capacity_contract":"existing live capacity owner required","exact_residual":"adapter-specific intent, consumer and Authority qualification","generic_max_reused":48,"generic_primitive_id":"GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE","runtime_enabled_scope":0,"scenario_owner":"tools/v7-egress-set-state plus existing governed movement owners","scenario_rollback_containment_delta":"generic contract reusable; maintenance delta unqualified","scenario_verification_delta":"maintenance intent and completion binding required","source_scope_contract":"owner-declared maintenance source","start_conditions":"owner-authorized maintenance intent","stop_conditions":"users remain assigned, no safe target or missing Authority","target_selection_contract":"existing Planner target required"},{"adapter_compatible_max":48,"adapter_id":"MANUAL_GOVERNED_RECOVERY_OR_ROUTE_MIGRATION_ADAPTER","authority_scope":0,"capacity_contract":"execution-time recheck owner","exact_residual":"no reusable standing Authority; scenario remains explicitly governed","generic_max_reused":48,"generic_primitive_id":"GENERIC_USER_ROUTE_MOVEMENT_PRIMITIVE","runtime_enabled_scope":0,"scenario_owner":"existing operator execution Packet and governed-canary owners","scenario_rollback_containment_delta":"historical rollback or certified no-rollback owner","scenario_verification_delta":"historical production evidence owner","source_scope_contract":"exact operator-approved Packet cohort","start_conditions":"fresh exact governed Packet and lease","stop_conditions":"Packet, lease, capacity, verification or Authority mismatch","target_selection_contract":"exact Packet target"}]` |
+| `PROJECT_WIDE_ADAPTER_INHERITANCE_STATUS` | `PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -522,7 +533,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-28T02:34:46+00:00`
+Generated At: `2026-07-28T10:06:03+00:00`
 
 Runtime Authority: `NONE`
 
@@ -535,8 +546,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `CURRENT_STOP_CONDITION` | `REAL_WORLD_LIMIT` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -566,8 +577,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D` |
-| `current_transition_id` | `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` |
+| `current_state_generation` | `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT` |
+| `current_transition_id` | `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` |
 | `smallest_existing_next_action_id` | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -653,7 +664,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_TIER4_INCIDENT_BINDING_038568D`; `SERVICE_FAILURE_TIER4_INCIDENT_BOUND_MATRIX_CALLER_CONSUMED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; exact current incident obligation and positive scope are required before Candidate/Packet/lease | `REAL_WORLD_LIMIT` | fresh event -> exact obligation/OMP receipt -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor |
+| `1` | `U07` Learning WAITING WIP; `cpsgen_SFA_SDPC_A3CD9882BF08_WAIT`; `SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1` | U01 Learning chain is consumed; representative real outcomes remain unavailable; next scenario NONE; no independent READY capability exists | `V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION` | existing Service Matrix fresh-event revalidation owner; exact current incident obligation and positive scope are required before Candidate/Packet/lease | `REAL_WORLD_LIMIT` | fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

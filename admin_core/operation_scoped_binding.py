@@ -155,6 +155,84 @@ def build_from_payloads(
     }
 
 
+def build_cohort_from_payloads(
+    *,
+    selected_moves: list[dict[str, Any]],
+    users_registry: list[dict[str, str]],
+    egress_registry: list[dict[str, str]],
+    runtime_state: dict[str, Any],
+    candidate_suitability: dict[str, Any],
+    raw_source_hashes: dict[str, str] | None = None,
+    read_consistency: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Bind every selected move to one coherent source generation.
+
+    This extends the existing operation-scoped owner; it is not a second
+    snapshot registry.  Member projections are derived from the same four
+    atomically observed source payloads and then folded into deterministic
+    cohort hashes.
+    """
+    ordered = sorted(
+        (dict(move) for move in selected_moves if isinstance(move, dict)),
+        key=lambda move: (
+            selected_identity(move)["user"],
+            selected_identity(move)["source"],
+            selected_identity(move)["target"],
+            operator_execution.sha256_json(move),
+        ),
+    )
+    members = [
+        build_from_payloads(
+            selected=move,
+            users_registry=users_registry,
+            egress_registry=egress_registry,
+            runtime_state=runtime_state,
+            candidate_suitability=candidate_suitability,
+            raw_source_hashes=raw_source_hashes,
+            read_consistency=read_consistency,
+        )
+        for move in ordered
+    ]
+    identities = [member.get("selected_identity") or {} for member in members]
+    unique_identities = {
+        (
+            str(identity.get("user") or ""),
+            str(identity.get("source") or ""),
+            str(identity.get("target") or ""),
+        )
+        for identity in identities
+    }
+    consistent = bool((read_consistency or {}).get("stable", True))
+    complete = bool(members) and len(unique_identities) == len(members)
+    bound = consistent and complete and all(member.get("status") == "BOUND" for member in members)
+    source_hashes = {}
+    if bound:
+        for key in SOURCE_KEYS:
+            source_hashes[key] = operator_execution.sha256_json([
+                {
+                    "selected_identity": member.get("selected_identity") or {},
+                    "source_hash": (member.get("source_hashes") or {}).get(key),
+                }
+                for member in members
+            ])
+    bundle_hash = operator_execution.sha256_json(source_hashes) if len(source_hashes) == len(SOURCE_KEYS) else ""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "binding_scope": "COHORT",
+        "status": "BOUND" if bound else "STOP_SAFE",
+        "selected_move_count": len(members),
+        "selected_identities": identities,
+        "member_bindings": members,
+        "source_hashes": source_hashes,
+        "source_bundle_hash": bundle_hash,
+        "snapshot_bundle_hash": bundle_hash,
+        "raw_source_hashes": dict(raw_source_hashes or {}),
+        "read_consistency": dict(read_consistency or {"stable": True, "attempts": 1}),
+        "fail_closed_without_selected_identity": not complete,
+        "fail_closed_on_mixed_generation": not consistent,
+    }
+
+
 def _signature(path: Path) -> tuple[int, int, int, int] | None:
     try:
         stat = path.stat()
@@ -210,6 +288,68 @@ def read_binding(
             )
     return build_from_payloads(
         selected=selected,
+        users_registry=[],
+        egress_registry=[],
+        runtime_state={},
+        candidate_suitability={},
+        read_consistency={
+            "stable": False,
+            "attempts": max(1, int(max_attempts)),
+            "reason": "mixed_generation_or_unreadable_input",
+            "before": last_before,
+            "after": last_after,
+        },
+    )
+
+
+def read_cohort_binding(
+    *,
+    state_dir: Path,
+    snapshot_root: Path,
+    selected_moves: list[dict[str, Any]],
+    max_attempts: int = 2,
+    after_read_hook: Callable[[int], None] | None = None,
+) -> dict[str, Any]:
+    """Read one stable source generation and bind an entire selected cohort."""
+    paths = {
+        "users_registry": state_dir / "users.registry",
+        "egress_registry": state_dir / "egress.registry",
+        "runtime_state": state_dir / "v7-state.json",
+        "candidate_suitability": snapshot_root / "candidate-suitability-summary.json",
+    }
+    last_before: dict[str, Any] = {}
+    last_after: dict[str, Any] = {}
+    for attempt in range(1, max(1, int(max_attempts)) + 1):
+        before = {key: _signature(path) for key, path in paths.items()}
+        blobs: dict[str, bytes] = {}
+        try:
+            blobs = {key: path.read_bytes() for key, path in paths.items()}
+        except OSError:
+            blobs = {}
+        if after_read_hook:
+            after_read_hook(attempt)
+        after = {key: _signature(path) for key, path in paths.items()}
+        last_before, last_after = before, after
+        if blobs and before == after and all(value is not None for value in before.values()):
+            try:
+                users = registry_readers.parse_registry_lines(blobs["users_registry"].decode("utf-8").splitlines())
+                egress = registry_readers.parse_registry_lines(blobs["egress_registry"].decode("utf-8").splitlines())
+                runtime = json.loads(blobs["runtime_state"].decode("utf-8"))
+                suitability = json.loads(blobs["candidate_suitability"].decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                break
+            raw = {key: operator_execution.sha256_bytes(value) for key, value in blobs.items()}
+            return build_cohort_from_payloads(
+                selected_moves=selected_moves,
+                users_registry=users,
+                egress_registry=egress,
+                runtime_state=runtime,
+                candidate_suitability=suitability,
+                raw_source_hashes=raw,
+                read_consistency={"stable": True, "attempts": attempt, "signatures": after},
+            )
+    return build_cohort_from_payloads(
+        selected_moves=selected_moves,
         users_registry=[],
         egress_registry=[],
         runtime_state={},

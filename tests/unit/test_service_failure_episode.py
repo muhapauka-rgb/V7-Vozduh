@@ -789,6 +789,15 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(stop["max_concurrent_transactions"], 1)
             self.assertEqual(stop["consumer_result"]["max_users_argument"], "4")
             self.assertEqual(stop["contract_id"], "sdpc_test_tier4")
+            command = stop["command"]
+            self.assertEqual(
+                command[command.index("--expected-standing-policy-contract-id") + 1],
+                "sdpc_test_tier4",
+            )
+            self.assertEqual(
+                command[command.index("--expected-standing-policy-contract-hash") + 1],
+                "a" * 64,
+            )
 
             executor.write_text(
                 "#!/usr/bin/env python3\n"

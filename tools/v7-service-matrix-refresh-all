@@ -205,6 +205,8 @@ def run_bounded_delegated_service_failure_action(
         "--event-dir", str(event_dir),
         "--policy-file", str(policy_file),
         "--max-users", str(policy_max_users),
+        "--expected-standing-policy-contract-id", str(contract.get("contract_id") or ""),
+        "--expected-standing-policy-contract-hash", str(contract.get("contract_hash") or ""),
         "--compact-transaction-receipt",
         "--pretty",
     ]
@@ -235,7 +237,10 @@ def run_bounded_delegated_service_failure_action(
         parsed = {}
     verdict = str(parsed.get("final_verdict") or "")
     transaction_status = str(parsed.get("transaction_status") or "")
-    completed = proc.returncode == 0 and verdict == "GOVERNED_TRANSACTION_COMPLETED"
+    completed = proc.returncode == 0 and verdict in {
+        "GOVERNED_TRANSACTION_COMPLETED",
+        "L3_PRODUCTION_PROVEN",
+    }
     stop_safe = (
         (
             verdict == "STOP_SAFE"

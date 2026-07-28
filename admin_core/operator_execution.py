@@ -3948,7 +3948,15 @@ def packet_from_preview(
     return packet
 
 
-def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS, breaker_generation=""):
+def packet_from_plan(
+    plan,
+    *,
+    approval_author,
+    approval_reviewer,
+    ttl_seconds=DEFAULT_CLEARANCE_TTL_SECONDS,
+    breaker_generation="",
+    delegated_policy_authority=None,
+):
     now = utc_now()
     expires_at = now + timedelta(seconds=max(1, as_int(ttl_seconds, DEFAULT_CLEARANCE_TTL_SECONDS)))
     selected = selected_moves_from_plan(plan)
@@ -3976,10 +3984,11 @@ def packet_from_plan(plan, *, approval_author, approval_reviewer, ttl_seconds=DE
         "runtime_action": RUNTIME_ACTION_CREATE_CLEARANCE,
         "created_at": now.isoformat(),
         "expires_at": expires_at.isoformat(),
-        "approvals": [
+        "approvals": [] if delegated_policy_authority else [
             {"operator_id": approval_author, "role": "approval_author", "confirmed_at": now.isoformat()},
             {"operator_id": approval_reviewer, "role": "approval_reviewer", "confirmed_at": now.isoformat()},
         ],
+        "delegated_policy_authority": copy.deepcopy(delegated_policy_authority or {}),
         "constraints": {
             "selected_move_budget": as_int(selected.get("selected_move_count"), 0),
             "allowed_users": allowed_users,

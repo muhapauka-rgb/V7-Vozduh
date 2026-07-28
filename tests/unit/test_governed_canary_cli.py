@@ -1448,6 +1448,234 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "transaction_confirmation_required")
         self.assertFalse(result["apply_executed"])
 
+    def test_tier4_delegated_transaction_reuses_existing_l3_cohort_executor_with_exact_contract_binding(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            policy_root = json.loads(Path(args.policy_file).read_text(encoding="utf-8"))
+            contract = policy_root["delegated_autonomy_policy"]
+            tier4 = module.operator_execution.standing_delegated_operational_policy_template(max_users=4)
+            contract["policy"] = tier4
+            contract["policy_scope_hash"] = module.autonomy_trust_acceleration.delegated_autonomy_scope_hash(tier4)
+            contract["per_action_law"]["max_users"] = 4
+            contract.pop("contract_id", None)
+            contract.pop("contract_hash", None)
+            contract_hash = module.operator_execution.standing_delegated_policy_contract_hash(contract)
+            contract["contract_hash"] = contract_hash
+            contract["contract_id"] = f"sdpc_{contract_hash[:24]}"
+            Path(args.policy_file).write_text(json.dumps(policy_root), encoding="utf-8")
+            args.execute_bounded_delegated_transaction = True
+            args.max_users = 4
+            args.expected_standing_policy_contract_id = contract["contract_id"]
+            args.expected_standing_policy_contract_hash = contract_hash
+            exact_binding = module.standing_delegated_cohort_execution_binding(args)
+            packet = module.operator_execution.packet_from_plan(
+                self.ready_l3_plan(),
+                approval_author="operator-a",
+                approval_reviewer="operator-b",
+                delegated_policy_authority=exact_binding["delegated_policy_authority"],
+            )
+            self.assertEqual(packet["approvals"], [])
+            self.assertEqual(
+                packet["delegated_policy_authority"]["standing_policy_contract"]["contract_id"],
+                contract["contract_id"],
+            )
+            self.assertTrue(module.operator_execution.validate_packet(packet)["ok"])
+            calls = []
+            original_l3 = module.execute_l3_production_validation
+            try:
+                def fake_l3(routed_args, **_kwargs):
+                    calls.append(routed_args)
+                    return {
+                        "schema_version": "v7.l3-production-validation-execution.v1",
+                        "transaction_status": "STOP_SAFE",
+                        "final_verdict": "STOP_SAFE",
+                        "stop_reason": "no_selected_moves",
+                        "apply_executed": False,
+                        "users_moved": 0,
+                    }
+
+                module.execute_l3_production_validation = fake_l3
+                result = module.execute_governed_transaction(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+            finally:
+                module.execute_l3_production_validation = original_l3
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].max_users, 4)
+        self.assertEqual(
+            calls[0].confirm_l3_production_validation,
+            "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED",
+        )
+        delegated_authority = calls[0]._standing_delegated_policy_authority
+        self.assertEqual(delegated_authority["standing_policy_contract"]["contract_id"], contract["contract_id"])
+        self.assertEqual(delegated_authority["max_users_per_transaction"], 4)
+        self.assertTrue(delegated_authority["authority_audit_verified"])
+        self.assertTrue(result["standing_delegated_policy_binding"]["authority_audit_verified"])
+        self.assertEqual(result["standing_delegated_policy_binding"]["max_users_per_action"], 4)
+        self.assertTrue(result["runtime_automation_enabled"])
+        self.assertFalse(result["apply_executed"])
+
+    def test_tier4_delegated_transaction_fails_closed_if_matrix_contract_binding_changed(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            args.execute_bounded_delegated_transaction = True
+            args.max_users = 4
+            args.expected_standing_policy_contract_id = "sdpc_stale"
+            args.expected_standing_policy_contract_hash = "0" * 64
+            with mock.patch.object(module, "execute_l3_production_validation") as l3:
+                result = module.execute_governed_transaction(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=root / "state" / "operator-execution-lease.json",
+                )
+
+        l3.assert_not_called()
+        self.assertEqual(result["final_verdict"], "GOVERNED_TRANSACTION_STOPPED")
+        self.assertEqual(result["stop_reason"], "standing_delegated_cohort_policy_binding_invalid")
+        self.assertFalse(result["apply_executed"])
+
+    def test_operation_scoped_cohort_binding_is_deterministic_and_generation_atomic(self):
+        module = load_cli_module()
+        moves = [
+            {"user_ip": "10.7.0.3", "current_egress": "vless", "recommended_egress": "awg3"},
+            {"user_ip": "10.7.0.2", "current_egress": "vless", "recommended_egress": "awg3"},
+        ]
+        users = [
+            {"ip": "10.7.0.2", "current": "vless"},
+            {"ip": "10.7.0.3", "current": "vless"},
+        ]
+        egress = [{"id": "vless"}, {"id": "awg3"}]
+        runtime = {
+            "users": [{"ip": user["ip"]} for user in users],
+            "user_desired_state": [{"ip": user["ip"]} for user in users],
+            "egress": {"vless": {"code": "FAIL"}, "awg3": {"code": "OK"}},
+        }
+        suitability = {
+            "freshness_state": "FRESH",
+            "items": [
+                {
+                    "user": user["ip"],
+                    "runtime_decision_authority": "CURRENT",
+                    "candidates": [
+                        {"channel": "vless", "recommendation": "EVACUATE"},
+                        {"channel": "awg3", "recommendation": "USE"},
+                    ],
+                }
+                for user in users
+            ],
+        }
+        first = module.operation_scoped_binding.build_cohort_from_payloads(
+            selected_moves=moves,
+            users_registry=users,
+            egress_registry=egress,
+            runtime_state=runtime,
+            candidate_suitability=suitability,
+            read_consistency={"stable": True, "attempts": 1},
+        )
+        second = module.operation_scoped_binding.build_cohort_from_payloads(
+            selected_moves=list(reversed(moves)),
+            users_registry=users,
+            egress_registry=egress,
+            runtime_state=runtime,
+            candidate_suitability=suitability,
+            read_consistency={"stable": True, "attempts": 1},
+        )
+        self.assertEqual(first["status"], "BOUND")
+        self.assertEqual(first["selected_move_count"], 2)
+        self.assertEqual(first["source_bundle_hash"], second["source_bundle_hash"])
+        self.assertEqual(first["selected_identities"], second["selected_identities"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            snapshots = state / "intelligence"
+            snapshots.mkdir(parents=True)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=vless\nip=10.7.0.3 current=vless\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text("id=vless\nid=awg3\n", encoding="utf-8")
+            (state / "v7-state.json").write_text(json.dumps(runtime), encoding="utf-8")
+            (snapshots / "candidate-suitability-summary.json").write_text(
+                json.dumps(suitability),
+                encoding="utf-8",
+            )
+
+            def mutate_generation(attempt):
+                changed = dict(runtime)
+                changed["generation"] = attempt
+                (state / "v7-state.json").write_text(json.dumps(changed), encoding="utf-8")
+
+            mixed = module.operation_scoped_binding.read_cohort_binding(
+                state_dir=state,
+                snapshot_root=snapshots,
+                selected_moves=moves,
+                after_read_hook=mutate_generation,
+            )
+        self.assertEqual(mixed["status"], "STOP_SAFE")
+        self.assertTrue(mixed["fail_closed_on_mixed_generation"])
+
+    def test_l3_operation_scoped_binding_reuses_cohort_owner_for_multiple_moves(self):
+        module = load_cli_module()
+        moves = [
+            {"user_ip": "10.7.0.2", "current_egress": "vless", "recommended_egress": "awg3", "move_type": "failover"},
+            {"user_ip": "10.7.0.3", "current_egress": "vless", "recommended_egress": "awg3", "move_type": "failover"},
+        ]
+        plan = self.ready_l3_plan(
+            moves=moves,
+            authority_budget={
+                "current_allowed_user_budget": 4,
+                "authority_class": "SMALL_BATCH",
+                "certified_authority_class": "SMALL_BATCH",
+                "authority_lifecycle_state": "PROMOTED",
+            },
+        )
+        binding = {
+            "schema_version": module.operation_scoped_binding.SCHEMA_VERSION,
+            "binding_scope": "COHORT",
+            "status": "BOUND",
+            "selected_move_count": 2,
+            "source_hashes": {
+                "users_registry": "users-binding",
+                "egress_registry": "egress-binding",
+                "runtime_state": "runtime-binding",
+                "candidate_suitability": "candidate-binding",
+            },
+            "source_bundle_hash": "cohort-bundle",
+            "snapshot_bundle_hash": "cohort-bundle",
+        }
+        with mock.patch.object(
+            module.operation_scoped_binding,
+            "read_cohort_binding",
+            return_value=binding,
+        ) as read_cohort:
+            result = module.attach_l3_operation_scoped_binding(
+                plan,
+                state_dir=Path("/state"),
+                snapshot_root=Path("/snapshots"),
+            )
+        read_cohort.assert_called_once()
+        self.assertEqual(result["status"], "BOUND")
+        atomic = plan["safety"]["atomic_execution_envelope"]
+        self.assertEqual(atomic["operation_scoped_binding"]["binding_scope"], "COHORT")
+        self.assertEqual(atomic["source_bundle_hash"], "cohort-bundle")
+        self.assertEqual(atomic["selected_move_count"], 2)
+
     def test_l3_production_validation_requires_explicit_confirmation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

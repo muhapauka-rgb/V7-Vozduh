@@ -1242,13 +1242,25 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     for key in (
         "final_verdict", "transaction_status", "stop_reason", "fresh_packet_id",
         "decision_id", "operation_id", "selected_move_hash", "user", "source",
-        "target", "one_execution_attempt", "runtime_mutation_performed",
+        "target", "users", "sources", "targets", "requested_max_users",
+        "one_execution_attempt", "runtime_mutation_performed",
         "restore_barrier_written_now", "apply_executed", "verification_result",
         "rollback_attempted", "rollback_result", "a4_evidence_updated",
         "users_moved", "runtime_automation_enabled", "authority_expanded",
+        "production_proven",
     ):
         if key in result:
             receipt[key] = result.get(key)
+    policy_binding = result.get("standing_delegated_policy_binding")
+    if isinstance(policy_binding, dict):
+        receipt["standing_delegated_policy_binding"] = {
+            key: policy_binding.get(key)
+            for key in (
+                "contract_id", "contract_hash", "max_users_per_action",
+                "max_concurrent_transactions", "action_class", "expires_at",
+            )
+            if policy_binding.get(key) not in (None, "", [], {})
+        }
     binding = result.get("service_failure_causal_binding")
     if isinstance(binding, dict):
         receipt["service_failure_causal_binding"] = {
@@ -1999,17 +2011,24 @@ def attach_l3_operation_scoped_binding(
 ) -> dict[str, Any]:
     selected = operator_execution.selected_moves_from_plan(plan)
     moves = selected.get("moves") if isinstance(selected.get("moves"), list) else []
-    if len(moves) != 1:
+    if not moves:
         return {
             "status": "STOP_SAFE",
-            "reason": "l3_operation_scoped_binding_requires_one_selected_move",
+            "reason": "l3_operation_scoped_binding_requires_selected_moves",
             "selected_move_count": len(moves),
         }
-    binding = operation_scoped_binding.read_binding(
-        state_dir=state_dir,
-        snapshot_root=snapshot_root,
-        selected=moves[0],
-    )
+    if len(moves) == 1:
+        binding = operation_scoped_binding.read_binding(
+            state_dir=state_dir,
+            snapshot_root=snapshot_root,
+            selected=moves[0],
+        )
+    else:
+        binding = operation_scoped_binding.read_cohort_binding(
+            state_dir=state_dir,
+            snapshot_root=snapshot_root,
+            selected_moves=moves,
+        )
     if binding.get("status") != "BOUND":
         return binding
     safety = plan.setdefault("safety", {})
@@ -2029,6 +2048,74 @@ def attach_l3_operation_scoped_binding(
     atomic["selected_move_hash"] = str(rebound.get("selected_move_hash") or "")
     atomic["selected_move_count"] = int(rebound.get("selected_move_count") or 0)
     return binding
+
+
+def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dict[str, Any]:
+    """Bind an automatic cohort execution to the exact Matrix-read contract."""
+    root = read_json(Path(args.policy_file), {})
+    contract = root.get("delegated_autonomy_policy")
+    contract = contract if isinstance(contract, dict) else {}
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=operator_execution.read_audit_records(
+            Path(args.operator_execution_audit_store),
+        ),
+    )
+    policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    requested_max_users = int(getattr(args, "max_users", 0) or 0)
+    expected_contract_id = str(getattr(args, "expected_standing_policy_contract_id", "") or "")
+    expected_contract_hash = str(getattr(args, "expected_standing_policy_contract_hash", "") or "")
+    action_class = operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(
+        requested_max_users,
+        "",
+    )
+    blockers = list(validation.get("errors") or [])
+    if not expected_contract_id or str(contract.get("contract_id") or "") != expected_contract_id:
+        blockers.append("standing_policy_contract_id_changed_after_matrix_admission")
+    if not expected_contract_hash or str(contract.get("contract_hash") or "") != expected_contract_hash:
+        blockers.append("standing_policy_contract_hash_changed_after_matrix_admission")
+    if int(policy.get("max_users_per_action") or 0) != requested_max_users:
+        blockers.append("standing_policy_max_users_changed_after_matrix_admission")
+    if int(policy.get("max_concurrent_transactions") or 0) != 1:
+        blockers.append("standing_policy_concurrency_not_one")
+    if action_class not in set(policy.get("allowed_action_classes") or []):
+        blockers.append("standing_policy_action_class_not_allowed")
+    if requested_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+        blockers.append("standing_policy_tier_not_engineering_qualified")
+    policy_preview = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview(
+        policy if validation.get("ok") else {},
+    )
+    delegated_policy_authority = {
+        "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+        "policy_id": str(policy_preview.get("policy_id") or ""),
+        "policy_scope_hash": str(policy_preview.get("policy_scope_hash") or ""),
+        "normalized_scope": dict(policy_preview.get("normalized_scope") or {}),
+        "policy_state": str(policy_preview.get("policy_state") or ""),
+        "current_mode": str(policy_preview.get("current_mode") or ""),
+        "action_class": action_class,
+        "max_users_per_transaction": requested_max_users,
+        "max_concurrent_transactions": int(policy.get("max_concurrent_transactions") or 0),
+        "candidate_identity": str(policy.get("candidate_identity") or ""),
+        "packet_reuse": str(policy.get("packet_reuse") or ""),
+        "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
+        "engineering_authority_source": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "standing_policy_contract": copy.deepcopy(contract),
+        "authority_audit_verified": bool(validation.get("ok")),
+    }
+    return {
+        "schema_version": "v7.standing-delegated-cohort-execution-binding.v1",
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "expires_at": str(contract.get("expires_at") or ""),
+        "max_users_per_action": int(policy.get("max_users_per_action") or 0),
+        "max_concurrent_transactions": int(policy.get("max_concurrent_transactions") or 0),
+        "action_class": action_class,
+        "authority_audit_verified": bool(validation.get("ok")),
+        "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
+        "delegated_policy_authority": delegated_policy_authority,
+    }
 
 
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
@@ -2135,6 +2222,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 approval_reviewer=args.approval_reviewer,
                 ttl_seconds=args.ttl_seconds,
                 breaker_generation=str(controlled_window.get("generation") or ""),
+                delegated_policy_authority=copy.deepcopy(
+                    getattr(args, "_standing_delegated_policy_authority", {}) or {},
+                ),
             )
         except Exception as exc:
             return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
@@ -2171,6 +2261,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 approval_reviewer=args.approval_reviewer,
                 ttl_seconds=args.ttl_seconds,
                 breaker_generation=str(preflight_control.get("generation") or ""),
+                delegated_policy_authority=copy.deepcopy(
+                    getattr(args, "_standing_delegated_policy_authority", {}) or {},
+                ),
             )
         except Exception as exc:
             return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
@@ -2454,6 +2547,32 @@ def _execute_governed_transaction_with_guards_inner(
     support_mode = setup_mode or cleanup_mode
     if not delegated_mode and not support_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
+    if delegated_mode and int(args.max_users) > 1:
+        policy_binding = standing_delegated_cohort_execution_binding(args)
+        if not policy_binding.get("ok"):
+            return transaction_stop(
+                "standing_delegated_cohort_policy_binding_invalid",
+                standing_delegated_policy_binding=policy_binding,
+            )
+        cohort_args = argparse.Namespace(**vars(args))
+        # This is an internal compatibility gate on the existing L3 cohort
+        # executor.  Authority comes only from the audited standing contract
+        # above; this value neither grants nor expands Authority.
+        cohort_args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+        cohort_args._standing_delegated_policy_authority = copy.deepcopy(
+            policy_binding.get("delegated_policy_authority") or {},
+        )
+        result = execute_l3_production_validation(
+            cohort_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        result["standing_delegated_policy_binding"] = policy_binding
+        result["runtime_automation_enabled"] = True
+        return result
     if int(args.max_users) != 1:
         return transaction_stop("transaction_max_users_must_be_one")
 
@@ -3291,6 +3410,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
     parser.add_argument("--execute-bounded-delegated-transaction", action="store_true")
+    parser.add_argument("--expected-standing-policy-contract-id", default="")
+    parser.add_argument("--expected-standing-policy-contract-hash", default="")
     parser.add_argument(
         "--compact-transaction-receipt",
         action="store_true",
@@ -3426,7 +3547,7 @@ def main(argv=None) -> int:
         )
         output = compact_transaction_result(result) if args.compact_transaction_receipt else result
         print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
-        return 0 if result.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED" else 2
+        return 0 if result.get("final_verdict") in {"GOVERNED_TRANSACTION_COMPLETED", "L3_PRODUCTION_PROVEN"} else 2
     execution_lease = operator_execution.load_execution_lease(lease_file)
     execution_lease_state = operator_execution.execution_lease_state(execution_lease)
     active_execution_lease = bool(execution_lease_state.get("active"))

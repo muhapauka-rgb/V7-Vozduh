@@ -17348,11 +17348,13 @@ def _service_failure_action_class_reuse_projection(
     """Project existing certification/evidence owners into exact tier truth."""
     from admin_core import autonomy_trust_acceleration as evidence_owner
 
-    def projection_int(value: Any) -> int:
+    def projection_int(value: Any, *, default: int = 0) -> int:
+        if value in (None, ""):
+            return default
         try:
             return int(value)
         except (TypeError, ValueError):
-            return 0
+            return default
 
     canonical_root = (
         root
@@ -17432,9 +17434,40 @@ def _service_failure_action_class_reuse_projection(
         current_authority_max,
         target_capacity_safe_static_max,
     )) else 0
+    runtime_scope_axes = (
+        status.get("runtime_scope_axes")
+        if isinstance(status.get("runtime_scope_axes"), dict)
+        else {}
+    )
+    controlled_runtime_enabled_max = max(
+        0,
+        projection_int(
+            runtime_scope_axes.get("controlled_certification_runtime_max"),
+            default=runtime_enabled_max,
+        ),
+    )
+    ordinary_runtime_enabled_max = max(
+        0,
+        projection_int(
+            runtime_scope_axes.get("ordinary_production_runtime_max"),
+            default=min(runtime_enabled_max, 4),
+        ),
+    )
+    controlled_production_proven_max = max(
+        0,
+        projection_int(
+            runtime_scope_axes.get("controlled_production_proven_max"),
+        ),
+    )
+    ordinary_production_proven_max = max(
+        0,
+        projection_int(
+            runtime_scope_axes.get("ordinary_production_proven_max"),
+        ),
+    )
     tier48_active = bool(
         current_authority_max >= 48
-        and runtime_enabled_max >= 48
+        and controlled_runtime_enabled_max >= 48
         and current_concurrent_max == 1
     )
     adapter_higher_tier_residuals = []
@@ -17479,7 +17512,13 @@ def _service_failure_action_class_reuse_projection(
             "authority_status": (
                 "ACTIVE" if tier <= current_authority_max else "INDEPENDENT_DECISION_REQUIRED"
             ),
-            "runtime_status": "ACTIVE" if tier <= runtime_enabled_max else "NOT_ACTIVATED",
+            "runtime_status": (
+                "ACTIVE_ORDINARY_AND_CONTROLLED"
+                if tier <= ordinary_runtime_enabled_max
+                else "ACTIVE_CONTROLLED_ONLY"
+                if tier <= controlled_runtime_enabled_max
+                else "NOT_ACTIVATED"
+            ),
             "exact_residual": ",".join(exact_residuals) or "NONE",
         })
     project_wide_adapters = [
@@ -17497,7 +17536,7 @@ def _service_failure_action_class_reuse_projection(
             "start_conditions": "fresh incident generation and every live gate",
             "stop_conditions": "source recovery, no safe target, capacity loss, verification or containment failure",
             "authority_scope": current_authority_max,
-            "runtime_enabled_scope": runtime_enabled_max,
+            "runtime_enabled_scope": controlled_runtime_enabled_max,
             "exact_residual": (
                 "independent exact Tier-48 Authority decision and controlled adapter outcomes 5,10,25,48"
                 if not tier48_active else "controlled adapter outcomes 5,10,25,48"
@@ -17709,6 +17748,16 @@ def _service_failure_action_class_reuse_projection(
     controlled_pool_missing_tier5 = max(
         0, projection_int(controlled_pool.get("missing_users_for_tier_5"))
     )
+    controlled_substrate_authority = (
+        status.get("controlled_certification_substrate_authority")
+        if isinstance(
+            status.get("controlled_certification_substrate_authority"), dict,
+        )
+        else {}
+    )
+    controlled_substrate_status = str(
+        controlled_substrate_authority.get("status") or "NONE"
+    )
     pending_tier_request_active = pending_tier_request.get("status") == "PENDING"
     tier_request_active_projection = tier48_active and not pending_tier_request_active
     tier_request_status = (
@@ -17761,9 +17810,26 @@ def _service_failure_action_class_reuse_projection(
         product_evolution_frontier = tier_decision_consumption
         m8_status = "NOT_ADMITTED_BEFORE_TIER48_AUTHORITY"
         m8_legal_terminal = tier_decision_consumption
+    elif (
+        controlled_pool_max < 5
+        and controlled_substrate_status == "APPROVED"
+    ):
+        product_evolution_frontier = (
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED"
+        )
+        m8_status = (
+            "CONTROLLED_SUBSTRATE_AUTHORITY_APPROVED_T48_M8_REENTRY_READY"
+        )
+        m8_legal_terminal = product_evolution_frontier
     elif controlled_pool_max < 5:
         product_evolution_frontier = (
-            "ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECLINED"
+            if controlled_substrate_status == "DECLINED"
+            else "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_EXPIRED"
+            if controlled_substrate_status == "EXPIRED"
+            else "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_READY"
+            if controlled_substrate_status == "PENDING"
+            else "ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
         )
         m8_status = product_evolution_frontier
         m8_legal_terminal = product_evolution_frontier
@@ -17812,8 +17878,18 @@ def _service_failure_action_class_reuse_projection(
         "SERVICE_FAILURE_ADAPTER_TIER_MATRIX": f"`{json.dumps(tier_rows, sort_keys=True, separators=(',', ':'))}`",
         "PROJECT_WIDE_ADAPTER_INHERITANCE_STATUS": "`PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND`",
         "PROJECT_WIDE_ADAPTER_INHERITANCE": f"`{json.dumps(project_wide_adapters, sort_keys=True, separators=(',', ':'))}`",
-        "SERVICE_FAILURE_EFFECTIVE_TIER_FORMULA": "`min(generic_primitive,exact_adapter,current_Authority,live_capacity_and_verification)`",
-        "SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER": f"`{runtime_enabled_max}`",
+        "SERVICE_FAILURE_EFFECTIVE_TIER_FORMULA": "`controlled=min(generic_primitive,exact_adapter,current_Authority,exact controlled-source condition,all-user certification-only classification,live capacity and verification); ordinary=min(generic_primitive,exact_adapter,ordinary proven ceiling,current Authority,live capacity and verification)`",
+        # Keep the legacy scalar bound to ordinary production so existing
+        # consumers cannot mistake the controlled-certification ceiling for
+        # permission to move an ordinary cohort.  The two-axis projection is
+        # additive and machine-readable below.
+        "SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER": f"`{ordinary_runtime_enabled_max}`",
+        "SERVICE_FAILURE_CONTEXTUAL_RUNTIME_TIERS": f"`CONTROLLED_CERTIFICATION={controlled_runtime_enabled_max}; ORDINARY_PRODUCTION={ordinary_runtime_enabled_max}`",
+        "SERVICE_FAILURE_AUTHORITY_APPROVED_MAX": f"`{current_authority_max}`",
+        "SERVICE_FAILURE_CONTROLLED_CERTIFICATION_RUNTIME_MAX": f"`{controlled_runtime_enabled_max}`",
+        "SERVICE_FAILURE_ORDINARY_PRODUCTION_RUNTIME_MAX": f"`{ordinary_runtime_enabled_max}`",
+        "SERVICE_FAILURE_CONTROLLED_PRODUCTION_PROVEN_MAX": f"`{controlled_production_proven_max}`",
+        "SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX": f"`{ordinary_production_proven_max}`",
         "CURRENT_ACTION_CLASS_TECHNICALLY_IMPLEMENTED_TIER": f"`TIER_{adapter_compatible_max}_CURRENT_CLASS_ENGINEERING`",
         "CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER": f"`TIER_{adapter_compatible_max}_CURRENT_CLASS_ENGINEERING`",
         "CURRENT_ACTION_CLASS_PRODUCTION_PROVEN_TIER": (
@@ -17827,7 +17903,8 @@ def _service_failure_action_class_reuse_projection(
         "CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER": f"`TIER_{current_authority_max}_CURRENT_STANDING_POLICY`",
         "CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER": (
             "`TIER_1_SINGLE_USER_SERIAL`"
-            if runtime_enabled_max == 1 else f"`TIER_{runtime_enabled_max}_SERIAL_COHORT`"
+            if ordinary_runtime_enabled_max == 1
+            else f"`TIER_{ordinary_runtime_enabled_max}_SERIAL_COHORT`"
         ),
         "CURRENT_ACTION_CLASS_MAX_USERS_PER_TRANSACTION": f"`{current_authority_max}`",
         "CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS": f"`{current_concurrent_max}`",
@@ -17904,6 +17981,14 @@ def _service_failure_action_class_reuse_projection(
         "CONTROLLED_CERTIFICATION_POOL_EXACT_BLOCKER": f"`{str(controlled_pool.get('exact_blocker') or 'pool_projection_unavailable')}`",
         "CONTROLLED_CERTIFICATION_POOL_RESPONSIBLE_OWNER": f"`{str(controlled_pool.get('responsible_existing_owner') or 'existing Controlled Production Certification Program owners')}`",
         "CONTROLLED_CERTIFICATION_POOL_REENTRY_CONDITION": f"`{str(controlled_pool.get('reentry_condition') or 'fresh owner-backed pool projection')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_ID": f"`{str(controlled_substrate_authority.get('request_id') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_HASH": f"`{str(controlled_substrate_authority.get('request_hash') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_EXPIRES_AT": f"`{str(controlled_substrate_authority.get('expires_at') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_STATUS": f"`{controlled_substrate_status}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION": f"`{str(controlled_substrate_authority.get('decision') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION_ID": f"`{str(controlled_substrate_authority.get('decision_id') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_ACTOR_ID": f"`{str(controlled_substrate_authority.get('actor_id') or '')}`",
+        "T48_CONTROLLED_SUBSTRATE_AUTHORITY_SEMANTIC_FINGERPRINT": f"`{str(controlled_substrate_authority.get('semantic_request_fingerprint') or '')}`",
         "CAUSAL_M8_SEMANTIC_ALIGNMENT": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVARIANT_STATUS": "`PASS`" if causal_verdict == "PASS" else f"`{causal_verdict}`",
         "CAUSAL_M9_RUNTIME_INVALID_STATES": f"`{','.join(str(item) for item in (causal.get('invalid_states') or [])) or 'NONE'}`",
@@ -18230,11 +18315,35 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else {}
         ).get("max_enabled_certification_users_on_one_active_source")
     )
+    controlled_substrate_authority = (
+        status.get("controlled_certification_substrate_authority")
+        if isinstance(
+            status.get("controlled_certification_substrate_authority"), dict,
+        )
+        else {}
+    )
+    controlled_substrate_status = str(
+        controlled_substrate_authority.get("status") or "NONE"
+    )
     tier48_active = max_users == 48
-    m8_pool_boundary = tier48_active and controlled_pool_max < 5
+    m8_substrate_approved = (
+        tier48_active
+        and controlled_pool_max < 5
+        and controlled_substrate_status == "APPROVED"
+    )
+    m8_pool_boundary = (
+        tier48_active
+        and controlled_pool_max < 5
+        and not m8_substrate_approved
+    )
     m8_pool_ready = tier48_active and controlled_pool_max >= 5
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        primary_stop = "NONE"
+    elif m8_substrate_approved:
+        primary_next_action = (
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED"
+        )
         primary_stop = "NONE"
     elif m8_pool_boundary:
         primary_next_action = "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
@@ -18247,7 +18356,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
     else:
         primary_next_action = "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
         primary_stop = "REAL_WORLD_LIMIT"
-    omp_should_continue = active_incident_drain or m8_pool_ready
+    omp_should_continue = (
+        active_incident_drain or m8_substrate_approved or m8_pool_ready
+    )
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
         "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
@@ -18268,6 +18379,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
+            "BUILD ONLY THE EXACT INCREMENTAL CERTIFICATION-IDENTITY DELTA FOR TIER 5 THROUGH THE EXISTING IDENTITY, REGISTRY AND ASSIGNMENT OWNERS; REVALIDATE THE APPROVED REQUEST BEFORE EVERY WRITE"
+            if m8_substrate_approved else
             "RECONCILE THE EXISTING CONTROLLED PRODUCTION CERTIFICATION POOL; REQUIRE FIVE OR MORE OWNER-AUTHORIZED ENABLED CERTIFICATION USERS ON ONE ACTIVE CONTROLLED SOURCE; DO NOT RECLASSIFY OR MOVE ORDINARY CUSTOMERS"
             if m8_pool_boundary else
             "PREPARE THE EXISTING T48-M8 CONTROLLED SERVICE FAILURE CERTIFICATION PLAN AND SAFE COHORT THROUGH EXISTING OWNERS; DO NOT FABRICATE A PRODUCTION OUTCOME"
@@ -18279,11 +18392,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
             if active_incident_drain else
+            "SERVICE_FAILURE_TIER48_M8_SUBSTRATE_AUTHORITY_APPROVED_REENTRY_V1"
+            if m8_substrate_approved else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_BOUNDARY_RECONCILED_V1"
             if m8_pool_boundary else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_READY_RECONCILED_V1"
@@ -18292,17 +18407,19 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "current_next_action_id": primary_next_action,
         "current_program_execution_frontier": (
-            primary_next_action if active_incident_drain or m8_pool_ready else
+            primary_next_action if active_incident_drain or m8_substrate_approved or m8_pool_ready else
             "WAITING_INPUT:CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
             "NONE"
         ),
         "current_execution_frontier": (
-            primary_next_action if active_incident_drain or m8_pool_ready else "NONE"
+            primary_next_action if active_incident_drain or m8_substrate_approved or m8_pool_ready else "NONE"
         ),
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
+            if m8_substrate_approved else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
             "NO_INSIDE_APPROVED_POLICY"
@@ -18310,6 +18427,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "NO_INSIDE_EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
+            if m8_substrate_approved else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
             "NO_INSIDE_APPROVED_POLICY"
@@ -18319,6 +18438,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event and existing policy gates remain required"
         ),
         "wip_current_primary_stop": (
+            "NONE_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
+            if m8_substrate_approved else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
             if m8_pool_boundary else
             primary_stop
@@ -18329,6 +18450,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "last_responsible_link": (
             "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
             if active_incident_drain else
+            "exact controlled-substrate Authority decision -> existing certification identity/registry/assignment owners -> incremental Tier-5 pool -> T48-M8 safe-cohort consumer"
+            if m8_substrate_approved else
             "existing Controlled Production Certification Program user/registry/assignment owners -> T48-M8 pool readiness projection -> OMP"
             if tier48_active else
             "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates"
@@ -18336,22 +18459,30 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "omp_continuation_pointer": (
             "The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor."
             if active_incident_drain else
+            "The exact approved controlled-substrate decision is consumed by the existing T48-M8 owner, which creates only the current incremental pool delta and publishes the safe-cohort successor."
+            if m8_substrate_approved else
             "The existing T48-M8 consumer re-enters automatically when one active controlled source contains five or more owner-authorized enabled certification users."
             if tier48_active else
             "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
             "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
         ),
         "sequence_execution_class": (
+            "existing Controlled Production Certification Program incremental substrate owner"
+            if m8_substrate_approved else
             "existing Controlled Production Certification Program pool readiness owner"
             if tier48_active and not active_incident_drain else
             "existing Service Matrix fresh-event revalidation owner"
         ),
         "sequence_expected_output": (
+            "approved exact substrate request -> incremental Tier-5 certification pool -> T48-M8 certification plan and safe cohort"
+            if m8_substrate_approved else
             "owner-authorized controlled pool -> T48-M8 certification plan and safe cohort"
             if tier48_active and not active_incident_drain else
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
         ),
         "program_frontier_input": (
+            "Tier-48 controlled-substrate Authority decision is approved and audit-backed; current pool remains below the first controlled cohort floor"
+            if m8_substrate_approved else
             "Tier-48 Authority and Runtime are active; current certification-pool projection is owner-backed and below the first controlled cohort floor"
             if m8_pool_boundary else
             "Tier-48 Authority, Runtime and certification-pool readiness are owner-backed"
@@ -18359,11 +18490,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             state["program_frontier_input"]
         ),
         "program_frontier_owner": (
+            "existing Controlled Production Certification Program identity, registry and assignment owners"
+            if m8_substrate_approved else
             "existing Controlled Production Certification Program user, registry, assignment and Authority owners"
             if tier48_active and not active_incident_drain else
             state["program_frontier_owner"]
         ),
         "program_frontier_expected_output": (
+            "exact incremental identity delta to Tier 5 -> pool readiness -> existing T48-M8 plan/safe-cohort consumer"
+            if m8_substrate_approved else
             "five or more dedicated certification users on one active controlled source -> existing T48-M8 plan/safe-cohort consumer; otherwise exact Engineering Authority boundary retained"
             if m8_pool_boundary else
             "controlled plan and safe cohort -> existing T48-M9 progressive production proof"
@@ -18384,6 +18519,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_terminal_state": (
             "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
             if active_incident_drain else
+            "NONE_T48_M8_SUBSTRATE_AUTHORITY_APPROVED_SUCCESSOR_READY"
+            if m8_substrate_approved else
             "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
             if m8_pool_boundary else
             "NONE_T48_M8_CONTROLLED_POOL_READY"
@@ -18401,12 +18538,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "next_mission_formed": "TRUE" if omp_should_continue else "FALSE",
         "next_mission_id": (
             SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else
+            "T48-M8" if m8_substrate_approved else
             "T48-M8" if m8_pool_ready else
             "NONE"
         ),
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
             if active_incident_drain else
+            "EXACT CONTROLLED-SUBSTRATE AUTHORITY DECISION APPROVED; EXISTING T48-M8 OWNER MUST BUILD ONLY THE INCREMENTAL TIER-5 CERTIFICATION POOL DELTA AND REVALIDATE EVERY OWNER BEFORE WRITE"
+            if m8_substrate_approved else
             "TIER48 AUTHORITY AND RUNTIME ACTIVE; EXISTING CONTROLLED CERTIFICATION POOL HAS FEWER THAN FIVE OWNER-AUTHORIZED USERS ON ONE ACTIVE CONTROLLED SOURCE; ORDINARY CUSTOMER RECLASSIFICATION AND UNAUTHORIZED SETUP MOVEMENT FORBIDDEN"
             if m8_pool_boundary else
             "TIER48 CONTROLLED CERTIFICATION POOL READY; EXISTING T48-M8 OWNER MUST PREPARE THE CONTROLLED PLAN AND SAFE COHORT"
@@ -18419,6 +18559,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "contract_hash": contract_hash, "request_hash": request_hash,
             "terminal": (
                 "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else
+                "T48_M8_SUBSTRATE_AUTHORITY_APPROVED" if m8_substrate_approved else
                 "T48_M8_CONTROLLED_POOL_BOUNDARY" if m8_pool_boundary else
                 "T48_M8_CONTROLLED_POOL_READY" if m8_pool_ready else
                 "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
@@ -18430,7 +18571,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
     atomic = atomic_reconcile_cps(
         cps_path,
         state=state,
-        request_external_wake=False,
+        request_external_wake=bool(m8_substrate_approved or m8_pool_ready),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
         section0_field_overrides={
             "CURRENT_AUTHORITY_REQUEST_STATUS": "`ACTIVE_OWNER_BACKED_STANDING_POLICY`",

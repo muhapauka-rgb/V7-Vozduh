@@ -120,9 +120,18 @@ CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA = (
 CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE = (
     "controlled_certification_substrate_authority_request_emitted"
 )
+CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE = (
+    "controlled_certification_substrate_authority_decision"
+)
 CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL = (
     "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
+)
+CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES = (
+    "IDENTITY_PROVISIONING",
+    "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+    "CONTROLLED_SOURCE_CONDITION",
+    "PROGRESSIVE_CAMPAIGN_EXECUTION",
 )
 CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
     "no_safe_target",
@@ -644,6 +653,21 @@ def controlled_certification_substrate_request_hash(request):
     return sha256_json(canonical)
 
 
+def controlled_certification_substrate_semantic_fingerprint(request):
+    """Return one stable semantic identity across expiry-only replacements."""
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    for key in (
+        "request_id",
+        "request_hash",
+        "created_at",
+        "expires_at",
+        "semantic_request_fingerprint",
+        "supersession",
+    ):
+        canonical.pop(key, None)
+    return sha256_json(canonical)
+
+
 def build_controlled_certification_substrate_authority_request(
     *,
     active_program,
@@ -816,8 +840,10 @@ def validate_controlled_certification_substrate_authority_request(
     try:
         if parse_ts(request.get("expires_at")) <= now:
             errors.append("controlled_certification_substrate_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("controlled_certification_substrate_request_created_at_invalid")
     except PacketError:
-        errors.append("controlled_certification_substrate_request_expiry_invalid")
+        errors.append("controlled_certification_substrate_request_timestamps_invalid")
     if decision not in set(request.get("decision_set") or []):
         errors.append("controlled_certification_substrate_decision_not_allowed")
     if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
@@ -836,12 +862,7 @@ def validate_controlled_certification_substrate_authority_request(
     subscopes = request.get("coordinated_subscopes")
     if not isinstance(subscopes, list) or {
         str(row.get("id") or "") for row in subscopes if isinstance(row, dict)
-    } != {
-        "IDENTITY_PROVISIONING",
-        "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
-        "CONTROLLED_SOURCE_CONDITION",
-        "PROGRESSIVE_CAMPAIGN_EXECUTION",
-    }:
+    } != set(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES):
         errors.append("controlled_certification_substrate_subscopes_invalid")
     law = request.get("subscope_law") if isinstance(request.get("subscope_law"), dict) else {}
     if (
@@ -850,12 +871,439 @@ def validate_controlled_certification_substrate_authority_request(
         or law.get("no_implicit_cross_grant") is not True
     ):
         errors.append("controlled_certification_substrate_subscope_law_invalid")
+    semantic_fingerprint = str(request.get("semantic_request_fingerprint") or "")
+    if (
+        semantic_fingerprint
+        and semantic_fingerprint
+        != controlled_certification_substrate_semantic_fingerprint(request)
+    ):
+        errors.append("controlled_certification_substrate_semantic_fingerprint_invalid")
+    supersession = (
+        request.get("supersession")
+        if isinstance(request.get("supersession"), dict)
+        else {}
+    )
+    if supersession and (
+        supersession.get("reason") != "EXPIRY_ONLY"
+        or not supersession.get("supersedes_request_id")
+        or len(str(supersession.get("supersedes_request_hash") or "")) != 64
+        or supersession.get("semantic_request_fingerprint")
+        != controlled_certification_substrate_semantic_fingerprint(request)
+    ):
+        errors.append("controlled_certification_substrate_supersession_invalid")
     return {
         "ok": not errors,
         "errors": sorted(set(errors)),
         "request_id": request_id,
         "request_hash": request_hash,
         "expires_at": str(request.get("expires_at") or ""),
+    }
+
+
+def _controlled_certification_substrate_request_records(records, request_id):
+    return [
+        record for record in (records if isinstance(records, list) else [])
+        if record.get("record_type")
+        == CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE
+        and str(record.get("authority_request_id") or "")
+        == str(request_id or "")
+    ]
+
+
+def _controlled_certification_substrate_decision_records(records, request_id):
+    return [
+        record for record in (records if isinstance(records, list) else [])
+        if record.get("record_type")
+        == CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE
+        and str(record.get("authority_request_id") or "")
+        == str(request_id or "")
+    ]
+
+
+def controlled_certification_substrate_request_from_audit(
+    request_id,
+    request_hash,
+    *,
+    audit_store=None,
+    now=None,
+):
+    """Return one exact unexpired coordinated request from the Authority audit."""
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    matches = _controlled_certification_substrate_request_records(
+        read_audit_records(audit_store), request_id,
+    )
+    if len(matches) != 1:
+        raise PacketError(
+            "controlled_certification_substrate_request_audit_missing_or_duplicate"
+        )
+    record = matches[0]
+    request = (
+        record.get("request") if isinstance(record.get("request"), dict) else {}
+    )
+    if str(record.get("authority_request_hash") or "") != str(request_hash or ""):
+        raise PacketError(
+            "controlled_certification_substrate_request_audit_hash_mismatch"
+        )
+    validation = validate_controlled_certification_substrate_authority_request(
+        request,
+        decision="DECLINE",
+        expected_request_id=request_id,
+        expected_request_hash=request_hash,
+        now=now or utc_now(),
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(
+            validation.get("errors")
+            or ["controlled_certification_substrate_request_audit_invalid"]
+        ))
+    return request
+
+
+def controlled_certification_substrate_authority_status(records, *, now=None):
+    """Project the exact request/decision lifecycle without creating new truth."""
+    now = now or utc_now()
+    records = records if isinstance(records, list) else []
+    requests = [
+        record for record in records
+        if record.get("record_type")
+        == CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE
+    ]
+    requests.sort(key=lambda row: (
+        str(((row.get("request") or {}).get("created_at")) or ""),
+        str(row.get("authority_request_id") or ""),
+    ))
+    if not requests:
+        return {
+            "status": "NONE",
+            "request_id": "",
+            "request_hash": "",
+            "decision": "",
+            "decision_id": "",
+            "expires_at": "",
+            "semantic_request_fingerprint": "",
+        }
+    record = requests[-1]
+    request = (
+        record.get("request") if isinstance(record.get("request"), dict) else {}
+    )
+    request_id = str(request.get("request_id") or "")
+    decisions = _controlled_certification_substrate_decision_records(
+        records, request_id,
+    )
+    validation = validate_controlled_certification_substrate_authority_request(
+        request,
+        decision="DECLINE",
+        expected_request_id=request_id,
+        expected_request_hash=str(record.get("authority_request_hash") or ""),
+        now=now,
+    )
+    non_expiry_errors = [
+        error for error in (validation.get("errors") or [])
+        if error != "controlled_certification_substrate_request_expired"
+    ]
+    if non_expiry_errors:
+        status = "STOP_SAFE_INVALID_REQUEST"
+        decision = {}
+    elif len(decisions) > 1:
+        status = "STOP_SAFE_DUPLICATE_OR_CONFLICTING_DECISIONS"
+        decision = {}
+    elif decisions:
+        decision = decisions[0]
+        status = (
+            "APPROVED"
+            if decision.get("decision")
+            == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+            else "DECLINED"
+        )
+    else:
+        decision = {}
+        try:
+            status = (
+                "EXPIRED"
+                if parse_ts(request.get("expires_at")) <= now
+                else "PENDING"
+            )
+        except PacketError:
+            status = "STOP_SAFE_INVALID_REQUEST_EXPIRY"
+    return {
+        "status": status,
+        "request_id": request_id,
+        "request_hash": str(request.get("request_hash") or ""),
+        "created_at": str(request.get("created_at") or ""),
+        "expires_at": str(request.get("expires_at") or ""),
+        "semantic_request_fingerprint": (
+            controlled_certification_substrate_semantic_fingerprint(request)
+        ),
+        "decision": str(decision.get("decision") or ""),
+        "decision_id": str(decision.get("decision_id") or ""),
+        "actor_id": str(
+            ((decision.get("actor_provenance") or {}).get("actor_id")) or ""
+        ),
+        "admitted_subscopes": list(decision.get("admitted_subscopes") or []),
+        "request": copy.deepcopy(request),
+    }
+
+
+def record_controlled_certification_substrate_authority_decision(
+    *,
+    request_id,
+    request_hash,
+    decision,
+    actor_id,
+    admitted_subscopes=None,
+    audit_store=None,
+    now=None,
+):
+    """Append one exact independent decision; never provision or execute."""
+    now = now or utc_now()
+    if decision not in {CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL, "DECLINE"}:
+        raise PacketError(
+            "controlled_certification_substrate_decision_not_exact"
+        )
+    if not str(actor_id or "").strip():
+        raise PacketError(
+            "controlled_certification_substrate_authority_actor_missing"
+        )
+    admitted = sorted(set(str(item) for item in (admitted_subscopes or [])))
+    expected = sorted(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES)
+    if decision == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL:
+        if admitted != expected:
+            raise PacketError(
+                "controlled_certification_substrate_approval_subscopes_incomplete"
+            )
+    elif admitted:
+        raise PacketError(
+            "controlled_certification_substrate_decline_admits_subscopes"
+        )
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        existing = _controlled_certification_substrate_decision_records(
+            records, request_id,
+        )
+        decision_id = stable_id("cpsdec", {
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision": decision,
+            "actor_id": str(actor_id),
+            "admitted_subscopes": admitted,
+        })
+        if existing:
+            exact = [
+                row for row in existing
+                if row.get("decision_id") == decision_id
+                and row.get("authority_request_hash") == request_hash
+                and row.get("decision") == decision
+                and sorted(row.get("admitted_subscopes") or []) == admitted
+                and str(
+                    ((row.get("actor_provenance") or {}).get("actor_id")) or ""
+                ) == str(actor_id)
+            ]
+            if len(existing) == 1 and len(exact) == 1:
+                return {
+                    "status": "ALREADY_RECORDED_EXACT",
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                    "decision": decision,
+                    "decision_id": decision_id,
+                    "audit_write": False,
+                    "policy_write": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                }
+            raise PacketError(
+                "controlled_certification_substrate_authority_decision_conflict"
+            )
+        request = controlled_certification_substrate_request_from_audit(
+            request_id,
+            request_hash,
+            audit_store=audit_store,
+            now=now,
+        )
+        validation = validate_controlled_certification_substrate_authority_request(
+            request,
+            decision=decision,
+            expected_request_id=request_id,
+            expected_request_hash=request_hash,
+            now=now,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(
+                validation.get("errors")
+                or ["controlled_certification_substrate_decision_invalid"]
+            ))
+        record = append_record(audit_store, {
+            "schema_version": (
+                "v7.controlled-certification-substrate-authority-decision.v1"
+            ),
+            "record_type": (
+                CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE
+            ),
+            "decision_id": decision_id,
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "semantic_request_fingerprint": (
+                controlled_certification_substrate_semantic_fingerprint(request)
+            ),
+            "decision": decision,
+            "admitted_subscopes": admitted,
+            "actor_provenance": {
+                "actor_id": str(actor_id),
+                "decision_surface": "tools/v7-operator-execution-packet",
+                "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                "recorded_at": now.isoformat(),
+            },
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "APPROVED" if decision == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL else "DECLINED",
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision": decision,
+        "decision_id": record["decision_id"],
+        "admitted_subscopes": admitted,
+        "next_required_consumer": (
+            "existing T48-M8 controlled substrate owner"
+            if decision == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+            else "existing CPS/OMP residual reconciliation owner"
+        ),
+        "audit_write": True,
+        "policy_write": False,
+        "registry_write": False,
+        "identity_creation": False,
+        "assignment_change": False,
+        "controlled_condition": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "rollback_apply": False,
+        "authority_self_expansion": False,
+        "production_maturity_change": False,
+    }
+
+
+def build_expiry_replacement_controlled_certification_substrate_request(
+    request,
+    *,
+    now=None,
+):
+    """Create one semantic replacement only after the prior request expires."""
+    now = now or utc_now()
+    request = copy.deepcopy(request if isinstance(request, dict) else {})
+    try:
+        if parse_ts(request.get("expires_at")) > now:
+            raise PacketError(
+                "controlled_certification_substrate_request_not_expired"
+            )
+    except PacketError as exc:
+        if str(exc) == "controlled_certification_substrate_request_not_expired":
+            raise
+        raise PacketError(
+            "controlled_certification_substrate_request_expiry_invalid"
+        )
+    old_id = str(request.get("request_id") or "")
+    old_hash = str(request.get("request_hash") or "")
+    semantic = controlled_certification_substrate_semantic_fingerprint(request)
+    request.pop("request_id", None)
+    request.pop("request_hash", None)
+    request["created_at"] = now.isoformat()
+    request["expires_at"] = (
+        now + timedelta(
+            seconds=CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS
+        )
+    ).isoformat()
+    request["semantic_request_fingerprint"] = semantic
+    request["supersession"] = {
+        "reason": "EXPIRY_ONLY",
+        "supersedes_request_id": old_id,
+        "supersedes_request_hash": old_hash,
+        "semantic_request_fingerprint": semantic,
+    }
+    request_hash = controlled_certification_substrate_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"cpsauth_r1_{request_hash[:24]}"
+    return request
+
+
+def replace_expired_controlled_certification_substrate_request(
+    *,
+    request_id,
+    request_hash,
+    audit_store=None,
+    producer_id="tools/v7-operator-execution-packet",
+    now=None,
+):
+    """Supersede one expired undecided request without creating two active ones."""
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        if _controlled_certification_substrate_decision_records(
+            records, request_id,
+        ):
+            raise PacketError(
+                "controlled_certification_substrate_expired_request_decided"
+            )
+        matches = _controlled_certification_substrate_request_records(
+            records, request_id,
+        )
+        if len(matches) != 1:
+            raise PacketError(
+                "controlled_certification_substrate_request_audit_missing_or_duplicate"
+            )
+        old_request = (
+            matches[0].get("request")
+            if isinstance(matches[0].get("request"), dict)
+            else {}
+        )
+        if (
+            str(matches[0].get("authority_request_hash") or "")
+            != str(request_hash or "")
+            or str(old_request.get("request_hash") or "")
+            != str(request_hash or "")
+        ):
+            raise PacketError(
+                "controlled_certification_substrate_request_audit_hash_mismatch"
+            )
+        replacement = (
+            build_expiry_replacement_controlled_certification_substrate_request(
+                old_request,
+                now=now,
+            )
+        )
+        registration = (
+            register_controlled_certification_substrate_authority_request(
+                replacement,
+                audit_store=audit_store,
+                producer_id=producer_id,
+                now=now,
+            )
+        )
+    return {
+        "status": "EXPIRY_REPLACEMENT_REGISTERED",
+        "request": replacement,
+        "registration": registration,
+        "supersedes_request_id": request_id,
+        "supersedes_request_hash": request_hash,
+        "semantic_request_fingerprint": (
+            controlled_certification_substrate_semantic_fingerprint(replacement)
+        ),
+        "authority_granted": False,
+        "policy_write": False,
+        "registry_write": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
     }
 
 
@@ -899,6 +1347,39 @@ def register_controlled_certification_substrate_authority_request(
             "audit_store": str(audit_store),
             "audit_write": False,
         }
+    semantic = controlled_certification_substrate_semantic_fingerprint(request)
+    decided_ids = {
+        str(record.get("authority_request_id") or "")
+        for record in records
+        if record.get("record_type")
+        == CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE
+    }
+    for record in records:
+        if (
+            record.get("record_type")
+            != CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE
+        ):
+            continue
+        prior = (
+            record.get("request")
+            if isinstance(record.get("request"), dict)
+            else {}
+        )
+        prior_id = str(prior.get("request_id") or "")
+        if not prior_id or prior_id in decided_ids:
+            continue
+        try:
+            prior_active = parse_ts(prior.get("expires_at")) > now
+        except PacketError:
+            prior_active = False
+        if (
+            prior_active
+            and controlled_certification_substrate_semantic_fingerprint(prior)
+            == semantic
+        ):
+            raise PacketError(
+                "controlled_certification_substrate_active_semantic_request_exists"
+            )
     append_record(audit_store, {
         "schema_version": "v7.controlled-certification-substrate-authority-audit.v1",
         "record_type": CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_RECORD_TYPE,
@@ -4587,6 +5068,32 @@ def main(argv=None):
         help="Activate only one exact registered standing-policy request after its independent decision.",
     )
     parser.add_argument(
+        "--record-controlled-certification-substrate-decision-from-audit-request-id",
+        default="",
+        help=(
+            "Existing Authority owner only: append one exact APPROVE or DECLINE "
+            "decision for the coordinated controlled-certification substrate request. "
+            "Never provisions identities or enters execution."
+        ),
+    )
+    parser.add_argument(
+        "--replace-expired-controlled-certification-substrate-request-id",
+        default="",
+        help=(
+            "Supersede one exact expired undecided controlled-substrate request "
+            "without changing its semantic scope or granting Authority."
+        ),
+    )
+    parser.add_argument(
+        "--controlled-certification-substrate-request-hash",
+        default="",
+    )
+    parser.add_argument(
+        "--controlled-certification-substrate-admitted-subscope",
+        action="append",
+        default=[],
+    )
+    parser.add_argument(
         "--standing-policy-active-program",
         default="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
     )
@@ -4605,6 +5112,59 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.record_controlled_certification_substrate_decision_from_audit_request_id:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+                or args.replace_expired_controlled_certification_substrate_request_id
+            ):
+                raise PacketError(
+                    "controlled_certification_substrate_decision_mode_must_not_mix_other_modes"
+                )
+            result = record_controlled_certification_substrate_authority_decision(
+                request_id=(
+                    args.record_controlled_certification_substrate_decision_from_audit_request_id
+                ),
+                request_hash=args.controlled_certification_substrate_request_hash,
+                decision=args.authority_decision,
+                actor_id=args.authority_actor_id,
+                admitted_subscopes=(
+                    args.controlled_certification_substrate_admitted_subscope
+                ),
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store
+                    == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
+        if args.replace_expired_controlled_certification_substrate_request_id:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+                or args.record_controlled_certification_substrate_decision_from_audit_request_id
+            ):
+                raise PacketError(
+                    "controlled_certification_substrate_replacement_mode_must_not_mix_other_modes"
+                )
+            result = replace_expired_controlled_certification_substrate_request(
+                request_id=(
+                    args.replace_expired_controlled_certification_substrate_request_id
+                ),
+                request_hash=args.controlled_certification_substrate_request_hash,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store
+                    == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.prepare_standing_delegated_policy_request:
             if (
                 args.packet or args.generate_from_plan or args.generate_from_preview

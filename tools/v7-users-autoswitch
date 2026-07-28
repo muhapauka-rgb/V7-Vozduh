@@ -13717,6 +13717,11 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
     pending_owner_result = operator_execution.latest_pending_standing_delegated_policy_request(
         audit_records,
     )
+    controlled_substrate_authority = (
+        operator_execution.controlled_certification_substrate_authority_status(
+            audit_records,
+        )
+    )
     pending_request = (
         pending_owner_result.get("request")
         if isinstance(pending_owner_result.get("request"), dict)
@@ -13785,6 +13790,26 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "self_expansion_allowed": bool(policy_scope.get("self_expansion_allowed")),
         "service_failure_causal_integrity": causal_integrity,
         "controlled_certification_pool": controlled_pool,
+        "controlled_certification_substrate_authority": {
+            "status": str(controlled_substrate_authority.get("status") or "NONE"),
+            "request_id": str(controlled_substrate_authority.get("request_id") or ""),
+            "request_hash": str(controlled_substrate_authority.get("request_hash") or ""),
+            "created_at": str(controlled_substrate_authority.get("created_at") or ""),
+            "expires_at": str(controlled_substrate_authority.get("expires_at") or ""),
+            "semantic_request_fingerprint": str(
+                controlled_substrate_authority.get(
+                    "semantic_request_fingerprint"
+                ) or ""
+            ),
+            "decision": str(controlled_substrate_authority.get("decision") or ""),
+            "decision_id": str(
+                controlled_substrate_authority.get("decision_id") or ""
+            ),
+            "actor_id": str(controlled_substrate_authority.get("actor_id") or ""),
+            "admitted_subscopes": list(
+                controlled_substrate_authority.get("admitted_subscopes") or []
+            ),
+        },
         "pending_tier_authority_request": {
             "status": str(pending_owner_result.get("status") or "NONE"),
             "pending_count": int(pending_owner_result.get("pending_count") or 0),

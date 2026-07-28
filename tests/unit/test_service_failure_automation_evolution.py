@@ -246,6 +246,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "authority_request_hash": "c" * 64,
             "expires_at": "2099-01-01T00:00:00+00:00",
             "allowed_failure_families": ["channel_hard_fail"],
+            "runtime_scope_axes": {
+                "controlled_certification_runtime_max": 48,
+                "ordinary_production_runtime_max": 4,
+                "controlled_production_proven_max": 0,
+                "ordinary_production_proven_max": 4,
+            },
             "pending_tier_authority_request": {"status": "NONE"},
             "service_failure_causal_integrity": {
                 "final_verdict": "PASS",
@@ -279,6 +285,82 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             ],
             3,
         )
+
+    def test_approved_substrate_decision_becomes_safe_m8_successor(self):
+        cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
+            encoding="utf-8",
+        )
+        live = self.sync._markdown_field_table(self.sync._markdown_section(
+            cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        status = {
+            "max_users_per_action": 48,
+            "max_concurrent_transactions": 1,
+            "action_class": "channel hard-fail failover",
+            "contract_hash": "a" * 64,
+            "policy_scope_hash": "b" * 64,
+            "authority_request_id": "sdpauth_r1_" + ("c" * 24),
+            "authority_request_hash": "c" * 64,
+            "expires_at": "2099-01-01T00:00:00+00:00",
+            "allowed_failure_families": ["channel_hard_fail"],
+            "pending_tier_authority_request": {"status": "NONE"},
+            "service_failure_causal_integrity": {
+                "final_verdict": "PASS",
+                "invalid_states": [],
+                "open_incident_projections": [],
+            },
+            "controlled_certification_pool": {
+                "status": "CONTROLLED_CERTIFICATION_POOL_INSUFFICIENT_FOR_TIER_5",
+                "fingerprint": "d" * 64,
+                "total_enabled_certification_users": 4,
+                "active_controlled_source_count": 1,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "missing_users_for_tier_5": 2,
+                "exact_blocker": "fewer_than_5_enabled_certification_users_on_one_active_controlled_source",
+                "responsible_existing_owner": "existing Controlled Production owners",
+                "reentry_condition": "five users on one controlled source",
+            },
+            "controlled_certification_substrate_authority": {
+                "status": "APPROVED",
+                "request_id": "cpsauth_r1_exact",
+                "request_hash": "e" * 64,
+                "expires_at": "2099-01-01T00:00:00+00:00",
+                "decision": "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+                "decision_id": "cpsdec_exact",
+                "actor_id": "authority-owner",
+                "semantic_request_fingerprint": "f" * 64,
+            },
+        }
+        projection, detail = self.sync._service_failure_action_class_reuse_projection(
+            status, live, root=ROOT,
+        )
+        expected = (
+            "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED"
+        )
+        self.assertEqual(
+            projection["PRODUCT_EVOLUTION_FRONTIER"].strip("`"), expected,
+        )
+        self.assertEqual(
+            projection["T48_M8_STATUS"].strip("`"),
+            "CONTROLLED_SUBSTRATE_AUTHORITY_APPROVED_T48_M8_REENTRY_READY",
+        )
+        self.assertEqual(
+            projection["T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION"].strip("`"),
+            "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+        )
+        self.assertEqual(
+            projection["SERVICE_FAILURE_EFFECTIVE_RUNTIME_TIER"].strip("`"), "4",
+        )
+        self.assertEqual(
+            projection["SERVICE_FAILURE_CONTEXTUAL_RUNTIME_TIERS"].strip("`"),
+            "CONTROLLED_CERTIFICATION=48; ORDINARY_PRODUCTION=4",
+        )
+        self.assertEqual(
+            projection["CURRENT_ACTION_CLASS_RUNTIME_ENABLED_TIER"].strip("`"),
+            "TIER_4_SERIAL_COHORT",
+        )
+        self.assertEqual(detail["legal_terminal"], expected)
 
     def test_tier48_pool_boundary_replaces_stale_fresh_event_primary_frontier(self):
         with tempfile.TemporaryDirectory() as tmp:

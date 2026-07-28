@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.1`
+Version: `2.2`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,12 +9,68 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V2.1 active executable revision — Tier-48 controlled campaign and ordinary Runtime reconciliation
+## V2.2 active executable revision — exact M8/M9/M10 ownership and Authority-decision consumption
 
-V2.1 is the only active executable plan in this file. V2.0 and earlier
-revisions remain historical owner-backed evidence and implementation context;
-they must not dispatch duplicate Missions, repeat valid production movements
-or override fresh CPS truth.
+V2.2 is the only active executable revision. It extends the existing V2.1
+Program and owners; it creates no Program, Mission, Authority owner, policy
+owner, Planner, Runtime, registry, evidence store, queue, watcher, scheduler or
+execution path.
+
+The exact Mission sequence is:
+
+```text
+T48-M8 controlled plan and safe-cohort preparation
+-> T48-M9 progressive controlled production proof
+-> T48-M10 verification, consumption and reconciliation
+-> existing ordinary Runtime decision consumer
+```
+
+Each Mission must publish and prove consumption of its existing successor. A
+Mission must not absorb its successor's scope. Safe owner-backed transitions
+continue without a Codex or operator continuation message.
+
+The campaign advances only to the highest currently legal and evidence-valid
+stage. An exact owner-backed live blocker preserves completed lower-stage
+evidence and produces a durable partial terminal; it must not be bypassed to
+force scope 48.
+
+The coordinated controlled-substrate request lifecycle is owned by the
+existing append-only `admin_core/operator_execution.py` Authority audit:
+
+```text
+exact request
+-> exact independent APPROVE or DECLINE
+-> exactly-once decision record with actor provenance
+-> existing T48-M8 successor
+```
+
+An expiry-only replacement is the same semantic request, not a second
+Authority expansion. It must name the superseded request ID/hash, preserve one
+semantic fingerprint, never coexist as a second active request and change only
+request identity/timestamps/expiry/supersession metadata.
+
+Generic movement evidence is reusable only claim-by-claim through its original
+owner, provenance and fingerprint. A generic cohort number never proves
+Service Failure detection, incident binding, Planner selection, controlled
+source response, scenario-specific containment, Outcome consumption or the
+controlled-production maximum.
+
+The canonical delegated/admin final Safe Mode remains `OPEN`. Cohort breaker
+health is represented separately: success requires `tripped=false` after
+verified reset/re-arm; a contained failure preserves `tripped=true` and stops
+remaining forward mutations until owner-backed reset/re-arm.
+
+After T48-M9 the existing ordinary Runtime decision consumer must consume one
+V2.1 verdict. A first future genuine ordinary transaction is owned by the
+ordinary event-driven incident lane and is not an M8/M9/M10 completion
+condition. It must never be manufactured merely to close this Program.
+
+## V2.1 retained executable base — Tier-48 controlled campaign and ordinary Runtime reconciliation
+
+V2.1 supplies the retained executable contracts below. V2.0 and earlier
+revisions remain historical owner-backed evidence and implementation context.
+They must not dispatch duplicate Missions, repeat valid production movements
+or override V2.2 or fresh CPS truth.
 
 V2.1 continues
 `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` through its existing

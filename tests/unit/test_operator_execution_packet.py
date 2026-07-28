@@ -18,6 +18,7 @@ from admin_core.operator_execution import (
     build_autonomous_execution_control_state,
     build_current_action_class_contract_authority_request,
     build_controlled_certification_substrate_authority_request,
+    build_expiry_replacement_controlled_certification_substrate_request,
     build_standing_delegated_policy_authority_request,
     standing_delegated_operational_policy_template,
     standing_delegated_policy_contract_hash,
@@ -60,6 +61,10 @@ from admin_core.operator_execution import (
     latest_pending_standing_delegated_policy_request,
     register_standing_delegated_policy_request,
     register_controlled_certification_substrate_authority_request,
+    record_controlled_certification_substrate_authority_decision,
+    replace_expired_controlled_certification_substrate_request,
+    controlled_certification_substrate_authority_status,
+    controlled_certification_substrate_semantic_fingerprint,
     validate_controlled_certification_substrate_authority_request,
     validate_standing_delegated_operational_policy,
     validate_standing_delegated_policy_authority_request,
@@ -416,6 +421,265 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             )
         self.assertEqual(first["status"], "REGISTERED")
         self.assertEqual(second["status"], "ALREADY_REGISTERED_EXACT")
+
+    def test_controlled_substrate_decision_is_exact_once_and_audit_only(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status={
+                "total_enabled_certification_users": 4,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "fingerprint": "f" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        admitted = [
+            "IDENTITY_PROVISIONING",
+            "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+            "CONTROLLED_SOURCE_CONDITION",
+            "PROGRESSIVE_CAMPAIGN_EXECUTION",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            register_controlled_certification_substrate_authority_request(
+                request, audit_store=audit, now=now,
+            )
+            first = record_controlled_certification_substrate_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+                actor_id="independent-authority-owner",
+                admitted_subscopes=admitted,
+                audit_store=audit,
+                now=now + timedelta(minutes=1),
+            )
+            second = record_controlled_certification_substrate_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+                actor_id="independent-authority-owner",
+                admitted_subscopes=admitted,
+                audit_store=audit,
+                now=now + timedelta(minutes=2),
+            )
+            records = read_audit_records(audit)
+            status = controlled_certification_substrate_authority_status(
+                records, now=now + timedelta(minutes=2),
+            )
+        self.assertEqual(first["status"], "APPROVED")
+        self.assertEqual(second["status"], "ALREADY_RECORDED_EXACT")
+        self.assertTrue(first["audit_write"])
+        self.assertFalse(second["audit_write"])
+        self.assertFalse(first["policy_write"])
+        self.assertFalse(first["runtime_apply"])
+        self.assertEqual(first["users_moved"], 0)
+        self.assertEqual(status["status"], "APPROVED")
+        self.assertEqual(status["decision_id"], first["decision_id"])
+        self.assertEqual(
+            len([
+                row for row in records
+                if row.get("record_type")
+                == "controlled_certification_substrate_authority_decision"
+            ]),
+            1,
+        )
+
+    def test_controlled_substrate_concurrent_consumers_append_one_decision(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status={
+                "total_enabled_certification_users": 4,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "fingerprint": "f" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        admitted = [
+            "IDENTITY_PROVISIONING",
+            "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+            "CONTROLLED_SOURCE_CONDITION",
+            "PROGRESSIVE_CAMPAIGN_EXECUTION",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            register_controlled_certification_substrate_authority_request(
+                request, audit_store=audit, now=now,
+            )
+            results = []
+            errors = []
+
+            def consume():
+                try:
+                    results.append(
+                        record_controlled_certification_substrate_authority_decision(
+                            request_id=request["request_id"],
+                            request_hash=request["request_hash"],
+                            decision="APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+                            actor_id="independent-authority-owner",
+                            admitted_subscopes=admitted,
+                            audit_store=audit,
+                            now=now + timedelta(minutes=1),
+                        )
+                    )
+                except Exception as exc:  # pragma: no cover - captured for assertion
+                    errors.append(str(exc))
+
+            threads = [threading.Thread(target=consume) for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            records = read_audit_records(audit)
+        self.assertFalse(errors, errors)
+        self.assertEqual(
+            sorted(row["status"] for row in results),
+            ["ALREADY_RECORDED_EXACT", "APPROVED"],
+        )
+        self.assertEqual(
+            len([
+                row for row in records
+                if row.get("record_type")
+                == "controlled_certification_substrate_authority_decision"
+            ]),
+            1,
+        )
+
+    def test_controlled_substrate_decision_rejects_incomplete_or_stale_input(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status={
+                "total_enabled_certification_users": 4,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "fingerprint": "f" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            register_controlled_certification_substrate_authority_request(
+                request, audit_store=audit, now=now,
+            )
+            with self.assertRaisesRegex(
+                PacketError, "approval_subscopes_incomplete",
+            ):
+                record_controlled_certification_substrate_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision="APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN",
+                    actor_id="owner",
+                    admitted_subscopes=["IDENTITY_PROVISIONING"],
+                    audit_store=audit,
+                    now=now + timedelta(minutes=1),
+                )
+            with self.assertRaisesRegex(PacketError, "actor_missing"):
+                record_controlled_certification_substrate_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision="DECLINE",
+                    actor_id="",
+                    audit_store=audit,
+                    now=now + timedelta(minutes=1),
+                )
+            with self.assertRaisesRegex(PacketError, "hash_mismatch"):
+                record_controlled_certification_substrate_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash="0" * 64,
+                    decision="DECLINE",
+                    actor_id="owner",
+                    audit_store=audit,
+                    now=now + timedelta(minutes=1),
+                )
+            with self.assertRaisesRegex(PacketError, "expired"):
+                record_controlled_certification_substrate_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision="DECLINE",
+                    actor_id="owner",
+                    audit_store=audit,
+                    now=now + timedelta(days=2),
+                )
+            records = read_audit_records(audit)
+        self.assertFalse(any(
+            row.get("record_type")
+            == "controlled_certification_substrate_authority_decision"
+            for row in records
+        ))
+
+    def test_expiry_replacement_preserves_semantics_and_single_active_request(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status={
+                "total_enabled_certification_users": 4,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "fingerprint": "f" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        replacement_time = now + timedelta(days=2)
+        direct = build_expiry_replacement_controlled_certification_substrate_request(
+            request, now=replacement_time,
+        )
+        self.assertEqual(
+            controlled_certification_substrate_semantic_fingerprint(request),
+            controlled_certification_substrate_semantic_fingerprint(direct),
+        )
+        self.assertEqual(
+            direct["supersession"]["supersedes_request_id"],
+            request["request_id"],
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            register_controlled_certification_substrate_authority_request(
+                request, audit_store=audit, now=now,
+            )
+            result = replace_expired_controlled_certification_substrate_request(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                audit_store=audit,
+                now=replacement_time,
+            )
+            records = read_audit_records(audit)
+            status = controlled_certification_substrate_authority_status(
+                records, now=replacement_time,
+            )
+        self.assertEqual(result["status"], "EXPIRY_REPLACEMENT_REGISTERED")
+        self.assertEqual(status["status"], "PENDING")
+        self.assertEqual(status["request_id"], result["request"]["request_id"])
+        self.assertEqual(
+            status["semantic_request_fingerprint"],
+            controlled_certification_substrate_semantic_fingerprint(request),
+        )
 
     def test_current_action_contract_requires_existing_authority_decision_and_one_use_provenance(self):
         template = {

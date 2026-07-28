@@ -189,6 +189,66 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertNotIn("10.7.0.16", rendered)
             self.assertNotIn("10.0.0.2", rendered)
 
+    def test_controlled_certification_source_candidate_requires_fresh_healthy_matrix_baseline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("users.registry").write_text("", encoding="utf-8")
+            state_dir.joinpath("egress.registry").write_text(
+                "id=healthy type=interface interface=wg1 enabled=1\n"
+                "id=dead type=interface interface=wg2 enabled=1\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": {
+                    "healthy": {
+                        "services": {
+                            "google": {
+                                "ok": True,
+                                "status": "OK",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                    "dead": {
+                        "services": {
+                            "google": {
+                                "ok": False,
+                                "status": "FAIL",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+
+            result = self.autoswitch.controlled_certification_pool_status(
+                state_dir,
+            )
+
+        candidates = {
+            row["source_id"]: row
+            for row in result["isolated_source_candidates"]
+        }
+        self.assertEqual(
+            candidates["healthy"]["baseline_health"]["status"],
+            "PASS_HEALTHY_BASELINE",
+        )
+        self.assertEqual(
+            candidates["dead"]["baseline_health"]["status"],
+            "STOP_SAFE_BASELINE_UNHEALTHY",
+        )
+        self.assertEqual(
+            [
+                row["source_id"]
+                for row in result["healthy_isolated_source_candidates"]
+            ],
+            ["healthy"],
+        )
+        self.assertFalse(
+            candidates["dead"]["baseline_health"]["raw_service_details_stored"]
+        )
+
     def test_substrate_authority_entrypoint_reuses_existing_owner_and_has_zero_effects(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -685,6 +745,49 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 isolated_candidate["next_action"],
                 "CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVED_INCREMENTAL_POOL_REQUIRED",
+            )
+            runtime_status[
+                "controlled_certification_substrate_authority"
+            ].update({
+                "source_id": "1",
+                "source_precondition_status": (
+                    "STOP_SAFE_SOURCE_BASELINE_UNHEALTHY"
+                ),
+            })
+            runtime_status["controlled_certification_pool"].update({
+                "max_enabled_certification_users_on_one_isolated_active_source": 48,
+                "active_source_projections": [{
+                    "source_id": "1",
+                    "enabled_non_certification_users_on_source": 0,
+                }],
+            })
+            baseline_blocked = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                baseline_blocked["next_action"],
+                "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED",
+            )
+            baseline_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                baseline_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "EXTERNAL_OWNER_REQUIRED",
+            )
+            self.assertEqual(
+                baseline_live["EXTERNAL_INPUT_TYPE"].strip("`"),
+                "EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE",
+            )
+            self.assertEqual(
+                baseline_live["AUTHORITY_REQUIRED_NOW"].strip("`"),
+                "NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

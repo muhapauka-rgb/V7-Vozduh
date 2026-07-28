@@ -694,6 +694,83 @@ def parse_registry(path: Path) -> list[dict[str, str]]:
     return rows
 
 
+CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS = 3600
+
+
+def controlled_certification_source_health_status(
+    state_dir: Path,
+    source_id: str,
+) -> dict[str, Any]:
+    """Project a compact, fail-closed baseline from the existing Matrix owner.
+
+    An empty source is isolated, but isolation is not reachability.  Controlled
+    certification needs a healthy baseline before the existing condition owner
+    can deliberately fail and later restore that source.  Keep service details
+    with ``service-matrix.json`` and expose only counts plus a fingerprint here.
+    """
+    matrix_path = Path(state_dir) / "service-matrix.json"
+    matrix = read_json(matrix_path, {})
+    items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
+    row = items.get(str(source_id or ""))
+    row = row if isinstance(row, dict) else {}
+    services = row.get("services") if isinstance(row.get("services"), dict) else {}
+    matrix_updated = str(matrix.get("updated") or "")
+    age_seconds = max(0.0, time.time() - parse_ts(matrix_updated)) if matrix_updated else -1.0
+    fresh = bool(
+        matrix_updated
+        and age_seconds <= CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS
+    )
+    hard_statuses = {"FAIL", "DOWN", "NOT_STARTED"}
+    hard_failures = 0
+    reachable = 0
+    observations: list[dict[str, Any]] = []
+    for service_id, value in sorted(services.items()):
+        service = value if isinstance(value, dict) else {}
+        status = str(service.get("status") or "").upper()
+        ok = bool_value(service.get("ok"))
+        hard = status in hard_statuses or status.startswith("TELEGRAM_DOWN_")
+        if hard:
+            hard_failures += 1
+        if ok and not hard:
+            reachable += 1
+        observations.append({
+            "service_id": str(service_id),
+            "status": status,
+            "ok": ok,
+            "hard_failure": hard,
+            "observed_at": str(
+                service.get("observed_at") or service.get("tested_at") or ""
+            ),
+        })
+    if not services:
+        status = "STOP_SAFE_BASELINE_NOT_OBSERVED"
+    elif not fresh:
+        status = "STOP_SAFE_BASELINE_STALE"
+    elif hard_failures or reachable == 0:
+        status = "STOP_SAFE_BASELINE_UNHEALTHY"
+    else:
+        status = "PASS_HEALTHY_BASELINE"
+    return {
+        "schema_version": "v7.controlled-certification-source-health.v1",
+        "status": status,
+        "ok": status == "PASS_HEALTHY_BASELINE",
+        "source_id": str(source_id or ""),
+        "matrix_updated": matrix_updated,
+        "age_seconds": round(age_seconds, 3) if age_seconds >= 0 else -1,
+        "max_age_seconds": CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS,
+        "service_count": len(services),
+        "reachable_service_count": reachable,
+        "hard_failure_count": hard_failures,
+        "observation_fingerprint": sha256_json(observations),
+        "raw_service_details_stored": False,
+        "owner": "existing service-matrix.json via tools/v7-service-matrix-test",
+        "reentry_condition": (
+            "fresh Matrix observation proves at least one reachable service "
+            "and zero hard service failures on the exact source"
+        ),
+    }
+
+
 def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
     """Project the existing certification pool without exposing identities."""
     state_dir = Path(state_dir)
@@ -719,6 +796,9 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
     source_rows: list[dict[str, Any]] = []
     for source in sorted(active_sources, key=lambda row: str(row.get("id") or "")):
         source_id = str(source.get("id") or "")
+        baseline_health = controlled_certification_source_health_status(
+            state_dir, source_id,
+        )
         source_group = str(source.get("certification_group") or "")
         assigned = [
             row for row in enabled_certification_users
@@ -748,6 +828,7 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
             "source_isolated_for_controlled_failure": (
                 not assigned_non_certification
             ),
+            "baseline_health": baseline_health,
         })
     max_users_on_one_source = max(
         (int(row["enabled_certification_users_on_source"]) for row in source_rows),
@@ -784,6 +865,9 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
             or str(source.get("type") or "") != "interface"
         ):
             continue
+        baseline_health = controlled_certification_source_health_status(
+            state_dir, source_id,
+        )
         isolated_source_candidates.append({
             "source_id": source_id,
             "protocol": str(source.get("protocol") or ""),
@@ -792,7 +876,12 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
             ),
             "enabled_assigned_users": 0,
             "source_isolated_for_controlled_failure": True,
+            "baseline_health": baseline_health,
         })
+    healthy_isolated_source_candidates = [
+        row for row in isolated_source_candidates
+        if bool((row.get("baseline_health") or {}).get("ok"))
+    ]
     ladder = (5, 10, 25, 48)
     next_required_tier = next(
         (tier for tier in ladder if max_users_on_one_isolated_source < tier),
@@ -828,6 +917,7 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         },
         "active_source_projections": source_rows,
         "isolated_source_candidates": isolated_source_candidates,
+        "healthy_isolated_source_candidates": healthy_isolated_source_candidates,
         "raw_user_list_stored": False,
         "ordinary_customer_reclassification_allowed": False,
         "exact_blocker": (
@@ -13853,6 +13943,26 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             "source_isolated_for_controlled_failure"
         )
     )
+    controlled_substrate_source_health = (
+        controlled_substrate_source_projection.get("baseline_health")
+        if isinstance(
+            controlled_substrate_source_projection.get("baseline_health"),
+            dict,
+        )
+        else controlled_substrate_candidate_projection.get("baseline_health")
+        if isinstance(
+            controlled_substrate_candidate_projection.get("baseline_health"),
+            dict,
+        )
+        else {}
+    )
+    controlled_substrate_source_health_ok = bool(
+        controlled_substrate_source_health.get("ok")
+    )
+    controlled_substrate_source_health_status = str(
+        controlled_substrate_source_health.get("status")
+        or "STOP_SAFE_BASELINE_NOT_OBSERVED"
+    )
     cooldown = policy_scope.get("cooldown") if isinstance(policy_scope.get("cooldown"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -13933,11 +14043,28 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             "source_currently_eligible_isolated_candidate": (
                 controlled_substrate_candidate_isolated
             ),
+            "source_baseline_health": controlled_substrate_source_health,
             "source_precondition_status": (
                 "PASS"
-                if controlled_substrate_source_isolated
+                if (
+                    controlled_substrate_source_isolated
+                    and controlled_substrate_source_health_ok
+                )
                 else "PASS_READY_FOR_APPROVED_SETUP"
-                if controlled_substrate_candidate_isolated
+                if (
+                    controlled_substrate_candidate_isolated
+                    and controlled_substrate_source_health_ok
+                )
+                else (
+                    "STOP_SAFE_SOURCE_"
+                    + controlled_substrate_source_health_status.removeprefix(
+                        "STOP_SAFE_"
+                    )
+                )
+                if (
+                    controlled_substrate_source_isolated
+                    or controlled_substrate_candidate_isolated
+                )
                 else "STOP_SAFE_MIXED_OR_UNAVAILABLE_SOURCE"
             ),
         },
@@ -14023,6 +14150,7 @@ def controlled_certification_substrate_authority_request_only(
             isinstance(row, dict)
             and str(row.get("source_id") or "")
             and bool(row.get("source_isolated_for_controlled_failure"))
+            and bool((row.get("baseline_health") or {}).get("ok"))
         )
     ]
     sources.sort(
@@ -14035,7 +14163,9 @@ def controlled_certification_substrate_authority_request_only(
     source_candidate = sources[0] if sources else {}
     if not source_candidate:
         candidates = [
-            row for row in (pool.get("isolated_source_candidates") or [])
+            row for row in (
+                pool.get("healthy_isolated_source_candidates") or []
+            )
             if isinstance(row, dict) and str(row.get("source_id") or "")
         ]
         candidates.sort(key=lambda row: str(row.get("source_id") or ""))
@@ -14047,7 +14177,9 @@ def controlled_certification_substrate_authority_request_only(
     if int((validation.get("policy") or {}).get("max_users_per_action") or 0) != 48:
         blockers.append("tier48_standing_policy_required")
     if not source_id:
-        blockers.append("isolated_controlled_source_or_existing_candidate_required")
+        blockers.append(
+            "healthy_isolated_controlled_source_or_existing_candidate_required"
+        )
     if blockers:
         return {
             "schema_version": "v7.controlled-certification-substrate-authority-entrypoint.v1",

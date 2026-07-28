@@ -18345,11 +18345,56 @@ def reconcile_active_standing_delegated_policy_to_cps(
         controlled_substrate_source_precondition
         in {"PASS", "PASS_READY_FOR_APPROVED_SETUP"}
     )
+    controlled_substrate_source_baseline_blocked = (
+        controlled_substrate_source_precondition.startswith(
+            "STOP_SAFE_SOURCE_BASELINE_"
+        )
+    )
+    controlled_substrate_source_id = str(
+        controlled_substrate_authority.get("source_id") or ""
+    )
+    controlled_substrate_active_source = next((
+        row for row in (
+            controlled_pool.get("active_source_projections") or []
+        )
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "") == controlled_substrate_source_id
+    ), {})
+    controlled_substrate_incident_only = bool(
+        runtime_active_incident_drain
+        and controlled_substrate_source_id
+        and str(
+            runtime_incident.get("source_channel")
+            or runtime_incident.get("channel")
+            or ""
+        ) == controlled_substrate_source_id
+        and int(
+            controlled_substrate_active_source.get(
+                "enabled_non_certification_users_on_source"
+            ) or 0
+        ) == 0
+    )
+    # A pre-existing failed certification source is not a controlled campaign
+    # condition.  Do not let the generic active-incident branch drain all
+    # certification identities and thereby bypass the approved 5->10->25->48
+    # progression and per-stage reset law.
+    if (
+        controlled_substrate_status == "APPROVED"
+        and controlled_substrate_source_baseline_blocked
+        and controlled_substrate_incident_only
+    ):
+        active_incident_drain = False
     tier48_active = max_users == 48
+    m8_approved_source_baseline_blocked = (
+        tier48_active
+        and controlled_substrate_status == "APPROVED"
+        and controlled_substrate_source_baseline_blocked
+    )
     m8_approved_source_invalid = (
         tier48_active
         and controlled_substrate_status == "APPROVED"
         and not controlled_substrate_source_precondition_accepted
+        and not m8_approved_source_baseline_blocked
     )
     m8_substrate_approved = (
         tier48_active
@@ -18373,6 +18418,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         primary_stop = "NONE"
+    elif m8_approved_source_baseline_blocked:
+        primary_next_action = (
+            "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_SOURCE_BASELINE_REQUIRED"
+        )
+        primary_stop = "EXTERNAL_OWNER_REQUIRED"
     elif m8_approved_source_invalid:
         primary_next_action = (
             "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_ISOLATED_SOURCE_REQUEST_REQUIRED"
@@ -18404,7 +18454,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         primary_next_action = "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
         primary_stop = "REAL_WORLD_LIMIT"
     omp_should_continue = (
-        active_incident_drain or m8_substrate_approved or m8_pool_ready
+        active_incident_drain or m8_substrate_approved
+        or (m8_pool_ready and not m8_approved_source_baseline_blocked)
     )
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
@@ -18426,6 +18477,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
+            "RETAIN THE APPROVED HASH-BOUND CERTIFICATION SCOPE WITHOUT EXECUTION; THE EXISTING MATRIX OWNER MUST PROVE A FRESH HEALTHY BASELINE ON THE EXACT SOURCE BEFORE ANY CONTROLLED CONDITION OR CAMPAIGN STAGE"
+            if m8_approved_source_baseline_blocked else
             "FORM ONE FRESH EXACT EXISTING-AUTHORITY REQUEST BOUND TO AN EXISTING ISOLATED SOURCE CANDIDATE; DO NOT PROVISION, CLASSIFY, ASSIGN, DEGRADE OR EXECUTE BEFORE THAT DISTINCT SOURCE BINDING IS APPROVED"
             if m8_approved_source_invalid else
             "BUILD ONLY THE EXACT INCREMENTAL CERTIFICATION-IDENTITY DELTA FOR TIER 5 THROUGH THE EXISTING IDENTITY, REGISTRY AND ASSIGNMENT OWNERS; REVALIDATE THE APPROVED REQUEST BEFORE EVERY WRITE"
@@ -18443,11 +18496,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
             if active_incident_drain else
+            "SERVICE_FAILURE_TIER48_M8_APPROVED_SOURCE_BASELINE_BLOCKED_V1"
+            if m8_approved_source_baseline_blocked else
             "SERVICE_FAILURE_TIER48_M8_APPROVED_SOURCE_ISOLATION_INVALID_V1"
             if m8_approved_source_invalid else
             "SERVICE_FAILURE_TIER48_M8_SUBSTRATE_AUTHORITY_APPROVED_REENTRY_V1"
@@ -18462,9 +18517,19 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "current_next_action_id": primary_next_action,
         "current_program_execution_frontier": (
-            primary_next_action if active_incident_drain or m8_substrate_approved or m8_pool_ready else
+            primary_next_action
+            if (
+                active_incident_drain
+                or m8_substrate_approved
+                or (m8_pool_ready and not m8_approved_source_baseline_blocked)
+            )
+            else
             f"WAITING_INPUT:{primary_next_action}"
-            if m8_exact_authority_boundary or m8_approved_source_invalid else
+            if (
+                m8_exact_authority_boundary
+                or m8_approved_source_invalid
+                or m8_approved_source_baseline_blocked
+            ) else
             "WAITING_INPUT:CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
             "NONE"
@@ -18475,6 +18540,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER"
+            if m8_approved_source_baseline_blocked else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; DISTINCT_ISOLATED_SOURCE_BINDING REQUIRED; PRIOR APPROVAL REMAINS HASH_BOUND_TO_MIXED_SOURCE"
             if m8_approved_source_invalid else
             "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
@@ -18488,6 +18555,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER"
+            if m8_approved_source_baseline_blocked else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; DISTINCT_ISOLATED_SOURCE_BINDING REQUIRED; PRIOR APPROVAL REMAINS HASH_BOUND_TO_MIXED_SOURCE"
             if m8_approved_source_invalid else
             "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE; EXACT_APPROVED_CONTROLLED_SUBSTRATE_SCOPE"
@@ -18503,6 +18572,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event and existing policy gates remain required"
         ),
         "wip_current_primary_stop": (
+            "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; APPROVED_SOURCE_HAS_NO_FRESH_HEALTHY_BASELINE"
+            if m8_approved_source_baseline_blocked else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_REQUEST_SOURCE_NOT_ISOLATED"
             if m8_approved_source_invalid else
             "NONE_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
@@ -18519,6 +18590,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "last_responsible_link": (
             "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
             if active_incident_drain else
+            "exact approved controlled source -> existing service-matrix baseline health owner -> existing egress/external substrate owner -> fresh healthy baseline -> controlled condition owner"
+            if m8_approved_source_baseline_blocked else
             "approved controlled-substrate request source isolation recheck -> fresh exact request bound to an existing isolated source candidate -> independent Authority owner"
             if m8_approved_source_invalid else
             "exact controlled-substrate Authority decision -> existing certification identity/registry/assignment owners -> incremental Tier-5 pool -> T48-M8 safe-cohort consumer"
@@ -18532,6 +18605,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "omp_continuation_pointer": (
             "The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor."
             if active_incident_drain else
+            "The approval and dedicated identities remain valid, but campaign execution stays STOP_SAFE until the exact source's existing owner produces a fresh healthy Matrix baseline; that observation is the durable automatic re-entry condition."
+            if m8_approved_source_baseline_blocked else
             "The prior approval remains valid only for its exact mixed source and therefore cannot be consumed; the existing request owner forms one fresh exact isolated-source request without setup effects."
             if m8_approved_source_invalid else
             "The exact approved controlled-substrate decision is consumed by the existing T48-M8 owner, which creates only the current incremental pool delta and publishes the safe-cohort successor."
@@ -18544,6 +18619,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
         ),
         "sequence_execution_class": (
+            "existing external egress substrate owner plus service-matrix baseline consumer"
+            if m8_approved_source_baseline_blocked else
             "existing independent Authority owner and controlled-substrate request producer"
             if m8_approved_source_invalid else
             "existing Controlled Production Certification Program incremental substrate owner"
@@ -18555,6 +18632,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "existing Service Matrix fresh-event revalidation owner"
         ),
         "sequence_expected_output": (
+            "fresh healthy exact-source baseline -> approved controlled condition -> progressive 5->10->25->48 campaign"
+            if m8_approved_source_baseline_blocked else
             "fresh exact isolated-source request -> independent APPROVE or DECLINE -> existing T48-M8 successor"
             if m8_approved_source_invalid else
             "approved exact substrate request -> incremental Tier-5 certification pool -> T48-M8 certification plan and safe cohort"
@@ -18566,6 +18645,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
         ),
         "program_frontier_input": (
+            f"Exact approved certification source {controlled_substrate_source_id or 'UNKNOWN'} is isolated but its Matrix baseline is {controlled_substrate_source_precondition}; deliberate condition and campaign execution are forbidden until recovery"
+            if m8_approved_source_baseline_blocked else
             "Prior controlled-substrate approval is hash-bound to a source that currently contains non-certification users; deliberate controlled failure is forbidden"
             if m8_approved_source_invalid else
             "Tier-48 controlled-substrate Authority decision is approved and audit-backed; current pool remains below the first controlled cohort floor"
@@ -18579,6 +18660,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             state["program_frontier_input"]
         ),
         "program_frontier_owner": (
+            "existing external egress substrate owner plus service-matrix observation owner"
+            if m8_approved_source_baseline_blocked else
             "existing controlled-substrate request producer plus independent Authority owner"
             if m8_approved_source_invalid else
             "existing Controlled Production Certification Program identity, registry and assignment owners"
@@ -18590,6 +18673,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             state["program_frontier_owner"]
         ),
         "program_frontier_expected_output": (
+            "fresh healthy exact-source Matrix baseline -> automatic approved campaign re-entry; no new Authority request"
+            if m8_approved_source_baseline_blocked else
             "exact incremental identity delta to Tier 5 -> pool readiness -> existing T48-M8 plan/safe-cohort consumer"
             if m8_substrate_approved else
             f"exact request status={controlled_substrate_status} -> append-only independent decision or expiry-only semantic replacement -> existing T48-M8 consumer"
@@ -18604,13 +18689,20 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_decision": (
             primary_next_action if active_incident_drain else
             "CONTINUE_PROGRAM_FRONTIER"
-            if m8_substrate_approved or m8_pool_ready else
+            if (
+                m8_substrate_approved
+                or (m8_pool_ready and not m8_approved_source_baseline_blocked)
+            ) else
+            "PROGRAM_TERMINAL_EXTERNAL_OWNER_REQUIRED"
+            if m8_approved_source_baseline_blocked else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
             if m8_exact_authority_boundary or m8_pool_boundary else
             "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
         ),
         "program_terminal_class": (
             "NONE" if omp_should_continue else
+            "EXTERNAL_OWNER_REQUIRED"
+            if m8_approved_source_baseline_blocked else
             "ENGINEERING_AUTHORITY"
             if m8_exact_authority_boundary or m8_pool_boundary else
             "REAL_WORLD_LIMIT"
@@ -18618,6 +18710,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_terminal_state": (
             "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
             if active_incident_drain else
+            primary_next_action
+            if m8_approved_source_baseline_blocked else
             "NONE_T48_M8_SUBSTRATE_AUTHORITY_APPROVED_SUCCESSOR_READY"
             if m8_substrate_approved else
             primary_next_action
@@ -18635,6 +18729,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else "FALSE"
         ),
         "external_input_type": (
+            "EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE"
+            if m8_approved_source_baseline_blocked else
             "EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECISION"
             if m8_exact_authority_boundary else
             "CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
@@ -18645,6 +18741,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "next_mission_formed": "TRUE" if omp_should_continue else "FALSE",
         "next_mission_id": (
             SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else
+            "NONE" if m8_approved_source_baseline_blocked else
             "NONE" if m8_approved_source_invalid else
             "T48-M8" if m8_substrate_approved else
             "T48-M8" if m8_pool_ready else
@@ -18653,6 +18750,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
             if active_incident_drain else
+            f"APPROVED CERTIFICATION SOURCE {controlled_substrate_source_id or 'UNKNOWN'} HAS NO FRESH HEALTHY BASELINE ({controlled_substrate_source_precondition}); RESTART DID NOT RESTORE ITS EXTERNAL PEER; CAMPAIGN WILL REENTER ONLY FROM A FRESH HEALTHY MATRIX OBSERVATION"
+            if m8_approved_source_baseline_blocked else
             "APPROVED REQUEST CANNOT BE CONSUMED: ITS EXACT SOURCE CONTAINS ENABLED NON-CERTIFICATION USERS; FORM ONE FRESH HASH-BOUND REQUEST FOR AN EXISTING ISOLATED SOURCE CANDIDATE"
             if m8_approved_source_invalid else
             "EXACT CONTROLLED-SUBSTRATE AUTHORITY DECISION APPROVED; EXISTING T48-M8 OWNER MUST BUILD ONLY THE INCREMENTAL TIER-5 CERTIFICATION POOL DELTA AND REVALIDATE EVERY OWNER BEFORE WRITE"
@@ -18671,6 +18770,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "contract_hash": contract_hash, "request_hash": request_hash,
             "terminal": (
                 "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else
+                "T48_M8_APPROVED_SOURCE_BASELINE_BLOCKED"
+                if m8_approved_source_baseline_blocked else
                 "T48_M8_APPROVED_SOURCE_INVALID" if m8_approved_source_invalid else
                 "T48_M8_SUBSTRATE_AUTHORITY_APPROVED" if m8_substrate_approved else
                 "T48_M8_CONTROLLED_POOL_BOUNDARY" if m8_pool_boundary else
@@ -18684,7 +18785,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
     atomic = atomic_reconcile_cps(
         cps_path,
         state=state,
-        request_external_wake=bool(m8_substrate_approved or m8_pool_ready),
+        request_external_wake=bool(
+            m8_substrate_approved
+            or (m8_pool_ready and not m8_approved_source_baseline_blocked)
+        ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
         section0_field_overrides={
             "CURRENT_AUTHORITY_REQUEST_STATUS": "`ACTIVE_OWNER_BACKED_STANDING_POLICY`",
@@ -18715,6 +18819,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "behavior_change": (
             "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN"
             if active_incident_drain else
+            "TIER48_APPROVED_SOURCE_BASELINE_BLOCKER_ATOMICALLY_PROJECTED"
+            if m8_approved_source_baseline_blocked else
             "TIER48_ACTIVE_CONTROLLED_POOL_BOUNDARY_ATOMICALLY_PROJECTED"
             if m8_pool_boundary else
             "TIER48_CONTROLLED_POOL_READY_SUCCESSOR_ATOMICALLY_PROJECTED"

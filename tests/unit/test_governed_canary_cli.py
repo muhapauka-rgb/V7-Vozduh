@@ -1673,6 +1673,40 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["stop_reason"], "standing_delegated_cohort_policy_binding_invalid")
         self.assertFalse(result["apply_executed"])
 
+    def test_controlled_certification_source_cannot_use_generic_cohort_path_without_campaign_binding(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root, open_control=True)
+            (root / "state" / "egress.registry").write_text(
+                "id=controlled-source type=interface interface=wg-test enabled=1 "
+                "controlled_certification_source=1 certification_group=pool\n"
+                "id=awg3 type=interface interface=wg-target enabled=1\n",
+                encoding="utf-8",
+            )
+            args.approved_source = "controlled-source"
+            args.expected_standing_policy_contract_id = json.loads(
+                Path(args.policy_file).read_text(encoding="utf-8")
+            )["delegated_autonomy_policy"]["contract_id"]
+            args.expected_standing_policy_contract_hash = json.loads(
+                Path(args.policy_file).read_text(encoding="utf-8")
+            )["delegated_autonomy_policy"]["contract_hash"]
+
+            binding = module.standing_delegated_cohort_execution_binding(args)
+
+        self.assertFalse(binding["ok"])
+        self.assertTrue(
+            binding["controlled_certification_campaign_binding"]["required"]
+        )
+        self.assertIn(
+            "controlled_substrate_authority_not_approved",
+            binding["blockers"],
+        )
+        self.assertFalse(
+            binding["controlled_certification_campaign_binding"]["ok"]
+        )
+
     def test_operation_scoped_cohort_binding_is_deterministic_and_generation_atomic(self):
         module = load_cli_module()
         moves = [

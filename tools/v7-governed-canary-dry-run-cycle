@@ -2513,11 +2513,92 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "",
     )
     blockers = list(validation.get("errors") or [])
+    state_dir = Path(getattr(args, "state_dir", DEFAULT_STATE_DIR))
+    approved_source = str(getattr(args, "approved_source", "") or "")
+    source_row = next((
+        row for row in read_registry(state_dir / "egress.registry")
+        if str(row.get("id") or "") == approved_source
+    ), {})
+    controlled_source = bool_value(
+        source_row.get("controlled_certification_source")
+    )
+    campaign_binding: dict[str, Any] = {
+        "required": controlled_source,
+        "ok": not controlled_source,
+        "blockers": [],
+    }
+    if controlled_source:
+        campaign_request_id = str(
+            getattr(
+                args,
+                "controlled_certification_campaign_request_id",
+                "",
+            ) or ""
+        )
+        campaign_request_hash = str(
+            getattr(
+                args,
+                "controlled_certification_campaign_request_hash",
+                "",
+            ) or ""
+        )
+        campaign_stage = int(
+            getattr(args, "controlled_certification_campaign_stage", 0) or 0
+        )
+        campaign_binding = approved_controlled_certification_substrate_binding(
+            audit_store=Path(args.operator_execution_audit_store),
+            request_id=campaign_request_id,
+            request_hash=campaign_request_hash,
+            required_subscopes={
+                "CONTROLLED_SOURCE_CONDITION",
+                "PROGRESSIVE_CAMPAIGN_EXECUTION",
+            },
+        )
+        campaign_scope = (
+            campaign_binding.get("scope")
+            if isinstance(campaign_binding.get("scope"), dict)
+            else {}
+        )
+        campaign_blockers = list(campaign_binding.get("blockers") or [])
+        if str(campaign_binding.get("source_id") or "") != approved_source:
+            campaign_blockers.append(
+                "controlled_campaign_source_changed_after_matrix_admission"
+            )
+        if campaign_stage not in set(
+            int(item) for item in (campaign_scope.get("campaign_stages") or [])
+        ):
+            campaign_blockers.append("controlled_campaign_stage_not_approved")
+        if campaign_stage != requested_max_users:
+            campaign_blockers.append(
+                "controlled_campaign_stage_transaction_limit_mismatch"
+            )
+        campaign_binding = {
+            **campaign_binding,
+            "required": True,
+            "ok": not campaign_blockers,
+            "blockers": sorted(set(campaign_blockers)),
+            "stage": campaign_stage,
+            "policy_ceiling": int(policy.get("max_users_per_action") or 0),
+            "stage_is_narrower_than_policy_ceiling": (
+                0 < campaign_stage
+                < int(policy.get("max_users_per_action") or 0)
+            ),
+            "self_expansion_allowed": False,
+        }
+        blockers.extend(campaign_blockers)
     if not expected_contract_id or str(contract.get("contract_id") or "") != expected_contract_id:
         blockers.append("standing_policy_contract_id_changed_after_matrix_admission")
     if not expected_contract_hash or str(contract.get("contract_hash") or "") != expected_contract_hash:
         blockers.append("standing_policy_contract_hash_changed_after_matrix_admission")
-    if int(policy.get("max_users_per_action") or 0) != requested_max_users:
+    if (
+        int(policy.get("max_users_per_action") or 0) != requested_max_users
+        and not (
+            controlled_source
+            and campaign_binding.get("ok")
+            and 0 < requested_max_users
+            <= int(policy.get("max_users_per_action") or 0)
+        )
+    ):
         blockers.append("standing_policy_max_users_changed_after_matrix_admission")
     if int(policy.get("max_concurrent_transactions") or 0) != 1:
         blockers.append("standing_policy_concurrency_not_one")
@@ -2558,6 +2639,7 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "authority_audit_verified": bool(validation.get("ok")),
         "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
         "delegated_policy_authority": delegated_policy_authority,
+        "controlled_certification_campaign_binding": campaign_binding,
     }
 
 
@@ -4015,6 +4097,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-service-failure-obligation-id", default="")
     parser.add_argument("--expected-service-failure-incident-id", default="")
     parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
+    parser.add_argument(
+        "--controlled-certification-campaign-request-id",
+        default="",
+    )
+    parser.add_argument(
+        "--controlled-certification-campaign-request-hash",
+        default="",
+    )
+    parser.add_argument(
+        "--controlled-certification-campaign-stage",
+        type=int,
+        default=0,
+    )
     parser.add_argument(
         "--compact-transaction-receipt",
         action="store_true",

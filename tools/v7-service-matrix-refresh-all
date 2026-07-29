@@ -530,10 +530,21 @@ def run_bounded_delegated_service_failure_action(
             "admitted_max_users": policy_max_users,
             "max_concurrent_transactions": policy_concurrency,
         }
-    if (
-        classification != "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
-        or recommendation_users <= 0
-    ):
+    campaign_binding = controlled_certification_matrix_binding(
+        audit_store=operator_execution_audit_store,
+        source=source,
+    )
+    ordinary_incident_actionable = (
+        classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        and recommendation_users > 0
+    )
+    controlled_campaign_actionable = bool(
+        campaign_binding.get("active")
+        and classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        and unresolved_scope
+        >= int(campaign_binding.get("next_stage") or 0)
+    )
+    if not (ordinary_incident_actionable or controlled_campaign_actionable):
         return {
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
             "status": "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
@@ -546,13 +557,12 @@ def run_bounded_delegated_service_failure_action(
             "automation_obligation_id": obligation_id,
             "classification": classification,
             "bounded_recommendation_users": recommendation_users,
-            "blockers": ["current_incident_has_no_owner_backed_actionable_recommendation"],
+            "blockers": [
+                "current_incident_has_no_owner_backed_actionable_recommendation"
+            ],
             "contract_id": str(contract.get("contract_id") or ""),
+            "controlled_certification_campaign": campaign_binding,
         }
-    campaign_binding = controlled_certification_matrix_binding(
-        audit_store=operator_execution_audit_store,
-        source=source,
-    )
     if campaign_binding.get("completed"):
         return {
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",

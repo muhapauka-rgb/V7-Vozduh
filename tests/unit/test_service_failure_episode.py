@@ -948,7 +948,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "stop_safe_classification": (
                     "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
                 ),
-                "bounded_recommendation_users": 48,
+                # The execution-only campaign target is intentionally absent
+                # from the ordinary planner recommendation.  Exact campaign
+                # binding must reach the governed executor, which rechecks
+                # every live target gate independently.
+                "bounded_recommendation_users": 0,
                 "current_source_scope": {
                     "affected_scope_count": 48,
                     "unresolved_scope_count": 48,

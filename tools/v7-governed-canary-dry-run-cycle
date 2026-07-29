@@ -4482,7 +4482,8 @@ def execute_controlled_topology_standing_transaction(
     if not binding.get("allowed"):
         return {
             **transaction_stop(
-                "controlled_topology_standing_execution_not_admitted"
+                "controlled_topology_standing_execution_not_admitted",
+                blockers=list(binding.get("blockers") or []),
             ),
             "controlled_topology_binding": binding,
             "runtime_mutation_performed": False,

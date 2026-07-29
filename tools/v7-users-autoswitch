@@ -15328,6 +15328,23 @@ def controlled_source_topology_diagnostic(
         required_authority_action = ""
         exact_resource = ""
 
+    delegated_topology_actions = set(
+        topology_scope.get("allowed_actions") or []
+    )
+    if (
+        required_authority_action
+        and required_authority_action not in delegated_topology_actions
+    ):
+        topology_policy_blockers.append(
+            "controlled_topology_required_action_not_delegated:"
+            + required_authority_action
+        )
+        topology_policy_admission.update({
+            "status": "STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_REQUIRED",
+            "ok": False,
+            "blockers": sorted(set(topology_policy_blockers)),
+        })
+
     preflight_ready = bool(
         selected_option and trial_identity and reservation_owner.get("status") == "READY"
     )

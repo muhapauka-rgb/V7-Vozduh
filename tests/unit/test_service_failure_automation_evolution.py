@@ -586,6 +586,110 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_rebind_standing_policy_does_not_auto_admit_draft_provisioning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.102 enabled=1 current=source "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface "
+                "interface=wg0 enabled=1\n",
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            audit_path = root / "authority-audit.jsonl"
+            policy_path.write_text(
+                json.dumps({"authority_budget": {}}, sort_keys=True),
+                encoding="utf-8",
+            )
+            now = operator_execution.utc_now()
+            request = (
+                operator_execution
+                .build_standing_delegated_policy_authority_request(
+                    policy_generation_hash=(
+                        operator_execution.sha256_file(policy_path)
+                    ),
+                    active_program=(
+                        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                    ),
+                    max_users=48,
+                    include_controlled_topology=True,
+                    now=now,
+                )
+            )
+            operator_execution.register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            operator_execution.issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--policy-file", str(policy_path),
+                "--action-class-audit-store", str(audit_path),
+            ])
+            target_projection = {
+                "campaign": {
+                    "request_id": "cpsauth_old",
+                    "request_hash": "a" * 64,
+                    "source_id": "source",
+                },
+                "targets": [],
+            }
+            draft = {
+                "draft_id": "draft-exact",
+                "one_identity_trial_capacity": 1,
+                "ready_for_guarded_disabled_pool_preflight": True,
+            }
+            with (
+                mock.patch.object(
+                    self.autoswitch,
+                    "controlled_campaign_target_selection_diagnostic",
+                    return_value=target_projection,
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_draft_candidates",
+                    return_value=[draft],
+                ),
+            ):
+                result = (
+                    self.autoswitch.controlled_source_topology_diagnostic(args)
+                )
+
+        self.assertEqual(
+            result["recommendation"]["selected_option"],
+            "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+        )
+        self.assertFalse(result["standing_policy_admission"]["ok"])
+        self.assertIn(
+            "controlled_topology_required_action_not_delegated:"
+            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+            result["standing_policy_admission"]["blockers"],
+        )
+        self.assertFalse(
+            result["authority_package"].get("superseded_by_standing_policy")
+        )
+        self.assertEqual(
+            result["durable_successor"],
+            "AUTHORITY_INPUT_REQUIRED:"
+            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+        )
+
     def test_controlled_source_topology_authority_audit_is_exact_once(self):
         manifest = {
             "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",

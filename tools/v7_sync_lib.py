@@ -19733,7 +19733,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "target health/capacity observation and consumes the same "
                 "approved campaign stage through existing live gates`"
                 if m9_campaign_active else
-                "`one exact independent REBIND_CONTROLLED_CERTIFICATION_SOURCE "
+                f"`one exact independent {controlled_source_topology_action} "
                 "or DECLINE decision is recorded through the existing "
                 "operator-execution Authority owner; approval re-enters the "
                 "fresh topology preflight before any mutation`"

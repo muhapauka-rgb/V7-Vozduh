@@ -1663,6 +1663,56 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 ].strip("`"),
                 "APPROVED",
             )
+            runtime_status["controlled_source_topology"][
+                "recommendation"
+            ].update({
+                "selected_option": "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+                "selected_resource": "draft-exact",
+                "required_authority_action": (
+                    "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+                ),
+            })
+            runtime_status["controlled_source_topology"][
+                "authority_package"
+            ].update({
+                "actionable": True,
+                "exact_action": (
+                    "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+                ),
+                "request_id": "cstopauth_r1_provision",
+                "request_hash": "a" * 64,
+            })
+            runtime_status["controlled_source_topology"][
+                "authority_lifecycle"
+            ].update({
+                "status": "PENDING",
+                "matching_current_preflight": True,
+                "request_id": "cstopauth_r1_provision",
+                "request_hash": "a" * 64,
+                "decision": "",
+                "decision_id": "",
+            })
+            provision_boundary = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                provision_boundary["next_action"],
+                "ENGINEERING_AUTHORITY_PROVISION_DEDICATED_CONTROLLED_"
+                "CERTIFICATION_SOURCE_REQUIRED",
+            )
+            provision_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertIn(
+                "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                provision_live["AUTOMATIC_REENTRY_CONDITION"],
+            )
             runtime_status.pop("controlled_source_topology")
             runtime_status[
                 "controlled_certification_substrate_authority"

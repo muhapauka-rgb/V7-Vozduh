@@ -353,6 +353,15 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             result["selection"]["historical_selection_law"],
             "ID_SORT_THEN_FIRST",
         )
+        self.assertIn(
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+            result["current_residuals"],
+        )
+        self.assertIn(
+            "CAMPAIGN_TARGET_ID_ORDER_SELECTION_DEFECT",
+            result["historical_defects_closed"],
+        )
+        self.assertNotIn("defects", result)
         targets = {
             row["target_id"]: row for row in result["targets"]
         }

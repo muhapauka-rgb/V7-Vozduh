@@ -14686,22 +14686,27 @@ def controlled_campaign_target_selection_diagnostic(
             else "MULTI_TARGET_ALLOCATION_READY"
         )
 
-    defects = [
+    historical_defects_closed = [
         "CAMPAIGN_TARGET_ID_ORDER_SELECTION_DEFECT",
         "CAMPAIGN_TARGET_READINESS_SEMANTICALLY_INCOMPLETE",
         "CAMPAIGN_TARGET_PINNING_WITHOUT_DYNAMIC_RESELECTION",
         "CAMPAIGN_TARGET_INVENTORY_GENERATION_NOT_CONSUMED",
     ]
-    if any(
-        row.get("target_id") != pinned_target_id
-        and row.get("ordinary_planner_eligible")
-        for row in rows
-    ):
-        defects.append("CAMPAIGN_TARGET_DISCOVERY_INCOMPLETE")
-    if exact_target_authority:
-        defects.append("CAMPAIGN_AUTHORITY_EXACT_TARGET_REBIND_REQUIRED")
-    if not multi_target_ready and current_stage > 0:
-        defects.append("MULTI_TARGET_CURRENT_STAGE_CAPACITY_NOT_PROVEN")
+    current_residuals: list[str] = []
+    if pinned_target_id and not pinned.get("full_live_admission"):
+        current_residuals.append(
+            "CURRENT_EXACT_TARGET_FULL_LIVE_ADMISSION_FAILED"
+        )
+    if not ranked:
+        current_residuals.append("NO_CONTROLLED_ELIGIBLE_TARGET")
+    if legal_outcome == "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED":
+        current_residuals.append(
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED"
+        )
+    if legal_outcome == "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED":
+        current_residuals.append(
+            "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED"
+        )
     result = {
         "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
         "status": legal_outcome,
@@ -14817,15 +14822,20 @@ def controlled_campaign_target_selection_diagnostic(
                 "existing Matrix -> OMP -> CPS continuation chain"
             ),
         },
-        "defects": sorted(set(defects)),
-        "completion": "DYNAMIC_TARGET_RESELECTION_RESIDUAL_EXACTLY_PROVEN",
+        "historical_defects_closed": historical_defects_closed,
+        "current_residuals": sorted(set(current_residuals)),
+        "completion": (
+            "DYNAMIC_TARGET_SELECTION_RUNTIME_CONSUMED"
+            if not current_residuals
+            else "DYNAMIC_TARGET_SELECTION_RUNTIME_CONSUMED_WITH_EXACT_BOUNDARY"
+        ),
         "forbidden_effects": forbidden_effects,
     }
     result["diagnostic_fingerprint"] = sha256_json({
         "campaign": result["campaign"],
         "inventory_fingerprint": inventory_fingerprint,
         "selection": result["selection"],
-        "defects": result["defects"],
+        "current_residuals": result["current_residuals"],
     })
     return result
 

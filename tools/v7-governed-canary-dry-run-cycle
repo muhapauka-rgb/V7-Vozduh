@@ -885,15 +885,21 @@ def controlled_certification_setup_selection(
     egress: list[dict[str, Any]],
     user: str,
     source: str,
+    certification_identity_mode: str = "HISTORICAL_POOL",
 ) -> dict[str, Any]:
     """Admit one historical dedicated identity for bounded pool preparation."""
     blockers: list[str] = []
     try:
         address = ipaddress.ip_address(user)
-        legacy_pool = ipaddress.ip_network("10.7.0.16/28")
-        extended_pool = ipaddress.ip_network("10.7.0.32/27")
-        if address not in legacy_pool and address not in extended_pool:
-            blockers.append("identity_not_in_durable_legacy_certification_pool")
+        if certification_identity_mode == "HISTORICAL_POOL":
+            legacy_pool = ipaddress.ip_network("10.7.0.16/28")
+            extended_pool = ipaddress.ip_network("10.7.0.32/27")
+            if address not in legacy_pool and address not in extended_pool:
+                blockers.append(
+                    "identity_not_in_durable_legacy_certification_pool"
+                )
+        elif certification_identity_mode != "REGISTRY_MARKED":
+            blockers.append("unknown_certification_identity_mode")
     except ValueError:
         blockers.append("certification_user_ip_invalid")
     user_rows = [row for row in users if str(row.get("ip") or "") == user]
@@ -904,6 +910,11 @@ def controlled_certification_setup_selection(
         blockers.append("controlled_source_registry_identity_not_unique")
     user_row = user_rows[0] if len(user_rows) == 1 else {}
     source_row = source_rows[0] if len(source_rows) == 1 else {}
+    if (
+        certification_identity_mode == "REGISTRY_MARKED"
+        and not bool_value(user_row.get("certification_user"))
+    ):
+        blockers.append("identity_not_marked_by_certification_registry_owner")
     if str(user_row.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
         blockers.append("certification_user_not_enabled")
     current = str(user_row.get("current") or "")
@@ -3910,6 +3921,9 @@ def _execute_governed_transaction_with_guards_inner(
             egress=egress,
             user=str(exact_request.get("user") or ""),
             source=str(exact_request.get("target") or exact_request.get("source") or ""),
+            certification_identity_mode=(
+                "REGISTRY_MARKED" if topology_mode else "HISTORICAL_POOL"
+            ),
         )
         if certification_setup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -4542,6 +4556,12 @@ def execute_controlled_topology_standing_transaction(
                 }
     route_verification = scoped_user_route_check(state_dir, user)
     final_pass = passed and route_verification.get("passed") is True
+    selection = (
+        transaction.get("certification_setup_selection")
+        if isinstance(transaction.get("certification_setup_selection"), dict)
+        else {}
+    )
+    transaction_blockers = list(selection.get("blockers") or [])
     release_applied = (
         bool(release_result)
         and int(release_result.get("returncode") or 0) == 0
@@ -4586,6 +4606,7 @@ def execute_controlled_topology_standing_transaction(
             if not final_pass
             else ""
         ),
+        "blockers": transaction_blockers,
         "rollback_result": str(transaction.get("rollback_result") or ""),
         "runtime_mutation_performed": bool(
             transaction.get("runtime_mutation_performed")

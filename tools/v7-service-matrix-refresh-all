@@ -1043,6 +1043,7 @@ def run_controlled_topology_standing_policy_action(
             result.get("reservation_released_after_stop")
         ),
         "stop_reason": str(result.get("stop_reason") or ""),
+        "blockers": list(result.get("blockers") or []),
         "users_moved": int(result.get("users_moved") or 0),
         "contract_id": str(admission.get("contract_id") or ""),
         "contract_hash": str(admission.get("contract_hash") or ""),

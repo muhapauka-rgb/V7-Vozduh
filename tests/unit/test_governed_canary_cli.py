@@ -240,7 +240,51 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(selection["evidence_class"], "ENGINEERING_SETUP")
         self.assertFalse(selection["ordinary_customer_used"])
         self.assertEqual(ordinary["selection_status"], "STOP_SAFE")
-        self.assertIn("identity_not_in_durable_legacy_certification_pool", ordinary["blockers"])
+        self.assertIn(
+            "identity_not_in_durable_legacy_certification_pool",
+            ordinary["blockers"],
+        )
+
+    def test_controlled_topology_reuses_registry_marked_certification_identity(self):
+        module = load_cli_module()
+        selection = module.controlled_certification_setup_selection(
+            users=[{
+                "ip": "10.7.0.100",
+                "current": "1",
+                "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[{
+                "id": "vless",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.7.0.100",
+            source="vless",
+            certification_identity_mode="REGISTRY_MARKED",
+        )
+        self.assertEqual(selection["selection_status"], "SELECTED")
+
+        unmarked = module.controlled_certification_setup_selection(
+            users=[{
+                "ip": "10.7.0.100",
+                "current": "1",
+                "enabled": "1",
+            }],
+            egress=[{
+                "id": "vless",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.7.0.100",
+            source="vless",
+            certification_identity_mode="REGISTRY_MARKED",
+        )
+        self.assertEqual(unmarked["selection_status"], "STOP_SAFE")
+        self.assertIn(
+            "identity_not_marked_by_certification_registry_owner",
+            unmarked["blockers"],
+        )
 
     def test_approved_substrate_provisioning_preflight_is_read_only(self):
         module = load_cli_module()

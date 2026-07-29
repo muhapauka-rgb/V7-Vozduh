@@ -2941,6 +2941,15 @@ def controlled_topology_standing_execution_binding(
 
     authority = {
         "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+        "policy_id": str(policy.get("policy_id") or ""),
+        "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+        "normalized_scope": (
+            autonomy_trust_acceleration.normalized_delegated_autonomy_scope(
+                policy
+            )
+        ),
+        "policy_state": str(policy.get("policy_state") or ""),
+        "current_mode": str(policy.get("current_mode") or ""),
         "engineering_authority_source": (
             "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
         ),
@@ -4638,6 +4647,8 @@ def execute_controlled_topology_standing_transaction(
         if isinstance(transaction.get("cycle"), dict)
         else {}
     )
+    if not transaction_blockers and transaction.get("error"):
+        transaction_blockers.append(str(transaction.get("error") or ""))
     if not transaction_blockers and cycle.get("stop_reason"):
         transaction_blockers.append(
             ":".join(

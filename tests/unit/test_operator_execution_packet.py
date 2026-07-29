@@ -160,6 +160,103 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_packet_owner_accepts_only_exact_combined_topology_authority_scope(self):
+        now = datetime(2026, 7, 29, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_controlled_topology=True,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            activated = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            contract = activated["contract"]
+        policy = request["policy"]
+        normalized = (
+            autonomy_trust_acceleration.normalized_delegated_autonomy_scope(
+                policy
+            )
+        )
+        authority = {
+            "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+            "policy_id": policy["policy_id"],
+            "policy_scope_hash": request["policy_scope_hash"],
+            "normalized_scope": normalized,
+            "policy_state": policy["policy_state"],
+            "current_mode": policy["current_mode"],
+            "action_class": (
+                operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+            ),
+            "max_users_per_transaction": 1,
+            "max_concurrent_transactions": 1,
+            "candidate_identity": "FRESH_ONLY",
+            "packet_reuse": "FORBIDDEN",
+            "self_expansion_allowed": False,
+            "standing_policy_contract": contract,
+            "authority_audit_verified": True,
+        }
+        packet = {
+            "approvals": [],
+            "delegated_policy_authority": authority,
+        }
+        errors = []
+        operator_execution.validate_approvals(
+            packet,
+            errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertEqual(errors, [])
+
+        service_failure = copy.deepcopy(packet)
+        service_failure["delegated_policy_authority"]["action_class"] = (
+            operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES[48]
+        )
+        service_failure["delegated_policy_authority"][
+            "max_users_per_transaction"
+        ] = 48
+        service_errors = []
+        operator_execution.validate_approvals(
+            service_failure,
+            service_errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertEqual(service_errors, [])
+
+        widened = copy.deepcopy(packet)
+        widened["delegated_policy_authority"][
+            "max_users_per_transaction"
+        ] = 2
+        widened_errors = []
+        operator_execution.validate_approvals(
+            widened,
+            widened_errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertIn(
+            "delegated_topology_blast_radius_invalid",
+            widened_errors,
+        )
+
     def test_combined_standing_policy_extends_existing_owner_without_reinterpreting_legacy_scope(self):
         now = datetime(2026, 7, 29, tzinfo=timezone.utc)
         legacy = standing_delegated_operational_policy_template(max_users=48)

@@ -3782,12 +3782,56 @@ def validate_approvals(packet, errors, *, now=None):
         if authority.get("current_mode") != "DELEGATED_AUTONOMY":
             errors.append("delegated_policy_mode_invalid")
         allowed_action_classes = set(normalized_scope.get("allowed_action_classes") or [])
-        if authority.get("action_class") not in allowed_action_classes:
+        action_class = str(authority.get("action_class") or "")
+        topology_action = (
+            action_class == CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        )
+        if action_class not in allowed_action_classes:
             errors.append("delegated_policy_action_class_invalid")
         authorized_max_users = as_int(normalized_scope.get("max_users_per_action"), 0)
-        if (
+        action_class_scopes = (
+            normalized_scope.get("action_class_scopes")
+            if isinstance(normalized_scope.get("action_class_scopes"), dict)
+            else {}
+        )
+        topology_scope = (
+            action_class_scopes.get(CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS)
+            if isinstance(
+                action_class_scopes.get(
+                    CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+                ),
+                dict,
+            )
+            else {}
+        )
+        if topology_action:
+            if (
+                normalized_scope.get("policy_profile")
+                != CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+            ):
+                errors.append("delegated_topology_policy_profile_invalid")
+            if as_int(authority.get("max_users_per_transaction"), 0) != 1:
+                errors.append("delegated_topology_blast_radius_invalid")
+            if as_int(topology_scope.get("max_users_per_transaction"), 0) != 1:
+                errors.append("delegated_topology_scope_blast_radius_invalid")
+            if as_int(topology_scope.get("max_concurrent_transactions"), 0) != 1:
+                errors.append("delegated_topology_scope_concurrency_invalid")
+            if list(topology_scope.get("allowed_actions") or []) != [
+                "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+            ]:
+                errors.append("delegated_topology_allowed_actions_invalid")
+            if topology_scope.get("certification_identities_only") is not True:
+                errors.append("delegated_topology_certification_identity_fence_missing")
+            if topology_scope.get("ordinary_assignment_mutation_allowed") is not False:
+                errors.append("delegated_topology_ordinary_assignment_fence_invalid")
+            if as_int(topology_scope.get("ordinary_identity_delta"), -1) != 0:
+                errors.append("delegated_topology_ordinary_identity_delta_invalid")
+            if as_int(topology_scope.get("ordinary_route_delta"), -1) != 0:
+                errors.append("delegated_topology_ordinary_route_delta_invalid")
+        elif (
             authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
-            or as_int(authority.get("max_users_per_transaction"), 0) != authorized_max_users
+            or as_int(authority.get("max_users_per_transaction"), 0)
+            != authorized_max_users
         ):
             errors.append("delegated_policy_blast_radius_invalid")
         if as_int(authority.get("max_concurrent_transactions"), 0) != 1:
@@ -3812,7 +3856,19 @@ def validate_approvals(packet, errors, *, now=None):
                 errors.append("standing_delegated_policy_packet_scope_mismatch")
         if normalized_scope:
             expected_action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(authorized_max_users, "")
-            if normalized_scope.get("allowed_action_classes") != [expected_action_class]:
+            combined_profile = (
+                normalized_scope.get("policy_profile")
+                == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+            )
+            expected_action_classes = (
+                [
+                    expected_action_class,
+                    CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+                ]
+                if combined_profile
+                else [expected_action_class]
+            )
+            if normalized_scope.get("allowed_action_classes") != expected_action_classes:
                 errors.append("delegated_policy_normalized_action_classes_invalid")
             if authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
                 errors.append("delegated_policy_normalized_blast_radius_invalid")

@@ -4370,6 +4370,57 @@ def _key_value_process_output(output: str) -> dict[str, str]:
     return values
 
 
+def refresh_controlled_topology_execution_snapshots(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+) -> dict[str, Any]:
+    """Consume the existing snapshot owner after reservation changes its source."""
+    command = [
+        str(
+            getattr(args, "pre_planner_refresh_command", "")
+            or snapshot_refresh_executable()
+        ),
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--out-dir",
+        str(snapshot_root),
+        "--pretty",
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=240,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "returncode": None,
+            "error": f"{type(exc).__name__}:{exc}",
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+        result = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        result = {}
+    return {
+        "ok": proc.returncode == 0,
+        "command": command,
+        "returncode": proc.returncode,
+        "result": result,
+        "output_tail": (proc.stdout or "")[-2000:] if proc.returncode != 0 else "",
+    }
+
+
 def execute_controlled_topology_standing_transaction(
     args: argparse.Namespace,
     *,
@@ -4484,26 +4535,38 @@ def execute_controlled_topology_standing_transaction(
             "users_moved": 0,
         }
 
-    transaction_args = copy.copy(args)
-    transaction_args._controlled_topology_standing_request = {
-        "user": user,
-        "source": source,
-        "target": target,
-        "manifest_hash": manifest_hash,
-    }
-    transaction_args._controlled_topology_policy_binding = binding
-    transaction_args.execute_bounded_delegated_transaction = True
-    transaction_args.execute_controlled_topology_standing_transaction = True
-    transaction_args.skip_planner_observe = True
-    transaction_args.max_users = 1
-    transaction = execute_governed_transaction_with_guards(
-        transaction_args,
+    snapshot_refresh = refresh_controlled_topology_execution_snapshots(
+        args,
         state_dir=state_dir,
         event_dir=event_dir,
         snapshot_root=snapshot_root,
-        audit_dir=audit_dir,
-        lease_file=lease_file,
     )
+    if snapshot_refresh.get("ok"):
+        transaction_args = copy.copy(args)
+        transaction_args._controlled_topology_standing_request = {
+            "user": user,
+            "source": source,
+            "target": target,
+            "manifest_hash": manifest_hash,
+        }
+        transaction_args._controlled_topology_policy_binding = binding
+        transaction_args.execute_bounded_delegated_transaction = True
+        transaction_args.execute_controlled_topology_standing_transaction = True
+        transaction_args.skip_planner_observe = True
+        transaction_args.max_users = 1
+        transaction = execute_governed_transaction_with_guards(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+    else:
+        transaction = transaction_stop(
+            "controlled_topology_post_reservation_snapshot_refresh_failed",
+            snapshot_refresh=snapshot_refresh,
+        )
     passed = (
         transaction.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED"
         and transaction.get("verification_result") == "PASS"
@@ -4609,6 +4672,7 @@ def execute_controlled_topology_standing_transaction(
             "result": reserve_result,
         },
         "reservation_release": release_result,
+        "post_reservation_snapshot_refresh": snapshot_refresh,
         "reservation_mutation_performed": True,
         "reservation_released_after_stop": bool(not passed and release_applied),
         "route_verification": route_verification,

@@ -369,6 +369,44 @@ class GovernedCanaryCliTest(unittest.TestCase):
             0.0,
         )
 
+    def test_controlled_topology_refreshes_existing_snapshot_owner_after_reservation(self):
+        module = load_cli_module()
+        args = module.build_parser().parse_args([
+            "--pre-planner-refresh-command",
+            "v7-intelligence-snapshot-refresh",
+        ])
+        with mock.patch.object(
+            module.subprocess,
+            "run",
+            return_value=mock.Mock(
+                returncode=0,
+                stdout=json.dumps({"final_verdict": "PASS"}),
+            ),
+        ) as run:
+            result = (
+                module.refresh_controlled_topology_execution_snapshots(
+                    args,
+                    state_dir=Path("/state"),
+                    event_dir=Path("/events"),
+                    snapshot_root=Path("/snapshots"),
+                )
+            )
+        self.assertTrue(result["ok"])
+        command = run.call_args.args[0]
+        self.assertEqual(command[0], "v7-intelligence-snapshot-refresh")
+        self.assertEqual(
+            command[command.index("--state-dir") + 1],
+            "/state",
+        )
+        self.assertEqual(
+            command[command.index("--event-dir") + 1],
+            "/events",
+        )
+        self.assertEqual(
+            command[command.index("--out-dir") + 1],
+            "/snapshots",
+        )
+
     def test_approved_substrate_provisioning_preflight_is_read_only(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

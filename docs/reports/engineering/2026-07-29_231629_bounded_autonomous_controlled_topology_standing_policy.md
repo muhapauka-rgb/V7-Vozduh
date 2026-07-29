@@ -100,16 +100,67 @@ Affected test campaign:
 - до Authority решения: Candidate/Packet/lease/restore barrier/apply/routing/
   movement/rollback/Authority expansion/Production Maturity change = `NONE`.
 
+## Production deploy и caller/consumer verification
+
+Commit:
+
+`5ac5e2d767aadf274957535022af796ef35e3090`.
+
+`tools/v7-safe-deploy` manifest: `PASS`. Изменены только:
+
+- `tools/v7_sync_lib.py`;
+- `tools/v7-users-autoswitch`;
+- `admin_core/autonomy_trust_acceleration.py`;
+- `admin_core/operator_execution.py`.
+
+Systemd, daemon и timer changes: `NONE`.
+
+Post-deploy manifest: zero delta. Production non-test
+`v7-users-autoswitch --standing-delegated-policy-status` подтвердил:
+
+- действующий legacy service-failure contract остаётся валидным и не
+  переинтерпретирован;
+- production caller видит новый combined-policy request path;
+- policy/audit owner зарегистрировал один fresh exact request;
+- Authority grant, policy write, Candidate, Packet, lease, restore barrier,
+  apply, routing mutation, user movement и rollback: `NONE`.
+
+Fresh request:
+
+- request id:
+  `sdpauth_r1_c8e5e66dc47c5289a1acc97f`;
+- request hash:
+  `c8e5e66dc47c5289a1acc97ffd19021607f7428b1dc26d75e5bd0b8b4e7edb67`;
+- policy scope hash:
+  `8d9c4500e81e9520b90dd3a79f7f7df141d0d3fb98913fb958d661a1738fe72b`;
+- expires:
+  `2026-07-30T16:29:48.978955+00:00`;
+- status:
+  `AWAITING_INDEPENDENT_AUTHORITY_DECISION`.
+
+CPS и OMP атомарно reconciled в:
+
+`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_DECISION_REQUIRED`.
+
+Старый one-off topology request не является текущим execution permission.
+
+Final verification:
+
+- affected campaign: `130 tests PASS`;
+- `tools/v7-truth-check --all --json`:
+  `PASS`, `FULLY_ALIGNED`;
+- `tools/v7-convergence-status --json`:
+  `PASS`, `ALIGNED`;
+- local/GitHub/production commit:
+  `5ac5e2d767aadf274957535022af796ef35e3090`;
+- deploy delta mismatch: `NONE`.
+
 ## Текущий legal terminal
 
-Engineering implementation готовится к safe deploy и production non-test
-caller verification.
+Fresh exact request сформирован и потреблён CPS/OMP как независимая
+`ENGINEERING_AUTHORITY` граница.
 
-После deploy должен быть сформирован один fresh:
-
-`STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_AUTHORITY_REQUEST_READY`.
-
-До его независимого решения production trial не разрешён. Требуемое решение:
+До его независимого решения production trial не разрешён. Допустимое решение:
 
 `APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY`
 

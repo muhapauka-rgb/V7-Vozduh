@@ -2025,6 +2025,41 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     return receipt
 
 
+def controlled_topology_cli_output(
+    result: dict[str, Any],
+    *,
+    compact: bool,
+) -> dict[str, Any]:
+    """Preserve topology-owner effects in the compact Matrix receipt."""
+    output = (
+        compact_transaction_result(result.get("transaction") or {})
+        if compact
+        and result.get("final_verdict")
+        == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+        else dict(result)
+    )
+    output["controlled_topology_final_verdict"] = result.get("final_verdict")
+    output["controlled_topology_manifest_hash"] = result.get("manifest_hash")
+    output["controlled_topology_trial_identity"] = result.get("trial_identity")
+    output["controlled_topology_source"] = result.get("source")
+    output["controlled_topology_target"] = result.get("target")
+    for key in (
+        "reservation_mutation_performed",
+        "reservation_released_after_stop",
+    ):
+        output[key] = bool(result.get(key))
+    reservation = (
+        result.get("reservation")
+        if isinstance(result.get("reservation"), dict)
+        else {}
+    )
+    if reservation.get("reservation_id"):
+        output["controlled_topology_reservation_id"] = reservation.get(
+            "reservation_id"
+        )
+    return output
+
+
 def reset_completed_restore_barrier_for_fresh_l3_validation(
     restore_barrier_file: Path,
     execution_lease_state: dict[str, Any],
@@ -5502,25 +5537,10 @@ def main(argv=None) -> int:
             audit_dir=audit_dir,
             lease_file=lease_file,
         )
-        output = (
-            compact_transaction_result(result.get("transaction") or {})
-            if args.compact_transaction_receipt
-            and result.get("final_verdict")
-            == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
-            else result
+        output = controlled_topology_cli_output(
+            result,
+            compact=bool(args.compact_transaction_receipt),
         )
-        if isinstance(output, dict):
-            output["controlled_topology_final_verdict"] = result.get(
-                "final_verdict"
-            )
-            output["controlled_topology_manifest_hash"] = result.get(
-                "manifest_hash"
-            )
-            output["controlled_topology_trial_identity"] = result.get(
-                "trial_identity"
-            )
-            output["controlled_topology_source"] = result.get("source")
-            output["controlled_topology_target"] = result.get("target")
         print(
             json.dumps(
                 output,

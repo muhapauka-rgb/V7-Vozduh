@@ -71,6 +71,41 @@ def bool_value(value: Any) -> bool:
     return bool(value)
 
 
+def rollback_was_used(
+    execution_result: dict[str, Any] | None = None,
+    verification_result: dict[str, Any] | None = None,
+    rollback_result: dict[str, Any] | None = None,
+) -> bool:
+    """Return true only when rollback was required or actually attempted."""
+    row = execution_result if isinstance(execution_result, dict) else {}
+    verify = verification_result if isinstance(verification_result, dict) else {}
+    rollback = rollback_result if isinstance(rollback_result, dict) else {}
+    verdict = str(
+        rollback.get("rollback_verdict")
+        or rollback.get("verdict")
+        or row.get("rollback_verdict")
+        or ""
+    ).upper()
+    attempted = (
+        bool_value(rollback.get("rollback_attempted"))
+        or bool_value(row.get("rollback_attempted"))
+    )
+    required = (
+        bool_value(rollback.get("rollback_required"))
+        or bool_value(row.get("rollback_required"))
+        or bool_value(verify.get("rollback_required"))
+    )
+    terminal_rollback = verdict in {
+        "ROLLBACK_COMPLETED",
+        "ROLLED_BACK",
+        "ROLLBACK_FAILED",
+        "FAILED",
+        "OK",
+        "SUCCESS",
+    }
+    return attempted or required or terminal_rollback
+
+
 def terminal_transaction_classification(
     execution_result: dict[str, Any] | None = None,
     verification_result: dict[str, Any] | None = None,
@@ -133,13 +168,7 @@ def terminal_transaction_classification(
         or row.get("rollback_verdict")
         or ""
     ).upper()
-    rollback_required = (
-        bool_value(rollback.get("rollback_required"))
-        or bool_value(row.get("rollback_required"))
-        or bool_value(rollback.get("rollback_attempted"))
-        or bool_value(row.get("rollback_attempted"))
-        or bool(rollback_verdict)
-    )
+    rollback_required = rollback_was_used(row, verify, rollback)
     if rollback_required and rollback_verdict in {"ROLLBACK_COMPLETED", "ROLLED_BACK", "OK", "SUCCESS"}:
         return TERMINAL_OUTCOME_ROLLBACK_SUCCESS
     if rollback_required:
@@ -293,10 +322,13 @@ def outcome_quality_evaluation(
         quality = "UNKNOWN"
     verification_complete = _verification_complete(verification_result)
     rollback_used = bool(
-        rollback_result
-        or execution_result.get("rollback_required")
-        or verification_result.get("rollback_required")
-        or outcome_status in {"rollback_required", "rollback_success", "rollback_failure"}
+        rollback_was_used(
+            execution_result,
+            verification_result,
+            rollback_result,
+        )
+        or outcome_status
+        in {"rollback_required", "rollback_success", "rollback_failure"}
     )
     prediction_error = abs(as_float(prediction_expected) - as_float(prediction_actual))
     if quality == "SUCCESS" and verification_complete and prediction_error <= 0.2:

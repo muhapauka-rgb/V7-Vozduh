@@ -3226,6 +3226,38 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "c" * 64,
         )
 
+    def test_compact_topology_receipt_preserves_reservation_effects(self):
+        module = load_cli_module()
+        output = module.controlled_topology_cli_output(
+            {
+                "final_verdict": (
+                    "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+                ),
+                "manifest_hash": "c" * 64,
+                "trial_identity": "10.7.0.100",
+                "source": "1",
+                "target": "vless",
+                "reservation_mutation_performed": True,
+                "reservation_released_after_stop": False,
+                "reservation": {"reservation_id": "ctres_exact"},
+                "transaction": {
+                    "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                    "transaction_status": "COMPLETED",
+                    "users_moved": 1,
+                    "runtime_mutation_performed": True,
+                },
+            },
+            compact=True,
+        )
+
+        self.assertTrue(output["reservation_mutation_performed"])
+        self.assertFalse(output["reservation_released_after_stop"])
+        self.assertEqual(
+            output["controlled_topology_reservation_id"],
+            "ctres_exact",
+        )
+        self.assertEqual(output["users_moved"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

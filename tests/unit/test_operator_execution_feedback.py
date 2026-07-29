@@ -226,6 +226,41 @@ class OperatorExecutionFeedbackTest(unittest.TestCase):
         self.assertEqual(model["outcome_quality_counts"]["NO_EXECUTION"], 1)
         self.assertLess(model["effectiveness"]["recommendation_correct_rate"], 1.0)
 
+    def test_nonempty_not_required_rollback_is_not_reported_as_used(self):
+        contract = feedback.execution_feedback_contract(
+            user="10.7.0.100",
+            source_channel="1",
+            target_channel="vless",
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": True, "result": "verified"},
+            rollback_result={
+                "rollback_required": False,
+                "rollback_verdict": "NOT_REQUIRED",
+            },
+            recommendation_hash="rec-no-rollback",
+        )
+
+        self.assertEqual(contract["outcome_status"], "success")
+        self.assertFalse(contract["outcome_quality"]["rollback_used"])
+
+    def test_actual_rollback_is_reported_as_used(self):
+        contract = feedback.execution_feedback_contract(
+            user="10.7.0.101",
+            source_channel="1",
+            target_channel="vless",
+            execution_result={"applied": True, "result": "applied"},
+            verification_result={"success": False, "result": "failed"},
+            rollback_result={
+                "rollback_required": True,
+                "rollback_attempted": True,
+                "rollback_verdict": "ROLLBACK_COMPLETED",
+            },
+            recommendation_hash="rec-rollback-used",
+        )
+
+        self.assertEqual(contract["outcome_status"], "rollback_success")
+        self.assertTrue(contract["outcome_quality"]["rollback_used"])
+
     def test_recommendation_approval_intent_is_not_execution(self):
         packet = feedback.recommendation_approval_packet(
             {

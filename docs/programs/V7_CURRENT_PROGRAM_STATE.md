@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-07-29T01:56:36+00:00
+State captured: 2026-07-29T04:08:21.713618+00:00
 Latest terminal Mission: `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1`
 Latest terminal Mission state: `L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`
 Latest terminal Mission report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
@@ -13,7 +13,7 @@ Source: Production commit `857c9dcf158b1d1867fbefbe20052b8ad6377813` separates c
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-07-29T01:56:36+00:00`
+Captured: `2026-07-29T04:08:21.713618+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -28,39 +28,39 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
-| `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_TIER48_CONTROLLED_CERTIFICATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `OBTAIN ONLY THE INDEPENDENT EXISTING-AUTHORITY DECISION FOR THE EXACT REGISTERED CONTROLLED-SUBSTRATE REQUEST; DO NOT CREATE A SECOND REQUEST OR ANY SUBSTRATE/CAMPAIGN EFFECT` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_TIER48_PROGRESSIVE_CONTROLLED_PROOF` |
+| `CURRENT_SAFE_NEXT_ACTION` | `RUN ONLY THE NEXT FRESH CONTROLLED SERVICE FAILURE STAGE 5 THROUGH THE EXISTING MATRIX, PLANNER AND GOVERNED EXECUTOR; PRESERVE COMPLETED LOWER-STAGE EVIDENCE AND STOP AT ANY LIVE GATE` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_EXACT_AUTHORITY` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER48_M8_EXACT_SUBSTRATE_AUTHORITY_BOUNDARY_RECONCILED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_BC19B6BDD831` |
+| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `NONE` |
+| `CURRENT_EXECUTION_FRONTIER` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_ENGINEERING_AUTHORITY` |
+| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
-| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_AUTHORITY_DECISION` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_T48_M9_STAGE_5_SUCCESSOR_READY` |
+| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE` |
 | `TRANSACTION_TERMINAL_CLASS` | `SUCCESS` |
-| `PROGRAM_TERMINAL_CLASS` | `ENGINEERING_AUTHORITY` |
-| `NEXT_MISSION_FORMED` | `FALSE` |
-| `NEXT_MISSION_ID` | `NONE` |
+| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `NEXT_MISSION_FORMED` | `TRUE` |
+| `NEXT_MISSION_ID` | `T48-M9` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `75` |
-| `CONTINUATION_STOP_REASON` | `EXACT CONTROLLED-SUBSTRATE REQUEST STATUS=PENDING; NO SUBSTRATE, CAMPAIGN OR ORDINARY-PRODUCTION EFFECT IS LEGAL BEFORE THE EXISTING INDEPENDENT AUTHORITY OWNER DECIDES THE REGISTERED REQUEST` |
+| `CONTINUATION_STOP_REASON` | `CONTROLLED CAMPAIGN PROVEN THROUGH 0; EXISTING MATRIX MUST ATTEMPT ONLY FRESH STAGE 5 AND PRESERVE ANY LIVE-GATE STOP_SAFE` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; generation egid_be6367407f70e591005185a2; current route-backed scope affected=0, protected=0, unresolved=0, excluded_or_recovered=0; cumulative packet-bound lineage=63; last feedback execfb_f5770df829554ffabe72278c` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `CURRENT_SOURCE_SCOPE_EMPTY; no eligible source users; next ordinary Matrix observation owns reentry` |
 | `CURRENT_L8_CANDIDATE_STATUS` | `CAPTURED_NOT_CREDITED; grouped VLESS incident sfinc_be20296fba3d8a6a33e58a583f1b58db; provenance EXTERNAL_UNATTRIBUTED; Situation situation_ecfe85dceea8a2d7eb3ab995; Decision Trace decision_c410493f06b1a6f34432d7e2; replay NO_DRIFT; Learning delta 0; later expiry reconciliation situation_b82179e3d32bdccf4bf49e53; natural_production_present remains open` |
-| `NO_PROGRESS_FINGERPRINT` | `eee517b6d0b4cd6c11373e9cba18606e5d6b76186b002b631a6237db7ac79298` |
+| `NO_PROGRESS_FINGERPRINT` | `f2b1d1f9f49c8d3a2bdd5a60d4459f076ca434be252b8ff6b67af225e5ea7bb7` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `4` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -68,12 +68,12 @@ This section is the single live volatile current-state surface. Older production
 | `HEARTBEAT_STATUS` | `ACTIVE` |
 | `AUTOMATION_ENABLED` | `TRUE` |
 | `HEARTBEAT_AUTOMATION_LEVEL` | `EXTERNAL_STANDARD_CONTINUE_OMP_REENTRY_ACTIVE` |
-| `HEARTBEAT_LAST_WAKEUP_ID` | `hb_e7266e739ee2731a5aab1a3b305415b9` |
-| `HEARTBEAT_LAST_EVENT_ID` | `e7266e739ee2731a5aab1a3b305415b9058b4c79187e88ca41f11b22e02e7741` |
-| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_E7266E739EE2` |
+| `HEARTBEAT_LAST_WAKEUP_ID` | `ew_bc19b6bdd831fccb947026119623b500` |
+| `HEARTBEAT_LAST_EVENT_ID` | `bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
+| `HEARTBEAT_LAST_CPS_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_BC19B6BDD831` |
 | `HEARTBEAT_LAST_DEPENDENCY_FINGERPRINT` | `35fb27b2c132c41315d8b6c00216df82bbc2d10f1ee948dfd4a06778ffd023eb` |
 | `HEARTBEAT_LAST_DECISION` | `REENTRY_COMPLETED` |
-| `HEARTBEAT_LAST_RUN_AT` | `2026-07-27T16:52:03.594833+00:00` |
+| `HEARTBEAT_LAST_RUN_AT` | `2026-07-29T04:08:21.713618+00:00` |
 | `BACKGROUND_AUTOMATION_STATE` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `EXTERNAL_REENTRY_OWNER` | `CODEX_AUTOMATION_PLATFORM` |
 | `EXTERNAL_REENTRY_SCHEDULE` | `FREQ=MINUTELY;INTERVAL=30` |
@@ -82,30 +82,30 @@ This section is the single live volatile current-state surface. Older production
 | `EVENT_DRIVEN_EXTERNAL_REENTRY_STATUS` | `EVENT_DRIVEN_EXTERNAL_REENTRY_PRODUCTION_CERTIFIED` |
 | `HEARTBEAT_ROLE` | `WATCHDOG_FALLBACK` |
 | `IMMEDIATE_WAKE_OWNER` | `CODEX_AUTOMATION_PLATFORM_THREAD_SIGNAL` |
-| `LAST_WAKE_REQUEST_ID` | `c0abac22e01e62f1788eab843a4bb41ed40516952c8395286aa2d360c9757f20` |
-| `LAST_DISPATCHED_WAKE_ID` | `NONE` |
-| `LAST_CONSUMED_WAKE_ID` | `NONE` |
-| `PENDING_WAKE_ID` | `c0abac22e01e62f1788eab843a4bb41ed40516952c8395286aa2d360c9757f20` |
-| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_SUBSTRATE_APPROVED` |
-| `WAKE_TRANSITION_ID` | `SERVICE_FAILURE_TIER48_M8_SUBSTRATE_AUTHORITY_APPROVED_REENTRY_V1` |
-| `WAKE_REQUESTED_AT` | `2026-07-28T14:39:52+00:00` |
-| `WAKE_DISPATCHED_AT` | `NONE` |
-| `WAKE_STARTED_AT` | `NONE` |
-| `WAKE_COMPLETED_AT` | `NONE` |
-| `MEASURED_WAKE_LATENCY_MS` | `2060219` |
+| `LAST_WAKE_REQUEST_ID` | `bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
+| `LAST_DISPATCHED_WAKE_ID` | `bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
+| `LAST_CONSUMED_WAKE_ID` | `bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
+| `PENDING_WAKE_ID` | `NONE` |
+| `WAKE_SOURCE_CPS_GENERATION` | `cpsgen_SFA_SDPC_36BB4D9CC58C_M9_STAGE_5` |
+| `WAKE_TRANSITION_ID` | `SERVICE_FAILURE_TIER48_M9_STAGE_5_READY_V1` |
+| `WAKE_REQUESTED_AT` | `2026-07-29T04:03:33+00:00` |
+| `WAKE_DISPATCHED_AT` | `2026-07-29T04:08:14.188786+00:00` |
+| `WAKE_STARTED_AT` | `2026-07-29T04:08:14.188786+00:00` |
+| `WAKE_COMPLETED_AT` | `2026-07-29T04:08:21.713618+00:00` |
+| `MEASURED_WAKE_LATENCY_MS` | `281188` |
 | `WRITER_BLOCKING_TIME_MS` | `3571.323` |
-| `WATCHDOG_STATE` | `ARMED_PENDING_IMMEDIATE_DISPATCH` |
-| `WATCHDOG_FALLBACK_COUNT` | `7` |
+| `WATCHDOG_STATE` | `ARMED_FALLBACK_ONLY` |
+| `WATCHDOG_FALLBACK_COUNT` | `8` |
 | `WATCHDOG_RECOVERY_RESULT` | `PASS` |
 | `IMMEDIATE_INVOCATION_COUNT` | `11` |
 | `IMMEDIATE_DUPLICATE_SUPPRESSION_COUNT` | `1` |
 | `OVERLAP_COUNT` | `0` |
-| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_REQUESTED` |
+| `IMMEDIATE_LAST_LEGAL_TERMINAL` | `IMMEDIATE_REENTRY_COMPLETED` |
 | `REENTRY_ACTIVE_LEASE` | `NONE` |
-| `REENTRY_LAST_COMPLETED_ID` | `ompre_d236480ed652bde3bc4b125d` |
-| `REENTRY_LAST_TRIGGER_ID` | `e7266e739ee2731a5aab1a3b305415b9058b4c79187e88ca41f11b22e02e7741` |
-| `REENTRY_LAST_TRIGGER_AT` | `2026-07-27T16:51:59.866104+00:00` |
-| `REENTRY_LAST_INVOCATION_ID` | `ompre_d236480ed652bde3bc4b125d` |
+| `REENTRY_LAST_COMPLETED_ID` | `ompre_eae0b46784ce3e0661f456dc` |
+| `REENTRY_LAST_TRIGGER_ID` | `bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
+| `REENTRY_LAST_TRIGGER_AT` | `2026-07-29T04:08:14.188786+00:00` |
+| `REENTRY_LAST_INVOCATION_ID` | `ompre_eae0b46784ce3e0661f456dc` |
 | `REENTRY_PLATFORM_HEALTH` | `PASS` |
 | `AEP_PHASE_4_STATUS` | `COMPLETE_CONSUMED_REAL_EXTERNAL_CALLER` |
 | `AEP_PHASE_5_STATUS` | `COMPLETE_CONSUMED_TWO_NATURAL_REENTRIES` |
@@ -198,7 +198,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_APPROVED_POLICY` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `channel hard-fail failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -318,7 +318,7 @@ This section is the single live volatile current-state surface. Older production
 | `ALL_TERMINAL_PATHS_FINAL_OPEN` | `CERTIFIED` |
 | `CONTROLLED_RUN_EXECUTION_AUTHORIZED` | `NO_CURRENT_PACKET; v6 consumed and non-reusable; no declared L7 coverage cell remains` |
 | `OMP_CONTROLLED_RUN_ALLOWED` | `NO_CURRENT_PACKET; current program waits only for natural L8 evidence` |
-| `CONTROLLED_RUN_PRIMARY_STOP` | `ENGINEERING_AUTHORITY` |
+| `CONTROLLED_RUN_PRIMARY_STOP` | `NONE` |
 | `CONTROLLED_RUN_RESPONSIBILITY_CLASS` | `LEARNING` |
 | `CONTROLLED_RUN_AUTHORITY_REQUIRED_NOW` | `NO_ADDITIONAL_AUTHORITY_INSIDE_ACTIVE_STANDING_POLICY; fresh event and existing policy gates remain required` |
 | `CONTROLLED_RUN_ENGINEERING_INTENT_CLOSURE` | `INTENT_CLOSED_FOR_DECLARED_L7_COVERAGE; natural L8 remains external` |
@@ -340,7 +340,7 @@ This section is the single live volatile current-state surface. Older production
 | `POLYGON_MISSION_FRONTIER` | `NONE_NO_INDEPENDENT_SAFE_CRITERION` |
 | `L7_L8_PROGRAM_MISSION_FRONTIER` | `EVENT_DRIVEN:L7L8-AE-M5-NATURAL-EVIDENCE-CAPTURE` |
 | `ACTIVE_EXECUTION_FRONTIER` | `NONE` |
-| `EXTERNAL_REENTRY_FRONTIER` | `PENDING:c0abac22e01e62f1788eab843a4bb41ed40516952c8395286aa2d360c9757f20` |
+| `EXTERNAL_REENTRY_FRONTIER` | `PENDING:bc19b6bdd831fccb947026119623b5003a1659fb40cbec6579c5edb518452ba6` |
 | `PHASE_6_ENGINEERING_STOP` | `NO_EXECUTABLE_ENGINEERING_FRONTIER` |
 | `PHASE_6_CONTROLLED_LANE_STOP` | `NONE_DECLARED_COVERAGE_CELLS_COMPLETE` |
 | `PHASE_6_NATURAL_LANE_STOP` | `REAL_WORLD_LIMIT` |
@@ -399,13 +399,13 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_SERVICE_FAILURE_LAST_OUTCOME_POINTER` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
 | `CURRENT_SERVICE_FAILURE_LEARNING_POINTER` | `learn_e16e4c543fa49dede6477238` |
 | `CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER` | `tools/v7-service-matrix-refresh-all` |
-| `CURRENT_SERVICE_FAILURE_REENTRY_CONDITION` | `enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor` |
+| `CURRENT_SERVICE_FAILURE_REENTRY_CONDITION` | `enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable Service Failure successor` |
 | `CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE` | `0` |
 | `CURRENT_VLESS_INCIDENT_GENERATION` | `egid_be6367407f70e591005185a2` |
 | `CURRENT_VLESS_INCIDENT_ID` | `sfinc_be20296fba3d8a6a33e58a583f1b58db` |
 | `CURRENT_VLESS_SCOPE_FINGERPRINT` | `678077526706dee2bf3c0b4ec85e516207f5165342d14c79c3155fecc23ccc73` |
 | `INCIDENT_FRONTIER` | `CURRENT_SOURCE_SCOPE_EMPTY` |
-| `PRODUCT_EVOLUTION_FRONTIER` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `PRODUCT_EVOLUTION_FRONTIER` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED` |
 | `BOUNDED_COHORT_REUSE_CLASSIFICATION` | `ENGINEERING_QUALIFIED_TO_48_PRODUCTION_ADAPTER_EVIDENCE_SEPARATE` |
 | `CAUSAL_M7_TIER_VERDICT` | `EXACT_TIER_48_RUNTIME_AUTHORITY_ACTIVATED` |
 | `CURRENT_ACTION_CLASS_ALLOWED_FAILURE_FAMILIES` | `channel_degradation,channel_hard_fail,service_specific_failure` |
@@ -413,7 +413,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTION_CLASS_AUTHORITY_APPROVED_TIER` | `TIER_48_CURRENT_STANDING_POLICY` |
 | `CURRENT_ACTION_CLASS_CERTIFIED_TIER` | `TIER_48_ENGINEERING_QUALIFIED; TIER_48_AUTHORITY_ACTIVE; TIER_1_SERVICE_FAILURE_PRODUCTION_PROVEN` |
 | `CURRENT_ACTION_CLASS_DEMOTION_TRIGGERS` | `verification or rollback failure, capacity loss, correlated failure, confidence regression, policy revoke` |
-| `CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY; controlled Service Failure adapter outcomes 5->10->25->48; no generic ladder rerun` |
+| `CURRENT_ACTION_CLASS_EXACT_NEXT_TIER_RESIDUAL` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED; controlled Service Failure adapter outcomes 5->10->25->48; no generic ladder rerun` |
 | `CURRENT_ACTION_CLASS_EXPIRY` | `2026-08-27T10:15:20.023896+00:00` |
 | `CURRENT_ACTION_CLASS_INVALIDATION_TRIGGERS` | `policy expiry/revocation, exact action-class or source-target-family change, verification/rollback failure, contradictory owner-backed evidence` |
 | `CURRENT_ACTION_CLASS_MAX_CONCURRENT_TRANSACTIONS` | `1` |
@@ -441,7 +441,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_RECERTIFICATION` | `TRUE_UNLESS_DECLARED_INVALIDATION_TRIGGER` |
 | `CURRENT_ACTION_CLASS_COOLDOWN` | `per_user=1800;source_target_pair=1800` |
 | `CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER` | `TIER_48_CURRENT_CLASS_ENGINEERING` |
-| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `fba7c80ce72eaede5c277e6f94d81cb0131d445e166d47fb248cd49bca30bd87` |
+| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `6352be80ac66e76bfbeeb9ffef193d58f3f11a47909b98c4aedf0bd6947c9b7a` |
 | `CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS` | `RESULT_REUSED_VALID` |
 | `CURRENT_ACTION_CLASS_NON_REUSABLE_AS` | `current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation` |
 | `CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS` | `production_assignment_mutation<=48,production_route_verification<=48,production_rollback_applied<=4,production_certified_no_rollback<=48,engineering_packet_identity<=48,engineering_replay_duplicate_suppression<=48,engineering_partial_apply_containment<=48,engineering_restart_recovery<=48,engineering_serial_cohort<=48,parallel_transactions<=1` |
@@ -460,7 +460,7 @@ This section is the single live volatile current-state surface. Older production
 | `PROGRAM_PORTFOLIO_ACTIVE_WITH_DURABLE_SUCCESSOR` | `AEP,AUTOMATION_GAP_CLOSURE,CAPABILITY_CLOSURE_RECONCILIATION,CAPABILITY_PRODUCTION,CAPABILITY_TRANSITION,INTENT_GAP_DETECTION,INTENT_RESPONSIBILITY_RESOLUTION,OMP,V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PROGRAM_PORTFOLIO_BLOCKED_WITH_EXACT_OWNER_AND_REENTRY` | `AUTONOMY_PROMOTION,BDP,BDP_DISCOVERY_ECONOMY,CONTROLLED_PRODUCTION_CERTIFICATION,DELEGATED_AUTONOMY,ENGINEERING_INTENT_CLOSURE,EXECUTION_CERTIFICATION_LADDER,L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM,NECESSITY_FRAMEWORK,POLYGON_FALLBACK,PRE_PHASE_2_READINESS,PROACTIVE_VERIFICATION,PRODUCTION_PROMOTION_MATRIX,RT_PHASE_2,SCENARIO_SUPPLY` |
 | `PROGRAM_PORTFOLIO_PROGRAM_COUNT` | `30` |
-| `PROGRAM_PORTFOLIO_RECONCILIATION_FINGERPRINT` | `f83f52553e046b8bc11edfc2c047101693d6b13bc816dcf543d1cdba328d69b3` |
+| `PROGRAM_PORTFOLIO_RECONCILIATION_FINGERPRINT` | `18ee4d4415842fc745560434b20e28805925c776008cb9b51dedce5cde506403` |
 | `PROGRAM_PORTFOLIO_RECONCILIATION_OWNER` | `tools/v7_sync_lib.program_execution_reconciliation` |
 | `PROGRAM_PORTFOLIO_RECONCILIATION_STATUS` | `PASS` |
 | `PROGRAM_PORTFOLIO_STATE_COUNTS` | `{"ACTIVE_WITH_DURABLE_SUCCESSOR":9,"BLOCKED_WITH_EXACT_OWNER_AND_REENTRY":15,"COMPLETE_CONSUMED":4,"MERGED_INTO_OMP":2}` |
@@ -477,12 +477,12 @@ This section is the single live volatile current-state surface. Older production
 | `GENERIC_MOVEMENT_ASSIGNMENT_MUTATION_PROVEN_MAX` | `48` |
 | `GENERIC_MOVEMENT_AUTHORITY_AT_PRIMITIVE_LEVEL` | `NONE_BY_DESIGN` |
 | `GENERIC_MOVEMENT_CERTIFIED_NO_ROLLBACK_PROVEN_MAX` | `48` |
-| `GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY; NO_GENERIC_LADDER_RERUN` |
+| `GENERIC_MOVEMENT_NEXT_PRODUCT_EVOLUTION` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED; NO_GENERIC_LADDER_RERUN` |
 | `GENERIC_MOVEMENT_PACKET_IDENTITY_PROVEN_MAX` | `25` |
 | `GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX` | `1` |
 | `GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY` | `NOT_PROVEN` |
 | `GENERIC_MOVEMENT_PARTIAL_SCOPE_SELECTION` | `48_OF_50_SELECTION_PROVEN; NOT_PARTIAL_APPLY_FAILURE_RECOVERY` |
-| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `3af5b36ec41b1ea0996da8f2d3c6e1f76e7f48788333aa2237ca5dbe764f6c7b` |
+| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `40b001effeee85f222119009ffadb423c8c925ce8290cd28dc19b2508a827caf` |
 | `GENERIC_MOVEMENT_PRIMITIVE_OWNER` | `admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence` |
 | `GENERIC_MOVEMENT_PRIMITIVE_STATUS` | `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED` |
 | `GENERIC_MOVEMENT_REPLAY_DUPLICATE_SUPPRESSION_PROVEN_MAX` | `4` |
@@ -520,7 +520,7 @@ This section is the single live volatile current-state surface. Older production
 | `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_SCOPES` | `1,2,4,5,10,25,48` |
 | `GENERIC_MOVEMENT_ENGINEERING_EVIDENCE_CLASS` | `POLYGON_AND_IMPLEMENTATION_CONTRACT` |
-| `GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS` | `{"admin_core/operation_scoped_binding.py":"8a341ef6fe9d5602f695a9aedc633b2ea41fe81aabb3cce16cefe7f8cc645ac2","admin_core/operator_execution.py":"465f32a4f67a64bd2151a7535d450e555fb414270f06a4591115e51e752b422b","tools/v7-governed-canary-dry-run-cycle":"f45069d0e354e862354631ffa4eebc9e303b56bf6c4595fb3a7517868a0edbc1","tools/v7-users-autoswitch":"0890bd79a87e66ff2119bd6f9a288df8ea33eb707c4d56cb7305aa86c34ba05e"}` |
+| `GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS` | `{"admin_core/operation_scoped_binding.py":"8a341ef6fe9d5602f695a9aedc633b2ea41fe81aabb3cce16cefe7f8cc645ac2","admin_core/operator_execution.py":"7c4cfd45066c53095f883a19474e3917af8a3edacb88160f8ba0cd2181ad83ca","tools/v7-governed-canary-dry-run-cycle":"00f01e6fce476b8e128daa6cf7bd5a6bb9b1f5927d06181db4090f2ff1cdcaf2","tools/v7-users-autoswitch":"5718d826a408ed258fa68642d2ab216c5a672581b29bf49c52d7edb6b73a7e4b"}` |
 | `GENERIC_MOVEMENT_ENGINEERING_PACKET_IDENTITY_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_REPLAY_DUPLICATE_MAX` | `48` |
@@ -529,7 +529,7 @@ This section is the single live volatile current-state surface. Older production
 | `PROJECT_WIDE_ADAPTER_INHERITANCE_STATUS` | `PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND` |
 | `CONTROLLED_CERTIFICATION_POOL_ACTIVE_SOURCE_COUNT` | `2` |
 | `CONTROLLED_CERTIFICATION_POOL_EXACT_BLOCKER` | `NONE` |
-| `CONTROLLED_CERTIFICATION_POOL_FINGERPRINT` | `d4f379f47aa69fec6259568736e5c8f81131998821b7e2af4e4eb97cecee135c` |
+| `CONTROLLED_CERTIFICATION_POOL_FINGERPRINT` | `e1fbdfcb1ded79c77cdeb45edaa49889b6d9c08adf164c88313120ed9f8629e7` |
 | `CONTROLLED_CERTIFICATION_POOL_MAX_USERS_ON_ONE_ACTIVE_SOURCE` | `48` |
 | `CONTROLLED_CERTIFICATION_POOL_MISSING_USERS_FOR_TIER_5` | `0` |
 | `CONTROLLED_CERTIFICATION_POOL_REENTRY_CONDITION` | `five_or_more_existing_owner_authorized_enabled_certification_users_are_assigned_to_one_active_controlled_source_with_zero_enabled_non_certification_users` |
@@ -540,24 +540,24 @@ This section is the single live volatile current-state surface. Older production
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_HASH` | `0b5151b3c3a33fd6ced157ab7eb272357f41ac3f700a68864e917c1cfc6e7c7c` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_EXPIRES_AT` | `2026-07-30T01:56:04.769524+00:00` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION_SET` | `APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN or DECLINE` |
-| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_STATUS` | `PENDING` |
+| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_REQUEST_STATUS` | `APPROVED` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_SUBSCOPES` | `identity provisioning; certification classification/assignment; controlled source condition; progressive 5->10->25->48 campaign; every subscope is explicit and non-transitive` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_AUDIT_OWNER` | `/opt/v7/audit/operator-execution-audit.jsonl; registration=REGISTERED` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_REENTRY` | `exact unexpired request receives one owner-backed APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN or DECLINE decision; approval permits only the explicitly named existing-owner stages and does not itself provision, assign, degrade or execute` |
-| `T48_M8_LEGAL_TERMINAL` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
-| `T48_M8_STATUS` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `T48_M8_LEGAL_TERMINAL` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED` |
+| `T48_M8_STATUS` | `CONTROLLED_CERTIFICATION_POOL_READY_FOR_TIER_5` |
 | `SERVICE_FAILURE_CONTEXTUAL_RUNTIME_TIERS` | `CONTROLLED_CERTIFICATION=48; ORDINARY_PRODUCTION=4` |
-| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_ACTOR_ID` | `` |
-| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION` | `` |
-| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION_ID` | `` |
+| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_ACTOR_ID` | `operator:ponch` |
+| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION` | `APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN` |
+| `T48_CONTROLLED_SUBSTRATE_AUTHORITY_DECISION_ID` | `cpsdec_bb981356e6e64b815cb0d846` |
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_SEMANTIC_FINGERPRINT` | `71d5a45fb429c67e618f84f3b89f2cc92f4b131d135d2ecf6942a21024e8c1a5` |
-| `AUTOMATIC_REENTRY_CONDITION` | `owner-verified remote peer or matching profile is restored; then a fresh Matrix observation proves at least one reachable service and zero hard service failures on the exact source` |
+| `AUTOMATIC_REENTRY_CONDITION` | `enabled v7-service-matrix-refresh.timer performs a fresh target health/capacity observation and consumes the same approved campaign stage through existing live gates` |
 | `CONTROLLED_SOURCE_ROOT_CAUSE_CLASS` | `EXTERNAL_INFRASTRUCTURE_OR_ACCESS_REQUIRED` |
-| `CURRENT_POOL_AND_CAMPAIGN_STATE` | `48 dedicated certification identities on exact source 1; stages 5,10,25,48 unexecuted` |
+| `CURRENT_POOL_AND_CAMPAIGN_STATE` | `48 dedicated certification identities on exact source 1; controlled production proven max=0; completed stages=NONE; next stage=5` |
 | `EXACT_EXTERNAL_OWNER` | `EXTERNAL_AMNEZIAWG_PEER_OR_CREDENTIAL_PROVIDER` |
 | `EXACT_EXTERNAL_RESOURCE` | `AMNEZIAWG_REMOTE_PEER_OR_MATCHING_PROFILE_FOR_SOURCE_1` |
 | `EXACT_REQUIRED_INPUT` | `OWNER_VERIFIED_REACHABLE_REMOTE_PEER_WITH_MATCHING_KEY_MATERIAL_OR_REPLACEMENT_WORKING_PROFILE_FOR_THE_EXACT_APPROVED_SOURCE` |
-| `NEXT_CONSUMER` | `existing service-matrix baseline consumer -> existing T48-M8 controlled campaign owner` |
+| `NEXT_CONSUMER` | `existing Authority audit -> Service Matrix -> governed cohort executor` |
 | `WHY_EXISTING_OWNERS_CANNOT_SUPPLY_IT` | `LOCAL_V7_OWNERS_CAN_RELOAD_AND_VERIFY_THE_EXISTING_PROFILE_BUT_CANNOT_REPAIR_THE_REMOTE_PEER_OR_ISSUE_MATCHING_EXTERNAL_KEYS` |
 
 ## Authoritative Unfinished Capability Closure Registry
@@ -570,7 +570,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-07-29T01:56:36+00:00`
+Generated At: `2026-07-29T04:08:21.713618+00:00`
 
 Runtime Authority: `NONE`
 
@@ -583,10 +583,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_EXACT_AUTHORITY` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_TIER48_M8_EXACT_SUBSTRATE_AUTHORITY_BOUNDARY_RECONCILED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
-| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_REENTRY_COMPLETE_BC19B6BDD831` |
+| `CURRENT_TRANSITION_ID` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -604,8 +604,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The existing Authority owner independently decides the exact registered controlled-substrate request; the deployed status consumer then publishes the approved safe successor or the exact decline/expiry residual. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `OMP_CONTINUATION_POINTER` | The Matrix timer consumes stage 5 through fresh live gates; a complete Outcome/Replay/Learning plus baseline-reset receipt automatically selects the next stage. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -614,9 +614,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_EXACT_AUTHORITY` |
-| `current_transition_id` | `SERVICE_FAILURE_TIER48_M8_EXACT_SUBSTRATE_AUTHORITY_BOUNDARY_RECONCILED_V1` |
-| `smallest_existing_next_action_id` | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` |
+| `current_state_generation` | `cpsgen_V7_REENTRY_COMPLETE_BC19B6BDD831` |
+| `current_transition_id` | `EXTERNAL_REENTRY_COMPLETED_V1` |
+| `smallest_existing_next_action_id` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1` |
@@ -627,13 +627,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; EXACT_CONTROLLED_SUBSTRATE_DECISION_PENDING` |
+| `current_primary_stop` | `NONE` |
 | `responsibility_class` | `LEARNING` |
-| `authority_required_now` | `YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION` |
-| `last_responsible_link` | exact registered controlled-substrate request -> independent existing Authority owner -> append-only decision audit -> CPS/OMP residual |
+| `authority_required_now` | `NO_INSIDE_APPROVED_POLICY` |
+| `last_responsible_link` | existing campaign stage audit -> Matrix fresh generation -> planner -> governed executor -> Outcome/Replay/Learning -> reset receipt |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY |
+| `smallest_existing_next_action` | CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -701,7 +701,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_36BB4D9CC58C_M8_EXACT_AUTHORITY`; `SERVICE_FAILURE_TIER48_M8_EXACT_SUBSTRATE_AUTHORITY_BOUNDARY_RECONCILED_V1` | exact registered controlled-substrate request status=PENDING; request_id=cpsauth_r1_0b5151b3c3a33fd6ced157ab | `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY` | existing independent Authority owner and operator-execution append-only audit owner | `ENGINEERING_AUTHORITY` | exact request status=PENDING -> append-only independent decision or expiry-only semantic replacement -> existing T48-M8 consumer |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_REENTRY_COMPLETE_BC19B6BDD831`; `EXTERNAL_REENTRY_COMPLETED_V1` | Controlled Service Failure campaign evidence is consumed through 0; next fresh stage is 5 | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` | existing Service Matrix, governed executor, Outcome, Replay and Learning owners | `NONE` | controlled stage 5 consumed and baseline reset -> automatic next stage or exact live blocker |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -769,7 +769,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `ENGINEERING_AUTHORITY`; current stop is `ENGINEERING_AUTHORITY`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

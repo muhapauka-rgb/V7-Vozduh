@@ -276,6 +276,36 @@ class V7TruthCheckTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["errors"], ["production_ssh_target_invalid"])
 
+    def test_matrix_owned_controlled_campaign_successor_skips_vless_feedback_predecessor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            cps_path.write_text(
+                "\n".join([
+                    "## 0. Authoritative Live Current State",
+                    "",
+                    "| Field | Value |",
+                    "|---|---|",
+                    f"| `ACTIVE_PROGRAM` | `{self.tool.sync_lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID}` |",
+                    "| `CURRENT_NEXT_ACTION_ID` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |",
+                    "| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED` |",
+                    "",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                ]),
+                encoding="utf-8",
+            )
+            result = self.tool.current_matrix_owned_service_failure_successor(root)
+        self.assertTrue(result["matrix_owned"], result)
+        self.assertEqual(
+            result["frontier"],
+            "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED",
+        )
+        self.assertEqual(
+            result["consumer"],
+            "tools/v7-service-matrix-refresh-all",
+        )
+
     def test_local_verdict_detects_matching_workspace_and_branch(self):
         manifest = self.manifest()
         result = self.tool.combine_results(manifest, mode="local", runner=self.runner(), cwd=Path("/tmp/v7-work"))

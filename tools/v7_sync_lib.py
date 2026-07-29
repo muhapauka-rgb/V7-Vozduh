@@ -1090,6 +1090,213 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     }
 
 
+def atomic_reconcile_omp_current_pointer_from_cps(
+    *,
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Atomically refresh only OMP's CPS-owned volatile pointer projections."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    omp_path = root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+    if not omp_path.is_file():
+        return {
+            "ok": True,
+            "status": "OMP_POINTER_OWNER_NOT_PRESENT_IN_CORPUS",
+            "behavior_change": False,
+            "errors": [],
+        }
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        original = omp_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_SOURCE_UNREADABLE",
+            "behavior_change": False,
+            "errors": [str(exc)],
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
+    next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+    report = _plain_live_value(live, "CURRENT_MISSION_REPORT")
+    authority_status = _plain_live_value(
+        live, "CURRENT_AUTHORITY_REQUEST_STATUS"
+    )
+    campaign_state = _plain_live_value(live, "CURRENT_POOL_AND_CAMPAIGN_STATE")
+    if not stop or not next_action or not report:
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_CPS_FIELDS_MISSING",
+            "behavior_change": False,
+            "errors": ["current_stop_next_action_or_report_missing"],
+        }
+
+    def replace_pointer_section(
+        text: str,
+        start: str,
+        end: Optional[str],
+        *,
+        include_report: bool,
+    ) -> str:
+        section = _markdown_section(text, start, end)
+        if not section:
+            raise ValueError(f"omp_pointer_section_missing:{start}")
+        candidate = re.sub(
+            r"(?m)^Resolved current stop:\s*`[^`]+`$",
+            f"Resolved current stop: `{stop}`",
+            section,
+            count=1,
+        )
+        candidate = re.sub(
+            r"(?m)^Resolved current next action:\s*`[^`]+`$",
+            f"Resolved current next action: `{next_action}`",
+            candidate,
+            count=1,
+        )
+        if include_report:
+            candidate = re.sub(
+                r"(?m)^Latest consumed report:\s*`[^`]+`$",
+                f"Latest consumed report: `{report}`",
+                candidate,
+                count=1,
+            )
+        else:
+            contract_projection = (
+                "Resolved contract state: CPS proves "
+                f"`{authority_status or 'UNKNOWN'}`; "
+                f"{campaign_state or 'campaign state unavailable'}; "
+                f"the exact live successor is `{next_action}`. "
+                "This is a CPS-derived pointer only; Authority, campaign "
+                "receipts and Runtime effects remain owned by their existing "
+                "canonical producers."
+            )
+            candidate = re.sub(
+                r"(?m)^Resolved contract state:.*$",
+                contract_projection,
+                candidate,
+                count=1,
+            )
+        required = [
+            f"Resolved current stop: `{stop}`",
+            f"Resolved current next action: `{next_action}`",
+        ]
+        if include_report:
+            required.append(f"Latest consumed report: `{report}`")
+        if not all(item in candidate for item in required):
+            raise ValueError(f"omp_pointer_fields_missing:{start}")
+        return text.replace(section, candidate, 1)
+
+    try:
+        candidate = replace_pointer_section(
+            original,
+            "### 20.2 Current Stop Reference",
+            None,
+            include_report=False,
+        )
+        candidate = replace_pointer_section(
+            candidate,
+            "## 26. Current Volatile State Pointer",
+            "## 27. Permanent Production Command Verdict",
+            include_report=True,
+        )
+    except ValueError as exc:
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_RENDER_FAILED",
+            "behavior_change": False,
+            "errors": [str(exc)],
+        }
+    validation = omp_live_state_consistency(cps_text, candidate)
+    if validation.get("final_verdict") != "PASS":
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_VALIDATION_FAILED",
+            "behavior_change": False,
+            "errors": validation.get("errors") or ["omp_pointer_validation_failed"],
+            "consistency": validation,
+        }
+    if candidate == original:
+        return {
+            "ok": True,
+            "status": "OMP_POINTER_ALREADY_ALIGNED",
+            "behavior_change": False,
+            "errors": [],
+            "consistency": validation,
+        }
+    temporary = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=str(omp_path.parent),
+            prefix=f".{omp_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = handle.name
+            handle.write(candidate)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, str(omp_path))
+        temporary = ""
+        reread = omp_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        if temporary:
+            try:
+                Path(temporary).unlink()
+            except OSError:
+                pass
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_ATOMIC_WRITE_FAILED",
+            "behavior_change": False,
+            "errors": [str(exc)],
+        }
+    postcheck = omp_live_state_consistency(cps_text, reread)
+    if reread != candidate or postcheck.get("final_verdict") != "PASS":
+        rollback = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=str(omp_path.parent),
+                prefix=f".{omp_path.name}.rollback.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                rollback = handle.name
+                handle.write(original)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(rollback, str(omp_path))
+            rollback = ""
+        finally:
+            if rollback:
+                try:
+                    Path(rollback).unlink()
+                except OSError:
+                    pass
+        return {
+            "ok": False,
+            "status": "OMP_POINTER_POST_WRITE_FAILED_ROLLED_BACK",
+            "behavior_change": False,
+            "errors": postcheck.get("errors") or ["omp_pointer_post_write_mismatch"],
+        }
+    return {
+        "ok": True,
+        "status": "OMP_POINTER_ATOMIC_UPDATE_APPLIED",
+        "behavior_change": True,
+        "stop": stop,
+        "next_action": next_action,
+        "report": report,
+        "errors": [],
+        "consistency": postcheck,
+    }
+
+
 def _cps_header_metadata(cps_text: str) -> dict[str, str]:
     header = cps_text.partition("## 0. Authoritative Live Current State")[0]
     values: dict[str, str] = {}
@@ -19104,10 +19311,22 @@ def reconcile_active_standing_delegated_policy_to_cps(
             **tier_projection,
         },
     )
+    omp_pointer = (
+        atomic_reconcile_omp_current_pointer_from_cps(root=root)
+        if atomic.get("ok")
+        else {
+            "ok": False,
+            "status": "OMP_POINTER_NOT_ATTEMPTED_CPS_RECONCILIATION_FAILED",
+            "behavior_change": False,
+            "errors": atomic.get("errors") or [],
+        }
+    )
+    coordinated_ok = bool(atomic.get("ok") and omp_pointer.get("ok"))
     return {
         "schema": "v7.service-failure-standing-policy-cps-reconciliation.v1",
-        "final_verdict": "PASS" if atomic.get("ok") else "STOP_SAFE",
+        "final_verdict": "PASS" if coordinated_ok else "STOP_SAFE",
         "atomic_update": atomic,
+        "omp_pointer_reconciliation": omp_pointer,
         "contract_id": contract_id,
         "contract_hash": contract_hash,
         "request_id": request_id,
@@ -19137,7 +19356,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "rollback_apply": False, "authority_expansion": False,
             "production_maturity_change": False,
         },
-        "errors": [] if atomic.get("ok") else atomic.get("errors") or ["atomic_cps_reconciliation_failed"],
+        "errors": (
+            []
+            if coordinated_ok
+            else sorted(set(
+                (atomic.get("errors") or [])
+                + (omp_pointer.get("errors") or [])
+                + ["coordinated_cps_omp_reconciliation_failed"]
+            ))
+        ),
     }
 
 

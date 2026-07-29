@@ -1,4 +1,6 @@
 import importlib.util
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -124,6 +126,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             {
                 "SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE",
                 "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
+                "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED",
             },
         )
         movement = live["USER_MOVEMENT"].strip("`")
@@ -136,6 +139,33 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         drift = self.omp.replace(f"Resolved current stop: `{self.state['current_stop_condition']}`", "Resolved current stop: `STOP_SAFE`", 1)
         bad = self.lib.cps_live_state_consistency(self.cps, root=ROOT, omp_text=drift)
         self.assertEqual(bad["final_verdict"], "NO-GO")
+
+    def test_19_existing_owner_atomically_reconciles_only_current_omp_pointers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            programs = root / "docs/programs"
+            programs.mkdir(parents=True)
+            shutil.copy2(CPS, programs / CPS.name)
+            drift = self.omp.replace(
+                f"Resolved current stop: `{self.state['current_stop_condition']}`",
+                "Resolved current stop: `ENGINEERING_AUTHORITY`",
+            ).replace(
+                f"Resolved current next action: `{self.state['current_next_action_id']}`",
+                "Resolved current next action: `STALE_AUTHORITY_REQUEST`",
+            )
+            (programs / OMP.name).write_text(drift, encoding="utf-8")
+            result = self.lib.atomic_reconcile_omp_current_pointer_from_cps(
+                root=root,
+            )
+            reconciled = (programs / OMP.name).read_text(encoding="utf-8")
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["status"], "OMP_POINTER_ATOMIC_UPDATE_APPLIED")
+        self.assertEqual(
+            self.lib.omp_live_state_consistency(self.cps, reconciled)[
+                "final_verdict"
+            ],
+            "PASS",
+        )
 
 
 if __name__ == "__main__":

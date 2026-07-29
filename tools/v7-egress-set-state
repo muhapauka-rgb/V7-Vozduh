@@ -11,9 +11,14 @@ APPLY=0
 CONTROLLED_CERTIFICATION=0
 CERTIFICATION_USERS=""
 CERTIFICATION_GROUP="controlled-production"
+RESERVATION_ID=""
+RESERVATION_EXPIRES_AT=""
+EXPECTED_EGRESS_FINGERPRINT=""
+RESTORE_BACKUP=""
+CONFIRM=""
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-scope> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--confirm token]" >&2
 }
 
 while [ "$#" -gt 2 ]; do
@@ -37,6 +42,31 @@ while [ "$#" -gt 2 ]; do
       CERTIFICATION_GROUP="$4"
       shift 2
       ;;
+    --reservation-id)
+      [ "$#" -ge 4 ] || { echo "missing value for --reservation-id" >&2; usage; exit 1; }
+      RESERVATION_ID="$4"
+      shift 2
+      ;;
+    --reservation-expires-at)
+      [ "$#" -ge 4 ] || { echo "missing value for --reservation-expires-at" >&2; usage; exit 1; }
+      RESERVATION_EXPIRES_AT="$4"
+      shift 2
+      ;;
+    --expected-egress-fingerprint)
+      [ "$#" -ge 4 ] || { echo "missing value for --expected-egress-fingerprint" >&2; usage; exit 1; }
+      EXPECTED_EGRESS_FINGERPRINT="$4"
+      shift 2
+      ;;
+    --restore-backup)
+      [ "$#" -ge 4 ] || { echo "missing value for --restore-backup" >&2; usage; exit 1; }
+      RESTORE_BACKUP="$4"
+      shift 2
+      ;;
+    --confirm)
+      [ "$#" -ge 4 ] || { echo "missing value for --confirm" >&2; usage; exit 1; }
+      CONFIRM="$4"
+      shift 2
+      ;;
     *)
       echo "unknown option: $arg" >&2
       usage
@@ -55,6 +85,28 @@ safe_ip_list() {
 
 safe_group() {
   [[ "${1:-}" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
+}
+
+safe_sha256() {
+  [[ "${1:-}" =~ ^[0-9a-f]{64}$ ]]
+}
+
+future_iso8601() {
+  python3 - "$1" <<'PY'
+from datetime import datetime, timezone
+import sys
+try:
+    value = datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
+    if value.tzinfo is None:
+        raise ValueError("timezone required")
+    raise SystemExit(0 if value > datetime.now(timezone.utc) else 1)
+except (TypeError, ValueError):
+    raise SystemExit(1)
+PY
+}
+
+line_fingerprint() {
+  printf '%s' "$1" | sha256sum | awk '{print $1}'
 }
 
 kv_get() {
@@ -244,7 +296,7 @@ rebuild_killswitch() {
 [ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
 safe_id "$EGRESS_ID" || { echo "unsafe egress id: $EGRESS_ID"; exit 1; }
 case "$STATE" in
-  enabled|disabled|maintenance|certification-scope) ;;
+  enabled|disabled|maintenance|certification-scope|certification-reserve|certification-release) ;;
   *) usage; exit 1 ;;
 esac
 safe_group "$CERTIFICATION_GROUP" || { echo "unsafe certification group: $CERTIFICATION_GROUP"; exit 1; }
@@ -255,6 +307,7 @@ fi
 
 line="$(grep "^id=${EGRESS_ID} " "$EGRESS_REG" 2>/dev/null || true)"
 [ -n "$line" ] || { echo "FAIL: egress not found: $EGRESS_ID"; exit 1; }
+line_hash="$(line_fingerprint "$line")"
 
 protocol="$(kv_get "$line" protocol)"
 type="$(kv_get "$line" type)"
@@ -273,6 +326,156 @@ echo "type=$type"
 echo "interface=$ifname"
 echo "config=$config"
 echo "enabled_now=$enabled_now"
+echo "egress_fingerprint=$line_hash"
+
+if [ "$STATE" = "certification-reserve" ]; then
+  safe_id "$RESERVATION_ID" || { echo "unsafe or missing reservation id"; exit 1; }
+  [ -n "$RESERVATION_EXPIRES_AT" ] || { echo "missing --reservation-expires-at"; exit 1; }
+  future_iso8601 "$RESERVATION_EXPIRES_AT" || { echo "reservation expiry must be a future timezone-aware ISO8601 timestamp"; exit 1; }
+  safe_sha256 "$EXPECTED_EGRESS_FINGERPRINT" || { echo "missing or invalid expected egress fingerprint"; exit 1; }
+  [ "$line_hash" = "$EXPECTED_EGRESS_FINGERPRINT" ] || {
+    echo "ACTION=blocked"
+    echo "reason=egress_fingerprint_changed"
+    echo "expected_egress_fingerprint=$EXPECTED_EGRESS_FINGERPRINT"
+    echo "actual_egress_fingerprint=$line_hash"
+    exit 2
+  }
+  assigned_count="$(awk -v e="$EGRESS_ID" '
+    {
+      enabled="1"; current=""
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^enabled=/) enabled=substr($i,9)
+        if ($i ~ /^current=/) current=substr($i,9)
+      }
+      if (enabled == "1" && current == e) count++
+    }
+    END {print count+0}
+  ' "$USERS_REG")"
+  [ "$assigned_count" -eq 0 ] || {
+    echo "ACTION=blocked"
+    echo "reason=controlled_source_reservation_requires_empty_source"
+    echo "assigned_enabled_users=$assigned_count"
+    exit 2
+  }
+  echo "reservation_id=$RESERVATION_ID"
+  echo "reservation_expires_at=$RESERVATION_EXPIRES_AT"
+  echo "assigned_enabled_users=$assigned_count"
+  echo "ordinary_users=0"
+  echo "would_set=controlled_certification_source,certification_group,execution_reserved,canary_reserved,reservation_owner,autoswitch_allowed,rebalance_allowed,production_assignment_allowed,controlled_source_reservation_id,controlled_source_reservation_expires_at"
+  if [ "$APPLY" -ne 1 ]; then
+    echo "MODE=dry_run"
+    echo "ACTION=none"
+    exit 0
+  fi
+  [ "$CONFIRM" = "RESERVE_CONTROLLED_CERTIFICATION_SOURCE" ] || {
+    echo "ACTION=blocked"
+    echo "reason=exact_reservation_confirmation_required"
+    exit 2
+  }
+  backup_ts="$(date +%Y%m%d-%H%M%S)"
+  backup="$EGRESS_REG.backup.v7-controlled-source-reserve.$backup_ts"
+  cp -a "$EGRESS_REG" "$backup"
+  tmp_egress="$(mktemp "$STATE_DIR/.egress.registry.reserve.XXXXXX")"
+  awk -v e="$EGRESS_ID" -v group="$CERTIFICATION_GROUP" -v rid="$RESERVATION_ID" -v expiry="$RESERVATION_EXPIRES_AT" '
+    function put(key, value,    i, found) {
+      found=0
+      for (i=1;i<=NF;i++) {
+        if ($i ~ ("^" key "=")) {$i=key "=" value; found=1}
+      }
+      if (!found) $0=$0 " " key "=" value
+    }
+    {
+      if ($0 ~ ("^id=" e " ")) {
+        put("controlled_certification_source","1")
+        put("certification_group",group)
+        put("execution_reserved","1")
+        put("canary_reserved","1")
+        put("reservation_owner","operator_execution_governance")
+        put("autoswitch_allowed","false")
+        put("rebalance_allowed","false")
+        put("production_assignment_allowed","false")
+        put("controlled_source_reservation_id",rid)
+        put("controlled_source_reservation_expires_at",expiry)
+      }
+      print
+    }
+  ' "$EGRESS_REG" > "$tmp_egress"
+  cat "$tmp_egress" > "$EGRESS_REG"
+  rm -f "$tmp_egress"
+  current_line="$(grep "^id=${EGRESS_ID} " "$EGRESS_REG")"
+  echo "MODE=apply"
+  echo "ACTION=controlled_source_reserved"
+  echo "restore_backup=$backup"
+  echo "reserved_egress_fingerprint=$(line_fingerprint "$current_line")"
+  echo "users_moved=0"
+  echo "routes_changed=0"
+  exit 0
+fi
+
+if [ "$STATE" = "certification-release" ]; then
+  safe_id "$RESERVATION_ID" || { echo "unsafe or missing reservation id"; exit 1; }
+  safe_sha256 "$EXPECTED_EGRESS_FINGERPRINT" || { echo "missing or invalid expected egress fingerprint"; exit 1; }
+  [ "$line_hash" = "$EXPECTED_EGRESS_FINGERPRINT" ] || {
+    echo "ACTION=blocked"
+    echo "reason=egress_fingerprint_changed"
+    exit 2
+  }
+  current_reservation="$(kv_get "$line" controlled_source_reservation_id)"
+  [ "$current_reservation" = "$RESERVATION_ID" ] || {
+    echo "ACTION=blocked"
+    echo "reason=controlled_source_reservation_identity_mismatch"
+    exit 2
+  }
+  case "$RESTORE_BACKUP" in
+    "$EGRESS_REG".backup.v7-controlled-source-reserve.*) ;;
+    *) echo "unsafe or missing restore backup"; exit 1 ;;
+  esac
+  [ -r "$RESTORE_BACKUP" ] || { echo "restore backup is not readable"; exit 1; }
+  prior_line="$(grep "^id=${EGRESS_ID} " "$RESTORE_BACKUP" 2>/dev/null || true)"
+  [ -n "$prior_line" ] || { echo "restore backup lacks exact egress"; exit 1; }
+  assigned_count="$(awk -v e="$EGRESS_ID" '
+    {
+      enabled="1"; current=""
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^enabled=/) enabled=substr($i,9)
+        if ($i ~ /^current=/) current=substr($i,9)
+      }
+      if (enabled == "1" && current == e) count++
+    }
+    END {print count+0}
+  ' "$USERS_REG")"
+  [ "$assigned_count" -eq 0 ] || {
+    echo "ACTION=blocked"
+    echo "reason=controlled_source_release_requires_empty_source"
+    echo "assigned_enabled_users=$assigned_count"
+    exit 2
+  }
+  echo "reservation_id=$RESERVATION_ID"
+  echo "restore_backup=$RESTORE_BACKUP"
+  echo "restored_egress_fingerprint=$(line_fingerprint "$prior_line")"
+  if [ "$APPLY" -ne 1 ]; then
+    echo "MODE=dry_run"
+    echo "ACTION=none"
+    exit 0
+  fi
+  [ "$CONFIRM" = "RELEASE_CONTROLLED_CERTIFICATION_SOURCE" ] || {
+    echo "ACTION=blocked"
+    echo "reason=exact_release_confirmation_required"
+    exit 2
+  }
+  tmp_egress="$(mktemp "$STATE_DIR/.egress.registry.release.XXXXXX")"
+  awk -v e="$EGRESS_ID" -v prior="$prior_line" '
+    $0 ~ ("^id=" e " ") {$0=prior}
+    {print}
+  ' "$EGRESS_REG" > "$tmp_egress"
+  cat "$tmp_egress" > "$EGRESS_REG"
+  rm -f "$tmp_egress"
+  echo "MODE=apply"
+  echo "ACTION=controlled_source_released"
+  echo "users_moved=0"
+  echo "routes_changed=0"
+  exit 0
+fi
 
 if [ "$STATE" = "certification-scope" ]; then
   [ -r "$USERS_REG" ] || { echo "FAIL: users registry not readable: $USERS_REG"; exit 1; }

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.4`
+Version: `2.5`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,93 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.5 active executable revision — controlled-source non-waiting exit paths
+
+V2.5 admits
+`CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_SLICE_FEASIBILITY_V1`
+inside this existing Program. It does not create a Program, Planner, Runtime,
+registry, queue, watcher, scheduler, Authority owner, evidence store or truth
+source.
+
+The existing owners must expose one compact
+`CONTROLLED_SOURCE_TOPOLOGY_CAPABILITY_MAP` covering:
+
+```text
+existing empty egress rebind
+existing egress-draft dedicated provisioning
+logically isolated slice on an occupied production egress
+```
+
+Every option consumes current registry, assignment, Matrix, quality, capacity,
+route/policy-table, egress-draft, verification, rollback and Authority truth.
+It is hard-rejected when ordinary users can share its induced failure, the
+baseline cannot be verified, capacity has no owner, rollback is not bounded,
+or private credentials would have to be disclosed.
+
+The existing `v7-egress-set-state` owner provides an exact reversible
+controlled-source reservation contract. Reservation is allowed only on an
+empty source and is bound by source-line CAS fingerprint, reservation ID,
+expiry, certification group and an exact confirmation. It fences ordinary
+Planner assignment through the existing `canary_reserved` and
+`production_assignment_allowed=false` semantics. Release requires the same
+reservation identity, exact current fingerprint, zero assigned users and the
+owner-created restore backup. Neither mode moves a user or changes a route.
+
+The preferred current engineering path is an empty healthy existing egress
+when it has owner-backed capacity for the full certification pool and the
+reservation/release contract is ready. A ready existing egress draft remains
+the dedicated-source fallback. A separate per-user policy table alone is not
+a controlled slice: slice feasibility requires an independently failing and
+reversible peer/interface/runtime boundary.
+
+The topology recommendation may prepare one exact one-identity production
+preflight. It must not reuse or re-request Tier-48 capability/campaign
+approval. When the source identity changes, the exact external boundary is:
+
+`REBIND_CONTROLLED_CERTIFICATION_SOURCE`.
+
+That independent decision changes only the source binding admitted for the
+manifest-bound trial. It does not authorize reservation, assignment,
+controlled failure, Candidate, Packet, lease, restore barrier, apply, rollback
+or campaign execution by implication. Every later effect still requires its
+existing owner, fresh gates and exact packet-bound Authority.
+
+The request and decision lifecycle reuses the existing append-only
+`admin_core/operator_execution.py` Authority audit:
+
+```text
+fresh current topology map and one-identity manifest
+-> v7.controlled-source-topology-authority-request.v1
+-> exactly one registered request or one reused active semantic request
+-> exact APPROVE_<manifest action> or DECLINE with actor provenance
+-> CPS/OMP successor
+```
+
+The request is bound to the current campaign ID/hash, exact old and proposed
+source, one certification identity, identity-set and manifest fingerprints,
+zero ordinary assignment/route delta, capacity reservation, concurrency one,
+verification, rollback, lease/expiry, Packet and restore-barrier requirements.
+It neither repeats Tier-48 approval nor materializes the topology. Duplicate
+or conflicting decisions fail closed. Approval publishes only a fresh
+Candidate/Packet/lease/restore-barrier preflight successor; packet-bound
+Operational Authority still precedes every production mutation.
+
+If an exact option is declined, the same derived map excludes that exact
+resource for the current decision lineage and evaluates the remaining safe
+options. It must not recreate the declined semantic request or return to
+source `1` recovery while another owner-backed option remains.
+
+The legal completion before that decision is:
+
+`CONTROLLED_SOURCE_NON_WAITING_EXIT_PATH_PRODUCTION_PREFLIGHT_READY`.
+
+The legal post-trial completion is:
+
+`CONTROLLED_SOURCE_NON_WAITING_EXIT_PATH_RUNTIME_PROVEN`.
+
+`WAIT_FOR_SOURCE_1_RECOVERY` is not a legal Program frontier while a safe
+rebind or dedicated-source option remains feasible.
 
 ## V2.4 active executable revision — dynamic controlled-target discovery and reselection
 

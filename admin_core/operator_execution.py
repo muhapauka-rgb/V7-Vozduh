@@ -140,6 +140,20 @@ CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES = (
     "CONTROLLED_SOURCE_CONDITION",
     "PROGRESSIVE_CAMPAIGN_EXECUTION",
 )
+CONTROLLED_SOURCE_TOPOLOGY_REQUEST_SCHEMA = (
+    "v7.controlled-source-topology-authority-request.v1"
+)
+CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE = (
+    "controlled_source_topology_authority_request_emitted"
+)
+CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE = (
+    "controlled_source_topology_authority_decision"
+)
+CONTROLLED_SOURCE_TOPOLOGY_REQUEST_TTL_SECONDS = 24 * 60 * 60
+CONTROLLED_SOURCE_TOPOLOGY_ACTIONS = {
+    "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+    "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+}
 CURRENT_ACTION_CLASS_REQUIRED_STOP_CONDITIONS = {
     "no_safe_target",
     "stale_or_changed_situation",
@@ -1623,6 +1637,584 @@ def register_controlled_certification_substrate_authority_request(
         "request_hash": request["request_hash"],
         "audit_store": str(audit_store),
         "audit_write": True,
+    }
+
+
+def controlled_source_topology_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def controlled_source_topology_semantic_fingerprint(request):
+    """Stable identity for duplicate suppression across expiry-only requests."""
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    for key in (
+        "request_id",
+        "request_hash",
+        "created_at",
+        "expires_at",
+        "semantic_request_fingerprint",
+        "supersession",
+    ):
+        canonical.pop(key, None)
+    return sha256_json(canonical)
+
+
+def build_controlled_source_topology_authority_request(
+    request_payload,
+    *,
+    now=None,
+):
+    """Bind one exact source-topology preflight to the existing Authority owner.
+
+    This only constructs an independently decidable request.  It cannot reserve
+    an egress, change assignments, create execution artifacts or grant campaign
+    Authority.
+    """
+    now = now or utc_now()
+    payload = copy.deepcopy(
+        request_payload if isinstance(request_payload, dict) else {}
+    )
+    for key in (
+        "request_id",
+        "request_hash",
+        "created_at",
+        "expires_at",
+        "semantic_request_fingerprint",
+        "registered",
+        "registration_reason",
+        "actionable",
+        "authority_lifecycle",
+    ):
+        payload.pop(key, None)
+    payload.update({
+        "schema_version": CONTROLLED_SOURCE_TOPOLOGY_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (
+            now
+            + timedelta(seconds=CONTROLLED_SOURCE_TOPOLOGY_REQUEST_TTL_SECONDS)
+        ).isoformat(),
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+    })
+    exact_action = str(payload.get("exact_action") or "")
+    payload["decision_set"] = [
+        f"APPROVE_{exact_action}" if exact_action else "",
+        "DECLINE",
+    ]
+    request_hash = controlled_source_topology_request_hash(payload)
+    payload["request_hash"] = request_hash
+    payload["request_id"] = f"cstopauth_r1_{request_hash[:24]}"
+    return payload
+
+
+def validate_controlled_source_topology_authority_request(
+    request,
+    *,
+    decision="DECLINE",
+    expected_request_id="",
+    expected_request_hash="",
+    now=None,
+):
+    """Fail closed unless the request is one exact one-identity topology setup."""
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    exact_action = str(request.get("exact_action") or "")
+    approval = f"APPROVE_{exact_action}" if exact_action else ""
+    if request.get("schema_version") != CONTROLLED_SOURCE_TOPOLOGY_REQUEST_SCHEMA:
+        errors.append("controlled_source_topology_request_schema_invalid")
+    if controlled_source_topology_request_hash(request) != request_hash:
+        errors.append("controlled_source_topology_request_hash_mismatch")
+    if request_id != f"cstopauth_r1_{request_hash[:24]}":
+        errors.append("controlled_source_topology_request_identity_mismatch")
+    if expected_request_id and request_id != str(expected_request_id):
+        errors.append("controlled_source_topology_expected_request_mismatch")
+    if expected_request_hash and request_hash != str(expected_request_hash):
+        errors.append("controlled_source_topology_expected_hash_mismatch")
+    if (
+        request.get("status")
+        != "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION"
+    ):
+        errors.append("controlled_source_topology_request_not_pending")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("controlled_source_topology_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("controlled_source_topology_created_at_invalid")
+    except PacketError:
+        errors.append("controlled_source_topology_timestamps_invalid")
+    if exact_action not in CONTROLLED_SOURCE_TOPOLOGY_ACTIONS:
+        errors.append("controlled_source_topology_action_invalid")
+    if request.get("decision_set") != [approval, "DECLINE"]:
+        errors.append("controlled_source_topology_decision_set_invalid")
+    if decision not in set(request.get("decision_set") or []):
+        errors.append("controlled_source_topology_decision_not_allowed")
+    if (
+        request.get("issuing_owner_required")
+        != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER
+    ):
+        errors.append("controlled_source_topology_owner_invalid")
+    if (
+        request.get("active_program")
+        != "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+        or request.get("mission")
+        != (
+            "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+            "SLICE_FEASIBILITY_V1"
+        )
+    ):
+        errors.append("controlled_source_topology_program_binding_invalid")
+    if request.get("tier48_capability_or_campaign_reapproval") is not False:
+        errors.append("controlled_source_topology_campaign_reapproval_forbidden")
+    if (
+        request.get("ordinary_customer_involvement") is not False
+        or request.get("self_expansion_allowed") is not False
+    ):
+        errors.append("controlled_source_topology_scope_invalid")
+    if not str(request.get("current_campaign_request_id") or ""):
+        errors.append("controlled_source_topology_campaign_request_missing")
+    if len(str(request.get("current_campaign_request_hash") or "")) != 64:
+        errors.append("controlled_source_topology_campaign_hash_invalid")
+    manifest = (
+        request.get("manifest")
+        if isinstance(request.get("manifest"), dict)
+        else {}
+    )
+    manifest_hash = str(manifest.get("manifest_hash") or "")
+    manifest_preimage = copy.deepcopy(manifest)
+    manifest_preimage.pop("manifest_hash", None)
+    if not manifest or sha256_json(manifest_preimage) != manifest_hash:
+        errors.append("controlled_source_topology_manifest_hash_invalid")
+    if (
+        int(manifest.get("trial_identity_count") or 0) != 1
+        or not str(manifest.get("trial_identity") or "")
+        or int(manifest.get("capacity_reservation") or 0) != 1
+        or int(manifest.get("max_concurrent_transactions") or 0) != 1
+    ):
+        errors.append("controlled_source_topology_trial_scope_invalid")
+    if (
+        manifest.get("expected_ordinary_assignment_delta") != "NONE"
+        or manifest.get("expected_ordinary_route_delta") != "NONE"
+    ):
+        errors.append("controlled_source_topology_ordinary_delta_invalid")
+    if (
+        manifest.get("lease_and_expiry_required") is not True
+        or manifest.get("packet_required_before_effect") is not True
+        or manifest.get("restore_barrier_required_before_effect") is not True
+        or not str(manifest.get("verification") or "")
+        or not str(manifest.get("rollback") or "")
+    ):
+        errors.append("controlled_source_topology_safety_contract_invalid")
+    existing_source = str(manifest.get("existing_source") or "")
+    selected_resource = str(manifest.get("selected_source_or_draft") or "")
+    if not existing_source or not selected_resource:
+        errors.append("controlled_source_topology_resource_binding_missing")
+    if (
+        exact_action == "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+        and existing_source == selected_resource
+    ):
+        errors.append("controlled_source_topology_rebind_same_source")
+    semantic_fingerprint = str(
+        request.get("semantic_request_fingerprint") or ""
+    )
+    if (
+        semantic_fingerprint
+        and semantic_fingerprint
+        != controlled_source_topology_semantic_fingerprint(request)
+    ):
+        errors.append("controlled_source_topology_semantic_fingerprint_invalid")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "expires_at": str(request.get("expires_at") or ""),
+        "approval_decision": approval,
+    }
+
+
+def _controlled_source_topology_request_records(records, request_id):
+    return [
+        record for record in (records if isinstance(records, list) else [])
+        if record.get("record_type")
+        == CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE
+        and str(record.get("authority_request_id") or "")
+        == str(request_id or "")
+    ]
+
+
+def _controlled_source_topology_decision_records(records, request_id):
+    return [
+        record for record in (records if isinstance(records, list) else [])
+        if record.get("record_type")
+        == CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE
+        and str(record.get("authority_request_id") or "")
+        == str(request_id or "")
+    ]
+
+
+def controlled_source_topology_authority_status(records, *, now=None):
+    """Project the newest exact topology request/decision from the same audit."""
+    now = now or utc_now()
+    records = records if isinstance(records, list) else []
+    requests = [
+        record for record in records
+        if record.get("record_type")
+        == CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE
+    ]
+    requests.sort(key=lambda row: (
+        str(((row.get("request") or {}).get("created_at")) or ""),
+        str(row.get("authority_request_id") or ""),
+    ))
+    if not requests:
+        return {
+            "status": "NONE",
+            "request_id": "",
+            "request_hash": "",
+            "decision": "",
+            "decision_id": "",
+            "request": {},
+        }
+    record = requests[-1]
+    request = (
+        record.get("request")
+        if isinstance(record.get("request"), dict)
+        else {}
+    )
+    request_id = str(request.get("request_id") or "")
+    decisions = _controlled_source_topology_decision_records(
+        records, request_id,
+    )
+    validation = validate_controlled_source_topology_authority_request(
+        request,
+        decision="DECLINE",
+        expected_request_id=request_id,
+        expected_request_hash=str(record.get("authority_request_hash") or ""),
+        now=now,
+    )
+    non_expiry_errors = [
+        error for error in (validation.get("errors") or [])
+        if error != "controlled_source_topology_request_expired"
+    ]
+    decision_record = {}
+    if non_expiry_errors:
+        status = "STOP_SAFE_INVALID_REQUEST"
+    elif len(decisions) > 1:
+        status = "STOP_SAFE_DUPLICATE_OR_CONFLICTING_DECISIONS"
+    elif decisions:
+        decision_record = decisions[0]
+        status = (
+            "APPROVED"
+            if str(decision_record.get("decision") or "").startswith(
+                "APPROVE_"
+            )
+            else "DECLINED"
+        )
+    else:
+        try:
+            status = (
+                "EXPIRED"
+                if parse_ts(request.get("expires_at")) <= now
+                else "PENDING"
+            )
+        except PacketError:
+            status = "STOP_SAFE_INVALID_REQUEST_EXPIRY"
+    return {
+        "status": status,
+        "request_id": request_id,
+        "request_hash": str(request.get("request_hash") or ""),
+        "created_at": str(request.get("created_at") or ""),
+        "expires_at": str(request.get("expires_at") or ""),
+        "semantic_request_fingerprint": (
+            controlled_source_topology_semantic_fingerprint(request)
+        ),
+        "decision": str(decision_record.get("decision") or ""),
+        "decision_id": str(decision_record.get("decision_id") or ""),
+        "actor_id": str(
+            ((decision_record.get("actor_provenance") or {}).get("actor_id"))
+            or ""
+        ),
+        "request": copy.deepcopy(request),
+    }
+
+
+def register_controlled_source_topology_authority_request(
+    request,
+    *,
+    audit_store=None,
+    producer_id="tools/v7-users-autoswitch",
+    now=None,
+):
+    """Persist one request in the existing append-only owner, exact-once."""
+    now = now or utc_now()
+    validation = validate_controlled_source_topology_authority_request(
+        request,
+        decision="DECLINE",
+        now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(
+            validation.get("errors")
+            or ["controlled_source_topology_request_invalid"]
+        ))
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        existing = _controlled_source_topology_request_records(
+            records, request["request_id"],
+        )
+        if existing:
+            if (
+                len(existing) != 1
+                or existing[0].get("authority_request_hash")
+                != request["request_hash"]
+                or existing[0].get("request") != request
+            ):
+                raise PacketError(
+                    "controlled_source_topology_request_audit_identity_conflict"
+                )
+            return {
+                "status": "ALREADY_REGISTERED_EXACT",
+                "request_id": request["request_id"],
+                "request_hash": request["request_hash"],
+                "audit_store": str(audit_store),
+                "audit_write": False,
+            }
+        semantic = controlled_source_topology_semantic_fingerprint(request)
+        decided_ids = {
+            str(record.get("authority_request_id") or "")
+            for record in records
+            if record.get("record_type")
+            == CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE
+        }
+        for record in records:
+            if (
+                record.get("record_type")
+                != CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE
+            ):
+                continue
+            prior = (
+                record.get("request")
+                if isinstance(record.get("request"), dict)
+                else {}
+            )
+            prior_id = str(prior.get("request_id") or "")
+            if not prior_id or prior_id in decided_ids:
+                continue
+            try:
+                prior_active = parse_ts(prior.get("expires_at")) > now
+            except PacketError:
+                prior_active = False
+            if (
+                prior_active
+                and controlled_source_topology_semantic_fingerprint(prior)
+                == semantic
+            ):
+                return {
+                    "status": "ALREADY_REGISTERED_SEMANTIC_ACTIVE",
+                    "request_id": prior_id,
+                    "request_hash": str(prior.get("request_hash") or ""),
+                    "audit_store": str(audit_store),
+                    "audit_write": False,
+                    "request": copy.deepcopy(prior),
+                }
+            if prior_active:
+                raise PacketError(
+                    "controlled_source_topology_active_different_request_exists"
+                )
+        append_record(audit_store, {
+            "schema_version": (
+                "v7.controlled-source-topology-authority-audit.v1"
+            ),
+            "record_type": CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE,
+            "authority_request_id": request["request_id"],
+            "authority_request_hash": request["request_hash"],
+            "request": copy.deepcopy(request),
+            "producer": str(producer_id or "tools/v7-users-autoswitch"),
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "REGISTERED",
+        "request_id": request["request_id"],
+        "request_hash": request["request_hash"],
+        "audit_store": str(audit_store),
+        "audit_write": True,
+        "request": copy.deepcopy(request),
+    }
+
+
+def controlled_source_topology_request_from_audit(
+    request_id,
+    request_hash,
+    *,
+    audit_store=None,
+    now=None,
+):
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    matches = _controlled_source_topology_request_records(
+        read_audit_records(audit_store), request_id,
+    )
+    if len(matches) != 1:
+        raise PacketError(
+            "controlled_source_topology_request_audit_missing_or_duplicate"
+        )
+    record = matches[0]
+    request = (
+        record.get("request")
+        if isinstance(record.get("request"), dict)
+        else {}
+    )
+    if str(record.get("authority_request_hash") or "") != str(request_hash or ""):
+        raise PacketError(
+            "controlled_source_topology_request_audit_hash_mismatch"
+        )
+    validation = validate_controlled_source_topology_authority_request(
+        request,
+        decision="DECLINE",
+        expected_request_id=request_id,
+        expected_request_hash=request_hash,
+        now=now or utc_now(),
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(
+            validation.get("errors")
+            or ["controlled_source_topology_request_audit_invalid"]
+        ))
+    return request
+
+
+def record_controlled_source_topology_authority_decision(
+    *,
+    request_id,
+    request_hash,
+    decision,
+    actor_id,
+    audit_store=None,
+    now=None,
+):
+    """Append one exact decision; never materialize the approved topology."""
+    now = now or utc_now()
+    if not str(actor_id or "").strip():
+        raise PacketError("controlled_source_topology_authority_actor_missing")
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        existing = _controlled_source_topology_decision_records(
+            records, request_id,
+        )
+        request = controlled_source_topology_request_from_audit(
+            request_id,
+            request_hash,
+            audit_store=audit_store,
+            now=now,
+        )
+        validation = validate_controlled_source_topology_authority_request(
+            request,
+            decision=decision,
+            expected_request_id=request_id,
+            expected_request_hash=request_hash,
+            now=now,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(
+                validation.get("errors")
+                or ["controlled_source_topology_decision_invalid"]
+            ))
+        decision_id = stable_id("cstopdec", {
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision": decision,
+            "actor_id": str(actor_id),
+        })
+        if existing:
+            exact = [
+                row for row in existing
+                if row.get("decision_id") == decision_id
+                and row.get("authority_request_hash") == request_hash
+                and row.get("decision") == decision
+                and str(
+                    ((row.get("actor_provenance") or {}).get("actor_id")) or ""
+                ) == str(actor_id)
+            ]
+            if len(existing) == 1 and len(exact) == 1:
+                return {
+                    "status": "ALREADY_RECORDED_EXACT",
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                    "decision": decision,
+                    "decision_id": decision_id,
+                    "audit_write": False,
+                    "topology_materialized": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                }
+            raise PacketError(
+                "controlled_source_topology_authority_decision_conflict"
+            )
+        record = append_record(audit_store, {
+            "schema_version": (
+                "v7.controlled-source-topology-authority-decision.v1"
+            ),
+            "record_type": CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE,
+            "decision_id": decision_id,
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "semantic_request_fingerprint": (
+                controlled_source_topology_semantic_fingerprint(request)
+            ),
+            "manifest_hash": str(
+                ((request.get("manifest") or {}).get("manifest_hash")) or ""
+            ),
+            "decision": decision,
+            "actor_provenance": {
+                "actor_id": str(actor_id),
+                "decision_surface": "tools/v7-operator-execution-packet",
+                "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                "recorded_at": now.isoformat(),
+            },
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": (
+            "APPROVED" if decision.startswith("APPROVE_") else "DECLINED"
+        ),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision": decision,
+        "decision_id": record["decision_id"],
+        "next_required_consumer": (
+            "existing controlled-source reservation/provisioning preflight owner"
+            if decision.startswith("APPROVE_")
+            else "existing CPS/OMP residual reconciliation owner"
+        ),
+        "audit_write": True,
+        "policy_write": False,
+        "registry_write": False,
+        "identity_creation": False,
+        "assignment_change": False,
+        "topology_materialized": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "restore_barrier_write": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "rollback_apply": False,
+        "authority_self_expansion": False,
+        "production_maturity_change": False,
     }
 
 
@@ -5322,6 +5914,19 @@ def main(argv=None):
         default=[],
     )
     parser.add_argument(
+        "--record-controlled-source-topology-decision-from-audit-request-id",
+        default="",
+        help=(
+            "Existing Authority owner only: append one exact APPROVE or "
+            "DECLINE decision for a registered controlled-source topology "
+            "request. Never reserves an egress or changes assignments."
+        ),
+    )
+    parser.add_argument(
+        "--controlled-source-topology-request-hash",
+        default="",
+    )
+    parser.add_argument(
         "--standing-policy-active-program",
         default="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
     )
@@ -5340,6 +5945,42 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if (
+            args
+            .record_controlled_source_topology_decision_from_audit_request_id
+        ):
+            if (
+                args.packet or args.generate_from_plan
+                or args.generate_from_preview
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+                or args.record_controlled_certification_substrate_decision_from_audit_request_id
+                or args.replace_expired_controlled_certification_substrate_request_id
+            ):
+                raise PacketError(
+                    "controlled_source_topology_decision_mode_must_not_mix_other_modes"
+                )
+            result = record_controlled_source_topology_authority_decision(
+                request_id=(
+                    args
+                    .record_controlled_source_topology_decision_from_audit_request_id
+                ),
+                request_hash=args.controlled_source_topology_request_hash,
+                decision=args.authority_decision,
+                actor_id=args.authority_actor_id,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store
+                    == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+            )
+            print(json.dumps(
+                redact(result),
+                indent=2 if args.pretty else None,
+                sort_keys=True,
+            ))
+            return 0
         if args.record_controlled_certification_substrate_decision_from_audit_request_id:
             if (
                 args.packet or args.generate_from_plan or args.generate_from_preview

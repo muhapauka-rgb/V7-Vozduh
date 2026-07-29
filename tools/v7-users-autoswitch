@@ -40,6 +40,7 @@ DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
 DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
 DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
 DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
+DEFAULT_EGRESS_DRAFTS_DIR = Path("/etc/v7/egress-drafts")
 DEFAULT_EXECUTION_CONTROL_FILE = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
 DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS = 90
 ROLLBACK_PACKET_SCHEMA = "c2.autoswitch-rollback-packet.v1"
@@ -13863,6 +13864,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--vless-activity-file", default=str(DEFAULT_VLESS_ACTIVITY_FILE))
     parser.add_argument("--load-summary-file", default=str(DEFAULT_LOAD_SUMMARY_FILE))
     parser.add_argument("--restore-barrier-file", default=str(DEFAULT_RESTORE_BARRIER_FILE))
+    parser.add_argument(
+        "--egress-drafts-dir",
+        default=str(DEFAULT_EGRESS_DRAFTS_DIR),
+        help="Existing admin egress-draft owner root used by read-only topology feasibility.",
+    )
     parser.add_argument("--mode", choices=("observe", "guarded", "active"), default="")
     parser.add_argument("--user", default="", help="Limit planning to one user IP.")
     parser.add_argument("--target-egress", default="", help="Limit selected autoswitch moves to users recommended for this egress.")
@@ -13953,6 +13959,24 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "Read-only compact diagnostic of the current controlled campaign "
             "target inventory, full live admission, safety ranking and exact "
             "Authority/reselection boundary. Never creates execution artifacts."
+        ),
+    )
+    parser.add_argument(
+        "--controlled-source-topology-diagnostic",
+        action="store_true",
+        help=(
+            "Read-only controlled-source rebind/provision/slice capability map, "
+            "deterministic option ranking and exact Authority/preflight boundary. "
+            "Never reserves an egress, changes assignments or enters apply."
+        ),
+    )
+    parser.add_argument(
+        "--prepare-controlled-source-topology-authority-request",
+        action="store_true",
+        help=(
+            "Build and append one exact source-topology Engineering Authority "
+            "request through the existing operator audit. Never reserves an "
+            "egress, changes assignments or enters apply."
         ),
     )
     parser.add_argument(
@@ -14840,6 +14864,841 @@ def controlled_campaign_target_selection_diagnostic(
     return result
 
 
+def _controlled_source_reservation_owner_capability() -> dict[str, Any]:
+    """Inspect the existing egress state owner by behavior, not by filename."""
+    candidates = [
+        Path(__file__).resolve().with_name("v7-egress-set-state"),
+    ]
+    installed = shutil.which("v7-egress-set-state")
+    if installed:
+        candidates.append(Path(installed))
+    owner_path = next((path for path in candidates if path.is_file()), None)
+    text = ""
+    if owner_path is not None:
+        try:
+            text = owner_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = ""
+    required_semantics = {
+        "reserve_mode": "certification-reserve",
+        "release_mode": "certification-release",
+        "empty_source_gate": "controlled_source_reservation_requires_empty_source",
+        "cas_gate": "egress_fingerprint_changed",
+        "ordinary_assignment_fence": "production_assignment_allowed",
+        "planner_reservation_fence": "canary_reserved",
+        "exact_reservation_identity": "controlled_source_reservation_id",
+        "expiry_binding": "controlled_source_reservation_expires_at",
+        "bounded_restore": "restore_backup",
+    }
+    checks = {
+        key: token in text for key, token in required_semantics.items()
+    }
+    return {
+        "owner": str(owner_path or "v7-egress-set-state"),
+        "status": "READY" if checks and all(checks.values()) else "ENGINEERING_GAP",
+        "checks": checks,
+        "apply_requires_exact_confirm": (
+            "RESERVE_CONTROLLED_CERTIFICATION_SOURCE" in text
+            and "RELEASE_CONTROLLED_CERTIFICATION_SOURCE" in text
+        ),
+        "runtime_effect_now": False,
+    }
+
+
+def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]]:
+    """Project redacted existing admin draft lifecycle without reading secrets out."""
+    rows: list[dict[str, Any]] = []
+    if not drafts_dir.is_dir():
+        return rows
+    for metadata_path in sorted(drafts_dir.glob("*/metadata.json")):
+        metadata = read_json(metadata_path, {})
+        if not isinstance(metadata, dict):
+            continue
+        config_path = metadata_path.parent / "config.input"
+        expected_hash = str(metadata.get("config_sha256") or "")
+        normalized_hash = ""
+        try:
+            raw = config_path.read_bytes()
+            normalized_hash = hashlib.sha256(raw.rstrip(b"\n")).hexdigest()
+        except OSError:
+            pass
+        protocol = str(metadata.get("protocol") or "")
+        runtime_mode = str(metadata.get("runtime_mode") or "")
+        supported = bool(
+            runtime_mode == "interface"
+            and protocol in {"wireguard", "amneziawg", "openvpn"}
+        )
+        lifecycle_pass = all(
+            str(metadata.get(key) or "") == "PASS"
+            for key in (
+                "last_preflight_status",
+                "last_runtime_status",
+                "last_quarantine_status",
+            )
+        )
+        config_bound = bool(
+            expected_hash
+            and normalized_hash
+            and expected_hash == normalized_hash
+        )
+        usage = (
+            metadata.get("usage_policy")
+            if isinstance(metadata.get("usage_policy"), dict)
+            else {}
+        )
+        hard_limit = max(
+            0,
+            to_int(usage.get("hard_limit") or metadata.get("hard_limit"), 0),
+        )
+        label = str(metadata.get("label") or metadata_path.parent.name)
+        proposed_id = (
+            re.sub(r"[^A-Za-z0-9_.-]+", "-", label.lower()).strip("-")[:32]
+            or metadata_path.parent.name[:32]
+        )
+        blockers = []
+        if not supported:
+            blockers.append("dedicated_source_protocol_adapter_not_supported")
+        if not lifecycle_pass:
+            blockers.append("draft_preflight_runtime_or_quarantine_not_passed")
+        if not config_bound:
+            blockers.append("draft_config_generation_changed")
+        if hard_limit < 1:
+            blockers.append("draft_one_identity_capacity_not_owned")
+        row = {
+            "draft_id": str(metadata.get("id") or metadata_path.parent.name),
+            "proposed_source_id": proposed_id,
+            "protocol": protocol,
+            "runtime_mode": runtime_mode,
+            "status": str(metadata.get("status") or ""),
+            "next_step": str(metadata.get("next_step") or ""),
+            "preflight_status": str(metadata.get("last_preflight_status") or ""),
+            "runtime_status": str(metadata.get("last_runtime_status") or ""),
+            "quarantine_status": str(
+                metadata.get("last_quarantine_status") or ""
+            ),
+            "config_generation_bound": config_bound,
+            "config_fingerprint": normalized_hash,
+            "hard_capacity": hard_limit,
+            "one_identity_trial_capacity": max(0, hard_limit - 1),
+            "ready_for_guarded_disabled_pool_preflight": not blockers,
+            "blockers": sorted(set(blockers)),
+            "owner": "existing admin/v7-admin-api egress draft lifecycle",
+            "raw_config_returned": False,
+        }
+        row["fingerprint"] = sha256_json(row)
+        rows.append(row)
+    return rows
+
+
+def controlled_source_topology_diagnostic(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Close the non-waiting source-topology discovery and preflight gap.
+
+    This is a compact derived projection over existing owners.  It does not
+    become a registry and deliberately emits no production evidence credit.
+    """
+    forbidden = [
+        name for name in (
+            "apply",
+            "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id",
+            "approved_operation_id",
+            "approved_selected_move_hash",
+            "approved_authority_generation",
+            "approved_breaker_generation",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result",
+            "rollback_packet",
+            "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    forbidden_effects = {
+        "registry_write": False,
+        "policy_write": False,
+        "identity_creation": False,
+        "assignment_change": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "restore_barrier_write": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "user_movement": 0,
+        "rollback_apply": False,
+        "authority_expansion": False,
+        "production_maturity_change": False,
+        "controlled_production_credit": False,
+        "natural_l8_credit": False,
+    }
+    if forbidden:
+        return {
+            "schema_version": "v7.controlled-source-topology-capability-map.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": sorted(set(forbidden)),
+            "forbidden_effects": forbidden_effects,
+        }
+
+    target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    topology_authority_status = (
+        operator_execution.controlled_source_topology_authority_status(
+            operator_execution.read_audit_records(
+                Path(args.action_class_audit_store)
+            )
+        )
+    )
+    prior_topology_request = (
+        topology_authority_status.get("request")
+        if isinstance(topology_authority_status.get("request"), dict)
+        else {}
+    )
+    prior_topology_manifest = (
+        prior_topology_request.get("manifest")
+        if isinstance(prior_topology_request.get("manifest"), dict)
+        else {}
+    )
+    declined_rebind_sources = set()
+    declined_drafts = set()
+    if topology_authority_status.get("status") == "DECLINED":
+        declined_resource = str(
+            prior_topology_manifest.get("selected_source_or_draft") or ""
+        )
+        if (
+            prior_topology_request.get("exact_action")
+            == "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+            and declined_resource
+        ):
+            declined_rebind_sources.add(declined_resource)
+        if (
+            prior_topology_request.get("exact_action")
+            == "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+            and declined_resource
+        ):
+            declined_drafts.add(declined_resource)
+    campaign = (
+        target_diagnostic.get("campaign")
+        if isinstance(target_diagnostic.get("campaign"), dict)
+        else {}
+    )
+    source_id = str(campaign.get("source_id") or "")
+    rows = [
+        row for row in (target_diagnostic.get("targets") or [])
+        if isinstance(row, dict)
+    ]
+    reservation_owner = _controlled_source_reservation_owner_capability()
+    certification_users = sorted(
+        str(row.get("ip") or "")
+        for row in parse_registry(Path(args.state_dir) / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+        and bool_value(row.get("certification_user"))
+        and str(row.get("current") or "") == source_id
+        and str(row.get("ip") or "")
+    )
+    trial_identity = certification_users[0] if certification_users else ""
+    certification_identity_fingerprint = sha256_json(certification_users)
+
+    rebind_candidates = []
+    for row in rows:
+        target_id = str(row.get("target_id") or "")
+        capacity = (
+            row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
+        )
+        quality = (
+            row.get("quality") if isinstance(row.get("quality"), dict) else {}
+        )
+        ordinary_users = int(capacity.get("ordinary_users") or 0)
+        free_capacity = int(capacity.get("free_capacity_after_reserve") or 0)
+        empty = int(capacity.get("current_assigned_users") or 0) == 0
+        hard_gate_blockers = []
+        if target_id == source_id:
+            hard_gate_blockers.append("same_as_current_failed_source")
+        if not bool((row.get("health") or {}).get("ok")):
+            hard_gate_blockers.append("healthy_baseline_not_proven")
+        if quality.get("blockers"):
+            hard_gate_blockers.append("quality_or_stability_floor_not_met")
+        if ordinary_users:
+            hard_gate_blockers.append(
+                "ordinary_users_share_whole_egress_failure_domain"
+            )
+        if not empty:
+            hard_gate_blockers.append("source_not_empty_before_reservation")
+        if free_capacity < 1:
+            hard_gate_blockers.append("one_identity_capacity_unavailable")
+        if not row.get("verification_supported"):
+            hard_gate_blockers.append("baseline_verification_not_supported")
+        if not row.get("rollback_containment_supported"):
+            hard_gate_blockers.append("bounded_rollback_not_supported")
+        if reservation_owner.get("status") != "READY":
+            hard_gate_blockers.append(
+                "certification_reservation_and_release_owner_missing"
+            )
+        rebind_candidates.append({
+            "source_id": target_id,
+            "protocol": str(row.get("protocol") or ""),
+            "interface": str(row.get("interface") or ""),
+            "ordinary_identities": ordinary_users,
+            "certification_identities": int(
+                capacity.get("certification_users") or 0
+            ),
+            "healthy_baseline": bool((row.get("health") or {}).get("ok")),
+            "stability_pass": not bool(quality.get("blockers")),
+            "free_capacity_after_reserve": free_capacity,
+            "supports_all_48_identities": free_capacity >= 48,
+            "separate_certification_policy_tables": True,
+            "separate_route_rules": True,
+            "independently_controllable_failure_boundary": bool(
+                empty and ordinary_users == 0
+            ),
+            "reservation_owner_ready": (
+                reservation_owner.get("status") == "READY"
+            ),
+            "technically_feasible": not hard_gate_blockers,
+            "hard_gate_blockers": hard_gate_blockers,
+            "owner_lineage": row.get("owner_lineage") or {},
+            "semantic_fingerprint": str(row.get("semantic_fingerprint") or ""),
+        })
+    rebind_ranked = sorted(
+        (
+            row for row in rebind_candidates
+            if (
+                row.get("technically_feasible")
+                and str(row.get("source_id") or "")
+                not in declined_rebind_sources
+            )
+        ),
+        key=lambda row: (
+            not bool(row.get("supports_all_48_identities")),
+            -int(row.get("free_capacity_after_reserve") or 0),
+            str(row.get("source_id") or ""),
+        ),
+    )
+    selected_rebind = rebind_ranked[0] if rebind_ranked else {}
+
+    drafts = _controlled_source_draft_candidates(
+        Path(args.egress_drafts_dir)
+    )
+    ready_drafts = [
+        row for row in drafts
+        if row.get("ready_for_guarded_disabled_pool_preflight")
+        and str(row.get("draft_id") or "") not in declined_drafts
+    ]
+    ready_drafts.sort(
+        key=lambda row: (
+            -int(row.get("one_identity_trial_capacity") or 0),
+            str(row.get("draft_id") or ""),
+        )
+    )
+    selected_draft = ready_drafts[0] if ready_drafts else {}
+
+    occupied_slice_rows = [
+        row for row in rows
+        if int((row.get("capacity") or {}).get("ordinary_users") or 0) > 0
+    ]
+    slice_blockers = [
+        "shared_egress_failure_affects_ordinary_users",
+        "per_user_policy_table_does_not_isolate_interface_or_peer_failure",
+        "no_existing_owner_proves_independent_slice_failure_and_restore",
+    ] if occupied_slice_rows else [
+        "no_occupied_healthy_egress_requires_slice_instead_of_whole_egress_reservation"
+    ]
+
+    existing_exact_source = source_id
+    selected_source = str(selected_rebind.get("source_id") or "")
+    selected_option = (
+        "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS"
+        if selected_rebind else
+        "OPTION_2_PROVISION_EXISTING_VALID_DRAFT"
+        if selected_draft else
+        ""
+    )
+    if selected_option.startswith("OPTION_1"):
+        required_authority_action = "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+        exact_resource = selected_source
+    elif selected_option.startswith("OPTION_2"):
+        required_authority_action = (
+            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+        )
+        exact_resource = str(selected_draft.get("draft_id") or "")
+    else:
+        required_authority_action = ""
+        exact_resource = ""
+
+    preflight_ready = bool(
+        selected_option and trial_identity and reservation_owner.get("status") == "READY"
+    )
+    manifest = {
+        "selected_option": selected_option,
+        "existing_source": existing_exact_source,
+        "selected_source_or_draft": exact_resource,
+        "trial_identity": trial_identity,
+        "trial_identity_count": 1 if trial_identity else 0,
+        "identity_set_fingerprint": certification_identity_fingerprint,
+        "expected_assignment_delta": (
+            f"{trial_identity}:{existing_exact_source}->{selected_source}"
+            if trial_identity and selected_source else
+            f"{trial_identity}:{existing_exact_source}->NEW_DEDICATED_SOURCE"
+            if trial_identity and selected_draft else ""
+        ),
+        "expected_ordinary_assignment_delta": "NONE",
+        "expected_ordinary_route_delta": "NONE",
+        "capacity_reservation": 1,
+        "max_concurrent_transactions": 1,
+        "reservation_owner": reservation_owner.get("owner"),
+        "verification": (
+            "fresh Matrix baseline + current route + ordinary fingerprints"
+        ),
+        "rollback": (
+            "move exact certification identity to original source; verify; "
+            "release exact reservation from owner backup"
+        ),
+        "failure_mechanism": (
+            "existing v7-egress-set-state controlled-certification guard; "
+            "only after healthy baseline and separate execution Authority"
+        ),
+        "lease_and_expiry_required": True,
+        "packet_required_before_effect": True,
+        "restore_barrier_required_before_effect": True,
+    }
+    manifest["manifest_hash"] = sha256_json(manifest)
+    request_payload = {
+        "schema_version": "v7.controlled-source-topology-authority-request.v1",
+        "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+        "active_program": (
+            "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+        ),
+        "mission": (
+            "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+            "SLICE_FEASIBILITY_V1"
+        ),
+        "decision_set": [
+            f"APPROVE_{required_authority_action}"
+            if required_authority_action else "",
+            "DECLINE",
+        ],
+        "exact_action": required_authority_action,
+        "manifest": manifest,
+        "current_campaign_request_id": str(campaign.get("request_id") or ""),
+        "current_campaign_request_hash": str(campaign.get("request_hash") or ""),
+        "supersedes_source_binding_only": True,
+        "tier48_capability_or_campaign_reapproval": False,
+        "ordinary_customer_involvement": False,
+        "self_expansion_allowed": False,
+        "forbidden_effects": [
+            key for key, value in forbidden_effects.items()
+            if value is False or value == 0
+        ],
+        "reentry_condition": (
+            "one exact independent decision is appended through the existing "
+            "operator-execution Authority audit; approval permits only the "
+            "manifest-bound one-identity topology setup and fresh preflight, "
+            "not controlled failure or campaign execution"
+        ),
+    }
+    request_hash = sha256_json(request_payload)
+    authority_template = {
+        **request_payload,
+        "request_id": f"cstopauth_r1_{request_hash[:24]}",
+        "request_hash": request_hash,
+        "actionable": preflight_ready,
+        "issuing_owner": (
+            "existing admin_core/operator_execution.py append-only "
+            "Authority audit"
+        ),
+        "registered": False,
+        "registration_reason": (
+            "independent decision path must consume this exact package; "
+            "the current Tier-48 campaign grant remains unchanged"
+        ),
+    }
+    registered_request = (
+        topology_authority_status.get("request")
+        if isinstance(topology_authority_status.get("request"), dict)
+        else {}
+    )
+    registered_manifest = (
+        registered_request.get("manifest")
+        if isinstance(registered_request.get("manifest"), dict)
+        else {}
+    )
+    registered_matches = bool(
+        registered_request
+        and str(registered_request.get("exact_action") or "")
+        == required_authority_action
+        and str(registered_manifest.get("manifest_hash") or "")
+        == str(manifest.get("manifest_hash") or "")
+        and str(registered_request.get("current_campaign_request_id") or "")
+        == str(campaign.get("request_id") or "")
+        and str(registered_request.get("current_campaign_request_hash") or "")
+        == str(campaign.get("request_hash") or "")
+    )
+    authority_package = (
+        {
+            **registered_request,
+            "actionable": (
+                preflight_ready
+                and topology_authority_status.get("status") == "PENDING"
+            ),
+            "issuing_owner": (
+                "existing admin_core/operator_execution.py append-only "
+                "Authority audit"
+            ),
+            "registered": True,
+            "authority_lifecycle": {
+                key: topology_authority_status.get(key)
+                for key in (
+                    "status",
+                    "request_id",
+                    "request_hash",
+                    "created_at",
+                    "expires_at",
+                    "decision",
+                    "decision_id",
+                    "actor_id",
+                )
+            },
+        }
+        if registered_matches
+        else authority_template
+    )
+
+    options = {
+        "option_1_existing_egress_rebind": {
+            "result": (
+                "AUTHORITY_INPUT_REQUIRED"
+                if selected_rebind else
+                "UNSAFE_BY_PROVEN_INVARIANT"
+            ),
+            "selected_candidate": selected_rebind,
+            "all_candidates": rebind_candidates,
+            "engineering_gap": (
+                "NONE" if reservation_owner.get("status") == "READY"
+                else "ATOMIC_CONTROLLED_SOURCE_RESERVATION_AND_RELEASE"
+            ),
+            "authority_action": (
+                "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+                if selected_rebind else ""
+            ),
+        },
+        "option_2_dedicated_source": {
+            "result": (
+                "AUTHORITY_INPUT_REQUIRED"
+                if selected_draft else
+                "EXTERNAL_RESOURCE_REQUIRED"
+            ),
+            "selected_draft": selected_draft,
+            "drafts": drafts,
+            "existing_owner": (
+                "admin/v7-admin-api egress draft preflight, quarantine, "
+                "disabled pool, runtime profile and enable lifecycle"
+            ),
+            "exact_external_resource": (
+                "" if selected_draft
+                else "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
+            ),
+        },
+        "option_3_controlled_slice": {
+            "result": "UNSAFE_BY_PROVEN_INVARIANT",
+            "occupied_egress_count": len(occupied_slice_rows),
+            "blockers": slice_blockers,
+            "separate_policy_table_alone_is_isolation": False,
+            "equivalent_safe_implementation_routes_to_option_2": True,
+        },
+    }
+    result = {
+        "schema_version": "v7.controlled-source-topology-capability-map.v1",
+        "status": (
+            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+            if preflight_ready else
+            "CONTROLLED_SOURCE_TOPOLOGY_NO_SAFE_OPTION"
+        ),
+        "ok": True,
+        "read_only": True,
+        "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
+        "current_campaign": campaign,
+        "reservation_owner_capability": reservation_owner,
+        "options": options,
+        "recommendation": {
+            "schema_version": "v7.controlled-source-topology-recommendation.v1",
+            "selected_option": selected_option,
+            "selected_resource": exact_resource,
+            "ranking_reason": (
+                "live healthy empty owner-backed egress with capacity for all "
+                "48 identities and reversible ordinary-assignment fence"
+                if selected_rebind else
+                "existing valid dedicated draft supports one-identity preflight"
+                if selected_draft else
+                "no option passed hard safety gates"
+            ),
+            "rejected_options": {
+                "OPTION_3_CONTROLLED_SLICE": slice_blockers,
+                **({
+                    "OPTION_2_PROVISION_EXISTING_VALID_DRAFT": [
+                        "higher implementation scope than ready empty rebind",
+                        "current draft hard capacity below full campaign",
+                    ],
+                } if selected_rebind and selected_draft else {}),
+            },
+            "required_engineering_actions": (
+                [] if reservation_owner.get("status") == "READY"
+                else ["implement atomic controlled-source reserve/release"]
+            ),
+            "required_authority_action": required_authority_action,
+            "required_external_input": "NONE" if selected_option else (
+                "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
+            ),
+            "rollback_plan": manifest["rollback"],
+            "next_automatic_successor": (
+                "existing Authority audit decision consumer -> fresh topology "
+                "preflight -> existing Candidate/Packet/lease owners"
+                if preflight_ready else
+                "exact external resource owner -> same diagnostic"
+            ),
+        },
+        "production_preflight": {
+            "status": (
+                "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+                if preflight_ready else "STOP_SAFE"
+            ),
+            "manifest": manifest,
+            "authority_requirement": required_authority_action,
+            "ordinary_user_fingerprints_unchanged_required": True,
+            "stale_input_rejection": True,
+            "mutation_performed": False,
+        },
+        "authority_package": authority_package,
+        "authority_lifecycle": {
+            "status": str(topology_authority_status.get("status") or "NONE"),
+            "matching_current_preflight": registered_matches,
+            "request_id": str(
+                topology_authority_status.get("request_id") or ""
+            ),
+            "request_hash": str(
+                topology_authority_status.get("request_hash") or ""
+            ),
+            "created_at": str(
+                topology_authority_status.get("created_at") or ""
+            ),
+            "expires_at": str(
+                topology_authority_status.get("expires_at") or ""
+            ),
+            "decision": str(
+                topology_authority_status.get("decision") or ""
+            ),
+            "decision_id": str(
+                topology_authority_status.get("decision_id") or ""
+            ),
+        },
+        "polygon_fault_verification_contract": {
+            "scenarios": [
+                "reserve_or_create",
+                "one_identity_assignment",
+                "healthy_baseline",
+                "cohort_specific_failure",
+                "ordinary_user_invariance",
+                "recovery",
+                "rollback",
+                "duplicate_wake",
+                "concurrent_planner",
+                "stale_inventory",
+                "crash_after_resource_creation",
+                "crash_after_assignment",
+                "crash_after_failure_injection",
+                "crash_during_rollback",
+                "expired_lease",
+                "cleanup_after_success",
+                "cleanup_after_failure",
+            ],
+            "invariants": [
+                "ORDINARY_USER_ASSIGNMENTS_UNCHANGED",
+                "ORDINARY_USER_ROUTES_UNCHANGED",
+                "CONTROLLED_FAILURE_SCOPE_EXACT",
+                "CONTROLLED_BASELINE_VERIFIABLE",
+                "ROLLBACK_BOUNDED_AND_IDEMPOTENT",
+                "NO_PRIVATE_KEY_DISCLOSURE",
+                "NO_ORPHANED_CONTROLLED_RESOURCE",
+                "ONE_DURABLE_SUCCESSOR",
+                "NO_SYNTHETIC_PRODUCTION_CREDIT",
+            ],
+        },
+        "durable_successor": (
+            "AUTHORITY_INPUT_REQUIRED:"
+            + required_authority_action
+            if preflight_ready else
+            "EXTERNAL_RESOURCE_REQUIRED:"
+            "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
+        ),
+        "forbidden_effects": forbidden_effects,
+    }
+    result["capability_map_fingerprint"] = sha256_json({
+        "current_campaign": campaign,
+        "options": options,
+        "recommendation": result["recommendation"],
+        "production_preflight": result["production_preflight"],
+    })
+    return result
+
+
+def controlled_source_topology_authority_request_only(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Register the exact current preflight through the existing audit owner."""
+    forbidden = [
+        name for name in (
+            "apply",
+            "emergency_failover_autonomy",
+            "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id",
+            "approved_operation_id",
+            "approved_selected_move_hash",
+            "approved_authority_generation",
+            "approved_breaker_generation",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result",
+            "rollback_packet",
+            "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": (
+                "v7.controlled-source-topology-authority-entrypoint.v1"
+            ),
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [
+                f"controlled_source_topology_request_forbids_{name}"
+                for name in sorted(set(forbidden))
+            ],
+        }
+    diagnostic = controlled_source_topology_diagnostic(args)
+    package = (
+        diagnostic.get("authority_package")
+        if isinstance(diagnostic.get("authority_package"), dict)
+        else {}
+    )
+    if (
+        diagnostic.get("status")
+        != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+        or package.get("actionable") is not True
+    ):
+        lifecycle = (
+            diagnostic.get("authority_lifecycle")
+            if isinstance(diagnostic.get("authority_lifecycle"), dict)
+            else {}
+        )
+        if (
+            package.get("registered") is True
+            and lifecycle.get("matching_current_preflight") is True
+            and lifecycle.get("status") == "PENDING"
+        ):
+            return {
+                "schema_version": (
+                    "v7.controlled-source-topology-authority-entrypoint.v1"
+                ),
+                "status": "PASS",
+                "ok": True,
+                "authority_classification": "ENGINEERING_AUTHORITY",
+                "request": package,
+                "registration": {
+                    "status": "ALREADY_REGISTERED_SEMANTIC_ACTIVE",
+                    "request_id": str(package.get("request_id") or ""),
+                    "request_hash": str(package.get("request_hash") or ""),
+                    "audit_write": False,
+                },
+                "next_required_consumer": (
+                    "existing independent Authority owner"
+                ),
+                "forbidden_effects": diagnostic.get("forbidden_effects"),
+            }
+        return {
+            "schema_version": (
+                "v7.controlled-source-topology-authority-entrypoint.v1"
+            ),
+            "status": "STOP_SAFE_PREDECESSOR_REQUIRED",
+            "ok": False,
+            "blockers": [
+                str(diagnostic.get("durable_successor") or "preflight_not_ready")
+            ],
+            "diagnostic": diagnostic,
+        }
+    request = (
+        operator_execution.build_controlled_source_topology_authority_request(
+            package
+        )
+    )
+    registration = (
+        operator_execution.register_controlled_source_topology_authority_request(
+            request,
+            audit_store=Path(args.action_class_audit_store),
+            producer_id="tools/v7-users-autoswitch",
+        )
+    )
+    registered_request = (
+        registration.get("request")
+        if isinstance(registration.get("request"), dict)
+        else request
+    )
+    return {
+        "schema_version": (
+            "v7.controlled-source-topology-authority-entrypoint.v1"
+        ),
+        "status": "PASS",
+        "ok": True,
+        "authority_classification": "ENGINEERING_AUTHORITY",
+        "request": registered_request,
+        "registration": registration,
+        "selected_option": str(
+            ((diagnostic.get("recommendation") or {}).get("selected_option"))
+            or ""
+        ),
+        "selected_resource": str(
+            ((diagnostic.get("recommendation") or {}).get("selected_resource"))
+            or ""
+        ),
+        "next_required_consumer": "existing independent Authority owner",
+        "reentry_condition": str(
+            registered_request.get("reentry_condition") or ""
+        ),
+        "forbidden_effects": {
+            "audit_write": bool(registration.get("audit_write")),
+            "policy_write": False,
+            "registry_write": False,
+            "identity_creation": False,
+            "assignment_change": False,
+            "topology_materialized": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "restore_barrier_write": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
 def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str, Any]:
     """Expose the existing policy/audit owner as a redacted read-only status.
 
@@ -15006,6 +15865,7 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
     target_selection_diagnostic = (
         controlled_campaign_target_selection_diagnostic(args)
     )
+    source_topology_diagnostic = controlled_source_topology_diagnostic(args)
     pinned_target_projection = next((
         row for row in (target_selection_diagnostic.get("targets") or [])
         if isinstance(row, dict)
@@ -15056,6 +15916,7 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "controlled_campaign_target_selection": (
             target_selection_diagnostic
         ),
+        "controlled_source_topology": source_topology_diagnostic,
         "ordinary_production_proven_max": int(
             runtime_axes["ordinary_production_proven_max"]
         ),
@@ -15457,6 +16318,14 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
 
 def main() -> int:
     args = build_arg_parser().parse_args()
+    if args.prepare_controlled_source_topology_authority_request:
+        result = controlled_source_topology_authority_request_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
+    if args.controlled_source_topology_diagnostic:
+        result = controlled_source_topology_diagnostic(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.controlled_target_selection_diagnostic:
         result = controlled_campaign_target_selection_diagnostic(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

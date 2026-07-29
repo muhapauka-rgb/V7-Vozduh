@@ -382,6 +382,312 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             result["forbidden_effects"]["inventory_store_created"]
         )
 
+    def test_controlled_source_topology_prefers_safe_empty_rebind_and_emits_exact_boundary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "\n".join(
+                    f"ip=10.7.0.{index} enabled=1 current=source "
+                    "certification_user=1 certification_group=t48"
+                    for index in range(10, 58)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 enabled=1\n"
+                "id=vless protocol=vless type=interface interface=tun0 enabled=1\n",
+                encoding="utf-8",
+            )
+            drafts = root / "drafts"
+            drafts.mkdir()
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(drafts),
+            ])
+            target_projection = {
+                "campaign": {
+                    "request_id": "cpsauth_old",
+                    "request_hash": "a" * 64,
+                    "source_id": "source",
+                },
+                "targets": [{
+                    "target_id": "vless",
+                    "protocol": "vless",
+                    "interface": "tun0",
+                    "health": {"ok": True},
+                    "quality": {"blockers": []},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 0,
+                        "current_assigned_users": 0,
+                        "free_capacity_after_reserve": 60,
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "owner_lineage": {
+                        "inventory": "egress.registry",
+                        "assignments": "users.registry",
+                    },
+                    "semantic_fingerprint": "b" * 64,
+                }],
+            }
+
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value=target_projection,
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(
+                    args
+                )
+
+        self.assertEqual(
+            result["status"],
+            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+        )
+        self.assertEqual(
+            result["recommendation"]["selected_option"],
+            "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+        )
+        self.assertEqual(
+            result["recommendation"]["required_authority_action"],
+            "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+        )
+        self.assertEqual(
+            result["production_preflight"]["manifest"]["trial_identity_count"],
+            1,
+        )
+        self.assertEqual(
+            result["options"]["option_3_controlled_slice"]["result"],
+            "UNSAFE_BY_PROVEN_INVARIANT",
+        )
+        self.assertTrue(result["authority_package"]["actionable"])
+        self.assertFalse(result["authority_package"]["registered"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
+    def test_controlled_source_topology_authority_audit_is_exact_once(self):
+        manifest = {
+            "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+            "existing_source": "source",
+            "selected_source_or_draft": "vless",
+            "trial_identity": "10.7.0.16",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "b" * 64,
+            "expected_assignment_delta": "10.7.0.16:source->vless",
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+        payload = {
+            "active_program": (
+                "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+            ),
+            "mission": (
+                "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+                "SLICE_FEASIBILITY_V1"
+            ),
+            "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+            "manifest": manifest,
+            "current_campaign_request_id": "cpsauth_existing",
+            "current_campaign_request_hash": "a" * 64,
+            "supersedes_source_binding_only": True,
+            "tier48_capability_or_campaign_reapproval": False,
+            "ordinary_customer_involvement": False,
+            "self_expansion_allowed": False,
+            "forbidden_effects": ["ordinary_user_movement"],
+            "reentry_condition": "exact independent decision",
+        }
+        request = (
+            operator_execution
+            .build_controlled_source_topology_authority_request(payload)
+        )
+        self.assertTrue(
+            operator_execution
+            .validate_controlled_source_topology_authority_request(
+                request
+            )["ok"]
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-execution-audit.jsonl"
+            first = (
+                operator_execution
+                .register_controlled_source_topology_authority_request(
+                    request,
+                    audit_store=audit,
+                )
+            )
+            duplicate = (
+                operator_execution
+                .register_controlled_source_topology_authority_request(
+                    request,
+                    audit_store=audit,
+                )
+            )
+            pending = (
+                operator_execution.controlled_source_topology_authority_status(
+                    operator_execution.read_audit_records(audit)
+                )
+            )
+            approval = f"APPROVE_{request['exact_action']}"
+            decision = (
+                operator_execution
+                .record_controlled_source_topology_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision=approval,
+                    actor_id="test-independent-authority",
+                    audit_store=audit,
+                )
+            )
+            exact_repeat = (
+                operator_execution
+                .record_controlled_source_topology_authority_decision(
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision=approval,
+                    actor_id="test-independent-authority",
+                    audit_store=audit,
+                )
+            )
+            approved = (
+                operator_execution.controlled_source_topology_authority_status(
+                    operator_execution.read_audit_records(audit)
+                )
+            )
+        self.assertEqual(first["status"], "REGISTERED")
+        self.assertEqual(duplicate["status"], "ALREADY_REGISTERED_EXACT")
+        self.assertEqual(pending["status"], "PENDING")
+        self.assertEqual(decision["status"], "APPROVED")
+        self.assertFalse(decision["topology_materialized"])
+        self.assertEqual(decision["users_moved"], 0)
+        self.assertEqual(exact_repeat["status"], "ALREADY_RECORDED_EXACT")
+        self.assertEqual(approved["status"], "APPROVED")
+
+        malformed = json.loads(json.dumps(request))
+        malformed["manifest"]["expected_ordinary_route_delta"] = "CHANGED"
+        malformed["request_hash"] = (
+            operator_execution.controlled_source_topology_request_hash(
+                malformed
+            )
+        )
+        malformed["request_id"] = (
+            f"cstopauth_r1_{malformed['request_hash'][:24]}"
+        )
+        validation = (
+            operator_execution
+            .validate_controlled_source_topology_authority_request(malformed)
+        )
+        self.assertFalse(validation["ok"])
+        self.assertIn(
+            "controlled_source_topology_ordinary_delta_invalid",
+            validation["errors"],
+        )
+
+    def test_controlled_source_topology_prepare_reuses_active_semantic_request(self):
+        manifest = {
+            "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+            "existing_source": "source",
+            "selected_source_or_draft": "vless",
+            "trial_identity": "10.7.0.16",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "b" * 64,
+            "expected_assignment_delta": "10.7.0.16:source->vless",
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+        package = {
+            "schema_version": (
+                operator_execution.CONTROLLED_SOURCE_TOPOLOGY_REQUEST_SCHEMA
+            ),
+            "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+            "active_program": (
+                "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+            ),
+            "mission": (
+                "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+                "SLICE_FEASIBILITY_V1"
+            ),
+            "decision_set": [
+                "APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                "DECLINE",
+            ],
+            "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+            "manifest": manifest,
+            "current_campaign_request_id": "cpsauth_existing",
+            "current_campaign_request_hash": "a" * 64,
+            "supersedes_source_binding_only": True,
+            "tier48_capability_or_campaign_reapproval": False,
+            "ordinary_customer_involvement": False,
+            "self_expansion_allowed": False,
+            "forbidden_effects": ["ordinary_user_movement"],
+            "reentry_condition": "exact independent decision",
+            "actionable": True,
+            "registered": False,
+        }
+        diagnostic = {
+            "status": (
+                "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+            ),
+            "authority_package": package,
+            "recommendation": {
+                "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+                "selected_resource": "vless",
+            },
+            "forbidden_effects": {"user_movement": 0},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-execution-audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--action-class-audit-store", str(audit),
+            ])
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_source_topology_diagnostic",
+                return_value=diagnostic,
+            ):
+                first = (
+                    self.autoswitch
+                    .controlled_source_topology_authority_request_only(args)
+                )
+                second = (
+                    self.autoswitch
+                    .controlled_source_topology_authority_request_only(args)
+                )
+        self.assertEqual(first["status"], "PASS")
+        self.assertEqual(first["registration"]["status"], "REGISTERED")
+        self.assertEqual(second["status"], "PASS")
+        self.assertEqual(
+            second["registration"]["status"],
+            "ALREADY_REGISTERED_SEMANTIC_ACTIVE",
+        )
+        self.assertEqual(
+            first["request"]["request_id"],
+            second["request"]["request_id"],
+        )
+        self.assertEqual(first["forbidden_effects"]["user_movement"], 0)
+
     def test_controlled_certification_pool_projection_is_compact_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)
@@ -1244,6 +1550,120 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "controlled production proven max=0; completed stages=NONE; "
                 "next stage=NONE",
             )
+            runtime_status["controlled_source_topology"] = {
+                "status": (
+                    "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+                ),
+                "capability_map_fingerprint": "topology-map-fingerprint",
+                "recommendation": {
+                    "selected_option": (
+                        "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS"
+                    ),
+                    "selected_resource": "vless",
+                    "required_authority_action": (
+                        "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+                    ),
+                },
+                "authority_package": {
+                    "actionable": True,
+                    "exact_action": (
+                        "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+                    ),
+                    "request_id": "cstopauth_r1_exact",
+                    "request_hash": "f" * 64,
+                },
+                "authority_lifecycle": {
+                    "status": "PENDING",
+                    "matching_current_preflight": True,
+                    "request_id": "cstopauth_r1_exact",
+                    "request_hash": "f" * 64,
+                    "expires_at": "2099-01-01T00:00:00+00:00",
+                    "decision": "",
+                    "decision_id": "",
+                },
+                "production_preflight": {
+                    "manifest": {"manifest_hash": "m" * 64},
+                },
+            }
+            topology_boundary = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                topology_boundary["next_action"],
+                "ENGINEERING_AUTHORITY_REBIND_CONTROLLED_CERTIFICATION_SOURCE_REQUIRED",
+            )
+            topology_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                topology_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "ENGINEERING_AUTHORITY",
+                topology_boundary,
+            )
+            self.assertEqual(
+                topology_live[
+                    "CONTROLLED_SOURCE_TOPOLOGY_SELECTED_RESOURCE"
+                ].strip("`"),
+                "vless",
+            )
+            self.assertEqual(
+                topology_live[
+                    "CONTROLLED_SOURCE_TOPOLOGY_AUTHORITY_STATUS"
+                ].strip("`"),
+                "PENDING",
+            )
+            runtime_status["controlled_source_topology"][
+                "authority_package"
+            ]["actionable"] = False
+            runtime_status["controlled_source_topology"][
+                "authority_lifecycle"
+            ].update({
+                "status": "APPROVED",
+                "decision": (
+                    "APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+                ),
+                "decision_id": "cstopdec_exact",
+            })
+            topology_approved = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                topology_approved["next_action"],
+                "CONTROLLED_SOURCE_TOPOLOGY_APPROVED_PACKET_AND_"
+                "RESTORE_BARRIER_PREFLIGHT_REQUIRED",
+            )
+            topology_approved_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                topology_approved_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "NONE",
+                topology_approved,
+            )
+            self.assertEqual(
+                topology_approved_live["CURRENT_EXECUTION_FRONTIER"].strip("`"),
+                "CONTROLLED_SOURCE_TOPOLOGY_APPROVED_PACKET_AND_"
+                "RESTORE_BARRIER_PREFLIGHT_REQUIRED",
+            )
+            self.assertEqual(
+                topology_approved_live[
+                    "CONTROLLED_SOURCE_TOPOLOGY_AUTHORITY_STATUS"
+                ].strip("`"),
+                "APPROVED",
+            )
+            runtime_status.pop("controlled_source_topology")
             runtime_status[
                 "controlled_certification_substrate_authority"
             ]["source_precondition_status"] = "PASS_READY_FOR_APPROVED_SETUP"

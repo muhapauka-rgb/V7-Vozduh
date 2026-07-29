@@ -688,6 +688,141 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(first["forbidden_effects"]["user_movement"], 0)
 
+    def test_controlled_source_topology_material_change_supersedes_stale_request(self):
+        manifest = {
+            "selected_option": "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+            "existing_source": "source",
+            "selected_source_or_draft": "draft-exact",
+            "trial_identity": "10.7.0.16",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "b" * 64,
+            "expected_assignment_delta": (
+                "10.7.0.16:source->NEW_DEDICATED_SOURCE"
+            ),
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+        payload = {
+            "active_program": (
+                "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+            ),
+            "mission": (
+                "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+                "SLICE_FEASIBILITY_V1"
+            ),
+            "exact_action": (
+                "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+            ),
+            "manifest": manifest,
+            "current_campaign_request_id": "cpsauth_existing",
+            "current_campaign_request_hash": "a" * 64,
+            "supersedes_source_binding_only": True,
+            "tier48_capability_or_campaign_reapproval": False,
+            "ordinary_customer_involvement": False,
+            "self_expansion_allowed": False,
+            "forbidden_effects": ["ordinary_user_movement"],
+            "reentry_condition": "exact independent decision",
+        }
+        prior = (
+            operator_execution
+            .build_controlled_source_topology_authority_request(payload)
+        )
+        changed_payload = json.loads(json.dumps(payload))
+        changed_payload["exact_action"] = (
+            "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+        )
+        changed_payload["manifest"].update({
+            "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+            "selected_source_or_draft": "vless",
+            "expected_assignment_delta": "10.7.0.16:source->vless",
+        })
+        changed_payload["manifest"].pop("manifest_hash")
+        changed_payload["manifest"]["manifest_hash"] = (
+            operator_execution.sha256_json(changed_payload["manifest"])
+        )
+        replacement = (
+            operator_execution
+            .build_controlled_source_topology_authority_request(
+                changed_payload
+            )
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-execution-audit.jsonl"
+            operator_execution.register_controlled_source_topology_authority_request(
+                prior,
+                audit_store=audit,
+            )
+            registered = (
+                operator_execution
+                .register_controlled_source_topology_authority_request(
+                    replacement,
+                    audit_store=audit,
+                )
+            )
+            duplicate = (
+                operator_execution
+                .register_controlled_source_topology_authority_request(
+                    replacement,
+                    audit_store=audit,
+                )
+            )
+            current = (
+                operator_execution.controlled_source_topology_authority_status(
+                    operator_execution.read_audit_records(audit)
+                )
+            )
+            with self.assertRaisesRegex(
+                operator_execution.PacketError,
+                "controlled_source_topology_request_superseded_stale_preflight",
+            ):
+                (
+                    operator_execution
+                    .record_controlled_source_topology_authority_decision(
+                        request_id=prior["request_id"],
+                        request_hash=prior["request_hash"],
+                        decision="DECLINE",
+                        actor_id="test-independent-authority",
+                        audit_store=audit,
+                    )
+                )
+            records = operator_execution.read_audit_records(audit)
+        self.assertEqual(
+            registered["status"],
+            "REGISTERED_AFTER_STALE_PREFLIGHT_INVALIDATION",
+        )
+        self.assertEqual(len(registered["invalidated_requests"]), 1)
+        self.assertEqual(
+            registered["invalidated_requests"][0]["request_id"],
+            prior["request_id"],
+        )
+        self.assertEqual(
+            duplicate["status"],
+            "ALREADY_REGISTERED_EXACT",
+        )
+        self.assertEqual(current["status"], "PENDING")
+        self.assertEqual(current["request_id"], replacement["request_id"])
+        self.assertEqual(
+            len([
+                row for row in records
+                if row.get("record_type")
+                == (
+                    operator_execution
+                    .CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+                )
+            ]),
+            1,
+        )
+
     def test_controlled_certification_pool_projection_is_compact_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

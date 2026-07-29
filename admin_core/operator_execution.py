@@ -149,6 +149,9 @@ CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE = (
 CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE = (
     "controlled_source_topology_authority_decision"
 )
+CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE = (
+    "controlled_source_topology_authority_request_invalidated"
+)
 CONTROLLED_SOURCE_TOPOLOGY_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_SOURCE_TOPOLOGY_ACTIONS = {
     "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
@@ -1858,6 +1861,16 @@ def _controlled_source_topology_decision_records(records, request_id):
     ]
 
 
+def _controlled_source_topology_invalidation_records(records, request_id):
+    return [
+        record for record in (records if isinstance(records, list) else [])
+        if record.get("record_type")
+        == CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+        and str(record.get("authority_request_id") or "")
+        == str(request_id or "")
+    ]
+
+
 def controlled_source_topology_authority_status(records, *, now=None):
     """Project the newest exact topology request/decision from the same audit."""
     now = now or utc_now()
@@ -1890,6 +1903,9 @@ def controlled_source_topology_authority_status(records, *, now=None):
     decisions = _controlled_source_topology_decision_records(
         records, request_id,
     )
+    invalidations = _controlled_source_topology_invalidation_records(
+        records, request_id,
+    )
     validation = validate_controlled_source_topology_authority_request(
         request,
         decision="DECLINE",
@@ -1902,7 +1918,11 @@ def controlled_source_topology_authority_status(records, *, now=None):
         if error != "controlled_source_topology_request_expired"
     ]
     decision_record = {}
-    if non_expiry_errors:
+    if len(invalidations) > 1:
+        status = "STOP_SAFE_DUPLICATE_REQUEST_INVALIDATIONS"
+    elif invalidations:
+        status = "SUPERSEDED_STALE_PREFLIGHT"
+    elif non_expiry_errors:
         status = "STOP_SAFE_INVALID_REQUEST"
     elif len(decisions) > 1:
         status = "STOP_SAFE_DUPLICATE_OR_CONFLICTING_DECISIONS"
@@ -1937,6 +1957,17 @@ def controlled_source_topology_authority_status(records, *, now=None):
         "decision_id": str(decision_record.get("decision_id") or ""),
         "actor_id": str(
             ((decision_record.get("actor_provenance") or {}).get("actor_id"))
+            or ""
+        ),
+        "invalidation_id": str(
+            (invalidations[0].get("invalidation_id") if invalidations else "")
+            or ""
+        ),
+        "invalidation_reason": str(
+            (
+                invalidations[0].get("reason")
+                if invalidations else ""
+            )
             or ""
         ),
         "request": copy.deepcopy(request),
@@ -1994,6 +2025,13 @@ def register_controlled_source_topology_authority_request(
             if record.get("record_type")
             == CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE
         }
+        invalidated_ids = {
+            str(record.get("authority_request_id") or "")
+            for record in records
+            if record.get("record_type")
+            == CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+        }
+        invalidated_requests = []
         for record in records:
             if (
                 record.get("record_type")
@@ -2006,7 +2044,11 @@ def register_controlled_source_topology_authority_request(
                 else {}
             )
             prior_id = str(prior.get("request_id") or "")
-            if not prior_id or prior_id in decided_ids:
+            if (
+                not prior_id
+                or prior_id in decided_ids
+                or prior_id in invalidated_ids
+            ):
                 continue
             try:
                 prior_active = parse_ts(prior.get("expires_at")) > now
@@ -2026,9 +2068,48 @@ def register_controlled_source_topology_authority_request(
                     "request": copy.deepcopy(prior),
                 }
             if prior_active:
-                raise PacketError(
-                    "controlled_source_topology_active_different_request_exists"
-                )
+                invalidation_id = stable_id("cstopinv", {
+                    "authority_request_id": prior_id,
+                    "authority_request_hash": str(
+                        prior.get("request_hash") or ""
+                    ),
+                    "replacement_request_id": request["request_id"],
+                    "replacement_request_hash": request["request_hash"],
+                    "reason": "MATERIAL_PREFLIGHT_CHANGED",
+                })
+                append_record(audit_store, {
+                    "schema_version": (
+                        "v7.controlled-source-topology-authority-"
+                        "invalidation.v1"
+                    ),
+                    "record_type": (
+                        CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+                    ),
+                    "invalidation_id": invalidation_id,
+                    "authority_request_id": prior_id,
+                    "authority_request_hash": str(
+                        prior.get("request_hash") or ""
+                    ),
+                    "replacement_request_id": request["request_id"],
+                    "replacement_request_hash": request["request_hash"],
+                    "reason": "MATERIAL_PREFLIGHT_CHANGED",
+                    "producer": str(
+                        producer_id or "tools/v7-users-autoswitch"
+                    ),
+                    "created_at": now.isoformat(),
+                    "authority_decision": False,
+                    "topology_materialized": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                })
+                invalidated_ids.add(prior_id)
+                invalidated_requests.append({
+                    "request_id": prior_id,
+                    "request_hash": str(prior.get("request_hash") or ""),
+                    "invalidation_id": invalidation_id,
+                    "reason": "MATERIAL_PREFLIGHT_CHANGED",
+                })
         append_record(audit_store, {
             "schema_version": (
                 "v7.controlled-source-topology-authority-audit.v1"
@@ -2041,11 +2122,15 @@ def register_controlled_source_topology_authority_request(
             "created_at": now.isoformat(),
         })
     return {
-        "status": "REGISTERED",
+        "status": (
+            "REGISTERED_AFTER_STALE_PREFLIGHT_INVALIDATION"
+            if invalidated_requests else "REGISTERED"
+        ),
         "request_id": request["request_id"],
         "request_hash": request["request_hash"],
         "audit_store": str(audit_store),
         "audit_write": True,
+        "invalidated_requests": invalidated_requests,
         "request": copy.deepcopy(request),
     }
 
@@ -2068,6 +2153,13 @@ def controlled_source_topology_request_from_audit(
             "controlled_source_topology_request_audit_missing_or_duplicate"
         )
     record = matches[0]
+    invalidations = _controlled_source_topology_invalidation_records(
+        read_audit_records(audit_store), request_id,
+    )
+    if invalidations:
+        raise PacketError(
+            "controlled_source_topology_request_superseded_stale_preflight"
+        )
     request = (
         record.get("request")
         if isinstance(record.get("request"), dict)

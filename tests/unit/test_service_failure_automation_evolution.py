@@ -140,6 +140,239 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(len(contract["bounded_shadow_moves"]), 4)
         self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
+    def test_registry_capacity_limits_are_consumed_by_existing_load_owner(self):
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        planner.dynamic_load = {
+            "soft_limit": 30,
+            "hard_limit": 60,
+            "failover_hard_limit": 80,
+        }
+        planner.load_policy = {"failover_capacity_multiplier": 1.25}
+        egress = self.autoswitch.Egress(
+            id="execution",
+            users=9,
+            raw={
+                "registry": {
+                    "soft_limit": "5",
+                    "hard_limit": "10",
+                },
+            },
+        )
+
+        result = planner._load_limits_for_egress(egress)
+
+        self.assertEqual(result["soft_limit"], 5)
+        self.assertEqual(result["hard_limit"], 10)
+        self.assertEqual(result["failover_hard_limit"], 10)
+        self.assertEqual(result["status"], "SOFT_FULL")
+        self.assertTrue(result["capacity_owner_reconciled"])
+        self.assertIn("egress.registry", result["capacity_owner"])
+
+    def test_controlled_target_diagnostic_ranks_safety_before_id_and_requires_rebind(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "\n".join(
+                    f"ip=10.7.0.{index} enabled=1 current=source "
+                    "certification_user=1 certification_group=t48"
+                    for index in range(10, 15)
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg-source "
+                "enabled=1 controlled_certification_source=1\n"
+                "id=a-exec-weak protocol=amneziawg type=interface interface=wg-a "
+                "enabled=1 role=EXECUTION_ONLY execution_reserved=1 "
+                "canary_reserved=1 manual_only=1 reserve_only=1 "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "reservation_owner=operator_execution_governance "
+                "soft_limit=5 hard_limit=10\n"
+                "id=z-exec-good protocol=wireguard type=interface interface=wg-z "
+                "enabled=1 role=EXECUTION_ONLY execution_reserved=1 "
+                "canary_reserved=1 manual_only=1 reserve_only=1 "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "reservation_owner=operator_execution_governance "
+                "soft_limit=48 hard_limit=60\n"
+                "id=ordinary-good protocol=wireguard type=interface interface=wg-o "
+                "enabled=1 role=GLOBAL_STABLE soft_limit=48 hard_limit=60\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("v7-state.json").write_text(json.dumps({
+                "egress": {
+                    "source": {
+                        "code": "000", "avg_mbps": 0,
+                        "min_mbps": 0, "stability": 0,
+                    },
+                    "a-exec-weak": {
+                        "code": "200", "avg_mbps": 30,
+                        "min_mbps": 12, "stability": 0.2,
+                    },
+                    "z-exec-good": {
+                        "code": "200", "avg_mbps": 70,
+                        "min_mbps": 55, "stability": 0.9,
+                    },
+                    "ordinary-good": {
+                        "code": "200", "avg_mbps": 75,
+                        "min_mbps": 60, "stability": 0.95,
+                    },
+                },
+            }), encoding="utf-8")
+            matrix_items = {}
+            for target in ("a-exec-weak", "z-exec-good", "ordinary-good"):
+                matrix_items[target] = {
+                    "services": {
+                        "google": {
+                            "ok": True,
+                            "status": "OK",
+                            "tested_at": "2099-01-01T00:00:00+00:00",
+                        },
+                    },
+                }
+            matrix_items["source"] = {
+                "services": {
+                    "google": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "tested_at": "2099-01-01T00:00:00+00:00",
+                    },
+                },
+            }
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": matrix_items,
+            }), encoding="utf-8")
+            quality_items = {}
+            for target, stability in (
+                ("a-exec-weak", 0.2),
+                ("z-exec-good", 0.9),
+                ("ordinary-good", 0.95),
+            ):
+                quality_items[target] = {
+                    "windows": {
+                        "5m": {
+                            "avg_mbps": 60,
+                            "min_mbps": 40,
+                            "stability": stability,
+                        },
+                        "1h": {
+                            "avg_mbps": 60,
+                            "min_mbps": 40,
+                            "stability": stability,
+                        },
+                    },
+                }
+            quality_file = state_dir / "egress-quality-summary.json"
+            quality_file.write_text(
+                json.dumps({
+                    "updated": "2099-01-01T00:00:00+00:00",
+                    "items": quality_items,
+                }),
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(json.dumps({
+                "quality": {"min_stability": 0.45},
+                "load": {
+                    "mode": "static",
+                    "soft_limit": 48,
+                    "hard_limit": 60,
+                    "failover_hard_limit": 60,
+                    "controlled_certification_required_reserve_users": 1,
+                },
+            }), encoding="utf-8")
+            org_policy_file = root / "org-policy.json"
+            org_policy_file.write_text("{}", encoding="utf-8")
+            audit = root / "audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--policy-file", str(policy_file),
+                "--org-policy-file", str(org_policy_file),
+                "--quality-summary-file", str(quality_file),
+                "--action-class-audit-store", str(audit),
+            ])
+            authority = {
+                "status": "APPROVED",
+                "request_id": "cpsauth_exact",
+                "request_hash": "a" * 64,
+                "expires_at": "2099-01-01T00:00:00+00:00",
+                "request": {
+                    "scope": {
+                        "source_id": "source",
+                        "controlled_target_id": "a-exec-weak",
+                        "controlled_target_admission_class": (
+                            "EXECUTION_ONLY_CONTROLLED_CERTIFICATION_TARGET"
+                        ),
+                        "campaign_stages": [5, 10, 25, 48],
+                    },
+                    "controlled_target_contract": {
+                        "target_id": "a-exec-weak",
+                        "ordinary_production_assignment_allowed": False,
+                        "certification_only_assignment_allowed": True,
+                    },
+                },
+            }
+            campaign = {
+                "ok": True,
+                "stages": [5, 10, 25, 48],
+                "completed_stages": [],
+                "next_stage": 5,
+            }
+            with mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_audit_records",
+                return_value=[],
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "controlled_certification_substrate_authority_status",
+                return_value=authority,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "controlled_certification_campaign_stage_status",
+                return_value=campaign,
+            ):
+                result = (
+                    self.autoswitch
+                    .controlled_campaign_target_selection_diagnostic(args)
+                )
+
+        self.assertEqual(
+            result["status"],
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+        )
+        self.assertEqual(
+            result["selection"]["selected_target_id"],
+            "z-exec-good",
+        )
+        self.assertEqual(
+            result["selection"]["historical_selection_law"],
+            "ID_SORT_THEN_FIRST",
+        )
+        targets = {
+            row["target_id"]: row for row in result["targets"]
+        }
+        self.assertFalse(
+            targets["a-exec-weak"]["full_live_admission"]
+        )
+        self.assertTrue(
+            targets["z-exec-good"]["controlled_rebind_eligible"]
+        )
+        self.assertFalse(
+            targets["ordinary-good"]["controlled_rebind_eligible"]
+        )
+        self.assertIn(
+            "controlled_assignment_permission_or_isolation_contract_missing",
+            targets["ordinary-good"]["exclusion_reasons"],
+        )
+        self.assertFalse(
+            result["forbidden_effects"]["inventory_store_created"]
+        )
+
     def test_controlled_certification_pool_projection_is_compact_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)
@@ -1043,6 +1276,55 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 m9_live["NEXT_MISSION_ID"].strip("`"),
                 "T48-M9",
+            )
+            runtime_status[
+                "controlled_certification_substrate_authority"
+            ].update({
+                "controlled_target_id": "execution-target-a",
+                "controlled_target_currently_ready": False,
+            })
+            runtime_status["controlled_campaign_target_selection"] = {
+                "schema_version": (
+                    "v7.controlled-campaign-target-selection-diagnostic.v1"
+                ),
+                "status": "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+                "ok": True,
+                "inventory_fingerprint": "target-inventory-fingerprint",
+                "selection": {
+                    "pinned_target_full_live_admission": False,
+                    "selected_target_id": "execution-target-b",
+                },
+            }
+            rebind = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(rebind["final_verdict"], "PASS", rebind)
+            self.assertEqual(
+                rebind["next_action"],
+                "ENGINEERING_AUTHORITY_REBIND_CONTROLLED_CAMPAIGN_TARGET_REQUIRED",
+            )
+            rebind_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                rebind_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "ENGINEERING_AUTHORITY",
+            )
+            self.assertEqual(
+                rebind_live["CONTROLLED_TARGET_SELECTION_STATUS"].strip("`"),
+                "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+            )
+            self.assertEqual(
+                rebind_live[
+                    "CONTROLLED_TARGET_INVENTORY_FINGERPRINT"
+                ].strip("`"),
+                "target-inventory-fingerprint",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.3`
+Version: `2.4`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,91 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.4 active executable revision — dynamic controlled-target discovery and reselection
+
+V2.4 consumes
+`DYNAMIC_CONTROLLED_TARGET_DISCOVERY_RESELECTION_AND_ALLOCATION_V1` inside the
+existing Program. It creates no Program, Mission group, Planner, Runtime,
+target registry, queue, watcher, scheduler, Authority owner, evidence store or
+truth source.
+
+The controlled campaign must use three different existing-owner projections:
+
+```text
+campaign Authority
+-> exact approved target envelope or exact-target restriction
+
+fresh Matrix + registry + quality + capacity + assignment truth
+-> compact CONTROLLED_TARGET_INVENTORY_SNAPSHOT
+
+fresh Planner decision
+-> immutable exact target allocation for one Candidate/Packet/lease
+```
+
+Inventory contains every current owner-backed egress, including ordinary,
+reserved, controlled-only and ineligible channels. Presence never implies
+eligibility. Admission and ranking must consume role/reservation,
+controlled-use permission, ordinary-user occupancy, fresh service truth,
+current/5m/1h stability, explicit registry and policy capacity, required
+reserve, verification, rollback/containment and correlation domain. Missing
+mandatory truth fails closed for that target.
+
+ID order is a deterministic final tie-breaker only. It is never a target
+selection rule. The ranking order is:
+
+```text
+full mandatory eligibility
+-> current-stage feasibility
+-> campaign-completion feasibility
+-> stability and service health
+-> free capacity after reserve
+-> existing Planner score and risk
+-> ID tie-break only
+```
+
+Current-stage and campaign-completion feasibility are distinct. A target may
+admit Stage 5 while leaving a precise Stage 10/25/48 reselection residual.
+Every stage obtains a fresh inventory and allocation. An issued Packet keeps
+its immutable target or target set.
+
+Material Matrix, inventory, role, reservation, controlled-use, occupancy,
+quality, capacity, reserve, correlation-domain, source-scope or campaign-stage
+change invalidates only the short-lived allocation, not the campaign.
+Unchanged semantic fingerprints produce
+`TARGET_SET_UNCHANGED_REUSE_CURRENT_DECISION` and no OMP churn.
+
+The current campaign Authority is exact-target Authority. It must never be
+silently widened into envelope Authority. If a different eligible target or
+target set ranks first, the only legal external request is a narrow
+`REBIND_CONTROLLED_CAMPAIGN_TARGET`; existing Tier-48 capability approval,
+pool, completed stages and campaign lineage are preserved. No Candidate,
+Packet, lease or production effect is created before that exact decision.
+
+The existing governed movement path already supports immutable multi-target
+selected moves, per-member receipts, per-target verification and aggregate
+circuit breaking. Controlled-campaign reuse additionally requires a
+correlation-distinct allocation, per-target capacity reservation and separate
+Authority when the current exact-target contract does not permit multiple
+targets. Generic multi-target engineering evidence never activates this path
+by implication.
+
+The exact legal live outcomes are:
+
+```text
+CURRENT_EXACT_TARGET_VALID
+BETTER_TARGET_SELECTED_INSIDE_APPROVED_ENVELOPE
+EXACT_TARGET_REBIND_AUTHORITY_REQUIRED
+MULTI_TARGET_ALLOCATION_READY
+MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED
+NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY
+```
+
+The final outcome is not a generic `REAL_WORLD_LIMIT`. It must list every
+target and exclusion reason, name the responsible existing owner and retain
+automatic re-entry on a material target-set fingerprint change. Ordinary
+customers must never be reassigned or used as certification subjects merely
+to make a target eligible.
 
 ## V2.3 active executable revision — controlled-source isolation admission
 

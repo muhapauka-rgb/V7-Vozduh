@@ -908,6 +908,72 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(missing["status"], "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION")
             self.assertFalse(missing["action_attempted"])
 
+    def test_campaign_binding_rejects_shallow_ready_target_when_full_admission_fails(self):
+        authority = {
+            "status": "APPROVED",
+            "request_id": "cpsauth_exact",
+            "request_hash": "a" * 64,
+            "decision": (
+                "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
+            ),
+            "decision_id": "cpsdec_exact",
+            "request": {
+                "scope": {
+                    "source_id": "controlled-source",
+                    "controlled_target_id": "execution-target",
+                    "campaign_stages": [5, 10, 25, 48],
+                    "max_concurrent_transactions": 1,
+                    "ordinary_customer_involvement": False,
+                },
+            },
+        }
+        campaign = {
+            "ok": True,
+            "completed_stages": [],
+            "next_stage": 5,
+            "controlled_production_proven_max": 0,
+            "receipt_ids": [],
+        }
+        with mock.patch.object(
+            self.refresh.operator_execution,
+            "read_audit_records",
+            return_value=[],
+        ), mock.patch.object(
+            self.refresh.operator_execution,
+            "controlled_certification_substrate_authority_status",
+            return_value=authority,
+        ), mock.patch.object(
+            self.refresh.operator_execution,
+            "validate_controlled_certification_substrate_authority_request",
+            return_value={"ok": True, "errors": []},
+        ), mock.patch.object(
+            self.refresh.operator_execution,
+            "controlled_certification_campaign_stage_status",
+            return_value=campaign,
+        ):
+            result = self.refresh.controlled_certification_matrix_binding(
+                audit_store=Path("/tmp/not-read"),
+                source="controlled-source",
+                target_selection_diagnostic={
+                    "ok": True,
+                    "status": (
+                        "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
+                    ),
+                    "inventory_fingerprint": "b" * 64,
+                },
+            )
+
+        self.assertFalse(result["active"])
+        self.assertFalse(result["ok"])
+        self.assertIn(
+            "controlled_campaign_target_full_live_admission_failed",
+            result["blockers"],
+        )
+        self.assertEqual(
+            result["target_selection_status"],
+            "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY",
+        )
+
     def test_matrix_binds_controlled_source_to_next_approved_campaign_stage(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

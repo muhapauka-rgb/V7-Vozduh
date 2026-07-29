@@ -2569,6 +2569,12 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
         "CURRENT_EXECUTION_FRONTIER": (
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            else "NONE"
+            if live.get(
+                "CURRENT_PROGRAM_EXECUTION_FRONTIER", ""
+            ).strip("`").startswith(
+                "WAITING_INPUT:ENGINEERING_AUTHORITY_REBIND_CONTROLLED_CAMPAIGN_TARGET"
+            )
             else live.get(
                 "CURRENT_PROGRAM_EXECUTION_FRONTIER", ""
             ).strip("`")
@@ -14873,16 +14879,26 @@ def future_scale_affected_scenario_subset(
     certification_dependencies = {
         "CERTIFICATION:FSSE04_LEASE_CONFLICT_INPUT_V1": {"LEASE_CONFLICT"},
     }
+    # Existing producer -> consumer binding.  The Matrix refresh owner supplies
+    # the live service/quality/capacity observations consumed by autoswitch.
+    # A semantic Matrix change therefore invalidates the already-owned routing
+    # scenarios without creating a second dependency registry or broad replay.
+    source_dependency_aliases = {
+        "tools/v7-service-matrix-refresh-all": {"tools/v7-users-autoswitch"},
+    }
     known.update(certification_dependencies)
+    known.update(source_dependency_aliases)
+    expanded_changed = set(changed)
     for dependency in changed:
         affected.extend(certification_dependencies.get(dependency, set()))
+        expanded_changed.update(source_dependency_aliases.get(dependency, set()))
     for scenario in corpus["scenarios"]:
         dependencies = set(str(item) for item in scenario.get("SOURCE_DEPENDENCIES") or ())
         dependencies.update(str(item) for item in scenario.get("OWNER_DEPENDENCIES") or ())
         dependencies.update(str(item) for item in scenario.get("INVARIANT_IDS") or ())
         dependencies.update({"GENERATOR:generate_future_scale_cases", "RESULT_CONTRACT:v7.future-scale-scenario-result.v1"})
         known.update(dependencies)
-        if dependencies.intersection(changed):
+        if dependencies.intersection(expanded_changed):
             affected.append(str(scenario["SCENARIO_ID"]))
     unresolved = sorted(set(changed) - known)
     if unresolved:
@@ -14897,6 +14913,10 @@ def future_scale_affected_scenario_subset(
     return {
         "schema": "v7.future-scale-selective-invalidation.v1", "changed_dependencies": changed,
         "semantic_change": True, "affected_scenarios": affected,
+        "dependency_expansion": {
+            dependency: sorted(source_dependency_aliases.get(dependency, set()))
+            for dependency in changed if dependency in source_dependency_aliases
+        },
         "unrelated_scenarios": [item for item in all_ids if item not in set(affected)],
         "affected_set_identity": "fsaffected_" + hashlib.sha256(
             json.dumps(affected, separators=(",", ":")).encode()
@@ -18676,6 +18696,27 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "controlled_target_currently_ready"
         )
     )
+    controlled_target_selection = (
+        status.get("controlled_campaign_target_selection")
+        if isinstance(
+            status.get("controlled_campaign_target_selection"), dict,
+        )
+        else {}
+    )
+    controlled_target_selection_status = str(
+        controlled_target_selection.get("status") or ""
+    )
+    controlled_target_inventory_fingerprint = str(
+        controlled_target_selection.get("inventory_fingerprint") or ""
+    )
+    controlled_target_selection_available = bool(
+        controlled_target_selection_status
+    )
+    controlled_target_full_live_admission = (
+        controlled_target_selection_status == "CURRENT_EXACT_TARGET_VALID"
+        if controlled_target_selection_available
+        else controlled_substrate_target_ready
+    )
     if controlled_substrate_target_id:
         controlled_substrate_reentry = (
             "exact unexpired controlled-target request receives one "
@@ -18753,11 +18794,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
         and controlled_pool_max >= 5
         and not m8_exact_authority_boundary
         and (
-            controlled_substrate_source_precondition_accepted
-            or (
-                bool(controlled_substrate_target_id)
-                and controlled_substrate_target_ready
-            )
+            controlled_target_full_live_admission
+            if controlled_substrate_target_id
+            else controlled_substrate_source_precondition_accepted
         )
     )
     controlled_campaign = (
@@ -18779,6 +18818,31 @@ def reconcile_active_standing_delegated_policy_to_cps(
     )
     controlled_campaign_next_stage = _status_int(
         controlled_campaign.get("next_stage")
+    )
+    controlled_target_rebind_authority_boundary = bool(
+        tier48_active
+        and controlled_pool_max >= 5
+        and controlled_substrate_status == "APPROVED"
+        and controlled_target_selection_status
+        in {
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+            "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED",
+        }
+    )
+    controlled_target_live_owner_boundary = bool(
+        tier48_active
+        and controlled_pool_max >= 5
+        and controlled_substrate_status == "APPROVED"
+        and bool(controlled_substrate_target_id)
+        and controlled_target_selection_status
+        == "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
+    )
+    controlled_target_engineering_repair = bool(
+        tier48_active
+        and controlled_pool_max >= 5
+        and controlled_substrate_status == "APPROVED"
+        and controlled_target_selection_available
+        and not controlled_target_selection.get("ok")
     )
     m9_campaign_active = bool(
         m8_pool_ready
@@ -18822,6 +18886,21 @@ def reconcile_active_standing_delegated_policy_to_cps(
     elif m8_pool_boundary:
         primary_next_action = "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
         primary_stop = "ENGINEERING_AUTHORITY"
+    elif controlled_target_engineering_repair:
+        primary_next_action = (
+            "CONTROLLED_CAMPAIGN_TARGET_SELECTION_ENGINEERING_REPAIR_REQUIRED"
+        )
+        primary_stop = "NONE"
+    elif controlled_target_rebind_authority_boundary:
+        primary_next_action = (
+            "ENGINEERING_AUTHORITY_REBIND_CONTROLLED_CAMPAIGN_TARGET_REQUIRED"
+        )
+        primary_stop = "ENGINEERING_AUTHORITY"
+    elif controlled_target_live_owner_boundary:
+        primary_next_action = (
+            "EXTERNAL_OWNER_CONTROLLED_TARGET_FULL_LIVE_ADMISSION_REQUIRED"
+        )
+        primary_stop = "EXTERNAL_OWNER_REQUIRED"
     elif m10_campaign_complete:
         primary_next_action = (
             "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_"
@@ -18845,6 +18924,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
     omp_should_continue = (
         active_incident_drain or m8_substrate_approved
         or m9_campaign_active or m10_campaign_complete
+        or controlled_target_engineering_repair
         or (m8_pool_ready and not m8_approved_source_baseline_blocked)
     )
     state = _normalized_state_from_live_cps(cps_text)
@@ -18884,6 +18964,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "RECONCILE THE EXISTING CONTROLLED PRODUCTION CERTIFICATION POOL; REQUIRE FIVE OR MORE OWNER-AUTHORIZED ENABLED CERTIFICATION USERS ON ONE ACTIVE CONTROLLED SOURCE; DO NOT RECLASSIFY OR MOVE ORDINARY CUSTOMERS"
             if m8_pool_boundary else
+            "REPAIR ONLY THE EXISTING TARGET-INVENTORY, PLANNER, MATRIX AND CPS PRODUCER-CONSUMER LINK; KEEP THE APPROVED CAMPAIGN AND ALL PRODUCTION EFFECTS STOPPED"
+            if controlled_target_engineering_repair else
+            "OBTAIN ONLY ONE NARROW EXISTING-AUTHORITY DECISION TO REBIND THE CURRENT CONTROLLED CAMPAIGN TO THE EXACT FRESH RANKED TARGET OR TARGET SET; PRESERVE POOL, STAGES AND CAMPAIGN LINEAGE"
+            if controlled_target_rebind_authority_boundary else
+            f"KEEP THE EXISTING CAMPAIGN AND EXACT TARGET {controlled_substrate_target_id} STOPPED; REENTER AUTOMATICALLY WHEN A FRESH OWNER-BACKED INVENTORY PROVES FULL LIVE ADMISSION OR AN AUTHORIZED ALTERNATIVE"
+            if controlled_target_live_owner_boundary else
             "CONSUME THE COMPLETED 5->10->25->48 CONTROLLED CAMPAIGN THROUGH THE EXISTING T48-M10 AUTHORITY/RUNTIME RECOMMENDATION OWNER; DO NOT ACTIVATE ORDINARY TIER 48 BY IMPLICATION"
             if m10_campaign_complete else
             f"RUN ONLY THE NEXT FRESH CONTROLLED SERVICE FAILURE STAGE {controlled_campaign_next_stage} THROUGH THE EXISTING MATRIX, PLANNER AND GOVERNED EXECUTOR; PRESERVE COMPLETED LOWER-STAGE EVIDENCE AND STOP AT ANY LIVE GATE"
@@ -18897,7 +18983,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
@@ -18912,6 +18998,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_BOUNDARY_RECONCILED_V1"
             if m8_pool_boundary else
+            "SERVICE_FAILURE_TIER48_CONTROLLED_TARGET_SELECTION_ENGINEERING_REPAIR_V1"
+            if controlled_target_engineering_repair else
+            "SERVICE_FAILURE_TIER48_CONTROLLED_TARGET_REBIND_AUTHORITY_BOUNDARY_V1"
+            if controlled_target_rebind_authority_boundary else
+            "SERVICE_FAILURE_TIER48_CONTROLLED_TARGET_LIVE_OWNER_BOUNDARY_V1"
+            if controlled_target_live_owner_boundary else
             "SERVICE_FAILURE_TIER48_M10_CONTROLLED_CAMPAIGN_CONSUMPTION_READY_V1"
             if m10_campaign_complete else
             f"SERVICE_FAILURE_TIER48_M9_STAGE_{controlled_campaign_next_stage}_READY_V1"
@@ -18928,6 +19020,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 or m8_substrate_approved
                 or m9_campaign_active
                 or m10_campaign_complete
+                or controlled_target_engineering_repair
                 or (m8_pool_ready and not m8_approved_source_baseline_blocked)
             )
             else
@@ -18936,6 +19029,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 m8_exact_authority_boundary
                 or m8_approved_source_invalid
                 or m8_approved_source_baseline_blocked
+                or controlled_target_rebind_authority_boundary
+                or controlled_target_live_owner_boundary
             ) else
             "WAITING_INPUT:CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
@@ -18959,6 +19054,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
+            "NO_NEW_AUTHORITY_FOR_ENGINEERING_REPAIR; EXACT REBIND AUTHORITY REQUIRED ONLY AFTER A FRESH ELIGIBLE TARGET IS SELECTED"
+            if controlled_target_engineering_repair else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CAMPAIGN_TARGET_REBIND_ONLY; CURRENT TIER48 POOL AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
+            if controlled_target_rebind_authority_boundary else
+            "NO_NEW_AUTHORITY_REQUIRED; EXISTING TARGET OR AN OWNER-AUTHORIZED ALTERNATIVE MUST FIRST PASS FULL LIVE ADMISSION"
+            if controlled_target_live_owner_boundary else
             "NO_INSIDE_APPROVED_POLICY"
         ),
         "wip_authority_required_now": (
@@ -18974,6 +19075,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
             if m8_pool_boundary else
+            "NO_NEW_AUTHORITY_FOR_ENGINEERING_REPAIR; EXACT REBIND AUTHORITY REQUIRED ONLY AFTER A FRESH ELIGIBLE TARGET IS SELECTED"
+            if controlled_target_engineering_repair else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; EXACT_CONTROLLED_CAMPAIGN_TARGET_REBIND_ONLY; CURRENT TIER48 POOL AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
+            if controlled_target_rebind_authority_boundary else
+            "NO_NEW_AUTHORITY_REQUIRED; EXISTING TARGET OR AN OWNER-AUTHORIZED ALTERNATIVE MUST FIRST PASS FULL LIVE ADMISSION"
+            if controlled_target_live_owner_boundary else
             "NO_INSIDE_APPROVED_POLICY"
         ),
         "controlled_run_authority_required_now": (
@@ -18991,6 +19098,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL"
             if m8_pool_boundary else
+            "NONE_PROGRAM_FRONTIER; TARGET_SELECTION_ENGINEERING_REPAIR_ACTIVE"
+            if controlled_target_engineering_repair else
+            "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; EXACT_TARGET_REBIND_ONLY"
+            if controlled_target_rebind_authority_boundary else
+            "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; EXACT_TARGET_FULL_LIVE_ADMISSION_PENDING"
+            if controlled_target_live_owner_boundary else
             primary_stop
         ),
         "wip_smallest_existing_next_action_id": primary_next_action,
@@ -19008,6 +19121,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "exact registered controlled-substrate request -> independent existing Authority owner -> append-only decision audit -> CPS/OMP residual"
             if m8_exact_authority_boundary else
+            "fresh target inventory -> full live admission -> existing Planner safety ranking -> exact target rebind Authority owner"
+            if controlled_target_rebind_authority_boundary else
+            "fresh target inventory -> exact target health/quality/capacity owner -> full live admission -> existing Matrix campaign consumer"
+            if controlled_target_live_owner_boundary else
+            "target diagnostic caller -> existing Matrix/registry/quality/capacity owners -> existing Planner -> CPS/OMP projection"
+            if controlled_target_engineering_repair else
             "existing campaign stage audit -> Matrix fresh generation -> planner -> governed executor -> Outcome/Replay/Learning -> reset receipt"
             if m9_campaign_active else
             "controlled campaign stage receipts -> T48-M10 evidence reconciliation -> independent Authority/Runtime verdict consumer"
@@ -19027,6 +19146,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "The existing Authority owner independently decides the exact registered controlled-substrate request; the deployed status consumer then publishes the approved safe successor or the exact decline/expiry residual."
             if m8_exact_authority_boundary else
+            "The existing target-inventory and Planner owners publish one exact ranked replacement; the independent Authority owner decides only the target rebind and the same campaign resumes."
+            if controlled_target_rebind_authority_boundary else
+            "The enabled Matrix lifecycle keeps the exact campaign stopped and automatically re-evaluates the compact target-set fingerprint; a full-admission recovery or authorized alternative publishes the next durable successor."
+            if controlled_target_live_owner_boundary else
+            "The existing target diagnostic repairs and republishes its compact generation through CPS/OMP without execution effects."
+            if controlled_target_engineering_repair else
             f"The Matrix timer consumes stage {controlled_campaign_next_stage} through fresh live gates; a complete Outcome/Replay/Learning plus baseline-reset receipt automatically selects the next stage."
             if m9_campaign_active else
             "The existing T48-M10 consumer reconciles the completed campaign and produces one independently consumed ordinary Runtime tier verdict."
@@ -19045,6 +19170,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "existing independent Authority owner plus operator-execution append-only audit consumer"
             if m8_exact_authority_boundary else
+            "existing independent Authority owner plus current target-inventory/ranking owners"
+            if controlled_target_rebind_authority_boundary else
+            "existing Matrix, registry, quality, capacity and external target substrate owners"
+            if controlled_target_live_owner_boundary else
+            "existing target inventory and autoswitch Planner owners"
+            if controlled_target_engineering_repair else
             "existing Authority audit -> Service Matrix -> governed cohort executor"
             if m9_campaign_active else
             "existing T48-M10 verification and Authority/Runtime recommendation owners"
@@ -19062,6 +19193,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "exact APPROVE or DECLINE decision -> append-only audit -> exact CPS/OMP residual"
             if m8_exact_authority_boundary else
+            "fresh ranked target -> exact rebind APPROVE or DECLINE -> fresh allocation/Candidate/Packet/lease"
+            if controlled_target_rebind_authority_boundary else
+            "fresh full-admission target observation -> existing campaign stage reentry; unchanged fingerprint -> no churn"
+            if controlled_target_live_owner_boundary else
+            "compact target inventory and full-admission diagnostic -> exact CPS/OMP residual"
+            if controlled_target_engineering_repair else
             f"fresh controlled cohort {controlled_campaign_next_stage} -> Outcome -> Replay -> Learning -> reset -> next stage"
             if m9_campaign_active else
             "consumed 5->10->25->48 evidence -> one independent ordinary Runtime tier verdict"
@@ -19085,6 +19222,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "Tier-48 Authority and Runtime are active; current certification-pool projection is owner-backed and below the first controlled cohort floor"
             if m8_pool_boundary else
+            f"Target-selection diagnostic status={controlled_target_selection_status}; inventory={controlled_target_inventory_fingerprint or 'NONE'}; exact campaign target requires narrow rebind Authority"
+            if controlled_target_rebind_authority_boundary else
+            f"Target-selection diagnostic status={controlled_target_selection_status}; inventory={controlled_target_inventory_fingerprint or 'NONE'}; exact target {controlled_substrate_target_id or 'NONE'} does not pass full live admission and no authorized alternative is currently eligible"
+            if controlled_target_live_owner_boundary else
+            f"Target-selection diagnostic failed: status={controlled_target_selection_status or 'NONE'}; existing producer-consumer repair remains"
+            if controlled_target_engineering_repair else
             f"Controlled Service Failure campaign evidence is consumed through {controlled_campaign_proven_max}; next fresh stage is {controlled_campaign_next_stage}"
             if m9_campaign_active else
             "Controlled Service Failure campaign evidence is consumed through 48 and awaits T48-M10 reconciliation"
@@ -19102,6 +19245,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "existing independent Authority owner and operator-execution append-only audit owner"
             if m8_exact_authority_boundary else
+            "existing target-inventory/Planner owners plus independent target-rebind Authority owner"
+            if controlled_target_rebind_authority_boundary else
+            "existing target substrate, Matrix, registry, quality and capacity owners"
+            if controlled_target_live_owner_boundary else
+            "existing target-inventory/Planner diagnostic owner"
+            if controlled_target_engineering_repair else
             "existing Service Matrix, governed executor, Outcome, Replay and Learning owners"
             if m9_campaign_active else
             "existing T48-M10 verification plus independent Authority/Runtime decision owners"
@@ -19119,6 +19268,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "five or more dedicated certification users on one active controlled source -> existing T48-M8 plan/safe-cohort consumer; otherwise exact Engineering Authority boundary retained"
             if m8_pool_boundary else
+            "one narrow target-rebind decision -> fresh immutable allocation -> existing campaign reentry"
+            if controlled_target_rebind_authority_boundary else
+            "fresh owner-backed target recovery or authorized eligible alternative -> automatic Matrix campaign reentry"
+            if controlled_target_live_owner_boundary else
+            "repaired compact target diagnostic -> exact CPS/OMP successor without execution effects"
+            if controlled_target_engineering_repair else
             f"controlled stage {controlled_campaign_next_stage} consumed and baseline reset -> automatic next stage or exact live blocker"
             if m9_campaign_active else
             "one consumed ACTIVATE/HOLD/NARROW/DEMOTE/INSUFFICIENT_EVIDENCE verdict"
@@ -19135,20 +19290,34 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 m8_substrate_approved
                 or m9_campaign_active
                 or m10_campaign_complete
+                or controlled_target_engineering_repair
                 or (m8_pool_ready and not m8_approved_source_baseline_blocked)
             ) else
             "PROGRAM_TERMINAL_EXTERNAL_OWNER_REQUIRED"
             if m8_approved_source_baseline_blocked else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
-            if m8_exact_authority_boundary or m8_pool_boundary else
+            if (
+                m8_exact_authority_boundary
+                or m8_pool_boundary
+                or controlled_target_rebind_authority_boundary
+            ) else
+            "PROGRAM_TERMINAL_EXTERNAL_OWNER_REQUIRED"
+            if controlled_target_live_owner_boundary else
             "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
         ),
         "program_terminal_class": (
             "NONE" if omp_should_continue else
             "EXTERNAL_OWNER_REQUIRED"
-            if m8_approved_source_baseline_blocked else
+            if (
+                m8_approved_source_baseline_blocked
+                or controlled_target_live_owner_boundary
+            ) else
             "ENGINEERING_AUTHORITY"
-            if m8_exact_authority_boundary or m8_pool_boundary else
+            if (
+                m8_exact_authority_boundary
+                or m8_pool_boundary
+                or controlled_target_rebind_authority_boundary
+            ) else
             "REAL_WORLD_LIMIT"
         ),
         "program_terminal_state": (
@@ -19162,6 +19331,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
             if m8_pool_boundary else
+            "NONE_CONTROLLED_TARGET_SELECTION_ENGINEERING_REPAIR_READY"
+            if controlled_target_engineering_repair else
+            primary_next_action
+            if controlled_target_rebind_authority_boundary else
+            f"EXTERNAL_OWNER_REQUIRED_{primary_next_action}"
+            if controlled_target_live_owner_boundary else
             "NONE_T48_M10_RECONCILIATION_SUCCESSOR_READY"
             if m10_campaign_complete else
             f"NONE_T48_M9_STAGE_{controlled_campaign_next_stage}_SUCCESSOR_READY"
@@ -19173,7 +19348,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "omp_continuation_required": "TRUE" if omp_should_continue else "FALSE",
         "external_input_required": (
             "TRUE"
-            if m8_exact_authority_boundary or m8_pool_boundary or not omp_should_continue
+            if (
+                m8_exact_authority_boundary
+                or m8_pool_boundary
+                or controlled_target_rebind_authority_boundary
+                or controlled_target_live_owner_boundary
+                or not omp_should_continue
+            )
             else "FALSE"
         ),
         "external_input_type": (
@@ -19183,6 +19364,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "CONTROLLED_PRODUCTION_CERTIFICATION_POOL_OR_EXACT_ENGINEERING_AUTHORITY"
             if m8_pool_boundary else
+            "EXACT_CONTROLLED_CAMPAIGN_TARGET_REBIND_AUTHORITY_DECISION"
+            if controlled_target_rebind_authority_boundary else
+            "OWNER_BACKED_CONTROLLED_TARGET_FULL_LIVE_ADMISSION"
+            if controlled_target_live_owner_boundary else
             "NONE" if omp_should_continue else
             "FRESH_MATCHING_SERVICE_FAILURE_EVENT"
         ),
@@ -19192,6 +19377,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NONE" if m8_approved_source_baseline_blocked else
             "NONE" if m8_approved_source_invalid else
             "T48-M8" if m8_substrate_approved else
+            "DYNAMIC_CONTROLLED_TARGET_DISCOVERY_RESELECTION_AND_ALLOCATION_V1"
+            if controlled_target_engineering_repair else
             "T48-M10" if m10_campaign_complete else
             "T48-M9" if m9_campaign_active else
             "T48-M8" if m8_pool_ready else
@@ -19216,6 +19403,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "TIER48 AUTHORITY AND RUNTIME ACTIVE; EXISTING CONTROLLED CERTIFICATION POOL HAS FEWER THAN FIVE OWNER-AUTHORIZED USERS ON ONE ACTIVE CONTROLLED SOURCE; ORDINARY CUSTOMER RECLASSIFICATION AND UNAUTHORIZED SETUP MOVEMENT FORBIDDEN"
             if m8_pool_boundary else
+            f"TARGET SELECTION ENGINEERING DIAGNOSTIC REQUIRES REPAIR; STATUS={controlled_target_selection_status}; NO PRODUCTION EFFECT ALLOWED"
+            if controlled_target_engineering_repair else
+            f"FRESH RANKING SELECTED A TARGET OUTSIDE THE CURRENT EXACT-TARGET AUTHORITY; REQUEST ONLY A NARROW REBIND; INVENTORY={controlled_target_inventory_fingerprint}"
+            if controlled_target_rebind_authority_boundary else
+            f"NO CURRENT AUTHORIZED TARGET PASSES FULL LIVE ADMISSION; PINNED TARGET={controlled_substrate_target_id}; INVENTORY={controlled_target_inventory_fingerprint}; REENTER ON MATERIAL OWNER-BACKED TARGET-SET CHANGE"
+            if controlled_target_live_owner_boundary else
             "CONTROLLED CAMPAIGN 5->10->25->48 COMPLETE; T48-M10 MUST CONSUME ONE INDEPENDENT AUTHORITY/RUNTIME RECOMMENDATION WITHOUT IMPLICIT ORDINARY TIER ACTIVATION"
             if m10_campaign_complete else
             f"CONTROLLED CAMPAIGN PROVEN THROUGH {controlled_campaign_proven_max}; EXISTING MATRIX MUST ATTEMPT ONLY FRESH STAGE {controlled_campaign_next_stage} AND PRESERVE ANY LIVE-GATE STOP_SAFE"
@@ -19235,12 +19428,24 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "T48_M8_APPROVED_SOURCE_INVALID" if m8_approved_source_invalid else
                 "T48_M8_SUBSTRATE_AUTHORITY_APPROVED" if m8_substrate_approved else
                 "T48_M8_CONTROLLED_POOL_BOUNDARY" if m8_pool_boundary else
+                "CONTROLLED_TARGET_SELECTION_ENGINEERING_REPAIR"
+                if controlled_target_engineering_repair else
+                "CONTROLLED_TARGET_REBIND_AUTHORITY"
+                if controlled_target_rebind_authority_boundary else
+                "CONTROLLED_TARGET_LIVE_OWNER_BOUNDARY"
+                if controlled_target_live_owner_boundary else
                 "T48_M10_RECONCILIATION" if m10_campaign_complete else
                 f"T48_M9_STAGE_{controlled_campaign_next_stage}" if m9_campaign_active else
                 "T48_M8_CONTROLLED_POOL_READY" if m8_pool_ready else
                 "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
             ),
             "controlled_pool_max": controlled_pool_max,
+            "controlled_target_selection_status": (
+                controlled_target_selection_status
+            ),
+            "controlled_target_inventory_fingerprint": (
+                controlled_target_inventory_fingerprint
+            ),
             "controlled_source_observation_fingerprint": str(
                 controlled_substrate_source_health.get(
                     "observation_fingerprint"
@@ -19261,6 +19466,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             m8_substrate_approved
             or m9_campaign_active
             or m10_campaign_complete
+            or controlled_target_engineering_repair
             or (m8_pool_ready and not m8_approved_source_baseline_blocked)
         ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
@@ -19298,6 +19504,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 f"completed stages={','.join(str(item) for item in (controlled_campaign.get('completed_stages') or [])) or 'NONE'}; "
                 f"next stage={controlled_campaign_next_stage or 'NONE'}`"
             ),
+            "CONTROLLED_TARGET_SELECTION_STATUS": (
+                f"`{controlled_target_selection_status or 'NOT_PROJECTED'}`"
+            ),
+            "CONTROLLED_TARGET_INVENTORY_FINGERPRINT": (
+                f"`{controlled_target_inventory_fingerprint or 'NONE'}`"
+            ),
+            "CONTROLLED_TARGET_FULL_LIVE_ADMISSION": (
+                f"`{'PASS' if controlled_target_full_live_admission else 'STOP_SAFE'}`"
+            ),
             "NEXT_CONSUMER": (
                 f"`{state['sequence_execution_class']}`"
             ),
@@ -19306,6 +19521,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "target health/capacity observation and consumes the same "
                 "approved campaign stage through existing live gates`"
                 if m9_campaign_active else
+                "`fresh Matrix/registry/quality/capacity generation changes "
+                "the material target-set fingerprint; unchanged fingerprints "
+                "reuse the current STOP_SAFE decision without churn`"
+                if controlled_target_live_owner_boundary else
                 f"`{controlled_substrate_reentry}`"
             ),
             **tier_projection,
@@ -19341,6 +19560,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_approved_source_baseline_blocked else
             "TIER48_ACTIVE_CONTROLLED_POOL_BOUNDARY_ATOMICALLY_PROJECTED"
             if m8_pool_boundary else
+            "CONTROLLED_TARGET_SELECTION_ENGINEERING_REPAIR_ATOMICALLY_PROJECTED"
+            if controlled_target_engineering_repair else
+            "CONTROLLED_TARGET_REBIND_AUTHORITY_BOUNDARY_ATOMICALLY_PROJECTED"
+            if controlled_target_rebind_authority_boundary else
+            "CONTROLLED_TARGET_FULL_LIVE_ADMISSION_BOUNDARY_ATOMICALLY_PROJECTED"
+            if controlled_target_live_owner_boundary else
             "TIER48_CONTROLLED_CAMPAIGN_COMPLETION_RECONCILIATION_ATOMICALLY_PROJECTED"
             if m10_campaign_complete else
             f"TIER48_CONTROLLED_CAMPAIGN_STAGE_{controlled_campaign_next_stage}_ATOMICALLY_PROJECTED"

@@ -108,6 +108,10 @@ DEFAULT_LOAD_POLICY = {
     "rebalance_enabled": True,
     "rebalance_min_gap_users": 2,
     "rebalance_min_target_score_ratio": 0.75,
+    # The controlled campaign keeps at least one capacity unit outside the
+    # immutable cohort.  This is a fail-closed default only; an explicit
+    # existing load-policy value remains authoritative.
+    "controlled_certification_required_reserve_users": 1,
 }
 DEFAULT_RECONNECT_POLICY = {
     "enabled": True,
@@ -6764,6 +6768,33 @@ class AutoswitchPlanner:
             hard_limit = min(hard_limit, egress.capacity_users)
             multiplier = to_float(self.load_policy.get("failover_capacity_multiplier"), 1.25)
             failover_hard_limit = min(failover_hard_limit, max(hard_limit, int(math.ceil(egress.capacity_users * multiplier))))
+        registry = (
+            egress.raw.get("registry")
+            if isinstance(egress.raw.get("registry"), dict)
+            else {}
+        )
+        registry_soft = max(0, to_int(registry.get("soft_limit"), 0))
+        registry_hard = max(0, to_int(registry.get("hard_limit"), 0))
+        registry_failover = max(
+            0,
+            to_int(registry.get("failover_hard_limit"), 0),
+        )
+        capacity_owner_errors: list[str] = []
+        if registry_soft and registry_hard and registry_soft > registry_hard:
+            capacity_owner_errors.append(
+                "registry_soft_limit_exceeds_registry_hard_limit"
+            )
+        if registry_soft:
+            soft_limit = min(soft_limit, registry_soft)
+        if registry_hard:
+            hard_limit = min(hard_limit, registry_hard)
+        if registry_failover:
+            failover_hard_limit = min(failover_hard_limit, registry_failover)
+        elif registry_hard:
+            # A declared hard ceiling is authoritative for both planned and
+            # failover admission unless its owner explicitly provides a
+            # distinct failover ceiling.
+            failover_hard_limit = min(failover_hard_limit, registry_hard)
         hard_limit = max(1, hard_limit)
         soft_limit = max(1, min(soft_limit, hard_limit))
         failover_hard_limit = max(hard_limit, failover_hard_limit)
@@ -6781,6 +6812,22 @@ class AutoswitchPlanner:
             "failover_hard_limit": failover_hard_limit,
             "capacity_users": egress.capacity_users,
             "status": status,
+            "capacity_owner": (
+                "egress.registry explicit limits bounded by existing load policy"
+                if registry_soft or registry_hard or registry_failover
+                else "existing dynamic/static load policy"
+            ),
+            "capacity_owner_inputs": {
+                "registry_soft_limit": registry_soft,
+                "registry_hard_limit": registry_hard,
+                "registry_failover_hard_limit": registry_failover,
+                "capacity_users": egress.capacity_users,
+                "base_soft_limit": base_soft,
+                "base_hard_limit": base_hard,
+                "base_failover_hard_limit": base_failover,
+            },
+            "capacity_owner_errors": capacity_owner_errors,
+            "capacity_owner_reconciled": not capacity_owner_errors,
         }
 
     def _load_users(self) -> list[User]:
@@ -13900,6 +13947,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--controlled-target-selection-diagnostic",
+        action="store_true",
+        help=(
+            "Read-only compact diagnostic of the current controlled campaign "
+            "target inventory, full live admission, safety ranking and exact "
+            "Authority/reselection boundary. Never creates execution artifacts."
+        ),
+    )
+    parser.add_argument(
         "--prepare-controlled-certification-substrate-authority-request",
         action="store_true",
         help=(
@@ -14105,6 +14161,675 @@ def reconcile_passive_causal_projections_only(args: argparse.Namespace) -> dict[
     }
 
 
+def controlled_campaign_target_selection_diagnostic(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Project target discovery/ranking through the existing Planner owners.
+
+    The projection is intentionally ephemeral.  Matrix, registry, quality,
+    assignment, load, policy and Authority audit remain the durable owners;
+    this function exposes only a compact generation, fingerprints, decisions
+    and lineage.  It never creates a Candidate, Packet, lease or execution
+    artifact.
+    """
+    forbidden = [
+        name for name in (
+            "apply",
+            "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id",
+            "approved_operation_id",
+            "approved_selected_move_hash",
+            "approved_authority_generation",
+            "approved_breaker_generation",
+            "approved_source_bundle_hash",
+            "approved_snapshot_bundle_hash",
+            "generate_rollback_packet_from_result",
+            "rollback_packet",
+            "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    forbidden_effects = {
+        "inventory_store_created": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "restore_barrier_write": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "user_movement": 0,
+        "rollback_apply": False,
+        "authority_expansion": False,
+        "production_maturity_change": False,
+    }
+    if forbidden:
+        return {
+            "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [
+                f"controlled_target_diagnostic_forbids_{name}"
+                for name in sorted(set(forbidden))
+            ],
+            "forbidden_effects": forbidden_effects,
+        }
+
+    audit_records = operator_execution.read_audit_records(
+        Path(args.action_class_audit_store)
+    )
+    authority = (
+        operator_execution.controlled_certification_substrate_authority_status(
+            audit_records,
+        )
+    )
+    request = (
+        authority.get("request")
+        if isinstance(authority.get("request"), dict)
+        else {}
+    )
+    scope = (
+        request.get("scope")
+        if isinstance(request.get("scope"), dict)
+        else {}
+    )
+    campaign = operator_execution.controlled_certification_campaign_stage_status(
+        audit_records,
+        request_id=str(authority.get("request_id") or ""),
+        request_hash=str(authority.get("request_hash") or ""),
+    )
+    source_id = str(scope.get("source_id") or "")
+    pinned_target_id = str(scope.get("controlled_target_id") or "")
+    stages = [
+        int(value)
+        for value in (campaign.get("stages") or scope.get("campaign_stages") or [])
+        if to_int(value, 0) > 0
+    ]
+    current_stage = max(
+        0,
+        to_int(campaign.get("next_stage"), 0)
+        or min(stages or [5]),
+    )
+    remaining_stages = [
+        stage for stage in stages
+        if stage not in set(int(value) for value in (campaign.get("completed_stages") or []))
+    ]
+    completion_stage = max(remaining_stages or stages or [current_stage or 0])
+
+    diagnostic_args = argparse.Namespace(**vars(args))
+    diagnostic_args.apply = False
+    diagnostic_args.mode = ""
+    diagnostic_args.pre_planner_refresh = "off"
+    diagnostic_args.emergency_failover_autonomy = True
+    diagnostic_args.controlled_certification_campaign_request_id = str(
+        authority.get("request_id") or ""
+    )
+    diagnostic_args.controlled_certification_campaign_request_hash = str(
+        authority.get("request_hash") or ""
+    )
+    diagnostic_args.controlled_certification_campaign_target = pinned_target_id
+    diagnostic_args.source_egress = source_id
+    diagnostic_args.target_egress = pinned_target_id
+    planner = AutoswitchPlanner(diagnostic_args)
+
+    source_users = sorted(
+        (
+            user for user in planner.users
+            if user.enabled and user.current == source_id
+        ),
+        key=lambda user: user.ip,
+    )
+    representative = next((
+        user for user in source_users
+        if bool_value(user.raw.get("certification_user"))
+    ), None)
+    if representative is None:
+        representative = source_users[0] if source_users else User(
+            ip="10.7.255.254",
+            current=source_id,
+            enabled=True,
+            group=str(planner.org_policy.get("default_group") or "default"),
+            raw={"certification_user": "1", "diagnostic_only": "1"},
+        )
+    important_services = planner._important_services(representative)
+    route_class = planner._route_class_for_services(important_services)
+    registry_rows = parse_registry(Path(args.state_dir) / "egress.registry")
+    registry_by_id = {
+        str(row.get("id") or ""): row
+        for row in registry_rows
+        if str(row.get("id") or "")
+    }
+    assignment_rows = [
+        row for row in parse_registry(Path(args.state_dir) / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+    ]
+    matrix = read_json(Path(args.state_dir) / "service-matrix.json", {})
+    matrix_updated = str(matrix.get("updated") or "")
+    quality = read_json(Path(args.quality_summary_file), {})
+    quality_items = (
+        quality.get("items")
+        if isinstance(quality.get("items"), dict)
+        else quality if isinstance(quality, dict) else {}
+    )
+    policy_min_stability = to_float(
+        planner.quality_policy.get("min_stability"),
+        DEFAULT_QUALITY_POLICY["min_stability"],
+    )
+    required_reserve = max(
+        0,
+        to_int(
+            planner.load_policy.get(
+                "controlled_certification_required_reserve_users"
+            ),
+            1,
+        ),
+    )
+    authority_status = str(authority.get("status") or "NONE")
+    authority_expiry = str(authority.get("expires_at") or "")
+    authority_unexpired = bool(
+        authority_status == "APPROVED"
+        and (not authority_expiry or parse_ts(authority_expiry) > time.time())
+    )
+
+    rows: list[dict[str, Any]] = []
+    for target_id, egress in sorted(planner.egress.items()):
+        registry = registry_by_id.get(target_id, {})
+        target_assignments = [
+            row for row in assignment_rows
+            if str(row.get("current") or "") == target_id
+        ]
+        certification_users = sum(
+            1 for row in target_assignments
+            if bool_value(row.get("certification_user"))
+        )
+        ordinary_users = len(target_assignments) - certification_users
+        baseline = controlled_certification_source_health_status(
+            Path(args.state_dir),
+            target_id,
+        )
+        candidate = planner._candidate(
+            representative,
+            egress,
+            important_services,
+            route_class,
+            purpose="failover",
+        )
+        candidate_json = planner._candidate_json(candidate)
+        load = planner._load_limits_for_egress(egress)
+        hard_limit = max(0, to_int(load.get("hard_limit"), 0))
+        free_capacity = max(
+            0,
+            hard_limit - int(egress.users) - required_reserve,
+        )
+        controlled_only_contract = bool(
+            str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
+            and bool_value(registry.get("execution_reserved"))
+            and bool_value(registry.get("canary_reserved"))
+            and str(registry.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and not bool_value(registry.get("autoswitch_allowed"))
+            and not bool_value(registry.get("rebalance_allowed"))
+            and str(
+                registry.get("production_assignment_allowed") or ""
+            ).lower() in {"0", "false", "no"}
+        )
+        exact_authority_target = bool(
+            target_id == pinned_target_id and authority_unexpired
+        )
+        quality_windows = (
+            quality_items.get(target_id, {}).get("windows", {})
+            if isinstance(quality_items.get(target_id), dict)
+            else {}
+        )
+        quality_updated = str(
+            (quality_items.get(target_id) or {}).get("updated")
+            or (quality.get("updated") if isinstance(quality, dict) else "")
+            or ""
+        )
+        quality_age_seconds = (
+            max(0.0, time.time() - parse_ts(quality_updated))
+            if quality_updated else -1.0
+        )
+        quality_fresh = bool(
+            quality_updated
+            and quality_age_seconds
+            <= CONTROLLED_CERTIFICATION_BASELINE_MAX_AGE_SECONDS
+        )
+        stability_inputs = {
+            "current": round(egress.stability, 6),
+            "5m": round(
+                to_float((quality_windows.get("5m") or {}).get("stability"), -1.0),
+                6,
+            ),
+            "1h": round(
+                to_float((quality_windows.get("1h") or {}).get("stability"), -1.0),
+                6,
+            ),
+        }
+        explicit_stability_blockers = [
+            f"{window}_stability_missing_or_below_floor"
+            for window, value in stability_inputs.items()
+            if value < policy_min_stability
+        ]
+        if not quality_fresh:
+            explicit_stability_blockers.append("quality_windows_stale_or_missing")
+        quality_blockers = sorted({
+            reason for reason in candidate.blocked
+            if reason in {
+                "avg_mbps_below_floor",
+                "min_mbps_below_floor",
+                "stability_below_floor",
+            }
+        }.union(explicit_stability_blockers))
+        non_controlled_blockers = sorted({
+            reason for reason in candidate.blocked
+            if reason not in {
+                "manual_only",
+                "reserve_only",
+                "canary_reserved_production_assignment_blocked",
+            }
+        })
+        measurement_semantics = {
+            "protocol": str(registry.get("protocol") or ""),
+            "handshake_signal": (
+                "NOT_APPLICABLE"
+                if str(registry.get("protocol") or "").lower()
+                in {"vless", "openvpn"}
+                else "APPLICABLE"
+            ),
+            "quality_fail_rate_role": "ADVISORY_ONLY",
+            "service_reachability_role": "HARD_GATE",
+            "current_5m_1h_stability_role": "HARD_GATE",
+            "valid": True,
+        }
+        verification_supported = bool(
+            baseline.get("service_count") and egress.interface
+        )
+        rollback_containment_supported = bool(egress.interface)
+        controlled_rebind_eligible = bool(
+            target_id != source_id
+            and controlled_only_contract
+            and ordinary_users == 0
+            and baseline.get("ok")
+            and not quality_blockers
+            and not non_controlled_blockers
+            and load.get("capacity_owner_reconciled")
+            and free_capacity > 0
+            and verification_supported
+            and rollback_containment_supported
+        )
+        current_stage_feasible = bool(
+            controlled_rebind_eligible
+            and free_capacity >= current_stage > 0
+        )
+        campaign_completion_feasible = bool(
+            controlled_rebind_eligible
+            and free_capacity >= completion_stage > 0
+        )
+        full_live_admission = bool(
+            exact_authority_target
+            and current_stage_feasible
+        )
+        exclusion_reasons: list[str] = []
+        if target_id == source_id:
+            exclusion_reasons.append("source_cannot_be_its_own_target")
+        if not controlled_only_contract:
+            exclusion_reasons.append(
+                "controlled_assignment_permission_or_isolation_contract_missing"
+            )
+        if ordinary_users:
+            exclusion_reasons.append(
+                "ordinary_user_occupancy_forbidden_by_current_campaign"
+            )
+        if not baseline.get("ok"):
+            exclusion_reasons.append(
+                str(baseline.get("status") or "target_baseline_invalid")
+            )
+        exclusion_reasons.extend(quality_blockers)
+        exclusion_reasons.extend(non_controlled_blockers)
+        if not load.get("capacity_owner_reconciled"):
+            exclusion_reasons.extend(load.get("capacity_owner_errors") or [])
+        if not verification_supported:
+            exclusion_reasons.append("verification_contract_not_supported")
+        if not rollback_containment_supported:
+            exclusion_reasons.append(
+                "rollback_or_containment_contract_not_supported"
+            )
+        if current_stage and free_capacity < current_stage:
+            exclusion_reasons.append("current_stage_capacity_or_reserve_insufficient")
+        row = {
+            "target_id": target_id,
+            "protocol": str(registry.get("protocol") or ""),
+            "family": str(registry.get("protocol") or ""),
+            "interface": str(registry.get("interface") or ""),
+            "role": str(registry.get("role") or egress.role),
+            "reservation_owner": str(registry.get("reservation_owner") or ""),
+            "current_authority_exact_target": exact_authority_target,
+            "controlled_only_contract": controlled_only_contract,
+            "ordinary_planner_eligible": bool(candidate.eligible),
+            "controlled_rebind_eligible": controlled_rebind_eligible,
+            "full_live_admission": full_live_admission,
+            "health": {
+                "status": str(baseline.get("status") or ""),
+                "ok": bool(baseline.get("ok")),
+                "service_count": int(baseline.get("service_count") or 0),
+                "reachable_service_count": int(
+                    baseline.get("reachable_service_count") or 0
+                ),
+                "hard_failure_count": int(
+                    baseline.get("hard_failure_count") or 0
+                ),
+                "observation_fingerprint": str(
+                    baseline.get("observation_fingerprint") or ""
+                ),
+            },
+            "quality": {
+                "current_avg_mbps": round(egress.avg_mbps, 3),
+                "current_min_mbps": round(egress.min_mbps, 3),
+                "current_stability": round(egress.stability, 6),
+                "stability_floor": policy_min_stability,
+                "required_stability_inputs": stability_inputs,
+                "window_5m": quality_windows.get("5m") or {},
+                "window_1h": quality_windows.get("1h") or {},
+                "updated": quality_updated,
+                "age_seconds": (
+                    round(quality_age_seconds, 3)
+                    if quality_age_seconds >= 0 else None
+                ),
+                "fresh": quality_fresh,
+                "decision": candidate_json.get("quality_decision") or {},
+                "blockers": quality_blockers,
+            },
+            "measurement_semantics": measurement_semantics,
+            "capacity": {
+                **load,
+                "current_assigned_users": int(egress.users),
+                "ordinary_users": ordinary_users,
+                "certification_users": certification_users,
+                "required_reserve": required_reserve,
+                "free_capacity_after_reserve": free_capacity,
+                "current_stage_safe_scope": free_capacity,
+                "campaign_completion_safe_scope": free_capacity,
+            },
+            "verification_supported": verification_supported,
+            "rollback_containment_supported": rollback_containment_supported,
+            "correlation_domain": str(
+                registry.get("correlation_domain")
+                or registry.get("expected_ip")
+                or f"{registry.get('protocol', '')}:{registry.get('interface', '')}"
+            ),
+            "current_stage_feasible": current_stage_feasible,
+            "campaign_completion_feasible": campaign_completion_feasible,
+            "planner_score": round(float(candidate.score), 3),
+            "planner_blockers": sorted(set(candidate.blocked)),
+            "exclusion_reasons": sorted(set(exclusion_reasons)),
+            "owner_lineage": {
+                "inventory": "egress.registry",
+                "assignments": "users.registry",
+                "health": "service-matrix.json + egress-diagnose.state",
+                "quality": str(args.quality_summary_file),
+                "capacity": str(load.get("capacity_owner") or ""),
+                "ranking": "tools/v7-users-autoswitch existing Planner",
+            },
+        }
+        row["semantic_fingerprint"] = sha256_json({
+            key: value
+            for key, value in row.items()
+            if key not in {"semantic_fingerprint"}
+        })
+        rows.append(row)
+
+    ranked = sorted(
+        (row for row in rows if row.get("controlled_rebind_eligible")),
+        key=lambda row: (
+            not bool(row.get("current_stage_feasible")),
+            not bool(row.get("campaign_completion_feasible")),
+            -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
+            -to_int(
+                (row.get("capacity") or {}).get("free_capacity_after_reserve"),
+                0,
+            ),
+            -to_float(row.get("planner_score"), 0.0),
+            str(row.get("target_id") or ""),
+        ),
+    )
+    for index, row in enumerate(ranked, start=1):
+        row["safety_rank"] = index
+    selected = next((
+        row for row in ranked if row.get("current_stage_feasible")
+    ), {})
+    pinned = next((
+        row for row in rows
+        if str(row.get("target_id") or "") == pinned_target_id
+    ), {})
+    exact_target_authority = bool(pinned_target_id)
+    if pinned.get("full_live_admission"):
+        legal_outcome = "CURRENT_EXACT_TARGET_VALID"
+    elif selected and str(selected.get("target_id") or "") != pinned_target_id:
+        legal_outcome = (
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED"
+            if exact_target_authority
+            else "BETTER_TARGET_SELECTED_INSIDE_APPROVED_ENVELOPE"
+        )
+    else:
+        legal_outcome = (
+            "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
+        )
+    inventory_semantic = [{
+        "target_id": row.get("target_id"),
+        "semantic_fingerprint": row.get("semantic_fingerprint"),
+        "controlled_rebind_eligible": row.get("controlled_rebind_eligible"),
+        "current_stage_feasible": row.get("current_stage_feasible"),
+        "campaign_completion_feasible": row.get(
+            "campaign_completion_feasible"
+        ),
+    } for row in rows]
+    inventory_fingerprint = sha256_json(inventory_semantic)
+    multi_target_rows: list[dict[str, Any]] = []
+    combined_safe_scope = 0
+    selected_correlation_domains: set[str] = set()
+    remaining_stage_scope = current_stage
+    for row in ranked:
+        correlation_domain = str(row.get("correlation_domain") or "")
+        if (
+            not correlation_domain
+            or correlation_domain in selected_correlation_domains
+        ):
+            continue
+        safe_scope = min(
+            max(0, remaining_stage_scope),
+            to_int(
+                (row.get("capacity") or {}).get("current_stage_safe_scope"),
+                0,
+            ),
+        )
+        if safe_scope <= 0:
+            continue
+        multi_target_rows.append({
+            "target_id": str(row.get("target_id") or ""),
+            "correlation_domain": correlation_domain,
+            "allocated_users": safe_scope,
+            "capacity_reservation": safe_scope,
+            "verification_supported": bool(row.get("verification_supported")),
+            "rollback_containment_supported": bool(
+                row.get("rollback_containment_supported")
+            ),
+            "target_fingerprint": str(
+                row.get("semantic_fingerprint") or ""
+            ),
+        })
+        selected_correlation_domains.add(correlation_domain)
+        combined_safe_scope += safe_scope
+        remaining_stage_scope = max(0, current_stage - combined_safe_scope)
+        if remaining_stage_scope == 0:
+            break
+    multi_target_ready = bool(
+        current_stage > 0
+        and len(multi_target_rows) > 1
+        and combined_safe_scope >= current_stage
+    )
+    if (
+        legal_outcome
+        == "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
+        and multi_target_ready
+    ):
+        legal_outcome = (
+            "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED"
+            if exact_target_authority
+            else "MULTI_TARGET_ALLOCATION_READY"
+        )
+
+    defects = [
+        "CAMPAIGN_TARGET_ID_ORDER_SELECTION_DEFECT",
+        "CAMPAIGN_TARGET_READINESS_SEMANTICALLY_INCOMPLETE",
+        "CAMPAIGN_TARGET_PINNING_WITHOUT_DYNAMIC_RESELECTION",
+        "CAMPAIGN_TARGET_INVENTORY_GENERATION_NOT_CONSUMED",
+    ]
+    if any(
+        row.get("target_id") != pinned_target_id
+        and row.get("ordinary_planner_eligible")
+        for row in rows
+    ):
+        defects.append("CAMPAIGN_TARGET_DISCOVERY_INCOMPLETE")
+    if exact_target_authority:
+        defects.append("CAMPAIGN_AUTHORITY_EXACT_TARGET_REBIND_REQUIRED")
+    if not multi_target_ready and current_stage > 0:
+        defects.append("MULTI_TARGET_CURRENT_STAGE_CAPACITY_NOT_PROVEN")
+    result = {
+        "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
+        "status": legal_outcome,
+        "ok": True,
+        "read_only": True,
+        "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
+        "campaign": {
+            "request_id": str(authority.get("request_id") or ""),
+            "request_hash": str(authority.get("request_hash") or ""),
+            "authority_status": authority_status,
+            "authority_semantics": (
+                "EXACT_TARGET_AUTHORITY"
+                if exact_target_authority else "ENVELOPE_AUTHORITY"
+            ),
+            "expires_at": authority_expiry,
+            "unexpired": authority_unexpired,
+            "source_id": source_id,
+            "current_stage": current_stage,
+            "completed_stages": list(campaign.get("completed_stages") or []),
+            "remaining_stages": remaining_stages,
+            "pinned_target_id": pinned_target_id,
+        },
+        "inventory_generation": sha256_json({
+            "matrix_updated": matrix_updated,
+            "egress_registry_hash": sha256_file(
+                Path(args.state_dir) / "egress.registry"
+            ),
+            "users_registry_hash": sha256_file(
+                Path(args.state_dir) / "users.registry"
+            ),
+            "quality_summary_hash": sha256_file(
+                Path(args.quality_summary_file)
+            ),
+        })[:24],
+        "inventory_fingerprint": inventory_fingerprint,
+        "inventory_measured_at": now_iso(),
+        "inventory_owner_pointers": {
+            "egress_registry": str(Path(args.state_dir) / "egress.registry"),
+            "users_registry": str(Path(args.state_dir) / "users.registry"),
+            "matrix": str(Path(args.state_dir) / "service-matrix.json"),
+            "quality": str(args.quality_summary_file),
+            "policy": str(args.policy_file),
+            "authority_audit": str(args.action_class_audit_store),
+        },
+        "selection": {
+            "historical_selection_law": "ID_SORT_THEN_FIRST",
+            "required_selection_law": (
+                "FULL_LIVE_ADMISSION_THEN_CURRENT_STAGE_FEASIBILITY_"
+                "THEN_SAFETY_RANKING_THEN_ID_TIE_BREAK_ONLY"
+            ),
+            "selected_target_id": str(selected.get("target_id") or ""),
+            "selected_target_rank": int(selected.get("safety_rank") or 0),
+            "pinned_target_full_live_admission": bool(
+                pinned.get("full_live_admission")
+            ),
+            "legal_outcome": legal_outcome,
+        },
+        "targets": rows,
+        "ranked_controlled_targets": [
+            str(row.get("target_id") or "") for row in ranked
+        ],
+        "excluded_target_count": sum(
+            1 for row in rows if not row.get("controlled_rebind_eligible")
+        ),
+        "current_stage_feasible": any(
+            row.get("current_stage_feasible") for row in ranked
+        ),
+        "campaign_completion_feasible": any(
+            row.get("campaign_completion_feasible") for row in ranked
+        ),
+        "multi_target_projection": {
+            "existing_generic_multi_target_binding_found": True,
+            "current_campaign_multi_target_authority": False,
+            "eligible_target_count": len(ranked),
+            "combined_current_stage_safe_scope": combined_safe_scope,
+            "current_stage_jointly_feasible": multi_target_ready,
+            "immutable_allocation_projection": multi_target_rows,
+            "allocation_fingerprint": sha256_json({
+                "campaign_request_id": str(authority.get("request_id") or ""),
+                "current_stage": current_stage,
+                "inventory_fingerprint": inventory_fingerprint,
+                "targets": multi_target_rows,
+            }) if multi_target_ready else "",
+            "correlation_domains_distinct": bool(
+                len(selected_correlation_domains) == len(multi_target_rows)
+            ),
+            "runtime_activation": (
+                "SEPARATE_EXACT_AUTHORITY_REQUIRED"
+                if multi_target_ready else "NOT_READY"
+            ),
+        },
+        "hysteresis_and_no_churn": {
+            "health_owner": "existing Matrix observations",
+            "stability_owner": str(args.quality_summary_file),
+            "cooldown_owner": "existing delegated_autonomy_policy",
+            "anti_flap_owner": "existing planner safety policy",
+            "minimum_successful_observations": (
+                "existing quality window sample counts"
+            ),
+            "recovery_law": (
+                "current+5m+1h must all meet the owner-backed stability floor"
+            ),
+            "unchanged_fingerprint_result": (
+                "TARGET_SET_UNCHANGED_REUSE_CURRENT_DECISION"
+            ),
+        },
+        "material_replan": {
+            "target_set_fingerprint": inventory_fingerprint,
+            "unchanged_result": "TARGET_SET_UNCHANGED_REUSE_CURRENT_DECISION",
+            "changed_result": "TARGET_RESELECTION_REQUIRED",
+            "eligible_alternative_prevents_wait_for_current_target": True,
+            "durable_successor_owner": (
+                "existing Matrix -> OMP -> CPS continuation chain"
+            ),
+        },
+        "defects": sorted(set(defects)),
+        "completion": "DYNAMIC_TARGET_RESELECTION_RESIDUAL_EXACTLY_PROVEN",
+        "forbidden_effects": forbidden_effects,
+    }
+    result["diagnostic_fingerprint"] = sha256_json({
+        "campaign": result["campaign"],
+        "inventory_fingerprint": inventory_fingerprint,
+        "selection": result["selection"],
+        "defects": result["defects"],
+    })
+    return result
+
+
 def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str, Any]:
     """Expose the existing policy/audit owner as a redacted read-only status.
 
@@ -14268,11 +14993,18 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         )
         else {}
     )
+    target_selection_diagnostic = (
+        controlled_campaign_target_selection_diagnostic(args)
+    )
+    pinned_target_projection = next((
+        row for row in (target_selection_diagnostic.get("targets") or [])
+        if isinstance(row, dict)
+        and str(row.get("target_id") or "")
+        == controlled_substrate_target_id
+    ), {})
     controlled_substrate_target_ready = bool(
-        controlled_substrate_target_projection.get(
-            "controlled_certification_target_eligible"
-        )
-    ) and bool(controlled_substrate_target_health.get("ok"))
+        pinned_target_projection.get("full_live_admission")
+    )
     cooldown = policy_scope.get("cooldown") if isinstance(policy_scope.get("cooldown"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -14310,6 +15042,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         ),
         "controlled_certification_campaign_status": (
             controlled_campaign_status
+        ),
+        "controlled_campaign_target_selection": (
+            target_selection_diagnostic
         ),
         "ordinary_production_proven_max": int(
             runtime_axes["ordinary_production_proven_max"]
@@ -14363,6 +15098,17 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             ),
             "controlled_target_baseline_health": (
                 controlled_substrate_target_health
+            ),
+            "controlled_target_full_live_admission": (
+                pinned_target_projection
+            ),
+            "controlled_target_selection_status": str(
+                target_selection_diagnostic.get("status") or ""
+            ),
+            "controlled_target_inventory_fingerprint": str(
+                target_selection_diagnostic.get(
+                    "inventory_fingerprint"
+                ) or ""
             ),
             "controlled_target_ordinary_production_eligible": False,
             "source_precondition_status": (
@@ -14497,16 +15243,27 @@ def controlled_certification_substrate_authority_request_only(
         candidates.sort(key=lambda row: str(row.get("source_id") or ""))
         source_candidate = candidates[0] if candidates else {}
     source_id = str(source_candidate.get("source_id") or "")
-    controlled_targets = [
+    target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    selected_target_id = str(
+        (target_diagnostic.get("selection") or {}).get(
+            "selected_target_id"
+        )
+        or ""
+    )
+    selected_target_projection = next((
+        row for row in (target_diagnostic.get("targets") or [])
+        if isinstance(row, dict)
+        and str(row.get("target_id") or "") == selected_target_id
+    ), {})
+    controlled_target = next((
         row for row in (
-            pool.get("healthy_execution_only_controlled_target_candidates")
+            pool.get("execution_only_controlled_target_candidates")
             or []
         )
-        if isinstance(row, dict) and str(row.get("source_id") or "")
-    ]
-    controlled_targets.sort(key=lambda row: str(row.get("source_id") or ""))
-    controlled_target = controlled_targets[0] if controlled_targets else {}
-    controlled_target_id = str(controlled_target.get("source_id") or "")
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "") == selected_target_id
+    ), {})
+    controlled_target_id = selected_target_id
     blockers = []
     if not validation.get("ok"):
         blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
@@ -14530,6 +15287,7 @@ def controlled_certification_substrate_authority_request_only(
             "ok": False,
             "blockers": sorted(set(str(item) for item in blockers)),
             "controlled_certification_pool": pool,
+            "controlled_target_selection": target_diagnostic,
             "forbidden_effects": {
                 "audit_write": False,
                 "policy_write": False,
@@ -14556,7 +15314,17 @@ def controlled_certification_substrate_authority_request_only(
         controlled_target_id=controlled_target_id,
         controlled_target_admission={
             **controlled_target,
-            "fingerprint": sha256_json(controlled_target),
+            "selection": selected_target_projection,
+            "inventory_fingerprint": str(
+                target_diagnostic.get("inventory_fingerprint") or ""
+            ),
+            "fingerprint": sha256_json({
+                "pool_projection": controlled_target,
+                "selection_projection": selected_target_projection,
+                "inventory_fingerprint": str(
+                    target_diagnostic.get("inventory_fingerprint") or ""
+                ),
+            }),
         } if controlled_target else {},
     )
     registration = (
@@ -14573,6 +15341,7 @@ def controlled_certification_substrate_authority_request_only(
         "authority_classification": "ENGINEERING_AUTHORITY",
         "request": request,
         "registration": registration,
+        "controlled_target_selection": target_diagnostic,
         "next_required_consumer": "existing independent Authority owner",
         "reentry_condition": request["reentry_condition"],
         "forbidden_effects": {
@@ -14678,6 +15447,10 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
 
 def main() -> int:
     args = build_arg_parser().parse_args()
+    if args.controlled_target_selection_diagnostic:
+        result = controlled_campaign_target_selection_diagnostic(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.prepare_controlled_certification_substrate_authority_request:
         result = controlled_certification_substrate_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

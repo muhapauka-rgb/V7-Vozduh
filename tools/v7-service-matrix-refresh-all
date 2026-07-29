@@ -139,6 +139,7 @@ def controlled_certification_matrix_binding(
     audit_store: Path,
     source: str,
     now: Optional[datetime] = None,
+    target_selection_diagnostic: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Project the next approved controlled stage from the existing audit owner."""
     records = operator_execution.read_audit_records(audit_store)
@@ -197,6 +198,19 @@ def controlled_certification_matrix_binding(
     )
     if not progress.get("ok"):
         blockers.extend(progress.get("blockers") or [])
+    diagnostic = (
+        target_selection_diagnostic
+        if isinstance(target_selection_diagnostic, dict)
+        else {}
+    )
+    diagnostic_status = str(diagnostic.get("status") or "")
+    if diagnostic and (
+        not diagnostic.get("ok")
+        or diagnostic_status != "CURRENT_EXACT_TARGET_VALID"
+    ):
+        blockers.append(
+            "controlled_campaign_target_full_live_admission_failed"
+        )
     completed = list(progress.get("completed_stages") or [])
     next_stage = int(progress.get("next_stage") or 0)
     return {
@@ -225,7 +239,75 @@ def controlled_certification_matrix_binding(
             scope.get("ordinary_customer_involvement")
         ),
         "authority_expanded": False,
+        "target_selection_status": diagnostic_status,
+        "target_inventory_fingerprint": str(
+            diagnostic.get("inventory_fingerprint") or ""
+        ),
+        "target_reselection_required": diagnostic_status in {
+            "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+            "BETTER_TARGET_SELECTED_INSIDE_APPROVED_ENVELOPE",
+            "MULTI_TARGET_ALLOCATION_READY",
+            "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED",
+        },
+        "target_selection_next_consumer": (
+            "existing Authority owner"
+            if diagnostic_status in {
+                "EXACT_TARGET_REBIND_AUTHORITY_REQUIRED",
+                "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED",
+            }
+            else "existing Matrix -> OMP -> CPS continuation chain"
+            if diagnostic_status
+            else ""
+        ),
     }
+
+
+def read_controlled_target_selection_diagnostic(
+    *,
+    state_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+) -> dict[str, Any]:
+    """Call the existing autoswitch owner in its read-only diagnostic mode."""
+    command = [
+        default_passive_consumer_path(),
+        "--controlled-target-selection-diagnostic",
+        "--state-dir",
+        str(state_dir),
+        "--policy-file",
+        str(policy_file),
+        "--action-class-audit-store",
+        str(audit_store),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
+            "status": "STOP_SAFE_TARGET_DIAGNOSTIC_CALLER_FAILED",
+            "ok": False,
+            "error": f"{type(exc).__name__}:{exc}",
+        }
+    try:
+        payload = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    if proc.returncode != 0 or not isinstance(payload, dict):
+        return {
+            "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
+            "status": "STOP_SAFE_TARGET_DIAGNOSTIC_CALLER_FAILED",
+            "ok": False,
+            "returncode": proc.returncode,
+            "output_tail": (proc.stdout or "")[-2000:],
+        }
+    return payload
 
 
 def record_controlled_campaign_stage_consumption(
@@ -530,9 +612,15 @@ def run_bounded_delegated_service_failure_action(
             "admitted_max_users": policy_max_users,
             "max_concurrent_transactions": policy_concurrency,
         }
+    target_selection_diagnostic = read_controlled_target_selection_diagnostic(
+        state_dir=state_dir,
+        policy_file=policy_file,
+        audit_store=operator_execution_audit_store,
+    )
     campaign_binding = controlled_certification_matrix_binding(
         audit_store=operator_execution_audit_store,
         source=source,
+        target_selection_diagnostic=target_selection_diagnostic,
     )
     ordinary_incident_actionable = (
         classification == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"

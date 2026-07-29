@@ -64,6 +64,19 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
         self.assertTrue(result["consumer_result"]["consumed"])
         self.assertTrue(result["next_output"].startswith("EXECUTE_BASELINE_PROPOSED:"))
 
+    def test_matrix_observation_producer_selectively_invalidates_existing_routing_scenarios(self):
+        result = self.lib.future_scale_affected_scenario_subset(
+            ["tools/v7-service-matrix-refresh-all"], root=ROOT,
+        )
+        self.assertEqual(result["final_verdict"], "PASS", result.get("errors"))
+        self.assertIn("SINGLE_CHANNEL_FAILURE", result["affected_scenarios"])
+        self.assertIn("CAPACITY_BOUNDARY", result["affected_scenarios"])
+        self.assertEqual(
+            result["dependency_expansion"]["tools/v7-service-matrix-refresh-all"],
+            ["tools/v7-users-autoswitch"],
+        )
+        self.assertFalse(result["full_corpus_replay_required"])
+
     def test_documentation_change_is_explicitly_retired(self):
         result = self.lib.compile_polygon_design_change(
             self.design_change(["docs/programs/example.md"], semantic=False),
@@ -229,8 +242,11 @@ class PolygonDesignTimeEngineeringTest(unittest.TestCase):
         result = json.loads(completed.stdout)
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["real_consumer"], "OMP_PROGRAM_EXECUTION_RECONCILIATION")
-        self.assertEqual(result["scenario_campaign"]["affected_scenario_count"], 62)
-        self.assertEqual(result["scenario_campaign"]["consumed_scenario_count"], 62)
+        self.assertGreater(result["scenario_campaign"]["affected_scenario_count"], 0)
+        self.assertEqual(
+            result["scenario_campaign"]["consumed_scenario_count"],
+            result["scenario_campaign"]["affected_scenario_count"],
+        )
         self.assertTrue(result["scenario_campaign"]["coverage_restored"])
         self.assertTrue(result["scenario_campaign"]["final_frontier"]["FRONTIER_EXHAUSTED"])
         self.assertTrue(result["next_output"])

@@ -1996,6 +1996,9 @@ def delegated_policy_live_state_consistency(
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+    controlled_certification_safe_frontier = (
+        program_frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
+    )
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") in {
             "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
@@ -2039,6 +2042,8 @@ def delegated_policy_live_state_consistency(
         if phase3_acceptance_frontier else
         "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
         if active_incident_drain_frontier else
+        "NO_INSIDE_APPROVED_POLICY"
+        if controlled_certification_safe_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
         if heartbeat_reentry_active else
         "ENGINEERING_AUTHORITY_FOR_EXISTING_HEARTBEAT_ENABLEMENT_ONLY"
@@ -2138,6 +2143,11 @@ def delegated_policy_live_state_consistency(
     stop_consistent = (
         (active_incident_drain_frontier and stop == registry_stop == wip_stop == "NONE")
         or
+        (
+            controlled_certification_safe_frontier
+            and stop == registry_stop == wip_stop == sequence_stop == "NONE"
+        )
+        or
         len({stop, registry_stop, sequence_stop}) == 1
         and (
             independent_program_frontier
@@ -2145,7 +2155,11 @@ def delegated_policy_live_state_consistency(
             or engineering_authority_terminal
             or external_owner_terminal
         )
-        and (not independent_program_frontier or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop)
+        and (
+            not independent_program_frontier
+            or controlled_certification_safe_frontier
+            or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
+        )
     )
     if not stop_consistent:
         contradictions.append("delegated_policy_cps_stop_divergence")
@@ -6113,6 +6127,9 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 
 
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS = frozenset({
+    "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED",
+})
 SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M2 = "CAUSAL_M2_ATOMIC_TRANSITION_AND_RECEIPT_LINKAGE"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 = "CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION"
@@ -21451,6 +21468,9 @@ def cps_live_state_consistency(
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+    controlled_certification_safe_frontier = (
+        program_frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
+    )
     next_projection = {
         next_action,
         registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", ""),
@@ -21476,7 +21496,12 @@ def cps_live_state_consistency(
             and wip_stop != stop
             and not split_authority_natural_boundary
         )
-        or (independent_program_frontier and not active_incident_drain_frontier and "REAL_WORLD_LIMIT" not in wip_stop)
+        or (
+            independent_program_frontier
+            and not active_incident_drain_frontier
+            and not controlled_certification_safe_frontier
+            and "REAL_WORLD_LIMIT" not in wip_stop
+        )
     ):
         errors.append("cps_current_stop_divergence")
     if not live.get("AUTHORITY_REQUIRED_NOW", "").strip("`").startswith(normalized["authority_required_now"]):

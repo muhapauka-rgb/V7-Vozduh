@@ -527,6 +527,50 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
                 "natural_production_present; rollback_and_no_rollback_present",
             )
 
+    def test_controlled_campaign_safe_frontier_is_not_authority_or_stop_divergence(self):
+        state = dict(self.state)
+        frontier = (
+            "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
+        )
+        state.update({
+            "current_stop_condition": "NONE",
+            "current_program_execution_frontier": frontier,
+            "current_next_action_id": frontier,
+            "smallest_existing_next_action": frontier,
+            "wip_smallest_existing_next_action": frontier,
+            "wip_smallest_existing_next_action_id": frontier,
+            "wip_current_primary_stop": "NONE",
+            "authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+            "wip_authority_required_now": "NO_INSIDE_APPROVED_POLICY",
+            "program_terminal_class": "NONE",
+            "program_terminal_state": "NONE_T48_M8_CONTROLLED_POOL_READY",
+            "omp_continuation_required": "TRUE",
+            "external_input_required": "FALSE",
+            "external_input_type": "NONE",
+            "next_mission_formed": "TRUE",
+            "next_mission_id": "T48-M8",
+        })
+        rendered = self.lib.build_normalized_cps_document(
+            self.cps,
+            state=state,
+        )
+        result = self.lib.cps_live_state_consistency(
+            rendered,
+            root=ROOT,
+            omp_text=self.omp,
+            verify_external=False,
+            expected_state=state,
+        )
+        self.assertNotIn("cps_current_stop_divergence", result["errors"])
+        self.assertNotIn(
+            "delegated_policy_cps_stop_divergence",
+            result["errors"],
+        )
+        self.assertNotIn(
+            "delegated_policy_live_operational_authority_required",
+            result["errors"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

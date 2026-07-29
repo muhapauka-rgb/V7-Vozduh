@@ -322,6 +322,53 @@ class GovernedCanaryCliTest(unittest.TestCase):
             occupied["blockers"],
         )
 
+    def test_controlled_topology_gate_profile_does_not_fabricate_user_trust(self):
+        module = load_cli_module()
+        candidate = {
+            "user": "10.7.0.100",
+            "current_channel": "1",
+            "recommended_channel": "vless",
+            "execution_candidate": True,
+            "confidence": 100.0,
+            "trust": 0.0,
+            "prediction": {"confidence": 0.0},
+            "rollback_plan": {
+                "rollback_target": "1",
+                "rollback_confidence": 100.0,
+            },
+        }
+        default = (
+            module.operator_execution_pipeline.autonomous_safety_gates(
+                {},
+                [candidate],
+            )
+        )
+        topology = (
+            module.operator_execution_pipeline.autonomous_safety_gates(
+                {
+                    "controlled_execution_gate_profile": (
+                        "CONTROLLED_CERTIFICATION_TOPOLOGY"
+                    ),
+                },
+                [candidate],
+            )
+        )
+        self.assertIn("unknown_trust", default["hard_stop_blockers"])
+        self.assertIn(
+            "prediction_confidence_too_low",
+            default["hard_stop_blockers"],
+        )
+        self.assertNotIn("unknown_trust", topology["hard_stop_blockers"])
+        self.assertNotIn(
+            "prediction_confidence_too_low",
+            topology["hard_stop_blockers"],
+        )
+        self.assertFalse(topology["identity_learning_gates_applicable"])
+        self.assertEqual(
+            topology["candidate_floor_evaluation"][0]["trust"],
+            0.0,
+        )
+
     def test_approved_substrate_provisioning_preflight_is_read_only(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -3880,6 +3880,19 @@ def _execute_governed_transaction_with_guards_inner(
     )
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
+    topology_policy_binding: dict[str, Any] = {}
+    if topology_mode:
+        topology_policy_binding = copy.deepcopy(
+            getattr(args, "_controlled_topology_policy_binding", {}) or {}
+        )
+        if not topology_policy_binding.get("allowed"):
+            return transaction_stop(
+                "controlled_topology_standing_policy_binding_invalid",
+                controlled_topology_binding=topology_policy_binding,
+            )
+        surface["controlled_execution_gate_profile"] = (
+            "CONTROLLED_CERTIFICATION_TOPOLOGY"
+        )
     planner_observe = {"skipped": True}
     if not args.skip_planner_observe and not support_mode:
         planner_observe = run_planner_observe(
@@ -4013,14 +4026,7 @@ def _execute_governed_transaction_with_guards_inner(
     approved_identity = {}
     engineering_authority = {}
     if topology_mode:
-        delegated_admission = copy.deepcopy(
-            getattr(args, "_controlled_topology_policy_binding", {}) or {}
-        )
-        if not delegated_admission.get("allowed"):
-            return transaction_stop(
-                "controlled_topology_standing_policy_binding_invalid",
-                controlled_topology_binding=delegated_admission,
-            )
+        delegated_admission = topology_policy_binding
     elif support_mode:
         delegated_admission = {
             "schema_version": "v7.controlled-certification-setup-authority.v1",
@@ -4564,6 +4570,22 @@ def execute_controlled_topology_standing_transaction(
         else {}
     )
     transaction_blockers = list(selection.get("blockers") or [])
+    cycle = (
+        transaction.get("cycle")
+        if isinstance(transaction.get("cycle"), dict)
+        else {}
+    )
+    if not transaction_blockers and cycle.get("stop_reason"):
+        transaction_blockers.append(
+            ":".join(
+                part
+                for part in (
+                    str(cycle.get("stop_reason") or ""),
+                    str(cycle.get("stop_detail") or ""),
+                )
+                if part
+            )
+        )
     release_applied = (
         bool(release_result)
         and int(release_result.get("returncode") or 0) == 0

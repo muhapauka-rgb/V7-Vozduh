@@ -15049,6 +15049,102 @@ def controlled_source_topology_diagnostic(
         }
 
     target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    policy_root = read_json(Path(args.policy_file), {})
+    policy_contract = (
+        policy_root.get("delegated_autonomy_policy")
+        if isinstance(policy_root, dict)
+        and isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+        else {}
+    )
+    policy_validation = (
+        operator_execution.validate_standing_delegated_operational_policy(
+            policy_contract,
+            audit_records=operator_execution.read_audit_records(
+                Path(args.action_class_audit_store)
+            ),
+        )
+    )
+    policy = (
+        policy_validation.get("policy")
+        if isinstance(policy_validation.get("policy"), dict)
+        else {}
+    )
+    topology_scope = (
+        (policy.get("action_class_scopes") or {}).get(
+            operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    topology_scope = topology_scope if isinstance(topology_scope, dict) else {}
+    topology_policy_blockers = list(policy_validation.get("errors") or [])
+    if (
+        policy.get("policy_profile")
+        != operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+    ):
+        topology_policy_blockers.append(
+            "controlled_topology_standing_policy_profile_missing"
+        )
+    if (
+        operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        not in set(policy.get("allowed_action_classes") or [])
+    ):
+        topology_policy_blockers.append(
+            "controlled_topology_action_class_not_allowed"
+        )
+    exact_topology_requirements = {
+        "allowed_actions": ["REBIND_CONTROLLED_CERTIFICATION_SOURCE"],
+        "certification_identities_only": True,
+        "max_users_per_transaction": 1,
+        "max_concurrent_transactions": 1,
+        "ordinary_identity_delta": 0,
+        "ordinary_route_delta": 0,
+        "ordinary_assignment_mutation_allowed": False,
+        "target_ordinary_users": 0,
+        "immutable_manifest_required": True,
+        "fresh_candidate_required": True,
+        "fresh_packet_required": True,
+        "fresh_lease_required": True,
+        "restore_barrier_before_apply_required": True,
+        "verification_required": True,
+        "bounded_idempotent_rollback_required": True,
+        "private_credential_mutation_allowed": False,
+        "external_resource_creation_allowed": False,
+        "hard_limit_modification_allowed": False,
+        "authority_self_expansion_allowed": False,
+    }
+    for field, expected in exact_topology_requirements.items():
+        if topology_scope.get(field) != expected:
+            topology_policy_blockers.append(
+                f"controlled_topology_scope_{field}_mismatch"
+            )
+    topology_policy_admission = {
+        "schema_version": (
+            "v7.controlled-certification-topology-standing-policy-admission.v1"
+        ),
+        "status": (
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY"
+            if not topology_policy_blockers
+            else "STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_REQUIRED"
+        ),
+        "ok": not topology_policy_blockers,
+        "contract_id": str(policy_contract.get("contract_id") or ""),
+        "contract_hash": str(policy_contract.get("contract_hash") or ""),
+        "policy_profile": str(policy.get("policy_profile") or ""),
+        "policy_scope_hash": str(policy_contract.get("policy_scope_hash") or ""),
+        "action_class": (
+            operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        ),
+        "max_users_per_transaction": int(
+            topology_scope.get("max_users_per_transaction") or 0
+        ),
+        "max_concurrent_transactions": int(
+            topology_scope.get("max_concurrent_transactions") or 0
+        ),
+        "blockers": sorted(set(topology_policy_blockers)),
+        "authority_self_expansion": False,
+        "production_effect_performed": False,
+    }
     topology_authority_status = (
         operator_execution.controlled_source_topology_authority_status(
             operator_execution.read_audit_records(
@@ -15369,6 +15465,18 @@ def controlled_source_topology_diagnostic(
         if registered_matches
         else authority_template
     )
+    if topology_policy_admission.get("ok"):
+        authority_package = {
+            **authority_package,
+            "actionable": False,
+            "superseded_by_standing_policy": True,
+            "superseding_contract_id": str(
+                topology_policy_admission.get("contract_id") or ""
+            ),
+            "superseding_contract_hash": str(
+                topology_policy_admission.get("contract_hash") or ""
+            ),
+        }
 
     options = {
         "option_1_existing_egress_rebind": {
@@ -15497,6 +15605,7 @@ def controlled_source_topology_diagnostic(
                 topology_authority_status.get("decision_id") or ""
             ),
         },
+        "standing_policy_admission": topology_policy_admission,
         "polygon_fault_verification_contract": {
             "scenarios": [
                 "reserve_or_create",
@@ -15530,6 +15639,9 @@ def controlled_source_topology_diagnostic(
             ],
         },
         "durable_successor": (
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
+            "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"
+            if preflight_ready and topology_policy_admission.get("ok") else
             "AUTHORITY_INPUT_REQUIRED:"
             + required_authority_action
             if preflight_ready else
@@ -16028,6 +16140,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
                 for item in (pending_policy.get("allowed_action_classes") or [])
                 if str(item)
             )),
+            "policy_profile": str(
+                pending_policy.get("policy_profile") or ""
+            ),
             "policy_scope_hash": str(pending_request.get("policy_scope_hash") or ""),
             "decision_set": list(pending_request.get("decision_set") or []),
         },

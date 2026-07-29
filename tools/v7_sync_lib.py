@@ -18536,6 +18536,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
         }
     pending_tier_request = status.get("pending_tier_authority_request")
+    pending_controlled_topology_policy = bool(
+        isinstance(pending_tier_request, dict)
+        and pending_tier_request.get("status") == "PENDING"
+        and str(pending_tier_request.get("policy_profile") or "")
+        == "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_TOPOLOGY_V1"
+    )
     if isinstance(pending_tier_request, dict) and pending_tier_request.get("status") == "PENDING":
         pending_request_id = str(pending_tier_request.get("request_id") or "")
         pending_request_hash = str(pending_tier_request.get("request_hash") or "")
@@ -18923,6 +18929,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         primary_stop = "NONE"
+    elif pending_controlled_topology_policy:
+        primary_next_action = (
+            "ENGINEERING_AUTHORITY_STANDING_DELEGATED_CONTROLLED_"
+            "TOPOLOGY_POLICY_DECISION_REQUIRED"
+        )
+        primary_stop = "ENGINEERING_AUTHORITY"
     elif controlled_source_topology_authority_required:
         primary_next_action = (
             "ENGINEERING_AUTHORITY_"
@@ -19017,6 +19029,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_active_scope": (
             "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
             if active_incident_drain else
+            "CONTROLLED_TOPOLOGY_STANDING_POLICY_AUTHORITY_BOUNDARY"
+            if pending_controlled_topology_policy else
             "CONTROLLED_SOURCE_NON_WAITING_EXIT_PATH"
             if (
                 controlled_source_topology_authority_required
@@ -19034,6 +19048,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
+            "OBTAIN ONE EXACT INDEPENDENT APPROVE_STANDING_DELEGATED_"
+            "OPERATIONAL_POLICY OR DECLINE DECISION FOR THE CURRENT COMBINED "
+            "SERVICE-FAILURE PLUS CONTROLLED-TOPOLOGY SCOPE; DO NOT APPROVE "
+            "THE HISTORICAL ONE-OFF TOPOLOGY REQUEST AND DO NOT PERFORM ANY "
+            "RESERVATION, PACKET, RESTORE-BARRIER OR PRODUCTION EFFECT"
+            if pending_controlled_topology_policy else
             "OBTAIN ONLY ONE EXACT INDEPENDENT "
             f"{controlled_source_topology_action} DECISION THROUGH THE EXISTING "
             "OPERATOR-EXECUTION AUTHORITY OWNER; ON APPROVAL REVALIDATE THE "
@@ -19076,11 +19096,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
             if active_incident_drain else
+            "SERVICE_FAILURE_CONTROLLED_TOPOLOGY_STANDING_POLICY_AUTHORITY_REQUEST_READY_V1"
+            if pending_controlled_topology_policy else
             "SERVICE_FAILURE_CONTROLLED_SOURCE_NON_WAITING_EXIT_AUTHORITY_BOUNDARY_V1"
             if controlled_source_topology_authority_required else
             "SERVICE_FAILURE_CONTROLLED_SOURCE_TOPOLOGY_APPROVED_PACKET_PREFLIGHT_V1"
@@ -19127,6 +19149,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 m8_exact_authority_boundary
                 or m8_approved_source_invalid
                 or m8_approved_source_baseline_blocked
+                or pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
                 or controlled_target_rebind_authority_boundary
                 or controlled_target_live_owner_boundary
@@ -19147,6 +19170,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_COMBINED_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_"
+            "POLICY_DECISION_ONLY; NO ONE_OFF_TOPOLOGY APPROVAL"
+            if pending_controlled_topology_policy else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
             f"EXACT_{controlled_source_topology_action}_ONLY; CURRENT TIER48 "
             "CAPABILITY AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
@@ -19175,6 +19202,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_COMBINED_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_"
+            "POLICY_DECISION_ONLY; NO ONE_OFF_TOPOLOGY APPROVAL"
+            if pending_controlled_topology_policy else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
             f"EXACT_{controlled_source_topology_action}_ONLY; CURRENT TIER48 "
             "CAPABILITY AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
@@ -19207,6 +19238,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_current_primary_stop": (
             "NONE"
             if controlled_source_topology_authority_approved else
+            "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; "
+            "REAL_WORLD_LIMIT_CAPABILITY_LOCAL; EXACT_COMBINED_STANDING_"
+            "DELEGATED_CONTROLLED_TOPOLOGY_POLICY_DECISION_PENDING"
+            if pending_controlled_topology_policy else
             "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_SOURCE_HAS_NO_FRESH_HEALTHY_BASELINE"
             if m8_approved_source_baseline_blocked else
             "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_REQUEST_SOURCE_NOT_ISOLATED"
@@ -19231,6 +19266,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "last_responsible_link": (
             "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
             if active_incident_drain else
+            "existing combined standing-policy request -> independent Authority "
+            "decision -> existing policy/audit owner -> topology admission"
+            if pending_controlled_topology_policy else
             "exact approved topology manifest -> existing Candidate/Packet/lease "
             "owners -> packet-bound restore-barrier operational boundary"
             if controlled_source_topology_authority_approved else
@@ -19260,6 +19298,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "omp_continuation_pointer": (
             "The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor."
             if active_incident_drain else
+            "The existing independent Authority owner decides the exact "
+            "combined standing-policy request once; approval activates only "
+            "its immutable bounded topology envelope and invalidates the "
+            "historical one-off request."
+            if pending_controlled_topology_policy else
             "The existing OMP consumer prepares only fresh immutable execution "
             "identities for the approved one-identity topology manifest and "
             "stops before any production mutation at its packet-bound boundary."
@@ -19288,6 +19331,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "reenters the active standing-policy gate and materializes only fresh Candidate/Packet/lease identities."
         ),
         "sequence_execution_class": (
+            "existing independent standing-policy Authority owner plus "
+            "operator-execution policy/audit owner"
+            if pending_controlled_topology_policy else
             "existing independent Authority owner plus operator-execution audit and controlled-source reservation owner"
             if controlled_source_topology_authority_required else
             "existing Planner, Candidate, Packet, lease and restore-barrier preflight owners"
@@ -19315,6 +19361,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "existing Service Matrix fresh-event revalidation owner"
         ),
         "sequence_expected_output": (
+            "exact APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY or DECLINE -> "
+            "combined policy activation or fail-closed residual; zero "
+            "topology effects before approval"
+            if pending_controlled_topology_policy else
             "fresh one-identity Candidate/Packet/lease and immutable manifest -> packet-bound operational boundary; zero setup effects before clearance"
             if controlled_source_topology_authority_approved else
             "fresh healthy exact-source baseline -> approved controlled condition -> progressive 5->10->25->48 campaign"
@@ -19340,6 +19390,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
         ),
         "program_frontier_input": (
+            f"Exact combined standing-policy request "
+            f"{str(pending_tier_request.get('request_id') or 'NONE')} is "
+            "registered and pending; historical one-off topology request is "
+            "not execution permission"
+            if pending_controlled_topology_policy else
             "Exact controlled-source topology request is independently approved "
             "and manifest-bound; no topology mutation has occurred"
             if controlled_source_topology_authority_approved else
@@ -19372,6 +19427,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             state["program_frontier_input"]
         ),
         "program_frontier_owner": (
+            "existing standing delegated policy Authority and append-only audit owner"
+            if pending_controlled_topology_policy else
             "existing Candidate, Packet, lease and restore-barrier preflight owners"
             if controlled_source_topology_authority_approved else
             "existing external egress substrate owner plus service-matrix observation owner"
@@ -19397,6 +19454,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             state["program_frontier_owner"]
         ),
         "program_frontier_expected_output": (
+            "one exact independent standing-policy decision -> active combined "
+            "contract or exact decline; no production effect"
+            if pending_controlled_topology_policy else
             "fresh packet-bound one-identity setup preflight -> exact OPERATIONAL_AUTHORITY boundary; no implicit execution"
             if controlled_source_topology_authority_approved else
             "fresh healthy exact-source Matrix baseline -> automatic approved campaign re-entry; no new Authority request"
@@ -19425,7 +19485,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_decision": (
             primary_next_action if active_incident_drain else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
-            if controlled_source_topology_authority_required else
+            if (
+                pending_controlled_topology_policy
+                or controlled_source_topology_authority_required
+            ) else
             "CONTINUE_PROGRAM_FRONTIER"
             if (
                 m8_substrate_approved
@@ -19450,7 +19513,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_terminal_class": (
             "NONE" if omp_should_continue else
             "ENGINEERING_AUTHORITY"
-            if controlled_source_topology_authority_required else
+            if (
+                pending_controlled_topology_policy
+                or controlled_source_topology_authority_required
+            ) else
             "EXTERNAL_OWNER_REQUIRED"
             if (
                 m8_approved_source_baseline_blocked
@@ -19469,7 +19535,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
             if active_incident_drain else
             primary_next_action
-            if controlled_source_topology_authority_required else
+            if (
+                pending_controlled_topology_policy
+                or controlled_source_topology_authority_required
+            ) else
             "NONE_CONTROLLED_SOURCE_TOPOLOGY_PACKET_PREFLIGHT_SUCCESSOR_READY"
             if controlled_source_topology_authority_approved else
             f"EXTERNAL_OWNER_REQUIRED_{primary_next_action}"
@@ -19500,6 +19569,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 m8_exact_authority_boundary
                 or m8_pool_boundary
+                or pending_controlled_topology_policy
                 or controlled_target_rebind_authority_boundary
                 or controlled_target_live_owner_boundary
                 or not omp_should_continue
@@ -19507,6 +19577,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else "FALSE"
         ),
         "external_input_type": (
+            "EXACT_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_DECISION"
+            if pending_controlled_topology_policy else
             controlled_source_topology_action
             if controlled_source_topology_authority_required else
             controlled_substrate_required_input
@@ -19525,7 +19597,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "next_mission_formed": "TRUE" if omp_should_continue else "FALSE",
         "next_mission_id": (
             SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else
-            "NONE" if controlled_source_topology_authority_required else
+            "NONE"
+            if (
+                pending_controlled_topology_policy
+                or controlled_source_topology_authority_required
+            ) else
             "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_SLICE_FEASIBILITY_V1"
             if controlled_source_topology_authority_approved else
             "NONE" if m8_approved_source_baseline_blocked else
@@ -19541,6 +19617,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
             if active_incident_drain else
+            "EXACT COMBINED STANDING DELEGATED CONTROLLED-TOPOLOGY POLICY "
+            "REQUEST IS REGISTERED; ONE INDEPENDENT APPROVE OR DECLINE "
+            "DECISION IS REQUIRED; POLICY WRITE, ONE-OFF REQUEST APPROVAL, "
+            "RESERVATION, PACKET, RESTORE BARRIER AND PRODUCTION EFFECTS "
+            "REMAIN FORBIDDEN"
+            if pending_controlled_topology_policy else
             "CONTROLLED SOURCE NON-WAITING EXIT PREFLIGHT IS READY; "
             f"SELECTED OPTION={str(controlled_source_topology_recommendation.get('selected_option') or 'NONE')}; "
             f"RESOURCE={str(controlled_source_topology_recommendation.get('selected_resource') or 'NONE')}; "
@@ -19588,6 +19670,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "contract_hash": contract_hash, "request_hash": request_hash,
             "terminal": (
                 "ACTIVE_INCIDENT_DRAIN" if active_incident_drain else
+                "CONTROLLED_TOPOLOGY_STANDING_POLICY_AUTHORITY"
+                if pending_controlled_topology_policy else
                 "CONTROLLED_SOURCE_TOPOLOGY_AUTHORITY"
                 if controlled_source_topology_authority_required else
                 "CONTROLLED_SOURCE_TOPOLOGY_PACKET_PREFLIGHT"
@@ -19653,17 +19737,42 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
         section0_field_overrides={
-            "CURRENT_AUTHORITY_REQUEST_STATUS": "`ACTIVE_OWNER_BACKED_STANDING_POLICY`",
+            "CURRENT_AUTHORITY_REQUEST_STATUS": (
+                "`AWAITING_INDEPENDENT_AUTHORITY_DECISION`"
+                if pending_controlled_topology_policy else
+                "`ACTIVE_OWNER_BACKED_STANDING_POLICY`"
+            ),
             "CURRENT_AUTHORITY_CONTRACT_ID": f"`{contract_id}`",
             "CURRENT_AUTHORITY_CONTRACT_HASH": f"`{contract_hash}`",
             "CURRENT_AUTHORITY_CONTRACT_EXPIRY": f"`{expires_at}`",
             "CURRENT_AUTHORITY_POLICY_SCOPE_HASH": f"`{scope_hash}`",
             "CURRENT_AUTHORITY_AUDIT_PROVENANCE": "`PASS_EXACTLY_ONE_APPROVAL_RECORD`",
-            "CURRENT_AUTHORITY_REQUEST_ID": f"`{request_id}`",
-            "CURRENT_AUTHORITY_REQUEST_HASH": f"`{request_hash}`",
-            "CURRENT_AUTHORITY_REQUEST_EXPIRY": f"`{expires_at}`",
-            "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": f"`{request_hash}`",
-            "CURRENT_AUTHORITY_REQUEST_SCOPE": f"`STANDING_POLICY_ACTIVE; existing planner only; fresh Candidate/Packet/lease; max_users={max_users}; max_concurrent_transactions=1; no reuse; all live gates remain required`",
+            "CURRENT_AUTHORITY_REQUEST_ID": (
+                f"`{str(pending_tier_request.get('request_id') or '')}`"
+                if pending_controlled_topology_policy else f"`{request_id}`"
+            ),
+            "CURRENT_AUTHORITY_REQUEST_HASH": (
+                f"`{str(pending_tier_request.get('request_hash') or '')}`"
+                if pending_controlled_topology_policy else f"`{request_hash}`"
+            ),
+            "CURRENT_AUTHORITY_REQUEST_EXPIRY": (
+                f"`{str(pending_tier_request.get('expires_at') or '')}`"
+                if pending_controlled_topology_policy else f"`{expires_at}`"
+            ),
+            "CURRENT_AUTHORITY_REQUEST_FINGERPRINT": (
+                f"`{str(pending_tier_request.get('request_hash') or '')}`"
+                if pending_controlled_topology_policy else f"`{request_hash}`"
+            ),
+            "CURRENT_AUTHORITY_REQUEST_SCOPE": (
+                "`COMBINED_STANDING_POLICY; existing service-failure scope "
+                f"max_users={int(pending_tier_request.get('requested_max_users') or 0)}; "
+                "bounded controlled-certification topology max_users=1; "
+                "max_concurrent_transactions=1; certification only; ordinary "
+                "identity/assignment/route delta=0; external resource, "
+                "credential, hard-limit and self-expansion forbidden`"
+                if pending_controlled_topology_policy else
+                f"`STANDING_POLICY_ACTIVE; existing planner only; fresh Candidate/Packet/lease; max_users={max_users}; max_concurrent_transactions=1; no reuse; all live gates remain required`"
+            ),
             "CONTROLLED_SOURCE_ROOT_CAUSE_CLASS": (
                 f"`{controlled_substrate_root_cause}`"
             ),
@@ -19729,6 +19838,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 f"`{state['sequence_execution_class']}`"
             ),
             "AUTOMATIC_REENTRY_CONDITION": (
+                "`one exact independent APPROVE_STANDING_DELEGATED_"
+                "OPERATIONAL_POLICY or DECLINE decision is appended through "
+                "the existing Authority owner; approval atomically replaces "
+                "the active contract and supersedes the one-off topology "
+                "request before fresh topology revalidation`"
+                if pending_controlled_topology_policy else
                 "`enabled v7-service-matrix-refresh.timer performs a fresh "
                 "target health/capacity observation and consumes the same "
                 "approved campaign stage through existing live gates`"
@@ -19778,6 +19893,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "behavior_change": (
             "ACTIVE_STANDING_POLICY_TIER_PROJECTION_RECONCILED_WITHOUT_INTERRUPTING_MATRIX_DRAIN"
             if active_incident_drain else
+            "CONTROLLED_TOPOLOGY_COMBINED_STANDING_POLICY_AUTHORITY_BOUNDARY_ATOMICALLY_PROJECTED"
+            if pending_controlled_topology_policy else
             "CONTROLLED_SOURCE_NON_WAITING_EXIT_AUTHORITY_BOUNDARY_ATOMICALLY_PROJECTED"
             if controlled_source_topology_authority_required else
             "CONTROLLED_SOURCE_TOPOLOGY_APPROVAL_CONSUMED_TO_PACKET_PREFLIGHT_SUCCESSOR"

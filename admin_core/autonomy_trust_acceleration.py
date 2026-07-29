@@ -367,7 +367,20 @@ DELEGATED_AUTONOMY_SCOPE_FIELDS = (
 
 
 def normalized_delegated_autonomy_scope(policy: dict[str, Any]) -> dict[str, Any]:
-    return {field: policy.get(field) for field in DELEGATED_AUTONOMY_SCOPE_FIELDS}
+    scope = {field: policy.get(field) for field in DELEGATED_AUTONOMY_SCOPE_FIELDS}
+    # Profile-specific scope is opt-in so historical standing contracts retain
+    # their exact normalized payload and hash.  A combined contract may extend
+    # the existing owner with another independently approved action class, but
+    # absence of these keys must never reinterpret or invalidate an older
+    # service-failure-only grant.
+    for field in (
+        "policy_profile",
+        "action_class_scopes",
+        "allowed_production_effects",
+    ):
+        if field in policy:
+            scope[field] = policy.get(field)
+    return scope
 
 
 def delegated_autonomy_scope_hash(policy: dict[str, Any]) -> str:

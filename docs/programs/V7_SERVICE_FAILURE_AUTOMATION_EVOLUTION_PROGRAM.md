@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.5`
+Version: `2.6`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,122 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.6 active executable revision — bounded autonomous controlled topology
+
+V2.6 admits the exact residual
+`BOUNDED_AUTONOMOUS_CONTROLLED_CERTIFICATION_TOPOLOGY_AUTHORITY_V1`
+inside this Program. It extends the existing standing delegated policy owner,
+topology capability map, Matrix consumer, governed Candidate/Packet/lease
+executor, restore barrier, Outcome/Replay/Learning owners and append-only
+Authority audit. It creates no Program, Planner, Runtime, registry, queue,
+watcher, scheduler, Authority owner, evidence store or truth source.
+
+Discovery proved that the existing standing policy semantically authorizes
+only service-failure failover. The V2.5 one-off source-rebind request therefore
+remains fail-closed evidence of the intended topology action; it is not a
+standing grant and must not be manually or automatically approved after this
+revision is activated.
+
+The existing standing policy may be independently replaced by one combined,
+profile-aware contract:
+
+```text
+existing service-failure action class and bounds
++
+bounded autonomous controlled-certification topology action class
+```
+
+The topology class initially admits only
+`REBIND_CONTROLLED_CERTIFICATION_SOURCE`. Dedicated-source provisioning is
+automatic only when the existing draft owner proves a ready disabled resource
+without external server, peer, credential, secret or hard-limit mutation;
+until that producer-consumer contract is proven, provisioning remains an exact
+external/Authority boundary. A per-user policy table is not sufficient
+isolation.
+
+The immutable topology envelope is:
+
+```text
+certification identities only
+max users per transaction = 1
+max concurrent transactions = 1
+ordinary identity delta = 0
+ordinary assignment mutation = forbidden
+ordinary route delta = 0
+target ordinary users = 0
+fresh owner-backed health, stability and capacity required
+fresh manifest, Candidate, Packet and lease required
+restore barrier before apply required
+verification and bounded idempotent rollback required
+external resource, credential and hard-limit mutation forbidden
+Authority self-expansion forbidden
+```
+
+The combined request is produced and registered by the existing
+`admin_core/operator_execution.py` standing-policy owner. It remains
+non-activating until one exact independent
+`APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY` decision is consumed by that
+owner. Before activation there is no policy write, reservation, Candidate,
+Packet, lease, restore barrier, apply, route/assignment mutation or rollback.
+Initial topology scope one cannot automatically expand to two or more; any
+larger bound requires a new exact independently decidable standing-policy
+request.
+
+Historical service-failure-only contracts retain their exact normalized scope
+and hash. Profile-specific fields are included only in combined contracts.
+This prevents an engineering deployment from silently reinterpreting,
+invalidating or expanding the currently active Tier-48 policy.
+
+After activation, the existing live topology map re-ranks all current options.
+A material inventory change invalidates the short-lived allocation and every
+Candidate/Packet/lease identity, not the standing policy. A matching one-off
+topology request becomes non-actionable and is superseded through the existing
+Authority audit owner; it is never reused as execution permission.
+
+The automatic production chain is:
+
+```text
+fresh Matrix generation
+-> current topology capability map
+-> standing-policy admission
+-> AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY
+-> existing controlled-source reservation owner
+-> fresh Candidate / Packet / lease
+-> restore barrier
+-> exact certification-only apply
+-> per-user, aggregate and ordinary-invariance verification
+-> rollback or certified no-rollback
+-> Outcome / deterministic Replay / Learning
+-> atomic CPS/OMP successor
+```
+
+Polygon and production reuse the same situation, capability-map, selection,
+admission, Candidate, Packet, lease, verification and Outcome schemas and
+invariants. Their artifact identities and effect adapters remain separate.
+Polygon artifacts never become production Candidate, Packet, lease or
+production evidence.
+
+The first production trial is exactly one currently valid certification
+identity and performs no ordinary-user effect. It may run only after the
+combined standing contract is independently active and every live gate passes.
+Its completion is
+`ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN`.
+Further progression may continue only inside both current certified capability
+and independently delegated Authority; otherwise the exact next expansion
+request is the terminal.
+
+One compact Russian Engineering Report is required per material Mission or
+legal terminal. Per-action detail remains in the existing append-only audit
+and Outcome owners; reports must not become an action log or truth source.
+
+The final V2.6 terminal is:
+
+`STANDING_DELEGATED_CONTROLLED_TOPOLOGY_AUTHORITY_RUNTIME_CONSUMED`
+
+and:
+
+`ONE_IDENTITY_AUTONOMOUS_TRIAL_PROVEN`.
 
 ## V2.5 active executable revision — controlled-source non-waiting exit paths
 

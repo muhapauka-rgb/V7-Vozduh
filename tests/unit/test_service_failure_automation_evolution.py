@@ -468,6 +468,124 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(result["authority_package"]["registered"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_controlled_source_topology_reuses_combined_standing_policy_and_suppresses_one_off_request(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.18 enabled=1 current=source "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface "
+                "interface=wg0 enabled=1\n"
+                "id=vless protocol=vless type=interface "
+                "interface=tun0 enabled=1\n",
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            audit_path = root / "authority-audit.jsonl"
+            policy_path.write_text(
+                json.dumps({"authority_budget": {}}, sort_keys=True),
+                encoding="utf-8",
+            )
+            now = operator_execution.utc_now()
+            request = (
+                operator_execution
+                .build_standing_delegated_policy_authority_request(
+                    policy_generation_hash=(
+                        operator_execution.sha256_file(policy_path)
+                    ),
+                    active_program=(
+                        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                    ),
+                    max_users=48,
+                    include_controlled_topology=True,
+                    now=now,
+                )
+            )
+            operator_execution.register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            activated = (
+                operator_execution.issue_standing_delegated_policy_from_audit(
+                    policy_path,
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision=(
+                        "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"
+                    ),
+                    audit_store=audit_path,
+                    actor_id="unit-authority",
+                    now=now,
+                )
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--policy-file", str(policy_path),
+                "--action-class-audit-store", str(audit_path),
+            ])
+            target_projection = {
+                "campaign": {
+                    "request_id": "cpsauth_old",
+                    "request_hash": "a" * 64,
+                    "source_id": "source",
+                },
+                "targets": [{
+                    "target_id": "vless",
+                    "protocol": "vless",
+                    "interface": "tun0",
+                    "health": {"ok": True},
+                    "quality": {"blockers": []},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 0,
+                        "current_assigned_users": 0,
+                        "free_capacity_after_reserve": 60,
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "owner_lineage": {},
+                    "semantic_fingerprint": "b" * 64,
+                }],
+            }
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value=target_projection,
+            ):
+                result = (
+                    self.autoswitch.controlled_source_topology_diagnostic(args)
+                )
+
+        self.assertEqual(
+            result["standing_policy_admission"]["status"],
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY",
+        )
+        self.assertEqual(
+            result["standing_policy_admission"]["contract_id"],
+            activated["contract"]["contract_id"],
+        )
+        self.assertFalse(result["authority_package"]["actionable"])
+        self.assertTrue(
+            result["authority_package"]["superseded_by_standing_policy"]
+        )
+        self.assertTrue(
+            result["durable_successor"].startswith(
+                "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+                "CONTROLLED_TOPOLOGY_POLICY"
+            )
+        )
+        self.assertFalse(
+            result["forbidden_effects"]["runtime_apply"]
+        )
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_controlled_source_topology_authority_audit_is_exact_once(self):
         manifest = {
             "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
@@ -1939,6 +2057,70 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "CONTROLLED_TARGET_INVENTORY_FINGERPRINT"
                 ].strip("`"),
                 "target-inventory-fingerprint",
+            )
+            pending_hash = "a" * 64
+            runtime_status["pending_tier_authority_request"] = {
+                "status": "PENDING",
+                "pending_count": 1,
+                "request_id": f"sdpauth_r1_{pending_hash[:24]}",
+                "request_hash": pending_hash,
+                "created_at": "2026-07-29T00:00:00+00:00",
+                "expires_at": "2099-01-01T00:00:00+00:00",
+                "active_program": (
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                "requested_max_users": 48,
+                "max_concurrent_transactions": 1,
+                "action_class": (
+                    "bounded autonomous controlled certification topology,"
+                    "channel hard-fail failover"
+                ),
+                "policy_profile": (
+                    "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_"
+                    "TOPOLOGY_V1"
+                ),
+                "policy_scope_hash": "b" * 64,
+                "decision_set": [
+                    "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                    "DECLINE",
+                ],
+            }
+            combined_boundary = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status,
+                    root=root,
+                )
+            )
+            self.assertEqual(
+                combined_boundary["final_verdict"],
+                "PASS",
+                combined_boundary,
+            )
+            self.assertEqual(
+                combined_boundary["next_action"],
+                "ENGINEERING_AUTHORITY_STANDING_DELEGATED_CONTROLLED_"
+                "TOPOLOGY_POLICY_DECISION_REQUIRED",
+                combined_boundary,
+            )
+            combined_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                combined_live["CURRENT_AUTHORITY_REQUEST_ID"].strip("`"),
+                f"sdpauth_r1_{pending_hash[:24]}",
+            )
+            self.assertEqual(
+                combined_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "ENGINEERING_AUTHORITY",
+            )
+            self.assertEqual(
+                combined_live["EXTERNAL_INPUT_TYPE"].strip("`"),
+                "EXACT_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_"
+                "POLICY_DECISION",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

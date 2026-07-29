@@ -614,6 +614,12 @@ SERVICE_FAILURE_DELEGATED_ACTION_CLASSES = {
     25: "channel hard-fail failover",
     48: "channel hard-fail failover",
 }
+CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS = (
+    "bounded autonomous controlled certification topology"
+)
+CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE = (
+    "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_TOPOLOGY_V1"
+)
 GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS = 48
 SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 48
 SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX_USERS = 4
@@ -2310,7 +2316,11 @@ def record_controlled_source_topology_authority_decision(
     }
 
 
-def standing_delegated_operational_policy_template(max_users=1):
+def standing_delegated_operational_policy_template(
+    max_users=1,
+    *,
+    include_controlled_topology=False,
+):
     """Return the exact narrow scope consumed by the existing executor.
 
     The template is not Authority and cannot enable execution.  It keeps the
@@ -2345,17 +2355,78 @@ def standing_delegated_operational_policy_template(max_users=1):
             "policy_id": f"dap_service_failure_tier{max_users}",
             "policy_name": f"Bounded Service Failure Tier {max_users} Delegated Autonomy Policy",
         })
+    if include_controlled_topology:
+        policy.update({
+            "policy_profile": CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+            "allowed_action_classes": [
+                action_class,
+                CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+            ],
+            "action_class_scopes": {
+                action_class: {
+                    "max_users_per_transaction": max_users,
+                    "max_concurrent_transactions": 1,
+                    "source_target_selection": "EXISTING_PLANNER_SAFE_TARGET_ONLY",
+                },
+                CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS: {
+                    "allowed_actions": [
+                        "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    ],
+                    "certification_identities_only": True,
+                    "max_users_per_transaction": 1,
+                    "max_concurrent_transactions": 1,
+                    "ordinary_identity_delta": 0,
+                    "ordinary_route_delta": 0,
+                    "ordinary_assignment_mutation_allowed": False,
+                    "target_ordinary_users": 0,
+                    "target_health": "FRESH_PASS_REQUIRED",
+                    "target_stability": "OWNER_BACKED_FLOOR_REQUIRED",
+                    "capacity_after_reserve": "SUFFICIENT_REQUIRED",
+                    "immutable_manifest_required": True,
+                    "fresh_candidate_required": True,
+                    "fresh_packet_required": True,
+                    "fresh_lease_required": True,
+                    "restore_barrier_before_apply_required": True,
+                    "verification_required": True,
+                    "bounded_idempotent_rollback_required": True,
+                    "private_credential_mutation_allowed": False,
+                    "external_resource_creation_allowed": False,
+                    "hard_limit_modification_allowed": False,
+                    "authority_self_expansion_allowed": False,
+                    "material_inventory_change_result": (
+                        "INVALIDATE_ALLOCATION_NOT_STANDING_POLICY"
+                    ),
+                },
+            },
+            "allowed_production_effects": {
+                CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS: [
+                    "certification_only_assignment_change",
+                    "controlled_source_reservation",
+                    "restore_barrier_write",
+                    "bounded_runtime_apply",
+                    "bounded_idempotent_rollback",
+                ],
+            },
+        })
     return policy
 
 
 def build_standing_delegated_policy_authority_request(
-    *, policy_generation_hash, active_program, max_users=1, now=None,
+    *,
+    policy_generation_hash,
+    active_program,
+    max_users=1,
+    include_controlled_topology=False,
+    now=None,
 ):
     """Build a short-lived request to activate the bounded standing policy."""
     from admin_core import autonomy_trust_acceleration
 
     now = now or utc_now()
-    policy = standing_delegated_operational_policy_template(max_users=max_users)
+    policy = standing_delegated_operational_policy_template(
+        max_users=max_users,
+        include_controlled_topology=include_controlled_topology,
+    )
     normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
     request = {
         "schema_version": STANDING_DELEGATED_POLICY_REQUEST_SCHEMA,
@@ -2384,10 +2455,37 @@ def build_standing_delegated_policy_authority_request(
             "verification_required": True,
             "rollback_or_certified_no_rollback_required": True,
             "final_safe_mode": "OPEN",
+            **({
+                "controlled_topology": {
+                    "action_class": CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+                    "allowed_actions": [
+                        "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                    ],
+                    "max_users": 1,
+                    "max_concurrent_transactions": 1,
+                    "candidate_owner": "tools/v7-users-autoswitch",
+                    "packet_owner": CANONICAL_CLEARANCE_OWNER,
+                    "execution_owner": "tools/v7-governed-canary-dry-run-cycle",
+                    "reservation_owner": "tools/v7-egress-set-state",
+                    "candidate_identity": "FRESH_ONLY",
+                    "packet_reuse": "FORBIDDEN",
+                    "lease_required": True,
+                    "restore_barrier_required": True,
+                    "verification_required": True,
+                    "rollback_or_certified_no_rollback_required": True,
+                    "ordinary_user_effect": "FORBIDDEN",
+                    "external_resource_or_credential_mutation": "FORBIDDEN",
+                    "self_expansion_allowed": False,
+                },
+            } if include_controlled_topology else {}),
         },
         "forbidden_effects": [
             "authority_self_expansion",
-            "new_action_class",
+            (
+                "action_class_outside_exact_combined_profile"
+                if include_controlled_topology
+                else "new_action_class"
+            ),
             "blast_radius_increase",
             "candidate_or_packet_reuse",
             "production_maturity_change",
@@ -2444,8 +2542,15 @@ def validate_standing_delegated_policy_authority_request(
         errors.append("standing_delegated_policy_id_invalid")
     requested_policy = request.get("policy") if isinstance(request.get("policy"), dict) else {}
     requested_max_users = as_int(requested_policy.get("max_users_per_action"), 0)
+    include_controlled_topology = (
+        requested_policy.get("policy_profile")
+        == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+    )
     try:
-        expected = standing_delegated_operational_policy_template(max_users=requested_max_users)
+        expected = standing_delegated_operational_policy_template(
+            max_users=requested_max_users,
+            include_controlled_topology=include_controlled_topology,
+        )
     except PacketError:
         expected = {}
         errors.append("standing_delegated_policy_tier_not_engineering_qualified")
@@ -2471,6 +2576,29 @@ def validate_standing_delegated_policy_authority_request(
         "verification_required": True,
         "rollback_or_certified_no_rollback_required": True,
         "final_safe_mode": "OPEN",
+        **({
+            "controlled_topology": {
+                "action_class": CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+                "allowed_actions": [
+                    "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                ],
+                "max_users": 1,
+                "max_concurrent_transactions": 1,
+                "candidate_owner": "tools/v7-users-autoswitch",
+                "packet_owner": CANONICAL_CLEARANCE_OWNER,
+                "execution_owner": "tools/v7-governed-canary-dry-run-cycle",
+                "reservation_owner": "tools/v7-egress-set-state",
+                "candidate_identity": "FRESH_ONLY",
+                "packet_reuse": "FORBIDDEN",
+                "lease_required": True,
+                "restore_barrier_required": True,
+                "verification_required": True,
+                "rollback_or_certified_no_rollback_required": True,
+                "ordinary_user_effect": "FORBIDDEN",
+                "external_resource_or_credential_mutation": "FORBIDDEN",
+                "self_expansion_allowed": False,
+            },
+        } if include_controlled_topology else {}),
     }
     if law != exact_law:
         errors.append("standing_delegated_policy_per_action_law_invalid")
@@ -2502,8 +2630,15 @@ def validate_standing_delegated_operational_policy(contract, *, now=None, audit_
         errors.append("standing_delegated_policy_contract_owner_invalid")
     policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
     requested_max_users = as_int(policy.get("max_users_per_action"), 0)
+    include_controlled_topology = (
+        policy.get("policy_profile")
+        == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+    )
     try:
-        expected = standing_delegated_operational_policy_template(max_users=requested_max_users)
+        expected = standing_delegated_operational_policy_template(
+            max_users=requested_max_users,
+            include_controlled_topology=include_controlled_topology,
+        )
     except PacketError:
         expected = {}
         errors.append("standing_delegated_policy_tier_not_engineering_qualified")
@@ -3214,6 +3349,92 @@ def issue_standing_delegated_policy_from_audit(
         policy = read_json(policy_path)
         policy["delegated_autonomy_policy"] = contract
         write_json_atomic(policy_path, policy)
+        superseded_topology_requests = []
+        if (
+            request["policy"].get("policy_profile")
+            == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+        ):
+            decided_topology_ids = {
+                str(record.get("authority_request_id") or "")
+                for record in records
+                if record.get("record_type")
+                == CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE
+            }
+            invalidated_topology_ids = {
+                str(record.get("authority_request_id") or "")
+                for record in records
+                if record.get("record_type")
+                == CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+            }
+            for record in records:
+                if (
+                    record.get("record_type")
+                    != CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE
+                ):
+                    continue
+                topology_request = (
+                    record.get("request")
+                    if isinstance(record.get("request"), dict)
+                    else {}
+                )
+                topology_request_id = str(
+                    topology_request.get("request_id") or ""
+                )
+                if (
+                    not topology_request_id
+                    or topology_request_id in decided_topology_ids
+                    or topology_request_id in invalidated_topology_ids
+                ):
+                    continue
+                invalidation_id = stable_id("cstopinv", {
+                    "authority_request_id": topology_request_id,
+                    "authority_request_hash": str(
+                        topology_request.get("request_hash") or ""
+                    ),
+                    "replacement_request_id": request_id,
+                    "replacement_request_hash": request_hash,
+                    "reason": (
+                        "SUPERSEDED_BY_STANDING_DELEGATED_"
+                        "CONTROLLED_TOPOLOGY_POLICY"
+                    ),
+                })
+                append_record(audit_store, {
+                    "schema_version": (
+                        "v7.controlled-source-topology-authority-"
+                        "invalidation.v1"
+                    ),
+                    "record_type": (
+                        CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE
+                    ),
+                    "invalidation_id": invalidation_id,
+                    "authority_request_id": topology_request_id,
+                    "authority_request_hash": str(
+                        topology_request.get("request_hash") or ""
+                    ),
+                    "replacement_request_id": request_id,
+                    "replacement_request_hash": request_hash,
+                    "replacement_contract_id": contract["contract_id"],
+                    "replacement_contract_hash": contract["contract_hash"],
+                    "reason": (
+                        "SUPERSEDED_BY_STANDING_DELEGATED_"
+                        "CONTROLLED_TOPOLOGY_POLICY"
+                    ),
+                    "producer": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                    "created_at": now.isoformat(),
+                    "authority_decision": False,
+                    "topology_materialized": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                })
+                invalidated_topology_ids.add(topology_request_id)
+                superseded_topology_requests.append({
+                    "request_id": topology_request_id,
+                    "request_hash": str(
+                        topology_request.get("request_hash") or ""
+                    ),
+                    "invalidation_id": invalidation_id,
+                })
     return {
         "status": "ACTIVATED",
         "policy_path": str(policy_path),
@@ -3228,6 +3449,9 @@ def issue_standing_delegated_policy_from_audit(
         "packet_created": False,
         "lease_created": False,
         "production_maturity_changed": False,
+        "superseded_one_off_topology_requests": (
+            superseded_topology_requests
+        ),
     }
 
 
@@ -6029,6 +6253,16 @@ def main(argv=None):
         choices=tuple(sorted(SERVICE_FAILURE_DELEGATED_ACTION_CLASSES)),
         help="Exact engineering-qualified tier for a fresh standing-policy Authority request; never activates it.",
     )
+    parser.add_argument(
+        "--standing-policy-include-controlled-topology",
+        action="store_true",
+        help=(
+            "Add the exact bounded controlled-certification topology action "
+            "class to a fresh standing-policy request. This only prepares and "
+            "registers an Authority request; it never activates policy or "
+            "performs production effects."
+        ),
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
     parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
@@ -6139,6 +6373,9 @@ def main(argv=None):
                 policy_generation_hash=sha256_file(Path(args.action_class_policy_file)),
                 active_program=args.standing_policy_active_program,
                 max_users=args.standing_policy_max_users,
+                include_controlled_topology=(
+                    args.standing_policy_include_controlled_topology
+                ),
             )
             registration = register_standing_delegated_policy_request(
                 request,

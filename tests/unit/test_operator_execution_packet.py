@@ -1,3 +1,4 @@
+import copy
 import json
 import tempfile
 import threading
@@ -5,6 +6,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from admin_core import autonomy_trust_acceleration, operator_execution
 from admin_core.operator_execution import (
     AUTONOMOUS_EXECUTION_CONTROL_SCHEMA,
     CANONICAL_CLEARANCE_OWNER,
@@ -158,6 +160,199 @@ def packet_template(state_dir, expires_delta=timedelta(hours=1)):
 
 
 class OperatorExecutionPacketTest(unittest.TestCase):
+    def test_combined_standing_policy_extends_existing_owner_without_reinterpreting_legacy_scope(self):
+        now = datetime(2026, 7, 29, tzinfo=timezone.utc)
+        legacy = standing_delegated_operational_policy_template(max_users=48)
+        legacy_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(
+            legacy
+        )
+        legacy_hash = autonomy_trust_acceleration.delegated_autonomy_scope_hash(
+            legacy
+        )
+        self.assertNotIn("policy_profile", legacy_scope)
+        self.assertNotIn("action_class_scopes", legacy_scope)
+
+        request = build_standing_delegated_policy_authority_request(
+            policy_generation_hash="a" * 64,
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            max_users=48,
+            include_controlled_topology=True,
+            now=now,
+        )
+        validation = validate_standing_delegated_policy_authority_request(
+            request,
+            decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            now=now,
+        )
+        self.assertTrue(validation["ok"], validation["errors"])
+        policy = request["policy"]
+        self.assertEqual(
+            policy["policy_profile"],
+            operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+        )
+        self.assertIn(
+            operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+            policy["allowed_action_classes"],
+        )
+        topology = policy["action_class_scopes"][
+            operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        ]
+        self.assertEqual(topology["max_users_per_transaction"], 1)
+        self.assertEqual(topology["ordinary_identity_delta"], 0)
+        self.assertEqual(topology["ordinary_route_delta"], 0)
+        self.assertFalse(topology["ordinary_assignment_mutation_allowed"])
+        self.assertFalse(topology["external_resource_creation_allowed"])
+        self.assertFalse(topology["private_credential_mutation_allowed"])
+        self.assertFalse(topology["authority_self_expansion_allowed"])
+        self.assertNotEqual(
+            request["policy_scope_hash"],
+            legacy_hash,
+        )
+        self.assertEqual(
+            autonomy_trust_acceleration.delegated_autonomy_scope_hash(legacy),
+            legacy_hash,
+        )
+
+    def test_combined_standing_policy_requires_independent_activation_and_fails_closed_on_scope_change(self):
+        now = datetime(2026, 7, 29, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_controlled_topology=True,
+                now=now,
+            )
+            topology_manifest = {
+                "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+                "existing_source": "source",
+                "selected_source_or_draft": "vless",
+                "trial_identity": "10.7.0.18",
+                "trial_identity_count": 1,
+                "identity_set_fingerprint": "b" * 64,
+                "expected_assignment_delta": (
+                    "10.7.0.18:source->vless"
+                ),
+                "expected_ordinary_assignment_delta": "NONE",
+                "expected_ordinary_route_delta": "NONE",
+                "capacity_reservation": 1,
+                "max_concurrent_transactions": 1,
+                "reservation_owner": "tools/v7-egress-set-state",
+                "verification": "fresh Matrix baseline + current route",
+                "rollback": (
+                    "restore exact source binding and release reservation"
+                ),
+                "failure_mechanism": (
+                    "existing controlled certification guard"
+                ),
+                "lease_and_expiry_required": True,
+                "packet_required_before_effect": True,
+                "restore_barrier_required_before_effect": True,
+            }
+            topology_manifest["manifest_hash"] = sha256_json(
+                topology_manifest
+            )
+            topology_request = (
+                operator_execution
+                .build_controlled_source_topology_authority_request({
+                    "active_program": (
+                        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                    ),
+                    "mission": (
+                        "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+                        "SLICE_FEASIBILITY_V1"
+                    ),
+                    "exact_action": (
+                        "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+                    ),
+                    "manifest": topology_manifest,
+                    "current_campaign_request_id": "cpsauth_existing",
+                    "current_campaign_request_hash": "c" * 64,
+                    "supersedes_source_binding_only": True,
+                    "tier48_capability_or_campaign_reapproval": False,
+                    "ordinary_customer_involvement": False,
+                    "self_expansion_allowed": False,
+                    "forbidden_effects": ["ordinary_user_movement"],
+                    "reentry_condition": "exact independent decision",
+                }, now=now)
+            )
+            operator_execution.register_controlled_source_topology_authority_request(
+                topology_request,
+                audit_store=audit_path,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            self.assertNotIn(
+                "delegated_autonomy_policy",
+                json.loads(policy_path.read_text(encoding="utf-8")),
+            )
+            activated = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            valid = validate_standing_delegated_operational_policy(
+                activated["contract"],
+                audit_records=read_audit_records(audit_path),
+                now=now + timedelta(seconds=1),
+            )
+            self.assertTrue(valid["ok"], valid["errors"])
+            self.assertEqual(
+                activated["superseded_one_off_topology_requests"][0][
+                    "request_id"
+                ],
+                topology_request["request_id"],
+            )
+            topology_status = (
+                operator_execution.controlled_source_topology_authority_status(
+                    read_audit_records(audit_path),
+                    now=now + timedelta(seconds=1),
+                )
+            )
+            self.assertEqual(
+                topology_status["status"],
+                "SUPERSEDED_STALE_PREFLIGHT",
+            )
+            self.assertEqual(
+                topology_status["invalidation_reason"],
+                "SUPERSEDED_BY_STANDING_DELEGATED_"
+                "CONTROLLED_TOPOLOGY_POLICY",
+            )
+
+            malformed = copy.deepcopy(activated["contract"])
+            malformed["policy"]["action_class_scopes"][
+                operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+            ]["ordinary_assignment_mutation_allowed"] = True
+            malformed["contract_hash"] = standing_delegated_policy_contract_hash(
+                malformed
+            )
+            malformed["contract_id"] = (
+                f"sdpc_{malformed['contract_hash'][:24]}"
+            )
+            invalid = validate_standing_delegated_operational_policy(
+                malformed,
+                now=now + timedelta(seconds=1),
+            )
+            self.assertFalse(invalid["ok"])
+            self.assertIn(
+                "standing_delegated_policy_contract_scope_invalid",
+                invalid["errors"],
+            )
+
     def test_standing_delegated_policy_requires_exact_registered_authority_and_activates_once(self):
         now = datetime(2026, 7, 26, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

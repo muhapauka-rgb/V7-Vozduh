@@ -542,6 +542,9 @@ def run_l3_production_validation_plan(
     restore_barrier_file: Path,
     max_users: int,
     source: str = "",
+    target: str = "",
+    campaign_request_id: str = "",
+    campaign_request_hash: str = "",
     pre_planner_refresh_command: str = "v7-intelligence-snapshot-refresh",
 ) -> dict[str, Any]:
     command = [
@@ -567,6 +570,17 @@ def run_l3_production_validation_plan(
     ]
     if source:
         command.extend(["--source-egress", source])
+    if target:
+        command.extend(["--target-egress", target])
+    if campaign_request_id or campaign_request_hash or target:
+        command.extend([
+            "--controlled-certification-campaign-request-id",
+            campaign_request_id,
+            "--controlled-certification-campaign-request-hash",
+            campaign_request_hash,
+            "--controlled-certification-campaign-target",
+            target,
+        ])
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -1291,7 +1305,17 @@ def provision_approved_controlled_certification_substrate(
     scope = binding.get("scope") if isinstance(binding.get("scope"), dict) else {}
     target_total = int(scope.get("target_total_certification_identities") or 0)
     max_new = int(scope.get("max_new_certification_identities") or 0)
-    if target_total != 48 or max_new != 48:
+    identity_strategy = str(scope.get("identity_strategy") or "")
+    reuse_existing_pool = identity_strategy == "REUSE_EXISTING_VALID_POOL"
+    if (
+        target_total != 48
+        or (
+            reuse_existing_pool and max_new != 0
+        )
+        or (
+            not reuse_existing_pool and max_new != 48
+        )
+    ):
         return transaction_stop(
             "controlled_substrate_identity_ceiling_changed",
             target_total=target_total,
@@ -1315,6 +1339,168 @@ def provision_approved_controlled_certification_substrate(
         return transaction_stop("controlled_substrate_source_not_enabled")
 
     users = read_registry(state_dir / "users.registry")
+    controlled_target = str(scope.get("controlled_target_id") or "")
+    if reuse_existing_pool:
+        eligible_existing = [
+            row for row in users
+            if str(row.get("current") or "") == source
+            and str(row.get("enabled") or "1").lower()
+            in {"1", "true", "yes"}
+            and str(row.get("certification_user") or "").lower()
+            in {"1", "true", "yes"}
+        ]
+        ordinary_on_source = [
+            row for row in users
+            if str(row.get("current") or "") == source
+            and str(row.get("enabled") or "1").lower()
+            in {"1", "true", "yes"}
+            and str(row.get("certification_user") or "").lower()
+            not in {"1", "true", "yes"}
+        ]
+        target_rows = [
+            row for row in egress
+            if str(row.get("id") or "") == controlled_target
+        ]
+        users_on_target = [
+            row for row in users
+            if str(row.get("current") or "") == controlled_target
+            and str(row.get("enabled") or "1").lower()
+            in {"1", "true", "yes"}
+        ]
+        reuse_blockers = []
+        if len(eligible_existing) != target_total:
+            reuse_blockers.append(
+                "controlled_substrate_reuse_identity_count_mismatch"
+            )
+        if ordinary_on_source:
+            reuse_blockers.append(
+                "controlled_substrate_reuse_source_contains_ordinary_users"
+            )
+        if not controlled_target or len(target_rows) != 1:
+            reuse_blockers.append(
+                "controlled_substrate_reuse_target_not_unique"
+            )
+        if users_on_target:
+            reuse_blockers.append(
+                "controlled_substrate_reuse_target_not_empty"
+            )
+        if reuse_blockers:
+            return transaction_stop(
+                "controlled_substrate_reuse_preflight_failed",
+                blockers=sorted(set(reuse_blockers)),
+                source=source,
+                controlled_target=controlled_target,
+                existing_certification_identity_count=len(eligible_existing),
+                ordinary_user_count=len(ordinary_on_source),
+                target_user_count=len(users_on_target),
+            )
+        identity_fingerprint = operator_execution.sha256_json(sorted(
+            str(row.get("ip") or "") for row in eligible_existing
+        ))
+        if (
+            args.confirm_controlled_certification_substrate_provisioning
+            != "PROVISION_APPROVED_CONTROLLED_CERTIFICATION_SUBSTRATE"
+        ):
+            return {
+                "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+                "final_verdict": "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSE_PREFLIGHT_READY",
+                "read_only": True,
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "decision_id": str(binding.get("decision_id") or ""),
+                "source": source,
+                "controlled_target": controlled_target,
+                "target_total": target_total,
+                "existing_owned_identities": len(eligible_existing),
+                "identities_to_create": 0,
+                "ordinary_customer_count": 0,
+                "raw_identity_list_stored": False,
+                "controlled_substrate_binding": binding,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+                "authority_expanded": False,
+            }
+        with operator_execution.current_action_class_contract_policy_lock(
+            audit_store,
+        ):
+            records = operator_execution.read_audit_records(audit_store)
+            prior = [
+                row for row in records
+                if row.get("record_type") == CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE
+                and str(row.get("authority_request_id") or "") == request_id
+                and str(row.get("authority_request_hash") or "") == request_hash
+                and str(row.get("effect_class") or "")
+                == "EXISTING_POOL_REUSED_AND_CONTROLLED_TARGET_ADMITTED"
+            ]
+            if prior:
+                return {
+                    "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+                    "final_verdict": "CONTROLLED_CERTIFICATION_SUBSTRATE_ALREADY_CONSUMED",
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                    "source": source,
+                    "controlled_target": controlled_target,
+                    "receipt_id": str(prior[-1].get("receipt_id") or ""),
+                    "audit_write": False,
+                    "runtime_mutation_performed": False,
+                    "routing_mutation_performed": False,
+                    "users_moved": 0,
+                    "authority_expanded": False,
+                }
+            receipt_id = "cpsfx_" + operator_execution.sha256_json({
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "source": source,
+                "controlled_target": controlled_target,
+                "identity_fingerprint": identity_fingerprint,
+            })[:24]
+            receipt = operator_execution.append_record(audit_store, {
+                "schema_version": "v7.controlled-certification-substrate-effect.v1",
+                "record_type": CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE,
+                "receipt_id": receipt_id,
+                "effect_class": "EXISTING_POOL_REUSED_AND_CONTROLLED_TARGET_ADMITTED",
+                "authority_request_id": request_id,
+                "authority_request_hash": request_hash,
+                "authority_decision_id": str(binding.get("decision_id") or ""),
+                "source_id": source,
+                "controlled_target_id": controlled_target,
+                "identity_count": len(eligible_existing),
+                "identity_fingerprint": identity_fingerprint,
+                "raw_identity_list_stored": False,
+                "ordinary_customer_count": 0,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+        return {
+            "schema_version": "v7.controlled-certification-substrate-consumer.v1",
+            "final_verdict": "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSED",
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision_id": str(binding.get("decision_id") or ""),
+            "source": source,
+            "controlled_target": controlled_target,
+            "target_total": target_total,
+            "eligible_identity_count": len(eligible_existing),
+            "identity_fingerprint": identity_fingerprint,
+            "created_count": 0,
+            "classified_count": 0,
+            "ordinary_customer_count": 0,
+            "raw_identity_list_stored": False,
+            "receipt_id": str(receipt.get("receipt_id") or receipt_id),
+            "audit_write": True,
+            "identity_creation": 0,
+            "assignment_change": 0,
+            "classification_change": 0,
+            "controlled_condition": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "production_maturity_change": False,
+        }
     leases_file = Path(args.ipam_leases_file)
     owned, owned_blockers = _controlled_substrate_owned_identity_rows(
         leases_file=leases_file,
@@ -1909,6 +2095,9 @@ def run_autoswitch_apply(
     emergency_failover_autonomy: bool = False,
     service_matrix_lock_timeout_sec: int = 90,
     controlled_verifier_contention: bool = False,
+    campaign_request_id: str = "",
+    campaign_request_hash: str = "",
+    campaign_target: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     command = [
@@ -1938,6 +2127,15 @@ def run_autoswitch_apply(
         command.extend(["--source-egress", source])
     if target:
         command.extend(["--target-egress", target])
+    if campaign_request_id or campaign_request_hash or campaign_target:
+        command.extend([
+            "--controlled-certification-campaign-request-id",
+            campaign_request_id,
+            "--controlled-certification-campaign-request-hash",
+            campaign_request_hash,
+            "--controlled-certification-campaign-target",
+            campaign_target,
+        ])
     if packet_id:
         command.extend(["--approved-packet-id", packet_id])
     if operation_id:
@@ -2632,6 +2830,13 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "engineering_authority_source": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "standing_policy_contract": copy.deepcopy(contract),
         "authority_audit_verified": bool(validation.get("ok")),
+        "controlled_certification_target_id": str(
+            (
+                campaign_binding.get("scope")
+                if isinstance(campaign_binding.get("scope"), dict)
+                else {}
+            ).get("controlled_target_id") or ""
+        ),
     }
     return {
         "schema_version": "v7.standing-delegated-cohort-execution-binding.v1",
@@ -2822,6 +3027,20 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         restore_barrier_file=restore_barrier_file,
         max_users=requested_max_users,
         source=str(args.approved_source or ""),
+        target=str(
+            (
+                getattr(args, "_standing_delegated_policy_authority", {})
+                or {}
+            ).get("controlled_certification_target_id") or ""
+        ),
+        campaign_request_id=str(
+            getattr(args, "controlled_certification_campaign_request_id", "")
+            or ""
+        ),
+        campaign_request_hash=str(
+            getattr(args, "controlled_certification_campaign_request_hash", "")
+            or ""
+        ),
         pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
@@ -3035,14 +3254,24 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             lease_terminalization=terminal,
         )
 
+    campaign_target = str(
+        (
+            getattr(args, "_standing_delegated_policy_authority", {})
+            or {}
+        ).get("controlled_certification_target_id") or ""
+    )
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         user=user if constraints["selected_move_count"] == 1 else "",
-        source=source if constraints["selected_move_count"] == 1 else "",
-        target=target if constraints["selected_move_count"] == 1 else "",
+        source=source if (
+            constraints["selected_move_count"] == 1 or campaign_target
+        ) else "",
+        target=campaign_target or (
+            target if constraints["selected_move_count"] == 1 else ""
+        ),
         max_users=requested_max_users,
         packet_id=str(packet_identity.get("packet_id") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
@@ -3053,6 +3282,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
         emergency_failover_autonomy=True,
+        campaign_request_id=str(
+            getattr(args, "controlled_certification_campaign_request_id", "")
+            or ""
+        ),
+        campaign_request_hash=str(
+            getattr(args, "controlled_certification_campaign_request_hash", "")
+            or ""
+        ),
+        campaign_target=campaign_target,
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})

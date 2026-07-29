@@ -491,6 +491,58 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             1,
         )
 
+    def test_controlled_substrate_request_can_reuse_pool_with_exact_execution_target(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled",
+            controlled_target_id="execution",
+            controlled_target_admission={
+                "role": "EXECUTION_ONLY",
+                "reservation_owner": "operator_execution_governance",
+                "execution_reserved": True,
+                "canary_reserved": True,
+                "enabled_assigned_users": 0,
+                "fingerprint": "f" * 64,
+            },
+            current_pool_status={
+                "total_enabled_certification_users": 48,
+                "max_enabled_certification_users_on_one_active_source": 48,
+                "fingerprint": "e" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        validation = validate_controlled_certification_substrate_authority_request(
+            request,
+            decision="DECLINE",
+            now=now,
+        )
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertEqual(
+            request["scope"]["identity_strategy"],
+            "REUSE_EXISTING_VALID_POOL",
+        )
+        self.assertEqual(
+            request["scope"]["max_new_certification_identities"],
+            0,
+        )
+        self.assertEqual(
+            request["scope"]["controlled_target_id"],
+            "execution",
+        )
+        self.assertFalse(
+            request["controlled_target_contract"][
+                "ordinary_production_assignment_allowed"
+            ]
+        )
+
     def test_controlled_substrate_concurrent_consumers_append_one_decision(self):
         now = datetime(2026, 7, 28, tzinfo=timezone.utc)
         request = build_controlled_certification_substrate_authority_request(

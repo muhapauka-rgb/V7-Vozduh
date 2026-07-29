@@ -1,3 +1,4 @@
+import argparse
 import importlib.machinery
 import importlib.util
 import json
@@ -425,6 +426,141 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(captured["source_id"], "spare")
+
+    def test_execution_only_target_is_separate_and_never_ordinary_eligible(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.16 enabled=1 current=controlled "
+                "certification_user=1 certification_group=pool\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=controlled type=interface enabled=1 "
+                "controlled_certification_source=1 certification_group=pool\n"
+                "id=execution type=interface protocol=amneziawg enabled=1 "
+                "role=EXECUTION_ONLY execution_reserved=1 canary_reserved=true "
+                "manual_only=1 reserve_only=1 autoswitch_allowed=false "
+                "rebalance_allowed=false production_assignment_allowed=false "
+                "reservation_owner=operator_execution_governance\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": {
+                    "controlled": {
+                        "services": {
+                            "google": {
+                                "ok": False,
+                                "status": "FAIL",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                    "execution": {
+                        "services": {
+                            "google": {
+                                "ok": True,
+                                "status": "OK",
+                                "tested_at": "2099-01-01T00:00:00+00:00",
+                            },
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+
+            result = self.autoswitch.controlled_certification_pool_status(
+                state_dir,
+            )
+
+        self.assertEqual(result["healthy_isolated_source_candidates"], [])
+        self.assertEqual(
+            [
+                row["source_id"]
+                for row in result[
+                    "healthy_execution_only_controlled_target_candidates"
+                ]
+            ],
+            ["execution"],
+        )
+        target = result[
+            "healthy_execution_only_controlled_target_candidates"
+        ][0]
+        self.assertFalse(target["ordinary_production_eligible"])
+        self.assertTrue(target["controlled_certification_target_eligible"])
+
+    def test_execution_only_target_requires_exact_approved_campaign_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.16 enabled=1 current=controlled "
+                "certification_user=1\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=controlled type=interface enabled=1 "
+                "controlled_certification_source=1\n"
+                "id=execution type=interface enabled=1 role=EXECUTION_ONLY "
+                "execution_reserved=1 canary_reserved=1 manual_only=1 "
+                "reserve_only=1 autoswitch_allowed=false "
+                "rebalance_allowed=false production_assignment_allowed=false "
+                "reservation_owner=operator_execution_governance\n",
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                state_dir=str(state_dir),
+                action_class_audit_store=str(state_dir / "audit.jsonl"),
+                controlled_certification_campaign_request_id="cpsauth_r1_exact",
+                controlled_certification_campaign_request_hash="h" * 64,
+                controlled_certification_campaign_target="execution",
+                target_egress="execution",
+                source_egress="controlled",
+                emergency_failover_autonomy=True,
+            )
+            with mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_audit_records",
+                return_value=[],
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "controlled_certification_substrate_authority_status",
+                return_value={
+                    "status": "APPROVED",
+                    "request_id": "cpsauth_r1_exact",
+                    "request_hash": "h" * 64,
+                    "request": {
+                        "scope": {
+                            "source_id": "controlled",
+                            "controlled_target_id": "execution",
+                            "controlled_target_admission_class": (
+                                "EXECUTION_ONLY_CONTROLLED_CERTIFICATION_TARGET"
+                            ),
+                        },
+                        "controlled_target_contract": {
+                            "target_id": "execution",
+                            "ordinary_production_assignment_allowed": False,
+                            "certification_only_assignment_allowed": True,
+                        },
+                    },
+                },
+            ):
+                admitted = (
+                    self.autoswitch
+                    .controlled_campaign_execution_target_admission(args)
+                )
+                args.controlled_certification_campaign_request_hash = "x" * 64
+                denied = (
+                    self.autoswitch
+                    .controlled_campaign_execution_target_admission(args)
+                )
+
+        self.assertTrue(admitted["ok"], admitted["blockers"])
+        self.assertFalse(admitted["ordinary_production_eligible"])
+        self.assertFalse(denied["ok"])
+        self.assertIn(
+            "controlled_campaign_request_hash_mismatch",
+            denied["blockers"],
+        )
 
     def test_tier48_active_projects_exact_m8_pool_terminal(self):
         cps = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(

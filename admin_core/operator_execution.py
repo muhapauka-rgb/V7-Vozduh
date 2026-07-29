@@ -676,6 +676,8 @@ def build_controlled_certification_substrate_authority_request(
     current_policy_contract_id,
     current_policy_contract_hash,
     target_total=48,
+    controlled_target_id="",
+    controlled_target_admission=None,
     now=None,
 ):
     """Build one coordinated, independently decidable Tier-48 substrate request.
@@ -694,6 +696,12 @@ def build_controlled_certification_substrate_authority_request(
         0,
         as_int(pool.get("max_enabled_certification_users_on_one_active_source"), 0),
     )
+    controlled_target_admission = (
+        controlled_target_admission
+        if isinstance(controlled_target_admission, dict)
+        else {}
+    )
+    reuse_existing_pool = current_on_source >= target_total
     registry_hashes = (
         pool.get("registry_hashes")
         if isinstance(pool.get("registry_hashes"), dict)
@@ -712,12 +720,25 @@ def build_controlled_certification_substrate_authority_request(
         "mission": "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION",
         "scope": {
             "target_total_certification_identities": target_total,
-            "max_new_certification_identities": target_total,
+            "max_new_certification_identities": (
+                0 if reuse_existing_pool else target_total
+            ),
+            "identity_strategy": (
+                "REUSE_EXISTING_VALID_POOL"
+                if reuse_existing_pool
+                else "PROVISION_INCREMENTAL_DELTA"
+            ),
             "certification_only": True,
             "ordinary_customer_involvement": False,
             "billing_or_customer_entitlement": False,
             "real_customer_workload_dependency": False,
             "source_id": str(source_id or ""),
+            "controlled_target_id": str(controlled_target_id or ""),
+            "controlled_target_admission_class": (
+                "EXECUTION_ONLY_CONTROLLED_CERTIFICATION_TARGET"
+                if controlled_target_id
+                else "EXISTING_PLANNER_SAFE_TARGET"
+            ),
             "single_controlled_source_required": True,
             "campaign_stages": [5, 10, 25, 48],
             "max_concurrent_transactions": 1,
@@ -732,6 +753,33 @@ def build_controlled_certification_substrate_authority_request(
             "egress_registry_hash": str(registry_hashes.get("egress_registry") or ""),
             "active_policy_contract_id": str(current_policy_contract_id or ""),
             "active_policy_contract_hash": str(current_policy_contract_hash or ""),
+            "controlled_target_fingerprint": str(
+                controlled_target_admission.get("fingerprint") or ""
+            ),
+        },
+        "controlled_target_contract": {
+            "target_id": str(controlled_target_id or ""),
+            "role": str(controlled_target_admission.get("role") or ""),
+            "reservation_owner": str(
+                controlled_target_admission.get("reservation_owner") or ""
+            ),
+            "execution_reserved": bool(
+                controlled_target_admission.get("execution_reserved")
+            ),
+            "canary_reserved": bool(
+                controlled_target_admission.get("canary_reserved")
+            ),
+            "autoswitch_allowed": False,
+            "rebalance_allowed": False,
+            "ordinary_production_assignment_allowed": False,
+            "certification_only_assignment_allowed": bool(controlled_target_id),
+            "zero_user_at_request": (
+                int(controlled_target_admission.get("enabled_assigned_users") or 0)
+                == 0
+            ),
+            "fresh_health_required_per_stage": True,
+            "capacity_and_reserve_required_per_stage": True,
+            "scope_lifetime": "THIS_EXACT_CONTROLLED_CAMPAIGN_ONLY",
         },
         "coordinated_subscopes": [
             {
@@ -794,6 +842,8 @@ def build_controlled_certification_substrate_authority_request(
         "forbidden_effects": [
             "ordinary_customer_reclassification",
             "ordinary_customer_movement_for_certification",
+            "execution_only_target_use_outside_exact_controlled_campaign",
+            "ordinary_production_eligibility_for_execution_only_target",
             "authority_self_expansion",
             "parallel_transactions_above_one",
             "packet_or_lease_reuse",
@@ -851,7 +901,21 @@ def validate_controlled_certification_substrate_authority_request(
     scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
     if as_int(scope.get("target_total_certification_identities"), 0) != 48:
         errors.append("controlled_certification_substrate_target_invalid")
-    if as_int(scope.get("max_new_certification_identities"), 0) != 48:
+    max_new = as_int(scope.get("max_new_certification_identities"), -1)
+    identity_strategy = str(scope.get("identity_strategy") or "")
+    if identity_strategy == "REUSE_EXISTING_VALID_POOL":
+        if max_new != 0:
+            errors.append(
+                "controlled_certification_substrate_reuse_creation_ceiling_invalid"
+            )
+    elif identity_strategy == "PROVISION_INCREMENTAL_DELTA":
+        if max_new < 0 or max_new > 48:
+            errors.append(
+                "controlled_certification_substrate_creation_ceiling_invalid"
+            )
+    elif max_new != 48:
+        # Backward-compatible validation for requests emitted before the
+        # explicit incremental/reuse strategy was introduced.
         errors.append("controlled_certification_substrate_creation_ceiling_invalid")
     if scope.get("certification_only") is not True or scope.get("ordinary_customer_involvement") is not False:
         errors.append("controlled_certification_substrate_identity_scope_invalid")
@@ -859,6 +923,38 @@ def validate_controlled_certification_substrate_authority_request(
         errors.append("controlled_certification_substrate_campaign_invalid")
     if as_int(scope.get("max_concurrent_transactions"), 0) != 1:
         errors.append("controlled_certification_substrate_concurrency_invalid")
+    controlled_target_id = str(scope.get("controlled_target_id") or "")
+    target_contract = (
+        request.get("controlled_target_contract")
+        if isinstance(request.get("controlled_target_contract"), dict)
+        else {}
+    )
+    if controlled_target_id:
+        if (
+            scope.get("controlled_target_admission_class")
+            != "EXECUTION_ONLY_CONTROLLED_CERTIFICATION_TARGET"
+            or str(target_contract.get("target_id") or "") != controlled_target_id
+            or str(target_contract.get("role") or "").upper() != "EXECUTION_ONLY"
+            or target_contract.get("reservation_owner")
+            != "operator_execution_governance"
+            or target_contract.get("execution_reserved") is not True
+            or target_contract.get("canary_reserved") is not True
+            or target_contract.get("autoswitch_allowed") is not False
+            or target_contract.get("rebalance_allowed") is not False
+            or target_contract.get("ordinary_production_assignment_allowed")
+            is not False
+            or target_contract.get("certification_only_assignment_allowed")
+            is not True
+            or target_contract.get("zero_user_at_request") is not True
+            or target_contract.get("fresh_health_required_per_stage") is not True
+            or target_contract.get("capacity_and_reserve_required_per_stage")
+            is not True
+            or target_contract.get("scope_lifetime")
+            != "THIS_EXACT_CONTROLLED_CAMPAIGN_ONLY"
+        ):
+            errors.append(
+                "controlled_certification_execution_only_target_contract_invalid"
+            )
     subscopes = request.get("coordinated_subscopes")
     if not isinstance(subscopes, list) or {
         str(row.get("id") or "") for row in subscopes if isinstance(row, dict)

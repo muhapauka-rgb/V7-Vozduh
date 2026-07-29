@@ -950,8 +950,45 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         if str(row.get("current") or "")
     }
     isolated_source_candidates = []
+    execution_only_controlled_target_candidates = []
     for source in sorted(egress, key=lambda row: str(row.get("id") or "")):
         source_id = str(source.get("id") or "")
+        execution_only_contract = (
+            bool_value(source.get("enabled", "1"))
+            and str(source.get("state") or "").lower()
+            not in {"disabled", "maintenance"}
+            and source_id not in assigned_source_ids
+            and str(source.get("type") or "") == "interface"
+            and str(source.get("role") or "").upper() == "EXECUTION_ONLY"
+            and bool_value(source.get("execution_reserved"))
+            and bool_value(source.get("canary_reserved"))
+            and str(source.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and not bool_value(source.get("autoswitch_allowed"))
+            and not bool_value(source.get("rebalance_allowed"))
+            and str(source.get("production_assignment_allowed") or "").lower()
+            in {"0", "false", "no"}
+        )
+        if source_id and execution_only_contract:
+            baseline_health = controlled_certification_source_health_status(
+                state_dir, source_id,
+            )
+            execution_only_controlled_target_candidates.append({
+                "source_id": source_id,
+                "role": "EXECUTION_ONLY",
+                "reservation_owner": "operator_execution_governance",
+                "execution_reserved": True,
+                "canary_reserved": True,
+                "autoswitch_allowed": False,
+                "rebalance_allowed": False,
+                "production_assignment_allowed": False,
+                "enabled_assigned_users": 0,
+                "ordinary_production_eligible": False,
+                "controlled_certification_target_eligible": bool(
+                    baseline_health.get("ok")
+                ),
+                "baseline_health": baseline_health,
+            })
         if (
             not source_id
             or source_id in assigned_source_ids
@@ -979,6 +1016,10 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         })
     healthy_isolated_source_candidates = [
         row for row in isolated_source_candidates
+        if bool((row.get("baseline_health") or {}).get("ok"))
+    ]
+    healthy_execution_only_controlled_target_candidates = [
+        row for row in execution_only_controlled_target_candidates
         if bool((row.get("baseline_health") or {}).get("ok"))
     ]
     ladder = (5, 10, 25, 48)
@@ -1017,6 +1058,12 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         "active_source_projections": source_rows,
         "isolated_source_candidates": isolated_source_candidates,
         "healthy_isolated_source_candidates": healthy_isolated_source_candidates,
+        "execution_only_controlled_target_candidates": (
+            execution_only_controlled_target_candidates
+        ),
+        "healthy_execution_only_controlled_target_candidates": (
+            healthy_execution_only_controlled_target_candidates
+        ),
         "raw_user_list_stored": False,
         "ordinary_customer_reclassification_allowed": False,
         "exact_blocker": (
@@ -1998,9 +2045,114 @@ def effective_pre_planner_refresh_mode(args: argparse.Namespace) -> str:
     return "off"
 
 
+def controlled_campaign_execution_target_admission(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Validate one exact controlled-only target without changing Planner law."""
+    request_id = str(
+        getattr(args, "controlled_certification_campaign_request_id", "") or ""
+    )
+    request_hash = str(
+        getattr(args, "controlled_certification_campaign_request_hash", "") or ""
+    )
+    target = str(
+        getattr(args, "controlled_certification_campaign_target", "") or ""
+    )
+    if not request_id and not request_hash and not target:
+        return {"ok": False, "active": False, "blockers": ["not_requested"]}
+    blockers: list[str] = []
+    status = operator_execution.controlled_certification_substrate_authority_status(
+        operator_execution.read_audit_records(
+            Path(args.action_class_audit_store)
+        )
+    )
+    request = (
+        status.get("request")
+        if isinstance(status.get("request"), dict)
+        else {}
+    )
+    scope = (
+        request.get("scope")
+        if isinstance(request.get("scope"), dict)
+        else {}
+    )
+    target_contract = (
+        request.get("controlled_target_contract")
+        if isinstance(request.get("controlled_target_contract"), dict)
+        else {}
+    )
+    if status.get("status") != "APPROVED":
+        blockers.append("controlled_campaign_authority_not_approved")
+    if str(status.get("request_id") or "") != request_id:
+        blockers.append("controlled_campaign_request_id_mismatch")
+    if str(status.get("request_hash") or "") != request_hash:
+        blockers.append("controlled_campaign_request_hash_mismatch")
+    if str(scope.get("controlled_target_id") or "") != target:
+        blockers.append("controlled_campaign_target_mismatch")
+    if (
+        scope.get("controlled_target_admission_class")
+        != "EXECUTION_ONLY_CONTROLLED_CERTIFICATION_TARGET"
+    ):
+        blockers.append("controlled_campaign_target_class_not_admitted")
+    if str(target_contract.get("target_id") or "") != target:
+        blockers.append("controlled_campaign_target_contract_mismatch")
+    if target_contract.get("ordinary_production_assignment_allowed") is not False:
+        blockers.append("controlled_campaign_ordinary_target_eligibility_forbidden")
+    if target_contract.get("certification_only_assignment_allowed") is not True:
+        blockers.append("controlled_campaign_certification_target_not_admitted")
+    if str(getattr(args, "target_egress", "") or "") != target:
+        blockers.append("controlled_campaign_planner_target_not_exact")
+    if str(getattr(args, "source_egress", "") or "") != str(
+        scope.get("source_id") or ""
+    ):
+        blockers.append("controlled_campaign_planner_source_not_exact")
+    if not bool_value(getattr(args, "emergency_failover_autonomy", False)):
+        blockers.append("controlled_campaign_emergency_path_required")
+    egress_rows = [
+        row for row in parse_registry(Path(args.state_dir) / "egress.registry")
+        if str(row.get("id") or "") == target
+    ]
+    users_on_target = [
+        row for row in parse_registry(Path(args.state_dir) / "users.registry")
+        if str(row.get("current") or "") == target
+        and bool_value(row.get("enabled", "1"))
+    ]
+    target_row = egress_rows[0] if len(egress_rows) == 1 else {}
+    if len(egress_rows) != 1:
+        blockers.append("controlled_campaign_target_not_unique")
+    if users_on_target:
+        blockers.append("controlled_campaign_target_not_empty_at_fresh_gate")
+    if (
+        str(target_row.get("role") or "").upper() != "EXECUTION_ONLY"
+        or not bool_value(target_row.get("execution_reserved"))
+        or not bool_value(target_row.get("canary_reserved"))
+        or str(target_row.get("reservation_owner") or "")
+        != "operator_execution_governance"
+        or bool_value(target_row.get("autoswitch_allowed"))
+        or bool_value(target_row.get("rebalance_allowed"))
+        or str(target_row.get("production_assignment_allowed") or "").lower()
+        not in {"0", "false", "no"}
+    ):
+        blockers.append("controlled_campaign_target_live_contract_changed")
+    return {
+        "ok": not blockers,
+        "active": True,
+        "blockers": sorted(set(blockers)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "source_id": str(scope.get("source_id") or ""),
+        "target_id": target,
+        "ordinary_production_eligible": False,
+        "controlled_certification_only": True,
+    }
+
+
 class AutoswitchPlanner:
     def __init__(self, args: argparse.Namespace):
         self.args = args
+        self.controlled_campaign_target_admission = (
+            controlled_campaign_execution_target_admission(args)
+        )
         self.operation_started_at = now_iso()
         self.state_dir = Path(args.state_dir)
         lock_enabled = effective_pre_planner_refresh_mode(args) == "write"
@@ -10793,11 +10945,16 @@ class AutoswitchPlanner:
 
     def _gate_basic(self, candidate: Candidate, purpose: str) -> None:
         egress = candidate.egress
+        controlled_target = (
+            self.controlled_campaign_target_admission.get("ok")
+            and egress.id
+            == self.controlled_campaign_target_admission.get("target_id")
+        )
         if not egress.enabled:
             self._block(candidate, "egress_disabled")
         if egress.state in ("maintenance", "disabled", "quarantine"):
             self._block(candidate, f"egress_state_{egress.state}")
-        if egress.manual_only:
+        if egress.manual_only and not controlled_target:
             self._block(candidate, "manual_only")
         if egress.health_code and egress.health_code != "200":
             self._block(candidate, f"health_code_{egress.health_code}")
@@ -10809,8 +10966,12 @@ class AutoswitchPlanner:
         if str(self.load_policy.get("mode") or "static").lower() != "dynamic":
             if egress.load_status == "HARD_FULL" and purpose == "planned" and not self.args.allow_hard_full:
                 self._block(candidate, "hard_full")
-        if egress.reserve_only and purpose == "planned":
+        if egress.reserve_only and purpose == "planned" and not controlled_target:
             self._block(candidate, "reserve_only")
+        if controlled_target:
+            candidate.reasons.append(
+                "execution_only_target_admitted_by_exact_controlled_campaign"
+            )
 
     def _gate_reservation(self, user: User, candidate: Candidate, purpose: str) -> None:
         egress = candidate.egress
@@ -10818,6 +10979,15 @@ class AutoswitchPlanner:
             return
         if purpose == "current" and user.current == egress.id:
             candidate.reasons.append("canary_reserved_current_requires_separate_drain_approval")
+            return
+        if (
+            self.controlled_campaign_target_admission.get("ok")
+            and egress.id
+            == self.controlled_campaign_target_admission.get("target_id")
+        ):
+            candidate.reasons.append(
+                "canary_reserved_controlled_certification_target"
+            )
             return
         self._block(candidate, "canary_reserved_production_assignment_blocked")
 
@@ -13663,6 +13833,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
         help="Existing operator-execution append-only audit owner for action-class consumption.",
     )
+    parser.add_argument("--controlled-certification-campaign-request-id", default="")
+    parser.add_argument("--controlled-certification-campaign-request-hash", default="")
+    parser.add_argument("--controlled-certification-campaign-target", default="")
     parser.add_argument("--service", default="", help="Score candidates for one important service.")
     parser.add_argument("--route-class", default="", help="Override derived route class.")
     parser.add_argument("--max-selected-moves", type=int, default=0, help="Narrow selected moves to this maximum without raising policy limits.")
@@ -14062,6 +14235,33 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         controlled_substrate_source_health.get("status")
         or "STOP_SAFE_BASELINE_NOT_OBSERVED"
     )
+    controlled_substrate_target_id = str(
+        controlled_substrate_scope.get("controlled_target_id") or ""
+    )
+    controlled_substrate_target_projection = next((
+        row
+        for row in (
+            controlled_pool.get(
+                "execution_only_controlled_target_candidates"
+            ) or []
+        )
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "")
+        == controlled_substrate_target_id
+    ), {})
+    controlled_substrate_target_health = (
+        controlled_substrate_target_projection.get("baseline_health")
+        if isinstance(
+            controlled_substrate_target_projection.get("baseline_health"),
+            dict,
+        )
+        else {}
+    )
+    controlled_substrate_target_ready = bool(
+        controlled_substrate_target_projection.get(
+            "controlled_certification_target_eligible"
+        )
+    ) and bool(controlled_substrate_target_health.get("ok"))
     cooldown = policy_scope.get("cooldown") if isinstance(policy_scope.get("cooldown"), dict) else {}
     result = {
         "schema_version": "v7.standing-delegated-policy-runtime-status.v1",
@@ -14143,11 +14343,24 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
                 controlled_substrate_candidate_isolated
             ),
             "source_baseline_health": controlled_substrate_source_health,
+            "controlled_target_id": controlled_substrate_target_id,
+            "controlled_target_currently_ready": (
+                controlled_substrate_target_ready
+            ),
+            "controlled_target_baseline_health": (
+                controlled_substrate_target_health
+            ),
+            "controlled_target_ordinary_production_eligible": False,
             "source_precondition_status": (
                 "PASS"
                 if (
                     controlled_substrate_source_isolated
                     and controlled_substrate_source_health_ok
+                )
+                else "PASS_CONTROLLED_FAILURE_WITH_EXACT_TARGET"
+                if (
+                    controlled_substrate_source_isolated
+                    and controlled_substrate_target_ready
                 )
                 else "PASS_READY_FOR_APPROVED_SETUP"
                 if (
@@ -14249,7 +14462,7 @@ def controlled_certification_substrate_authority_request_only(
             isinstance(row, dict)
             and str(row.get("source_id") or "")
             and bool(row.get("source_isolated_for_controlled_failure"))
-            and bool((row.get("baseline_health") or {}).get("ok"))
+            and int(row.get("enabled_certification_users_on_source") or 0) > 0
         )
     ]
     sources.sort(
@@ -14270,6 +14483,16 @@ def controlled_certification_substrate_authority_request_only(
         candidates.sort(key=lambda row: str(row.get("source_id") or ""))
         source_candidate = candidates[0] if candidates else {}
     source_id = str(source_candidate.get("source_id") or "")
+    controlled_targets = [
+        row for row in (
+            pool.get("healthy_execution_only_controlled_target_candidates")
+            or []
+        )
+        if isinstance(row, dict) and str(row.get("source_id") or "")
+    ]
+    controlled_targets.sort(key=lambda row: str(row.get("source_id") or ""))
+    controlled_target = controlled_targets[0] if controlled_targets else {}
+    controlled_target_id = str(controlled_target.get("source_id") or "")
     blockers = []
     if not validation.get("ok"):
         blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
@@ -14278,6 +14501,13 @@ def controlled_certification_substrate_authority_request_only(
     if not source_id:
         blockers.append(
             "healthy_isolated_controlled_source_or_existing_candidate_required"
+        )
+    if (
+        not bool((source_candidate.get("baseline_health") or {}).get("ok"))
+        and not controlled_target_id
+    ):
+        blockers.append(
+            "failed_controlled_source_requires_healthy_exact_controlled_target"
         )
     if blockers:
         return {
@@ -14309,6 +14539,11 @@ def controlled_certification_substrate_authority_request_only(
         current_pool_status=pool,
         current_policy_contract_id=str(contract.get("contract_id") or ""),
         current_policy_contract_hash=str(contract.get("contract_hash") or ""),
+        controlled_target_id=controlled_target_id,
+        controlled_target_admission={
+            **controlled_target,
+            "fingerprint": sha256_json(controlled_target),
+        } if controlled_target else {},
     )
     registration = (
         operator_execution.register_controlled_certification_substrate_authority_request(

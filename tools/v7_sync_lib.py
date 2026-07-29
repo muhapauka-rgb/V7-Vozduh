@@ -17765,6 +17765,9 @@ def _service_failure_action_class_reuse_projection(
     controlled_substrate_status = str(
         controlled_substrate_authority.get("status") or "NONE"
     )
+    controlled_target_request_boundary = bool(
+        str(controlled_substrate_authority.get("controlled_target_id") or "")
+    ) and controlled_substrate_status in {"PENDING", "EXPIRED", "DECLINED"}
     pending_tier_request_active = pending_tier_request.get("status") == "PENDING"
     tier_request_active_projection = tier48_active and not pending_tier_request_active
     tier_request_status = (
@@ -17817,6 +17820,16 @@ def _service_failure_action_class_reuse_projection(
         product_evolution_frontier = tier_decision_consumption
         m8_status = "NOT_ADMITTED_BEFORE_TIER48_AUTHORITY"
         m8_legal_terminal = tier_decision_consumption
+    elif controlled_target_request_boundary:
+        product_evolution_frontier = (
+            "CONTROLLED_CERTIFICATION_CONTROLLED_TARGET_AUTHORITY_DECLINED"
+            if controlled_substrate_status == "DECLINED"
+            else "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_EXPIRED"
+            if controlled_substrate_status == "EXPIRED"
+            else "ENGINEERING_AUTHORITY_CONTROLLED_CERTIFICATION_TARGET_REQUEST_READY"
+        )
+        m8_status = product_evolution_frontier
+        m8_legal_terminal = product_evolution_frontier
     elif (
         controlled_pool_max < 5
         and controlled_substrate_status == "APPROVED"
@@ -18350,7 +18363,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
     )
     controlled_substrate_source_precondition_accepted = (
         controlled_substrate_source_precondition
-        in {"PASS", "PASS_READY_FOR_APPROVED_SETUP"}
+        in {
+            "PASS",
+            "PASS_READY_FOR_APPROVED_SETUP",
+            "PASS_CONTROLLED_FAILURE_WITH_EXACT_TARGET",
+        }
     )
     controlled_substrate_source_baseline_blocked = (
         controlled_substrate_source_precondition.startswith(
@@ -18398,6 +18415,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
     )
     controlled_substrate_source_id = str(
         controlled_substrate_authority.get("source_id") or ""
+    )
+    controlled_substrate_target_id = str(
+        controlled_substrate_authority.get("controlled_target_id") or ""
+    )
+    controlled_substrate_target_ready = bool(
+        controlled_substrate_authority.get(
+            "controlled_target_currently_ready"
+        )
     )
     controlled_substrate_active_source = next((
         row for row in (
@@ -18450,7 +18475,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
     )
     m8_exact_authority_boundary = (
         tier48_active
-        and controlled_pool_max < 5
+        and (
+            controlled_pool_max < 5
+            or bool(controlled_substrate_target_id)
+        )
         and controlled_substrate_status
         in {"PENDING", "EXPIRED", "DECLINED"}
     )
@@ -18460,7 +18488,18 @@ def reconcile_active_standing_delegated_policy_to_cps(
         and not m8_exact_authority_boundary
         and not m8_substrate_approved
     )
-    m8_pool_ready = tier48_active and controlled_pool_max >= 5
+    m8_pool_ready = (
+        tier48_active
+        and controlled_pool_max >= 5
+        and not m8_exact_authority_boundary
+        and (
+            controlled_substrate_source_precondition_accepted
+            or (
+                bool(controlled_substrate_target_id)
+                and controlled_substrate_target_ready
+            )
+        )
+    )
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         primary_stop = "NONE"

@@ -1317,6 +1317,64 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(result["action_attempted"])
         self.assertEqual(run.call_count, 1)
 
+    def test_topology_standing_consumer_preserves_exact_stop_reason(self):
+        diagnostic = {
+            "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+            "production_preflight": {
+                "manifest": {
+                    "manifest_hash": "a" * 64,
+                    "trial_identity": "10.7.0.100",
+                    "trial_identity_count": 1,
+                    "existing_source": "1",
+                    "selected_source_or_draft": "vless",
+                    "expected_ordinary_assignment_delta": "NONE",
+                    "expected_ordinary_route_delta": "NONE",
+                },
+            },
+            "standing_policy_admission": {
+                "status": (
+                    "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+                    "CONTROLLED_TOPOLOGY_POLICY"
+                ),
+                "ok": True,
+                "contract_id": "sdpc_exact",
+                "contract_hash": "b" * 64,
+            },
+        }
+        stopped = {
+            "final_verdict": "STOP_SAFE",
+            "stop_reason": "packet_materialization_failed",
+            "reservation_mutation_performed": True,
+            "reservation_released_after_stop": True,
+            "users_moved": 0,
+            "runtime_mutation_performed": False,
+        }
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            side_effect=[
+                mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+                mock.Mock(returncode=2, stdout=json.dumps(stopped)),
+            ],
+        ):
+            result = (
+                self.refresh.run_controlled_topology_standing_policy_action(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/state"),
+                    event_dir=Path("/events"),
+                    policy_file=Path("/policy"),
+                    audit_store=Path("/audit"),
+                )
+            )
+        self.assertEqual(result["status"], "STOP_SAFE")
+        self.assertEqual(
+            result["stop_reason"],
+            "packet_materialization_failed",
+        )
+        self.assertTrue(result["reservation_mutation_performed"])
+        self.assertTrue(result["reservation_released_after_stop"])
+
 
 if __name__ == "__main__":
     unittest.main()

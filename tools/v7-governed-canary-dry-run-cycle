@@ -4129,7 +4129,10 @@ def _execute_governed_transaction_with_guards_inner(
             require_execution_binding=True,
             delegated_policy_authority=packet_materialization_authority(
                 delegated_mode=delegated_mode,
-                setup_mode=support_mode,
+                # Topology execution is admitted by the audited standing
+                # delegated policy.  Only explicit operator setup/cleanup
+                # keeps the historical dual-confirmation packet contract.
+                setup_mode=(setup_mode or cleanup_mode),
                 delegated_admission=delegated_admission,
             ),
             engineering_authority=engineering_authority,
@@ -4539,6 +4542,12 @@ def execute_controlled_topology_standing_transaction(
                 }
     route_verification = scoped_user_route_check(state_dir, user)
     final_pass = passed and route_verification.get("passed") is True
+    release_applied = (
+        bool(release_result)
+        and int(release_result.get("returncode") or 0) == 0
+        and str((release_result.get("result") or {}).get("ACTION") or "")
+        == "controlled_source_released"
+    )
     return {
         "schema_version": "v7.controlled-topology-standing-transaction.v1",
         "final_verdict": (
@@ -4556,6 +4565,8 @@ def execute_controlled_topology_standing_transaction(
             "result": reserve_result,
         },
         "reservation_release": release_result,
+        "reservation_mutation_performed": True,
+        "reservation_released_after_stop": bool(not passed and release_applied),
         "route_verification": route_verification,
         "trial_identity": user,
         "source": source,
@@ -4569,6 +4580,11 @@ def execute_controlled_topology_standing_transaction(
         ),
         "verification_result": str(
             transaction.get("verification_result") or ""
+        ),
+        "stop_reason": (
+            str(transaction.get("stop_reason") or "")
+            if not final_pass
+            else ""
         ),
         "rollback_result": str(transaction.get("rollback_result") or ""),
         "runtime_mutation_performed": bool(

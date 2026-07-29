@@ -1036,6 +1036,13 @@ def run_controlled_topology_standing_policy_action(
             result.get("runtime_mutation_performed")
             or result.get("apply_executed")
         ),
+        "reservation_mutation_performed": bool(
+            result.get("reservation_mutation_performed")
+        ),
+        "reservation_released_after_stop": bool(
+            result.get("reservation_released_after_stop")
+        ),
+        "stop_reason": str(result.get("stop_reason") or ""),
         "users_moved": int(result.get("users_moved") or 0),
         "contract_id": str(admission.get("contract_id") or ""),
         "contract_hash": str(admission.get("contract_hash") or ""),
@@ -1309,6 +1316,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "schema_version", "status", "ok", "started_at", "completed_at",
             "returncode", "action_attempted", "action_completed",
             "runtime_mutation_performed", "users_moved", "reason", "error",
+            "reservation_mutation_performed",
+            "reservation_released_after_stop", "stop_reason",
             "contract_id", "contract_hash", "admitted_max_users",
             "max_concurrent_transactions", "blockers", "source",
             "target", "trial_identity", "manifest_hash",

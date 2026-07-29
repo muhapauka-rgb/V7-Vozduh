@@ -844,6 +844,16 @@ Polygon may not:
   gates;
 - relabel controlled evidence as Natural L8.
 
+If the approved controlled source is already the exact isolated failed
+condition and an existing `EXECUTION_ONLY` Polygon egress is the only healthy
+isolated target, reuse that egress only through the existing coordinated
+controlled-certification Authority owner. The exact request must bind source,
+target, current pool fingerprint, target reservation owner, zero-user state,
+fresh health/capacity gates and the full campaign scope. This exception never
+makes the target eligible for ordinary autoswitch, rebalance or production
+assignment. Without the exact approved request, the ordinary Planner continues
+to reject the target.
+
 If no current certification cohort exists, first determine whether it can be
 safely created through the existing Polygon, test-user and certification
 owners without moving ordinary customers, acquiring a new external resource or

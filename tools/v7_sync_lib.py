@@ -18424,6 +18424,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "controlled_target_currently_ready"
         )
     )
+    if controlled_substrate_target_id:
+        controlled_substrate_reentry = (
+            "exact unexpired controlled-target request receives one "
+            "owner-backed APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN "
+            "or DECLINE decision; approval re-enters the existing T48-M8 "
+            "consumer, which revalidates target health, capacity, isolation "
+            "and every live gate before any effect"
+        )
     controlled_substrate_active_source = next((
         row for row in (
             controlled_pool.get("active_source_projections") or []

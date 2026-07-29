@@ -999,7 +999,50 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(
                 baseline_live["CURRENT_POOL_AND_CAMPAIGN_STATE"].strip("`"),
                 "48 dedicated certification identities on exact source 1; "
-                "stages 5,10,25,48 unexecuted",
+                "controlled production proven max=0; completed stages=NONE; "
+                "next stage=NONE",
+            )
+            runtime_status[
+                "controlled_certification_substrate_authority"
+            ]["source_precondition_status"] = "PASS_READY_FOR_APPROVED_SETUP"
+            runtime_status["controlled_certification_campaign_status"] = {
+                "schema_version": (
+                    "v7.controlled-certification-campaign-stage-status.v1"
+                ),
+                "status": "PASS",
+                "ok": True,
+                "request_id": "cpsauth_r1_exact",
+                "request_hash": "e" * 64,
+                "stages": [5, 10, 25, 48],
+                "completed_stages": [],
+                "controlled_production_proven_max": 0,
+                "next_stage": 5,
+                "completed": False,
+                "receipt_ids": [],
+                "blockers": [],
+            }
+            m9 = self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                runtime_status, root=root,
+            )
+            self.assertEqual(m9["final_verdict"], "PASS", m9)
+            self.assertEqual(
+                m9["next_action"],
+                "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED",
+            )
+            m9_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                m9_live["CURRENT_EXECUTION_FRONTIER"].strip("`"),
+                "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_5_REQUIRED",
+            )
+            self.assertEqual(
+                m9_live["NEXT_MISSION_ID"].strip("`"),
+                "T48-M9",
             )
 
     def test_obligation_reuses_live_incident_scope_not_stale_passive_list(self):

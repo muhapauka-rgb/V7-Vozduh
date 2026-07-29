@@ -14178,8 +14178,19 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         else {}
     )
     policy_scope = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    controlled_campaign_status = (
+        operator_execution.controlled_certification_campaign_stage_status(
+            audit_records,
+        )
+    )
     runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
-        validation.get("contract") or contract
+        validation.get("contract") or contract,
+        controlled_production_proven_max=int(
+            controlled_campaign_status.get(
+                "controlled_production_proven_max"
+            )
+            or 0
+        ),
     )
     decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
     causal_integrity = service_failure_causal_integrity_status(Path(args.state_dir))
@@ -14296,6 +14307,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         ),
         "controlled_production_proven_max": int(
             runtime_axes["controlled_production_proven_max"]
+        ),
+        "controlled_certification_campaign_status": (
+            controlled_campaign_status
         ),
         "ordinary_production_proven_max": int(
             runtime_axes["ordinary_production_proven_max"]

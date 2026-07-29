@@ -64,11 +64,13 @@ from admin_core.operator_execution import (
     record_controlled_certification_substrate_authority_decision,
     replace_expired_controlled_certification_substrate_request,
     controlled_certification_substrate_authority_status,
+    controlled_certification_campaign_stage_status,
     controlled_certification_substrate_semantic_fingerprint,
     validate_controlled_certification_substrate_authority_request,
     validate_standing_delegated_operational_policy,
     validate_standing_delegated_policy_authority_request,
     read_audit_records,
+    append_record,
 )
 
 
@@ -489,6 +491,95 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 == "controlled_certification_substrate_authority_decision"
             ]),
             1,
+        )
+
+    def test_controlled_campaign_stage_projection_requires_ordered_exact_receipts(self):
+        now = datetime(2026, 7, 28, tzinfo=timezone.utc)
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="controlled-source",
+            current_pool_status={
+                "total_enabled_certification_users": 48,
+                "max_enabled_certification_users_on_one_active_source": 48,
+                "fingerprint": "f" * 64,
+                "registry_hashes": {
+                    "users_registry": "a" * 64,
+                    "egress_registry": "b" * 64,
+                },
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            now=now,
+        )
+        admitted = [
+            "IDENTITY_PROVISIONING",
+            "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
+            "CONTROLLED_SOURCE_CONDITION",
+            "PROGRESSIVE_CAMPAIGN_EXECUTION",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            register_controlled_certification_substrate_authority_request(
+                request, audit_store=audit, now=now,
+            )
+            record_controlled_certification_substrate_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=(
+                    "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
+                ),
+                actor_id="independent-authority-owner",
+                admitted_subscopes=admitted,
+                audit_store=audit,
+                now=now + timedelta(minutes=1),
+            )
+            append_record(audit, {
+                "record_type": "controlled_certification_substrate_effect",
+                "effect_class": (
+                    "CONTROLLED_SERVICE_FAILURE_CAMPAIGN_STAGE_CONSUMED"
+                ),
+                "receipt_id": "cpsstage_5",
+                "authority_request_id": request["request_id"],
+                "authority_request_hash": request["request_hash"],
+                "campaign_stage": 5,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "baseline_reset_verified": True,
+                "ordinary_customer_count": 0,
+            })
+            progress = controlled_certification_campaign_stage_status(
+                read_audit_records(audit),
+                now=now + timedelta(minutes=2),
+            )
+            self.assertTrue(progress["ok"], progress)
+            self.assertEqual(progress["completed_stages"], [5])
+            self.assertEqual(progress["controlled_production_proven_max"], 5)
+            self.assertEqual(progress["next_stage"], 10)
+
+            append_record(audit, {
+                "record_type": "controlled_certification_substrate_effect",
+                "effect_class": (
+                    "CONTROLLED_SERVICE_FAILURE_CAMPAIGN_STAGE_CONSUMED"
+                ),
+                "receipt_id": "cpsstage_5_duplicate",
+                "authority_request_id": request["request_id"],
+                "authority_request_hash": request["request_hash"],
+                "campaign_stage": 5,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "baseline_reset_verified": True,
+                "ordinary_customer_count": 0,
+            })
+            duplicate = controlled_certification_campaign_stage_status(
+                read_audit_records(audit),
+                now=now + timedelta(minutes=3),
+            )
+        self.assertFalse(duplicate["ok"])
+        self.assertIn(
+            "controlled_campaign_stage_duplicate:5",
+            duplicate["blockers"],
         )
 
     def test_controlled_substrate_request_can_reuse_pool_with_exact_execution_target(self):

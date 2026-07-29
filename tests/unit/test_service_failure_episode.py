@@ -908,6 +908,187 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(missing["status"], "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION")
             self.assertFalse(missing["action_attempted"])
 
+    def test_matrix_binds_controlled_source_to_next_approved_campaign_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            policy_file = root / "policy.json"
+            policy_file.write_text(json.dumps({
+                "delegated_autonomy_policy": {
+                    "status": "ACTIVE",
+                    "contract_id": "sdpc_campaign",
+                    "contract_hash": "b" * 64,
+                    "expires_at": "2099-08-27T02:06:51+00:00",
+                    "policy": {
+                        "allowed_action_classes": [
+                            "channel hard-fail failover",
+                        ],
+                        "max_users_per_action": 48,
+                        "max_concurrent_transactions": 1,
+                        "max_blast_radius": {"users": 48},
+                        "policy_state": "APPROVED",
+                        "runtime_apply_enabled": True,
+                        "self_expansion_allowed": False,
+                    },
+                    "per_action_law": {
+                        "max_users": 48,
+                        "max_concurrent_transactions": 1,
+                    },
+                },
+            }), encoding="utf-8")
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_campaign",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "source_incident_id": "sfinc_campaign",
+                "channel": "controlled-source",
+                "stop_safe_classification": (
+                    "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+                ),
+                "bounded_recommendation_users": 48,
+                "current_source_scope": {
+                    "affected_scope_count": 48,
+                    "unresolved_scope_count": 48,
+                    "affected_scope_fingerprint": "scope-campaign",
+                },
+            }
+            executor = root / "executor"
+            executor.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json,sys\n"
+                "print(json.dumps({'final_verdict':'STOP_SAFE',"
+                "'apply_executed':False,'users_moved':0,"
+                "'argv':sys.argv[1:]}))\n"
+                "raise SystemExit(2)\n",
+                encoding="utf-8",
+            )
+            executor.chmod(0o755)
+            binding = {
+                "active": True,
+                "ok": True,
+                "request_id": "cpsauth_campaign",
+                "request_hash": "c" * 64,
+                "decision_id": "cpsdec_campaign",
+                "source": "controlled-source",
+                "target": "execution-target",
+                "stages": [5, 10, 25, 48],
+                "completed_stages": [],
+                "next_stage": 5,
+            }
+            with mock.patch.object(
+                self.refresh,
+                "controlled_certification_matrix_binding",
+                return_value=binding,
+            ):
+                result = self.refresh.run_bounded_delegated_service_failure_action(
+                    str(executor),
+                    state_dir=state_dir,
+                    event_dir=event_dir,
+                    policy_file=policy_file,
+                    operator_execution_audit_store=root / "audit.jsonl",
+                    service_failure_obligation=obligation,
+                )
+        self.assertEqual(result["status"], "STOP_SAFE", result)
+        self.assertEqual(result["requested_max_users"], 5)
+        argv = result["consumer_result"]["argv"]
+        self.assertEqual(argv[argv.index("--max-users") + 1], "5")
+        self.assertEqual(
+            argv[
+                argv.index(
+                    "--controlled-certification-campaign-request-id"
+                ) + 1
+            ],
+            "cpsauth_campaign",
+        )
+        self.assertEqual(
+            argv[
+                argv.index(
+                    "--controlled-certification-campaign-stage"
+                ) + 1
+            ],
+            "5",
+        )
+        self.assertEqual(result["users_moved"], 0)
+
+    def test_campaign_stage_receipt_requires_consumed_outcome_replay_learning_and_is_exact_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "audit.jsonl"
+            binding = {
+                "request_id": "cpsauth_stage",
+                "request_hash": "d" * 64,
+                "decision_id": "cpsdec_stage",
+                "source": "controlled-source",
+                "target": "execution-target",
+                "next_stage": 5,
+            }
+            incomplete = self.refresh.record_controlled_campaign_stage_consumption(
+                audit_store=audit,
+                binding=binding,
+                result={"fresh_packet_id": "pkt_incomplete"},
+                reset_result={},
+            )
+            self.assertFalse(incomplete["audit_write"])
+            self.assertFalse(audit.exists())
+
+            result = {
+                "fresh_packet_id": "pkt_stage",
+                "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                "apply_executed": True,
+                "users_moved": 5,
+                "feedback_materialization": {
+                    "materialized": True,
+                    "outcome_id": "out_stage",
+                },
+                "l3_learning_closure": {
+                    "materialized": True,
+                    "records": {"closure": 5},
+                    "execution_closure_verification": {
+                        "behavior_chain_status": "COMPLETE",
+                        "terminal_consumer_verified": True,
+                    },
+                },
+            }
+            reset_result = {
+                "ok": True,
+                "consumer_result": {
+                    "final_verdict": (
+                        "CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_RESET_COMPLETE"
+                    ),
+                    "receipt_id": "reset_stage",
+                    "target_user_count_after": 0,
+                    "ordinary_customer_count": 0,
+                    "users_moved": 5,
+                    "final_safe_mode": "OPEN",
+                },
+            }
+            first = self.refresh.record_controlled_campaign_stage_consumption(
+                audit_store=audit,
+                binding=binding,
+                result=result,
+                reset_result=reset_result,
+            )
+            second = self.refresh.record_controlled_campaign_stage_consumption(
+                audit_store=audit,
+                binding=binding,
+                result=result,
+                reset_result=reset_result,
+            )
+            self.assertTrue(first["audit_write"])
+            self.assertFalse(second["audit_write"])
+            self.assertTrue(second["duplicate_suppressed"])
+            rows = [
+                json.loads(line)
+                for line in audit.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(len(rows), 1)
+            self.assertTrue(rows[0]["outcome_consumed"])
+            self.assertTrue(rows[0]["replay_consumed"])
+            self.assertTrue(rows[0]["learning_consumed"])
+            self.assertTrue(rows[0]["baseline_reset_verified"])
+
     def test_matrix_lifecycle_treats_no_pending_omp_obligation_as_legal_noop(self):
         completed = mock.Mock(
             returncode=0,

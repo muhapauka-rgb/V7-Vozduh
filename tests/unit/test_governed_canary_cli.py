@@ -366,6 +366,42 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(drifted["selection_status"], "STOP_SAFE")
         self.assertIn("cleanup_user_not_on_registered_rollback_source", drifted["blockers"])
 
+    def test_controlled_campaign_reset_admits_only_exact_execution_target_to_controlled_source(self):
+        module = load_cli_module()
+        selected = module.controlled_certification_cleanup_selection(
+            users=[{
+                "ip": "10.7.0.16",
+                "current": "execution-target",
+                "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[
+                {
+                    "id": "controlled-source",
+                    "enabled": "0",
+                    "controlled_certification_source": "1",
+                },
+                {
+                    "id": "execution-target",
+                    "enabled": "1",
+                    "role": "EXECUTION_ONLY",
+                    "execution_reserved": "1",
+                    "reservation_owner": "operator_execution_governance",
+                },
+            ],
+            user="10.7.0.16",
+            source="execution-target",
+            target="controlled-source",
+            campaign_reset=True,
+            controlled_source="controlled-source",
+        )
+        self.assertEqual(selected["selection_status"], "SELECTED", selected)
+        self.assertTrue(selected["campaign_reset"])
+        self.assertEqual(
+            selected["authority_scope"],
+            "RESTORE_EXACT_APPROVED_CONTROLLED_CAMPAIGN_BASELINE",
+        )
+
     def test_controlled_cleanup_requires_prior_one_use_authority_consumption(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -580,11 +616,47 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "source_event_id": "sfrev_unit",
                 "source_scope": {"affected_scope_count": 1},
             },
+            "standing_delegated_policy_binding": {
+                "contract_id": "sdpc_unit",
+                "controlled_certification_campaign_binding": {
+                    "required": True,
+                    "ok": True,
+                    "request_id": "cpsauth_unit",
+                    "request_hash": "a" * 64,
+                    "stage": 5,
+                },
+            },
+            "l3_learning_closure": {
+                "active": True,
+                "materialized": True,
+                "records": {"outcome": 5, "closure": 5},
+                "capability_state": {
+                    "production_proven": True,
+                    "omp_consumable": True,
+                    "runtime_ready_for_next_incident": True,
+                },
+                "execution_closure_verification": {
+                    "behavior_chain_status": "COMPLETE",
+                    "terminal_consumer_verified": True,
+                    "operation_id": "op_unit",
+                },
+            },
         })
         self.assertEqual(receipt["stop_reason"], "atomic_execution_envelope_source_changed")
         self.assertEqual(receipt["service_failure_causal_binding"]["source_incident_id"], "sfinc_unit")
         self.assertNotIn("cycle", receipt)
         self.assertFalse(receipt["full_cycle_embedded"])
+        self.assertEqual(
+            receipt["standing_delegated_policy_binding"][
+                "controlled_certification_campaign_binding"
+            ]["stage"],
+            5,
+        )
+        self.assertTrue(
+            receipt["l3_learning_closure"][
+                "execution_closure_verification"
+            ]["terminal_consumer_verified"]
+        )
 
     def test_read_only_surface_gets_controlled_execution_source_binding(self):
         module = load_cli_module()

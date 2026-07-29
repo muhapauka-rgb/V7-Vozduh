@@ -954,6 +954,8 @@ def controlled_certification_cleanup_selection(
     user: str,
     source: str,
     target: str,
+    campaign_reset: bool = False,
+    controlled_source: str = "",
 ) -> dict[str, Any]:
     """Admit only exact pre-state restoration after a consumed controlled run."""
     blockers: list[str] = []
@@ -973,11 +975,35 @@ def controlled_certification_cleanup_selection(
         blockers.append("cleanup_subject_not_certification_user")
     if str(user_row.get("current") or "") != source:
         blockers.append("cleanup_user_not_on_registered_rollback_source")
-    if str(source_row.get("controlled_certification_source") or "").lower() not in {"1", "true", "yes"}:
-        blockers.append("cleanup_source_not_controlled_certification_source")
+    if campaign_reset:
+        if (
+            str(target_row.get("id") or "") != controlled_source
+            or str(
+                target_row.get("controlled_certification_source") or ""
+            ).lower() not in {"1", "true", "yes"}
+        ):
+            blockers.append(
+                "campaign_reset_target_not_exact_controlled_source"
+            )
+        if (
+            str(source_row.get("role") or "").upper() != "EXECUTION_ONLY"
+            or str(source_row.get("reservation_owner") or "")
+            != "operator_execution_governance"
+            or not bool_value(source_row.get("execution_reserved"))
+        ):
+            blockers.append(
+                "campaign_reset_current_source_not_exact_execution_target"
+            )
+    else:
+        if str(
+            source_row.get("controlled_certification_source") or ""
+        ).lower() not in {"1", "true", "yes"}:
+            blockers.append("cleanup_source_not_controlled_certification_source")
     if str(source_row.get("enabled") or "").lower() not in {"1", "true", "yes"}:
         blockers.append("cleanup_source_not_enabled")
-    if str(target_row.get("enabled") or "1").lower() not in {"1", "true", "yes"}:
+    if not campaign_reset and str(
+        target_row.get("enabled") or "1"
+    ).lower() not in {"1", "true", "yes"}:
         blockers.append("cleanup_target_not_enabled")
     if not target or source == target:
         blockers.append("cleanup_target_not_distinct")
@@ -1005,8 +1031,13 @@ def controlled_certification_cleanup_selection(
         "source_hash": source_hash,
         "evidence_class": "ENGINEERING_CLEANUP",
         "ordinary_customer_used": False,
-        "authority_scope": "RESTORE_EXACT_APPROVED_PRE_STATE",
+        "authority_scope": (
+            "RESTORE_EXACT_APPROVED_CONTROLLED_CAMPAIGN_BASELINE"
+            if campaign_reset
+            else "RESTORE_EXACT_APPROVED_PRE_STATE"
+        ),
         "max_users": 1,
+        "campaign_reset": campaign_reset,
     }
 
 
@@ -1896,6 +1927,25 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             )
             if policy_binding.get(key) not in (None, "", [], {})
         }
+        campaign_binding = policy_binding.get(
+            "controlled_certification_campaign_binding"
+        )
+        if isinstance(campaign_binding, dict):
+            receipt["standing_delegated_policy_binding"][
+                "controlled_certification_campaign_binding"
+            ] = {
+                key: campaign_binding.get(key)
+                for key in (
+                    "required",
+                    "ok",
+                    "request_id",
+                    "request_hash",
+                    "decision_id",
+                    "source_id",
+                    "stage",
+                )
+                if campaign_binding.get(key) not in (None, "", [], {})
+            }
     binding = result.get("service_failure_causal_binding")
     if isinstance(binding, dict):
         receipt["service_failure_causal_binding"] = {
@@ -1913,6 +1963,51 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             key: feedback.get(key)
             for key in ("materialized", "feedback_id", "outcome_id", "learning_record_id", "reason")
             if feedback.get(key) not in (None, "", [], {})
+        }
+    learning = result.get("l3_learning_closure")
+    if isinstance(learning, dict):
+        closure = (
+            learning.get("execution_closure_verification")
+            if isinstance(
+                learning.get("execution_closure_verification"),
+                dict,
+            )
+            else {}
+        )
+        capability = (
+            learning.get("capability_state")
+            if isinstance(learning.get("capability_state"), dict)
+            else {}
+        )
+        receipt["l3_learning_closure"] = {
+            "active": bool(learning.get("active")),
+            "materialized": bool(learning.get("materialized")),
+            "reason": str(learning.get("reason") or ""),
+            "operation_id": str(learning.get("operation_id") or ""),
+            "records": dict(learning.get("records") or {}),
+            "capability_state": {
+                key: capability.get(key)
+                for key in (
+                    "state",
+                    "validated",
+                    "production_proven",
+                    "omp_consumable",
+                    "runtime_ready_for_next_incident",
+                )
+                if capability.get(key) not in (None, "", [], {})
+            },
+            "execution_closure_verification": {
+                "behavior_chain_status": str(
+                    closure.get("behavior_chain_status") or ""
+                ),
+                "terminal_consumer_verified": bool(
+                    closure.get("terminal_consumer_verified")
+                ),
+                "operation_id": str(closure.get("operation_id") or ""),
+                "terminal_outcome": str(
+                    closure.get("terminal_outcome") or ""
+                ),
+            },
         }
     return receipt
 
@@ -3591,6 +3686,12 @@ def _execute_governed_transaction_with_guards_inner(
             user=str(cleanup_request.get("user") or ""),
             source=str(cleanup_request.get("source") or ""),
             target=str(cleanup_request.get("target") or ""),
+            campaign_reset=bool_value(
+                cleanup_request.get("campaign_reset")
+            ),
+            controlled_source=str(
+                cleanup_request.get("controlled_source") or ""
+            ),
         )
         if certification_cleanup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -3662,6 +3763,13 @@ def _execute_governed_transaction_with_guards_inner(
                 "scope": (certification_setup_selection if setup_mode else certification_cleanup_selection).get("authority_scope"),
             },
         }
+        if cleanup_mode and bool_value(cleanup_request.get("campaign_reset")):
+            delegated_admission["authority"][
+                "authority_basis"
+            ] = "CONTROLLED_CERTIFICATION_CAMPAIGN_APPROVAL"
+            delegated_admission["authority"][
+                "engineering_authority_source"
+            ] = "EXACT_APPROVED_CONTROLLED_CERTIFICATION_CAMPAIGN"
     elif delegated_mode:
         policy_root = read_json(Path(args.policy_file), {})
         delegated_admission = bounded_delegated_policy_admission(
@@ -4073,6 +4181,172 @@ def cleanup_controlled_certification_condition(
     }
 
 
+def reset_approved_controlled_certification_campaign_stage(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Restore one completed campaign cohort through existing packet owners."""
+    if (
+        args.confirm_controlled_certification_campaign_reset
+        != "RESET_APPROVED_CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE"
+    ):
+        return transaction_stop(
+            "controlled_certification_campaign_reset_confirmation_required"
+        )
+    binding = approved_controlled_certification_substrate_binding(
+        audit_store=Path(args.operator_execution_audit_store),
+        request_id=str(
+            args.controlled_certification_campaign_request_id or ""
+        ),
+        request_hash=str(
+            args.controlled_certification_campaign_request_hash or ""
+        ),
+        required_subscopes={
+            "CONTROLLED_SOURCE_CONDITION",
+            "PROGRESSIVE_CAMPAIGN_EXECUTION",
+        },
+    )
+    scope = (
+        binding.get("scope")
+        if isinstance(binding.get("scope"), dict)
+        else {}
+    )
+    stage = int(args.controlled_certification_campaign_stage or 0)
+    blockers = list(binding.get("blockers") or [])
+    if stage not in {
+        int(item) for item in (scope.get("campaign_stages") or [])
+    }:
+        blockers.append("campaign_reset_stage_not_approved")
+    if int(scope.get("max_concurrent_transactions") or 0) != 1:
+        blockers.append("campaign_reset_concurrency_not_one")
+    source = str(scope.get("source_id") or "")
+    target = str(scope.get("controlled_target_id") or "")
+    users = read_registry(state_dir / "users.registry")
+    target_users = [
+        row
+        for row in users
+        if str(row.get("current") or "") == target
+        and str(row.get("enabled") or "1").lower()
+        in {"1", "true", "yes"}
+    ]
+    ordinary = [
+        row
+        for row in target_users
+        if str(row.get("certification_user") or "").lower()
+        not in {"1", "true", "yes"}
+    ]
+    if ordinary:
+        blockers.append("campaign_reset_target_contains_ordinary_user")
+    if len(target_users) != stage:
+        blockers.append("campaign_reset_target_cohort_size_mismatch")
+    if blockers:
+        return transaction_stop(
+            "controlled_certification_campaign_reset_not_admitted",
+            blockers=sorted(set(blockers)),
+            campaign_stage=stage,
+            target_user_count=len(target_users),
+            ordinary_user_count=len(ordinary),
+            controlled_campaign_binding=binding,
+        )
+
+    transactions: list[dict[str, Any]] = []
+    for row in sorted(
+        target_users,
+        key=lambda item: str(item.get("ip") or ""),
+    ):
+        transaction_args = copy.copy(args)
+        transaction_args._certification_cleanup_request = {
+            "user": str(row.get("ip") or ""),
+            "source": target,
+            "target": source,
+            "campaign_reset": True,
+            "controlled_source": source,
+        }
+        transaction_args.skip_planner_observe = True
+        transaction_args.execute_bounded_delegated_transaction = False
+        transaction_args.engineering_authority_request_file = ""
+        transaction = execute_governed_transaction_with_guards(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        transactions.append(compact_transaction_result(transaction))
+        if (
+            transaction.get("final_verdict")
+            != "GOVERNED_TRANSACTION_COMPLETED"
+            or transaction.get("verification_result") != "PASS"
+        ):
+            return {
+                **transaction_stop(
+                    "controlled_certification_campaign_reset_transaction_failed"
+                ),
+                "campaign_stage": stage,
+                "completed_reset_members": len(transactions) - 1,
+                "transactions": transactions,
+                "circuit_breaker": {
+                    "tripped": True,
+                    "remaining_forward_mutations_stopped": True,
+                },
+            }
+
+    after = read_registry(state_dir / "users.registry")
+    remaining_target = [
+        row
+        for row in after
+        if str(row.get("current") or "") == target
+        and str(row.get("enabled") or "1").lower()
+        in {"1", "true", "yes"}
+    ]
+    restored = [
+        row
+        for row in after
+        if str(row.get("current") or "") == source
+        and str(row.get("enabled") or "1").lower()
+        in {"1", "true", "yes"}
+        and str(row.get("certification_user") or "").lower()
+        in {"1", "true", "yes"}
+    ]
+    passed = not remaining_target and len(transactions) == stage
+    return {
+        "schema_version": "v7.controlled-certification-campaign-reset.v1",
+        "final_verdict": (
+            "CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_RESET_COMPLETE"
+            if passed
+            else "STOP_SAFE"
+        ),
+        "campaign_stage": stage,
+        "source": source,
+        "target": target,
+        "reset_member_count": len(transactions),
+        "restored_certification_user_count": len(restored),
+        "target_user_count_after": len(remaining_target),
+        "transactions": transactions,
+        "circuit_breaker": {
+            "tripped": not passed,
+            "remaining_forward_mutations_stopped": not passed,
+        },
+        "final_safe_mode": "OPEN",
+        "ordinary_customer_count": 0,
+        "raw_identity_list_stored": False,
+        "runtime_mutation_performed": passed,
+        "routing_mutation_performed": passed,
+        "users_moved": len(transactions) if passed else 0,
+        "authority_expanded": False,
+        "production_maturity_change": False,
+        "errors": [] if passed else [
+            "controlled_certification_campaign_reset_postcondition_failed"
+        ],
+    }
+
+
 def execute_governed_transaction_with_guards(
     args: argparse.Namespace,
     *,
@@ -4356,6 +4630,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
     )
     parser.add_argument(
+        "--reset-controlled-certification-campaign-stage",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--confirm-controlled-certification-campaign-reset",
+        default="",
+    )
+    parser.add_argument(
         "--compact-transaction-receipt",
         action="store_true",
         help="Emit only the bounded lifecycle receipt; full facts remain with existing owners.",
@@ -4458,6 +4740,24 @@ def main(argv=None) -> int:
             "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSED",
             "CONTROLLED_CERTIFICATION_SUBSTRATE_ALREADY_CONSUMED",
         } else 2
+    if args.reset_controlled_certification_campaign_stage:
+        result = reset_approved_controlled_certification_campaign_stage(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(
+            result,
+            ensure_ascii=False,
+            indent=2 if args.pretty else None,
+            sort_keys=True,
+        ))
+        return 0 if result.get("final_verdict") == (
+            "CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_RESET_COMPLETE"
+        ) else 2
     if args.verify_controlled_certification_preflight:
         result = controlled_certification_repair_preflight(
             args,

@@ -127,6 +127,13 @@ CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL = (
     "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
 )
+CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE = (
+    "controlled_certification_substrate_effect"
+)
+CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS = (
+    "CONTROLLED_SERVICE_FAILURE_CAMPAIGN_STAGE_CONSUMED"
+)
+CONTROLLED_CERTIFICATION_CAMPAIGN_STAGES = (5, 10, 25, 48)
 CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES = (
     "IDENTITY_PROVISIONING",
     "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
@@ -643,6 +650,131 @@ def standing_delegated_policy_runtime_axes(
         "authority_expanded": False,
         "owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
         "evidence_owner": "existing Controlled Production Certification Program",
+    }
+
+
+def controlled_certification_campaign_stage_status(
+    audit_records,
+    *,
+    request_id="",
+    request_hash="",
+    now=None,
+):
+    """Project consumed campaign stages from the existing Authority audit owner.
+
+    This is a compact read model, not a second campaign registry.  Only an
+    exact approved request and complete Outcome/Replay/Learning receipts count.
+    Duplicate, out-of-order or malformed receipts fail closed.
+    """
+    records = list(audit_records or [])
+    authority = controlled_certification_substrate_authority_status(
+        records,
+        now=now,
+    )
+    active_request_id = str(authority.get("request_id") or "")
+    active_request_hash = str(authority.get("request_hash") or "")
+    expected_request_id = str(request_id or active_request_id)
+    expected_request_hash = str(request_hash or active_request_hash)
+    blockers = []
+    if authority.get("status") != "APPROVED":
+        blockers.append("controlled_campaign_authority_not_approved")
+    if (
+        str(authority.get("decision") or "")
+        != CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+    ):
+        blockers.append("controlled_campaign_authority_decision_not_exact")
+    if expected_request_id != active_request_id:
+        blockers.append("controlled_campaign_request_id_not_current")
+    if expected_request_hash != active_request_hash:
+        blockers.append("controlled_campaign_request_hash_not_current")
+
+    request = (
+        authority.get("request")
+        if isinstance(authority.get("request"), dict)
+        else {}
+    )
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    stages = tuple(as_int(item, 0) for item in (scope.get("campaign_stages") or []))
+    if stages != CONTROLLED_CERTIFICATION_CAMPAIGN_STAGES:
+        blockers.append("controlled_campaign_stage_contract_changed")
+        stages = CONTROLLED_CERTIFICATION_CAMPAIGN_STAGES
+
+    stage_rows = [
+        row
+        for row in records
+        if row.get("record_type")
+        == CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+        and row.get("effect_class")
+        == CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS
+        and str(row.get("authority_request_id") or "") == expected_request_id
+    ]
+    receipts_by_stage = {}
+    for row in stage_rows:
+        stage = as_int(row.get("campaign_stage"), 0)
+        receipts_by_stage.setdefault(stage, []).append(row)
+        if stage not in stages:
+            blockers.append(f"controlled_campaign_stage_not_admitted:{stage}")
+        if str(row.get("authority_request_hash") or "") != expected_request_hash:
+            blockers.append(f"controlled_campaign_stage_hash_mismatch:{stage}")
+        if not all(
+            row.get(key) is True
+            for key in (
+                "outcome_consumed",
+                "replay_consumed",
+                "learning_consumed",
+                "baseline_reset_verified",
+            )
+        ):
+            blockers.append(f"controlled_campaign_stage_incomplete:{stage}")
+        if as_int(row.get("ordinary_customer_count"), -1) != 0:
+            blockers.append(f"controlled_campaign_ordinary_customer_effect:{stage}")
+    for stage, rows in receipts_by_stage.items():
+        if len(rows) != 1:
+            blockers.append(f"controlled_campaign_stage_duplicate:{stage}")
+
+    completed_stages = [
+        stage
+        for stage in stages
+        if len(receipts_by_stage.get(stage, [])) == 1
+        and not any(
+            item.endswith(f":{stage}")
+            for item in blockers
+        )
+    ]
+    prefix = []
+    for stage in stages:
+        if stage not in completed_stages:
+            break
+        prefix.append(stage)
+    if completed_stages != prefix:
+        blockers.append("controlled_campaign_stage_order_gap")
+    valid_completed = prefix if not blockers else []
+    next_stage = next(
+        (stage for stage in stages if stage not in valid_completed),
+        0,
+    )
+    return {
+        "schema_version": "v7.controlled-certification-campaign-stage-status.v1",
+        "status": "PASS" if not blockers else "STOP_SAFE",
+        "ok": not blockers,
+        "request_id": expected_request_id,
+        "request_hash": expected_request_hash,
+        "stages": list(stages),
+        "completed_stages": valid_completed,
+        "controlled_production_proven_max": (
+            valid_completed[-1] if valid_completed else 0
+        ),
+        "next_stage": next_stage,
+        "completed": not blockers and next_stage == 0,
+        "receipt_ids": [
+            str(receipts_by_stage[stage][0].get("receipt_id") or "")
+            for stage in valid_completed
+        ],
+        "blockers": sorted(set(blockers)),
+        "owner": (
+            "existing admin_core/operator_execution.py append-only "
+            "Authority audit owner"
+        ),
     }
 
 

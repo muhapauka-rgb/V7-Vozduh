@@ -1997,7 +1997,7 @@ def delegated_policy_live_state_consistency(
     independent_program_frontier = program_frontier not in {"", "NONE"}
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
-        program_frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
+        _is_controlled_certification_safe_frontier(program_frontier)
     )
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") in {
@@ -2362,6 +2362,13 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
         "CURRENT_EXECUTION_FRONTIER": (
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            else live.get(
+                "CURRENT_PROGRAM_EXECUTION_FRONTIER", ""
+            ).strip("`")
+            if re.fullmatch(
+                r"CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_(5|10|25|48)_REQUIRED",
+                live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+            )
             else ",".join(ready) or "NONE"
         ),
         "WAITING_CAPABILITIES": ",".join(waiting) or "NONE",
@@ -6129,7 +6136,19 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
 CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS = frozenset({
     "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED",
+    "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_RECOMMENDATION_RECONCILIATION",
 })
+
+
+def _is_controlled_certification_safe_frontier(value: str) -> bool:
+    frontier = str(value or "")
+    return bool(
+        frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
+        or re.fullmatch(
+            r"CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_(5|10|25|48)_REQUIRED",
+            frontier,
+        )
+    )
 SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M2 = "CAUSAL_M2_ATOMIC_TRANSITION_AND_RECEIPT_LINKAGE"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 = "CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION"
@@ -7406,12 +7425,16 @@ def heartbeat_dependency_fingerprint(cps_text: str) -> str:
 
 
 def _matrix_runtime_successor_is_explicit(live: dict[str, str]) -> bool:
-    """True only for the existing Matrix-owned active-incident continuation."""
+    """True only for an existing Matrix-owned Service Failure successor."""
     value = lambda key: _plain_live_value(live, key)
+    next_action = value("CURRENT_NEXT_ACTION_ID")
     return all((
         value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
-        value("CURRENT_NEXT_ACTION_ID") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
-        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == next_action,
+        (
+            next_action == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+            or _is_controlled_certification_safe_frontier(next_action)
+        ),
     ))
 
 
@@ -7975,8 +7998,10 @@ def heartbeat_program_reentry(
                     # let this already-deployed runtime owner own the next
                     # fresh revalidation.
                     matrix_owned_incident_drain = (
-                        continue_result.get("priority_decision")
-                        == "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON"
+                        continue_result.get("priority_decision") in {
+                            "ACTIVE_INCIDENT_DRAIN_PREEMPTS_GENERIC_POLYGON",
+                            "CONTROLLED_CERTIFICATION_FRONTIER_PREEMPTS_GENERIC_POLYGON",
+                        }
                         and continue_result.get("real_consumer")
                         == "tools/v7-service-matrix-refresh-all"
                     )
@@ -8047,7 +8072,10 @@ def heartbeat_program_reentry(
                     matrix_successor_overrides = (
                         {
                             "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
-                            "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor`",
+                            "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": (
+                                "`enabled v7-service-matrix-refresh.timer performs fresh observation "
+                                "and consumes the durable Service Failure successor`"
+                            ),
                         }
                         if matrix_owned_incident_drain else None
                     )
@@ -18525,6 +18553,38 @@ def reconcile_active_standing_delegated_policy_to_cps(
             )
         )
     )
+    controlled_campaign = (
+        status.get("controlled_certification_campaign_status")
+        if isinstance(
+            status.get("controlled_certification_campaign_status"), dict,
+        )
+        else {}
+    )
+    controlled_campaign_identity_valid = all((
+        controlled_campaign.get("ok") is True,
+        str(controlled_campaign.get("request_id") or "")
+        == str(controlled_substrate_authority.get("request_id") or ""),
+        str(controlled_campaign.get("request_hash") or "")
+        == str(controlled_substrate_authority.get("request_hash") or ""),
+    ))
+    controlled_campaign_proven_max = _status_int(
+        controlled_campaign.get("controlled_production_proven_max")
+    )
+    controlled_campaign_next_stage = _status_int(
+        controlled_campaign.get("next_stage")
+    )
+    m9_campaign_active = bool(
+        m8_pool_ready
+        and controlled_campaign_identity_valid
+        and not controlled_campaign.get("completed")
+        and controlled_campaign_next_stage in {5, 10, 25, 48}
+    )
+    m10_campaign_complete = bool(
+        m8_pool_ready
+        and controlled_campaign_identity_valid
+        and controlled_campaign.get("completed") is True
+        and controlled_campaign_proven_max == 48
+    )
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         primary_stop = "NONE"
@@ -18555,6 +18615,18 @@ def reconcile_active_standing_delegated_policy_to_cps(
     elif m8_pool_boundary:
         primary_next_action = "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
         primary_stop = "ENGINEERING_AUTHORITY"
+    elif m10_campaign_complete:
+        primary_next_action = (
+            "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_"
+            "RECOMMENDATION_RECONCILIATION"
+        )
+        primary_stop = "NONE"
+    elif m9_campaign_active:
+        primary_next_action = (
+            "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_"
+            f"{controlled_campaign_next_stage}_REQUIRED"
+        )
+        primary_stop = "NONE"
     elif m8_pool_ready:
         primary_next_action = (
             "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
@@ -18565,6 +18637,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         primary_stop = "REAL_WORLD_LIMIT"
     omp_should_continue = (
         active_incident_drain or m8_substrate_approved
+        or m9_campaign_active or m10_campaign_complete
         or (m8_pool_ready and not m8_approved_source_baseline_blocked)
     )
     state = _normalized_state_from_live_cps(cps_text)
@@ -18579,6 +18652,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_active_scope": (
             "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
             if active_incident_drain else
+            "SERVICE_FAILURE_TIER48_CONTROLLED_CERTIFICATION_RECONCILIATION"
+            if m10_campaign_complete else
+            "SERVICE_FAILURE_TIER48_PROGRESSIVE_CONTROLLED_PROOF"
+            if m9_campaign_active else
             "SERVICE_FAILURE_TIER48_CONTROLLED_CERTIFICATION"
             if tier48_active else
             "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE"
@@ -18600,6 +18677,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "RECONCILE THE EXISTING CONTROLLED PRODUCTION CERTIFICATION POOL; REQUIRE FIVE OR MORE OWNER-AUTHORIZED ENABLED CERTIFICATION USERS ON ONE ACTIVE CONTROLLED SOURCE; DO NOT RECLASSIFY OR MOVE ORDINARY CUSTOMERS"
             if m8_pool_boundary else
+            "CONSUME THE COMPLETED 5->10->25->48 CONTROLLED CAMPAIGN THROUGH THE EXISTING T48-M10 AUTHORITY/RUNTIME RECOMMENDATION OWNER; DO NOT ACTIVATE ORDINARY TIER 48 BY IMPLICATION"
+            if m10_campaign_complete else
+            f"RUN ONLY THE NEXT FRESH CONTROLLED SERVICE FAILURE STAGE {controlled_campaign_next_stage} THROUGH THE EXISTING MATRIX, PLANNER AND GOVERNED EXECUTOR; PRESERVE COMPLETED LOWER-STAGE EVIDENCE AND STOP AT ANY LIVE GATE"
+            if m9_campaign_active else
             "PREPARE THE EXISTING T48-M8 CONTROLLED SERVICE FAILURE CERTIFICATION PLAN AND SAFE COHORT THROUGH EXISTING OWNERS; DO NOT FABRICATE A PRODUCTION OUTCOME"
             if m8_pool_ready else
             "ON A FRESH OWNER-BACKED MATCHING SERVICE FAILURE, REENTER THE EXISTING "
@@ -18609,7 +18690,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
@@ -18624,6 +18705,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_BOUNDARY_RECONCILED_V1"
             if m8_pool_boundary else
+            "SERVICE_FAILURE_TIER48_M10_CONTROLLED_CAMPAIGN_CONSUMPTION_READY_V1"
+            if m10_campaign_complete else
+            f"SERVICE_FAILURE_TIER48_M9_STAGE_{controlled_campaign_next_stage}_READY_V1"
+            if m9_campaign_active else
             "SERVICE_FAILURE_TIER48_M8_CONTROLLED_POOL_READY_RECONCILED_V1"
             if m8_pool_ready else
             "SERVICE_FAILURE_STANDING_DELEGATED_POLICY_ACTIVE_RECONCILED_V1"
@@ -18634,6 +18719,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 active_incident_drain
                 or m8_substrate_approved
+                or m9_campaign_active
+                or m10_campaign_complete
                 or (m8_pool_ready and not m8_approved_source_baseline_blocked)
             )
             else
@@ -18648,7 +18735,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NONE"
         ),
         "current_execution_frontier": (
-            primary_next_action if active_incident_drain else "NONE"
+            primary_next_action
+            if active_incident_drain or m9_campaign_active
+            else "NONE"
         ),
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
@@ -18712,6 +18801,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "exact registered controlled-substrate request -> independent existing Authority owner -> append-only decision audit -> CPS/OMP residual"
             if m8_exact_authority_boundary else
+            "existing campaign stage audit -> Matrix fresh generation -> planner -> governed executor -> Outcome/Replay/Learning -> reset receipt"
+            if m9_campaign_active else
+            "controlled campaign stage receipts -> T48-M10 evidence reconciliation -> independent Authority/Runtime verdict consumer"
+            if m10_campaign_complete else
             "existing Controlled Production Certification Program user/registry/assignment owners -> T48-M8 pool readiness projection -> OMP"
             if tier48_active else
             "fresh matching Service Matrix event -> existing autoswitch planner -> active standing policy live gates"
@@ -18727,6 +18820,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "The existing Authority owner independently decides the exact registered controlled-substrate request; the deployed status consumer then publishes the approved safe successor or the exact decline/expiry residual."
             if m8_exact_authority_boundary else
+            f"The Matrix timer consumes stage {controlled_campaign_next_stage} through fresh live gates; a complete Outcome/Replay/Learning plus baseline-reset receipt automatically selects the next stage."
+            if m9_campaign_active else
+            "The existing T48-M10 consumer reconciles the completed campaign and produces one independently consumed ordinary Runtime tier verdict."
+            if m10_campaign_complete else
             "The existing T48-M8 consumer re-enters automatically when one active controlled source contains five or more owner-authorized enabled certification users."
             if tier48_active else
             "On a fresh matching owner-backed service failure, the existing Service Matrix lifecycle "
@@ -18741,6 +18838,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "existing independent Authority owner plus operator-execution append-only audit consumer"
             if m8_exact_authority_boundary else
+            "existing Authority audit -> Service Matrix -> governed cohort executor"
+            if m9_campaign_active else
+            "existing T48-M10 verification and Authority/Runtime recommendation owners"
+            if m10_campaign_complete else
             "existing Controlled Production Certification Program pool readiness owner"
             if tier48_active and not active_incident_drain else
             "existing Service Matrix fresh-event revalidation owner"
@@ -18754,6 +18855,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "exact APPROVE or DECLINE decision -> append-only audit -> exact CPS/OMP residual"
             if m8_exact_authority_boundary else
+            f"fresh controlled cohort {controlled_campaign_next_stage} -> Outcome -> Replay -> Learning -> reset -> next stage"
+            if m9_campaign_active else
+            "consumed 5->10->25->48 evidence -> one independent ordinary Runtime tier verdict"
+            if m10_campaign_complete else
             "owner-authorized controlled pool -> T48-M8 certification plan and safe cohort"
             if tier48_active and not active_incident_drain else
             "fresh event -> existing planner -> fresh identities only if all live gates pass; otherwise STOP_SAFE -> owner-backed successor"
@@ -18773,6 +18878,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "Tier-48 Authority and Runtime are active; current certification-pool projection is owner-backed and below the first controlled cohort floor"
             if m8_pool_boundary else
+            f"Controlled Service Failure campaign evidence is consumed through {controlled_campaign_proven_max}; next fresh stage is {controlled_campaign_next_stage}"
+            if m9_campaign_active else
+            "Controlled Service Failure campaign evidence is consumed through 48 and awaits T48-M10 reconciliation"
+            if m10_campaign_complete else
             "Tier-48 Authority, Runtime and certification-pool readiness are owner-backed"
             if m8_pool_ready else
             state["program_frontier_input"]
@@ -18786,6 +18895,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_substrate_approved else
             "existing independent Authority owner and operator-execution append-only audit owner"
             if m8_exact_authority_boundary else
+            "existing Service Matrix, governed executor, Outcome, Replay and Learning owners"
+            if m9_campaign_active else
+            "existing T48-M10 verification plus independent Authority/Runtime decision owners"
+            if m10_campaign_complete else
             "existing Controlled Production Certification Program user, registry, assignment and Authority owners"
             if tier48_active and not active_incident_drain else
             state["program_frontier_owner"]
@@ -18799,6 +18912,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "five or more dedicated certification users on one active controlled source -> existing T48-M8 plan/safe-cohort consumer; otherwise exact Engineering Authority boundary retained"
             if m8_pool_boundary else
+            f"controlled stage {controlled_campaign_next_stage} consumed and baseline reset -> automatic next stage or exact live blocker"
+            if m9_campaign_active else
+            "one consumed ACTIVATE/HOLD/NARROW/DEMOTE/INSUFFICIENT_EVIDENCE verdict"
+            if m10_campaign_complete else
             "controlled plan and safe cohort -> existing T48-M9 progressive production proof"
             if m8_pool_ready else
             state["program_frontier_expected_output"]
@@ -18809,6 +18926,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE_PROGRAM_FRONTIER"
             if (
                 m8_substrate_approved
+                or m9_campaign_active
+                or m10_campaign_complete
                 or (m8_pool_ready and not m8_approved_source_baseline_blocked)
             ) else
             "PROGRAM_TERMINAL_EXTERNAL_OWNER_REQUIRED"
@@ -18836,6 +18955,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "ENGINEERING_AUTHORITY_ENGINEERING_COMPLETE_AWAITING_EXACT_CONTROLLED_PRODUCTION_POOL_OR_AUTHORITY"
             if m8_pool_boundary else
+            "NONE_T48_M10_RECONCILIATION_SUCCESSOR_READY"
+            if m10_campaign_complete else
+            f"NONE_T48_M9_STAGE_{controlled_campaign_next_stage}_SUCCESSOR_READY"
+            if m9_campaign_active else
             "NONE_T48_M8_CONTROLLED_POOL_READY"
             if m8_pool_ready else
             "REAL_WORLD_LIMIT_WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
@@ -18862,6 +18985,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NONE" if m8_approved_source_baseline_blocked else
             "NONE" if m8_approved_source_invalid else
             "T48-M8" if m8_substrate_approved else
+            "T48-M10" if m10_campaign_complete else
+            "T48-M9" if m9_campaign_active else
             "T48-M8" if m8_pool_ready else
             "NONE"
         ),
@@ -18884,6 +19009,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_exact_authority_boundary else
             "TIER48 AUTHORITY AND RUNTIME ACTIVE; EXISTING CONTROLLED CERTIFICATION POOL HAS FEWER THAN FIVE OWNER-AUTHORIZED USERS ON ONE ACTIVE CONTROLLED SOURCE; ORDINARY CUSTOMER RECLASSIFICATION AND UNAUTHORIZED SETUP MOVEMENT FORBIDDEN"
             if m8_pool_boundary else
+            "CONTROLLED CAMPAIGN 5->10->25->48 COMPLETE; T48-M10 MUST CONSUME ONE INDEPENDENT AUTHORITY/RUNTIME RECOMMENDATION WITHOUT IMPLICIT ORDINARY TIER ACTIVATION"
+            if m10_campaign_complete else
+            f"CONTROLLED CAMPAIGN PROVEN THROUGH {controlled_campaign_proven_max}; EXISTING MATRIX MUST ATTEMPT ONLY FRESH STAGE {controlled_campaign_next_stage} AND PRESERVE ANY LIVE-GATE STOP_SAFE"
+            if m9_campaign_active else
             "TIER48 CONTROLLED CERTIFICATION POOL READY; EXISTING T48-M8 OWNER MUST PREPARE THE CONTROLLED PLAN AND SAFE COHORT"
             if m8_pool_ready else
             "STANDING_DELEGATED_POLICY_ACTIVE_AND_AUDIT_VERIFIED; NO FRESH MATCHING "
@@ -18899,6 +19028,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 "T48_M8_APPROVED_SOURCE_INVALID" if m8_approved_source_invalid else
                 "T48_M8_SUBSTRATE_AUTHORITY_APPROVED" if m8_substrate_approved else
                 "T48_M8_CONTROLLED_POOL_BOUNDARY" if m8_pool_boundary else
+                "T48_M10_RECONCILIATION" if m10_campaign_complete else
+                f"T48_M9_STAGE_{controlled_campaign_next_stage}" if m9_campaign_active else
                 "T48_M8_CONTROLLED_POOL_READY" if m8_pool_ready else
                 "WAIT_FOR_FRESH_MATCHING_SERVICE_FAILURE_EVENT"
             ),
@@ -18921,6 +19052,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         state=state,
         request_external_wake=bool(
             m8_substrate_approved
+            or m9_campaign_active
+            or m10_campaign_complete
             or (m8_pool_ready and not m8_approved_source_baseline_blocked)
         ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
@@ -18953,14 +19086,19 @@ def reconcile_active_standing_delegated_policy_to_cps(
             ),
             "CURRENT_POOL_AND_CAMPAIGN_STATE": (
                 f"`48 dedicated certification identities on exact source "
-                f"{controlled_substrate_source_id or 'UNKNOWN'}; stages "
-                "5,10,25,48 unexecuted`"
+                f"{controlled_substrate_source_id or 'UNKNOWN'}; controlled "
+                f"production proven max={controlled_campaign_proven_max}; "
+                f"completed stages={','.join(str(item) for item in (controlled_campaign.get('completed_stages') or [])) or 'NONE'}; "
+                f"next stage={controlled_campaign_next_stage or 'NONE'}`"
             ),
             "NEXT_CONSUMER": (
-                "`existing service-matrix baseline consumer -> existing "
-                "T48-M8 controlled campaign owner`"
+                f"`{state['sequence_execution_class']}`"
             ),
             "AUTOMATIC_REENTRY_CONDITION": (
+                "`enabled v7-service-matrix-refresh.timer performs a fresh "
+                "target health/capacity observation and consumes the same "
+                "approved campaign stage through existing live gates`"
+                if m9_campaign_active else
                 f"`{controlled_substrate_reentry}`"
             ),
             **tier_projection,
@@ -18984,6 +19122,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if m8_approved_source_baseline_blocked else
             "TIER48_ACTIVE_CONTROLLED_POOL_BOUNDARY_ATOMICALLY_PROJECTED"
             if m8_pool_boundary else
+            "TIER48_CONTROLLED_CAMPAIGN_COMPLETION_RECONCILIATION_ATOMICALLY_PROJECTED"
+            if m10_campaign_complete else
+            f"TIER48_CONTROLLED_CAMPAIGN_STAGE_{controlled_campaign_next_stage}_ATOMICALLY_PROJECTED"
+            if m9_campaign_active else
             "TIER48_CONTROLLED_POOL_READY_SUCCESSOR_ATOMICALLY_PROJECTED"
             if m8_pool_ready else
             "ACTIVE_STANDING_POLICY_AND_AUDIT_NOW_ATOMICALLY_PROJECTED_TO_CPS"
@@ -19082,6 +19224,13 @@ def continue_omp_engineering_control_loop(
             and _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
             == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         )
+        controlled_certification_frontier = (
+            _plain_live_value(live, "ACTIVE_PROGRAM")
+            == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID
+            and _is_controlled_certification_safe_frontier(current_next_action)
+            and _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
+            == current_next_action
+        )
         if active_incident_drain:
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
@@ -19110,6 +19259,53 @@ def continue_omp_engineering_control_loop(
                     "user_movement": False, "packet_execution": False,
                     "restore_barrier_write": False, "rollback_apply": False,
                     "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
+        if controlled_certification_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "NONE_CONTROLLED_CERTIFICATION_MATRIX_CONSUMER_ACTIVE",
+                "terminal_class": "NONE",
+                "trigger": "controlled-certification service-failure Matrix lifecycle",
+                "entrypoint": "tools/v7-service-matrix-refresh-all",
+                "priority_decision": (
+                    "CONTROLLED_CERTIFICATION_FRONTIER_PREEMPTS_GENERIC_POLYGON"
+                ),
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "tools/v7-service-matrix-refresh-all",
+                "exact_next_operator_command": (
+                    "NONE_AUTOMATIC_CONTROLLED_CERTIFICATION_REVALIDATION"
+                ),
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": (
+                        "CONTROLLED_CERTIFICATION_SUCCESSOR_ACKNOWLEDGED"
+                    ),
+                    "mission_id": "T48-M8",
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": (
+                    "CONTROLLED_CERTIFICATION_SUCCESSOR_RETAINED_FOR_EXISTING_MATRIX_CONSUMER"
+                ),
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
                 },
                 "errors": [],
             }
@@ -20878,10 +21074,26 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
         # execution or wake: Matrix has a production caller and a fresh
         # observation contract, while the source CPS heartbeat is only a
         # mirror/watchdog and must not create a redundant self-wake.
+        matrix_reentry_condition = live.get(
+            "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION",
+            "",
+        ).strip("`")
         matrix_runtime_successor = all((
             _matrix_runtime_successor_is_explicit(live),
-            live.get("CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER", "").strip("`") == "tools/v7-service-matrix-refresh-all",
-            live.get("CURRENT_SERVICE_FAILURE_REENTRY_CONDITION", "").strip("`") == "enabled v7-service-matrix-refresh.timer performs fresh observation and consumes the durable active-incident successor",
+            live.get(
+                "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER",
+                "",
+            ).strip("`") == "tools/v7-service-matrix-refresh-all",
+            matrix_reentry_condition in {
+                (
+                    "enabled v7-service-matrix-refresh.timer performs fresh observation "
+                    "and consumes the durable active-incident successor"
+                ),
+                (
+                    "enabled v7-service-matrix-refresh.timer performs fresh observation "
+                    "and consumes the durable Service Failure successor"
+                ),
+            },
         ))
         if (
             next_formed == "TRUE"
@@ -21469,7 +21681,7 @@ def cps_live_state_consistency(
     independent_program_frontier = program_frontier not in {"", "NONE"}
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
-        program_frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
+        _is_controlled_certification_safe_frontier(program_frontier)
     )
     next_projection = {
         next_action,

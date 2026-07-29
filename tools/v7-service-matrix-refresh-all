@@ -15,17 +15,34 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core import operator_execution  # noqa: E402
+
+
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 DEFAULT_POLICY_FILE = Path("/etc/v7/policy.json")
+DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE = Path(
+    "/opt/v7/audit/operator-execution-audit.jsonl"
+)
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 DEFAULT_LOCK_WAIT_SECONDS = 90
+CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE = (
+    operator_execution.CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+)
+CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS = (
+    operator_execution.CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS
+)
 
 
 def now_iso() -> str:
@@ -117,12 +134,274 @@ def default_governed_executor_path() -> str:
     return str(local) if local.exists() else "v7-governed-canary-dry-run-cycle"
 
 
+def controlled_certification_matrix_binding(
+    *,
+    audit_store: Path,
+    source: str,
+    now: Optional[datetime] = None,
+) -> dict[str, Any]:
+    """Project the next approved controlled stage from the existing audit owner."""
+    records = operator_execution.read_audit_records(audit_store)
+    status = operator_execution.controlled_certification_substrate_authority_status(
+        records,
+        now=now,
+    )
+    request = (
+        status.get("request")
+        if isinstance(status.get("request"), dict)
+        else {}
+    )
+    scope = (
+        request.get("scope")
+        if isinstance(request.get("scope"), dict)
+        else {}
+    )
+    request_id = str(status.get("request_id") or "")
+    request_hash = str(status.get("request_hash") or "")
+    validation = (
+        operator_execution.validate_controlled_certification_substrate_authority_request(
+            request,
+            decision=operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL,
+            expected_request_id=request_id,
+            expected_request_hash=request_hash,
+            now=now,
+        )
+        if request
+        else {"ok": False, "errors": ["controlled_campaign_request_missing"]}
+    )
+    admitted = set(str(item) for item in (status.get("admitted_subscopes") or []))
+    blockers = list(validation.get("errors") or [])
+    if status.get("status") != "APPROVED":
+        blockers.append("controlled_campaign_not_approved")
+    if str(status.get("decision") or "") != (
+        operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+    ):
+        blockers.append("controlled_campaign_decision_not_exact")
+    if not {
+        "CONTROLLED_SOURCE_CONDITION",
+        "PROGRESSIVE_CAMPAIGN_EXECUTION",
+    }.issubset(admitted):
+        blockers.append("controlled_campaign_execution_subscopes_not_admitted")
+    if str(scope.get("source_id") or "") != str(source or ""):
+        blockers.append("controlled_campaign_source_mismatch")
+    if int(scope.get("max_concurrent_transactions") or 0) != 1:
+        blockers.append("controlled_campaign_concurrency_not_one")
+    stages = [int(item) for item in (scope.get("campaign_stages") or [])]
+    if stages != [5, 10, 25, 48]:
+        blockers.append("controlled_campaign_stage_contract_changed")
+    progress = operator_execution.controlled_certification_campaign_stage_status(
+        records,
+        request_id=request_id,
+        request_hash=request_hash,
+        now=now,
+    )
+    if not progress.get("ok"):
+        blockers.extend(progress.get("blockers") or [])
+    completed = list(progress.get("completed_stages") or [])
+    next_stage = int(progress.get("next_stage") or 0)
+    return {
+        "schema_version": "v7.controlled-certification-matrix-binding.v1",
+        "active": not blockers and next_stage > 0,
+        "completed": not blockers and next_stage == 0 and bool(stages),
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision_id": str(status.get("decision_id") or ""),
+        "expires_at": str(status.get("expires_at") or ""),
+        "source": str(scope.get("source_id") or ""),
+        "target": str(scope.get("controlled_target_id") or ""),
+        "stages": stages,
+        "completed_stages": completed,
+        "controlled_production_proven_max": int(
+            progress.get("controlled_production_proven_max") or 0
+        ),
+        "stage_receipt_ids": list(progress.get("receipt_ids") or []),
+        "next_stage": next_stage,
+        "max_concurrent_transactions": int(
+            scope.get("max_concurrent_transactions") or 0
+        ),
+        "ordinary_customer_involvement": bool(
+            scope.get("ordinary_customer_involvement")
+        ),
+        "authority_expanded": False,
+    }
+
+
+def record_controlled_campaign_stage_consumption(
+    *,
+    audit_store: Path,
+    binding: dict[str, Any],
+    result: dict[str, Any],
+    reset_result: dict[str, Any],
+) -> dict[str, Any]:
+    """Append one exact stage receipt through the existing audit owner."""
+    stage = int(binding.get("next_stage") or 0)
+    feedback = (
+        result.get("feedback_materialization")
+        if isinstance(result.get("feedback_materialization"), dict)
+        else {}
+    )
+    reset_payload = (
+        reset_result.get("consumer_result")
+        if isinstance(reset_result.get("consumer_result"), dict)
+        else {}
+    )
+    semantic = {
+        "request_id": str(binding.get("request_id") or ""),
+        "request_hash": str(binding.get("request_hash") or ""),
+        "stage": stage,
+        "packet_id": str(
+            result.get("fresh_packet_id")
+            or result.get("packet_id")
+            or ""
+        ),
+        "outcome_id": str(
+            result.get("outcome_id")
+            or feedback.get("outcome_id")
+            or ((result.get("l3_learning_closure") or {}).get("outcome_id"))
+            or ""
+        ),
+        "reset_receipt_id": str(
+            reset_payload.get("receipt_id")
+            or reset_payload.get("operation_id")
+            or ""
+        ),
+    }
+    learning = (
+        result.get("l3_learning_closure")
+        if isinstance(result.get("l3_learning_closure"), dict)
+        else {}
+    )
+    closure = (
+        learning.get("execution_closure_verification")
+        if isinstance(
+            learning.get("execution_closure_verification"),
+            dict,
+        )
+        else {}
+    )
+    records = (
+        learning.get("records")
+        if isinstance(learning.get("records"), dict)
+        else {}
+    )
+    outcome_consumed = bool(
+        feedback.get("materialized")
+        and feedback.get("outcome_id")
+    )
+    learning_consumed = bool(
+        (
+            learning.get("materialized")
+            or learning.get("reason") == "already_materialized"
+        )
+        and (
+            records.get("closure")
+            or learning.get("reason") == "already_materialized"
+        )
+    )
+    replay_consumed = bool(
+        closure.get("terminal_consumer_verified")
+        and closure.get("behavior_chain_status") == "COMPLETE"
+    )
+    cohort_verified = (
+        int(result.get("users_moved") or 0) == stage
+        and bool(result.get("apply_executed"))
+        and str(result.get("final_verdict") or "")
+        in {"GOVERNED_TRANSACTION_COMPLETED", "L3_PRODUCTION_PROVEN"}
+    )
+    baseline_reset_verified = (
+        bool(reset_result.get("ok"))
+        and int(reset_payload.get("target_user_count_after", -1)) == 0
+        and int(reset_payload.get("ordinary_customer_count") or 0) == 0
+        and int(reset_payload.get("users_moved") or 0) == stage
+        and str(reset_payload.get("final_safe_mode") or "") == "OPEN"
+    )
+    if not (
+        outcome_consumed
+        and learning_consumed
+        and replay_consumed
+        and cohort_verified
+        and baseline_reset_verified
+    ):
+        return {
+            "receipt_id": "",
+            "audit_write": False,
+            "duplicate_suppressed": False,
+            "blockers": [
+                name
+                for name, passed in (
+                    ("controlled_campaign_outcome_not_consumed", outcome_consumed),
+                    ("controlled_campaign_learning_not_consumed", learning_consumed),
+                    ("controlled_campaign_replay_not_consumed", replay_consumed),
+                    ("controlled_campaign_cohort_not_verified", cohort_verified),
+                    (
+                        "controlled_campaign_baseline_reset_not_verified",
+                        baseline_reset_verified,
+                    ),
+                )
+                if not passed
+            ],
+        }
+    receipt_id = "cpsstage_" + operator_execution.sha256_json(semantic)[:24]
+    with operator_execution.current_action_class_contract_policy_lock(
+        audit_store
+    ):
+        records = operator_execution.read_audit_records(audit_store)
+        prior = [
+            row
+            for row in records
+            if row.get("record_type")
+            == CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE
+            and row.get("effect_class")
+            == CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS
+            and str(row.get("authority_request_id") or "")
+            == str(binding.get("request_id") or "")
+            and int(row.get("campaign_stage") or 0) == stage
+        ]
+        if prior:
+            return {
+                "receipt_id": str(prior[-1].get("receipt_id") or ""),
+                "audit_write": False,
+                "duplicate_suppressed": True,
+            }
+        row = operator_execution.append_record(audit_store, {
+            "schema_version": "v7.controlled-certification-campaign-stage.v1",
+            "record_type": CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE,
+            "effect_class": CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS,
+            "receipt_id": receipt_id,
+            "authority_request_id": str(binding.get("request_id") or ""),
+            "authority_request_hash": str(binding.get("request_hash") or ""),
+            "authority_decision_id": str(binding.get("decision_id") or ""),
+            "campaign_stage": stage,
+            "source_id": str(binding.get("source") or ""),
+            "target_id": str(binding.get("target") or ""),
+            "packet_id": semantic["packet_id"],
+            "outcome_id": semantic["outcome_id"],
+            "outcome_consumed": outcome_consumed,
+            "replay_consumed": replay_consumed,
+            "learning_consumed": learning_consumed,
+            "cohort_verified": cohort_verified,
+            "baseline_reset_verified": baseline_reset_verified,
+            "reset_receipt_id": semantic["reset_receipt_id"],
+            "ordinary_customer_count": 0,
+            "raw_identity_list_stored": False,
+            "created_at": now_iso(),
+        })
+    return {
+        "receipt_id": str(row.get("receipt_id") or receipt_id),
+        "audit_write": True,
+        "duplicate_suppressed": False,
+    }
+
+
 def run_bounded_delegated_service_failure_action(
     executor: str,
     *,
     state_dir: Path,
     event_dir: Path,
     policy_file: Path,
+    operator_execution_audit_store: Path = DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE,
     service_failure_obligation: Optional[dict[str, Any]] = None,
     timeout_sec: int = 180,
 ) -> dict[str, Any]:
@@ -270,13 +549,40 @@ def run_bounded_delegated_service_failure_action(
             "blockers": ["current_incident_has_no_owner_backed_actionable_recommendation"],
             "contract_id": str(contract.get("contract_id") or ""),
         }
+    campaign_binding = controlled_certification_matrix_binding(
+        audit_store=operator_execution_audit_store,
+        source=source,
+    )
+    if campaign_binding.get("completed"):
+        return {
+            "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",
+            "status": "CONTROLLED_CERTIFICATION_CAMPAIGN_COMPLETE",
+            "ok": True,
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "source": source,
+            "source_incident_id": incident_id,
+            "automation_obligation_id": obligation_id,
+            "controlled_certification_campaign": campaign_binding,
+            "durable_successor": (
+                "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_"
+                "RECOMMENDATION_RECONCILIATION"
+            ),
+        }
+    requested_max_users = (
+        int(campaign_binding.get("next_stage") or 0)
+        if campaign_binding.get("active")
+        else policy_max_users
+    )
     command = [
         executor,
         "--execute-bounded-delegated-transaction",
         "--state-dir", str(state_dir),
         "--event-dir", str(event_dir),
         "--policy-file", str(policy_file),
-        "--max-users", str(policy_max_users),
+        "--max-users", str(requested_max_users),
         "--expected-standing-policy-contract-id", str(contract.get("contract_id") or ""),
         "--expected-standing-policy-contract-hash", str(contract.get("contract_hash") or ""),
         "--expected-service-failure-obligation-id", obligation_id,
@@ -286,6 +592,15 @@ def run_bounded_delegated_service_failure_action(
         "--compact-transaction-receipt",
         "--pretty",
     ]
+    if campaign_binding.get("active"):
+        command.extend([
+            "--controlled-certification-campaign-request-id",
+            str(campaign_binding.get("request_id") or ""),
+            "--controlled-certification-campaign-request-hash",
+            str(campaign_binding.get("request_hash") or ""),
+            "--controlled-certification-campaign-stage",
+            str(campaign_binding.get("next_stage") or 0),
+        ])
     started_at = now_iso()
     try:
         proc = subprocess.run(
@@ -344,11 +659,105 @@ def run_bounded_delegated_service_failure_action(
         "contract_id": str(contract.get("contract_id") or ""),
         "contract_hash": str(contract.get("contract_hash") or ""),
         "admitted_max_users": policy_max_users,
+        "requested_max_users": requested_max_users,
         "max_concurrent_transactions": policy_concurrency,
         "source": source,
         "source_incident_id": incident_id,
         "automation_obligation_id": obligation_id,
+        "controlled_certification_campaign": campaign_binding,
+        "controlled_certification_stage_consumption": {},
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stop_safe) else "",
+    }
+
+
+def run_controlled_certification_campaign_reset(
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    binding: dict[str, Any],
+    timeout_sec: int = 600,
+) -> dict[str, Any]:
+    """Invoke the existing governed owner for the exact approved stage reset."""
+    if not binding.get("active"):
+        return {
+            "schema_version": "v7.controlled-certification-campaign-reset-consumer.v1",
+            "status": "NOT_REQUIRED",
+            "ok": True,
+            "action_attempted": False,
+            "users_moved": 0,
+        }
+    command = [
+        executor,
+        "--reset-controlled-certification-campaign-stage",
+        "--confirm-controlled-certification-campaign-reset",
+        "RESET_APPROVED_CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE",
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--policy-file",
+        str(policy_file),
+        "--operator-execution-audit-store",
+        str(audit_store),
+        "--controlled-certification-campaign-request-id",
+        str(binding.get("request_id") or ""),
+        "--controlled-certification-campaign-request-hash",
+        str(binding.get("request_hash") or ""),
+        "--controlled-certification-campaign-stage",
+        str(binding.get("next_stage") or 0),
+    ]
+    started_at = now_iso()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(60, min(int(timeout_sec or 600), 1800)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.controlled-certification-campaign-reset-consumer.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "command": command,
+            "error": f"{type(exc).__name__}:{exc}",
+            "action_attempted": True,
+            "users_moved": 0,
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+    except json.JSONDecodeError:
+        parsed = {}
+    passed = (
+        proc.returncode == 0
+        and parsed.get("final_verdict")
+        == "CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_RESET_COMPLETE"
+        and int(parsed.get("target_user_count_after", -1)) == 0
+        and int(parsed.get("ordinary_customer_count") or 0) == 0
+    )
+    return {
+        "schema_version": "v7.controlled-certification-campaign-reset-consumer.v1",
+        "status": "RESET_COMPLETE" if passed else "STOP_SAFE",
+        "ok": passed,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "command": command,
+        "returncode": proc.returncode,
+        "consumer_result": parsed,
+        "action_attempted": True,
+        "users_moved": int(parsed.get("users_moved") or 0),
+        "runtime_mutation_performed": bool(
+            parsed.get("runtime_mutation_performed")
+        ),
+        "authority_expanded": bool(parsed.get("authority_expanded")),
+        "output_tail": (proc.stdout or "")[-2000:] if not passed else "",
     }
 
 
@@ -898,6 +1307,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--passive-consumer", default=default_passive_consumer_path())
     parser.add_argument("--governed-executor", default=default_governed_executor_path())
     parser.add_argument("--policy-file", default=str(DEFAULT_POLICY_FILE))
+    parser.add_argument(
+        "--operator-execution-audit-store",
+        default=str(DEFAULT_OPERATOR_EXECUTION_AUDIT_STORE),
+    )
     parser.add_argument("--passive-consumer-timeout-sec", type=int, default=30)
     parser.add_argument("--skip-service-failure-automation-advisory", action="store_true")
     parser.add_argument("--skip-service-failure-omp-consumer", action="store_true")
@@ -1080,6 +1493,9 @@ def main() -> int:
             state_dir=state_dir,
             event_dir=Path(args.event_dir),
             policy_file=Path(args.policy_file),
+            operator_execution_audit_store=Path(
+                args.operator_execution_audit_store
+            ),
             service_failure_obligation=(
                 advisory_payload.get("obligation")
                 if isinstance(advisory_payload.get("obligation"), dict)
@@ -1102,6 +1518,91 @@ def main() -> int:
             payload["service_failure_post_action_omp_consumer"] = run_service_failure_omp_consumer(
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
             )
+            campaign_binding = (
+                payload["bounded_delegated_service_failure_action"].get(
+                    "controlled_certification_campaign"
+                )
+                if isinstance(
+                    payload["bounded_delegated_service_failure_action"].get(
+                        "controlled_certification_campaign"
+                    ),
+                    dict,
+                )
+                else {}
+            )
+            if campaign_binding.get("active"):
+                payload[
+                    "controlled_certification_campaign_stage_reset"
+                ] = run_controlled_certification_campaign_reset(
+                    str(args.governed_executor),
+                    state_dir=state_dir,
+                    event_dir=Path(args.event_dir),
+                    policy_file=Path(args.policy_file),
+                    audit_store=Path(
+                        args.operator_execution_audit_store
+                    ),
+                    binding=campaign_binding,
+                    timeout_sec=int(
+                        args.passive_consumer_timeout_sec
+                    ) + 900,
+                )
+                post_passive_ok = bool(
+                    payload[
+                        "service_failure_post_action_passive_consumer"
+                    ].get("ok")
+                )
+                post_omp_ok = bool(
+                    payload[
+                        "service_failure_post_action_omp_consumer"
+                    ].get("ok")
+                )
+                reset_ok = bool(
+                    payload[
+                        "controlled_certification_campaign_stage_reset"
+                    ].get("ok")
+                )
+                if post_passive_ok and post_omp_ok and reset_ok:
+                    stage_consumption = (
+                        record_controlled_campaign_stage_consumption(
+                            audit_store=Path(
+                                args.operator_execution_audit_store
+                            ),
+                            binding=campaign_binding,
+                            result=payload[
+                                "bounded_delegated_service_failure_action"
+                            ].get("consumer_result") or {},
+                            reset_result=payload[
+                                "controlled_certification_campaign_stage_reset"
+                            ],
+                        )
+                    )
+                else:
+                    stage_consumption = {
+                        "audit_write": False,
+                        "blockers": [
+                            name
+                            for name, passed in (
+                                (
+                                    "post_action_passive_consumer_failed",
+                                    post_passive_ok,
+                                ),
+                                (
+                                    "post_action_omp_consumer_failed",
+                                    post_omp_ok,
+                                ),
+                                (
+                                    "campaign_stage_reset_failed",
+                                    reset_ok,
+                                ),
+                            )
+                            if not passed
+                        ],
+                    }
+                payload[
+                    "bounded_delegated_service_failure_action"
+                ][
+                    "controlled_certification_stage_consumption"
+                ] = stage_consumption
     payload["omp_product_frontier_owner"] = "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER"
     payload["next_output"] = (
         "OMP_PRODUCT_FRONTIER_MATERIALIZED"

@@ -97,9 +97,13 @@ class OmpExternalReentryTest(unittest.TestCase):
         }
 
     def run_reentry(self, event_time="2026-07-18T08:59:00Z", **overrides):
+        continue_runner = overrides.pop(
+            "continue_runner",
+            self.fake_runner,
+        )
         return self.lib.heartbeat_program_reentry(
             event_time=event_time, root=self.root, execute_continue_omp=True,
-            continue_runner=self.fake_runner, lease_path=self.lease,
+            continue_runner=continue_runner, lease_path=self.lease,
             evidence_path=self.evidence, now=self.now, **overrides,
         )
 
@@ -262,12 +266,42 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertFalse(any(result["forbidden_effects"].values()))
         self.assertFalse(any(result["forbidden_effects"].values()))
 
+    def test_controlled_certification_frontier_preempts_generic_polygon_selection(self):
+        frontier = "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CURRENT_NEXT_ACTION_ID", frontier),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", frontier),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+        ):
+            self.replace_live(field, value)
+        result = self.lib.continue_omp_engineering_control_loop(
+            root=self.root,
+            persist_cps=True,
+        )
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(
+            result["priority_decision"],
+            "CONTROLLED_CERTIFICATION_FRONTIER_PREEMPTS_GENERIC_POLYGON",
+        )
+        self.assertEqual(
+            result["real_consumer"],
+            "tools/v7-service-matrix-refresh-all",
+        )
+        self.assertEqual(result["exact_next_automatic_action"], frontier)
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_matrix_owned_incident_drain_does_not_schedule_another_codex_wake(self):
         for field, value in (
             ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
             ("CURRENT_STOP_CONDITION", "NONE"),
             ("CURRENT_NEXT_ACTION_ID", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
             ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CURRENT_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CONTINUATION_DECISION", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("PROGRAM_TERMINAL_STATE", "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"),
+            ("AUTHORITY_REQUIRED_NOW", "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"),
             ("OMP_CONTINUATION_REQUIRED", "TRUE"),
             ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
             ("NEXT_MISSION_FORMED", "TRUE"),
@@ -283,6 +317,63 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertTrue(result["matrix_owned_incident_drain"])
         self.assertEqual(self.lib._plain_live_value(live, "PENDING_WAKE_ID"), "NONE")
         self.assertEqual(self.lib._plain_live_value(live, "WATCHDOG_STATE"), "ARMED_FALLBACK_ONLY")
+
+    def test_matrix_owned_controlled_campaign_does_not_schedule_another_codex_wake(self):
+        frontier = "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED"
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CURRENT_NEXT_ACTION_ID", frontier),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", frontier),
+            ("CURRENT_EXECUTION_FRONTIER", "NONE"),
+            ("CONTINUATION_DECISION", "CONTINUE_PROGRAM_FRONTIER"),
+            ("PROGRAM_TERMINAL_STATE", "NONE_T48_M8_CONTROLLED_POOL_READY"),
+            ("AUTHORITY_REQUIRED_NOW", "NO_INSIDE_APPROVED_POLICY"),
+            ("OMP_CONTINUATION_REQUIRED", "TRUE"),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+            ("NEXT_MISSION_FORMED", "TRUE"),
+            ("NEXT_MISSION_ID", "T48-M8"),
+        ):
+            self.replace_live(field, value)
+
+        def campaign_runner(_root):
+            return {
+                "final_verdict": "PASS",
+                "subprocess_returncode": 0,
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "tools/v7-service-matrix-refresh-all",
+                "priority_decision": (
+                    "CONTROLLED_CERTIFICATION_FRONTIER_PREEMPTS_GENERIC_POLYGON"
+                ),
+                "transitions": [{
+                    "transaction_terminal": (
+                        "CONTROLLED_CERTIFICATION_SUCCESSOR_ACKNOWLEDGED"
+                    ),
+                }],
+                "program_terminal": (
+                    "NONE_CONTROLLED_CERTIFICATION_MATRIX_CONSUMER_ACTIVE"
+                ),
+                "exact_next_operator_command": (
+                    "NONE_AUTOMATIC_CONTROLLED_CERTIFICATION_REVALIDATION"
+                ),
+                "errors": [],
+            }
+
+        result = self.run_reentry(continue_runner=campaign_runner)
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            (self.root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(
+                encoding="utf-8"
+            ),
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertTrue(result["matrix_owned_incident_drain"])
+        self.assertEqual(self.lib._plain_live_value(live, "PENDING_WAKE_ID"), "NONE")
+        self.assertEqual(
+            self.lib._plain_live_value(live, "WATCHDOG_STATE"),
+            "ARMED_FALLBACK_ONLY",
+        )
         self.assertEqual(
             self.lib._plain_live_value(live, "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER"),
             "tools/v7-service-matrix-refresh-all",
@@ -295,6 +386,10 @@ class OmpExternalReentryTest(unittest.TestCase):
             ("CURRENT_STOP_CONDITION", "NONE"),
             ("CURRENT_NEXT_ACTION_ID", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
             ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CURRENT_EXECUTION_FRONTIER", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("CONTINUATION_DECISION", "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"),
+            ("PROGRAM_TERMINAL_STATE", "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"),
+            ("AUTHORITY_REQUIRED_NOW", "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"),
             ("OMP_CONTINUATION_REQUIRED", "TRUE"),
             ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
             ("NEXT_MISSION_FORMED", "TRUE"),

@@ -926,7 +926,9 @@ def controlled_certification_setup_selection(
         blockers.append("controlled_certification_source_not_enabled")
     unrelated = [
         str(row.get("ip") or "") for row in users
-        if str(row.get("current") or "") == source and str(row.get("ip") or "") != user
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == source
+        and str(row.get("ip") or "") != user
     ]
     if unrelated:
         blockers.append("controlled_source_has_other_assigned_users")

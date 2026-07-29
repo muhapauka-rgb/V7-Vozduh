@@ -248,12 +248,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
     def test_controlled_topology_reuses_registry_marked_certification_identity(self):
         module = load_cli_module()
         selection = module.controlled_certification_setup_selection(
-            users=[{
-                "ip": "10.7.0.100",
-                "current": "1",
-                "enabled": "1",
-                "certification_user": "1",
-            }],
+            users=[
+                {
+                    "ip": "10.7.0.100",
+                    "current": "1",
+                    "enabled": "1",
+                    "certification_user": "1",
+                },
+                {
+                    "ip": "10.7.0.7",
+                    "current": "vless",
+                    "enabled": "0",
+                },
+            ],
             egress=[{
                 "id": "vless",
                 "enabled": "1",
@@ -284,6 +291,35 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertIn(
             "identity_not_marked_by_certification_registry_owner",
             unmarked["blockers"],
+        )
+
+        occupied = module.controlled_certification_setup_selection(
+            users=[
+                {
+                    "ip": "10.7.0.100",
+                    "current": "1",
+                    "enabled": "1",
+                    "certification_user": "1",
+                },
+                {
+                    "ip": "10.7.0.7",
+                    "current": "vless",
+                    "enabled": "1",
+                },
+            ],
+            egress=[{
+                "id": "vless",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.7.0.100",
+            source="vless",
+            certification_identity_mode="REGISTRY_MARKED",
+        )
+        self.assertEqual(occupied["selection_status"], "STOP_SAFE")
+        self.assertIn(
+            "controlled_source_has_other_assigned_users",
+            occupied["blockers"],
         )
 
     def test_approved_substrate_provisioning_preflight_is_read_only(self):

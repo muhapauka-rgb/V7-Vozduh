@@ -4453,7 +4453,9 @@ def main(argv=None) -> int:
         ))
         return 0 if result.get("final_verdict") in {
             "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY",
+            "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSE_PREFLIGHT_READY",
             "CONTROLLED_CERTIFICATION_SUBSTRATE_PROVISIONED",
+            "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSED",
             "CONTROLLED_CERTIFICATION_SUBSTRATE_ALREADY_CONSUMED",
         } else 2
     if args.verify_controlled_certification_preflight:

@@ -308,6 +308,29 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 before_egress,
             )
 
+    def test_existing_pool_reuse_verdicts_are_successful_cli_terminals(self):
+        module = load_cli_module()
+        for verdict in (
+            "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSE_PREFLIGHT_READY",
+            "CONTROLLED_CERTIFICATION_EXISTING_POOL_REUSED",
+        ):
+            with self.subTest(verdict=verdict), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = root / "state"
+                state.mkdir()
+                args = [
+                    "--state-dir", str(state),
+                    "--event-dir", str(root / "events"),
+                    "--audit-dir", str(root / "audit"),
+                    "--provision-controlled-certification-substrate",
+                ]
+                with mock.patch.object(
+                    module,
+                    "provision_approved_controlled_certification_substrate",
+                    return_value={"final_verdict": verdict},
+                ):
+                    self.assertEqual(module.main(args), 0)
+
     def test_controlled_cleanup_admits_only_exact_certification_pre_state(self):
         module = load_cli_module()
         selected = module.controlled_certification_cleanup_selection(

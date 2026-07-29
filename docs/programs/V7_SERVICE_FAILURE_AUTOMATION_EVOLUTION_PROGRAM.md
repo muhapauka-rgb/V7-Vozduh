@@ -67,6 +67,7 @@ The request and decision lifecycle reuses the existing append-only
 fresh current topology map and one-identity manifest
 -> v7.controlled-source-topology-authority-request.v1
 -> exactly one registered request or one reused active semantic request
+-> material preflight change atomically supersedes the stale pending request
 -> exact APPROVE_<manifest action> or DECLINE with actor provenance
 -> CPS/OMP successor
 ```
@@ -76,7 +77,12 @@ source, one certification identity, identity-set and manifest fingerprints,
 zero ordinary assignment/route delta, capacity reservation, concurrency one,
 verification, rollback, lease/expiry, Packet and restore-barrier requirements.
 It neither repeats Tier-48 approval nor materializes the topology. Duplicate
-or conflicting decisions fail closed. Approval publishes only a fresh
+or conflicting decisions fail closed. A supersession is an owner-backed
+preflight invalidation, not an Authority decision: it is appended through the
+same audit, names the stale and replacement request hashes, and makes the stale
+request permanently non-decidable. It is legal only when the current compact
+map proves a different manifest/action; identical semantic preflights reuse the
+active request without another write. Approval publishes only a fresh
 Candidate/Packet/lease/restore-barrier preflight successor; packet-bound
 Operational Authority still precedes every production mutation.
 

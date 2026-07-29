@@ -21,7 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -2735,6 +2735,231 @@ def packet_materialization_authority(
     return None
 
 
+def controlled_topology_standing_execution_binding(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+) -> dict[str, Any]:
+    """Revalidate one topology manifest through its existing Planner and policy owners."""
+    policy_root = read_json(Path(args.policy_file), {})
+    contract = (
+        policy_root.get("delegated_autonomy_policy")
+        if isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+        else {}
+    )
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=operator_execution.read_audit_records(
+            Path(args.operator_execution_audit_store),
+        ),
+    )
+    policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    scopes = (
+        policy.get("action_class_scopes")
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    topology_scope = (
+        scopes.get(operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS)
+        if isinstance(
+            scopes.get(operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS),
+            dict,
+        )
+        else {}
+    )
+    blockers = list(validation.get("errors") or [])
+    expected_contract_id = str(
+        getattr(args, "expected_standing_policy_contract_id", "") or ""
+    )
+    expected_contract_hash = str(
+        getattr(args, "expected_standing_policy_contract_hash", "") or ""
+    )
+    expected_manifest_hash = str(
+        getattr(args, "expected_controlled_topology_manifest_hash", "") or ""
+    )
+    expected_user = str(getattr(args, "controlled_topology_user", "") or "")
+    expected_source = str(getattr(args, "controlled_topology_source", "") or "")
+    expected_target = str(getattr(args, "controlled_topology_target", "") or "")
+    if str(contract.get("contract_id") or "") != expected_contract_id:
+        blockers.append("controlled_topology_contract_id_changed")
+    if str(contract.get("contract_hash") or "") != expected_contract_hash:
+        blockers.append("controlled_topology_contract_hash_changed")
+    if str(policy.get("policy_profile") or "") != (
+        operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+    ):
+        blockers.append("controlled_topology_policy_profile_not_active")
+    if (
+        operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        not in set(policy.get("allowed_action_classes") or [])
+    ):
+        blockers.append("controlled_topology_action_class_not_allowed")
+    if list(topology_scope.get("allowed_actions") or []) != [
+        "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
+    ]:
+        blockers.append("controlled_topology_action_scope_changed")
+    if int(topology_scope.get("max_users_per_transaction") or 0) != 1:
+        blockers.append("controlled_topology_max_users_not_one")
+    if int(topology_scope.get("max_concurrent_transactions") or 0) != 1:
+        blockers.append("controlled_topology_concurrency_not_one")
+    if not bool(topology_scope.get("certification_identities_only")):
+        blockers.append("controlled_topology_certification_only_missing")
+    if bool(topology_scope.get("ordinary_assignment_mutation_allowed")):
+        blockers.append("controlled_topology_ordinary_assignment_allowed")
+    if int(topology_scope.get("ordinary_identity_delta") or 0) != 0:
+        blockers.append("controlled_topology_ordinary_identity_delta_nonzero")
+    if int(topology_scope.get("ordinary_route_delta") or 0) != 0:
+        blockers.append("controlled_topology_ordinary_route_delta_nonzero")
+    if not all(
+        (expected_manifest_hash, expected_user, expected_source, expected_target)
+    ):
+        blockers.append("controlled_topology_expected_identity_incomplete")
+
+    planner_command = [
+        str(getattr(args, "controlled_topology_planner", "") or "v7-users-autoswitch"),
+        "--controlled-source-topology-diagnostic",
+        "--state-dir",
+        str(state_dir),
+        "--policy-file",
+        str(args.policy_file),
+        "--action-class-audit-store",
+        str(args.operator_execution_audit_store),
+    ]
+    try:
+        proc = subprocess.run(
+            planner_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        proc = None
+        diagnostic: dict[str, Any] = {}
+        blockers.append(f"controlled_topology_planner_unavailable:{type(exc).__name__}")
+    else:
+        try:
+            parsed = json.loads(proc.stdout or "")
+            diagnostic = parsed if isinstance(parsed, dict) else {}
+        except json.JSONDecodeError:
+            diagnostic = {}
+        if proc.returncode != 0:
+            blockers.append("controlled_topology_planner_failed")
+    preflight = (
+        diagnostic.get("production_preflight")
+        if isinstance(diagnostic.get("production_preflight"), dict)
+        else {}
+    )
+    manifest = (
+        preflight.get("manifest")
+        if isinstance(preflight.get("manifest"), dict)
+        else {}
+    )
+    admission = (
+        diagnostic.get("standing_policy_admission")
+        if isinstance(diagnostic.get("standing_policy_admission"), dict)
+        else {}
+    )
+    if diagnostic.get("status") != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY":
+        blockers.append("controlled_topology_preflight_not_ready")
+    if (
+        admission.get("status")
+        != "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY"
+        or admission.get("ok") is not True
+    ):
+        blockers.append("controlled_topology_standing_policy_not_admitted")
+    if str(admission.get("contract_id") or "") != expected_contract_id:
+        blockers.append("controlled_topology_admission_contract_id_changed")
+    if str(admission.get("contract_hash") or "") != expected_contract_hash:
+        blockers.append("controlled_topology_admission_contract_hash_changed")
+    for actual, expected, reason in (
+        (
+            manifest.get("manifest_hash"),
+            expected_manifest_hash,
+            "controlled_topology_manifest_hash_changed",
+        ),
+        (
+            manifest.get("trial_identity"),
+            expected_user,
+            "controlled_topology_trial_identity_changed",
+        ),
+        (
+            manifest.get("existing_source"),
+            expected_source,
+            "controlled_topology_existing_source_changed",
+        ),
+        (
+            manifest.get("selected_source_or_draft"),
+            expected_target,
+            "controlled_topology_selected_target_changed",
+        ),
+    ):
+        if str(actual or "") != str(expected or ""):
+            blockers.append(reason)
+    if int(manifest.get("trial_identity_count") or 0) != 1:
+        blockers.append("controlled_topology_trial_count_not_one")
+    if str(manifest.get("expected_ordinary_assignment_delta") or "") != "NONE":
+        blockers.append("controlled_topology_ordinary_assignment_delta_changed")
+    if str(manifest.get("expected_ordinary_route_delta") or "") != "NONE":
+        blockers.append("controlled_topology_ordinary_route_delta_changed")
+
+    users = read_registry(state_dir / "users.registry")
+    egress = read_registry(state_dir / "egress.registry")
+    user_rows = [row for row in users if str(row.get("ip") or "") == expected_user]
+    target_rows = [
+        row for row in egress if str(row.get("id") or "") == expected_target
+    ]
+    if len(user_rows) != 1:
+        blockers.append("controlled_topology_user_identity_not_unique")
+    else:
+        user_row = user_rows[0]
+        if not bool_value(user_row.get("certification_user")):
+            blockers.append("controlled_topology_user_not_certification_identity")
+        if str(user_row.get("current") or "") != expected_source:
+            blockers.append("controlled_topology_user_source_changed")
+    if len(target_rows) != 1:
+        blockers.append("controlled_topology_target_identity_not_unique")
+    if any(
+        bool_value(row.get("enabled"))
+        and str(row.get("current") or "") == expected_target
+        for row in users
+    ):
+        blockers.append("controlled_topology_target_no_longer_empty")
+
+    authority = {
+        "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+        "engineering_authority_source": (
+            "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+        ),
+        "action_class": (
+            operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
+        ),
+        "max_users_per_transaction": 1,
+        "max_concurrent_transactions": 1,
+        "candidate_identity": "FRESH_ONLY",
+        "packet_reuse": "FORBIDDEN",
+        "self_expansion_allowed": False,
+        "standing_policy_contract": copy.deepcopy(contract),
+        "topology_manifest": copy.deepcopy(manifest),
+        "authority_audit_verified": bool(validation.get("ok")),
+    }
+    return {
+        "schema_version": "v7.controlled-topology-standing-execution-binding.v1",
+        "allowed": not blockers,
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+        "manifest": manifest,
+        "diagnostic_status": str(diagnostic.get("status") or ""),
+        "authority": authority,
+        "planner_command": planner_command,
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def controlled_certification_evidence_scope(state_dir: Path, *, user: str, source: str) -> bool:
     users = {str(row.get("ip") or ""): row for row in read_registry(state_dir / "users.registry")}
     sources = {str(row.get("id") or ""): row for row in read_registry(state_dir / "egress.registry")}
@@ -3522,7 +3747,13 @@ def _execute_governed_transaction_with_guards_inner(
     required_a4_candidate_keys: set[tuple[str, str]] | None = None,
     blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, Any]:
-    delegated_mode = bool(getattr(args, "execute_bounded_delegated_transaction", False))
+    topology_mode = bool(
+        getattr(args, "execute_controlled_topology_standing_transaction", False)
+    )
+    delegated_mode = bool(
+        getattr(args, "execute_bounded_delegated_transaction", False)
+        or topology_mode
+    )
     engineering_authority_request_file = str(getattr(args, "engineering_authority_request_file", "") or "")
     engineering_authority_request: dict[str, Any] = {}
     engineering_authority_decision = str(getattr(args, "engineering_authority_decision", "") or "")
@@ -3554,7 +3785,13 @@ def _execute_governed_transaction_with_guards_inner(
     setup_mode = isinstance(setup_request, dict) and bool(setup_request)
     cleanup_request = getattr(args, "_certification_cleanup_request", None)
     cleanup_mode = isinstance(cleanup_request, dict) and bool(cleanup_request)
-    support_mode = setup_mode or cleanup_mode
+    topology_request = getattr(args, "_controlled_topology_standing_request", None)
+    topology_mode = (
+        topology_mode
+        and isinstance(topology_request, dict)
+        and bool(topology_request)
+    )
+    support_mode = setup_mode or cleanup_mode or topology_mode
     if not delegated_mode and not support_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
     if delegated_mode and int(args.max_users) > 1:
@@ -3666,16 +3903,21 @@ def _execute_governed_transaction_with_guards_inner(
     certification_setup_selection = {}
     certification_cleanup_selection = {}
     engineering_authority_selection = {}
-    if setup_mode:
+    if setup_mode or topology_mode:
+        exact_request = setup_request if setup_mode else topology_request
         certification_setup_selection = controlled_certification_setup_selection(
             users=users,
             egress=egress,
-            user=str(setup_request.get("user") or ""),
-            source=str(setup_request.get("source") or ""),
+            user=str(exact_request.get("user") or ""),
+            source=str(exact_request.get("target") or exact_request.get("source") or ""),
         )
         if certification_setup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
-                "CONTROLLED_CERTIFICATION_SETUP_NOT_ADMITTED",
+                (
+                    "CONTROLLED_TOPOLOGY_STANDING_SELECTION_NOT_ADMITTED"
+                    if topology_mode
+                    else "CONTROLLED_CERTIFICATION_SETUP_NOT_ADMITTED"
+                ),
                 certification_setup_selection=certification_setup_selection,
             )
         surface = merge_a4_gap_candidate_into_surface(surface, certification_setup_selection)
@@ -3737,8 +3979,16 @@ def _execute_governed_transaction_with_guards_inner(
     )
     packet_preview = cycle.get("packet_preview") if isinstance(cycle.get("packet_preview"), dict) else {}
     if support_mode:
-        packet_preview["_v7_evidence_class"] = "ENGINEERING_SETUP" if setup_mode else "ENGINEERING_CLEANUP"
-        packet_preview["_v7_certification_setup"] = certification_setup_selection if setup_mode else certification_cleanup_selection
+        packet_preview["_v7_evidence_class"] = (
+            "CONTROLLED_PRODUCTION_TOPOLOGY"
+            if topology_mode
+            else ("ENGINEERING_SETUP" if setup_mode else "ENGINEERING_CLEANUP")
+        )
+        packet_preview["_v7_certification_setup"] = (
+            certification_setup_selection
+            if setup_mode or topology_mode
+            else certification_cleanup_selection
+        )
     if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
         return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
 
@@ -3746,7 +3996,16 @@ def _execute_governed_transaction_with_guards_inner(
     delegated_admission = {}
     approved_identity = {}
     engineering_authority = {}
-    if support_mode:
+    if topology_mode:
+        delegated_admission = copy.deepcopy(
+            getattr(args, "_controlled_topology_policy_binding", {}) or {}
+        )
+        if not delegated_admission.get("allowed"):
+            return transaction_stop(
+                "controlled_topology_standing_policy_binding_invalid",
+                controlled_topology_binding=delegated_admission,
+            )
+    elif support_mode:
         delegated_admission = {
             "schema_version": "v7.controlled-certification-setup-authority.v1",
             "allowed": True,
@@ -4014,7 +4273,15 @@ def _execute_governed_transaction_with_guards_inner(
         target=target,
         rollback_attempted=rollback_attempted,
         verification_passed=verification_passed,
-        evidence_class="ENGINEERING_SETUP" if setup_mode else ("ENGINEERING_CLEANUP" if cleanup_mode else "CONTROLLED_PRODUCTION"),
+        evidence_class=(
+            "CONTROLLED_PRODUCTION_TOPOLOGY"
+            if topology_mode
+            else (
+                "ENGINEERING_SETUP"
+                if setup_mode
+                else ("ENGINEERING_CLEANUP" if cleanup_mode else "CONTROLLED_PRODUCTION")
+            )
+        ),
         service_failure_causal_binding=(packet.get("service_failure_causal_binding") if isinstance(packet.get("service_failure_causal_binding"), dict) else None),
     )
     return {
@@ -4057,11 +4324,260 @@ def _execute_governed_transaction_with_guards_inner(
         "a4_goal_directed_selection": a4_goal_directed_selection,
         "certification_setup_selection": certification_setup_selection,
         "certification_cleanup_selection": certification_cleanup_selection,
+        "controlled_topology_standing_selection": (
+            certification_setup_selection if topology_mode else {}
+        ),
         "engineering_authority_selection": engineering_authority_selection,
         "execution_lease_create_result": lease_create_result,
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
+    }
+
+
+def _key_value_process_output(output: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in str(output or "").splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
+
+
+def execute_controlled_topology_standing_transaction(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Reserve one empty target and reuse the generic governed transaction."""
+    binding = controlled_topology_standing_execution_binding(
+        args,
+        state_dir=state_dir,
+    )
+    if not binding.get("allowed"):
+        return {
+            **transaction_stop(
+                "controlled_topology_standing_execution_not_admitted"
+            ),
+            "controlled_topology_binding": binding,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    manifest = (
+        binding.get("manifest")
+        if isinstance(binding.get("manifest"), dict)
+        else {}
+    )
+    user = str(manifest.get("trial_identity") or "")
+    source = str(manifest.get("existing_source") or "")
+    target = str(manifest.get("selected_source_or_draft") or "")
+    manifest_hash = str(manifest.get("manifest_hash") or "")
+    egress_lines = [
+        line
+        for line in (state_dir / "egress.registry")
+        .read_text(encoding="utf-8", errors="replace")
+        .splitlines()
+        if line.startswith(f"id={target} ")
+    ]
+    if len(egress_lines) != 1:
+        return {
+            **transaction_stop("controlled_topology_target_registry_identity_changed"),
+            "controlled_topology_binding": binding,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    expected_egress_fingerprint = operator_execution.sha256_bytes(
+        egress_lines[0].encode("utf-8")
+    )
+    reservation_id = "ctres_" + operator_execution.sha256_json(
+        {
+            "contract_id": binding.get("contract_id"),
+            "manifest_hash": manifest_hash,
+            "user": user,
+            "source": source,
+            "target": target,
+        }
+    )[:24]
+    reservation_expiry = (
+        datetime.now(timezone.utc) + timedelta(minutes=30)
+    ).isoformat()
+    certification_group = "ctop-" + manifest_hash[:12]
+    reserve_command = [
+        str(getattr(args, "egress_state_owner", "") or "v7-egress-set-state"),
+        target,
+        "certification-reserve",
+        "--certification-group",
+        certification_group,
+        "--reservation-id",
+        reservation_id,
+        "--reservation-expires-at",
+        reservation_expiry,
+        "--expected-egress-fingerprint",
+        expected_egress_fingerprint,
+        "--apply",
+        "--confirm",
+        "RESERVE_CONTROLLED_CERTIFICATION_SOURCE",
+    ]
+    reserve_env = dict(os.environ)
+    reserve_env["V7_STATE_DIR"] = str(state_dir)
+    try:
+        reserve_proc = subprocess.run(
+            reserve_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+            env=reserve_env,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            **transaction_stop("controlled_topology_reservation_owner_failed"),
+            "controlled_topology_binding": binding,
+            "reservation_error": f"{type(exc).__name__}:{exc}",
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    reserve_result = _key_value_process_output(reserve_proc.stdout or "")
+    reserved = (
+        reserve_proc.returncode == 0
+        and reserve_result.get("ACTION") == "controlled_source_reserved"
+    )
+    if not reserved:
+        return {
+            **transaction_stop("controlled_topology_reservation_not_applied"),
+            "controlled_topology_binding": binding,
+            "reservation_command": reserve_command,
+            "reservation_returncode": reserve_proc.returncode,
+            "reservation_result": reserve_result,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    transaction_args = copy.copy(args)
+    transaction_args._controlled_topology_standing_request = {
+        "user": user,
+        "source": source,
+        "target": target,
+        "manifest_hash": manifest_hash,
+    }
+    transaction_args._controlled_topology_policy_binding = binding
+    transaction_args.execute_bounded_delegated_transaction = True
+    transaction_args.execute_controlled_topology_standing_transaction = True
+    transaction_args.skip_planner_observe = True
+    transaction_args.max_users = 1
+    transaction = execute_governed_transaction_with_guards(
+        transaction_args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        audit_dir=audit_dir,
+        lease_file=lease_file,
+    )
+    passed = (
+        transaction.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED"
+        and transaction.get("verification_result") == "PASS"
+        and int(transaction.get("users_moved") or 0) == 1
+    )
+    release_result: dict[str, Any] = {}
+    if not passed:
+        current_lines = [
+            line
+            for line in (state_dir / "egress.registry")
+            .read_text(encoding="utf-8", errors="replace")
+            .splitlines()
+            if line.startswith(f"id={target} ")
+        ]
+        restore_backup = str(reserve_result.get("restore_backup") or "")
+        if len(current_lines) == 1 and restore_backup:
+            release_command = [
+                str(
+                    getattr(args, "egress_state_owner", "")
+                    or "v7-egress-set-state"
+                ),
+                target,
+                "certification-release",
+                "--reservation-id",
+                reservation_id,
+                "--expected-egress-fingerprint",
+                operator_execution.sha256_bytes(
+                    current_lines[0].encode("utf-8")
+                ),
+                "--restore-backup",
+                restore_backup,
+                "--apply",
+                "--confirm",
+                "RELEASE_CONTROLLED_CERTIFICATION_SOURCE",
+            ]
+            try:
+                release_proc = subprocess.run(
+                    release_command,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    timeout=180,
+                    env=reserve_env,
+                )
+                release_result = {
+                    "command": release_command,
+                    "returncode": release_proc.returncode,
+                    "result": _key_value_process_output(
+                        release_proc.stdout or ""
+                    ),
+                }
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                release_result = {
+                    "command": release_command,
+                    "returncode": None,
+                    "error": f"{type(exc).__name__}:{exc}",
+                }
+    route_verification = scoped_user_route_check(state_dir, user)
+    final_pass = passed and route_verification.get("passed") is True
+    return {
+        "schema_version": "v7.controlled-topology-standing-transaction.v1",
+        "final_verdict": (
+            "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+            if final_pass
+            else "STOP_SAFE"
+        ),
+        "transaction": transaction,
+        "controlled_topology_binding": binding,
+        "reservation": {
+            "reservation_id": reservation_id,
+            "reservation_expires_at": reservation_expiry,
+            "target": target,
+            "returncode": reserve_proc.returncode,
+            "result": reserve_result,
+        },
+        "reservation_release": release_result,
+        "route_verification": route_verification,
+        "trial_identity": user,
+        "source": source,
+        "target": target,
+        "manifest_hash": manifest_hash,
+        "fresh_packet_id": str(transaction.get("fresh_packet_id") or ""),
+        "feedback_materialization": (
+            transaction.get("feedback_materialization")
+            if isinstance(transaction.get("feedback_materialization"), dict)
+            else {}
+        ),
+        "verification_result": str(
+            transaction.get("verification_result") or ""
+        ),
+        "rollback_result": str(transaction.get("rollback_result") or ""),
+        "runtime_mutation_performed": bool(
+            transaction.get("runtime_mutation_performed")
+        ),
+        "users_moved": int(transaction.get("users_moved") or 0),
+        "ordinary_users_moved": 0,
+        "authority_expanded": False,
+        "production_maturity_changed": False,
     }
 
 
@@ -4611,8 +5127,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--create-execution-lease", action="store_true")
     parser.add_argument("--execute-governed-transaction", action="store_true")
     parser.add_argument("--execute-bounded-delegated-transaction", action="store_true")
+    parser.add_argument(
+        "--execute-controlled-topology-standing-transaction",
+        action="store_true",
+    )
     parser.add_argument("--expected-standing-policy-contract-id", default="")
     parser.add_argument("--expected-standing-policy-contract-hash", default="")
+    parser.add_argument(
+        "--expected-controlled-topology-manifest-hash",
+        default="",
+    )
+    parser.add_argument("--controlled-topology-user", default="")
+    parser.add_argument("--controlled-topology-source", default="")
+    parser.add_argument("--controlled-topology-target", default="")
+    parser.add_argument(
+        "--controlled-topology-planner",
+        default="v7-users-autoswitch",
+    )
     parser.add_argument("--expected-service-failure-obligation-id", default="")
     parser.add_argument("--expected-service-failure-incident-id", default="")
     parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
@@ -4826,6 +5357,48 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "L3_PRODUCTION_PROVEN" else 2
+    if args.execute_controlled_topology_standing_transaction:
+        result = execute_controlled_topology_standing_transaction(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        output = (
+            compact_transaction_result(result.get("transaction") or {})
+            if args.compact_transaction_receipt
+            and result.get("final_verdict")
+            == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+            else result
+        )
+        if isinstance(output, dict):
+            output["controlled_topology_final_verdict"] = result.get(
+                "final_verdict"
+            )
+            output["controlled_topology_manifest_hash"] = result.get(
+                "manifest_hash"
+            )
+            output["controlled_topology_trial_identity"] = result.get(
+                "trial_identity"
+            )
+            output["controlled_topology_source"] = result.get("source")
+            output["controlled_topology_target"] = result.get("target")
+        print(
+            json.dumps(
+                output,
+                ensure_ascii=False,
+                indent=2 if args.pretty else None,
+                sort_keys=True,
+            )
+        )
+        return (
+            0
+            if result.get("final_verdict")
+            == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+            else 2
+        )
     if args.execute_governed_transaction or args.execute_bounded_delegated_transaction:
         result = execute_governed_transaction(
             args,

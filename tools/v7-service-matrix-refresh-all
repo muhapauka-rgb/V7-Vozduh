@@ -859,6 +859,195 @@ def run_controlled_certification_campaign_reset(
     }
 
 
+def run_controlled_topology_standing_policy_action(
+    planner: str,
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    timeout_sec: int = 360,
+) -> dict[str, Any]:
+    """Consume one auto-admitted topology manifest through existing owners."""
+    planner_command = [
+        planner,
+        "--controlled-source-topology-diagnostic",
+        "--state-dir",
+        str(state_dir),
+        "--policy-file",
+        str(policy_file),
+        "--action-class-audit-store",
+        str(audit_store),
+    ]
+    started_at = now_iso()
+    try:
+        planner_proc = subprocess.run(
+            planner_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.controlled-topology-standing-consumer.v1",
+            "status": "STOP_SAFE",
+            "ok": True,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "blockers": [
+                f"controlled_topology_planner_unavailable:{type(exc).__name__}"
+            ],
+        }
+    try:
+        parsed = json.loads(planner_proc.stdout or "")
+        diagnostic = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        diagnostic = {}
+    preflight = (
+        diagnostic.get("production_preflight")
+        if isinstance(diagnostic.get("production_preflight"), dict)
+        else {}
+    )
+    manifest = (
+        preflight.get("manifest")
+        if isinstance(preflight.get("manifest"), dict)
+        else {}
+    )
+    admission = (
+        diagnostic.get("standing_policy_admission")
+        if isinstance(diagnostic.get("standing_policy_admission"), dict)
+        else {}
+    )
+    ready = (
+        planner_proc.returncode == 0
+        and diagnostic.get("status")
+        == "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+        and admission.get("status")
+        == "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY"
+        and admission.get("ok") is True
+        and int(manifest.get("trial_identity_count") or 0) == 1
+        and str(manifest.get("expected_ordinary_assignment_delta") or "")
+        == "NONE"
+        and str(manifest.get("expected_ordinary_route_delta") or "") == "NONE"
+    )
+    if not ready:
+        return {
+            "schema_version": "v7.controlled-topology-standing-consumer.v1",
+            "status": "NOT_REQUIRED_OR_NOT_ADMITTED",
+            "ok": True,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "diagnostic_status": str(diagnostic.get("status") or ""),
+            "blockers": list(admission.get("blockers") or []),
+        }
+    command = [
+        executor,
+        "--execute-controlled-topology-standing-transaction",
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--policy-file",
+        str(policy_file),
+        "--operator-execution-audit-store",
+        str(audit_store),
+        "--expected-standing-policy-contract-id",
+        str(admission.get("contract_id") or ""),
+        "--expected-standing-policy-contract-hash",
+        str(admission.get("contract_hash") or ""),
+        "--expected-controlled-topology-manifest-hash",
+        str(manifest.get("manifest_hash") or ""),
+        "--controlled-topology-user",
+        str(manifest.get("trial_identity") or ""),
+        "--controlled-topology-source",
+        str(manifest.get("existing_source") or ""),
+        "--controlled-topology-target",
+        str(manifest.get("selected_source_or_draft") or ""),
+        "--controlled-topology-planner",
+        planner,
+        "--max-users",
+        "1",
+        "--compact-transaction-receipt",
+        "--pretty",
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(60, min(int(timeout_sec or 360), 900)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.controlled-topology-standing-consumer.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": True,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "error": f"{type(exc).__name__}:{exc}",
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+        result = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        result = {}
+    completed = (
+        proc.returncode == 0
+        and result.get("controlled_topology_final_verdict")
+        == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+        and int(result.get("users_moved") or 0) == 1
+    )
+    stopped = (
+        not completed
+        and not bool(result.get("apply_executed"))
+        and int(result.get("users_moved") or 0) == 0
+    )
+    return {
+        "schema_version": "v7.controlled-topology-standing-consumer.v1",
+        "status": (
+            "ACTION_COMPLETED"
+            if completed
+            else ("STOP_SAFE" if stopped else "FAILED")
+        ),
+        "ok": completed or stopped,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "returncode": proc.returncode,
+        "action_attempted": True,
+        "action_completed": completed,
+        "runtime_mutation_performed": bool(
+            result.get("runtime_mutation_performed")
+            or result.get("apply_executed")
+        ),
+        "users_moved": int(result.get("users_moved") or 0),
+        "contract_id": str(admission.get("contract_id") or ""),
+        "contract_hash": str(admission.get("contract_hash") or ""),
+        "manifest_hash": str(manifest.get("manifest_hash") or ""),
+        "trial_identity": str(manifest.get("trial_identity") or ""),
+        "source": str(manifest.get("existing_source") or ""),
+        "target": str(manifest.get("selected_source_or_draft") or ""),
+        "consumer_result": result,
+        "output_tail": (proc.stdout or "")[-2000:] if not (completed or stopped) else "",
+    }
+
+
 def run_passive_consumer(
     consumer: str,
     *,
@@ -1122,6 +1311,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "runtime_mutation_performed", "users_moved", "reason", "error",
             "contract_id", "contract_hash", "admitted_max_users",
             "max_concurrent_transactions", "blockers", "source",
+            "target", "trial_identity", "manifest_hash",
             "source_incident_id", "automation_obligation_id",
             "affected_scope", "unresolved_scope",
         )
@@ -1175,6 +1365,7 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "service_failure_omp_consumer", "service_failure_post_action_passive_consumer",
         "service_failure_post_action_omp_consumer",
         "bounded_delegated_service_failure_action",
+        "controlled_topology_standing_policy_action",
     ):
         if key in payload:
             projection[key] = _consumer_projection(payload.get(key))
@@ -1601,7 +1792,36 @@ def main() -> int:
             ),
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
-        if payload["bounded_delegated_service_failure_action"].get("action_completed"):
+        bounded_action = payload["bounded_delegated_service_failure_action"]
+        if (
+            bounded_action.get("status")
+            == "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE"
+            and not bounded_action.get("action_completed")
+        ):
+            payload[
+                "controlled_topology_standing_policy_action"
+            ] = run_controlled_topology_standing_policy_action(
+                str(args.passive_consumer),
+                str(args.governed_executor),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 360,
+            )
+        topology_action = (
+            payload.get("controlled_topology_standing_policy_action")
+            if isinstance(
+                payload.get("controlled_topology_standing_policy_action"),
+                dict,
+            )
+            else {}
+        )
+        any_action_completed = bool(
+            bounded_action.get("action_completed")
+            or topology_action.get("action_completed")
+        )
+        if any_action_completed:
             # The first passive/L3 pass precedes the bounded action.  Its
             # packet-bound Outcome is appended only after that pass, so run
             # the same existing consumer once more before asking OMP to
@@ -1617,11 +1837,11 @@ def main() -> int:
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
             )
             campaign_binding = (
-                payload["bounded_delegated_service_failure_action"].get(
+                bounded_action.get(
                     "controlled_certification_campaign"
                 )
                 if isinstance(
-                    payload["bounded_delegated_service_failure_action"].get(
+                    bounded_action.get(
                         "controlled_certification_campaign"
                     ),
                     dict,
@@ -1666,9 +1886,7 @@ def main() -> int:
                                 args.operator_execution_audit_store
                             ),
                             binding=campaign_binding,
-                            result=payload[
-                                "bounded_delegated_service_failure_action"
-                            ].get("consumer_result") or {},
+                            result=bounded_action.get("consumer_result") or {},
                             reset_result=payload[
                                 "controlled_certification_campaign_stage_reset"
                             ],
@@ -1696,11 +1914,9 @@ def main() -> int:
                             if not passed
                         ],
                     }
-                payload[
-                    "bounded_delegated_service_failure_action"
-                ][
-                    "controlled_certification_stage_consumption"
-                ] = stage_consumption
+                bounded_action["controlled_certification_stage_consumption"] = (
+                    stage_consumption
+                )
     payload["omp_product_frontier_owner"] = "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER"
     payload["next_output"] = (
         "OMP_PRODUCT_FRONTIER_MATERIALIZED"

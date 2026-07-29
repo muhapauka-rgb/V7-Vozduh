@@ -1214,6 +1214,109 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(receipt["learning_record_id"], "learn_unit")
         self.assertNotIn("nested", json.dumps(projection))
 
+    def test_topology_standing_consumer_routes_exact_manifest_to_existing_executor(self):
+        diagnostic = {
+            "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+            "production_preflight": {
+                "manifest": {
+                    "manifest_hash": "a" * 64,
+                    "trial_identity": "10.7.0.100",
+                    "trial_identity_count": 1,
+                    "existing_source": "1",
+                    "selected_source_or_draft": "vless",
+                    "expected_ordinary_assignment_delta": "NONE",
+                    "expected_ordinary_route_delta": "NONE",
+                },
+            },
+            "standing_policy_admission": {
+                "status": (
+                    "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+                    "CONTROLLED_TOPOLOGY_POLICY"
+                ),
+                "ok": True,
+                "contract_id": "sdpc_exact",
+                "contract_hash": "b" * 64,
+            },
+        }
+        executed = {
+            "controlled_topology_final_verdict": (
+                "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+            ),
+            "users_moved": 1,
+            "runtime_mutation_performed": True,
+            "fresh_packet_id": "pkt_exact",
+        }
+        calls = [
+            mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+            mock.Mock(returncode=0, stdout=json.dumps(executed)),
+        ]
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            side_effect=calls,
+        ) as run:
+            result = (
+                self.refresh.run_controlled_topology_standing_policy_action(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/state"),
+                    event_dir=Path("/events"),
+                    policy_file=Path("/policy"),
+                    audit_store=Path("/audit"),
+                )
+            )
+        self.assertEqual(result["status"], "ACTION_COMPLETED")
+        self.assertTrue(result["action_completed"])
+        self.assertEqual(result["users_moved"], 1)
+        command = run.call_args_list[1].args[0]
+        self.assertIn(
+            "--execute-controlled-topology-standing-transaction",
+            command,
+        )
+        self.assertEqual(
+            command[
+                command.index("--expected-controlled-topology-manifest-hash")
+                + 1
+            ],
+            "a" * 64,
+        )
+        self.assertEqual(
+            command[command.index("--controlled-topology-user") + 1],
+            "10.7.0.100",
+        )
+
+    def test_topology_standing_consumer_does_not_execute_without_admission(self):
+        diagnostic = {
+            "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+            "production_preflight": {"manifest": {}},
+            "standing_policy_admission": {
+                "status": "ENGINEERING_AUTHORITY_REQUIRED",
+                "ok": False,
+                "blockers": ["standing_policy_missing"],
+            },
+        }
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            return_value=mock.Mock(
+                returncode=0,
+                stdout=json.dumps(diagnostic),
+            ),
+        ) as run:
+            result = (
+                self.refresh.run_controlled_topology_standing_policy_action(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/state"),
+                    event_dir=Path("/events"),
+                    policy_file=Path("/policy"),
+                    audit_store=Path("/audit"),
+                )
+            )
+        self.assertEqual(result["status"], "NOT_REQUIRED_OR_NOT_ADMITTED")
+        self.assertFalse(result["action_attempted"])
+        self.assertEqual(run.call_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

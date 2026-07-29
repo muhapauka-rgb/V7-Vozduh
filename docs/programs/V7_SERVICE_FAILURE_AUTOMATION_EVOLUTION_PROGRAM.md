@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.6`
+Version: `2.7`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,56 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.7 active executable revision — Matrix consumption of controlled topology
+
+V2.7 closes the exact producer-consumer residual proven after V2.6 policy
+activation:
+
+```text
+topology manifest AUTO_ADMITTED
+-> Matrix bounded service-failure consumer returned incident not actionable
+-> no consumer invoked reservation and generic governed transaction
+```
+
+This is an existing-owner integration gap, not missing Authority, missing
+channel, a new action class or a new execution architecture. The production
+Matrix proved source `1` failed `0/14`, while `vless` was healthy `14/14`,
+empty, stable and capacity-safe. The existing topology owner selected
+`OPTION_1_REBIND_EXISTING_EMPTY_EGRESS`, exact identity `10.7.0.100`, and
+manifest-bound target `vless`.
+
+When the ordinary bounded incident consumer has no actionable movement, the
+same Matrix lifecycle now consumes the existing topology diagnostic. It may
+continue only when the current standing contract independently validates the
+exact topology action class and the diagnostic returns
+`AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY`.
+
+The consumer:
+
+1. re-runs the existing topology Planner immediately before execution;
+2. binds contract ID/hash, manifest hash, certification identity, source and
+   target;
+3. uses the existing `v7-egress-set-state` CAS reservation owner;
+4. passes the exact selection into the generic governed
+   Candidate/Packet/lease/restore-barrier/apply transaction;
+5. preserves ordinary assignment and route deltas at zero;
+6. verifies the exact user route and persists Outcome/Replay/Learning through
+   existing owners;
+7. releases the reservation from the owner backup if the transaction stops
+   before a successful apply;
+8. returns the existing Matrix post-action passive and OMP consumers.
+
+No new Planner, executor, policy store, Authority owner, event store, watcher,
+queue, scheduler or Runtime is introduced. A missing, stale, changed,
+non-empty, non-certification or non-admitted manifest remains `STOP_SAFE`.
+
+The V2.7 completion contract is:
+
+`ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN`
+
+followed by owner-backed Outcome, Replay, Learning and atomic CPS/OMP
+successor consumption.
 
 ## V2.6 active executable revision — bounded autonomous controlled topology
 

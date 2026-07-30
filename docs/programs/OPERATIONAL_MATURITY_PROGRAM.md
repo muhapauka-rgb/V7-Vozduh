@@ -14,9 +14,9 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md` (`L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`).
+Latest consumed report: `docs/reports/engineering/2026-07-30_163700_controlled_topology_full_path_selection_and_runtime_consumption.md` (`CONTROLLED_TOPOLOGY_FULL_PATH_SELECTION_RUNTIME_CONSUMED`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Previous consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md` (`R1_V6_ROLLBACK_SUCCESS_RECORDED_CONSUMER_REPAIR_READY_FOR_SAFE_DEPLOY`).
+Previous consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md` (`L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7899,9 +7899,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `ENGINEERING_AUTHORITY_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE_REQUIRED`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; 48 dedicated certification identities on exact source 1; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `ENGINEERING_AUTHORITY_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_TARGET_CAPACITY_REQUIRED`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=48; locations={"1":46,"amneziawg-exec-20260528-10-8-1-14":1,"vless":1}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_TARGET_CAPACITY_REQUIRED`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8887,12 +8887,12 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `ENGINEERING_AUTHORITY_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE_REQUIRED`
-Current terminal report: `docs/reports/engineering/2026-07-29_085800_polygon_controlled_target_binding_and_authority_boundary.md`
-Latest consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_TARGET_CAPACITY_REQUIRED`
+Current terminal report: `docs/reports/engineering/2026-07-30_163700_controlled_topology_full_path_selection_and_runtime_consumption.md`
+Latest consumed report: `docs/reports/engineering/2026-07-30_163700_controlled_topology_full_path_selection_and_runtime_consumption.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
-Previous consumed report: `docs/reports/engineering/2026-07-25_114000_l7_r1_v6_rollback_terminal_and_verifier_consumer_repair.md`
+Previous consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

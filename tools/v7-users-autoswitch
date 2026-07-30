@@ -14578,6 +14578,27 @@ def controlled_campaign_target_selection_diagnostic(
             and verification_supported
             and rollback_containment_supported
         )
+        # A controlled source needs exclusive ownership because its failure is
+        # deliberately materialised. A destination does not: it may carry
+        # ordinary users when health, reserve and verification are good. This
+        # remains a read-only capacity projection, never an execution grant.
+        shared_target_technically_eligible = bool(
+            target_id != source_id
+            and baseline.get("ok")
+            and not quality_blockers
+            and not non_controlled_blockers
+            and load.get("capacity_owner_reconciled")
+            and free_capacity > 0
+            and verification_supported
+            and rollback_containment_supported
+        )
+        shared_target_policy_scope_status = (
+            "CURRENT_EXECUTION_ONLY_TARGET_CONTRACT_SUFFICIENT"
+            if controlled_only_contract and ordinary_users == 0
+            else "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if shared_target_technically_eligible
+            else "NOT_ELIGIBLE_FOR_SHARED_TARGET_CONTRACT"
+        )
         current_stage_feasible = bool(
             controlled_rebind_eligible
             and free_capacity >= current_stage > 0
@@ -14628,6 +14649,17 @@ def controlled_campaign_target_selection_diagnostic(
             "controlled_only_contract": controlled_only_contract,
             "ordinary_planner_eligible": bool(candidate.eligible),
             "controlled_rebind_eligible": controlled_rebind_eligible,
+            "shared_target_technically_eligible": shared_target_technically_eligible,
+            "shared_target_policy_scope_status": shared_target_policy_scope_status,
+            "shared_target_safety_contract": {
+                "ordinary_assignment_delta": 0,
+                "ordinary_route_delta": 0,
+                "target_fault_injection": "FORBIDDEN",
+                "ordinary_slo_and_reserve_owner": str(load.get("capacity_owner") or ""),
+                "fresh_per_transaction_revalidation": True,
+                "aggregate_cohort_verification_required": True,
+                "rollback_or_certified_no_rollback_required": True,
+            },
             "full_live_admission": full_live_admission,
             "health": {
                 "status": str(baseline.get("status") or ""),
@@ -14799,6 +14831,66 @@ def controlled_campaign_target_selection_diagnostic(
             else "MULTI_TARGET_ALLOCATION_READY"
         )
 
+    # Reuse the same inventory, quality and capacity owners, but do not apply
+    # the controlled-source isolation law to a non-destructive destination.
+    # The result can only request an exact future action-class contract.
+    shared_ranked = sorted(
+        (row for row in rows if row.get("shared_target_technically_eligible")),
+        key=lambda row: (
+            -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
+            -to_int((row.get("capacity") or {}).get("free_capacity_after_reserve"), 0),
+            -to_float(row.get("planner_score"), 0.0),
+            str(row.get("target_id") or ""),
+        ),
+    )
+    shared_stage_allocations: dict[str, dict[str, Any]] = {}
+    for requested_stage in sorted(set(stages or [current_stage])):
+        remaining = max(0, requested_stage)
+        used_domains: set[str] = set()
+        allocation: list[dict[str, Any]] = []
+        for row in shared_ranked:
+            domain = str(row.get("correlation_domain") or "")
+            if not domain or domain in used_domains:
+                continue
+            available = max(0, to_int(
+                (row.get("capacity") or {}).get("free_capacity_after_reserve"), 0,
+            ))
+            assigned = min(remaining, available)
+            if assigned <= 0:
+                continue
+            allocation.append({
+                "target_id": str(row.get("target_id") or ""),
+                "correlation_domain": domain,
+                "allocated_users": assigned,
+                "ordinary_users_unchanged": int(
+                    (row.get("capacity") or {}).get("ordinary_users") or 0
+                ),
+                "target_fault_injection": "FORBIDDEN",
+                "target_fingerprint": str(row.get("semantic_fingerprint") or ""),
+            })
+            used_domains.add(domain)
+            remaining -= assigned
+            if remaining == 0:
+                break
+        shared_stage_allocations[str(requested_stage)] = {
+            "requested_scope": requested_stage,
+            "allocated_scope": requested_stage - remaining,
+            "feasible": remaining == 0 and bool(allocation),
+            "immutable_allocation_projection": allocation,
+            "allocation_fingerprint": sha256_json({
+                "inventory_fingerprint": inventory_fingerprint,
+                "stage": requested_stage,
+                "allocation": allocation,
+            }) if remaining == 0 and allocation else "",
+        }
+    shared_current = shared_stage_allocations.get(str(current_stage), {})
+    shared_completion = shared_stage_allocations.get(str(completion_stage), {})
+    if (
+        legal_outcome == "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
+        and shared_current.get("feasible")
+    ):
+        legal_outcome = "SHARED_PRODUCTION_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
+
     historical_defects_closed = [
         "CAMPAIGN_TARGET_ID_ORDER_SELECTION_DEFECT",
         "CAMPAIGN_TARGET_READINESS_SEMANTICALLY_INCOMPLETE",
@@ -14819,6 +14911,10 @@ def controlled_campaign_target_selection_diagnostic(
     if legal_outcome == "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED":
         current_residuals.append(
             "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED"
+        )
+    if legal_outcome == "SHARED_PRODUCTION_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED":
+        current_residuals.append(
+            "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
         )
     result = {
         "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
@@ -14910,6 +15006,29 @@ def controlled_campaign_target_selection_diagnostic(
                 "SEPARATE_EXACT_AUTHORITY_REQUIRED"
                 if multi_target_ready else "NOT_READY"
             ),
+        },
+        "shared_production_target_capacity_projection": {
+            "schema_version": "v7.shared-production-target-capacity.v1",
+            "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
+            "purpose": (
+                "non_destructive_destination_capacity_only; "
+                "controlled_faults_remain_on_isolated_source"
+            ),
+            "eligible_target_count": len(shared_ranked),
+            "ranked_target_ids": [
+                str(row.get("target_id") or "") for row in shared_ranked
+            ],
+            "stage_allocations": shared_stage_allocations,
+            "current_stage_feasible": bool(shared_current.get("feasible")),
+            "campaign_completion_feasible": bool(shared_completion.get("feasible")),
+            "authority_boundary": (
+                "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                if shared_current.get("feasible") else "NONE"
+            ),
+            "no_implicit_policy_grant": True,
+            "ordinary_user_effect": "FORBIDDEN",
+            "target_fault_injection": "FORBIDDEN",
+            "candidate_packet_lease_created": False,
         },
         "hysteresis_and_no_churn": {
             "health_owner": "existing Matrix observations",
@@ -15138,6 +15257,13 @@ def controlled_source_topology_diagnostic(
         }
 
     target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    shared_target_projection = (
+        target_diagnostic.get("shared_production_target_capacity_projection")
+        if isinstance(
+            target_diagnostic.get("shared_production_target_capacity_projection"),
+            dict,
+        ) else {}
+    )
     policy_root = read_json(Path(args.policy_file), {})
     policy_contract = (
         policy_root.get("delegated_autonomy_policy")
@@ -15858,6 +15984,29 @@ def controlled_source_topology_diagnostic(
         full_campaign_target_rows[0]
         if full_campaign_target_rows else {}
     )
+    shared_current_allocation = (
+        (shared_target_projection.get("stage_allocations") or {}).get(
+            str(current_stage)
+        ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+        else {}
+    )
+    shared_completion_allocation = (
+        (shared_target_projection.get("stage_allocations") or {}).get(
+            str(campaign_completion_stage)
+        ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+        else {}
+    )
+    shared_target_set = [
+        str(item.get("target_id") or "")
+        for item in (
+            shared_completion_allocation.get("immutable_allocation_projection")
+            or []
+        )
+        if str(item.get("target_id") or "")
+    ]
+    shared_target_capacity_available = bool(
+        shared_completion_allocation.get("feasible") and shared_target_set
+    )
     stage_plan = []
     for stage in campaign_stages:
         stage_targets = [
@@ -15874,8 +16023,15 @@ def controlled_source_topology_diagnostic(
             )
         ]
         stage_target = stage_targets[0] if stage_targets else {}
+        shared_stage = (
+            (shared_target_projection.get("stage_allocations") or {}).get(
+                str(stage)
+            ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+            else {}
+        )
+        shared_stage_ready = bool(shared_stage.get("feasible"))
         source_ready = bool(selected_rebind)
-        target_ready = bool(stage_target)
+        target_ready = bool(stage_target) or shared_stage_ready
         residuals = []
         if not source_ready:
             residuals.extend(
@@ -15899,6 +16055,12 @@ def controlled_source_topology_diagnostic(
             "target_or_target_set": (
                 [str(stage_target.get("target_id") or "")]
                 if stage_target else []
+                if not shared_stage_ready else [
+                    str(item.get("target_id") or "")
+                    for item in (
+                        shared_stage.get("immutable_allocation_projection") or []
+                    )
+                ]
             ),
             "certification_cohort": stage,
             "source_capacity_after_reserve": int(
@@ -15912,7 +16074,7 @@ def controlled_source_topology_diagnostic(
                     "current_stage_safe_scope"
                 )
                 or 0
-            ),
+            ) if stage_target else int(shared_stage.get("allocated_scope") or 0),
             "source_ordinary_users": int(
                 selected_full_source.get("ordinary_identities") or 0
             ),
@@ -15921,6 +16083,9 @@ def controlled_source_topology_diagnostic(
                     "ordinary_users"
                 )
                 or 0
+            ) if stage_target else sum(
+                int(item.get("ordinary_users_unchanged") or 0)
+                for item in (shared_stage.get("immutable_allocation_projection") or [])
             ),
             "health_and_stability": {
                 "source_healthy": bool(
@@ -15931,13 +16096,13 @@ def controlled_source_topology_diagnostic(
                 ),
                 "target_healthy": bool(
                     (stage_target.get("health") or {}).get("ok")
-                ),
+                ) if stage_target else shared_stage_ready,
                 "target_stable": not bool(
                     (stage_target.get("quality") or {}).get("blockers")
-                ),
+                ) if stage_target else shared_stage_ready,
             },
             "failure_boundary": (
-                "whole isolated controlled source only"
+                "whole isolated controlled source only; shared targets are non-destructive"
             ),
             "verification_boundary": (
                 "per-user + aggregate + ordinary-route invariance"
@@ -15947,16 +16112,16 @@ def controlled_source_topology_diagnostic(
             ),
             "authority_action_required": (
                 "NONE"
-                if source_ready and target_ready
+                if source_ready and bool(stage_target) and target_ready
+                else "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                if source_ready and shared_stage_ready
                 else "MINIMAL_STANDING_ENVELOPE_AFTER_RESOURCE_PROOF"
             ),
             "delegated_policy_eligible": bool(
-                source_ready and target_ready
+                source_ready and bool(stage_target) and target_ready
                 and topology_policy_admission.get("ok")
             ),
-            "current_feasibility": bool(
-                source_ready and target_ready
-            ),
+            "current_feasibility": bool(source_ready and target_ready),
             "future_residual": sorted(set(residuals)),
         })
     current_source_row = next((
@@ -16128,6 +16293,7 @@ def controlled_source_topology_diagnostic(
         "failover_target_or_target_set": (
             [str(selected_full_target.get("target_id") or "")]
             if selected_full_target else []
+            if not shared_target_capacity_available else shared_target_set
         ),
         "reset_recovery_path": (
             "verify source recovery -> restore exact certification "
@@ -16150,11 +16316,27 @@ def controlled_source_topology_diagnostic(
                 != str(selected_full_target.get("target_id") or "")
             )
         ),
+        "shared_target_capacity": {
+            "available": shared_target_capacity_available,
+            "current_stage_feasible": bool(
+                shared_current_allocation.get("feasible")
+            ),
+            "campaign_completion_feasible": bool(
+                shared_completion_allocation.get("feasible")
+            ),
+            "target_set": shared_target_set,
+            "authority_boundary": str(
+                shared_target_projection.get("authority_boundary") or "NONE"
+            ),
+            "ordinary_user_effect": "FORBIDDEN",
+            "target_fault_injection": "FORBIDDEN",
+        },
         "exact_external_resource": (
             "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
             "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_CAPACITY_"
             f"AT_LEAST_{campaign_completion_stage}"
-            if not selected_full_target else "NONE"
+            if not selected_full_target and not shared_target_capacity_available
+            else "NONE"
         ),
         "exact_external_owner": (
             "EXTERNAL_EGRESS_PEER_OR_PROFILE_PROVIDER"
@@ -16173,6 +16355,8 @@ def controlled_source_topology_diagnostic(
         "status": (
             "READY_NOW"
             if topology_plan["campaign_completion_feasible"]
+            else "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
+            if shared_target_capacity_available
             else "EXTERNAL_RESOURCE_REQUIRED"
             if not selected_full_target
             else "ENGINEERING_CLOSURE_REQUIRED"
@@ -16186,6 +16370,8 @@ def controlled_source_topology_diagnostic(
         "next_bounded_action": (
             "CONTINUE_STAGE_" + str(current_stage)
             if topology_plan["current_next_action_feasible"]
+            else "PREPARE_EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
+            if shared_target_capacity_available
             else "OBTAIN_OWNER_VERIFIED_FULL_CAMPAIGN_TARGET_CAPACITY"
             if not selected_full_target
             else "REPAIR_EXISTING_CONTROLLED_SOURCE_RESERVATION_AND_GROUP"
@@ -16228,6 +16414,10 @@ def controlled_source_topology_diagnostic(
             else []
         ),
         "automatic_successor_chain": (
+            "existing target capacity projection -> exact Authority action-class "
+            "contract -> existing source reservation renewal/reconciliation -> "
+            "existing Candidate/Packet/lease -> stages 5/10/25/48"
+            if shared_target_capacity_available else
             "external resource owner -> existing draft lifecycle -> "
             "Matrix/quality/capacity -> topology diagnostic -> minimal "
             "standing-policy request -> Candidate/Packet/lease -> stages "
@@ -16242,12 +16432,16 @@ def controlled_source_topology_diagnostic(
             "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
             if full_path_recommendation.get("status")
             == "EXTERNAL_RESOURCE_REQUIRED" else
+            "CONTROLLED_TOPOLOGY_SHARED_TARGET_CONTRACT_AND_SOURCE_RECONCILIATION_REQUIRED"
+            if full_path_recommendation.get("status")
+            == "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED" else
             "CONTROLLED_SOURCE_TOPOLOGY_NO_SAFE_OPTION"
         ),
         "ok": True,
         "read_only": True,
         "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
         "current_campaign": campaign,
+        "shared_production_target_capacity_projection": shared_target_projection,
         "reservation_owner_capability": reservation_owner,
         "options": options,
         "POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC": (
@@ -16268,6 +16462,10 @@ def controlled_source_topology_diagnostic(
                 "existing valid dedicated draft supports the current stage "
                 "and the full remaining campaign"
                 if selected_draft else
+                "existing shared production target capacity is owner-backed, but "
+                "an exact contract and source reservation reconciliation remain "
+                "independent boundaries"
+                if shared_target_capacity_available else
                 "capacity-2 drafts are bootstrap-only; current controlled "
                 "source lifecycle needs repair and no owner-backed target "
                 "can complete stages 5/10/25/48"
@@ -16286,8 +16484,11 @@ def controlled_source_topology_diagnostic(
                 else ["implement atomic controlled-source reserve/release"]
             ),
             "required_authority_action": required_authority_action,
+            "shared_target_authority_boundary": str(
+                shared_target_projection.get("authority_boundary") or "NONE"
+            ),
             "required_external_input": (
-                "NONE" if selected_option else
+                "NONE" if selected_option or shared_target_capacity_available else
                 str(topology_plan.get("exact_external_resource") or "")
                 or "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
             ),
@@ -16296,6 +16497,9 @@ def controlled_source_topology_diagnostic(
                 "existing Authority audit decision consumer -> fresh topology "
                 "preflight -> existing Candidate/Packet/lease owners"
                 if preflight_ready else
+                "existing Authority owner -> fresh source reservation and target "
+                "revalidation -> existing Candidate/Packet/lease owners"
+                if shared_target_capacity_available else
                 "exact external resource owner -> same diagnostic"
             ),
         },
@@ -16391,6 +16595,9 @@ def controlled_source_topology_diagnostic(
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
             "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"
             if preflight_ready and topology_policy_admission.get("ok") else
+            "ENGINEERING_AUTHORITY_REQUIRED:"
+            "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
+            if shared_target_capacity_available else
             "AUTHORITY_INPUT_REQUIRED:"
             + required_authority_action
             if preflight_ready else

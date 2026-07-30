@@ -374,10 +374,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(
             targets["ordinary-good"]["controlled_rebind_eligible"]
         )
+        self.assertTrue(
+            targets["ordinary-good"]["shared_target_technically_eligible"]
+        )
+        self.assertEqual(
+            targets["ordinary-good"]["shared_target_policy_scope_status"],
+            "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED",
+        )
         self.assertIn(
             "controlled_assignment_permission_or_isolation_contract_missing",
             targets["ordinary-good"]["exclusion_reasons"],
         )
+        shared = result["shared_production_target_capacity_projection"]
+        self.assertTrue(shared["stage_allocations"]["48"]["feasible"])
+        self.assertEqual(
+            shared["ordinary_user_effect"], "FORBIDDEN"
+        )
+        self.assertEqual(shared["target_fault_injection"], "FORBIDDEN")
         self.assertFalse(
             result["forbidden_effects"]["inventory_store_created"]
         )

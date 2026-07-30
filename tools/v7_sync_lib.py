@@ -2210,6 +2210,11 @@ def delegated_policy_live_state_consistency(
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+    availability_first_frontier = bool(re.fullmatch(
+        r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
+        r"(1|2|5|10|25|48)",
+        program_frontier,
+    ))
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
     )
@@ -2257,7 +2262,7 @@ def delegated_policy_live_state_consistency(
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
         if phase3_acceptance_frontier else
         "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
-        if active_incident_drain_frontier else
+        if active_incident_drain_frontier or availability_first_frontier else
         "NO_INSIDE_APPROVED_POLICY"
         if controlled_certification_safe_frontier else
         "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"
@@ -2606,6 +2611,14 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             if re.fullmatch(
                 r"CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_(5|10|25|48)_REQUIRED",
                 live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+            )
+            else live.get(
+                "CURRENT_PROGRAM_EXECUTION_FRONTIER", ""
+            ).strip("`")
+            if re.fullmatch(
+                r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
+                r"(1|2|5|10|25|48)",
+                live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`"),
             )
             else ",".join(ready) or "NONE"
         ),
@@ -6399,6 +6412,11 @@ def _is_controlled_certification_safe_frontier(value: str) -> bool:
         frontier in CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS
         or re.fullmatch(
             r"CONTROLLED_SERVICE_FAILURE_CERTIFICATION_STAGE_(5|10|25|48)_REQUIRED",
+            frontier,
+        )
+        or re.fullmatch(
+            r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
+            r"(1|2|5|10|25|48)",
             frontier,
         )
     )
@@ -19870,11 +19888,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_decision": (
             "PROGRAM_TERMINAL_AVAILABILITY_FIRST_CAMPAIGN_COMPLETE"
             if availability_campaign_complete else
-            primary_next_action
-            if (
-                active_incident_drain
-                or availability_campaign_active
-            ) else
+            primary_next_action if active_incident_drain else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
             if (
                 pending_controlled_topology_policy

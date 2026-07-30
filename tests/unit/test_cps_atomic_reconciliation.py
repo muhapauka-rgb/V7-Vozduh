@@ -571,6 +571,58 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             result["errors"],
         )
 
+    def test_availability_first_matrix_frontier_is_reachable_and_policy_bounded(self):
+        state = dict(self.state)
+        frontier = (
+            "CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_1"
+        )
+        state.update({
+            "current_stop_condition": "NONE",
+            "current_program_execution_frontier": frontier,
+            "current_execution_frontier": frontier,
+            "current_next_action_id": frontier,
+            "smallest_existing_next_action": frontier,
+            "wip_smallest_existing_next_action": frontier,
+            "wip_smallest_existing_next_action_id": frontier,
+            "wip_current_primary_stop": "NONE",
+            "authority_required_now": (
+                "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+            ),
+            "wip_authority_required_now": (
+                "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
+            ),
+            "program_terminal_class": "NONE",
+            "program_terminal_state": (
+                "NONE_AVAILABILITY_FIRST_STAGE_1_SUCCESSOR_READY"
+            ),
+            "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+            "omp_continuation_required": "TRUE",
+            "external_input_required": "FALSE",
+            "external_input_type": "NONE",
+            "next_mission_formed": "TRUE",
+            "next_mission_id": "AVAILABILITY-FIRST-LADDER",
+        })
+        rendered = self.lib.build_normalized_cps_document(
+            self.cps,
+            state=state,
+        )
+        result = self.lib.cps_live_state_consistency(
+            rendered,
+            root=ROOT,
+            omp_text=self.omp,
+            verify_external=False,
+            expected_state=state,
+        )
+        for error in (
+            "cps_current_stop_divergence",
+            "delegated_policy_cps_stop_divergence",
+            "delegated_policy_live_operational_authority_required",
+            "dependency_frontier_projection_divergence:CURRENT_EXECUTION_FRONTIER",
+            "omp_formed_mission_behaviorally_unreachable_no_execution_or_wake",
+            "program_frontier_continuation_decision_invalid",
+        ):
+            self.assertNotIn(error, result["errors"])
+
     def test_external_owner_program_terminal_accepts_composite_wip_stop(self):
         state = dict(self.state)
         next_action = (

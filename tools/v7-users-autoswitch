@@ -16035,7 +16035,20 @@ def controlled_source_topology_diagnostic(
             ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
             else {}
         )
-        shared_stage_ready = bool(shared_stage.get("feasible"))
+        shared_stage_target_ids = {
+            str(item.get("target_id") or "")
+            for item in (
+                shared_stage.get("immutable_allocation_projection") or []
+            )
+            if str(item.get("target_id") or "")
+        }
+        shared_stage_role_collision = bool(
+            selected_full_source_id
+            and selected_full_source_id in shared_stage_target_ids
+        )
+        shared_stage_ready = bool(
+            shared_stage.get("feasible") and not shared_stage_role_collision
+        )
         source_ready = bool(selected_rebind)
         target_ready = bool(stage_target) or shared_stage_ready
         residuals = []
@@ -16052,6 +16065,10 @@ def controlled_source_topology_diagnostic(
         if not target_ready:
             residuals.append(
                 "controlled_target_capacity_and_isolation_required"
+            )
+        if shared_stage_role_collision:
+            residuals.append(
+                "shared_target_equals_actual_controlled_source"
             )
         stage_plan.append({
             "stage": stage,
@@ -16080,7 +16097,10 @@ def controlled_source_topology_diagnostic(
                     "current_stage_safe_scope"
                 )
                 or 0
-            ) if stage_target else int(shared_stage.get("allocated_scope") or 0),
+            ) if stage_target else (
+                int(shared_stage.get("allocated_scope") or 0)
+                if shared_stage_ready else 0
+            ),
             "source_ordinary_users": int(
                 selected_full_source.get("ordinary_identities") or 0
             ),
@@ -16092,7 +16112,7 @@ def controlled_source_topology_diagnostic(
             ) if stage_target else sum(
                 int(item.get("ordinary_users_unchanged") or 0)
                 for item in (shared_stage.get("immutable_allocation_projection") or [])
-            ),
+            ) if shared_stage_ready else 0,
             "health_and_stability": {
                 "source_healthy": bool(
                     selected_full_source.get("healthy_baseline")

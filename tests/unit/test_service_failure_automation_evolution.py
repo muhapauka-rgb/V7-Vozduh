@@ -255,6 +255,40 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertFalse(allocation["stage_allocations"]["2"]["feasible"])
 
+    def test_shared_target_fingerprint_ignores_display_age_but_binds_freshness(self):
+        base = {
+            "target_id": "awg3",
+            "quality": {
+                "updated": "2026-07-30T18:00:00+00:00",
+                "age_seconds": 10.0,
+                "fresh": True,
+                "required_stability_inputs": {
+                    "current": 0.3,
+                    "5m": 0.3,
+                    "1h": 0.3,
+                },
+            },
+            "shared_target_availability": {
+                "state": "DEGRADED_USABLE",
+            },
+            "capacity": {
+                "target_safe_additional_capacity": 1,
+            },
+        }
+        later_read = json.loads(json.dumps(base))
+        later_read["quality"]["age_seconds"] = 14.5
+        stale_read = json.loads(json.dumps(later_read))
+        stale_read["quality"]["fresh"] = False
+
+        first = self.autoswitch.shared_target_semantic_fingerprint(base)
+        second = self.autoswitch.shared_target_semantic_fingerprint(
+            later_read
+        )
+        stale = self.autoswitch.shared_target_semantic_fingerprint(stale_read)
+
+        self.assertEqual(first, second)
+        self.assertNotEqual(second, stale)
+
     def test_registry_capacity_limits_are_consumed_by_existing_load_owner(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)
         planner.dynamic_load = {

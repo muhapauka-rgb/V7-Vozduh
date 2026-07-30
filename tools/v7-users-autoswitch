@@ -14564,6 +14564,28 @@ def shared_target_stage_allocations(
     }
 
 
+def shared_target_semantic_fingerprint(row: dict[str, Any]) -> str:
+    """Fingerprint target truth without wall-clock-only read metadata.
+
+    ``quality.age_seconds`` changes between the Matrix admission read and the
+    executor's immediate revalidation even when every owner-backed snapshot is
+    identical.  Fresh/stale status and the owner's ``updated`` timestamp are
+    material and remain bound; the derived display age is not.
+    """
+    semantic = {
+        key: copy.deepcopy(value)
+        for key, value in row.items()
+        if key not in {"semantic_fingerprint"}
+    }
+    quality = (
+        semantic.get("quality")
+        if isinstance(semantic.get("quality"), dict)
+        else {}
+    )
+    quality.pop("age_seconds", None)
+    return sha256_json(semantic)
+
+
 def controlled_campaign_target_selection_diagnostic(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -15281,11 +15303,7 @@ def controlled_campaign_target_selection_diagnostic(
                 "ranking": "tools/v7-users-autoswitch existing Planner",
             },
         }
-        row["semantic_fingerprint"] = sha256_json({
-            key: value
-            for key, value in row.items()
-            if key not in {"semantic_fingerprint"}
-        })
+        row["semantic_fingerprint"] = shared_target_semantic_fingerprint(row)
         rows.append(row)
 
     ranked = sorted(

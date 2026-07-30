@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.7`
+Version: `2.8`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,75 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V2.8 active executable revision — post-trial full-path topology selection
+
+V2.8 admits the exact residual
+`CONTROLLED_TOPOLOGY_CONTINUATION_PATH_AND_DELEGATED_PROVISIONING_V1`
+inside this existing Program. It extends the existing topology diagnostic,
+campaign target ranking, CPS/OMP projection, standing-policy boundary and
+Polygon contract. It creates no new Program, Planner, Runtime, registry,
+queue, watcher, scheduler, Authority owner, policy store, execution path,
+evidence store or truth source.
+
+The one-identity topology trial is valid production evidence for the already
+proved bounded mechanism. It is not evidence that its resource can complete
+the controlled campaign. After every trial the existing diagnostic must
+publish:
+
+```text
+POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC
+CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN
+CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION
+```
+
+The projection accounts for every identity in the exact campaign group and
+keeps source, target/target-set and reset/recovery roles separate. An existing
+controlled source with certification-only occupancy is not rejected merely
+because it is no longer empty, but it is never executable when its reservation
+is expired, its reservation group differs from its assigned certification
+group, its campaign binding was not consumed, or the current executor supports
+only the initial empty-source bootstrap.
+
+Current-next-action feasibility and full-campaign feasibility are distinct.
+A draft whose usable capacity is below the current stage is bootstrap-only.
+It must not emit a provisioning Authority request or outrank a topology that
+can credibly complete `5 -> 10 -> 25 -> 48`. Every candidate path is ranked by
+campaign completion, ordinary-user isolation, independent failure control,
+rollback, health/stability, capacity/reserve, external dependencies, reuse,
+correlation risk and deterministic teardown.
+
+When no owner-backed target or correlation-distinct target set can support the
+completion stage, the exact terminal is:
+
+`EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_TARGET_CAPACITY_REQUIRED`.
+
+This terminal supersedes a capacity-insufficient draft recommendation and a
+wait for recovery of a historical source. It requests no Authority and permits
+no policy write or production effect. Re-entry is:
+
+```text
+owner-verified isolated target resource or target set
+-> existing admin draft lifecycle
+-> fresh Matrix / quality / capacity
+-> same topology ranking
+-> minimal existing standing-policy request only after full-path proof
+```
+
+Only the action classes required by the selected full path may later be added
+to the existing standing envelope. Compliant actions become automatic only
+after independent activation. The campaign still requires fresh immutable
+Candidate, Packet and lease, restore barrier, per-user and aggregate
+verification, circuit breaker, rollback/containment, Outcome, Replay,
+Learning, baseline reset and CPS/OMP consumption for every stage.
+
+The V2.8 engineering completion contracts are:
+
+`POST_TRIAL_DEDICATED_DRAFT_SELECTION_CAUSALLY_RESOLVED`
+
+and:
+
+`CONTROLLED_TOPOLOGY_FULL_PATH_SELECTION_RUNTIME_CONSUMED`.
 
 ## V2.7 active executable revision — Matrix consumption of controlled topology
 

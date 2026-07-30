@@ -671,24 +671,205 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     self.autoswitch.controlled_source_topology_diagnostic(args)
                 )
 
+        self.assertEqual(result["recommendation"]["selected_option"], "")
         self.assertEqual(
-            result["recommendation"]["selected_option"],
-            "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+            result["status"],
+            "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED",
         )
-        self.assertFalse(result["standing_policy_admission"]["ok"])
-        self.assertIn(
-            "controlled_topology_required_action_not_delegated:"
-            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
-            result["standing_policy_admission"]["blockers"],
+        self.assertEqual(
+            result["options"]["option_2_dedicated_source"]["result"],
+            "UNSAFE_BY_PROVEN_INVARIANT",
+        )
+        self.assertEqual(
+            result["options"]["option_2_dedicated_source"][
+                "bootstrap_only_ready_drafts"
+            ][0]["classification"],
+            "BOOTSTRAP_ONLY_NO_CREDIBLE_CAMPAIGN_SUCCESSOR",
+        )
+        self.assertFalse(result["authority_package"]["actionable"])
+        self.assertTrue(
+            result["durable_successor"].startswith(
+                "EXTERNAL_RESOURCE_REQUIRED:"
+            )
+        )
+
+    def test_post_trial_topology_rejects_expired_group_mismatch_and_capacity_two_draft(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            users = [
+                (
+                    f"ip=10.7.0.{index} enabled=1 current=source "
+                    "certification_user=1 certification_group=t48"
+                )
+                for index in range(10, 57)
+            ]
+            users.append(
+                "ip=10.7.0.100 enabled=1 current=vless "
+                "certification_user=1 certification_group=t48"
+            )
+            state_dir.joinpath("users.registry").write_text(
+                "\n".join(users) + "\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface "
+                "interface=wg0 enabled=1 controlled_certification_source=1 "
+                "certification_group=t48\n"
+                "id=vless protocol=vless type=proxy interface=tun0 enabled=1 "
+                "controlled_certification_source=1 "
+                "certification_group=ctop-old execution_reserved=1 "
+                "canary_reserved=1 "
+                "reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "controlled_source_reservation_id=ctres_old "
+                "controlled_source_reservation_expires_at="
+                "2020-01-01T00:00:00+00:00\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+            ])
+            target_projection = {
+                "campaign": {
+                    "request_id": "cpsauth_current",
+                    "request_hash": "a" * 64,
+                    "source_id": "source",
+                    "current_stage": 5,
+                    "remaining_stages": [5, 10, 25, 48],
+                    "pinned_target_id": "exec",
+                },
+                "targets": [{
+                    "target_id": "vless",
+                    "protocol": "vless",
+                    "interface": "tun0",
+                    "health": {"ok": True},
+                    "quality": {"blockers": []},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 1,
+                        "current_assigned_users": 1,
+                        "free_capacity_after_reserve": 141,
+                        "current_stage_safe_scope": 141,
+                        "campaign_completion_safe_scope": 141,
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "controlled_rebind_eligible": False,
+                    "full_live_admission": False,
+                    "owner_lineage": {},
+                    "semantic_fingerprint": "b" * 64,
+                }],
+            }
+            draft = {
+                "draft_id": "draft-capacity-two",
+                "hard_capacity": 2,
+                "one_identity_trial_capacity": 1,
+                "ready_for_guarded_disabled_pool_preflight": True,
+            }
+            with (
+                mock.patch.object(
+                    self.autoswitch,
+                    "controlled_campaign_target_selection_diagnostic",
+                    return_value=target_projection,
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_draft_candidates",
+                    return_value=[draft],
+                ),
+            ):
+                result = (
+                    self.autoswitch.controlled_source_topology_diagnostic(
+                        args
+                    )
+                )
+
+        post_trial = result[
+            "POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC"
+        ]
+        self.assertEqual(
+            post_trial["status"],
+            "POST_TRIAL_DEDICATED_DRAFT_SELECTION_SUBOPTIMAL",
+        )
+        self.assertTrue(post_trial["all_48_identities_accounted_for"])
+        self.assertEqual(
+            post_trial["campaign_identity_locations"],
+            {"source": 47, "vless": 1},
+        )
+        self.assertTrue(
+            post_trial["post_trial_resource"][
+                "can_accept_full_campaign_pool"
+            ]
         )
         self.assertFalse(
-            result["authority_package"].get("superseded_by_standing_policy")
+            post_trial["post_trial_resource"][
+                "can_remain_controlled_source_now"
+            ]
+        )
+        self.assertIn(
+            "controlled_source_reservation_expired",
+            post_trial["dedicated_draft_selection_cause"][
+                "exact_defects"
+            ],
+        )
+        self.assertIn(
+            "controlled_source_reservation_group_mismatch",
+            post_trial["dedicated_draft_selection_cause"][
+                "exact_defects"
+            ],
+        )
+        self.assertFalse(
+            result["CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"][
+                "campaign_completion_feasible"
+            ]
         )
         self.assertEqual(
-            result["durable_successor"],
-            "AUTHORITY_INPUT_REQUIRED:"
-            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+            result[
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION"
+            ]["status"],
+            "EXTERNAL_RESOURCE_REQUIRED",
         )
+        polygon = result["polygon_fault_verification_contract"]
+        self.assertTrue({
+            "valid_existing_draft_activation",
+            "invalid_or_quarantined_draft_rejection",
+            "draft_hard_capacity_below_requested_cohort",
+            "stale_draft_generation",
+            "source_target_role_confusion",
+            "occupied_egress_rejection",
+            "ordinary_user_route_mutation_rejection",
+            "provisioning_without_rollback_rejection",
+            "crash_after_resource_creation",
+            "crash_after_interface_or_route_creation",
+            "crash_after_assignment",
+            "duplicate_wake",
+            "duplicate_provisioning_request",
+            "expired_lease",
+            "policy_revocation",
+            "cleanup_after_success",
+            "cleanup_after_failure",
+            "selection_change_after_live_inventory_change",
+            "next_stage_automatic_continuation",
+        }.issubset(set(polygon["scenarios"])))
+        self.assertTrue({
+            "NO_AUTHORITY_SELF_EXPANSION",
+            "NO_ORDINARY_USER_EFFECT",
+            "SOURCE_AND_TARGET_ROLES_EXACT",
+            "PROVISIONED_CAPACITY_OWNER_BACKED",
+            "NO_RESOURCE_ABOVE_HARD_CAPACITY",
+            "NO_ORPHANED_CONTROLLED_RESOURCE",
+            "RESTORE_BARRIER_BEFORE_APPLY",
+            "ROLLBACK_BOUNDED_AND_IDEMPOTENT",
+            "STALE_DRAFT_OR_POLICY_FAILS_CLOSED",
+            "ONE_TRANSACTION_PER_LEASE",
+            "ONE_DURABLE_SUCCESSOR",
+            "NO_SYNTHETIC_PRODUCTION_CREDIT",
+        }.issubset(set(polygon["invariants"])))
+        self.assertFalse(result["authority_package"]["actionable"])
 
     def test_controlled_source_topology_authority_audit_is_exact_once(self):
         manifest = {
@@ -2069,6 +2250,100 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertIn(
                 "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
                 provision_live["AUTOMATIC_REENTRY_CONDITION"],
+            )
+            runtime_status["controlled_source_topology"].update({
+                "status": (
+                    "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
+                ),
+                "POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC": {
+                    "status": (
+                        "POST_TRIAL_DEDICATED_DRAFT_SELECTION_SUBOPTIMAL"
+                    ),
+                    "campaign_identity_count": 48,
+                    "campaign_identity_locations": {
+                        "1": 46,
+                        "vless": 1,
+                        "exec": 1,
+                    },
+                },
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN": {
+                    "exact_external_resource": (
+                        "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
+                        "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_"
+                        "CAPACITY_AT_LEAST_48"
+                    ),
+                    "exact_external_owner": (
+                        "EXTERNAL_EGRESS_PEER_OR_PROFILE_PROVIDER"
+                    ),
+                    "existing_owner_reentry": (
+                        "admin draft -> Matrix -> ranking"
+                    ),
+                },
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION": {
+                    "status": "EXTERNAL_RESOURCE_REQUIRED",
+                },
+            })
+            runtime_status["controlled_source_topology"][
+                "recommendation"
+            ].update({
+                "selected_option": "",
+                "selected_resource": "",
+                "required_authority_action": "",
+            })
+            runtime_status["controlled_source_topology"][
+                "authority_package"
+            ].update({
+                "actionable": False,
+                "exact_action": "",
+            })
+            runtime_status["controlled_source_topology"][
+                "authority_lifecycle"
+            ].update({
+                "status": "NONE",
+                "matching_current_preflight": False,
+                "decision": "",
+                "decision_id": "",
+            })
+            full_path_boundary = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                full_path_boundary["next_action"],
+                "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_"
+                "TARGET_CAPACITY_REQUIRED",
+            )
+            full_path_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                full_path_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "EXTERNAL_OWNER_REQUIRED",
+            )
+            self.assertEqual(
+                full_path_live["PROGRAM_TERMINAL_CLASS"].strip("`"),
+                "EXTERNAL_OWNER_REQUIRED",
+            )
+            self.assertEqual(
+                full_path_live["EXTERNAL_INPUT_TYPE"].strip("`"),
+                "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
+                "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_"
+                "CAPACITY_AT_LEAST_48",
+            )
+            self.assertEqual(
+                full_path_live[
+                    "CONTROLLED_SOURCE_TOPOLOGY_SELECTED_OPTION"
+                ].strip("`"),
+                "NONE",
+            )
+            self.assertIn(
+                "locations={\"1\":46,\"exec\":1,\"vless\":1}",
+                full_path_live["CURRENT_POOL_AND_CAMPAIGN_STATE"],
             )
             runtime_status.pop("controlled_source_topology")
             runtime_status[

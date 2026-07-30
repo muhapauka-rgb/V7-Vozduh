@@ -15275,16 +15275,53 @@ def controlled_source_topology_diagnostic(
         else {}
     )
     source_id = str(campaign.get("source_id") or "")
+    campaign_stages = sorted({
+        to_int(value, 0)
+        for value in (
+            list(campaign.get("remaining_stages") or [])
+            + list(campaign.get("completed_stages") or [])
+            + [campaign.get("current_stage")]
+        )
+        if to_int(value, 0) > 0
+    }) or [5, 10, 25, 48]
+    current_stage = max(1, to_int(campaign.get("current_stage"), 0) or 5)
+    campaign_completion_stage = max(campaign_stages)
     rows = [
         row for row in (target_diagnostic.get("targets") or [])
         if isinstance(row, dict)
     ]
+    registry_rows = parse_registry(Path(args.state_dir) / "egress.registry")
+    registry_by_id = {
+        str(row.get("id") or ""): row
+        for row in registry_rows
+        if str(row.get("id") or "")
+    }
+    assignment_rows = [
+        row for row in parse_registry(Path(args.state_dir) / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+    ]
+    source_registry = registry_by_id.get(source_id, {})
+    campaign_group = str(source_registry.get("certification_group") or "")
+    campaign_identity_rows = [
+        row for row in assignment_rows
+        if bool_value(row.get("certification_user"))
+        and (
+            not campaign_group
+            or str(row.get("certification_group") or "") == campaign_group
+        )
+    ]
+    campaign_identity_locations: dict[str, int] = {}
+    for row in campaign_identity_rows:
+        location = str(row.get("current") or "UNASSIGNED")
+        campaign_identity_locations[location] = (
+            campaign_identity_locations.get(location, 0) + 1
+        )
+    campaign_identity_count = len(campaign_identity_rows)
     reservation_owner = _controlled_source_reservation_owner_capability()
     certification_users = sorted(
         str(row.get("ip") or "")
-        for row in parse_registry(Path(args.state_dir) / "users.registry")
-        if bool_value(row.get("enabled", "1"))
-        and bool_value(row.get("certification_user"))
+        for row in assignment_rows
+        if bool_value(row.get("certification_user"))
         and str(row.get("current") or "") == source_id
         and str(row.get("ip") or "")
     )
@@ -15294,6 +15331,7 @@ def controlled_source_topology_diagnostic(
     rebind_candidates = []
     for row in rows:
         target_id = str(row.get("target_id") or "")
+        registry = registry_by_id.get(target_id, {})
         capacity = (
             row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
         )
@@ -15301,8 +15339,72 @@ def controlled_source_topology_diagnostic(
             row.get("quality") if isinstance(row.get("quality"), dict) else {}
         )
         ordinary_users = int(capacity.get("ordinary_users") or 0)
+        certification_user_count = int(
+            capacity.get("certification_users") or 0
+        )
+        assigned_rows = [
+            item for item in assignment_rows
+            if str(item.get("current") or "") == target_id
+        ]
+        assigned_certification_rows = [
+            item for item in assigned_rows
+            if bool_value(item.get("certification_user"))
+        ]
         free_capacity = int(capacity.get("free_capacity_after_reserve") or 0)
         empty = int(capacity.get("current_assigned_users") or 0) == 0
+        reservation_id = str(
+            registry.get("controlled_source_reservation_id") or ""
+        )
+        reservation_expires_at = str(
+            registry.get("controlled_source_reservation_expires_at") or ""
+        )
+        reservation_unexpired = bool(
+            reservation_id
+            and reservation_expires_at
+            and parse_ts(reservation_expires_at) > time.time()
+        )
+        reserved_controlled_source = bool(
+            bool_value(registry.get("controlled_certification_source"))
+            and bool_value(registry.get("execution_reserved"))
+            and bool_value(registry.get("canary_reserved"))
+            and str(registry.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and not bool_value(registry.get("autoswitch_allowed"))
+            and not bool_value(registry.get("rebalance_allowed"))
+            and str(
+                registry.get("production_assignment_allowed") or ""
+            ).lower() in {"0", "false", "no"}
+        )
+        reserved_group = str(registry.get("certification_group") or "")
+        assigned_groups = sorted({
+            str(item.get("certification_group") or "")
+            for item in assigned_certification_rows
+        })
+        reservation_group_aligned = bool(
+            not assigned_certification_rows
+            or (
+                reserved_group
+                and assigned_groups == [reserved_group]
+            )
+        )
+        campaign_group_aligned = bool(
+            not assigned_certification_rows
+            or (
+                campaign_group
+                and all(
+                    str(item.get("certification_group") or "")
+                    == campaign_group
+                    for item in assigned_certification_rows
+                )
+            )
+        )
+        continuing_reservation_valid = bool(
+            reserved_controlled_source
+            and ordinary_users == 0
+            and reservation_unexpired
+            and reservation_group_aligned
+            and campaign_group_aligned
+        )
         hard_gate_blockers = []
         if target_id == source_id:
             hard_gate_blockers.append("same_as_current_failed_source")
@@ -15314,8 +15416,28 @@ def controlled_source_topology_diagnostic(
             hard_gate_blockers.append(
                 "ordinary_users_share_whole_egress_failure_domain"
             )
-        if not empty:
+        if not empty and not reserved_controlled_source:
             hard_gate_blockers.append("source_not_empty_before_reservation")
+        if reserved_controlled_source and not reservation_unexpired:
+            hard_gate_blockers.append(
+                "controlled_source_reservation_expired"
+            )
+        if reserved_controlled_source and not reservation_group_aligned:
+            hard_gate_blockers.append(
+                "controlled_source_reservation_group_mismatch"
+            )
+        if reserved_controlled_source and not campaign_group_aligned:
+            hard_gate_blockers.append(
+                "controlled_source_campaign_group_mismatch"
+            )
+        if (
+            not empty
+            and reserved_controlled_source
+            and continuing_reservation_valid
+        ):
+            hard_gate_blockers.append(
+                "current_rebind_executor_supports_initial_empty_bootstrap_only"
+            )
         if free_capacity < 1:
             hard_gate_blockers.append("one_identity_capacity_unavailable")
         if not row.get("verification_supported"):
@@ -15331,18 +15453,53 @@ def controlled_source_topology_diagnostic(
             "protocol": str(row.get("protocol") or ""),
             "interface": str(row.get("interface") or ""),
             "ordinary_identities": ordinary_users,
-            "certification_identities": int(
-                capacity.get("certification_users") or 0
+            "certification_identities": certification_user_count,
+            "campaign_certification_identities": sum(
+                1
+                for item in assigned_certification_rows
+                if (
+                    campaign_group
+                    and str(item.get("certification_group") or "")
+                    == campaign_group
+                )
             ),
             "healthy_baseline": bool((row.get("health") or {}).get("ok")),
             "stability_pass": not bool(quality.get("blockers")),
             "free_capacity_after_reserve": free_capacity,
-            "supports_all_48_identities": free_capacity >= 48,
+            "supports_all_48_identities": (
+                free_capacity
+                + sum(
+                    1
+                    for item in assigned_certification_rows
+                    if (
+                        campaign_group
+                        and str(item.get("certification_group") or "")
+                        == campaign_group
+                    )
+                )
+                >= max(48, campaign_identity_count)
+            ),
             "separate_certification_policy_tables": True,
             "separate_route_rules": True,
             "independently_controllable_failure_boundary": bool(
+                ordinary_users == 0
+                and (empty or continuing_reservation_valid)
+            ),
+            "initial_empty_reservation_eligible": bool(
                 empty and ordinary_users == 0
             ),
+            "existing_controlled_reservation": {
+                "present": reserved_controlled_source,
+                "reservation_id": reservation_id,
+                "expires_at": reservation_expires_at,
+                "unexpired": reservation_unexpired,
+                "reservation_group": reserved_group,
+                "assigned_certification_groups": assigned_groups,
+                "reservation_group_aligned": reservation_group_aligned,
+                "campaign_group": campaign_group,
+                "campaign_group_aligned": campaign_group_aligned,
+                "continuation_valid": continuing_reservation_valid,
+            },
             "reservation_owner_ready": (
                 reservation_owner.get("status") == "READY"
             ),
@@ -15382,7 +15539,15 @@ def controlled_source_topology_diagnostic(
             str(row.get("draft_id") or ""),
         )
     )
-    selected_draft = ready_drafts[0] if ready_drafts else {}
+    campaign_capable_drafts = [
+        row for row in ready_drafts
+        if int(row.get("one_identity_trial_capacity") or 0) >= current_stage
+        and int(row.get("one_identity_trial_capacity") or 0)
+        >= campaign_completion_stage
+    ]
+    selected_draft = (
+        campaign_capable_drafts[0] if campaign_capable_drafts else {}
+    )
 
     occupied_slice_rows = [
         row for row in rows
@@ -15606,10 +15771,30 @@ def controlled_source_topology_diagnostic(
             "result": (
                 "AUTHORITY_INPUT_REQUIRED"
                 if selected_draft else
+                "UNSAFE_BY_PROVEN_INVARIANT"
+                if ready_drafts else
                 "EXTERNAL_RESOURCE_REQUIRED"
             ),
             "selected_draft": selected_draft,
             "drafts": drafts,
+            "bootstrap_only_ready_drafts": [
+                {
+                    "draft_id": str(row.get("draft_id") or ""),
+                    "hard_capacity": int(row.get("hard_capacity") or 0),
+                    "usable_capacity_after_reserve": int(
+                        row.get("one_identity_trial_capacity") or 0
+                    ),
+                    "current_stage": current_stage,
+                    "campaign_completion_stage": (
+                        campaign_completion_stage
+                    ),
+                    "classification": (
+                        "BOOTSTRAP_ONLY_NO_CREDIBLE_CAMPAIGN_SUCCESSOR"
+                    ),
+                }
+                for row in ready_drafts
+                if row not in campaign_capable_drafts
+            ],
             "existing_owner": (
                 "admin/v7-admin-api egress draft preflight, quarantine, "
                 "disabled pool, runtime profile and enable lifecycle"
@@ -15627,11 +15812,436 @@ def controlled_source_topology_diagnostic(
             "equivalent_safe_implementation_routes_to_option_2": True,
         },
     }
+    repairable_source_candidates = sorted(
+        (
+            row for row in rebind_candidates
+            if (
+                str(row.get("source_id") or "") != source_id
+                and int(row.get("ordinary_identities") or 0) == 0
+                and row.get("healthy_baseline")
+                and row.get("stability_pass")
+                and row.get("supports_all_48_identities")
+                and row.get("existing_controlled_reservation", {}).get(
+                    "present"
+                )
+            )
+        ),
+        key=lambda row: (
+            -int(row.get("free_capacity_after_reserve") or 0),
+            str(row.get("source_id") or ""),
+        ),
+    )
+    selected_repairable_source = (
+        repairable_source_candidates[0]
+        if repairable_source_candidates else {}
+    )
+    controlled_target_rows = [
+        row for row in rows
+        if row.get("controlled_rebind_eligible")
+    ]
+    full_campaign_target_rows = [
+        row for row in controlled_target_rows
+        if int(
+            (row.get("capacity") or {}).get(
+                "campaign_completion_safe_scope"
+            )
+            or 0
+        ) >= campaign_completion_stage
+    ]
+    pinned_target_id = str(campaign.get("pinned_target_id") or "")
+    pinned_target = next((
+        row for row in rows
+        if str(row.get("target_id") or "") == pinned_target_id
+    ), {})
+    selected_full_source = selected_rebind or selected_repairable_source
+    selected_full_target = (
+        full_campaign_target_rows[0]
+        if full_campaign_target_rows else {}
+    )
+    stage_plan = []
+    for stage in campaign_stages:
+        stage_targets = [
+            row for row in controlled_target_rows
+            if (
+                str(row.get("target_id") or "")
+                != str(selected_full_source.get("source_id") or "")
+                and int(
+                    (row.get("capacity") or {}).get(
+                        "current_stage_safe_scope"
+                    )
+                    or 0
+                ) >= stage
+            )
+        ]
+        stage_target = stage_targets[0] if stage_targets else {}
+        source_ready = bool(selected_rebind)
+        target_ready = bool(stage_target)
+        residuals = []
+        if not source_ready:
+            residuals.extend(
+                list(
+                    selected_repairable_source.get(
+                        "hard_gate_blockers"
+                    ) or [
+                        "healthy_isolated_controlled_source_required"
+                    ]
+                )
+            )
+        if not target_ready:
+            residuals.append(
+                "controlled_target_capacity_and_isolation_required"
+            )
+        stage_plan.append({
+            "stage": stage,
+            "source": str(
+                selected_full_source.get("source_id") or ""
+            ),
+            "target_or_target_set": (
+                [str(stage_target.get("target_id") or "")]
+                if stage_target else []
+            ),
+            "certification_cohort": stage,
+            "source_capacity_after_reserve": int(
+                selected_full_source.get(
+                    "free_capacity_after_reserve"
+                )
+                or 0
+            ),
+            "target_capacity_after_reserve": int(
+                (stage_target.get("capacity") or {}).get(
+                    "current_stage_safe_scope"
+                )
+                or 0
+            ),
+            "source_ordinary_users": int(
+                selected_full_source.get("ordinary_identities") or 0
+            ),
+            "target_ordinary_users": int(
+                (stage_target.get("capacity") or {}).get(
+                    "ordinary_users"
+                )
+                or 0
+            ),
+            "health_and_stability": {
+                "source_healthy": bool(
+                    selected_full_source.get("healthy_baseline")
+                ),
+                "source_stable": bool(
+                    selected_full_source.get("stability_pass")
+                ),
+                "target_healthy": bool(
+                    (stage_target.get("health") or {}).get("ok")
+                ),
+                "target_stable": not bool(
+                    (stage_target.get("quality") or {}).get("blockers")
+                ),
+            },
+            "failure_boundary": (
+                "whole isolated controlled source only"
+            ),
+            "verification_boundary": (
+                "per-user + aggregate + ordinary-route invariance"
+            ),
+            "containment_and_rollback": (
+                "existing packet-bound bounded idempotent rollback"
+            ),
+            "authority_action_required": (
+                "NONE"
+                if source_ready and target_ready
+                else "MINIMAL_STANDING_ENVELOPE_AFTER_RESOURCE_PROOF"
+            ),
+            "delegated_policy_eligible": bool(
+                source_ready and target_ready
+                and topology_policy_admission.get("ok")
+            ),
+            "current_feasibility": bool(
+                source_ready and target_ready
+            ),
+            "future_residual": sorted(set(residuals)),
+        })
+    current_source_row = next((
+        row for row in rebind_candidates
+        if str(row.get("source_id") or "") == source_id
+    ), {})
+    post_trial_classification = (
+        "POST_TRIAL_DEDICATED_DRAFT_SELECTION_SUBOPTIMAL"
+        if ready_drafts and not campaign_capable_drafts
+        else "POST_TRIAL_DEDICATED_DRAFT_SELECTION_CORRECT"
+        if selected_draft
+        else "POST_TRIAL_CONTROLLED_TOPOLOGY_NO_EXECUTABLE_FULL_PATH"
+    )
+    post_trial_diagnostic = {
+        "schema_version": (
+            "v7.post-trial-controlled-topology-decision-diagnostic.v1"
+        ),
+        "status": post_trial_classification,
+        "campaign_identity_count": campaign_identity_count,
+        "campaign_identity_group": campaign_group,
+        "campaign_identity_locations": dict(
+            sorted(campaign_identity_locations.items())
+        ),
+        "all_48_identities_accounted_for": (
+            campaign_identity_count == 48
+            and sum(campaign_identity_locations.values()) == 48
+        ),
+        "trial_identity": "10.7.0.100"
+        if any(
+            str(row.get("ip") or "") == "10.7.0.100"
+            for row in campaign_identity_rows
+        ) else "",
+        "trial_identity_current_location": next((
+            str(row.get("current") or "")
+            for row in campaign_identity_rows
+            if str(row.get("ip") or "") == "10.7.0.100"
+        ), ""),
+        "current_campaign_source": {
+            "source_id": source_id,
+            "health": current_source_row.get("healthy_baseline"),
+            "stability": current_source_row.get("stability_pass"),
+            "campaign_identities": int(
+                campaign_identity_locations.get(source_id, 0)
+            ),
+        },
+        "post_trial_resource": {
+            "source_id": str(
+                selected_repairable_source.get("source_id") or ""
+            ),
+            "ordinary_users": int(
+                selected_repairable_source.get(
+                    "ordinary_identities"
+                )
+                or 0
+            ),
+            "certification_users": int(
+                selected_repairable_source.get(
+                    "certification_identities"
+                )
+                or 0
+            ),
+            "free_capacity_after_reserve": int(
+                selected_repairable_source.get(
+                    "free_capacity_after_reserve"
+                )
+                or 0
+            ),
+            "healthy": bool(
+                selected_repairable_source.get("healthy_baseline")
+            ),
+            "stable": bool(
+                selected_repairable_source.get("stability_pass")
+            ),
+            "reservation": (
+                selected_repairable_source.get(
+                    "existing_controlled_reservation"
+                )
+                or {}
+            ),
+            "can_accept_full_campaign_pool": bool(
+                selected_repairable_source.get(
+                    "supports_all_48_identities"
+                )
+            ),
+            "can_remain_controlled_source_now": bool(
+                selected_repairable_source.get(
+                    "technically_feasible"
+                )
+            ),
+            "controlled_failure_safe_now": bool(
+                selected_repairable_source.get(
+                    "independently_controllable_failure_boundary"
+                )
+            ),
+        },
+        "campaign_target": {
+            "pinned_target_id": pinned_target_id,
+            "pinned_target_capacity_after_reserve": int(
+                (pinned_target.get("capacity") or {}).get(
+                    "free_capacity_after_reserve"
+                )
+                or 0
+            ),
+            "pinned_target_full_live_admission": bool(
+                pinned_target.get("full_live_admission")
+            ),
+            "full_campaign_target_available": bool(
+                selected_full_target
+            ),
+            "selected_full_campaign_target": str(
+                selected_full_target.get("target_id") or ""
+            ),
+        },
+        "dedicated_draft_selection_cause": {
+            "selected_as": "DEDICATED_SOURCE_FALLBACK",
+            "selection_rule": (
+                "empty-source-only Option 1 gate followed by "
+                "one-identity draft preflight ranking"
+            ),
+            "current_stage": current_stage,
+            "campaign_completion_stage": campaign_completion_stage,
+            "ready_draft_count": len(ready_drafts),
+            "campaign_capable_draft_count": len(
+                campaign_capable_drafts
+            ),
+            "hard_capacity_two_blocks_5_10_25_48": bool(
+                ready_drafts
+                and all(
+                    int(row.get("one_identity_trial_capacity") or 0)
+                    < current_stage
+                    for row in ready_drafts
+                )
+            ),
+            "optimized_only_next_one_user_step": bool(
+                ready_drafts and not campaign_capable_drafts
+            ),
+            "stale_recommendation": False,
+            "source_target_role_transition_consumed": bool(
+                str(
+                    selected_repairable_source.get("source_id") or ""
+                ) == source_id
+            ),
+            "exact_defects": sorted(set(
+                (
+                    selected_repairable_source.get(
+                        "hard_gate_blockers"
+                    )
+                    or []
+                )
+                + (
+                    [
+                        "campaign_source_binding_not_updated_after_trial",
+                        "draft_ranking_has_no_campaign_completion_gate",
+                    ]
+                    if ready_drafts and not campaign_capable_drafts
+                    else []
+                )
+            )),
+        },
+        "production_effect_performed": False,
+    }
+    topology_plan = {
+        "schema_version": (
+            "v7.controlled-certification-campaign-topology-plan.v1"
+        ),
+        "controlled_source": str(
+            selected_full_source.get("source_id") or ""
+        ),
+        "failover_target_or_target_set": (
+            [str(selected_full_target.get("target_id") or "")]
+            if selected_full_target else []
+        ),
+        "reset_recovery_path": (
+            "verify source recovery -> restore exact certification "
+            "assignments -> verify baseline -> release or renew exact "
+            "reservation -> fresh generation"
+        ),
+        "stages": stage_plan,
+        "current_next_action_feasible": bool(
+            stage_plan and stage_plan[0].get("current_feasibility")
+        ),
+        "campaign_completion_feasible": bool(
+            stage_plan
+            and all(row.get("current_feasibility") for row in stage_plan)
+        ),
+        "source_target_roles_exact": bool(
+            selected_full_source
+            and (
+                not selected_full_target
+                or str(selected_full_source.get("source_id") or "")
+                != str(selected_full_target.get("target_id") or "")
+            )
+        ),
+        "exact_external_resource": (
+            "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
+            "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_CAPACITY_"
+            f"AT_LEAST_{campaign_completion_stage}"
+            if not selected_full_target else "NONE"
+        ),
+        "exact_external_owner": (
+            "EXTERNAL_EGRESS_PEER_OR_PROFILE_PROVIDER"
+            if not selected_full_target else "NONE"
+        ),
+        "existing_owner_reentry": (
+            "admin egress-draft lifecycle -> Matrix/quality/capacity "
+            "diagnostic -> same topology ranking"
+        ),
+    }
+    full_path_recommendation = {
+        "schema_version": (
+            "v7.controlled-certification-campaign-topology-"
+            "recommendation.v1"
+        ),
+        "status": (
+            "READY_NOW"
+            if topology_plan["campaign_completion_feasible"]
+            else "EXTERNAL_RESOURCE_REQUIRED"
+            if not selected_full_target
+            else "ENGINEERING_CLOSURE_REQUIRED"
+        ),
+        "selected_full_path_topology": {
+            "source": topology_plan["controlled_source"],
+            "target_or_target_set": (
+                topology_plan["failover_target_or_target_set"]
+            ),
+        },
+        "next_bounded_action": (
+            "CONTINUE_STAGE_" + str(current_stage)
+            if topology_plan["current_next_action_feasible"]
+            else "OBTAIN_OWNER_VERIFIED_FULL_CAMPAIGN_TARGET_CAPACITY"
+            if not selected_full_target
+            else "REPAIR_EXISTING_CONTROLLED_SOURCE_RESERVATION_AND_GROUP"
+        ),
+        "stages_supported_now": [
+            row["stage"]
+            for row in stage_plan
+            if row.get("current_feasibility")
+        ],
+        "rejected_options": {
+            "CAPACITY_2_DRAFT": [
+                "usable capacity below current stage",
+                "no credible successor to 5/10/25/48",
+            ] if ready_drafts and not campaign_capable_drafts else [],
+            "OCCUPIED_ORDINARY_EGRESS": slice_blockers,
+            "CURRENT_PINNED_TARGET": list(
+                pinned_target.get("exclusion_reasons") or []
+            ),
+        },
+        "engineering_changes_required": sorted(set(
+            list(
+                selected_repairable_source.get(
+                    "hard_gate_blockers"
+                )
+                or []
+            )
+            + ["consume source-role transition into campaign binding"]
+        )),
+        "delegated_authority_changes_required": (
+            [
+                "renew exact controlled egress reservation",
+                "bind exact certification cohort to controlled source",
+                "restore controlled certification baseline",
+            ]
+            if selected_repairable_source else []
+        ),
+        "external_inputs_required": (
+            [topology_plan["exact_external_resource"]]
+            if topology_plan["exact_external_resource"] != "NONE"
+            else []
+        ),
+        "automatic_successor_chain": (
+            "external resource owner -> existing draft lifecycle -> "
+            "Matrix/quality/capacity -> topology diagnostic -> minimal "
+            "standing-policy request -> Candidate/Packet/lease -> stages "
+            "5/10/25/48"
+        ),
+    }
     result = {
         "schema_version": "v7.controlled-source-topology-capability-map.v1",
         "status": (
             "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
             if preflight_ready else
+            "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
+            if full_path_recommendation.get("status")
+            == "EXTERNAL_RESOURCE_REQUIRED" else
             "CONTROLLED_SOURCE_TOPOLOGY_NO_SAFE_OPTION"
         ),
         "ok": True,
@@ -15640,6 +16250,13 @@ def controlled_source_topology_diagnostic(
         "current_campaign": campaign,
         "reservation_owner_capability": reservation_owner,
         "options": options,
+        "POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC": (
+            post_trial_diagnostic
+        ),
+        "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN": topology_plan,
+        "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION": (
+            full_path_recommendation
+        ),
         "recommendation": {
             "schema_version": "v7.controlled-source-topology-recommendation.v1",
             "selected_option": selected_option,
@@ -15648,9 +16265,12 @@ def controlled_source_topology_diagnostic(
                 "live healthy empty owner-backed egress with capacity for all "
                 "48 identities and reversible ordinary-assignment fence"
                 if selected_rebind else
-                "existing valid dedicated draft supports one-identity preflight"
+                "existing valid dedicated draft supports the current stage "
+                "and the full remaining campaign"
                 if selected_draft else
-                "no option passed hard safety gates"
+                "capacity-2 drafts are bootstrap-only; current controlled "
+                "source lifecycle needs repair and no owner-backed target "
+                "can complete stages 5/10/25/48"
             ),
             "rejected_options": {
                 "OPTION_3_CONTROLLED_SLICE": slice_blockers,
@@ -15666,8 +16286,10 @@ def controlled_source_topology_diagnostic(
                 else ["implement atomic controlled-source reserve/release"]
             ),
             "required_authority_action": required_authority_action,
-            "required_external_input": "NONE" if selected_option else (
-                "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
+            "required_external_input": (
+                "NONE" if selected_option else
+                str(topology_plan.get("exact_external_resource") or "")
+                or "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
             ),
             "rollback_plan": manifest["rollback"],
             "next_automatic_successor": (
@@ -15714,30 +16336,51 @@ def controlled_source_topology_diagnostic(
         "standing_policy_admission": topology_policy_admission,
         "polygon_fault_verification_contract": {
             "scenarios": [
+                "valid_existing_draft_activation",
+                "invalid_or_quarantined_draft_rejection",
+                "draft_hard_capacity_below_requested_cohort",
+                "stale_draft_generation",
+                "source_target_role_confusion",
+                "occupied_egress_rejection",
+                "provisioning_without_rollback_rejection",
                 "reserve_or_create",
                 "one_identity_assignment",
                 "healthy_baseline",
                 "cohort_specific_failure",
                 "ordinary_user_invariance",
+                "ordinary_user_route_mutation_rejection",
                 "recovery",
                 "rollback",
                 "duplicate_wake",
+                "duplicate_provisioning_request",
                 "concurrent_planner",
                 "stale_inventory",
                 "crash_after_resource_creation",
+                "crash_after_interface_or_route_creation",
                 "crash_after_assignment",
                 "crash_after_failure_injection",
                 "crash_during_rollback",
                 "expired_lease",
+                "policy_revocation",
                 "cleanup_after_success",
                 "cleanup_after_failure",
+                "selection_change_after_live_inventory_change",
+                "next_stage_automatic_continuation",
             ],
             "invariants": [
+                "NO_AUTHORITY_SELF_EXPANSION",
                 "ORDINARY_USER_ASSIGNMENTS_UNCHANGED",
                 "ORDINARY_USER_ROUTES_UNCHANGED",
+                "NO_ORDINARY_USER_EFFECT",
+                "SOURCE_AND_TARGET_ROLES_EXACT",
                 "CONTROLLED_FAILURE_SCOPE_EXACT",
                 "CONTROLLED_BASELINE_VERIFIABLE",
+                "PROVISIONED_CAPACITY_OWNER_BACKED",
+                "NO_RESOURCE_ABOVE_HARD_CAPACITY",
                 "ROLLBACK_BOUNDED_AND_IDEMPOTENT",
+                "RESTORE_BARRIER_BEFORE_APPLY",
+                "STALE_DRAFT_OR_POLICY_FAILS_CLOSED",
+                "ONE_TRANSACTION_PER_LEASE",
                 "NO_PRIVATE_KEY_DISCLOSURE",
                 "NO_ORPHANED_CONTROLLED_RESOURCE",
                 "ONE_DURABLE_SUCCESSOR",
@@ -15752,7 +16395,7 @@ def controlled_source_topology_diagnostic(
             + required_authority_action
             if preflight_ready else
             "EXTERNAL_RESOURCE_REQUIRED:"
-            "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
+            + str(topology_plan.get("exact_external_resource") or "")
         ),
         "forbidden_effects": forbidden_effects,
     }
@@ -15761,6 +16404,9 @@ def controlled_source_topology_diagnostic(
         "options": options,
         "recommendation": result["recommendation"],
         "production_preflight": result["production_preflight"],
+        "post_trial_diagnostic": post_trial_diagnostic,
+        "campaign_topology_plan": topology_plan,
+        "campaign_topology_recommendation": full_path_recommendation,
     })
     return result
 

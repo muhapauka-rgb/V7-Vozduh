@@ -2314,6 +2314,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_"
                 "TARGET_CAPACITY_REQUIRED",
             )
+            self.assertEqual(
+                full_path_boundary["behavior_change"],
+                "CONTROLLED_TOPOLOGY_FULL_PATH_SELECTION_RUNTIME_CONSUMED",
+            )
             full_path_live = self.sync._markdown_field_table(
                 self.sync._markdown_section(
                     cps_path.read_text(encoding="utf-8"),

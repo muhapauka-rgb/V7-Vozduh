@@ -20039,6 +20039,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if controlled_source_topology_authority_required else
             "CONTROLLED_SOURCE_TOPOLOGY_APPROVAL_CONSUMED_TO_PACKET_PREFLIGHT_SUCCESSOR"
             if controlled_source_topology_authority_approved else
+            "CONTROLLED_TOPOLOGY_FULL_PATH_SELECTION_RUNTIME_CONSUMED"
+            if controlled_topology_full_path_external else
             "TIER48_APPROVED_SOURCE_BASELINE_BLOCKER_ATOMICALLY_PROJECTED"
             if m8_approved_source_baseline_blocked else
             "TIER48_ACTIVE_CONTROLLED_POOL_BOUNDARY_ATOMICALLY_PROJECTED"

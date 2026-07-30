@@ -2678,6 +2678,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             expected_decision = (
                 "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain_frontier else
                 continuation_decision if waiting_input_frontier else
+                "SAFE_REENTRY_PENDING_EXISTING_MATRIX_QUALITY_OBSERVATION"
+                if safe_reentry_frontier else
                 "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
                 "WAIT_EXTERNAL_TRIGGER" if heartbeat_reentry_active else
                 "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier else
@@ -2704,6 +2706,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             elif bounded_continue_omp_frontier:
                 pass
             elif waiting_input_frontier:
+                pass
+            elif safe_reentry_frontier:
                 pass
             elif not program_terminal_state.startswith("NONE_"):
                 errors.append("program_frontier_terminal_state_invalid")

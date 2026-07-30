@@ -38,13 +38,24 @@ Run Nonce: `V7_STCR_20260730T111500+0700`
 ## Production verification
 
 - Deploy commits: `ba448222`, `3a8b2135`, `d1ed3b37`, `3c4ce8ae`,
-  `19225830`, `e84ee0b1` through `tools/v7-safe-deploy`.
-- Final local/GitHub/production identity: `e84ee0b17f002a46a3a2b7bea61699245d8aaae2`.
+  `19225830`, `e84ee0b1`, `dc0d9bdd` through `tools/v7-safe-deploy`.
+- Final local/GitHub/production identity:
+  `dc0d9bddb704f9bdf18d0fc540549e87dbe83877`.
 - Production caller: `/usr/local/bin/v7-users-autoswitch --controlled-source-topology-diagnostic`.
 - Production consumer output:
   `CONTROLLED_TOPOLOGY_SHARED_TARGET_REVALIDATION_REQUIRED` and
   `SAFE_REENTRY_REQUIRED:ACTUAL_SOURCE_DISTINCT_SHARED_TARGET_REVALIDATION`.
-- Truth and convergence before CPS reconciliation: `PASS`, `FULLY_ALIGNED`.
+- Final `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`.
+- Final `tools/v7-convergence-status --json`: `ALIGNED`.
+
+## Финальная canonical reconciliation
+
+Проверен и deployed существующий CPS/OMP projection owner. Он признаёт
+`WAITING_OWNER_EVENT:*` как отдельный безопасный terminal, поэтому не требует
+искусственно подменять WIP capability-local wait глобальным
+`REAL_WORLD_LIMIT`. Existing atomic CPS -> OMP reconciler теперь обновляет и
+`Current terminal report`, и `Latest consumed report`; тест фиксирует это
+поведение. Изменение не создаёт Runtime, Planner, Authority или policy owner.
 
 ## Legal terminal
 

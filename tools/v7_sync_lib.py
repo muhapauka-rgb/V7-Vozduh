@@ -1158,6 +1158,12 @@ def atomic_reconcile_omp_current_pointer_from_cps(
         )
         if include_report:
             candidate = re.sub(
+                r"(?m)^Current terminal report:\s*`[^`]+`$",
+                f"Current terminal report: `{report}`",
+                candidate,
+                count=1,
+            )
+            candidate = re.sub(
                 r"(?m)^Latest consumed report:\s*`[^`]+`$",
                 f"Latest consumed report: `{report}`",
                 candidate,
@@ -1184,6 +1190,7 @@ def atomic_reconcile_omp_current_pointer_from_cps(
             f"Resolved current next action: `{next_action}`",
         ]
         if include_report:
+            required.append(f"Current terminal report: `{report}`")
             required.append(f"Latest consumed report: `{report}`")
         if not all(item in candidate for item in required):
             raise ValueError(f"omp_pointer_fields_missing:{start}")
@@ -2206,6 +2213,7 @@ def delegated_policy_live_state_consistency(
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
     )
+    safe_reentry_frontier = program_frontier.startswith("WAITING_OWNER_EVENT:")
     policy_active = (
         live.get("CURRENT_MODE", "").strip("`") in {
             "BOUNDED_DELEGATED_AUTONOMY_ACTIVE",
@@ -2367,6 +2375,7 @@ def delegated_policy_live_state_consistency(
             not independent_program_frontier
             or controlled_certification_safe_frontier
             or external_owner_terminal
+            or safe_reentry_frontier
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
     )
@@ -22703,6 +22712,7 @@ def cps_live_state_consistency(
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
     )
+    safe_reentry_frontier = program_frontier.startswith("WAITING_OWNER_EVENT:")
     next_projection = {
         next_action,
         registry.get("EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID", ""),
@@ -22739,6 +22749,7 @@ def cps_live_state_consistency(
             and not active_incident_drain_frontier
             and not controlled_certification_safe_frontier
             and not external_owner_terminal
+            and not safe_reentry_frontier
             and "REAL_WORLD_LIMIT" not in wip_stop
         )
     ):

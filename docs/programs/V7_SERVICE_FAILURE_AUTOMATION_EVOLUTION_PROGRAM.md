@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.8`
+Version: `2.9`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,7 +9,38 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V2.8 active executable revision — post-trial full-path topology selection
+## V2.9 active executable revision — shared production target capacity and role-safe re-entry
+
+V2.9 consumes the existing target inventory, Matrix, quality, capacity and
+topology owners; it introduces no Program, Planner, Runtime, registry, queue,
+watcher, scheduler, Authority owner, policy store, execution owner or evidence
+store. A controlled source remains isolated because only it may receive a
+deliberate controlled condition. A healthy shared egress may be a destination
+only when its ordinary-user reserve and SLO gates are owner-backed, its target
+is never fault-injected, ordinary assignment and route deltas remain zero, and
+every selected target is distinct from the actual controlled source.
+
+Current CPS-derived terminal: `SHARED_TARGET_CAPACITY_CONSUMED_SAFE_REENTRY_PUBLISHED`.
+Current terminal report:
+`docs/reports/engineering/2026-07-30_111500_shared_production_target_capacity_and_safe_reentry.md`.
+Live stop, next action and scheduling remain CPS-owned; this program text is
+only the durable operating rule for that existing projection.
+
+Technical capacity is never an implicit policy grant. The projection may only
+publish `EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED`; it
+never creates a Candidate, Packet, lease, restore barrier, policy write or
+production action. If the only currently feasible allocation equals the actual
+controlled source, the terminal is not `EXTERNAL_OWNER_REQUIRED`:
+
+`SAFE_REENTRY_REQUIRED:ACTUAL_SOURCE_DISTINCT_SHARED_TARGET_REVALIDATION`.
+
+The existing Matrix/quality owner automatically re-enters the same topology
+diagnostic on its next fresh observation. It may publish a successor only for
+a distinct target set satisfying health, stability, capacity/reserve,
+verification and rollback gates. Otherwise it preserves this exact safe
+boundary. No Authority or production effect is legal at that terminal.
+
+## V2.8 historical executable revision — post-trial full-path topology selection
 
 V2.8 admits the exact residual
 `CONTROLLED_TOPOLOGY_CONTINUATION_PATH_AND_DELEGATED_PROVISIONING_V1`

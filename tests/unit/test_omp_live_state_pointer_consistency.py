@@ -152,6 +152,9 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             ).replace(
                 f"Resolved current next action: `{self.state['current_next_action_id']}`",
                 "Resolved current next action: `STALE_AUTHORITY_REQUEST`",
+            ).replace(
+                f"Current terminal report: `{self.state['latest_terminal_mission_report']}`",
+                "Current terminal report: `docs/reports/engineering/stale.md`",
             )
             (programs / OMP.name).write_text(drift, encoding="utf-8")
             result = self.lib.atomic_reconcile_omp_current_pointer_from_cps(
@@ -160,6 +163,10 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             reconciled = (programs / OMP.name).read_text(encoding="utf-8")
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["status"], "OMP_POINTER_ATOMIC_UPDATE_APPLIED")
+        self.assertIn(
+            f"Current terminal report: `{self.state['latest_terminal_mission_report']}`",
+            reconciled,
+        )
         self.assertEqual(
             self.lib.omp_live_state_consistency(self.cps, reconciled)[
                 "final_verdict"

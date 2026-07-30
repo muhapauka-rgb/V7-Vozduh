@@ -3097,6 +3097,95 @@ class AutoswitchPlanner:
         if not source_incident_id or not source_channel or baseline_count < 0 or not baseline_fingerprint:
             return {}
 
+        if str(existing.get("incident_state") or "") == "INTENT_CLOSED":
+            # A closed protection intent is a terminal historical scope, not a
+            # live cohort.  Re-evaluating it against a later users.registry
+            # generation can incorrectly reopen the old incident when a user
+            # legitimately returns to the same channel.  Freeze the compact
+            # denominator from its owner-backed terminal projection and keep
+            # all later route truth for a new incident generation.
+            existing_protected = max(
+                0,
+                min(
+                    baseline_count,
+                    to_int(
+                        existing_scope.get(
+                            "protected_scope_count",
+                            existing.get("protected_scope_count"),
+                        ),
+                        0,
+                    ),
+                ),
+            )
+            terminal_excluded = baseline_count - existing_protected
+            protected_pointers = sorted({
+                str(item)
+                for item in (
+                    existing_scope.get("protected_scope_lineage_pointers")
+                    or existing.get("protected_scope_lineage_pointers")
+                    or []
+                )
+                if str(item)
+            })
+            closure_pointers = sorted({
+                str(item)
+                for item in (
+                    existing_scope.get("explicitly_excluded_or_recovered_lineage_pointers")
+                    or existing.get("explicitly_excluded_or_recovered_lineage_pointers")
+                    or []
+                )
+                if str(item)
+            })
+            closure_evidence = str(existing.get("intent_closure_evidence_pointer") or "")
+            if closure_evidence:
+                closure_pointers = sorted(set(closure_pointers) | {closure_evidence})
+            terminal_fingerprint_basis = {
+                "incident": source_incident_id,
+                "baseline_scope_fingerprint": baseline_fingerprint,
+                "terminal_scope_frozen": True,
+            }
+            return {
+                "schema_version": "v7.service-failure-incident-scope-accounting.v2",
+                "status": "ACCOUNTED",
+                "baseline_event_id": str(existing_scope.get("baseline_event_id") or ""),
+                "baseline_observed_at": str(existing_scope.get("baseline_observed_at") or ""),
+                "affected_scope_count": baseline_count,
+                "affected_scope_fingerprint": baseline_fingerprint,
+                "protected_scope_count": existing_protected,
+                "protected_scope_fingerprint": sha256_json({
+                    **terminal_fingerprint_basis,
+                    "category": "protected",
+                    "count": existing_protected,
+                    "lineage_pointers": protected_pointers,
+                }),
+                "protected_scope_lineage_pointers": protected_pointers,
+                "unresolved_scope_count": 0,
+                "unresolved_scope_fingerprint": sha256_json({
+                    **terminal_fingerprint_basis,
+                    "category": "unresolved",
+                    "count": 0,
+                }),
+                "unresolved_scope_route_truth_owner": "terminal_intent_closure",
+                "explicitly_excluded_or_recovered_scope_count": terminal_excluded,
+                "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({
+                    **terminal_fingerprint_basis,
+                    "category": "explicitly_excluded_or_recovered",
+                    "count": terminal_excluded,
+                    "lineage_pointers": closure_pointers,
+                }),
+                "explicitly_excluded_or_recovered_lineage_pointers": closure_pointers,
+                "nonmember_or_stale_feedback_pointers": sorted({
+                    str(item)
+                    for item in existing_scope.get("nonmember_or_stale_feedback_pointers", [])
+                    if str(item)
+                }),
+                "accounted_scope_count": baseline_count,
+                "live_registry_available": (self.state_dir / "users.registry").exists(),
+                "raw_user_list_stored": False,
+                "scope_membership_law": "INTENT_CLOSED_TERMINAL_SCOPE_FROZEN",
+                "terminal_scope_frozen": True,
+            }
+
         live_registry_available = (self.state_dir / "users.registry").exists()
         live_rows = parse_registry(self.state_dir / "users.registry") if live_registry_available else []
         live_current = {

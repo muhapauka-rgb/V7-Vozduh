@@ -2485,6 +2485,85 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["incident_cumulative_scope"]["current_source_scope_fingerprint"], "newscope")
         self.assertEqual(record["incident_cumulative_scope"]["lineage_pointers"], ["execfb_old"])
 
+    def test_closed_incident_scope_is_frozen_from_later_live_route_generations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            existing = {
+                "incident_id": "sfinc_closed_scope",
+                "source_channel": "vless",
+                "incident_state": "INTENT_CLOSED",
+                "intent_closure_evidence_pointer": "closure_recovery",
+                "scope_accounting": {
+                    "baseline_event_id": "sfrev_closed",
+                    "baseline_observed_at": "2026-07-27T03:00:00+00:00",
+                    "affected_scope_count": 0,
+                    "affected_scope_fingerprint": "closed_scope",
+                    "unresolved_scope_count": 1,
+                    "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                },
+            }
+            scope = planner._reconcile_incident_scope_accounting(
+                existing=existing,
+                execution_rows=[],
+            )
+        self.assertEqual(scope["status"], "ACCOUNTED")
+        self.assertEqual(scope["affected_scope_count"], 0)
+        self.assertEqual(scope["protected_scope_count"], 0)
+        self.assertEqual(scope["unresolved_scope_count"], 0)
+        self.assertEqual(scope["explicitly_excluded_or_recovered_scope_count"], 0)
+        self.assertEqual(scope["accounted_scope_count"], 0)
+        self.assertTrue(scope["terminal_scope_frozen"])
+        self.assertEqual(
+            scope["scope_membership_law"],
+            "INTENT_CLOSED_TERMINAL_SCOPE_FROZEN",
+        )
+
+    def test_closed_partial_scope_assigns_terminal_residual_to_recovered_category(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            existing = {
+                "incident_id": "sfinc_closed_partial_scope",
+                "source_channel": "vless",
+                "incident_state": "INTENT_CLOSED",
+                "intent_closure_evidence_pointer": "closure_partial_recovery",
+                "scope_accounting": {
+                    "baseline_event_id": "sfrev_closed_partial",
+                    "baseline_observed_at": "2026-07-27T03:00:00+00:00",
+                    "affected_scope_count": 5,
+                    "affected_scope_fingerprint": "closed_partial_scope",
+                    "protected_scope_count": 1,
+                    "protected_scope_lineage_pointers": ["execfb_protected"],
+                },
+            }
+            scope = planner._reconcile_incident_scope_accounting(
+                existing=existing,
+                execution_rows=[],
+            )
+        self.assertEqual(scope["status"], "ACCOUNTED")
+        self.assertEqual(scope["affected_scope_count"], 5)
+        self.assertEqual(scope["protected_scope_count"], 1)
+        self.assertEqual(scope["unresolved_scope_count"], 0)
+        self.assertEqual(scope["explicitly_excluded_or_recovered_scope_count"], 4)
+        self.assertEqual(scope["accounted_scope_count"], 5)
+        self.assertEqual(
+            scope["explicitly_excluded_or_recovered_lineage_pointers"],
+            ["closure_partial_recovery"],
+        )
+
     def test_cumulative_scope_retains_missing_binding_without_claiming_current_membership(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

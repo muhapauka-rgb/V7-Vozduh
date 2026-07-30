@@ -2509,6 +2509,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 )
             )
             self.assertEqual(
+                availability_boundary["final_verdict"], "PASS",
+                availability_boundary,
+            )
+            self.assertEqual(
                 availability_boundary["next_action"],
                 "ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_"
                 "ACTION_CLASS_CONTRACT_REQUIRED",

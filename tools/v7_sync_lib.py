@@ -2374,6 +2374,11 @@ def delegated_policy_live_state_consistency(
         and (
             not independent_program_frontier
             or controlled_certification_safe_frontier
+            # An exact one-use Engineering Authority decision is an
+            # intentionally independent program boundary.  The WIP retains
+            # its underlying real-world context, so it must not be forced to
+            # duplicate the live ENGINEERING_AUTHORITY stop verbatim.
+            or engineering_authority_terminal
             or external_owner_terminal
             or safe_reentry_frontier
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop

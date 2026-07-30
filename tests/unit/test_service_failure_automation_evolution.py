@@ -138,6 +138,70 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(contract["status"], "STOP_SAFE")
         self.assertEqual(contract["effective_cohort"], 0)
         self.assertEqual(len(contract["bounded_shadow_moves"]), 4)
+
+    def test_shared_target_availability_keeps_soft_quality_miss_distinct_from_hard_failure(self):
+        result = self.autoswitch.classify_shared_target_availability(
+            target_id="awg3",
+            source_id="vless",
+            health_ok=True,
+            capacity_owner_reconciled=True,
+            free_capacity_after_reserve=12,
+            verification_supported=True,
+            rollback_containment_supported=True,
+            quality_fresh=True,
+            stability_inputs={"current": 0.72, "5m": 0.71, "1h": 0.69},
+            current_avg_mbps=45.0,
+            current_min_mbps=9.0,
+            normal_quality_blockers=["stability_below_floor"],
+            non_quality_blockers=[],
+        )
+
+        self.assertEqual(result["state"], "DEGRADED_USABLE")
+        self.assertEqual(result["technical_safe_additional_capacity"], 1)
+        self.assertFalse(result["execution_admission"])
+        self.assertEqual(
+            result["policy_boundary"],
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED",
+        )
+
+    def test_shared_target_availability_fails_closed_for_hard_or_insufficient_truth(self):
+        hard = self.autoswitch.classify_shared_target_availability(
+            target_id="vless",
+            source_id="vless",
+            health_ok=True,
+            capacity_owner_reconciled=True,
+            free_capacity_after_reserve=10,
+            verification_supported=True,
+            rollback_containment_supported=True,
+            quality_fresh=True,
+            stability_inputs={"current": 0.9, "5m": 0.9, "1h": 0.9},
+            current_avg_mbps=30.0,
+            current_min_mbps=4.0,
+            normal_quality_blockers=[],
+            non_quality_blockers=[],
+        )
+        insufficient = self.autoswitch.classify_shared_target_availability(
+            target_id="awg0",
+            source_id="vless",
+            health_ok=True,
+            capacity_owner_reconciled=True,
+            free_capacity_after_reserve=10,
+            verification_supported=True,
+            rollback_containment_supported=True,
+            quality_fresh=True,
+            stability_inputs={"current": 0.0, "5m": -1.0, "1h": -1.0},
+            current_avg_mbps=30.0,
+            current_min_mbps=4.0,
+            normal_quality_blockers=["stability_below_floor"],
+            non_quality_blockers=[],
+        )
+
+        self.assertEqual(hard["state"], "HARD_INELIGIBLE")
+        self.assertEqual(hard["technical_safe_additional_capacity"], 0)
+        self.assertIn("source_cannot_be_its_own_target", hard["hard_reasons"])
+        self.assertEqual(insufficient["state"], "DEGRADED_OBSERVATION_INSUFFICIENT")
+        self.assertEqual(insufficient["technical_safe_additional_capacity"], 0)
+        self.assertFalse(insufficient["hard_reasons"])
         self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
     def test_registry_capacity_limits_are_consumed_by_existing_load_owner(self):

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `2.9`
+Version: `3.0`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,31 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V3.0 active executable revision — availability-first shared-target admission
+
+V3.0 consumes the existing Matrix, quality, capacity/reserve, target ranking,
+standing-policy, Candidate/Packet/lease, controlled campaign and Polygon
+owners.  It creates no Program, Planner, Runtime, registry, queue, watcher,
+scheduler, Authority owner, policy store, executor or evidence store.
+
+The normal production quality floor remains unchanged.  A target below that
+floor is not automatically assigned zero technical capacity merely because its
+quality result is soft.  The existing target diagnostic now distinguishes
+`HEALTHY`, `DEGRADED_USABLE`, `LAST_RESORT_USABLE`,
+`DEGRADED_OBSERVATION_INSUFFICIENT` and `HARD_INELIGIBLE` through owner-backed
+reachability, freshness, throughput, capacity/reserve, verification,
+containment and source/target-role checks.
+
+`DEGRADED_USABLE` and `LAST_RESORT_USABLE` are read-only technical projections,
+capped at one certification identity per target. They never create execution
+permission. Their only legal successor is an exact existing standing-policy
+Authority decision, followed by a fresh generation and new Candidate, Packet
+and lease. `HARD_INELIGIBLE` and insufficient observation retain zero capacity
+for that target only. If no distinct target reaches an emergency class, the
+legal terminal remains the exact existing capacity-substrate/provisioning
+boundary; this Program must not pretend that code can create missing external
+capacity.
 
 ## V2.9 active executable revision — shared production target capacity and role-safe re-entry
 

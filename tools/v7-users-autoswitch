@@ -14274,6 +14274,105 @@ def reconcile_passive_causal_projections_only(args: argparse.Namespace) -> dict[
     }
 
 
+def classify_shared_target_availability(
+    *,
+    target_id: str,
+    source_id: str,
+    health_ok: bool,
+    capacity_owner_reconciled: bool,
+    free_capacity_after_reserve: int,
+    verification_supported: bool,
+    rollback_containment_supported: bool,
+    quality_fresh: bool,
+    stability_inputs: dict[str, float],
+    current_avg_mbps: float,
+    current_min_mbps: float,
+    normal_quality_blockers: list[str],
+    non_quality_blockers: list[str],
+) -> dict[str, Any]:
+    """Classify a shared target without turning a soft SLO miss into zero capacity.
+
+    This is deliberately a read-only *technical* admission projection.  It
+    cannot admit execution: Authority, Packet/lease and all live execution
+    gates remain separate existing owners.  A degraded result is capped at one
+    certification identity until a real Outcome proves a larger safe bound.
+    """
+    hard_reasons: list[str] = []
+    if target_id == source_id:
+        hard_reasons.append("source_cannot_be_its_own_target")
+    if not health_ok:
+        hard_reasons.append("service_reachability_or_baseline_failed")
+    if not capacity_owner_reconciled:
+        hard_reasons.append("capacity_owner_not_reconciled")
+    if free_capacity_after_reserve <= 0:
+        hard_reasons.append("hard_capacity_or_ordinary_reserve_exhausted")
+    if not verification_supported:
+        hard_reasons.append("verification_contract_not_supported")
+    if not rollback_containment_supported:
+        hard_reasons.append("rollback_or_containment_contract_not_supported")
+    if not quality_fresh:
+        hard_reasons.append("quality_windows_stale_or_missing")
+    hard_reasons.extend(sorted(set(non_quality_blockers)))
+
+    positive_windows = [
+        name for name, value in stability_inputs.items()
+        if to_float(value, -1.0) > 0.0
+    ]
+    positive_throughput = (
+        to_float(current_avg_mbps, 0.0) > 0.0
+        and to_float(current_min_mbps, 0.0) > 0.0
+    )
+    if hard_reasons:
+        state = "HARD_INELIGIBLE"
+        technical_safe_capacity = 0
+        emergency_reason = "hard_gate_failed"
+    elif not normal_quality_blockers:
+        state = "HEALTHY"
+        technical_safe_capacity = max(0, int(free_capacity_after_reserve))
+        emergency_reason = "normal_floor_passed"
+    elif positive_throughput and len(positive_windows) >= 2:
+        state = "DEGRADED_USABLE"
+        technical_safe_capacity = min(1, max(0, int(free_capacity_after_reserve)))
+        emergency_reason = "normal_floor_missed_but_fresh_sustained_positive_measurement"
+    elif positive_throughput and "current" in positive_windows:
+        state = "LAST_RESORT_USABLE"
+        technical_safe_capacity = min(1, max(0, int(free_capacity_after_reserve)))
+        emergency_reason = "only_current_positive_measurement; exact_last_resort_policy_required"
+    else:
+        # This is intentionally not labelled HARD_INELIGIBLE: no hard routing
+        # defect was proven.  It is insufficient evidence for an emergency
+        # allocation and must be re-evaluated by the existing Matrix owner.
+        state = "DEGRADED_OBSERVATION_INSUFFICIENT"
+        technical_safe_capacity = 0
+        emergency_reason = "positive_quality_evidence_insufficient"
+
+    return {
+        "schema_version": "v7.shared-target-availability-classification.v1",
+        "state": state,
+        "normal_admission": state == "HEALTHY",
+        "emergency_admission_candidate": state in {
+            "DEGRADED_USABLE", "LAST_RESORT_USABLE",
+        },
+        "execution_admission": False,
+        "technical_safe_additional_capacity": technical_safe_capacity,
+        "quality_safe_increment": technical_safe_capacity,
+        "hard_reasons": sorted(set(hard_reasons)),
+        "normal_quality_blockers": sorted(set(normal_quality_blockers)),
+        "positive_stability_windows": sorted(positive_windows),
+        "positive_throughput": positive_throughput,
+        "emergency_reason": emergency_reason,
+        "policy_boundary": (
+            "NONE"
+            if state == "HEALTHY" else
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if state == "DEGRADED_USABLE" else
+            "EXACT_LAST_RESORT_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if state == "LAST_RESORT_USABLE" else
+            "NO_EXECUTION_ADMISSION"
+        ),
+    }
+
+
 def controlled_campaign_target_selection_diagnostic(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -14549,6 +14648,25 @@ def controlled_campaign_target_selection_diagnostic(
                 "canary_reserved_production_assignment_blocked",
             }
         })
+        shared_target_availability = classify_shared_target_availability(
+            target_id=target_id,
+            source_id=source_id,
+            health_ok=bool(baseline.get("ok")),
+            capacity_owner_reconciled=bool(
+                load.get("capacity_owner_reconciled")
+            ),
+            free_capacity_after_reserve=free_capacity,
+            verification_supported=bool(
+                baseline.get("service_count") and egress.interface
+            ),
+            rollback_containment_supported=bool(egress.interface),
+            quality_fresh=quality_fresh,
+            stability_inputs=stability_inputs,
+            current_avg_mbps=egress.avg_mbps,
+            current_min_mbps=egress.min_mbps,
+            normal_quality_blockers=quality_blockers,
+            non_quality_blockers=non_controlled_blockers,
+        )
         measurement_semantics = {
             "protocol": str(registry.get("protocol") or ""),
             "handshake_signal": (
@@ -14583,18 +14701,19 @@ def controlled_campaign_target_selection_diagnostic(
         # ordinary users when health, reserve and verification are good. This
         # remains a read-only capacity projection, never an execution grant.
         shared_target_technically_eligible = bool(
-            target_id != source_id
-            and baseline.get("ok")
-            and not quality_blockers
-            and not non_controlled_blockers
-            and load.get("capacity_owner_reconciled")
-            and free_capacity > 0
-            and verification_supported
-            and rollback_containment_supported
+            shared_target_availability.get("technical_safe_additional_capacity")
+            and not shared_target_availability.get("hard_reasons")
         )
         shared_target_policy_scope_status = (
             "CURRENT_EXECUTION_ONLY_TARGET_CONTRACT_SUFFICIENT"
-            if controlled_only_contract and ordinary_users == 0
+            if (
+                controlled_only_contract
+                and ordinary_users == 0
+                and shared_target_availability.get("state") == "HEALTHY"
+            )
+            else str(shared_target_availability.get("policy_boundary") or "")
+            if shared_target_technically_eligible
+            and shared_target_availability.get("state") != "HEALTHY"
             else "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
             if shared_target_technically_eligible
             else "NOT_ELIGIBLE_FOR_SHARED_TARGET_CONTRACT"
@@ -14626,8 +14745,12 @@ def controlled_campaign_target_selection_diagnostic(
             exclusion_reasons.append(
                 str(baseline.get("status") or "target_baseline_invalid")
             )
-        exclusion_reasons.extend(quality_blockers)
-        exclusion_reasons.extend(non_controlled_blockers)
+        if not shared_target_technically_eligible:
+            exclusion_reasons.extend(quality_blockers)
+            exclusion_reasons.extend(non_controlled_blockers)
+            exclusion_reasons.extend(
+                shared_target_availability.get("hard_reasons") or []
+            )
         if not load.get("capacity_owner_reconciled"):
             exclusion_reasons.extend(load.get("capacity_owner_errors") or [])
         if not verification_supported:
@@ -14651,6 +14774,7 @@ def controlled_campaign_target_selection_diagnostic(
             "controlled_rebind_eligible": controlled_rebind_eligible,
             "shared_target_technically_eligible": shared_target_technically_eligible,
             "shared_target_policy_scope_status": shared_target_policy_scope_status,
+            "shared_target_availability": shared_target_availability,
             "shared_target_safety_contract": {
                 "ordinary_assignment_delta": 0,
                 "ordinary_route_delta": 0,
@@ -14700,6 +14824,29 @@ def controlled_campaign_target_selection_diagnostic(
                 "certification_users": certification_users,
                 "required_reserve": required_reserve,
                 "free_capacity_after_reserve": free_capacity,
+                "hard_capacity_remaining": free_capacity,
+                "ordinary_user_protected_margin": free_capacity,
+                "throughput_safe_increment": int(
+                    shared_target_availability.get(
+                        "technical_safe_additional_capacity"
+                    ) or 0
+                ),
+                "quality_safe_increment": int(
+                    shared_target_availability.get(
+                        "quality_safe_increment"
+                    ) or 0
+                ),
+                "verification_safe_increment": (
+                    free_capacity if verification_supported else 0
+                ),
+                "rollback_containment_safe_increment": (
+                    free_capacity if rollback_containment_supported else 0
+                ),
+                "target_safe_additional_capacity": int(
+                    shared_target_availability.get(
+                        "technical_safe_additional_capacity"
+                    ) or 0
+                ),
                 "current_stage_safe_scope": free_capacity,
                 "campaign_completion_safe_scope": free_capacity,
             },
@@ -14837,14 +14984,28 @@ def controlled_campaign_target_selection_diagnostic(
     shared_ranked = sorted(
         (row for row in rows if row.get("shared_target_technically_eligible")),
         key=lambda row: (
+            {"HEALTHY": 0, "DEGRADED_USABLE": 1, "LAST_RESORT_USABLE": 2}.get(
+                str((row.get("shared_target_availability") or {}).get(
+                    "state"
+                ) or ""),
+                3,
+            ),
             -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
-            -to_int((row.get("capacity") or {}).get("free_capacity_after_reserve"), 0),
+            -to_int(
+                (row.get("capacity") or {}).get(
+                    "target_safe_additional_capacity"
+                ),
+                0,
+            ),
             -to_float(row.get("planner_score"), 0.0),
             str(row.get("target_id") or ""),
         ),
     )
     shared_stage_allocations: dict[str, dict[str, Any]] = {}
-    for requested_stage in sorted(set(stages or [current_stage])):
+    availability_first_stages = sorted(
+        set([1, 2] + (stages or [current_stage])) - {0}
+    )
+    for requested_stage in availability_first_stages:
         remaining = max(0, requested_stage)
         used_domains: set[str] = set()
         allocation: list[dict[str, Any]] = []
@@ -14853,7 +15014,10 @@ def controlled_campaign_target_selection_diagnostic(
             if not domain or domain in used_domains:
                 continue
             available = max(0, to_int(
-                (row.get("capacity") or {}).get("free_capacity_after_reserve"), 0,
+                (row.get("capacity") or {}).get(
+                    "target_safe_additional_capacity"
+                ),
+                0,
             ))
             assigned = min(remaining, available)
             if assigned <= 0:
@@ -14864,6 +15028,16 @@ def controlled_campaign_target_selection_diagnostic(
                 "allocated_users": assigned,
                 "ordinary_users_unchanged": int(
                     (row.get("capacity") or {}).get("ordinary_users") or 0
+                ),
+                "availability_classification": str(
+                    (row.get("shared_target_availability") or {}).get(
+                        "state"
+                    ) or ""
+                ),
+                "availability_policy_boundary": str(
+                    (row.get("shared_target_availability") or {}).get(
+                        "policy_boundary"
+                    ) or ""
                 ),
                 "target_fault_injection": "FORBIDDEN",
                 "target_fingerprint": str(row.get("semantic_fingerprint") or ""),
@@ -15008,13 +15182,34 @@ def controlled_campaign_target_selection_diagnostic(
             ),
         },
         "shared_production_target_capacity_projection": {
-            "schema_version": "v7.shared-production-target-capacity.v1",
+            "schema_version": "v7.shared-production-target-capacity.v2",
             "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
             "purpose": (
-                "non_destructive_destination_capacity_only; "
+                "availability_first_non_destructive_destination_capacity_only; "
                 "controlled_faults_remain_on_isolated_source"
             ),
+            "normal_target_admission_floor": {
+                "owner": "existing planner quality policy",
+                "passes_only_state": "HEALTHY",
+                "does_not_change": True,
+            },
+            "controlled_campaign_emergency_usability_floor": {
+                "owner": "existing Matrix/quality/capacity/verification owners",
+                "states": ["DEGRADED_USABLE", "LAST_RESORT_USABLE"],
+                "initial_maximum_per_target": 1,
+                "execution_requires_exact_policy": True,
+                "ordinary_user_reserve_preserved": True,
+            },
+            "availability_ladder_stages": availability_first_stages,
             "eligible_target_count": len(shared_ranked),
+            "target_classifications": {
+                str(row.get("target_id") or ""): str(
+                    (row.get("shared_target_availability") or {}).get(
+                        "state"
+                    ) or ""
+                )
+                for row in rows
+            },
             "ranked_target_ids": [
                 str(row.get("target_id") or "") for row in shared_ranked
             ],
@@ -15022,6 +15217,20 @@ def controlled_campaign_target_selection_diagnostic(
             "current_stage_feasible": bool(shared_current.get("feasible")),
             "campaign_completion_feasible": bool(shared_completion.get("feasible")),
             "authority_boundary": (
+                "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                if any(
+                    str((row.get("shared_target_availability") or {}).get(
+                        "state"
+                    ) or "") == "DEGRADED_USABLE"
+                    for row in shared_ranked
+                ) else
+                "EXACT_LAST_RESORT_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                if any(
+                    str((row.get("shared_target_availability") or {}).get(
+                        "state"
+                    ) or "") == "LAST_RESORT_USABLE"
+                    for row in shared_ranked
+                ) else
                 "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
                 if shared_current.get("feasible") else "NONE"
             ),
@@ -15039,7 +15248,8 @@ def controlled_campaign_target_selection_diagnostic(
                 "existing quality window sample counts"
             ),
             "recovery_law": (
-                "current+5m+1h must all meet the owner-backed stability floor"
+                "HEALTHY requires current+5m+1h owner-backed normal floor; "
+                "emergency states remain capped and require fresh exact policy"
             ),
             "unchanged_fingerprint_result": (
                 "TARGET_SET_UNCHANGED_REUSE_CURRENT_DECISION"
@@ -16618,6 +16828,8 @@ def controlled_source_topology_diagnostic(
                 "cleanup_after_success",
                 "cleanup_after_failure",
                 "selection_change_after_live_inventory_change",
+                "shared_target_below_normal_floor_but_degraded_usable",
+                "shared_target_quality_observation_insufficient",
                 "next_stage_automatic_continuation",
             ],
             "invariants": [

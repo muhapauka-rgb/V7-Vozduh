@@ -17004,6 +17004,9 @@ def controlled_source_topology_diagnostic(
             "ENGINEERING_AUTHORITY_REQUIRED:"
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available else
+            "ENGINEERING_AUTHORITY_REQUIRED:"
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT"
+            if shared_availability_first_available else
             "SAFE_REENTRY_REQUIRED:ACTUAL_SOURCE_DISTINCT_SHARED_TARGET_REVALIDATION"
             if shared_target_role_collision else
             "AUTHORITY_INPUT_REQUIRED:"

@@ -65,6 +65,15 @@ routes остаются неизменяемыми, target fault injection за�
 identity. Candidate, Packet, lease, restore barrier и production effect до
 отдельной реальной admission не создаются.
 
+Production caller также выявил и этот terminal через фактическую fresh
+generation: `awg3` оказался `DEGRADED_USABLE`, тогда как `vless` был исключён
+как actual source. В той же ветке старый fallback ошибочно публиковал
+`EXTERNAL_RESOURCE_REQUIRED:NONE`. Он заменён на один непротиворечивый durable
+successor
+`ENGINEERING_AUTHORITY_REQUIRED:EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT`.
+Это закрывает потерю causal consumer: Authority boundary теперь имеет точный
+producer и не маскируется под отсутствие внешнего ресурса.
+
 ## Verification before deploy
 
 - focused unit tests: `test_service_failure_automation_evolution`,

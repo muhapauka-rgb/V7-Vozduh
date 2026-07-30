@@ -22813,6 +22813,12 @@ def cps_live_state_consistency(
         and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
         == "EXTERNAL_OWNER_REQUIRED"
     )
+    engineering_authority_terminal = (
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE"
+        and stop == "ENGINEERING_AUTHORITY"
+        and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
+        == "ENGINEERING_AUTHORITY"
+    )
     split_authority_natural_boundary = (
         stop == "ENGINEERING_AUTHORITY"
         and "ENGINEERING_AUTHORITY" in wip_stop
@@ -22831,6 +22837,7 @@ def cps_live_state_consistency(
             and not active_incident_drain_frontier
             and not controlled_certification_safe_frontier
             and not external_owner_terminal
+            and not engineering_authority_terminal
             and not safe_reentry_frontier
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

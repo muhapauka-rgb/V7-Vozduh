@@ -79,6 +79,9 @@ producer и не маскируется под отсутствие внешне
 внешним input и отказался создавать противоречивый CPS. Bridge расширен через
 существующие CPS/OMP поля — stop, external-input type, next consumer, terminal
 и re-entry. Никакая новая очередь, registry или Authority system не создана.
+Внутренний CPS consistency guard также признаёт такой внешне решаемый
+`ENGINEERING_AUTHORITY` terminal как согласованный state, а не как divergence
+со старым safe-reentry правилом.
 
 ## Verification before deploy
 

@@ -138,3 +138,40 @@ Deployed `v7-users-autoswitch --controlled-source-topology-diagnostic` реал�
 
 После точного approval существующий Authority owner атомарно активирует только immutable V2 envelope. Следующее обычное Matrix generation заново проверит inventory, allocation, capacity, health, freshness и все live gates. Успешные ступени затем продолжаются автоматически через существующий Matrix -> governed executor -> Outcome -> Replay -> Learning -> CPS/OMP цикл без новых подтверждений между `1/2/5/10/25/48`. Decline оставляет систему в точном `STOP_SAFE`.
 
+## Post-approval continuation
+
+Точный запрос одобрен оператором и потреблён существующим Authority owner:
+
+- decision ID: `sdpdec_c326063ca46db99c61d0b699`;
+- contract ID: `sdpc_285af5fc6f4de20415c3e5b1`;
+- contract hash: `285af5fc6f4de20415c3e5b1d27a3c2f89d06db5a29af4a60bb88bdf26af2f4f`;
+- issued: `2026-07-30T16:56:59.965252+00:00`;
+- expires: `2026-08-29T16:56:59.965252+00:00`;
+- profile: `SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2`;
+- policy write: `true`, строго как результат независимого точного Authority decision;
+- Candidate/Packet/lease: `false`;
+- runtime apply/routing mutation/users moved: `false/false/0`;
+- Production Maturity change: `false`.
+
+Первый атомарный CPS/OMP consumer выявил existing-owner semantic-binding defect: новый Matrix-owned frontier `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_1` ещё не входил в общую safe/reachable frontier normalization. Неверный CPS не был записан.
+
+Исправление:
+
+- availability stages `1/2/5/10/25/48` добавлены в существующий controlled-certification safe frontier classifier;
+- generic capability projection сохраняет этот executable frontier;
+- continuation semantics нормализованы как `CONTINUE_PROGRAM_FRONTIER`;
+- Matrix timer признан существующим durable consumer, а не отсутствующим wake;
+- добавлен regression-тест exact stage-1 projection.
+
+Проверки исправления:
+
+- targeted semantic tests: `2 passed`;
+- affected availability/service-failure suites: `244 passed`;
+- atomic reconciliation suite: `47 passed, 1 legacy failure`;
+- legacy failure `test_02_real_world_limit_with_stop_safe_projection_fails` отдельно воспроизведён на clean detached pre-fix commit `ef17b42d` и не вызван исправлением;
+- fix commit: `b54759e3820fb34472eaf4f554780500fcd42d06`;
+- safe deploy: `deploy-z8-14-Updatesystem-b54759e-20260731T002318`;
+- deploy manifest changed runtime path: только `tools/v7_sync_lib.py`;
+- повторная production reconciliation: `PASS`;
+- текущий durable successor: `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_1`;
+- существующий `v7-service-matrix-refresh.timer` активен и владеет следующим обычным generation.

@@ -22,6 +22,189 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_availability_first_stage_fails_closed_before_any_effect_without_policy(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.1 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                controlled_topology_planner="v7-users-autoswitch",
+                policy_file=str(root / "policy.json"),
+                operator_execution_audit_store=str(
+                    root / "operator-audit.jsonl"
+                ),
+                availability_first_stage=1,
+                expected_availability_first_allocation_fingerprint="",
+            )
+            before = (state / "users.registry").read_text(
+                encoding="utf-8"
+            )
+            with mock.patch.object(
+                module,
+                "_availability_first_topology_diagnostic",
+                return_value={
+                    "ok": True,
+                    "diagnostic": {
+                        "status": (
+                            "CONTROLLED_TOPOLOGY_"
+                            "AVAILABILITY_FIRST_CONTRACT_REQUIRED"
+                        ),
+                        "availability_first_standing_policy_admission": {
+                            "ok": False,
+                            "blockers": [
+                                "availability_first_policy_not_active"
+                            ],
+                        },
+                    },
+                    "blockers": [],
+                },
+            ), mock.patch.object(
+                module,
+                "execute_governed_transaction_with_guards",
+            ) as execute:
+                result = module.execute_availability_first_standing_stage(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+            after = (state / "users.registry").read_text(
+                encoding="utf-8"
+            )
+        self.assertEqual(
+            result["stop_reason"],
+            "availability_first_standing_stage_not_admitted",
+        )
+        self.assertFalse(result["runtime_mutation_performed"])
+        self.assertEqual(result["users_moved"], 0)
+        self.assertEqual(before, after)
+        execute.assert_not_called()
+
+    def test_availability_first_subtransaction_reuses_standing_and_substrate_owners(self):
+        module = load_cli_module()
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            policy_path.write_text(
+                json.dumps({"authority_budget": {}}),
+                encoding="utf-8",
+            )
+            request = (
+                operator_execution
+                .build_standing_delegated_policy_authority_request(
+                    policy_generation_hash=(
+                        operator_execution.sha256_file(policy_path)
+                    ),
+                    active_program=(
+                        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                    ),
+                    max_users=48,
+                    include_availability_first=True,
+                    now=now,
+                )
+            )
+            operator_execution.register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            activated = (
+                operator_execution.issue_standing_delegated_policy_from_audit(
+                    policy_path,
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision=(
+                        "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"
+                    ),
+                    audit_store=audit_path,
+                    actor_id="unit-authority",
+                    now=now,
+                )
+            )
+            (state / "egress.registry").write_text(
+                (
+                    "id=vless interface=tun0 enabled=1 "
+                    "controlled_certification_source=1\n"
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                policy_file=str(policy_path),
+                operator_execution_audit_store=str(audit_path),
+                max_users=2,
+                expected_standing_policy_contract_id=(
+                    activated["contract"]["contract_id"]
+                ),
+                expected_standing_policy_contract_hash=(
+                    activated["contract"]["contract_hash"]
+                ),
+                state_dir=str(state),
+                approved_source="vless",
+                controlled_certification_campaign_request_id="cpsauth",
+                controlled_certification_campaign_request_hash="h" * 64,
+                controlled_certification_campaign_stage=0,
+                execute_availability_first_standing_stage=True,
+                availability_first_stage=5,
+                availability_first_target="awg3",
+                expected_availability_first_allocation_fingerprint="a" * 64,
+                expected_availability_first_subset_fingerprint="b" * 64,
+                _availability_first_stage_request={
+                    "stage": 5,
+                    "target_id": "awg3",
+                    "expected_users": ["10.7.0.1", "10.7.0.2"],
+                    "subset_fingerprint": "b" * 64,
+                    "allocation_fingerprint": "a" * 64,
+                },
+            )
+            with mock.patch.object(
+                module,
+                "approved_controlled_certification_substrate_binding",
+                return_value={
+                    "ok": True,
+                    "blockers": [],
+                    "request_id": "cpsauth",
+                    "request_hash": "h" * 64,
+                    "decision_id": "decision",
+                    "source_id": "vless",
+                    "scope": {
+                        "source_id": "vless",
+                        "campaign_stages": [5, 10, 25, 48],
+                    },
+                },
+            ):
+                result = module.standing_delegated_cohort_execution_binding(
+                    args
+                )
+        self.assertTrue(result["ok"], result["blockers"])
+        self.assertTrue(result["availability_first"])
+        self.assertEqual(
+            result["action_class"],
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS,
+        )
+        self.assertEqual(
+            result["delegated_policy_authority"]
+            ["controlled_certification_target_id"],
+            "awg3",
+        )
+
     def test_bounded_planner_observe_refreshes_snapshots_through_existing_owner(self):
         module = load_cli_module()
         completed = mock.Mock(returncode=0, stdout=json.dumps({"selected_moves": []}), stderr="")

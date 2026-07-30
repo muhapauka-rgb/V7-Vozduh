@@ -61,6 +61,67 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(row["failure_samples"], 0)
             self.assertEqual(row["recovery_samples"], 1)
 
+    def test_availability_first_stage_receipt_is_exact_once_and_compact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_store = Path(tmp) / "operator-execution-audit.jsonl"
+            result = {
+                "final_verdict": "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
+                "stage": 5,
+                "standing_policy_contract_id": "sdpc_" + "a" * 24,
+                "standing_policy_contract_hash": "a" * 64,
+                "planner_allocation_fingerprint": "b" * 64,
+                "execution_allocation_fingerprint": "b" * 64,
+                "packet_set_fingerprint": "c" * 64,
+                "allocation": [
+                    {
+                        "target_id": "awg3",
+                        "allocated_users": 1,
+                        "target_fingerprint": "d" * 64,
+                        "capacity_bounds_fingerprint": "e" * 64,
+                    },
+                    {
+                        "target_id": "awg0",
+                        "allocated_users": 4,
+                        "target_fingerprint": "f" * 64,
+                        "capacity_bounds_fingerprint": "1" * 64,
+                    },
+                ],
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+            }
+            first = self.refresh.record_availability_first_stage_consumption(
+                audit_store=audit_store,
+                result=result,
+            )
+            duplicate = self.refresh.record_availability_first_stage_consumption(
+                audit_store=audit_store,
+                result=result,
+            )
+            rows = [
+                json.loads(line)
+                for line in audit_store.read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertTrue(first["audit_write"])
+        self.assertTrue(duplicate["duplicate_suppressed"])
+        self.assertEqual(first["receipt_id"], duplicate["receipt_id"])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            sum(item["verified_scope"] for item in rows[0]["target_receipts"]),
+            5,
+        )
+        self.assertFalse(rows[0]["raw_identity_list_stored"])
+        self.assertNotIn("users", rows[0])
+        self.assertFalse(rows[0]["natural_l8_credit"])
+
     def test_expected_http_response_is_visible_methodology_limit_not_failure_episode(self):
         for http_code in ("404", "405"):
             with self.subTest(http_code=http_code), mock.patch.object(

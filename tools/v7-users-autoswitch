@@ -1510,7 +1510,7 @@ def availability_first_action_class_context(
 
 def action_class_contract_reconciliation_request(
     plan: dict[str, Any], *, policy_path: Path,
-    availability_first_context: dict[str, Any] | None = None,
+    availability_first_context: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Produce the next existing-owner input after an Authority STOP_SAFE.
 
@@ -5715,7 +5715,7 @@ class AutoswitchPlanner:
             blockers.append(str(rule["count_blocker"]))
         if len(successful_runs) < required_runs:
             blockers.append(str(rule["failure_blocker"]))
-        equivalence_review: dict[str, Any] | None = None
+        equivalence_review: Optional[dict[str, Any]] = None
         if target == "POOL" and blockers:
             equivalence_review = self._pool_authority_equivalence_review(operation_reviews, successful_runs, required_window)
             if equivalence_review.get("accepted"):
@@ -14454,7 +14454,7 @@ def shared_target_stage_allocations(
     rows: list[dict[str, Any]],
     stages: list[int],
     inventory_fingerprint: str,
-    excluded_target_ids: set[str] | None = None,
+    excluded_target_ids: Optional[set[str]] = None,
 ) -> dict[str, Any]:
     """Allocate only technically usable shared destinations for read-only planning.
 
@@ -14500,9 +14500,14 @@ def shared_target_stage_allocations(
                 continue
             available = max(0, to_int(
                 (row.get("capacity") or {}).get(
-                    "target_safe_additional_capacity"
+                    "planning_safe_additional_capacity"
                 ),
-                0,
+                to_int(
+                    (row.get("capacity") or {}).get(
+                        "target_safe_additional_capacity"
+                    ),
+                    0,
+                ),
             ))
             assigned = min(remaining, available)
             if assigned <= 0:
@@ -14511,6 +14516,14 @@ def shared_target_stage_allocations(
                 "target_id": str(row.get("target_id") or ""),
                 "correlation_domain": domain,
                 "allocated_users": assigned,
+                "capacity_reservation": assigned,
+                "capacity_reservation_semantics": (
+                    "SERIALIZED_PACKET_LEASE_RESERVATION_WITH_FRESH_"
+                    "PRE_APPLY_REVALIDATION"
+                ),
+                "capacity_bounds_fingerprint": sha256_json(
+                    (row.get("capacity") or {}).get("capacity_bounds") or {}
+                ),
                 "ordinary_users_unchanged": int(
                     (row.get("capacity") or {}).get("ordinary_users") or 0
                 ),
@@ -14614,6 +14627,76 @@ def controlled_campaign_target_selection_diagnostic(
 
     audit_records = operator_execution.read_audit_records(
         Path(args.action_class_audit_store)
+    )
+    policy_root = read_json(Path(args.policy_file), {})
+    policy_contract = (
+        policy_root.get("delegated_autonomy_policy")
+        if isinstance(policy_root, dict)
+        and isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+        else {}
+    )
+    standing_validation = (
+        operator_execution.validate_standing_delegated_operational_policy(
+            policy_contract,
+            audit_records=audit_records,
+        )
+    )
+    standing_policy = (
+        standing_validation.get("policy")
+        if isinstance(standing_validation.get("policy"), dict)
+        else {}
+    )
+    availability_scope = (
+        (standing_policy.get("action_class_scopes") or {}).get(
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(standing_policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    availability_scope = (
+        availability_scope if isinstance(availability_scope, dict) else {}
+    )
+    availability_authority_active = bool(
+        standing_validation.get("ok")
+        and standing_policy.get("policy_profile")
+        == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        and operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        in set(standing_policy.get("allowed_action_classes") or [])
+    )
+    availability_authority_max = (
+        max(
+            0,
+            to_int(
+                availability_scope.get("max_users_per_transaction"),
+                0,
+            ),
+        )
+        if availability_authority_active else 0
+    )
+    availability_campaign = (
+        operator_execution.availability_first_campaign_stage_status(
+            audit_records,
+            contract=policy_contract,
+        )
+        if availability_authority_active
+        else {
+            "schema_version": (
+                "v7.availability-first-campaign-stage-status.v1"
+            ),
+            "status": "POLICY_NOT_ACTIVE",
+            "ok": True,
+            "stages": list(operator_execution.AVAILABILITY_FIRST_LADDER),
+            "completed_stages": [],
+            "production_proven_max": 0,
+            "next_stage": 1,
+            "completed": False,
+            "receipt_ids": [],
+            "blockers": [],
+        }
+    )
+    availability_current_stage = max(
+        0,
+        to_int(availability_campaign.get("next_stage"), 0),
     )
     authority = (
         operator_execution.controlled_certification_substrate_authority_status(
@@ -14854,6 +14937,132 @@ def controlled_campaign_target_selection_diagnostic(
             normal_quality_blockers=quality_blockers,
             non_quality_blockers=non_controlled_blockers,
         )
+        availability_state = str(
+            shared_target_availability.get("state") or ""
+        )
+        target_proven_bound = max(
+            0,
+            to_int(
+                (
+                    availability_campaign.get("target_proven_bounds")
+                    or {}
+                ).get(target_id),
+                0,
+            ),
+        )
+        next_trial_bound = next(
+            (
+                stage
+                for stage in operator_execution.AVAILABILITY_FIRST_LADDER
+                if stage > target_proven_bound
+            ),
+            target_proven_bound,
+        )
+        if availability_state == "HEALTHY":
+            planning_safe_increment = int(
+                shared_target_availability.get(
+                    "technical_safe_additional_capacity"
+                )
+                or 0
+            )
+        elif availability_state in {
+            "DEGRADED_USABLE",
+            "LAST_RESORT_USABLE",
+        }:
+            planning_safe_increment = min(
+                free_capacity,
+                max(1, next_trial_bound),
+            )
+        else:
+            planning_safe_increment = 0
+        capacity_bound_values = {
+            "hard_capacity_remaining": free_capacity,
+            "ordinary_protection_margin": free_capacity,
+            "throughput_safe_increment": planning_safe_increment,
+            "quality_safe_increment": planning_safe_increment,
+            "verification_safe_increment": (
+                free_capacity
+                if baseline.get("service_count") and egress.interface
+                else 0
+            ),
+            "rollback_containment_safe_increment": (
+                free_capacity if egress.interface else 0
+            ),
+            "authority_safe_increment": availability_authority_max,
+            "runtime_safe_increment": availability_authority_max,
+        }
+        capacity_bound_owners = {
+            "hard_capacity_remaining": str(
+                load.get("capacity_owner") or ""
+            ),
+            "ordinary_protection_margin": str(
+                load.get("capacity_owner") or ""
+            ),
+            "throughput_safe_increment": str(args.quality_summary_file),
+            "quality_safe_increment": str(args.quality_summary_file),
+            "verification_safe_increment": (
+                "existing Matrix/service verification owner"
+            ),
+            "rollback_containment_safe_increment": (
+                "existing governed rollback/containment owner"
+            ),
+            "authority_safe_increment": (
+                "admin_core/operator_execution.py standing policy owner"
+            ),
+            "runtime_safe_increment": (
+                "tools/v7-users-autoswitch governed execution owner"
+            ),
+        }
+        capacity_bounds = {
+            name: {
+                "value": int(value),
+                "owner": capacity_bound_owners[name],
+                "fresh": bool(
+                    quality_fresh
+                    if name in {
+                        "throughput_safe_increment",
+                        "quality_safe_increment",
+                    }
+                    else standing_validation.get("ok")
+                    if name in {
+                        "authority_safe_increment",
+                        "runtime_safe_increment",
+                    }
+                    else True
+                ),
+                "reason": (
+                    "standing availability-first envelope active"
+                    if name in {
+                        "authority_safe_increment",
+                        "runtime_safe_increment",
+                    } and availability_authority_active
+                    else "standing availability-first envelope absent"
+                    if name in {
+                        "authority_safe_increment",
+                        "runtime_safe_increment",
+                    }
+                    else str(
+                        shared_target_availability.get("emergency_reason")
+                        or "owner-backed current bound"
+                    )
+                ),
+                "fingerprint": sha256_json({
+                    "target_id": target_id,
+                    "name": name,
+                    "value": int(value),
+                    "owner": capacity_bound_owners[name],
+                    "matrix_updated": matrix_updated,
+                    "quality_updated": quality_updated,
+                    "policy_scope_hash": str(
+                        policy_contract.get("policy_scope_hash") or ""
+                    ),
+                }),
+            }
+            for name, value in capacity_bound_values.items()
+        }
+        executable_safe_increment = min(
+            int(item["value"]) for item in capacity_bounds.values()
+        )
         measurement_semantics = {
             "protocol": str(registry.get("protocol") or ""),
             "handshake_signal": (
@@ -15017,27 +15226,30 @@ def controlled_campaign_target_selection_diagnostic(
                 "free_capacity_after_reserve": free_capacity,
                 "hard_capacity_remaining": free_capacity,
                 "ordinary_user_protected_margin": free_capacity,
-                "throughput_safe_increment": int(
-                    shared_target_availability.get(
-                        "technical_safe_additional_capacity"
-                    ) or 0
-                ),
-                "quality_safe_increment": int(
-                    shared_target_availability.get(
-                        "quality_safe_increment"
-                    ) or 0
-                ),
+                "throughput_safe_increment": planning_safe_increment,
+                "quality_safe_increment": planning_safe_increment,
                 "verification_safe_increment": (
                     free_capacity if verification_supported else 0
                 ),
                 "rollback_containment_safe_increment": (
                     free_capacity if rollback_containment_supported else 0
                 ),
-                "target_safe_additional_capacity": int(
-                    shared_target_availability.get(
-                        "technical_safe_additional_capacity"
-                    ) or 0
+                "authority_safe_increment": availability_authority_max,
+                "runtime_safe_increment": availability_authority_max,
+                "planning_safe_additional_capacity": (
+                    planning_safe_increment
                 ),
+                "availability_first_proven_additional_scope": (
+                    target_proven_bound
+                ),
+                "availability_first_next_trial_scope": next_trial_bound,
+                "availability_first_evidence_owner": (
+                    "existing append-only Authority audit stage receipts"
+                ),
+                "target_safe_additional_capacity": (
+                    executable_safe_increment
+                ),
+                "capacity_bounds": capacity_bounds,
                 "current_stage_safe_scope": free_capacity,
                 "campaign_completion_safe_scope": free_capacity,
             },
@@ -15172,8 +15384,8 @@ def controlled_campaign_target_selection_diagnostic(
     # Reuse the same inventory, quality and capacity owners, but do not apply
     # the controlled-source isolation law to a non-destructive destination.
     # The result can only request an exact future action-class contract.
-    availability_first_stages = sorted(
-        set([1, 2] + (stages or [current_stage])) - {0}
+    availability_first_stages = list(
+        operator_execution.AVAILABILITY_FIRST_LADDER
     )
     shared_allocation = shared_target_stage_allocations(
         rows=rows,
@@ -15186,8 +15398,14 @@ def controlled_campaign_target_selection_diagnostic(
         in set(shared_allocation.get("ranked_target_ids") or [])
     ]
     shared_stage_allocations = shared_allocation["stage_allocations"]
-    shared_current = shared_stage_allocations.get(str(current_stage), {})
-    shared_completion = shared_stage_allocations.get(str(completion_stage), {})
+    shared_current = shared_stage_allocations.get(
+        str(availability_current_stage),
+        {},
+    )
+    shared_completion = shared_stage_allocations.get(
+        str(operator_execution.AVAILABILITY_FIRST_LADDER[-1]),
+        {},
+    )
     if (
         legal_outcome == "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
         and shared_current.get("feasible")
@@ -15330,6 +15548,8 @@ def controlled_campaign_target_selection_diagnostic(
                 "ordinary_user_reserve_preserved": True,
             },
             "availability_ladder_stages": availability_first_stages,
+            "availability_campaign": availability_campaign,
+            "current_stage": availability_current_stage,
             "eligible_target_count": len(shared_ranked),
             "target_classifications": {
                 str(row.get("target_id") or ""): str(
@@ -15634,7 +15854,10 @@ def controlled_source_topology_diagnostic(
     topology_policy_blockers = list(policy_validation.get("errors") or [])
     if (
         policy.get("policy_profile")
-        != operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+        not in {
+            operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+            operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+        }
     ):
         topology_policy_blockers.append(
             "controlled_topology_standing_policy_profile_missing"
@@ -15696,6 +15919,114 @@ def controlled_source_topology_diagnostic(
             topology_scope.get("max_concurrent_transactions") or 0
         ),
         "blockers": sorted(set(topology_policy_blockers)),
+        "authority_self_expansion": False,
+        "production_effect_performed": False,
+    }
+    availability_scope = (
+        (policy.get("action_class_scopes") or {}).get(
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    availability_scope = (
+        availability_scope
+        if isinstance(availability_scope, dict)
+        else {}
+    )
+    availability_policy_blockers = list(
+        policy_validation.get("errors") or []
+    )
+    if (
+        policy.get("policy_profile")
+        != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+    ):
+        availability_policy_blockers.append(
+            "availability_first_standing_policy_profile_missing"
+        )
+    if (
+        operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        not in set(policy.get("allowed_action_classes") or [])
+    ):
+        availability_policy_blockers.append(
+            "availability_first_action_class_not_allowed"
+        )
+    exact_availability_requirements = {
+        "allowed_actions": list(
+            operator_execution.AVAILABILITY_FIRST_ALLOWED_ACTIONS
+        ),
+        "certification_identities_only": True,
+        "max_concurrent_transactions": 1,
+        "ladder": list(operator_execution.AVAILABILITY_FIRST_LADDER),
+        "ladder_stage_semantics": (
+            "EXACT_TOTAL_COHORT_WITH_BASELINE_RESET"
+        ),
+        "ordinary_identity_delta": 0,
+        "ordinary_route_delta": 0,
+        "ordinary_assignment_mutation_allowed": False,
+        "ordinary_reclassification_allowed": False,
+        "shared_target_fault_injection_allowed": False,
+        "shared_target_restart_allowed": False,
+        "capacity_double_counting_forbidden": True,
+        "source_target_collision_forbidden": True,
+        "immutable_allocation_required": True,
+        "fresh_inventory_required": True,
+        "fresh_candidate_required": True,
+        "fresh_packet_or_packet_set_required": True,
+        "fresh_lease_required": True,
+        "restore_barrier_before_apply_required": True,
+        "per_user_verification_required": True,
+        "per_target_verification_required": True,
+        "aggregate_verification_required": True,
+        "ordinary_user_quality_verification_required": True,
+        "cohort_circuit_breaker_required": True,
+        "partial_target_containment_required": True,
+        "rollback_or_redistribution_required": True,
+        "baseline_reset_between_stages_required": True,
+        "authority_self_expansion_allowed": False,
+    }
+    for field, expected in exact_availability_requirements.items():
+        if availability_scope.get(field) != expected:
+            availability_policy_blockers.append(
+                f"availability_first_scope_{field}_mismatch"
+            )
+    availability_max_users = int(
+        availability_scope.get("max_users_per_transaction") or 0
+    )
+    if (
+        availability_max_users < 1
+        or availability_max_users
+        != int(policy.get("max_users_per_action") or 0)
+    ):
+        availability_policy_blockers.append(
+            "availability_first_scope_blast_radius_mismatch"
+        )
+    availability_policy_admission = {
+        "schema_version": (
+            "v7.availability-first-standing-policy-admission.v1"
+        ),
+        "status": (
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+            "AVAILABILITY_FIRST_POLICY"
+            if not availability_policy_blockers
+            else "STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY_REQUIRED"
+        ),
+        "ok": not availability_policy_blockers,
+        "contract_id": str(policy_contract.get("contract_id") or ""),
+        "contract_hash": str(policy_contract.get("contract_hash") or ""),
+        "policy_profile": str(policy.get("policy_profile") or ""),
+        "policy_scope_hash": str(
+            policy_contract.get("policy_scope_hash") or ""
+        ),
+        "action_class": (
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        ),
+        "max_users_per_transaction": availability_max_users,
+        "max_concurrent_transactions": int(
+            availability_scope.get("max_concurrent_transactions") or 0
+        ),
+        "ladder": list(availability_scope.get("ladder") or []),
+        "blockers": sorted(set(availability_policy_blockers)),
         "authority_self_expansion": False,
         "production_effect_performed": False,
     }
@@ -16785,6 +17116,15 @@ def controlled_source_topology_diagnostic(
             "recommendation.v1"
         ),
         "status": (
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY"
+            if (
+                availability_policy_admission.get("ok")
+                and (
+                    shared_target_capacity_available
+                    or shared_availability_first_available
+                )
+            )
+            else
             "READY_NOW"
             if topology_plan["campaign_completion_feasible"]
             else "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
@@ -16803,6 +17143,15 @@ def controlled_source_topology_diagnostic(
             ),
         },
         "next_bounded_action": (
+            "REENTER_EXISTING_MATRIX_FOR_FRESH_AVAILABILITY_FIRST_ALLOCATION"
+            if (
+                availability_policy_admission.get("ok")
+                and (
+                    shared_target_capacity_available
+                    or shared_availability_first_available
+                )
+            )
+            else
             "CONTINUE_STAGE_" + str(current_stage)
             if topology_plan["current_next_action_feasible"]
             else "PREPARE_EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
@@ -16880,6 +17229,11 @@ def controlled_source_topology_diagnostic(
         "status": (
             "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
             if preflight_ready else
+            "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+            if (
+                shared_availability_first_available
+                and availability_policy_admission.get("ok")
+            ) else
             "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
             if full_path_recommendation.get("status")
             == "EXTERNAL_RESOURCE_REQUIRED" else
@@ -17018,6 +17372,9 @@ def controlled_source_topology_diagnostic(
             ),
         },
         "standing_policy_admission": topology_policy_admission,
+        "availability_first_standing_policy_admission": (
+            availability_policy_admission
+        ),
         "polygon_fault_verification_contract": {
             "scenarios": [
                 "valid_existing_draft_activation",
@@ -17052,6 +17409,25 @@ def controlled_source_topology_diagnostic(
                 "shared_target_below_normal_floor_but_degraded_usable",
                 "shared_target_quality_observation_insufficient",
                 "next_stage_automatic_continuation",
+                "availability_first_healthy_target_full_ladder",
+                "availability_first_degraded_target_progressive_bound",
+                "availability_first_last_resort_one_user_ceiling",
+                "availability_first_mixed_target_classes",
+                "availability_first_no_single_target_sufficient",
+                "availability_first_multi_target_aggregate_capacity",
+                "availability_first_target_degradation_before_apply",
+                "availability_first_target_degradation_during_partial_apply",
+                "availability_first_ordinary_user_quality_degradation",
+                "availability_first_partial_target_containment",
+                "availability_first_subset_redistribution",
+                "availability_first_stale_allocation",
+                "availability_first_duplicate_outcome",
+                "availability_first_crash_after_capacity_reservation",
+                "availability_first_crash_after_packet",
+                "availability_first_crash_after_partial_movement",
+                "availability_first_crash_during_redistribution",
+                "availability_first_restart_recovery",
+                "availability_first_freeze_and_kill",
             ],
             "invariants": [
                 "NO_AUTHORITY_SELF_EXPANSION",
@@ -17071,12 +17447,26 @@ def controlled_source_topology_diagnostic(
                 "NO_ORPHANED_CONTROLLED_RESOURCE",
                 "ONE_DURABLE_SUCCESSOR",
                 "NO_SYNTHETIC_PRODUCTION_CREDIT",
+                "ADAPTIVE_CAPACITY_OWNER_BACKED",
+                "TARGET_NOT_ABOVE_RESERVED_CAPACITY",
+                "NO_CAPACITY_DOUBLE_COUNTING",
+                "PACKET_ALLOCATION_IMMUTABLE",
+                "PER_USER_VERIFICATION",
+                "PER_TARGET_VERIFICATION",
+                "AGGREGATE_VERIFICATION",
+                "PARTIAL_TARGET_FAILURE_CONTAINED",
             ],
         },
         "durable_successor": (
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
             "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"
             if preflight_ready and topology_policy_admission.get("ok") else
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY:"
+            "EXISTING_MATRIX_PLANNER_CANDIDATE_PACKET_LEASE_CONSUMER"
+            if (
+                shared_availability_first_available
+                and availability_policy_admission.get("ok")
+            ) else
             "ENGINEERING_AUTHORITY_REQUIRED:"
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available else
@@ -17335,6 +17725,31 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
             audit_records,
         )
     )
+    availability_campaign_status = (
+        operator_execution.availability_first_campaign_stage_status(
+            audit_records,
+            contract=contract,
+        )
+        if (
+            validation.get("ok")
+            and policy_scope.get("policy_profile")
+            == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        )
+        else {
+            "schema_version": (
+                "v7.availability-first-campaign-stage-status.v1"
+            ),
+            "status": "POLICY_NOT_ACTIVE",
+            "ok": True,
+            "stages": list(operator_execution.AVAILABILITY_FIRST_LADDER),
+            "completed_stages": [],
+            "production_proven_max": 0,
+            "next_stage": 1,
+            "completed": False,
+            "receipt_ids": [],
+            "blockers": [],
+        }
+    )
     runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
         validation.get("contract") or contract,
         controlled_production_proven_max=int(
@@ -17447,6 +17862,7 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         "issued_at": str(contract.get("issued_at") or ""),
         "expires_at": str(contract.get("expires_at") or ""),
         "policy_scope_hash": str(contract.get("policy_scope_hash") or ""),
+        "policy_profile": str(policy_scope.get("policy_profile") or ""),
         "authority_decision": str(decision.get("decision") or ""),
         "authority_decision_id": str(decision.get("decision_id") or ""),
         "authority_request_id": str(decision.get("request_id") or ""),
@@ -17470,6 +17886,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         ),
         "controlled_certification_campaign_status": (
             controlled_campaign_status
+        ),
+        "availability_first_campaign_status": (
+            availability_campaign_status
         ),
         "controlled_campaign_target_selection": (
             target_selection_diagnostic
@@ -17841,6 +18260,54 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     planner = AutoswitchPlanner(coherent_args)
     plan = planner.plan()
     topology = controlled_source_topology_diagnostic(args)
+    availability_admission = (
+        topology.get("availability_first_standing_policy_admission")
+        if isinstance(
+            topology.get("availability_first_standing_policy_admission"),
+            dict,
+        )
+        else {}
+    )
+    if (
+        topology.get("status")
+        == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+        and availability_admission.get("ok")
+    ):
+        return {
+            "schema_version": (
+                "v7.action-class-contract-reconciliation-entrypoint.v1"
+            ),
+            "status": "PASS",
+            "ok": True,
+            "mode": "STANDING_AVAILABILITY_FIRST_POLICY_CONSUMED",
+            "authority_classification": "AUTO_ADMITTED",
+            "result": {
+                "status": (
+                    "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+                    "AVAILABILITY_FIRST_POLICY"
+                ),
+                "standing_policy_admission": availability_admission,
+                "durable_successor": topology.get("durable_successor"),
+                "next_consumer": (
+                    "existing Matrix/Planner fresh allocation and governed "
+                    "Candidate/Packet/lease consumer"
+                ),
+                "request_created": False,
+                "one_off_target_approval_required": False,
+            },
+            "forbidden_effects": {
+                "policy_write": False,
+                "authority_granted": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": 0,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "rollback_apply": False,
+                "production_maturity_change": False,
+            },
+        }
     availability_context, availability_blockers = availability_first_action_class_context(topology)
     if topology.get("status") == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED" and availability_blockers:
         return {

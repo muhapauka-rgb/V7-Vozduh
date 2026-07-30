@@ -134,6 +134,9 @@ CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS = (
     "CONTROLLED_SERVICE_FAILURE_CAMPAIGN_STAGE_CONSUMED"
 )
 CONTROLLED_CERTIFICATION_CAMPAIGN_STAGES = (5, 10, 25, 48)
+AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS = (
+    "AVAILABILITY_FIRST_CAMPAIGN_STAGE_CONSUMED"
+)
 CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES = (
     "IDENTITY_PROVISIONING",
     "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
@@ -620,6 +623,23 @@ CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS = (
 CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE = (
     "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_TOPOLOGY_V1"
 )
+AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS = (
+    "bounded availability-first controlled failover"
+)
+AVAILABILITY_FIRST_STANDING_POLICY_PROFILE = (
+    "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2"
+)
+AVAILABILITY_FIRST_ALLOWED_ACTIONS = (
+    "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
+    "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET_SET",
+    "RESERVE_SHARED_TARGET_SPARE_CAPACITY",
+    "RELEASE_SHARED_TARGET_SPARE_CAPACITY",
+    "REDISTRIBUTE_CERTIFICATION_SUBSET",
+    "ROLLBACK_CERTIFICATION_SUBSET",
+    "RESTORE_CONTROLLED_CERTIFICATION_BASELINE",
+    "CONTINUE_PROGRESSIVE_CERTIFICATION_STAGE",
+)
+AVAILABILITY_FIRST_LADDER = (1, 2, 5, 10, 25, 48)
 GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS = 48
 SERVICE_FAILURE_ADAPTER_ENGINEERING_MAX_USERS = 48
 SERVICE_FAILURE_ORDINARY_PRODUCTION_PROVEN_MAX_USERS = 4
@@ -793,6 +813,175 @@ def controlled_certification_campaign_stage_status(
             str(receipts_by_stage[stage][0].get("receipt_id") or "")
             for stage in valid_completed
         ],
+        "blockers": sorted(set(blockers)),
+        "owner": (
+            "existing admin_core/operator_execution.py append-only "
+            "Authority audit owner"
+        ),
+    }
+
+
+def availability_first_campaign_stage_status(
+    audit_records,
+    *,
+    contract=None,
+    now=None,
+):
+    """Project the 1/2/5/10/25/48 ladder from the existing audit owner.
+
+    This is a read model over the active standing contract and its append-only
+    effect receipts.  It is deliberately not a campaign registry.  A receipt
+    counts only when the exact allocation, production Outcome, deterministic
+    Replay, Learning, ordinary-user protection, and baseline reset were all
+    consumed for one stage.
+    """
+    records = list(audit_records or [])
+    contract = contract if isinstance(contract, dict) else {}
+    validation = validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=records,
+        now=now,
+    )
+    policy = (
+        validation.get("policy")
+        if isinstance(validation.get("policy"), dict)
+        else {}
+    )
+    blockers = list(validation.get("errors") or [])
+    if (
+        policy.get("policy_profile")
+        != AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+    ):
+        blockers.append("availability_first_policy_profile_not_active")
+    if (
+        AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        not in set(policy.get("allowed_action_classes") or [])
+    ):
+        blockers.append("availability_first_action_class_not_active")
+    contract_id = str(contract.get("contract_id") or "")
+    contract_hash = str(contract.get("contract_hash") or "")
+    stage_rows = [
+        row
+        for row in records
+        if row.get("record_type")
+        == CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+        and row.get("effect_class")
+        == AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
+        and str(row.get("standing_policy_contract_id") or "")
+        == contract_id
+    ]
+    receipts_by_stage = {}
+    target_proven_bounds = {}
+    for row in stage_rows:
+        stage = as_int(row.get("campaign_stage"), 0)
+        receipts_by_stage.setdefault(stage, []).append(row)
+        if stage not in AVAILABILITY_FIRST_LADDER:
+            blockers.append(f"availability_first_stage_not_admitted:{stage}")
+        if (
+            str(row.get("standing_policy_contract_hash") or "")
+            != contract_hash
+        ):
+            blockers.append(
+                f"availability_first_stage_contract_hash_mismatch:{stage}"
+            )
+        if not all(
+            row.get(key) is True
+            for key in (
+                "allocation_immutable",
+                "capacity_reservation_verified",
+                "outcome_consumed",
+                "replay_consumed",
+                "learning_consumed",
+                "per_user_verification_passed",
+                "per_target_verification_passed",
+                "aggregate_verification_passed",
+                "ordinary_user_protection_passed",
+                "baseline_reset_verified",
+            )
+        ):
+            blockers.append(f"availability_first_stage_incomplete:{stage}")
+        if as_int(row.get("ordinary_customer_count"), -1) != 0:
+            blockers.append(
+                f"availability_first_stage_ordinary_customer_effect:{stage}"
+            )
+        target_receipts = [
+            item
+            for item in (row.get("target_receipts") or [])
+            if isinstance(item, dict)
+        ]
+        if (
+            not target_receipts
+            or sum(
+                as_int(item.get("verified_scope"), 0)
+                for item in target_receipts
+            )
+            != stage
+        ):
+            blockers.append(
+                f"availability_first_stage_target_receipts_invalid:{stage}"
+            )
+        for item in target_receipts:
+            target_id = str(item.get("target_id") or "")
+            verified_scope = as_int(item.get("verified_scope"), 0)
+            if (
+                not target_id
+                or verified_scope <= 0
+                or not str(item.get("target_fingerprint") or "")
+                or not str(
+                    item.get("capacity_bounds_fingerprint") or ""
+                )
+            ):
+                blockers.append(
+                    f"availability_first_stage_target_receipt_incomplete:{stage}"
+                )
+                continue
+            target_proven_bounds[target_id] = max(
+                as_int(target_proven_bounds.get(target_id), 0),
+                verified_scope,
+            )
+    for stage, rows in receipts_by_stage.items():
+        if len(rows) != 1:
+            blockers.append(f"availability_first_stage_duplicate:{stage}")
+    completed = [
+        stage
+        for stage in AVAILABILITY_FIRST_LADDER
+        if len(receipts_by_stage.get(stage, [])) == 1
+        and not any(item.endswith(f":{stage}") for item in blockers)
+    ]
+    prefix = []
+    for stage in AVAILABILITY_FIRST_LADDER:
+        if stage not in completed:
+            break
+        prefix.append(stage)
+    if completed != prefix:
+        blockers.append("availability_first_stage_order_gap")
+    valid_completed = prefix if not blockers else []
+    next_stage = next(
+        (
+            stage
+            for stage in AVAILABILITY_FIRST_LADDER
+            if stage not in valid_completed
+        ),
+        0,
+    )
+    return {
+        "schema_version": "v7.availability-first-campaign-stage-status.v1",
+        "status": "PASS" if not blockers else "STOP_SAFE",
+        "ok": not blockers,
+        "standing_policy_contract_id": contract_id,
+        "standing_policy_contract_hash": contract_hash,
+        "stages": list(AVAILABILITY_FIRST_LADDER),
+        "completed_stages": valid_completed,
+        "production_proven_max": (
+            valid_completed[-1] if valid_completed else 0
+        ),
+        "next_stage": next_stage,
+        "completed": not blockers and next_stage == 0,
+        "receipt_ids": [
+            str(receipts_by_stage[stage][0].get("receipt_id") or "")
+            for stage in valid_completed
+        ],
+        "target_proven_bounds": target_proven_bounds,
         "blockers": sorted(set(blockers)),
         "owner": (
             "existing admin_core/operator_execution.py append-only "
@@ -2320,6 +2509,7 @@ def standing_delegated_operational_policy_template(
     max_users=1,
     *,
     include_controlled_topology=False,
+    include_availability_first=False,
 ):
     """Return the exact narrow scope consumed by the existing executor.
 
@@ -2355,12 +2545,22 @@ def standing_delegated_operational_policy_template(
             "policy_id": f"dap_service_failure_tier{max_users}",
             "policy_name": f"Bounded Service Failure Tier {max_users} Delegated Autonomy Policy",
         })
+    if include_availability_first:
+        include_controlled_topology = True
     if include_controlled_topology:
         policy.update({
-            "policy_profile": CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+            "policy_profile": (
+                AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+                if include_availability_first
+                else CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+            ),
             "allowed_action_classes": [
                 action_class,
                 CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+                *(
+                    [AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS]
+                    if include_availability_first else []
+                ),
             ],
             "action_class_scopes": {
                 action_class: {
@@ -2397,6 +2597,59 @@ def standing_delegated_operational_policy_template(
                         "INVALIDATE_ALLOCATION_NOT_STANDING_POLICY"
                     ),
                 },
+                **({
+                    AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                        "allowed_actions": list(
+                            AVAILABILITY_FIRST_ALLOWED_ACTIONS
+                        ),
+                        "certification_identities_only": True,
+                        "max_users_per_transaction": max_users,
+                        "max_concurrent_transactions": 1,
+                        "ladder": list(AVAILABILITY_FIRST_LADDER),
+                        "ladder_stage_semantics": (
+                            "EXACT_TOTAL_COHORT_WITH_BASELINE_RESET"
+                        ),
+                        "allowed_target_classifications": [
+                            "HEALTHY",
+                            "DEGRADED_USABLE",
+                            "LAST_RESORT_USABLE",
+                        ],
+                        "degraded_usable_initial_trial_scope": 1,
+                        "last_resort_initial_trial_scope": 1,
+                        "target_specific_real_outcome_required_for_growth": True,
+                        "adaptive_capacity_owner_backed": True,
+                        "aggregate_capacity_must_cover_exact_allocation": True,
+                        "capacity_double_counting_forbidden": True,
+                        "source_target_collision_forbidden": True,
+                        "ordinary_identity_delta": 0,
+                        "ordinary_route_delta": 0,
+                        "ordinary_assignment_mutation_allowed": False,
+                        "ordinary_reclassification_allowed": False,
+                        "shared_target_fault_injection_allowed": False,
+                        "shared_target_restart_allowed": False,
+                        "hard_limit_modification_allowed": False,
+                        "private_credential_mutation_allowed": False,
+                        "external_resource_creation_allowed": False,
+                        "immutable_allocation_required": True,
+                        "fresh_inventory_required": True,
+                        "fresh_candidate_required": True,
+                        "fresh_packet_or_packet_set_required": True,
+                        "fresh_lease_required": True,
+                        "restore_barrier_before_apply_required": True,
+                        "per_user_verification_required": True,
+                        "per_target_verification_required": True,
+                        "aggregate_verification_required": True,
+                        "ordinary_user_quality_verification_required": True,
+                        "cohort_circuit_breaker_required": True,
+                        "partial_target_containment_required": True,
+                        "rollback_or_redistribution_required": True,
+                        "baseline_reset_between_stages_required": True,
+                        "material_inventory_change_result": (
+                            "INVALIDATE_ALLOCATION_CANDIDATE_PACKET_LEASE"
+                        ),
+                        "authority_self_expansion_allowed": False,
+                    },
+                } if include_availability_first else {}),
             },
             "allowed_production_effects": {
                 CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS: [
@@ -2406,6 +2659,16 @@ def standing_delegated_operational_policy_template(
                     "bounded_runtime_apply",
                     "bounded_idempotent_rollback",
                 ],
+                **({
+                    AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: [
+                        "certification_only_assignment_change",
+                        "shared_target_capacity_reservation",
+                        "restore_barrier_write",
+                        "bounded_runtime_apply",
+                        "bounded_subset_redistribution",
+                        "bounded_idempotent_rollback",
+                    ],
+                } if include_availability_first else {}),
             },
         })
     return policy
@@ -2417,15 +2680,19 @@ def build_standing_delegated_policy_authority_request(
     active_program,
     max_users=1,
     include_controlled_topology=False,
+    include_availability_first=False,
     now=None,
 ):
     """Build a short-lived request to activate the bounded standing policy."""
     from admin_core import autonomy_trust_acceleration
 
     now = now or utc_now()
+    if include_availability_first:
+        include_controlled_topology = True
     policy = standing_delegated_operational_policy_template(
         max_users=max_users,
         include_controlled_topology=include_controlled_topology,
+        include_availability_first=include_availability_first,
     )
     normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
     request = {
@@ -2478,6 +2745,35 @@ def build_standing_delegated_policy_authority_request(
                     "self_expansion_allowed": False,
                 },
             } if include_controlled_topology else {}),
+            **({
+                "availability_first": {
+                    "action_class": (
+                        AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+                    ),
+                    "allowed_actions": list(
+                        AVAILABILITY_FIRST_ALLOWED_ACTIONS
+                    ),
+                    "ladder": list(AVAILABILITY_FIRST_LADDER),
+                    "stage_semantics": (
+                        "EXACT_TOTAL_COHORT_WITH_BASELINE_RESET"
+                    ),
+                    "max_users": max_users,
+                    "max_concurrent_transactions": 1,
+                    "target_selection": (
+                        "FRESH_EXISTING_PLANNER_SAFE_TARGET_OR_TARGET_SET"
+                    ),
+                    "candidate_identity": "FRESH_ONLY",
+                    "packet_reuse": "FORBIDDEN",
+                    "lease_required": True,
+                    "restore_barrier_required": True,
+                    "per_user_per_target_aggregate_verification": True,
+                    "ordinary_user_protection_required": True,
+                    "partial_target_containment_required": True,
+                    "rollback_or_redistribution_required": True,
+                    "baseline_reset_between_stages_required": True,
+                    "self_expansion_allowed": False,
+                },
+            } if include_availability_first else {}),
         },
         "forbidden_effects": [
             "authority_self_expansion",
@@ -2542,14 +2838,22 @@ def validate_standing_delegated_policy_authority_request(
         errors.append("standing_delegated_policy_id_invalid")
     requested_policy = request.get("policy") if isinstance(request.get("policy"), dict) else {}
     requested_max_users = as_int(requested_policy.get("max_users_per_action"), 0)
+    include_availability_first = (
+        requested_policy.get("policy_profile")
+        == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+    )
     include_controlled_topology = (
         requested_policy.get("policy_profile")
-        == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+        in {
+            CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+            AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+        }
     )
     try:
         expected = standing_delegated_operational_policy_template(
             max_users=requested_max_users,
             include_controlled_topology=include_controlled_topology,
+            include_availability_first=include_availability_first,
         )
     except PacketError:
         expected = {}
@@ -2599,6 +2903,31 @@ def validate_standing_delegated_policy_authority_request(
                 "self_expansion_allowed": False,
             },
         } if include_controlled_topology else {}),
+        **({
+            "availability_first": {
+                "action_class": AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS,
+                "allowed_actions": list(AVAILABILITY_FIRST_ALLOWED_ACTIONS),
+                "ladder": list(AVAILABILITY_FIRST_LADDER),
+                "stage_semantics": (
+                    "EXACT_TOTAL_COHORT_WITH_BASELINE_RESET"
+                ),
+                "max_users": requested_max_users,
+                "max_concurrent_transactions": 1,
+                "target_selection": (
+                    "FRESH_EXISTING_PLANNER_SAFE_TARGET_OR_TARGET_SET"
+                ),
+                "candidate_identity": "FRESH_ONLY",
+                "packet_reuse": "FORBIDDEN",
+                "lease_required": True,
+                "restore_barrier_required": True,
+                "per_user_per_target_aggregate_verification": True,
+                "ordinary_user_protection_required": True,
+                "partial_target_containment_required": True,
+                "rollback_or_redistribution_required": True,
+                "baseline_reset_between_stages_required": True,
+                "self_expansion_allowed": False,
+            },
+        } if include_availability_first else {}),
     }
     if law != exact_law:
         errors.append("standing_delegated_policy_per_action_law_invalid")
@@ -2630,14 +2959,22 @@ def validate_standing_delegated_operational_policy(contract, *, now=None, audit_
         errors.append("standing_delegated_policy_contract_owner_invalid")
     policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
     requested_max_users = as_int(policy.get("max_users_per_action"), 0)
+    include_availability_first = (
+        policy.get("policy_profile")
+        == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+    )
     include_controlled_topology = (
         policy.get("policy_profile")
-        == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+        in {
+            CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+            AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+        }
     )
     try:
         expected = standing_delegated_operational_policy_template(
             max_users=requested_max_users,
             include_controlled_topology=include_controlled_topology,
+            include_availability_first=include_availability_first,
         )
     except PacketError:
         expected = {}
@@ -3352,7 +3689,10 @@ def issue_standing_delegated_policy_from_audit(
         superseded_topology_requests = []
         if (
             request["policy"].get("policy_profile")
-            == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+            in {
+                CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+                AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+            }
         ):
             decided_topology_ids = {
                 str(record.get("authority_request_id") or "")
@@ -3786,6 +4126,9 @@ def validate_approvals(packet, errors, *, now=None):
         topology_action = (
             action_class == CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS
         )
+        availability_first_action = (
+            action_class == AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
         if action_class not in allowed_action_classes:
             errors.append("delegated_policy_action_class_invalid")
         authorized_max_users = as_int(normalized_scope.get("max_users_per_action"), 0)
@@ -3804,10 +4147,23 @@ def validate_approvals(packet, errors, *, now=None):
             )
             else {}
         )
+        availability_first_scope = (
+            action_class_scopes.get(AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS)
+            if isinstance(
+                action_class_scopes.get(
+                    AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+                ),
+                dict,
+            )
+            else {}
+        )
         if topology_action:
             if (
                 normalized_scope.get("policy_profile")
-                != CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+                not in {
+                    CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+                    AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+                }
             ):
                 errors.append("delegated_topology_policy_profile_invalid")
             if as_int(authority.get("max_users_per_transaction"), 0) != 1:
@@ -3828,6 +4184,100 @@ def validate_approvals(packet, errors, *, now=None):
                 errors.append("delegated_topology_ordinary_identity_delta_invalid")
             if as_int(topology_scope.get("ordinary_route_delta"), -1) != 0:
                 errors.append("delegated_topology_ordinary_route_delta_invalid")
+        elif availability_first_action:
+            if (
+                normalized_scope.get("policy_profile")
+                != AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+            ):
+                errors.append(
+                    "delegated_availability_first_policy_profile_invalid"
+                )
+            transaction_users = as_int(
+                authority.get("max_users_per_transaction"), 0
+            )
+            scope_users = as_int(
+                availability_first_scope.get("max_users_per_transaction"), 0
+            )
+            if (
+                transaction_users < 1
+                or transaction_users > scope_users
+                or scope_users != authorized_max_users
+            ):
+                errors.append(
+                    "delegated_availability_first_blast_radius_invalid"
+                )
+            if (
+                list(
+                    availability_first_scope.get("allowed_actions") or []
+                )
+                != list(AVAILABILITY_FIRST_ALLOWED_ACTIONS)
+            ):
+                errors.append(
+                    "delegated_availability_first_actions_invalid"
+                )
+            if (
+                list(availability_first_scope.get("ladder") or [])
+                != list(AVAILABILITY_FIRST_LADDER)
+            ):
+                errors.append(
+                    "delegated_availability_first_ladder_invalid"
+                )
+            if not str(
+                authority.get(
+                    "availability_first_allocation_fingerprint"
+                )
+                or ""
+            ):
+                errors.append(
+                    "delegated_availability_first_allocation_missing"
+                )
+            if not str(
+                authority.get("availability_first_subset_fingerprint")
+                or ""
+            ):
+                errors.append(
+                    "delegated_availability_first_subset_missing"
+                )
+            if not str(
+                authority.get("controlled_certification_target_id")
+                or ""
+            ):
+                errors.append(
+                    "delegated_availability_first_target_missing"
+                )
+            for field, expected in {
+                "certification_identities_only": True,
+                "max_concurrent_transactions": 1,
+                "ordinary_identity_delta": 0,
+                "ordinary_route_delta": 0,
+                "ordinary_assignment_mutation_allowed": False,
+                "ordinary_reclassification_allowed": False,
+                "shared_target_fault_injection_allowed": False,
+                "shared_target_restart_allowed": False,
+                "capacity_double_counting_forbidden": True,
+                "source_target_collision_forbidden": True,
+                "immutable_allocation_required": True,
+                "fresh_inventory_required": True,
+                "fresh_candidate_required": True,
+                "fresh_packet_or_packet_set_required": True,
+                "fresh_lease_required": True,
+                "restore_barrier_before_apply_required": True,
+                "per_user_verification_required": True,
+                "per_target_verification_required": True,
+                "aggregate_verification_required": True,
+                "ordinary_user_quality_verification_required": True,
+                "cohort_circuit_breaker_required": True,
+                "partial_target_containment_required": True,
+                "rollback_or_redistribution_required": True,
+                "baseline_reset_between_stages_required": True,
+                "authority_self_expansion_allowed": False,
+            }.items():
+                if availability_first_scope.get(field) != expected:
+                    errors.append(
+                        "delegated_availability_first_scope_"
+                        + field
+                        + "_invalid"
+                    )
         elif (
             authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
             or as_int(authority.get("max_users_per_transaction"), 0)
@@ -3858,12 +4308,23 @@ def validate_approvals(packet, errors, *, now=None):
             expected_action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(authorized_max_users, "")
             combined_profile = (
                 normalized_scope.get("policy_profile")
-                == CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
+                in {
+                    CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+                    AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+                }
+            )
+            availability_profile = (
+                normalized_scope.get("policy_profile")
+                == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
             )
             expected_action_classes = (
                 [
                     expected_action_class,
                     CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS,
+                    *(
+                        [AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS]
+                        if availability_profile else []
+                    ),
                 ]
                 if combined_profile
                 else [expected_action_class]
@@ -6319,6 +6780,16 @@ def main(argv=None):
             "performs production effects."
         ),
     )
+    parser.add_argument(
+        "--standing-policy-include-availability-first",
+        action="store_true",
+        help=(
+            "Extend the same combined standing-policy request with the exact "
+            "certification-only availability-first shared-target action class "
+            "and 1/2/5/10/25/48 maximum ladder. This never activates policy "
+            "or performs a production effect."
+        ),
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
     parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
@@ -6431,6 +6902,9 @@ def main(argv=None):
                 max_users=args.standing_policy_max_users,
                 include_controlled_topology=(
                     args.standing_policy_include_controlled_topology
+                ),
+                include_availability_first=(
+                    args.standing_policy_include_availability_first
                 ),
             )
             registration = register_standing_delegated_policy_request(

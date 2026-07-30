@@ -3088,11 +3088,19 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
     )
     policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     requested_max_users = int(getattr(args, "max_users", 0) or 0)
+    availability_mode = bool(
+        getattr(args, "execute_availability_first_standing_stage", False)
+        or getattr(args, "_availability_first_stage_request", None)
+    )
     expected_contract_id = str(getattr(args, "expected_standing_policy_contract_id", "") or "")
     expected_contract_hash = str(getattr(args, "expected_standing_policy_contract_hash", "") or "")
-    action_class = operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(
-        requested_max_users,
-        "",
+    action_class = (
+        operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        if availability_mode
+        else operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(
+            requested_max_users,
+            "",
+        )
     )
     blockers = list(validation.get("errors") or [])
     state_dir = Path(getattr(args, "state_dir", DEFAULT_STATE_DIR))
@@ -3146,20 +3154,64 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
             campaign_blockers.append(
                 "controlled_campaign_source_changed_after_matrix_admission"
             )
-        if campaign_stage not in set(
-            int(item) for item in (campaign_scope.get("campaign_stages") or [])
-        ):
-            campaign_blockers.append("controlled_campaign_stage_not_approved")
-        if campaign_stage != requested_max_users:
-            campaign_blockers.append(
-                "controlled_campaign_stage_transaction_limit_mismatch"
+        if availability_mode:
+            availability_request = (
+                getattr(args, "_availability_first_stage_request", None)
+                if isinstance(
+                    getattr(args, "_availability_first_stage_request", None),
+                    dict,
+                )
+                else {}
             )
+            availability_stage = int(
+                availability_request.get("stage")
+                or getattr(args, "availability_first_stage", 0)
+                or 0
+            )
+            if (
+                availability_stage
+                not in operator_execution.AVAILABILITY_FIRST_LADDER
+            ):
+                campaign_blockers.append(
+                    "availability_first_stage_not_in_standing_ladder"
+                )
+            if not 0 < requested_max_users <= availability_stage:
+                campaign_blockers.append(
+                    "availability_first_subtransaction_scope_invalid"
+                )
+        else:
+            if campaign_stage not in set(
+                int(item)
+                for item in (campaign_scope.get("campaign_stages") or [])
+            ):
+                campaign_blockers.append(
+                    "controlled_campaign_stage_not_approved"
+                )
+            if campaign_stage != requested_max_users:
+                campaign_blockers.append(
+                    "controlled_campaign_stage_transaction_limit_mismatch"
+                )
         campaign_binding = {
             **campaign_binding,
             "required": True,
             "ok": not campaign_blockers,
             "blockers": sorted(set(campaign_blockers)),
-            "stage": campaign_stage,
+            "stage": (
+                int(
+                    (
+                        getattr(
+                            args,
+                            "_availability_first_stage_request",
+                            {},
+                        )
+                        or {}
+                    ).get("stage")
+                    or getattr(args, "availability_first_stage", 0)
+                    or 0
+                )
+                if availability_mode
+                else campaign_stage
+            ),
             "policy_ceiling": int(policy.get("max_users_per_action") or 0),
             "stage_is_narrower_than_policy_ceiling": (
                 0 < campaign_stage
@@ -3186,8 +3238,96 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         blockers.append("standing_policy_concurrency_not_one")
     if action_class not in set(policy.get("allowed_action_classes") or []):
         blockers.append("standing_policy_action_class_not_allowed")
-    if requested_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES:
+    if (
+        not availability_mode
+        and requested_max_users
+        not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+    ):
         blockers.append("standing_policy_tier_not_engineering_qualified")
+    availability_scope: dict[str, Any] = {}
+    availability_request: dict[str, Any] = {}
+    if availability_mode:
+        if (
+            str(policy.get("policy_profile") or "")
+            != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        ):
+            blockers.append(
+                "availability_first_standing_policy_profile_not_active"
+            )
+        scopes = (
+            policy.get("action_class_scopes")
+            if isinstance(policy.get("action_class_scopes"), dict)
+            else {}
+        )
+        availability_scope = (
+            scopes.get(
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            )
+            if isinstance(
+                scopes.get(
+                    operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+                ),
+                dict,
+            )
+            else {}
+        )
+        availability_request = (
+            getattr(args, "_availability_first_stage_request", None)
+            if isinstance(
+                getattr(args, "_availability_first_stage_request", None),
+                dict,
+            )
+            else {}
+        )
+        expected_target = str(
+            availability_request.get("target_id")
+            or getattr(args, "availability_first_target", "")
+            or ""
+        )
+        expected_allocation_fingerprint = str(
+            availability_request.get("allocation_fingerprint")
+            or getattr(
+                args,
+                "expected_availability_first_allocation_fingerprint",
+                "",
+            )
+            or ""
+        )
+        expected_subset_fingerprint = str(
+            availability_request.get("subset_fingerprint")
+            or getattr(
+                args,
+                "expected_availability_first_subset_fingerprint",
+                "",
+            )
+            or ""
+        )
+        if int(
+            availability_scope.get("max_users_per_transaction") or 0
+        ) < requested_max_users:
+            blockers.append(
+                "availability_first_subtransaction_above_policy_ceiling"
+            )
+        if int(
+            availability_scope.get("max_concurrent_transactions") or 0
+        ) != 1:
+            blockers.append("availability_first_concurrency_not_one")
+        if not bool(
+            availability_scope.get("certification_identities_only")
+        ):
+            blockers.append(
+                "availability_first_certification_only_scope_missing"
+            )
+        if not all(
+            (
+                expected_target,
+                expected_allocation_fingerprint,
+                expected_subset_fingerprint,
+            )
+        ):
+            blockers.append(
+                "availability_first_exact_allocation_binding_incomplete"
+            )
     policy_preview = autonomy_trust_acceleration.build_delegated_autonomy_policy_preview(
         policy if validation.get("ok") else {},
     )
@@ -3207,12 +3347,38 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "engineering_authority_source": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "standing_policy_contract": copy.deepcopy(contract),
         "authority_audit_verified": bool(validation.get("ok")),
-        "controlled_certification_target_id": str(
-            (
-                campaign_binding.get("scope")
-                if isinstance(campaign_binding.get("scope"), dict)
-                else {}
-            ).get("controlled_target_id") or ""
+        "controlled_certification_target_id": (
+            str(
+                availability_request.get("target_id")
+                or getattr(args, "availability_first_target", "")
+                or ""
+            )
+            if availability_mode
+            else str(
+                (
+                    campaign_binding.get("scope")
+                    if isinstance(campaign_binding.get("scope"), dict)
+                    else {}
+                ).get("controlled_target_id") or ""
+            )
+        ),
+        "availability_first_allocation_fingerprint": str(
+            availability_request.get("allocation_fingerprint")
+            or getattr(
+                args,
+                "expected_availability_first_allocation_fingerprint",
+                "",
+            )
+            or ""
+        ),
+        "availability_first_subset_fingerprint": str(
+            availability_request.get("subset_fingerprint")
+            or getattr(
+                args,
+                "expected_availability_first_subset_fingerprint",
+                "",
+            )
+            or ""
         ),
     }
     return {
@@ -3229,6 +3395,9 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "self_expansion_allowed": bool(policy.get("self_expansion_allowed")),
         "delegated_policy_authority": delegated_policy_authority,
         "controlled_certification_campaign_binding": campaign_binding,
+        "availability_first": availability_mode,
+        "availability_first_stage_request": availability_request,
+        "availability_first_scope": availability_scope,
     }
 
 
@@ -3376,6 +3545,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_tier = resolved_l3_requested_max_users(args)
     requested_max_users = int(requested_tier["max_users"])
+    availability_mode = bool(
+        getattr(args, "execute_availability_first_standing_stage", False)
+        or getattr(args, "_availability_first_stage_request", None)
+    )
+    availability_request = (
+        getattr(args, "_availability_first_stage_request", None)
+        if isinstance(
+            getattr(args, "_availability_first_stage_request", None),
+            dict,
+        )
+        else {}
+    )
 
     control_file = Path(getattr(args, "execution_control_file", operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE))
     initial_control = operator_execution.autonomous_execution_control_state(control_file)
@@ -3456,12 +3637,65 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         selected = operator_execution.selected_moves_from_plan(plan)
         auto_window_blockers = []
         selected_count = int(selected.get("selected_move_count") or 0)
+        tier_allowed = (
+            0 < requested_max_users
+            <= int(availability_request.get("stage") or 0)
+            <= operator_execution.AVAILABILITY_FIRST_LADDER[-1]
+            if availability_mode
+            else requested_max_users
+            in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+        )
         if (
-            requested_max_users not in operator_execution.SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+            not tier_allowed
             or selected_count < 1
             or selected_count > requested_max_users
         ):
             auto_window_blockers.append("l3_auto_window_outside_authorized_tier")
+        if availability_mode:
+            selected_moves = operator_execution.selected_moves_from_plan(plan)
+            expected_users = sorted(
+                str(value)
+                for value in (
+                    availability_request.get("expected_users") or []
+                )
+                if str(value)
+            )
+            actual_users = sorted(
+                str(value)
+                for value in (
+                    selected_moves.get("allowed_users") or []
+                )
+                if str(value)
+            )
+            actual_targets = sorted(
+                str(value)
+                for value in (
+                    selected_moves.get("allowed_targets") or []
+                )
+                if str(value)
+            )
+            expected_target = str(
+                availability_request.get("target_id") or ""
+            )
+            if actual_users != expected_users:
+                auto_window_blockers.append(
+                    "availability_first_selected_cohort_changed"
+                )
+            if actual_targets != [expected_target]:
+                auto_window_blockers.append(
+                    "availability_first_selected_target_changed"
+                )
+            subset_fingerprint = operator_execution.sha256_json({
+                "stage": int(availability_request.get("stage") or 0),
+                "target_id": expected_target,
+                "users": expected_users,
+            })
+            if subset_fingerprint != str(
+                availability_request.get("subset_fingerprint") or ""
+            ):
+                auto_window_blockers.append(
+                    "availability_first_subset_fingerprint_changed"
+                )
         for field in ("selected_move_hash", "source_bundle_hash", "snapshot_bundle_hash"):
             if not str(selected.get(field) or ""):
                 auto_window_blockers.append(f"l3_auto_window_{field}_missing")
@@ -3807,9 +4041,14 @@ def _execute_governed_transaction_with_guards_inner(
     topology_mode = bool(
         getattr(args, "execute_controlled_topology_standing_transaction", False)
     )
+    availability_mode = bool(
+        getattr(args, "execute_availability_first_standing_stage", False)
+        or getattr(args, "_availability_first_stage_request", None)
+    )
     delegated_mode = bool(
         getattr(args, "execute_bounded_delegated_transaction", False)
         or topology_mode
+        or availability_mode
     )
     engineering_authority_request_file = str(getattr(args, "engineering_authority_request_file", "") or "")
     engineering_authority_request: dict[str, Any] = {}
@@ -3851,17 +4090,43 @@ def _execute_governed_transaction_with_guards_inner(
     support_mode = setup_mode or cleanup_mode or topology_mode
     if not delegated_mode and not support_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
-    if delegated_mode and int(args.max_users) > 1:
+    if delegated_mode and (
+        int(args.max_users) > 1 or availability_mode
+    ):
         policy_binding = standing_delegated_cohort_execution_binding(args)
         if not policy_binding.get("ok"):
             return transaction_stop(
                 "standing_delegated_cohort_policy_binding_invalid",
                 standing_delegated_policy_binding=policy_binding,
             )
-        causal_binding = service_failure_obligation_execution_binding(
-            args,
-            state_dir=state_dir,
-            event_dir=event_dir,
+        causal_binding = (
+            {
+                "schema_version": (
+                    "v7.availability-first-controlled-causal-binding.v1"
+                ),
+                "status": "BOUND",
+                "ok": True,
+                "source_channel": str(args.approved_source or ""),
+                "allocation_fingerprint": str(
+                    (
+                        getattr(
+                            args,
+                            "_availability_first_stage_request",
+                            {},
+                        )
+                        or {}
+                    ).get("allocation_fingerprint")
+                    or ""
+                ),
+                "evidence_class": "CONTROLLED_PRODUCTION",
+                "natural_l8_credit": False,
+            }
+            if availability_mode
+            else service_failure_obligation_execution_binding(
+                args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+            )
         )
         if not causal_binding.get("ok"):
             return transaction_stop(
@@ -3877,7 +4142,16 @@ def _execute_governed_transaction_with_guards_inner(
         cohort_args._standing_delegated_policy_authority = copy.deepcopy(
             policy_binding.get("delegated_policy_authority") or {},
         )
-        cohort_args._service_failure_causal_binding = copy.deepcopy(causal_binding)
+        cohort_args._service_failure_causal_binding = (
+            {}
+            if availability_mode
+            else copy.deepcopy(causal_binding)
+        )
+        cohort_args._availability_first_causal_binding = (
+            copy.deepcopy(causal_binding)
+            if availability_mode
+            else {}
+        )
         result = execute_l3_production_validation(
             cohort_args,
             state_dir=state_dir,
@@ -4753,6 +5027,659 @@ def execute_controlled_topology_standing_transaction(
     }
 
 
+def _availability_first_ordinary_assignment_projection(
+    state_dir: Path,
+) -> dict[str, Any]:
+    rows = [
+        row
+        for row in read_registry(state_dir / "users.registry")
+        if str(row.get("enabled") or "1").lower()
+        in {"1", "true", "yes"}
+        and str(row.get("certification_user") or "").lower()
+        not in {"1", "true", "yes"}
+    ]
+    semantic = [
+        {
+            "ip": str(row.get("ip") or ""),
+            "current": str(row.get("current") or ""),
+            "group": str(row.get("group") or ""),
+        }
+        for row in sorted(rows, key=lambda item: str(item.get("ip") or ""))
+    ]
+    route_semantic = [
+        {
+            "ip": str(row.get("ip") or ""),
+            "assign_hash": operator_execution.sha256_file(
+                state_dir / f"user-{str(row.get('ip') or '')}.assign"
+            ),
+        }
+        for row in sorted(rows, key=lambda item: str(item.get("ip") or ""))
+    ]
+    return {
+        "count": len(semantic),
+        "assignment_fingerprint": operator_execution.sha256_json(
+            semantic
+        ),
+        "route_fingerprint": operator_execution.sha256_json(
+            route_semantic
+        ),
+    }
+
+
+def _availability_first_topology_diagnostic(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+) -> dict[str, Any]:
+    command = [
+        str(
+            getattr(args, "controlled_topology_planner", "")
+            or "v7-users-autoswitch"
+        ),
+        "--controlled-source-topology-diagnostic",
+        "--state-dir",
+        str(state_dir),
+        "--policy-file",
+        str(args.policy_file),
+        "--action-class-audit-store",
+        str(args.operator_execution_audit_store),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "blockers": [
+                f"availability_first_planner_unavailable:{type(exc).__name__}"
+            ],
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+        diagnostic = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        diagnostic = {}
+    return {
+        "ok": proc.returncode == 0 and bool(diagnostic),
+        "command": command,
+        "returncode": proc.returncode,
+        "diagnostic": diagnostic,
+        "blockers": (
+            []
+            if proc.returncode == 0 and diagnostic
+            else ["availability_first_planner_failed_or_invalid_json"]
+        ),
+        "output_tail": (
+            ""
+            if proc.returncode == 0 and diagnostic
+            else (proc.stdout or "")[-2000:]
+        ),
+    }
+
+
+def execute_availability_first_standing_stage(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Run one exact ladder stage as a serialized packet-set.
+
+    The allocation is derived from the existing Planner and remains immutable
+    for this invocation.  Each target subset receives a fresh Candidate,
+    Packet and lease through the existing cohort executor.  The single active
+    lease plus a fresh pre-apply capacity check is the existing-owner capacity
+    reservation; no second reservation registry is introduced.
+    """
+    planner = _availability_first_topology_diagnostic(
+        args,
+        state_dir=state_dir,
+    )
+    diagnostic = (
+        planner.get("diagnostic")
+        if isinstance(planner.get("diagnostic"), dict)
+        else {}
+    )
+    admission = (
+        diagnostic.get("availability_first_standing_policy_admission")
+        if isinstance(
+            diagnostic.get("availability_first_standing_policy_admission"),
+            dict,
+        )
+        else {}
+    )
+    projection = (
+        diagnostic.get("shared_production_target_capacity_projection")
+        if isinstance(
+            diagnostic.get("shared_production_target_capacity_projection"),
+            dict,
+        )
+        else {}
+    )
+    campaign = (
+        projection.get("availability_campaign")
+        if isinstance(projection.get("availability_campaign"), dict)
+        else {}
+    )
+    stage = int(
+        getattr(args, "availability_first_stage", 0)
+        or campaign.get("next_stage")
+        or 0
+    )
+    allocation = (
+        (projection.get("stage_allocations") or {}).get(str(stage), {})
+        if isinstance(projection.get("stage_allocations"), dict)
+        else {}
+    )
+    allocation_rows = [
+        row
+        for row in (
+            allocation.get("immutable_allocation_projection") or []
+        )
+        if isinstance(row, dict)
+    ]
+    expected_fingerprint = str(
+        getattr(
+            args,
+            "expected_availability_first_allocation_fingerprint",
+            "",
+        )
+        or ""
+    )
+    blockers = list(planner.get("blockers") or [])
+    if diagnostic.get("status") != (
+        "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+    ):
+        blockers.append("availability_first_topology_not_auto_admitted")
+    if admission.get("ok") is not True:
+        blockers.extend(admission.get("blockers") or [])
+    if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
+        blockers.append("availability_first_stage_not_in_ladder")
+    if int(campaign.get("next_stage") or 0) != stage:
+        blockers.append("availability_first_stage_not_current")
+    if not allocation.get("feasible") or not allocation_rows:
+        blockers.append("availability_first_exact_allocation_not_feasible")
+    allocation_fingerprint = str(
+        allocation.get("allocation_fingerprint") or ""
+    )
+    if (
+        expected_fingerprint
+        and expected_fingerprint != allocation_fingerprint
+    ):
+        blockers.append("availability_first_allocation_changed")
+    if sum(
+        int(row.get("allocated_users") or 0)
+        for row in allocation_rows
+    ) != stage:
+        blockers.append("availability_first_allocation_scope_mismatch")
+    source = str(
+        (
+            (
+                diagnostic.get(
+                    "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"
+                )
+                or {}
+            ).get("controlled_source")
+            or {}
+        ).get("source_id")
+        or ""
+    )
+    current_campaign = (
+        diagnostic.get("current_campaign")
+        if isinstance(diagnostic.get("current_campaign"), dict)
+        else {}
+    )
+    if not source:
+        blockers.append("availability_first_controlled_source_missing")
+    users = [
+        row
+        for row in read_registry(state_dir / "users.registry")
+        if str(row.get("enabled") or "1").lower()
+        in {"1", "true", "yes"}
+        and str(row.get("certification_user") or "").lower()
+        in {"1", "true", "yes"}
+        and str(row.get("current") or "") == source
+    ]
+    users = sorted(users, key=lambda row: str(row.get("ip") or ""))
+    if len(users) < stage:
+        blockers.append("availability_first_source_cohort_too_small")
+    selected_users = [
+        str(row.get("ip") or "") for row in users[:stage]
+    ]
+    if any(not user for user in selected_users):
+        blockers.append("availability_first_certification_identity_missing")
+    ordinary_before = _availability_first_ordinary_assignment_projection(
+        state_dir
+    )
+    if blockers:
+        return {
+            **transaction_stop(
+                "availability_first_standing_stage_not_admitted",
+                blockers=sorted(set(str(item) for item in blockers)),
+            ),
+            "stage": stage,
+            "allocation_fingerprint": allocation_fingerprint,
+            "planner": planner,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    offset = 0
+    packet_set: list[dict[str, Any]] = []
+    moved_users: list[str] = []
+    execution_allocation: list[dict[str, Any]] = []
+    circuit_breaker = {
+        "tripped": False,
+        "remaining_subsets_stopped": False,
+        "reason": "NONE",
+    }
+    for row in allocation_rows:
+        target = str(row.get("target_id") or "")
+        count = int(row.get("allocated_users") or 0)
+        subset = selected_users[offset:offset + count]
+        offset += count
+        subset_fingerprint = operator_execution.sha256_json({
+            "stage": stage,
+            "target_id": target,
+            "users": subset,
+        })
+        execution_allocation.append({
+            "target_id": target,
+            "allocated_users": count,
+            "subset_fingerprint": subset_fingerprint,
+            "capacity_reservation": int(
+                row.get("capacity_reservation") or count
+            ),
+            "capacity_bounds_fingerprint": str(
+                row.get("capacity_bounds_fingerprint") or ""
+            ),
+            "target_fingerprint": str(
+                row.get("target_fingerprint") or ""
+            ),
+        })
+        transaction_args = copy.copy(args)
+        transaction_args.execute_bounded_delegated_transaction = True
+        transaction_args.execute_availability_first_standing_stage = True
+        transaction_args.max_users = count
+        transaction_args.approved_source = source
+        transaction_args.availability_first_target = target
+        transaction_args.expected_standing_policy_contract_id = str(
+            admission.get("contract_id") or ""
+        )
+        transaction_args.expected_standing_policy_contract_hash = str(
+            admission.get("contract_hash") or ""
+        )
+        transaction_args.controlled_certification_campaign_request_id = str(
+            current_campaign.get("request_id") or ""
+        )
+        transaction_args.controlled_certification_campaign_request_hash = str(
+            current_campaign.get("request_hash") or ""
+        )
+        transaction_args.controlled_certification_campaign_stage = 0
+        transaction_args._availability_first_stage_request = {
+            "stage": stage,
+            "target_id": target,
+            "expected_users": subset,
+            "subset_fingerprint": subset_fingerprint,
+            "allocation_fingerprint": allocation_fingerprint,
+            "inventory_fingerprint": str(
+                projection.get("inventory_fingerprint")
+                or diagnostic.get("inventory_fingerprint")
+                or ""
+            ),
+        }
+        transaction = execute_governed_transaction_with_guards(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        compact = compact_transaction_result(transaction)
+        packet_set.append({
+            **compact,
+            "target_id": target,
+            "subset_fingerprint": subset_fingerprint,
+        })
+        passed = (
+            transaction.get("final_verdict")
+            in {"GOVERNED_TRANSACTION_COMPLETED", "L3_PRODUCTION_PROVEN"}
+            and str(transaction.get("verification_result") or "") == "PASS"
+            and int(transaction.get("users_moved") or 0) == count
+        )
+        if not passed:
+            circuit_breaker = {
+                "tripped": True,
+                "remaining_subsets_stopped": True,
+                "reason": str(
+                    transaction.get("stop_reason")
+                    or transaction.get("final_verdict")
+                    or "availability_first_subset_failed"
+                ),
+            }
+            break
+        moved_users.extend(subset)
+
+    ordinary_after_apply = (
+        _availability_first_ordinary_assignment_projection(state_dir)
+    )
+    ordinary_unchanged = (
+        ordinary_after_apply == ordinary_before
+    )
+    post_apply_planner = _availability_first_topology_diagnostic(
+        args,
+        state_dir=state_dir,
+    )
+    post_apply_diagnostic = (
+        post_apply_planner.get("diagnostic")
+        if isinstance(post_apply_planner.get("diagnostic"), dict)
+        else {}
+    )
+    post_apply_targets = {
+        str(row.get("target_id") or ""): row
+        for row in (
+            (
+                post_apply_diagnostic.get(
+                    "shared_production_target_capacity_projection"
+                )
+                or {}
+            ).get("targets")
+            or post_apply_diagnostic.get("targets")
+            or []
+        )
+        if isinstance(row, dict) and str(row.get("target_id") or "")
+    }
+    target_verification = []
+    for item in execution_allocation:
+        target_id = str(item.get("target_id") or "")
+        target_row = post_apply_targets.get(target_id) or {}
+        availability = (
+            target_row.get("shared_target_availability")
+            if isinstance(
+                target_row.get("shared_target_availability"),
+                dict,
+            )
+            else {}
+        )
+        quality = (
+            target_row.get("quality")
+            if isinstance(target_row.get("quality"), dict)
+            else {}
+        )
+        passed = bool(
+            target_row
+            and availability.get("state")
+            in {"HEALTHY", "DEGRADED_USABLE", "LAST_RESORT_USABLE"}
+            and quality.get("fresh") is True
+            and not availability.get("hard_reasons")
+        )
+        target_verification.append({
+            "target_id": target_id,
+            "passed": passed,
+            "availability_classification": str(
+                availability.get("state") or ""
+            ),
+            "quality_fingerprint": operator_execution.sha256_json(
+                quality
+            ),
+            "capacity_fingerprint": operator_execution.sha256_json(
+                target_row.get("capacity") or {}
+            ),
+        })
+    target_verification_passed = bool(
+        target_verification
+        and all(row.get("passed") for row in target_verification)
+    )
+    if not ordinary_unchanged:
+        circuit_breaker = {
+            "tripped": True,
+            "remaining_subsets_stopped": True,
+            "reason": "ordinary_assignment_fingerprint_changed",
+        }
+
+    reset_transactions: list[dict[str, Any]] = []
+    reset_ok = len(moved_users) == stage
+    if moved_users:
+        current_rows = {
+            str(row.get("ip") or ""): row
+            for row in read_registry(state_dir / "users.registry")
+        }
+        for user in reversed(moved_users):
+            current_target = str(
+                (current_rows.get(user) or {}).get("current") or ""
+            )
+            if not current_target or current_target == source:
+                continue
+            reset_args = copy.copy(args)
+            reset_args._certification_cleanup_request = {
+                "user": user,
+                "source": current_target,
+                "target": source,
+                "campaign_reset": True,
+                "controlled_source": source,
+            }
+            reset_args.skip_planner_observe = True
+            reset_args.execute_bounded_delegated_transaction = False
+            reset_args.execute_availability_first_standing_stage = False
+            reset_args._availability_first_stage_request = None
+            reset_args.engineering_authority_request_file = ""
+            reset = execute_governed_transaction_with_guards(
+                reset_args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+                audit_dir=audit_dir,
+                lease_file=lease_file,
+            )
+            reset_transactions.append(compact_transaction_result(reset))
+            if (
+                reset.get("final_verdict")
+                != "GOVERNED_TRANSACTION_COMPLETED"
+                or str(reset.get("verification_result") or "") != "PASS"
+            ):
+                reset_ok = False
+                circuit_breaker = {
+                    "tripped": True,
+                    "remaining_subsets_stopped": True,
+                    "reason": "availability_first_baseline_reset_failed",
+                }
+                break
+        after_reset = {
+            str(row.get("ip") or ""): str(row.get("current") or "")
+            for row in read_registry(state_dir / "users.registry")
+        }
+        reset_ok = reset_ok and all(
+            after_reset.get(user) == source for user in moved_users
+        )
+
+    ordinary_final = _availability_first_ordinary_assignment_projection(
+        state_dir
+    )
+    ordinary_final_unchanged = ordinary_final == ordinary_before
+    complete = bool(
+        len(moved_users) == stage
+        and len(packet_set) == len(allocation_rows)
+        and not circuit_breaker["tripped"]
+        and ordinary_unchanged
+        and target_verification_passed
+        and ordinary_final_unchanged
+        and reset_ok
+    )
+    execution_allocation_fingerprint = operator_execution.sha256_json({
+        "standing_policy_contract_id": admission.get("contract_id"),
+        "stage": stage,
+        "planner_allocation_fingerprint": allocation_fingerprint,
+        "subsets": execution_allocation,
+    })
+    outcome_consumed = bool(
+        packet_set
+        and all(
+            bool(
+                (
+                    row.get("feedback_materialization")
+                    if isinstance(
+                        row.get("feedback_materialization"),
+                        dict,
+                    )
+                    else {}
+                ).get("materialized")
+                and (
+                    row.get("feedback_materialization")
+                    if isinstance(
+                        row.get("feedback_materialization"),
+                        dict,
+                    )
+                    else {}
+                ).get("outcome_id")
+            )
+            for row in packet_set
+        )
+    )
+    replay_consumed = bool(
+        packet_set
+        and all(
+            bool(
+                (
+                    (
+                        row.get("l3_learning_closure")
+                        if isinstance(
+                            row.get("l3_learning_closure"),
+                            dict,
+                        )
+                        else {}
+                    ).get("execution_closure_verification")
+                    or {}
+                ).get("terminal_consumer_verified")
+            )
+            and str(
+                (
+                    (
+                        row.get("l3_learning_closure")
+                        if isinstance(
+                            row.get("l3_learning_closure"),
+                            dict,
+                        )
+                        else {}
+                    ).get("execution_closure_verification")
+                    or {}
+                ).get("behavior_chain_status")
+                or ""
+            )
+            == "COMPLETE"
+            for row in packet_set
+        )
+    )
+    learning_consumed = bool(
+        packet_set
+        and all(
+            bool(
+                (
+                    row.get("l3_learning_closure")
+                    if isinstance(
+                        row.get("l3_learning_closure"),
+                        dict,
+                    )
+                    else {}
+                ).get("materialized")
+                or str(
+                    (
+                        row.get("l3_learning_closure")
+                        if isinstance(
+                            row.get("l3_learning_closure"),
+                            dict,
+                        )
+                        else {}
+                    ).get("reason")
+                    or ""
+                )
+                == "already_materialized"
+            )
+            for row in packet_set
+        )
+    )
+    evidence_complete = (
+        outcome_consumed and replay_consumed and learning_consumed
+    )
+    complete = complete and evidence_complete
+    return {
+        "schema_version": "v7.availability-first-standing-stage.v1",
+        "transaction_status": "COMPLETED" if complete else "STOP_SAFE",
+        "final_verdict": (
+            "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+            if complete
+            else "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
+        ),
+        "stage": stage,
+        "source": source,
+        "standing_policy_contract_id": str(
+            admission.get("contract_id") or ""
+        ),
+        "standing_policy_contract_hash": str(
+            admission.get("contract_hash") or ""
+        ),
+        "planner_allocation_fingerprint": allocation_fingerprint,
+        "execution_allocation_fingerprint": (
+            execution_allocation_fingerprint
+        ),
+        "inventory_fingerprint": str(
+            diagnostic.get("inventory_fingerprint") or ""
+        ),
+        "allocation": execution_allocation,
+        "packet_set": packet_set,
+        "packet_set_fingerprint": operator_execution.sha256_json(packet_set),
+        "users_moved": len(moved_users),
+        "runtime_mutation_performed": bool(moved_users),
+        "per_user_verification_passed": complete,
+        "per_target_verification_passed": target_verification_passed,
+        "aggregate_verification_passed": complete,
+        "ordinary_user_protection_passed": (
+            ordinary_unchanged and ordinary_final_unchanged
+        ),
+        "capacity_reservation_verified": bool(
+            complete
+            and all(
+                row.get("capacity_reservation")
+                == row.get("allocated_users")
+                for row in execution_allocation
+            )
+        ),
+        "allocation_immutable": bool(
+            allocation_fingerprint
+            and expected_fingerprint in {"", allocation_fingerprint}
+        ),
+        "outcome_consumed": outcome_consumed,
+        "replay_consumed": replay_consumed,
+        "learning_consumed": learning_consumed,
+        "baseline_reset_verified": reset_ok,
+        "reset_transactions": reset_transactions,
+        "ordinary_assignment_before": ordinary_before,
+        "ordinary_assignment_after_apply": ordinary_after_apply,
+        "ordinary_assignment_final": ordinary_final,
+        "target_verification": target_verification,
+        "circuit_breaker": circuit_breaker,
+        "final_safe_mode": "OPEN",
+        "authority_expanded": False,
+        "production_maturity_change": False,
+        "natural_l8_credit": False,
+        "durable_successor": (
+            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+            if complete
+            else "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_EXACT_STOP_SAFE"
+        ),
+    }
+
+
 def prepare_controlled_certification_condition(
     args: argparse.Namespace,
     *,
@@ -5303,6 +6230,27 @@ def build_parser() -> argparse.ArgumentParser:
         "--execute-controlled-topology-standing-transaction",
         action="store_true",
     )
+    parser.add_argument(
+        "--execute-availability-first-standing-stage",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--availability-first-stage",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
+        "--availability-first-target",
+        default="",
+    )
+    parser.add_argument(
+        "--expected-availability-first-allocation-fingerprint",
+        default="",
+    )
+    parser.add_argument(
+        "--expected-availability-first-subset-fingerprint",
+        default="",
+    )
     parser.add_argument("--expected-standing-policy-contract-id", default="")
     parser.add_argument("--expected-standing-policy-contract-hash", default="")
     parser.add_argument(
@@ -5554,6 +6502,29 @@ def main(argv=None) -> int:
             0
             if result.get("final_verdict")
             == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
+            else 2
+        )
+    if args.execute_availability_first_standing_stage:
+        result = execute_availability_first_standing_stage(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(
+            json.dumps(
+                result,
+                ensure_ascii=False,
+                indent=2 if args.pretty else None,
+                sort_keys=True,
+            )
+        )
+        return (
+            0
+            if result.get("final_verdict")
+            == "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
             else 2
         )
     if args.execute_governed_transaction or args.execute_bounded_delegated_transaction:

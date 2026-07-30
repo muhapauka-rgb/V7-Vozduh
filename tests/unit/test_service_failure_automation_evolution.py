@@ -202,7 +202,6 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(insufficient["state"], "DEGRADED_OBSERVATION_INSUFFICIENT")
         self.assertEqual(insufficient["technical_safe_additional_capacity"], 0)
         self.assertFalse(insufficient["hard_reasons"])
-        self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
     def test_actual_source_reprojection_excludes_live_source_before_capacity_allocation(self):
         rows = [
@@ -241,6 +240,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             allocation["stage_allocations"]["1"]
             ["immutable_allocation_projection"][0]["target_id"],
             "awg0",
+        )
+        reservation = (
+            allocation["stage_allocations"]["1"]
+            ["immutable_allocation_projection"][0]
+        )
+        self.assertEqual(reservation["capacity_reservation"], 1)
+        self.assertEqual(
+            reservation["capacity_reservation_semantics"],
+            (
+                "SERIALIZED_PACKET_LEASE_RESERVATION_WITH_FRESH_"
+                "PRE_APPLY_REVALIDATION"
+            ),
         )
         self.assertFalse(allocation["stage_allocations"]["2"]["feasible"])
 
@@ -505,6 +516,40 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             targets["ordinary-good"]["shared_target_policy_scope_status"],
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED",
         )
+        ordinary_capacity = targets["ordinary-good"]["capacity"]
+        self.assertGreater(
+            ordinary_capacity["planning_safe_additional_capacity"],
+            0,
+        )
+        self.assertEqual(
+            ordinary_capacity["target_safe_additional_capacity"],
+            0,
+        )
+        self.assertEqual(
+            ordinary_capacity["authority_safe_increment"],
+            0,
+        )
+        self.assertEqual(
+            ordinary_capacity["runtime_safe_increment"],
+            0,
+        )
+        self.assertEqual(
+            set(ordinary_capacity["capacity_bounds"]),
+            {
+                "hard_capacity_remaining",
+                "ordinary_protection_margin",
+                "throughput_safe_increment",
+                "quality_safe_increment",
+                "verification_safe_increment",
+                "rollback_containment_safe_increment",
+                "authority_safe_increment",
+                "runtime_safe_increment",
+            },
+        )
+        self.assertTrue(all(
+            row["owner"] and row["fingerprint"] and "reason" in row
+            for row in ordinary_capacity["capacity_bounds"].values()
+        ))
         self.assertIn(
             "controlled_assignment_permission_or_isolation_contract_missing",
             targets["ordinary-good"]["exclusion_reasons"],

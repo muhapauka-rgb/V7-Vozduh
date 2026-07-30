@@ -257,6 +257,82 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             widened_errors,
         )
 
+    def test_packet_owner_accepts_only_narrowed_availability_first_stage(self):
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_availability_first=True,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            contract = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )["contract"]
+        policy = request["policy"]
+        authority = {
+            "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+            "policy_id": policy["policy_id"],
+            "policy_scope_hash": request["policy_scope_hash"],
+            "normalized_scope": (
+                autonomy_trust_acceleration
+                .normalized_delegated_autonomy_scope(policy)
+            ),
+            "policy_state": policy["policy_state"],
+            "current_mode": policy["current_mode"],
+            "action_class": (
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            ),
+            "max_users_per_transaction": 5,
+            "max_concurrent_transactions": 1,
+            "candidate_identity": "FRESH_ONLY",
+            "packet_reuse": "FORBIDDEN",
+            "self_expansion_allowed": False,
+            "standing_policy_contract": contract,
+            "authority_audit_verified": True,
+            "controlled_certification_target_id": "awg3",
+            "availability_first_allocation_fingerprint": "a" * 64,
+            "availability_first_subset_fingerprint": "b" * 64,
+        }
+        errors = []
+        operator_execution.validate_approvals(
+            {"approvals": [], "delegated_policy_authority": authority},
+            errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertEqual(errors, [])
+
+        widened = copy.deepcopy(authority)
+        widened["max_users_per_transaction"] = 49
+        widened_errors = []
+        operator_execution.validate_approvals(
+            {"approvals": [], "delegated_policy_authority": widened},
+            widened_errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertIn(
+            "delegated_availability_first_blast_radius_invalid",
+            widened_errors,
+        )
+
     def test_combined_standing_policy_extends_existing_owner_without_reinterpreting_legacy_scope(self):
         now = datetime(2026, 7, 29, tzinfo=timezone.utc)
         legacy = standing_delegated_operational_policy_template(max_users=48)
@@ -309,6 +385,202 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             autonomy_trust_acceleration.delegated_autonomy_scope_hash(legacy),
             legacy_hash,
         )
+
+    def test_availability_first_standing_policy_is_one_exact_opt_in_envelope(self):
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        legacy = standing_delegated_operational_policy_template(
+            max_users=48,
+            include_controlled_topology=True,
+        )
+        legacy_hash = autonomy_trust_acceleration.delegated_autonomy_scope_hash(
+            legacy
+        )
+
+        request = build_standing_delegated_policy_authority_request(
+            policy_generation_hash="a" * 64,
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            max_users=48,
+            include_availability_first=True,
+            now=now,
+        )
+        validation = validate_standing_delegated_policy_authority_request(
+            request,
+            decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+            now=now,
+        )
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        policy = request["policy"]
+        self.assertEqual(
+            policy["policy_profile"],
+            operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+        )
+        self.assertIn(
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS,
+            policy["allowed_action_classes"],
+        )
+        scope = policy["action_class_scopes"][
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        ]
+        self.assertEqual(scope["max_users_per_transaction"], 48)
+        self.assertEqual(scope["max_concurrent_transactions"], 1)
+        self.assertEqual(scope["ladder"], [1, 2, 5, 10, 25, 48])
+        self.assertEqual(
+            scope["ladder_stage_semantics"],
+            "EXACT_TOTAL_COHORT_WITH_BASELINE_RESET",
+        )
+        self.assertTrue(scope["certification_identities_only"])
+        self.assertFalse(scope["ordinary_assignment_mutation_allowed"])
+        self.assertFalse(scope["ordinary_reclassification_allowed"])
+        self.assertFalse(scope["shared_target_fault_injection_allowed"])
+        self.assertFalse(scope["authority_self_expansion_allowed"])
+        self.assertNotEqual(request["policy_scope_hash"], legacy_hash)
+        self.assertEqual(
+            autonomy_trust_acceleration.delegated_autonomy_scope_hash(legacy),
+            legacy_hash,
+        )
+        self.assertNotIn("contract_id", request)
+        self.assertFalse(request.get("authority_granted", False))
+
+    def test_availability_first_standing_policy_activation_is_audited_and_fail_closed(self):
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_availability_first=True,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            activated = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            valid = validate_standing_delegated_operational_policy(
+                activated["contract"],
+                audit_records=read_audit_records(audit_path),
+                now=now + timedelta(seconds=1),
+            )
+            self.assertTrue(valid["ok"], valid["errors"])
+
+            malformed = copy.deepcopy(activated["contract"])
+            availability = malformed["policy"]["action_class_scopes"][
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            ]
+            availability["shared_target_fault_injection_allowed"] = True
+            malformed["contract_hash"] = standing_delegated_policy_contract_hash(
+                malformed
+            )
+            malformed["contract_id"] = (
+                f"sdpc_{malformed['contract_hash'][:24]}"
+            )
+            rejected = validate_standing_delegated_operational_policy(
+                malformed,
+                now=now + timedelta(seconds=1),
+            )
+            self.assertFalse(rejected["ok"])
+            self.assertIn(
+                "standing_delegated_policy_contract_scope_invalid",
+                rejected["errors"],
+            )
+
+    def test_availability_first_campaign_status_consumes_only_exact_prefix(self):
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_availability_first=True,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+                now=now,
+            )
+            contract = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )["contract"]
+            initial = operator_execution.availability_first_campaign_stage_status(
+                read_audit_records(audit_path),
+                contract=contract,
+                now=now + timedelta(seconds=1),
+            )
+            self.assertEqual(initial["next_stage"], 1)
+            self.assertEqual(initial["completed_stages"], [])
+
+            operator_execution.append_record(audit_path, {
+                "record_type": (
+                    operator_execution
+                    .CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+                ),
+                "effect_class": (
+                    operator_execution
+                    .AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
+                ),
+                "receipt_id": "afstage_one",
+                "standing_policy_contract_id": contract["contract_id"],
+                "standing_policy_contract_hash": contract["contract_hash"],
+                "campaign_stage": 1,
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+                "ordinary_customer_count": 0,
+                "target_receipts": [{
+                    "target_id": "awg3",
+                    "verified_scope": 1,
+                    "target_fingerprint": "a" * 64,
+                    "capacity_bounds_fingerprint": "b" * 64,
+                }],
+            })
+            advanced = operator_execution.availability_first_campaign_stage_status(
+                read_audit_records(audit_path),
+                contract=contract,
+                now=now + timedelta(seconds=1),
+            )
+            self.assertTrue(advanced["ok"], advanced["blockers"])
+            self.assertEqual(advanced["completed_stages"], [1])
+            self.assertEqual(advanced["next_stage"], 2)
+            self.assertEqual(
+                advanced["target_proven_bounds"],
+                {"awg3": 1},
+            )
 
     def test_combined_standing_policy_requires_independent_activation_and_fails_closed_on_scope_change(self):
         now = datetime(2026, 7, 29, tzinfo=timezone.utc)

@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `3.0`
+Version: `3.1`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,172 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V3.1 active executable revision — standing availability-first ladder
+
+V3.1 admits
+`STANDING_DELEGATED_AVAILABILITY_FIRST_CONTROLLED_FAILOVER_AND_LADDER_V1`
+inside this existing Program. It extends the existing standing-policy,
+target-classification, adaptive-capacity, allocation, governed execution,
+verification, Outcome/Replay/Learning and CPS/OMP owners. It creates no
+Program, Planner, Runtime, registry, queue, watcher, scheduler, Authority
+owner, policy store, executor, evidence store or truth source.
+
+### Reuse and invalidation law
+
+Before implementation or repeated verification, the Mission must classify the
+existing semantic capability, owner, evidence generation and declared
+invalidation trigger. Valid matching knowledge is
+`RESULT_REUSED_VALID`. Generic 1/2/4/5/10/25/48 movement evidence may prove
+the common movement primitive, but it does not by itself prove
+availability-first target admission, shared-target reserve protection,
+multi-target allocation or ordinary-user invariance. Only those exact
+unclosed semantics are revalidated.
+
+### Authority ordering
+
+Engineering may implement and verify the complete bounded class, then create
+one fresh request through the existing standing delegated policy owner.
+Before independent activation, the exact legal terminal is
+`ENGINEERING_AUTHORITY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY_REQUIRED`.
+That terminal permits no policy write, Candidate, Packet, lease, restore
+barrier, apply, routing mutation, user movement or rollback apply.
+
+Independent activation may add exactly:
+
+`BOUNDED_AVAILABILITY_FIRST_CONTROLLED_FAILOVER`.
+
+It never approves a target, identity, allocation, Packet or campaign stage.
+The standing contract defines the immutable safety envelope; the existing
+Planner selects fresh exact targets and the existing Packet binds the exact
+immutable allocation. Old one-off degraded-target requests are superseded
+through the existing append-only Authority audit only after the standing
+contract becomes active.
+
+After activation, a conforming fresh action is
+`AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY`. A new Codex
+turn or operator message is not a wake source. The only continuation is:
+
+```text
+Matrix observation
+-> fresh inventory and target classification
+-> adaptive capacity
+-> immutable allocation
+-> standing-policy admission
+-> fresh Candidate / Packet or packet-set / lease
+-> restore barrier
+-> bounded certification-only apply
+-> per-user / per-target / aggregate / ordinary-user verification
+-> containment, redistribution or rollback
+-> Outcome / Replay / Learning
+-> baseline reset
+-> atomic CPS/OMP successor
+-> next Matrix generation
+```
+
+### Immutable envelope
+
+The availability-first action class is certification-only and has:
+
+- ordinary identity, assignment and route delta equal to zero;
+- no ordinary-user reclassification;
+- no shared-target fault injection, restart, hard-limit, credential, secret
+  or external-resource mutation;
+- maximum 48 certification identities per transaction and one concurrent
+  transaction;
+- fresh inventory, adaptive capacity, immutable allocation, Candidate,
+  Packet or packet-set and lease;
+- restore barrier before apply;
+- per-user, per-target, aggregate and ordinary-user quality verification;
+- cohort circuit breaker and partial-target containment;
+- bounded redistribution or rollback;
+- expiry, revoke, freeze, kill and no-self-expansion semantics.
+
+The maximum 48 is an Authority ceiling, not an execution entitlement. Every
+transaction is narrowed by current technical capacity, target-specific proven
+scope, verification/containment scope, Runtime scope and the exact requested
+stage.
+
+### Target and capacity law
+
+Target states remain `HEALTHY`, `DEGRADED_USABLE`,
+`LAST_RESORT_USABLE`, `DEGRADED_OBSERVATION_INSUFFICIENT` and
+`HARD_INELIGIBLE`. The actual controlled source is excluded before
+allocation. Soft quality alone cannot create `HARD_INELIGIBLE`.
+
+For every target, the existing projection exposes owner, value, fingerprint,
+freshness and reason for:
+
+```text
+hard capacity remaining
+ordinary-user protection margin
+throughput-safe increment
+quality-safe increment
+verification-safe increment
+rollback/containment-safe increment
+Authority-safe increment
+Runtime-safe increment
+```
+
+The executable target capacity is their minimum. `DEGRADED_USABLE` and
+`LAST_RESORT_USABLE` begin with a one-identity trial ceiling. Growth is
+target-specific and requires a real matching Outcome plus ordinary-user
+protection PASS. Polygon evidence may verify decisions and failure handling
+but never raises production-proven capacity.
+
+### Allocation and ladder law
+
+The canonical ladder is `1 -> 2 -> 5 -> 10 -> 25 -> 48`. Each number is the
+exact total cohort of one stage, not an additive delta and not a forced
+movement count. Every stage uses a new inventory, allocation, Candidate,
+Packet/packet-set and lease after baseline reset. The safe subset may be
+smaller only as an owner-backed measured result; it does not falsely complete
+the requested stage.
+
+Multi-target allocation is allowed only when per-target reservations are
+non-overlapping, correlation domains are explicit, total allocation equals
+the exact cohort and partial-target failure can be contained without
+invalidating unaffected targets.
+
+The shared-target capacity reservation reuses the existing serialized
+Packet/lease owner. It is an immutable per-target capacity claim bound to the
+fresh inventory and allocation fingerprints, valid for one active transaction
+only, with a mandatory fresh pre-apply capacity check. It is not a second
+durable reservation registry. A multi-target stage is one immutable allocation
+and a serial packet-set; every subset gets a fresh Candidate, Packet and lease,
+while the stage receipt is appended only after all subsets, ordinary-user
+assignment/route and target-quality checks, Outcome/Replay/Learning and
+baseline reset pass.
+
+Target-specific adaptive growth is derived from the same append-only Authority
+audit stage receipts. A receipt stores only compact target identity, verified
+scope and target/capacity fingerprints; it stores no raw cohort list. A
+degraded or last-resort target begins at one, then may attempt only the next
+ladder bound supported by its preceding real receipt and fresh live capacity.
+
+### Production-effect ownership
+
+Discovery, engineering, tests, Polygon and request preparation perform no
+production action. Production action is legal only after the standing
+contract is independently active and only through the existing Matrix-owned
+governed execution path with all fresh gates. Later verification, Replay,
+Learning and reconciliation cannot perform an additional action unless a new
+fresh Matrix generation independently admits it.
+
+### Legal measured stop
+
+After activation, a generic wait is illegal while any fresh safe allocation
+exists. A stop must preserve completed evidence and name every target
+classification, per-target and aggregate safe capacity, exact requested
+stage, shortfall, limiting owner-backed bounds, attempted alternative
+allocations and automatic re-entry trigger.
+
+The final terminal
+`SERVICE_FAILURE_CONTROLLED_PRODUCTION_OUTCOMES_CONSUMED_1_2_5_10_25_48`
+is legal only after every real stage has exact cohort/allocation lineage,
+Runtime apply, per-user/per-target/aggregate/ordinary-user verification,
+rollback or certified no-rollback, Outcome, Replay, Learning, baseline reset
+and CPS/OMP consumption.
 
 ## V3.0 active executable revision — availability-first shared-target admission
 

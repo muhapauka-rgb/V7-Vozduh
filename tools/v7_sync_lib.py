@@ -18566,11 +18566,57 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "forbidden_effects": {"policy_write": False, "runtime_apply": False, "routing_mutation": False, "user_movement": False},
         }
     pending_tier_request = status.get("pending_tier_authority_request")
+    pending_availability_first_policy = bool(
+        isinstance(pending_tier_request, dict)
+        and pending_tier_request.get("status") == "PENDING"
+        and str(pending_tier_request.get("policy_profile") or "")
+        == "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2"
+    )
     pending_controlled_topology_policy = bool(
         isinstance(pending_tier_request, dict)
         and pending_tier_request.get("status") == "PENDING"
         and str(pending_tier_request.get("policy_profile") or "")
-        == "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_TOPOLOGY_V1"
+        in {
+            "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_TOPOLOGY_V1",
+            "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2",
+        }
+    )
+    active_availability_first_policy = bool(
+        status.get("ok") is True
+        and str(status.get("policy_profile") or "")
+        == "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2"
+        and (
+            "bounded availability-first controlled failover"
+            in {
+                item.strip()
+                for item in str(status.get("action_class") or "").split(",")
+                if item.strip()
+            }
+        )
+    )
+    availability_campaign = (
+        status.get("availability_first_campaign_status")
+        if isinstance(
+            status.get("availability_first_campaign_status"),
+            dict,
+        )
+        else {}
+    )
+    availability_campaign_next_stage = _status_int(
+        availability_campaign.get("next_stage")
+    )
+    availability_campaign_complete = bool(
+        active_availability_first_policy
+        and availability_campaign.get("completed") is True
+        and _status_int(
+            availability_campaign.get("production_proven_max")
+        )
+        == 48
+    )
+    availability_campaign_active = bool(
+        active_availability_first_policy
+        and not availability_campaign_complete
+        and availability_campaign_next_stage in {1, 2, 5, 10, 25, 48}
     )
     if isinstance(pending_tier_request, dict) and pending_tier_request.get("status") == "PENDING":
         pending_request_id = str(pending_tier_request.get("request_id") or "")
@@ -19043,10 +19089,25 @@ def reconcile_active_standing_delegated_policy_to_cps(
         primary_stop = "NONE"
     elif pending_controlled_topology_policy:
         primary_next_action = (
+            "ENGINEERING_AUTHORITY_STANDING_DELEGATED_AVAILABILITY_"
+            "FIRST_POLICY_DECISION_REQUIRED"
+            if pending_availability_first_policy else
             "ENGINEERING_AUTHORITY_STANDING_DELEGATED_CONTROLLED_"
             "TOPOLOGY_POLICY_DECISION_REQUIRED"
         )
         primary_stop = "ENGINEERING_AUTHORITY"
+    elif availability_campaign_active:
+        primary_next_action = (
+            "CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_"
+            f"STAGE_{availability_campaign_next_stage}"
+        )
+        primary_stop = "NONE"
+    elif availability_campaign_complete:
+        primary_next_action = (
+            "SERVICE_FAILURE_CONTROLLED_PRODUCTION_OUTCOMES_"
+            "CONSUMED_1_2_5_10_25_48"
+        )
+        primary_stop = "PROGRAM_TERMINAL"
     elif controlled_source_topology_authority_required:
         primary_next_action = (
             "ENGINEERING_AUTHORITY_"
@@ -19142,6 +19203,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
     omp_should_continue = (
         active_incident_drain or m8_substrate_approved
         or m9_campaign_active or m10_campaign_complete
+        or availability_campaign_active
         or controlled_target_engineering_repair
         or controlled_source_topology_authority_approved
         or (m8_pool_ready and not m8_approved_source_baseline_blocked)
@@ -19158,6 +19220,14 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_active_scope": (
             "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN"
             if active_incident_drain else
+            "AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_LADDER"
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
+            "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_STANDING_POLICY_"
+            "AUTHORITY_BOUNDARY"
+            if pending_availability_first_policy else
             "CONTROLLED_TOPOLOGY_STANDING_POLICY_AUTHORITY_BOUNDARY"
             if pending_controlled_topology_policy else
             "CONTROLLED_SOURCE_NON_WAITING_EXIT_PATH"
@@ -19183,6 +19253,21 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; "
             f"the active standing policy is revalidated for every bounded serial transaction (max users={max_users}); do not reuse historical identities"
             if active_incident_drain else
+            (
+                "LET THE EXISTING MATRIX CONSUME THE CURRENT FRESH "
+                f"AVAILABILITY-FIRST STAGE {availability_campaign_next_stage}; "
+                "REVALIDATE INVENTORY, CAPACITY, ALLOCATION, CANDIDATE, PACKET, "
+                "LEASE, RESTORE BARRIER AND ORDINARY-USER PROTECTION; PUBLISH "
+                "THE NEXT STAGE ONLY AFTER OUTCOME, REPLAY, LEARNING AND "
+                "BASELINE RESET"
+                if availability_campaign_active
+                else "CONSUME THE OWNER-BACKED 1/2/5/10/25/48 CAMPAIGN "
+                "TERMINAL WITHOUT EXPANDING ORDINARY PRODUCTION AUTHORITY"
+            )
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
             "OBTAIN ONE EXACT INDEPENDENT APPROVE_STANDING_DELEGATED_"
             "OPERATIONAL_POLICY OR DECLINE DECISION FOR THE CURRENT COMBINED "
             "SERVICE-FAILURE PLUS CONTROLLED-TOPOLOGY SCOPE; DO NOT APPROVE "
@@ -19248,11 +19333,24 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY' if controlled_topology_availability_first_authority else 'TOPOLOGY_FULL_PATH_EXTERNAL' if controlled_topology_full_path_external else 'TOPOLOGY_DISTINCT_TARGET_REVALIDATION' if controlled_topology_shared_target_revalidation else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else f'AVAILABILITY_STAGE_{availability_campaign_next_stage}' if availability_campaign_active else 'AVAILABILITY_COMPLETE' if availability_campaign_complete else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY' if controlled_topology_availability_first_authority else 'TOPOLOGY_FULL_PATH_EXTERNAL' if controlled_topology_full_path_external else 'TOPOLOGY_DISTINCT_TARGET_REVALIDATION' if controlled_topology_shared_target_revalidation else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
             if active_incident_drain else
+            (
+                f"SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_"
+                f"{availability_campaign_next_stage}_READY_V1"
+                if availability_campaign_active
+                else "SERVICE_FAILURE_AVAILABILITY_FIRST_CAMPAIGN_COMPLETE_V1"
+            )
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
+            "SERVICE_FAILURE_AVAILABILITY_FIRST_STANDING_POLICY_"
+            "AUTHORITY_REQUEST_READY_V1"
+            if pending_availability_first_policy else
             "SERVICE_FAILURE_CONTROLLED_TOPOLOGY_STANDING_POLICY_AUTHORITY_REQUEST_READY_V1"
             if pending_controlled_topology_policy else
             "SERVICE_FAILURE_CONTROLLED_SOURCE_NON_WAITING_EXIT_AUTHORITY_BOUNDARY_V1"
@@ -19296,6 +19394,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             primary_next_action
             if (
                 active_incident_drain
+                or availability_campaign_active
+                or availability_campaign_complete
                 or m8_substrate_approved
                 or m9_campaign_active
                 or m10_campaign_complete
@@ -19325,6 +19425,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             primary_next_action
             if (
                 active_incident_drain
+                or availability_campaign_active
                 or m9_campaign_active
                 or controlled_source_topology_authority_approved
             )
@@ -19332,7 +19433,16 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
-            if active_incident_drain else
+            if (
+                active_incident_drain
+                or availability_campaign_active
+                or availability_campaign_complete
+            ) else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY_DECISION_ONLY; "
+            "CERTIFICATION IDENTITIES ONLY; LADDER CEILING=48; CONCURRENCY=1; "
+            "NO TARGET, PACKET OR STAGE IS APPROVED BY THE REQUEST"
+            if pending_availability_first_policy else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
             "EXACT_COMBINED_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_"
             "POLICY_DECISION_ONLY; NO ONE_OFF_TOPOLOGY APPROVAL"
@@ -19378,6 +19488,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_authority_required_now": (
             "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES"
             if active_incident_drain else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY_DECISION_ONLY; "
+            "CERTIFICATION IDENTITIES ONLY; LADDER CEILING=48; CONCURRENCY=1; "
+            "NO TARGET, PACKET OR STAGE IS APPROVED BY THE REQUEST"
+            if pending_availability_first_policy else
             "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
             "EXACT_COMBINED_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_"
             "POLICY_DECISION_ONLY; NO ONE_OFF_TOPOLOGY APPROVAL"
@@ -19461,6 +19576,19 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "last_responsible_link": (
             "existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor"
             if active_incident_drain else
+            (
+                f"existing Matrix -> availability allocation -> serialized "
+                f"packet-set stage {availability_campaign_next_stage} -> "
+                "Outcome/Replay/Learning -> baseline reset -> append-only "
+                "stage receipt -> automatic next Matrix generation"
+                if availability_campaign_active
+                else "existing append-only availability stage receipts -> "
+                "CPS/OMP final campaign consumption"
+            )
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
             "existing combined standing-policy request -> independent Authority "
             "decision -> existing policy/audit owner -> topology admission"
             if pending_controlled_topology_policy else
@@ -19740,7 +19868,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "delegated_policy_state": "ACTIVE_OWNER_BACKED_STANDING_POLICY; SELF_EXPANSION_FORBIDDEN",
         "continuation_decision": (
-            primary_next_action if active_incident_drain else
+            "PROGRAM_TERMINAL_AVAILABILITY_FIRST_CAMPAIGN_COMPLETE"
+            if availability_campaign_complete else
+            primary_next_action
+            if (
+                active_incident_drain
+                or availability_campaign_active
+            ) else
             "PROGRAM_TERMINAL_ENGINEERING_AUTHORITY"
             if (
                 pending_controlled_topology_policy
@@ -19752,6 +19886,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 m8_substrate_approved
                 or m9_campaign_active
                 or m10_campaign_complete
+                or availability_campaign_active
                 or controlled_target_engineering_repair
                 or controlled_source_topology_authority_approved
                 or (m8_pool_ready and not m8_approved_source_baseline_blocked)
@@ -19774,6 +19909,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "PROGRAM_TERMINAL_REAL_WORLD_LIMIT"
         ),
         "program_terminal_class": (
+            "PROGRAM_TERMINAL"
+            if availability_campaign_complete else
             "NONE" if omp_should_continue else
             "ENGINEERING_AUTHORITY"
             if (
@@ -19802,6 +19939,16 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "program_terminal_state": (
             "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY"
             if active_incident_drain else
+            (
+                f"NONE_AVAILABILITY_FIRST_STAGE_"
+                f"{availability_campaign_next_stage}_SUCCESSOR_READY"
+                if availability_campaign_active
+                else primary_next_action
+            )
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
             primary_next_action
             if (
                 pending_controlled_topology_policy
@@ -19838,6 +19985,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "omp_continuation_required": "TRUE" if omp_should_continue else "FALSE",
         "external_input_required": (
+            "FALSE"
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
             "TRUE"
             if (
                 m8_exact_authority_boundary
@@ -19852,6 +20004,13 @@ def reconcile_active_standing_delegated_policy_to_cps(
             else "FALSE"
         ),
         "external_input_type": (
+            "NONE"
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
+            "EXACT_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY_DECISION"
+            if pending_availability_first_policy else
             "EXACT_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY_DECISION"
             if pending_controlled_topology_policy else
             controlled_source_topology_action
@@ -19878,6 +20037,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "next_mission_formed": "TRUE" if omp_should_continue else "FALSE",
         "next_mission_id": (
             SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 if active_incident_drain else
+            "AVAILABILITY-FIRST-LADDER"
+            if availability_campaign_active else
             "NONE"
             if (
                 pending_controlled_topology_policy
@@ -19901,6 +20062,18 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "continuation_stop_reason": (
             f"ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users={max_users}) under standing policy"
             if active_incident_drain else
+            (
+                f"AVAILABILITY-FIRST STAGE "
+                f"{availability_campaign_next_stage} IS READY FOR THE "
+                "EXISTING MATRIX CONSUMER; NO OPERATOR INPUT IS REQUIRED"
+                if availability_campaign_active
+                else "AVAILABILITY-FIRST 1/2/5/10/25/48 CONTROLLED "
+                "PRODUCTION CAMPAIGN IS OWNER-BACKED AND COMPLETE"
+            )
+            if (
+                availability_campaign_active
+                or availability_campaign_complete
+            ) else
             "EXACT COMBINED STANDING DELEGATED CONTROLLED-TOPOLOGY POLICY "
             "REQUEST IS REGISTERED; ONE INDEPENDENT APPROVE OR DECLINE "
             "DECISION IS REQUIRED; POLICY WRITE, ONE-OFF REQUEST APPROVAL, "

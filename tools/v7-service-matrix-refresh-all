@@ -43,6 +43,9 @@ CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE = (
 CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS = (
     operator_execution.CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS
 )
+AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS = (
+    operator_execution.AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
+)
 
 
 def now_iso() -> str:
@@ -468,6 +471,142 @@ def record_controlled_campaign_stage_consumption(
             "reset_receipt_id": semantic["reset_receipt_id"],
             "ordinary_customer_count": 0,
             "raw_identity_list_stored": False,
+            "created_at": now_iso(),
+        })
+    return {
+        "receipt_id": str(row.get("receipt_id") or receipt_id),
+        "audit_write": True,
+        "duplicate_suppressed": False,
+    }
+
+
+def record_availability_first_stage_consumption(
+    *,
+    audit_store: Path,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    """Append one exact availability-first stage receipt to the same owner."""
+    stage = int(result.get("stage") or 0)
+    contract_id = str(
+        result.get("standing_policy_contract_id") or ""
+    )
+    contract_hash = str(
+        result.get("standing_policy_contract_hash") or ""
+    )
+    required = (
+        "allocation_immutable",
+        "capacity_reservation_verified",
+        "outcome_consumed",
+        "replay_consumed",
+        "learning_consumed",
+        "per_user_verification_passed",
+        "per_target_verification_passed",
+        "aggregate_verification_passed",
+        "ordinary_user_protection_passed",
+        "baseline_reset_verified",
+    )
+    blockers = [
+        name
+        for name in required
+        if result.get(name) is not True
+    ]
+    if (
+        result.get("final_verdict")
+        != "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+    ):
+        blockers.append("availability_first_stage_not_complete")
+    if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
+        blockers.append("availability_first_stage_not_in_ladder")
+    if not contract_id or not contract_hash:
+        blockers.append("availability_first_contract_identity_missing")
+    if blockers:
+        return {
+            "receipt_id": "",
+            "audit_write": False,
+            "duplicate_suppressed": False,
+            "blockers": sorted(set(blockers)),
+        }
+    semantic = {
+        "contract_id": contract_id,
+        "contract_hash": contract_hash,
+        "stage": stage,
+        "execution_allocation_fingerprint": str(
+            result.get("execution_allocation_fingerprint") or ""
+        ),
+        "packet_set_fingerprint": str(
+            result.get("packet_set_fingerprint") or ""
+        ),
+    }
+    receipt_id = "afstage_" + operator_execution.sha256_json(
+        semantic
+    )[:24]
+    with operator_execution.current_action_class_contract_policy_lock(
+        audit_store
+    ):
+        rows = operator_execution.read_audit_records(audit_store)
+        prior = [
+            row
+            for row in rows
+            if row.get("record_type")
+            == CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE
+            and row.get("effect_class")
+            == AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
+            and str(row.get("standing_policy_contract_id") or "")
+            == contract_id
+            and int(row.get("campaign_stage") or 0) == stage
+        ]
+        if prior:
+            return {
+                "receipt_id": str(prior[-1].get("receipt_id") or ""),
+                "audit_write": False,
+                "duplicate_suppressed": True,
+            }
+        row = operator_execution.append_record(audit_store, {
+            "schema_version": "v7.availability-first-campaign-stage.v1",
+            "record_type": CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE,
+            "effect_class": AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS,
+            "receipt_id": receipt_id,
+            "standing_policy_contract_id": contract_id,
+            "standing_policy_contract_hash": contract_hash,
+            "campaign_stage": stage,
+            "planner_allocation_fingerprint": str(
+                result.get("planner_allocation_fingerprint") or ""
+            ),
+            "execution_allocation_fingerprint": str(
+                result.get("execution_allocation_fingerprint") or ""
+            ),
+            "packet_set_fingerprint": str(
+                result.get("packet_set_fingerprint") or ""
+            ),
+            "target_receipts": [
+                {
+                    "target_id": str(item.get("target_id") or ""),
+                    "verified_scope": int(
+                        item.get("allocated_users") or 0
+                    ),
+                    "target_fingerprint": str(
+                        item.get("target_fingerprint") or ""
+                    ),
+                    "capacity_bounds_fingerprint": str(
+                        item.get("capacity_bounds_fingerprint") or ""
+                    ),
+                }
+                for item in (result.get("allocation") or [])
+                if isinstance(item, dict)
+            ],
+            "allocation_immutable": True,
+            "capacity_reservation_verified": True,
+            "outcome_consumed": True,
+            "replay_consumed": True,
+            "learning_consumed": True,
+            "per_user_verification_passed": True,
+            "per_target_verification_passed": True,
+            "aggregate_verification_passed": True,
+            "ordinary_user_protection_passed": True,
+            "baseline_reset_verified": True,
+            "ordinary_customer_count": 0,
+            "raw_identity_list_stored": False,
+            "natural_l8_credit": False,
             "created_at": now_iso(),
         })
     return {
@@ -1053,6 +1192,226 @@ def run_controlled_topology_standing_policy_action(
         "target": str(manifest.get("selected_source_or_draft") or ""),
         "consumer_result": result,
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stopped) else "",
+    }
+
+
+def run_availability_first_standing_policy_stage(
+    planner: str,
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    timeout_sec: int = 1800,
+) -> dict[str, Any]:
+    """Consume the current auto-admitted ladder stage through Matrix."""
+    planner_command = [
+        planner,
+        "--controlled-source-topology-diagnostic",
+        "--state-dir",
+        str(state_dir),
+        "--policy-file",
+        str(policy_file),
+        "--action-class-audit-store",
+        str(audit_store),
+    ]
+    started_at = now_iso()
+    try:
+        planner_proc = subprocess.run(
+            planner_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.availability-first-matrix-consumer.v1",
+            "status": "STOP_SAFE",
+            "ok": True,
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "blockers": [
+                f"availability_first_planner_unavailable:{type(exc).__name__}"
+            ],
+        }
+    try:
+        parsed = json.loads(planner_proc.stdout or "")
+        diagnostic = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        diagnostic = {}
+    admission = (
+        diagnostic.get("availability_first_standing_policy_admission")
+        if isinstance(
+            diagnostic.get("availability_first_standing_policy_admission"),
+            dict,
+        )
+        else {}
+    )
+    projection = (
+        diagnostic.get("shared_production_target_capacity_projection")
+        if isinstance(
+            diagnostic.get("shared_production_target_capacity_projection"),
+            dict,
+        )
+        else {}
+    )
+    campaign = (
+        projection.get("availability_campaign")
+        if isinstance(projection.get("availability_campaign"), dict)
+        else {}
+    )
+    stage = int(campaign.get("next_stage") or 0)
+    allocation = (
+        (projection.get("stage_allocations") or {}).get(str(stage), {})
+        if isinstance(projection.get("stage_allocations"), dict)
+        else {}
+    )
+    ready = bool(
+        planner_proc.returncode == 0
+        and diagnostic.get("status")
+        == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+        and admission.get("ok") is True
+        and stage in operator_execution.AVAILABILITY_FIRST_LADDER
+        and allocation.get("feasible") is True
+        and allocation.get("allocation_fingerprint")
+    )
+    if not ready:
+        return {
+            "schema_version": "v7.availability-first-matrix-consumer.v1",
+            "status": (
+                "CAMPAIGN_COMPLETE"
+                if campaign.get("completed")
+                else "NOT_REQUIRED_OR_NOT_ADMITTED"
+            ),
+            "ok": True,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "stage": stage,
+            "diagnostic_status": str(diagnostic.get("status") or ""),
+            "blockers": sorted(set(
+                list(admission.get("blockers") or [])
+                + list(campaign.get("blockers") or [])
+            )),
+        }
+    command = [
+        executor,
+        "--execute-availability-first-standing-stage",
+        "--availability-first-stage",
+        str(stage),
+        "--expected-availability-first-allocation-fingerprint",
+        str(allocation.get("allocation_fingerprint") or ""),
+        "--state-dir",
+        str(state_dir),
+        "--event-dir",
+        str(event_dir),
+        "--policy-file",
+        str(policy_file),
+        "--operator-execution-audit-store",
+        str(audit_store),
+        "--controlled-topology-planner",
+        planner,
+        "--pretty",
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(300, min(int(timeout_sec or 1800), 7200)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.availability-first-matrix-consumer.v1",
+            "status": "FAILED",
+            "ok": False,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": True,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "stage": stage,
+            "error": f"{type(exc).__name__}:{exc}",
+        }
+    try:
+        parsed = json.loads(proc.stdout or "")
+        result = parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        result = {}
+    completed = (
+        proc.returncode == 0
+        and result.get("final_verdict")
+        == "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+        and int(result.get("stage") or 0) == stage
+    )
+    receipt = (
+        record_availability_first_stage_consumption(
+            audit_store=audit_store,
+            result=result,
+        )
+        if completed
+        else {
+            "receipt_id": "",
+            "audit_write": False,
+            "duplicate_suppressed": False,
+            "blockers": ["availability_first_stage_not_complete"],
+        }
+    )
+    completed = completed and bool(
+        receipt.get("receipt_id")
+        and (
+            receipt.get("audit_write")
+            or receipt.get("duplicate_suppressed")
+        )
+    )
+    stopped = (
+        not completed
+        and str(result.get("transaction_status") or "") == "STOP_SAFE"
+    )
+    return {
+        "schema_version": "v7.availability-first-matrix-consumer.v1",
+        "status": (
+            "ACTION_COMPLETED"
+            if completed
+            else ("STOP_SAFE" if stopped else "FAILED")
+        ),
+        "ok": completed or stopped,
+        "started_at": started_at,
+        "completed_at": now_iso(),
+        "returncode": proc.returncode,
+        "action_attempted": True,
+        "action_completed": completed,
+        "runtime_mutation_performed": bool(
+            result.get("runtime_mutation_performed")
+        ),
+        "users_moved": int(result.get("users_moved") or 0),
+        "stage": stage,
+        "allocation_fingerprint": str(
+            allocation.get("allocation_fingerprint") or ""
+        ),
+        "stage_consumption": receipt,
+        "consumer_result": result,
+        "durable_successor": (
+            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+            if completed
+            else str(result.get("durable_successor") or "")
+        ),
+        "output_tail": (
+            (proc.stdout or "")[-2000:]
+            if not (completed or stopped)
+            else ""
+        ),
     }
 
 
@@ -1803,10 +2162,38 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
+        availability_fallback_statuses = {
+            "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
+            "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY",
+            "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION",
+        }
         if (
-            bounded_action.get("status")
-            == "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE"
+            bounded_action.get("status") in availability_fallback_statuses
             and not bounded_action.get("action_completed")
+        ):
+            payload[
+                "availability_first_standing_policy_action"
+            ] = run_availability_first_standing_policy_stage(
+                str(args.passive_consumer),
+                str(args.governed_executor),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 1800,
+            )
+        availability_action = (
+            payload.get("availability_first_standing_policy_action")
+            if isinstance(
+                payload.get("availability_first_standing_policy_action"),
+                dict,
+            )
+            else {}
+        )
+        if (
+            bounded_action.get("status") in availability_fallback_statuses
+            and not bounded_action.get("action_completed")
+            and not availability_action.get("action_completed")
         ):
             payload[
                 "controlled_topology_standing_policy_action"
@@ -1829,6 +2216,7 @@ def main() -> int:
         )
         any_action_completed = bool(
             bounded_action.get("action_completed")
+            or availability_action.get("action_completed")
             or topology_action.get("action_completed")
         )
         if any_action_completed:

@@ -1307,8 +1307,6 @@ def run_availability_first_standing_policy_stage(
         "--execute-availability-first-standing-stage",
         "--availability-first-stage",
         str(stage),
-        "--expected-availability-first-allocation-fingerprint",
-        str(allocation.get("allocation_fingerprint") or ""),
         "--state-dir",
         str(state_dir),
         "--event-dir",
@@ -1321,6 +1319,12 @@ def run_availability_first_standing_policy_stage(
         planner,
         "--pretty",
     ]
+    # Do not bind the executor to the wrapper's earlier live-snapshot
+    # fingerprint.  Matrix/quality owners may publish a newer generation
+    # between these two processes, producing an endless safe-stop TOCTOU loop.
+    # The executor independently re-runs admission and materializes one fresh
+    # immutable allocation immediately before Candidate/Packet creation; every
+    # selected target is then revalidated by the existing live gates.
     try:
         proc = subprocess.run(
             command,

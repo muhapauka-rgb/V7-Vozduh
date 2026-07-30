@@ -1237,6 +1237,66 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["consumer_result"]["final_verdict"], "NO_PENDING_OBLIGATION")
 
+    def test_matrix_delegates_fresh_allocation_materialization_to_executor(self):
+        fingerprint = "a" * 64
+        diagnostic = {
+            "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+            "availability_first_standing_policy_admission": {
+                "ok": True,
+            },
+            "shared_production_target_capacity_projection": {
+                "availability_campaign": {
+                    "next_stage": 1,
+                    "completed": False,
+                },
+                "stage_allocations": {
+                    "1": {
+                        "feasible": True,
+                        "allocation_fingerprint": fingerprint,
+                    },
+                },
+            },
+        }
+        stopped = {
+            "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+            "transaction_status": "STOP_SAFE",
+            "stop_reason": "fresh_live_gate_failed",
+            "blockers": ["fresh_live_gate_failed"],
+        }
+        calls = [
+            mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+            mock.Mock(returncode=2, stdout=json.dumps(stopped)),
+        ]
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            side_effect=calls,
+        ) as run:
+            result = self.refresh.run_availability_first_standing_policy_stage(
+                "v7-users-autoswitch",
+                "v7-governed-canary-dry-run-cycle",
+                state_dir=Path("/opt/v7/egress/state"),
+                event_dir=Path("/opt/v7/events"),
+                policy_file=Path("/etc/v7/policy.json"),
+                audit_store=Path(
+                    "/opt/v7/audit/operator-execution-audit.jsonl"
+                ),
+            )
+        executor_command = run.call_args_list[1].args[0]
+        self.assertIn(
+            "--execute-availability-first-standing-stage",
+            executor_command,
+        )
+        self.assertNotIn(
+            "--expected-availability-first-allocation-fingerprint",
+            executor_command,
+        )
+        self.assertEqual(result["status"], "STOP_SAFE")
+        self.assertEqual(
+            result["allocation_fingerprint"],
+            fingerprint,
+        )
+
     def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):
         payload = {
             "updated": "2026-07-27T14:00:00+00:00",

@@ -1454,8 +1454,63 @@ def action_class_contract_source_generation(plan: dict[str, Any], selected_move:
     }
 
 
+def availability_first_action_class_context(
+    diagnostic: dict[str, Any],
+) -> tuple[dict[str, Any], list[str]]:
+    """Bind the special shared-target boundary to its existing topology owner."""
+    diagnostic = diagnostic if isinstance(diagnostic, dict) else {}
+    if diagnostic.get("status") != "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED":
+        return {}, ["availability_first_topology_boundary_not_current"]
+    projection = diagnostic.get("shared_production_target_capacity_projection")
+    projection = projection if isinstance(projection, dict) else {}
+    allocation = ((projection.get("stage_allocations") or {}).get("1") or {})
+    rows = allocation.get("immutable_allocation_projection") or []
+    row = rows[0] if len(rows) == 1 and isinstance(rows[0], dict) else {}
+    post_trial = diagnostic.get("POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC")
+    post_trial = post_trial if isinstance(post_trial, dict) else {}
+    campaign = diagnostic.get("current_campaign")
+    campaign = campaign if isinstance(campaign, dict) else {}
+    source = str(projection.get("actual_controlled_source_id") or "")
+    user_ip = str(post_trial.get("trial_identity") or "")
+    target = str(row.get("target_id") or "")
+    allocation_fingerprint = str(allocation.get("allocation_fingerprint") or "")
+    target_fingerprint = str(row.get("target_fingerprint") or "")
+    capability_map_fingerprint = str(diagnostic.get("capability_map_fingerprint") or "")
+    blockers = []
+    if not allocation.get("feasible") or not row:
+        blockers.append("availability_first_single_target_allocation_missing")
+    if str(row.get("availability_policy_boundary") or "") != "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED":
+        blockers.append("availability_first_policy_boundary_mismatch")
+    if not source or not user_ip or not target or str(post_trial.get("trial_identity_current_location") or "") != source:
+        blockers.append("availability_first_exact_identity_source_binding_missing")
+    if source == target:
+        blockers.append("availability_first_source_target_collision")
+    if not str(campaign.get("request_id") or "") or len(str(campaign.get("request_hash") or "")) != 64:
+        blockers.append("availability_first_campaign_generation_missing")
+    if not allocation_fingerprint or not target_fingerprint or not capability_map_fingerprint:
+        blockers.append("availability_first_snapshot_generation_missing")
+    if blockers:
+        return {}, sorted(set(blockers))
+    selected_move_hash = sha256_json({
+        "source": source, "target": target, "user_ip": user_ip,
+        "allocation_fingerprint": allocation_fingerprint,
+        "target_fingerprint": target_fingerprint,
+    })
+    return {
+        "chosen": {"user_ip": user_ip, "current_egress": source, "recommended_egress": target},
+        "incident_generation": {"incident_id": str(campaign.get("request_id") or ""), "incident_generation": allocation_fingerprint},
+        "source_generation": {
+            "planner_generation_id": allocation_fingerprint,
+            "source_bundle_hash": capability_map_fingerprint,
+            "snapshot_bundle_hash": target_fingerprint,
+            "selected_move_hash": selected_move_hash,
+        },
+    }, []
+
+
 def action_class_contract_reconciliation_request(
     plan: dict[str, Any], *, policy_path: Path,
+    availability_first_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Produce the next existing-owner input after an Authority STOP_SAFE.
 
@@ -1500,6 +1555,22 @@ def action_class_contract_reconciliation_request(
     chosen = shadow_candidates[0] if shadow_candidates else {}
     current_contract_valid = bool(contract_gate.get("valid"))
     contract_required = bool(contract_gate.get("required"))
+    availability_first_context = (
+        availability_first_context
+        if isinstance(availability_first_context, dict) else {}
+    )
+    # A degraded shared target is not an ordinary Planner shadow move.  Its
+    # current CPS frontier is bound by the topology owner to an exact
+    # certification identity and must never inherit an unrelated incident's
+    # source/user merely because that row sorts first in plan.decisions.
+    if availability_first_context:
+        status = "STOP_SAFE_CURRENT_ACTION_CLASS_CONTRACT_REQUIRED"
+        chosen = dict(availability_first_context.get("chosen") or {})
+        l3_incident = dict(
+            availability_first_context.get("incident_generation") or {}
+        )
+        current_contract_valid = False
+        contract_required = True
     template = {
         "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
         "action_class": "GOVERNED_ONLY",
@@ -1518,7 +1589,11 @@ def action_class_contract_reconciliation_request(
             "incident_id": str(l3_incident.get("incident_id") or l3_incident.get("incident_key") or ""),
             "incident_generation": str(l3_incident.get("incident_generation") or l3_incident.get("generation") or ""),
         },
-        "source_generation": action_class_contract_source_generation(plan, chosen),
+        "source_generation": (
+            dict(availability_first_context.get("source_generation") or {})
+            if availability_first_context else
+            action_class_contract_source_generation(plan, chosen)
+        ),
         "verification_contract": {
             "owner": "tools/v7-users-autoswitch",
             "required": True,
@@ -1708,6 +1783,7 @@ def action_class_contract_reconciliation_request(
             "source_egress": str(chosen.get("current_egress") or ""),
             "target_egress": str(chosen.get("recommended_egress") or ""),
         },
+        "availability_first_context": bool(availability_first_context),
         "owner_issued_contract_template": template,
         "authority_decision_request": authority_request,
         "approval_package": approval_package,
@@ -17764,7 +17840,20 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     coherent_args.emergency_failover_autonomy = True
     planner = AutoswitchPlanner(coherent_args)
     plan = planner.plan()
-    request = action_class_contract_reconciliation_request(plan, policy_path=Path(args.policy_file))
+    topology = controlled_source_topology_diagnostic(args)
+    availability_context, availability_blockers = availability_first_action_class_context(topology)
+    if topology.get("status") == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED" and availability_blockers:
+        return {
+            "schema_version": "v7.action-class-contract-reconciliation-entrypoint.v1",
+            "status": "STOP_SAFE_AVAILABILITY_FIRST_BINDING_REQUIRED",
+            "ok": False,
+            "blockers": availability_blockers,
+            "forbidden_effects": {"policy_write": False, "authority_granted": False, "runtime_apply": False, "routing_mutation": False, "user_movement": 0, "candidate_created": False, "packet_created": False, "lease_created": False},
+        }
+    request = action_class_contract_reconciliation_request(
+        plan, policy_path=Path(args.policy_file),
+        availability_first_context=availability_context,
+    )
     snapshot_gate = ((plan.get("safety") or {}).get("intelligence_snapshots") or {})
     refresh = snapshot_gate.get("pre_planner_refresh") if isinstance(snapshot_gate, dict) else {}
     refresh = refresh if isinstance(refresh, dict) else {}

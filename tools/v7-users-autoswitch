@@ -16004,8 +16004,14 @@ def controlled_source_topology_diagnostic(
         )
         if str(item.get("target_id") or "")
     ]
+    selected_full_source_id = str(selected_full_source.get("source_id") or "")
+    shared_target_role_collision = bool(
+        selected_full_source_id and selected_full_source_id in shared_target_set
+    )
     shared_target_capacity_available = bool(
-        shared_completion_allocation.get("feasible") and shared_target_set
+        shared_completion_allocation.get("feasible")
+        and shared_target_set
+        and not shared_target_role_collision
     )
     stage_plan = []
     for stage in campaign_stages:
@@ -16325,6 +16331,7 @@ def controlled_source_topology_diagnostic(
                 shared_completion_allocation.get("feasible")
             ),
             "target_set": shared_target_set,
+            "target_source_role_collision": shared_target_role_collision,
             "authority_boundary": str(
                 shared_target_projection.get("authority_boundary") or "NONE"
             ),
@@ -16357,7 +16364,8 @@ def controlled_source_topology_diagnostic(
             if topology_plan["campaign_completion_feasible"]
             else "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
             if shared_target_capacity_available
-            else "EXTERNAL_RESOURCE_REQUIRED"
+            else "SHARED_TARGET_ROLE_OR_QUALITY_REVALIDATION_REQUIRED"
+            if shared_target_role_collision else "EXTERNAL_RESOURCE_REQUIRED"
             if not selected_full_target
             else "ENGINEERING_CLOSURE_REQUIRED"
         ),
@@ -16372,6 +16380,8 @@ def controlled_source_topology_diagnostic(
             if topology_plan["current_next_action_feasible"]
             else "PREPARE_EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available
+            else "REVALIDATE_SHARED_TARGET_SET_FOR_ACTUAL_CONTROLLED_SOURCE"
+            if shared_target_role_collision
             else "OBTAIN_OWNER_VERIFIED_FULL_CAMPAIGN_TARGET_CAPACITY"
             if not selected_full_target
             else "REPAIR_EXISTING_CONTROLLED_SOURCE_RESERVATION_AND_GROUP"
@@ -16410,7 +16420,10 @@ def controlled_source_topology_diagnostic(
         ),
         "external_inputs_required": (
             [topology_plan["exact_external_resource"]]
-            if topology_plan["exact_external_resource"] != "NONE"
+            if (
+                topology_plan["exact_external_resource"] != "NONE"
+                and not shared_target_role_collision
+            )
             else []
         ),
         "automatic_successor_chain": (
@@ -16418,6 +16431,9 @@ def controlled_source_topology_diagnostic(
             "contract -> existing source reservation renewal/reconciliation -> "
             "existing Candidate/Packet/lease -> stages 5/10/25/48"
             if shared_target_capacity_available else
+            "existing Matrix/quality observation -> target selection diagnostic "
+            "with actual controlled-source role -> same topology diagnostic"
+            if shared_target_role_collision else
             "external resource owner -> existing draft lifecycle -> "
             "Matrix/quality/capacity -> topology diagnostic -> minimal "
             "standing-policy request -> Candidate/Packet/lease -> stages "
@@ -16435,6 +16451,9 @@ def controlled_source_topology_diagnostic(
             "CONTROLLED_TOPOLOGY_SHARED_TARGET_CONTRACT_AND_SOURCE_RECONCILIATION_REQUIRED"
             if full_path_recommendation.get("status")
             == "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED" else
+            "CONTROLLED_TOPOLOGY_SHARED_TARGET_REVALIDATION_REQUIRED"
+            if full_path_recommendation.get("status")
+            == "SHARED_TARGET_ROLE_OR_QUALITY_REVALIDATION_REQUIRED" else
             "CONTROLLED_SOURCE_TOPOLOGY_NO_SAFE_OPTION"
         ),
         "ok": True,
@@ -16466,6 +16485,10 @@ def controlled_source_topology_diagnostic(
                 "an exact contract and source reservation reconciliation remain "
                 "independent boundaries"
                 if shared_target_capacity_available else
+                "the selected controlled source is also the only derived target; "
+                "reuse the next Matrix/quality observation to select a distinct "
+                "healthy target rather than treating the collision as capacity"
+                if shared_target_role_collision else
                 "capacity-2 drafts are bootstrap-only; current controlled "
                 "source lifecycle needs repair and no owner-backed target "
                 "can complete stages 5/10/25/48"
@@ -16488,7 +16511,10 @@ def controlled_source_topology_diagnostic(
                 shared_target_projection.get("authority_boundary") or "NONE"
             ),
             "required_external_input": (
-                "NONE" if selected_option or shared_target_capacity_available else
+                "NONE" if (
+                    selected_option or shared_target_capacity_available
+                    or shared_target_role_collision
+                ) else
                 str(topology_plan.get("exact_external_resource") or "")
                 or "OWNER_VERIFIED_EGRESS_PROFILE_OR_PEER_CONFIG"
             ),
@@ -16500,6 +16526,9 @@ def controlled_source_topology_diagnostic(
                 "existing Authority owner -> fresh source reservation and target "
                 "revalidation -> existing Candidate/Packet/lease owners"
                 if shared_target_capacity_available else
+                "existing Matrix/quality owner -> fresh actual-source target "
+                "selection -> same topology owner"
+                if shared_target_role_collision else
                 "exact external resource owner -> same diagnostic"
             ),
         },
@@ -16598,6 +16627,8 @@ def controlled_source_topology_diagnostic(
             "ENGINEERING_AUTHORITY_REQUIRED:"
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available else
+            "SAFE_REENTRY_REQUIRED:ACTUAL_SOURCE_DISTINCT_SHARED_TARGET_REVALIDATION"
+            if shared_target_role_collision else
             "AUTHORITY_INPUT_REQUIRED:"
             + required_authority_action
             if preflight_ready else

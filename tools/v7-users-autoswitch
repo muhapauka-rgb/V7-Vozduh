@@ -14648,10 +14648,19 @@ def controlled_campaign_target_selection_diagnostic(
                 "canary_reserved_production_assignment_blocked",
             }
         })
+        # ``controlled_certification_source_health_status`` is intentionally
+        # stricter than an ordinary destination: it proves the source is safe
+        # to deliberately fail and later restore.  Applying it unchanged to a
+        # non-destructive shared destination turns profile-irrelevant service
+        # failures into a false hard exclusion.  The existing Planner already
+        # owns profile-aware target reachability in ``candidate.blocked``.
+        shared_target_reachability_ok = bool(
+            baseline.get("service_count") and not non_controlled_blockers
+        )
         shared_target_availability = classify_shared_target_availability(
             target_id=target_id,
             source_id=source_id,
-            health_ok=bool(baseline.get("ok")),
+            health_ok=shared_target_reachability_ok,
             capacity_owner_reconciled=bool(
                 load.get("capacity_owner_reconciled")
             ),
@@ -14787,7 +14796,11 @@ def controlled_campaign_target_selection_diagnostic(
             "full_live_admission": full_live_admission,
             "health": {
                 "status": str(baseline.get("status") or ""),
-                "ok": bool(baseline.get("ok")),
+                "ok": shared_target_reachability_ok,
+                "source_baseline_ok": bool(baseline.get("ok")),
+                "destination_health_owner": (
+                    "existing Planner profile-aware service suitability"
+                ),
                 "service_count": int(baseline.get("service_count") or 0),
                 "reachable_service_count": int(
                     baseline.get("reachable_service_count") or 0

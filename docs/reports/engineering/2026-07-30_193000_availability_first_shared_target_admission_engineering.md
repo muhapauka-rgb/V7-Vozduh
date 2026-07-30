@@ -11,6 +11,14 @@ technical-capacity projection only.
 ниже normal stability floor больше не отождествляется с hard failure и нулевой
 технической capacity. Normal production floor не менялся.
 
+Во время production read-only caller обнаружен и устранён второй owner-link
+defect: к shared destination ошибочно применялся strict baseline controlled
+source. Этот baseline нужен только для канала, который V7 может намеренно
+деградировать и затем восстанавливать. Для non-destructive destination теперь
+используется existing Planner profile-aware service suitability; genuine hard
+Planner blockers, reserve, verification, containment, freshness и
+source=target collision по-прежнему fail closed.
+
 Новая compact projection различает:
 
 - `HEALTHY` — normal admission, существующая reserve capacity;

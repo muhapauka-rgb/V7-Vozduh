@@ -307,6 +307,20 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     },
                 },
             }
+            # A source baseline is intentionally strict because the source may
+            # later receive a deliberate controlled condition.  The same
+            # historical service row must not turn a non-destructive shared
+            # target into a hard exclusion when the Planner's profile-aware
+            # target checks still pass.
+            matrix_items["ordinary-good"] = {
+                "services": {
+                    "google": {
+                        "ok": False,
+                        "status": "FAIL",
+                        "tested_at": "2099-01-01T00:00:00+00:00",
+                    },
+                },
+            }
             state_dir.joinpath("service-matrix.json").write_text(json.dumps({
                 "updated": "2099-01-01T00:00:00+00:00",
                 "items": matrix_items,
@@ -440,6 +454,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertTrue(
             targets["ordinary-good"]["shared_target_technically_eligible"]
+        )
+        self.assertFalse(targets["ordinary-good"]["health"]["source_baseline_ok"])
+        self.assertTrue(targets["ordinary-good"]["health"]["ok"])
+        self.assertEqual(
+            targets["ordinary-good"]["shared_target_availability"]["state"],
+            "HEALTHY",
         )
         self.assertEqual(
             targets["ordinary-good"]["shared_target_policy_scope_status"],

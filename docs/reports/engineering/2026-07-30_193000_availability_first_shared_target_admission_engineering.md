@@ -19,6 +19,14 @@ source. Этот baseline нужен только для канала, кото�
 Planner blockers, reserve, verification, containment, freshness и
 source=target collision по-прежнему fail closed.
 
+Во втором production-read-only проходе обнаружен и закрыт третий
+producer-consumer defect: allocation строилась по historical campaign source,
+а фактический controlled source исключался только после выбора target. Поэтому
+`vless` мог ложно участвовать в denominator capacity, хотя позже та же
+topology-проекция фиксировала collision. Теперь existing allocation owner
+получает actual controlled source как explicit exclusion до ranking и stage
+allocation; историческая проекция сохранена только для диагностики.
+
 Новая compact projection различает:
 
 - `HEALTHY` — normal admission, существующая reserve capacity;
@@ -49,6 +57,14 @@ Projection теперь публикует availability-first stages `1`, `2` и
 `target_safe_additional_capacity`, а не raw hard limit. Обычные assignments и
 routes остаются неизменяемыми, target fault injection запрещён.
 
+Если после такого re-projection доступен ровно один
+`DEGRADED_USABLE`/`LAST_RESORT_USABLE` target, CPS получает точный
+`ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED`.
+Это не заменяет и не расширяет campaign `5→10→25→48`: контракт может разрешить
+только последующую fresh planner revalidation для одной availability-first
+identity. Candidate, Packet, lease, restore barrier и production effect до
+отдельной реальной admission не создаются.
+
 ## Verification before deploy
 
 - focused unit tests: `test_service_failure_automation_evolution`,
@@ -64,6 +80,6 @@ All focused checks passed. Existing legacy `DeprecationWarning` in
 Deploy this narrow runtime-owner change through `tools/v7-safe-deploy`, invoke
 the production read-only topology diagnostic, and classify the actual target
 set. If at least one distinct target is `DEGRADED_USABLE` or
-`LAST_RESORT_USABLE`, prepare one exact existing Authority request only. If
+`LAST_RESORT_USABLE`, produce the exact existing Authority frontier only. If
 none is usable, retain an owner-backed capacity-substrate boundary instead of
 repeating diagnosis or manufacturing production evidence.

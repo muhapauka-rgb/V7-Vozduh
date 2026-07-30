@@ -34,6 +34,14 @@ legal terminal remains the exact existing capacity-substrate/provisioning
 boundary; this Program must not pretend that code can create missing external
 capacity.
 
+Before allocation, the existing topology owner must reproject the target set
+against the **actual** controlled source selected in that generation. A
+historical campaign source is diagnostic lineage only and must never remain in
+the destination capacity denominator. If this source-distinct re-projection
+leaves only one degraded availability slot, its terminal is
+`ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED`;
+it is not a campaign-stage advance, capacity claim, or execution grant.
+
 ## V2.9 active executable revision — shared production target capacity and role-safe re-entry
 
 V2.9 consumes the existing target inventory, Matrix, quality, capacity and

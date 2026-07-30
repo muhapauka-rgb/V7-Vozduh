@@ -18850,6 +18850,22 @@ def reconcile_active_standing_delegated_policy_to_cps(
         and str(controlled_source_topology.get("durable_successor") or "")
         == "SAFE_REENTRY_REQUIRED:ACTUAL_SOURCE_DISTINCT_SHARED_TARGET_REVALIDATION"
     )
+    # A distinct target with fresh, sustained positive measurements may be a
+    # one-user technical availability option even when it cannot honestly
+    # complete the historical 5->10->25->48 campaign.  This remains an
+    # independent Authority boundary, never a hidden capacity promotion or
+    # execution admission.
+    controlled_topology_availability_first_authority = bool(
+        controlled_source_topology_status
+        == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED"
+        and controlled_topology_full_path.get("status")
+        == "SHARED_TARGET_AVAILABILITY_FIRST_ACTION_CLASS_AUTHORITY_REQUIRED"
+        and bool(
+            (controlled_topology_plan.get("shared_target_capacity") or {}).get(
+                "availability_first_feasible"
+            )
+        )
+    )
     controlled_topology_external_resource = str(
         controlled_topology_plan.get("exact_external_resource") or "NONE"
     )
@@ -19039,6 +19055,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "RESTORE_BARRIER_PREFLIGHT_REQUIRED"
         )
         primary_stop = "NONE"
+    elif controlled_topology_availability_first_authority:
+        primary_next_action = (
+            "ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_"
+            "ACTION_CLASS_CONTRACT_REQUIRED"
+        )
+        primary_stop = "ENGINEERING_AUTHORITY"
     elif controlled_topology_full_path_external:
         primary_next_action = (
             "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_"
@@ -19138,6 +19160,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 controlled_source_topology_authority_required
                 or controlled_source_topology_authority_approved
             ) else
+            "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY_BOUNDARY"
+            if controlled_topology_availability_first_authority else
             "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_BOUNDARY"
             if controlled_topology_full_path_external else
             "CONTROLLED_TOPOLOGY_ACTUAL_SOURCE_DISTINCT_TARGET_REVALIDATION"
@@ -19170,6 +19194,12 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "PREFLIGHT; DO NOT RESERVE, REASSIGN, ROUTE OR INDUCE FAILURE UNTIL "
             "THE PACKET-BOUND OPERATIONAL BOUNDARY IS INDEPENDENTLY SATISFIED"
             if controlled_source_topology_authority_approved else
+            "OBTAIN ONLY ONE EXACT INDEPENDENT ACTION-CLASS CONTRACT FOR THE "
+            "ACTUAL-SOURCE-DISTINCT DEGRADED TARGET AND ITS ONE-USER "
+            "AVAILABILITY SCOPE. THE CONTRACT MUST NOT EXPAND THE 5->10->25->48 "
+            "CAMPAIGN, CREATE A CANDIDATE/PACKET/LEASE, OR PERFORM A ROUTING "
+            "EFFECT; AFTER A DECISION, REENTER THE EXISTING PLANNER."
+            if controlled_topology_availability_first_authority else
             f"OBTAIN {controlled_topology_external_resource} THROUGH "
             f"{controlled_topology_external_owner}; THEN REENTER THE EXISTING "
             "DRAFT -> MATRIX/QUALITY/CAPACITY -> TOPOLOGY RANKING OWNERS. "
@@ -19213,7 +19243,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
-            f"{'DRAIN' if active_incident_drain else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'TOPOLOGY_FULL_PATH_EXTERNAL' if controlled_topology_full_path_external else 'TOPOLOGY_DISTINCT_TARGET_REVALIDATION' if controlled_topology_shared_target_revalidation else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
+            f"{'DRAIN' if active_incident_drain else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY' if controlled_topology_availability_first_authority else 'TOPOLOGY_FULL_PATH_EXTERNAL' if controlled_topology_full_path_external else 'TOPOLOGY_DISTINCT_TARGET_REVALIDATION' if controlled_topology_shared_target_revalidation else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
         ),
         "current_transition_id": (
             "SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2"
@@ -19224,6 +19254,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if controlled_source_topology_authority_required else
             "SERVICE_FAILURE_CONTROLLED_SOURCE_TOPOLOGY_APPROVED_PACKET_PREFLIGHT_V1"
             if controlled_source_topology_authority_approved else
+            "SERVICE_FAILURE_CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY_BOUNDARY_V1"
+            if controlled_topology_availability_first_authority else
             "SERVICE_FAILURE_CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_BOUNDARY_V1"
             if controlled_topology_full_path_external else
             "SERVICE_FAILURE_CONTROLLED_TOPOLOGY_ACTUAL_SOURCE_DISTINCT_TARGET_REVALIDATION_V1"

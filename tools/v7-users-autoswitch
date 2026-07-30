@@ -14373,6 +14373,108 @@ def classify_shared_target_availability(
     }
 
 
+def shared_target_stage_allocations(
+    *,
+    rows: list[dict[str, Any]],
+    stages: list[int],
+    inventory_fingerprint: str,
+    excluded_target_ids: set[str] | None = None,
+) -> dict[str, Any]:
+    """Allocate only technically usable shared destinations for read-only planning.
+
+    ``excluded_target_ids`` is deliberately a projection input rather than a
+    policy exception.  The live controlled source must never be selected as a
+    destination merely because an older campaign binding named another source.
+    """
+    excluded = {str(value) for value in (excluded_target_ids or set()) if value}
+    ranked = sorted(
+        (
+            row for row in rows
+            if (
+                row.get("shared_target_technically_eligible")
+                and str(row.get("target_id") or "") not in excluded
+            )
+        ),
+        key=lambda row: (
+            {"HEALTHY": 0, "DEGRADED_USABLE": 1, "LAST_RESORT_USABLE": 2}.get(
+                str((row.get("shared_target_availability") or {}).get(
+                    "state"
+                ) or ""),
+                3,
+            ),
+            -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
+            -to_int(
+                (row.get("capacity") or {}).get(
+                    "target_safe_additional_capacity"
+                ),
+                0,
+            ),
+            -to_float(row.get("planner_score"), 0.0),
+            str(row.get("target_id") or ""),
+        ),
+    )
+    allocations: dict[str, dict[str, Any]] = {}
+    for requested_stage in sorted({int(value) for value in stages if int(value) > 0}):
+        remaining = requested_stage
+        used_domains: set[str] = set()
+        allocation: list[dict[str, Any]] = []
+        for row in ranked:
+            domain = str(row.get("correlation_domain") or "")
+            if not domain or domain in used_domains:
+                continue
+            available = max(0, to_int(
+                (row.get("capacity") or {}).get(
+                    "target_safe_additional_capacity"
+                ),
+                0,
+            ))
+            assigned = min(remaining, available)
+            if assigned <= 0:
+                continue
+            allocation.append({
+                "target_id": str(row.get("target_id") or ""),
+                "correlation_domain": domain,
+                "allocated_users": assigned,
+                "ordinary_users_unchanged": int(
+                    (row.get("capacity") or {}).get("ordinary_users") or 0
+                ),
+                "availability_classification": str(
+                    (row.get("shared_target_availability") or {}).get(
+                        "state"
+                    ) or ""
+                ),
+                "availability_policy_boundary": str(
+                    (row.get("shared_target_availability") or {}).get(
+                        "policy_boundary"
+                    ) or ""
+                ),
+                "target_fault_injection": "FORBIDDEN",
+                "target_fingerprint": str(row.get("semantic_fingerprint") or ""),
+            })
+            used_domains.add(domain)
+            remaining -= assigned
+            if remaining == 0:
+                break
+        allocations[str(requested_stage)] = {
+            "requested_scope": requested_stage,
+            "allocated_scope": requested_stage - remaining,
+            "feasible": remaining == 0 and bool(allocation),
+            "immutable_allocation_projection": allocation,
+            "allocation_fingerprint": sha256_json({
+                "inventory_fingerprint": inventory_fingerprint,
+                "stage": requested_stage,
+                "excluded_target_ids": sorted(excluded),
+                "allocation": allocation,
+            }) if remaining == 0 and allocation else "",
+        }
+    return {
+        "ranked_target_ids": [str(row.get("target_id") or "") for row in ranked],
+        "excluded_target_ids": sorted(excluded),
+        "eligible_target_count": len(ranked),
+        "stage_allocations": allocations,
+    }
+
+
 def controlled_campaign_target_selection_diagnostic(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -14994,82 +15096,20 @@ def controlled_campaign_target_selection_diagnostic(
     # Reuse the same inventory, quality and capacity owners, but do not apply
     # the controlled-source isolation law to a non-destructive destination.
     # The result can only request an exact future action-class contract.
-    shared_ranked = sorted(
-        (row for row in rows if row.get("shared_target_technically_eligible")),
-        key=lambda row: (
-            {"HEALTHY": 0, "DEGRADED_USABLE": 1, "LAST_RESORT_USABLE": 2}.get(
-                str((row.get("shared_target_availability") or {}).get(
-                    "state"
-                ) or ""),
-                3,
-            ),
-            -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
-            -to_int(
-                (row.get("capacity") or {}).get(
-                    "target_safe_additional_capacity"
-                ),
-                0,
-            ),
-            -to_float(row.get("planner_score"), 0.0),
-            str(row.get("target_id") or ""),
-        ),
-    )
-    shared_stage_allocations: dict[str, dict[str, Any]] = {}
     availability_first_stages = sorted(
         set([1, 2] + (stages or [current_stage])) - {0}
     )
-    for requested_stage in availability_first_stages:
-        remaining = max(0, requested_stage)
-        used_domains: set[str] = set()
-        allocation: list[dict[str, Any]] = []
-        for row in shared_ranked:
-            domain = str(row.get("correlation_domain") or "")
-            if not domain or domain in used_domains:
-                continue
-            available = max(0, to_int(
-                (row.get("capacity") or {}).get(
-                    "target_safe_additional_capacity"
-                ),
-                0,
-            ))
-            assigned = min(remaining, available)
-            if assigned <= 0:
-                continue
-            allocation.append({
-                "target_id": str(row.get("target_id") or ""),
-                "correlation_domain": domain,
-                "allocated_users": assigned,
-                "ordinary_users_unchanged": int(
-                    (row.get("capacity") or {}).get("ordinary_users") or 0
-                ),
-                "availability_classification": str(
-                    (row.get("shared_target_availability") or {}).get(
-                        "state"
-                    ) or ""
-                ),
-                "availability_policy_boundary": str(
-                    (row.get("shared_target_availability") or {}).get(
-                        "policy_boundary"
-                    ) or ""
-                ),
-                "target_fault_injection": "FORBIDDEN",
-                "target_fingerprint": str(row.get("semantic_fingerprint") or ""),
-            })
-            used_domains.add(domain)
-            remaining -= assigned
-            if remaining == 0:
-                break
-        shared_stage_allocations[str(requested_stage)] = {
-            "requested_scope": requested_stage,
-            "allocated_scope": requested_stage - remaining,
-            "feasible": remaining == 0 and bool(allocation),
-            "immutable_allocation_projection": allocation,
-            "allocation_fingerprint": sha256_json({
-                "inventory_fingerprint": inventory_fingerprint,
-                "stage": requested_stage,
-                "allocation": allocation,
-            }) if remaining == 0 and allocation else "",
-        }
+    shared_allocation = shared_target_stage_allocations(
+        rows=rows,
+        stages=availability_first_stages,
+        inventory_fingerprint=inventory_fingerprint,
+    )
+    shared_ranked = [
+        row for row in rows
+        if str(row.get("target_id") or "")
+        in set(shared_allocation.get("ranked_target_ids") or [])
+    ]
+    shared_stage_allocations = shared_allocation["stage_allocations"]
     shared_current = shared_stage_allocations.get(str(current_stage), {})
     shared_completion = shared_stage_allocations.get(str(completion_stage), {})
     if (
@@ -16207,16 +16247,50 @@ def controlled_source_topology_diagnostic(
         full_campaign_target_rows[0]
         if full_campaign_target_rows else {}
     )
+    selected_full_source_id = str(selected_full_source.get("source_id") or "")
+    # The campaign request may carry an older source binding.  Reproject the
+    # shared capacity against the actual source selected by this same topology
+    # owner before any stage is called feasible.  A later collision check is
+    # too late: it leaves an unavailable source in the capacity denominator.
+    actual_source_shared_allocation = shared_target_stage_allocations(
+        rows=rows,
+        stages=sorted(set([1, 2] + campaign_stages) - {0}),
+        inventory_fingerprint=str(
+            shared_target_projection.get("inventory_fingerprint") or ""
+        ),
+        excluded_target_ids={selected_full_source_id},
+    )
+    actual_source_shared_projection = {
+        **shared_target_projection,
+        "projection_scope": "ACTUAL_CONTROLLED_SOURCE_DISTINCT_TARGETS",
+        "actual_controlled_source_id": selected_full_source_id,
+        "excluded_target_ids": list(
+            actual_source_shared_allocation.get("excluded_target_ids") or []
+        ),
+        "ranked_target_ids": list(
+            actual_source_shared_allocation.get("ranked_target_ids") or []
+        ),
+        "eligible_target_count": int(
+            actual_source_shared_allocation.get("eligible_target_count") or 0
+        ),
+        "stage_allocations": dict(
+            actual_source_shared_allocation.get("stage_allocations") or {}
+        ),
+    }
     shared_current_allocation = (
-        (shared_target_projection.get("stage_allocations") or {}).get(
+        (actual_source_shared_projection.get("stage_allocations") or {}).get(
             str(current_stage)
-        ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+        ) if isinstance(
+            actual_source_shared_projection.get("stage_allocations"), dict
+        )
         else {}
     )
     shared_completion_allocation = (
-        (shared_target_projection.get("stage_allocations") or {}).get(
+        (actual_source_shared_projection.get("stage_allocations") or {}).get(
             str(campaign_completion_stage)
-        ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+        ) if isinstance(
+            actual_source_shared_projection.get("stage_allocations"), dict
+        )
         else {}
     )
     shared_target_set = [
@@ -16227,13 +16301,32 @@ def controlled_source_topology_diagnostic(
         )
         if str(item.get("target_id") or "")
     ]
-    selected_full_source_id = str(selected_full_source.get("source_id") or "")
     shared_target_role_collision = bool(
         selected_full_source_id and selected_full_source_id in shared_target_set
     )
     shared_target_capacity_available = bool(
         shared_completion_allocation.get("feasible")
         and shared_target_set
+        and not shared_target_role_collision
+    )
+    shared_availability_first_allocation = (
+        (actual_source_shared_projection.get("stage_allocations") or {}).get("1")
+        if isinstance(
+            actual_source_shared_projection.get("stage_allocations"), dict
+        ) else {}
+    )
+    shared_availability_first_target_set = [
+        str(item.get("target_id") or "")
+        for item in (
+            shared_availability_first_allocation.get(
+                "immutable_allocation_projection"
+            ) or []
+        )
+        if str(item.get("target_id") or "")
+    ]
+    shared_availability_first_available = bool(
+        shared_availability_first_allocation.get("feasible")
+        and shared_availability_first_target_set
         and not shared_target_role_collision
     )
     stage_plan = []
@@ -16253,9 +16346,11 @@ def controlled_source_topology_diagnostic(
         ]
         stage_target = stage_targets[0] if stage_targets else {}
         shared_stage = (
-            (shared_target_projection.get("stage_allocations") or {}).get(
+            (actual_source_shared_projection.get("stage_allocations") or {}).get(
                 str(stage)
-            ) if isinstance(shared_target_projection.get("stage_allocations"), dict)
+            ) if isinstance(
+                actual_source_shared_projection.get("stage_allocations"), dict
+            )
             else {}
         )
         shared_stage_target_ids = {
@@ -16543,6 +16638,8 @@ def controlled_source_topology_diagnostic(
             [str(selected_full_target.get("target_id") or "")]
             if selected_full_target else []
             if not shared_target_capacity_available else shared_target_set
+            if not shared_availability_first_available else
+            shared_availability_first_target_set
         ),
         "reset_recovery_path": (
             "verify source recovery -> restore exact certification "
@@ -16573,10 +16670,12 @@ def controlled_source_topology_diagnostic(
             "campaign_completion_feasible": bool(
                 shared_completion_allocation.get("feasible")
             ),
+            "availability_first_feasible": shared_availability_first_available,
+            "availability_first_target_set": shared_availability_first_target_set,
             "target_set": shared_target_set,
             "target_source_role_collision": shared_target_role_collision,
             "authority_boundary": str(
-                shared_target_projection.get("authority_boundary") or "NONE"
+                actual_source_shared_projection.get("authority_boundary") or "NONE"
             ),
             "ordinary_user_effect": "FORBIDDEN",
             "target_fault_injection": "FORBIDDEN",
@@ -16585,12 +16684,19 @@ def controlled_source_topology_diagnostic(
             "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
             "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_CAPACITY_"
             f"AT_LEAST_{campaign_completion_stage}"
-            if not selected_full_target and not shared_target_capacity_available
+            if (
+                not selected_full_target
+                and not shared_target_capacity_available
+                and not shared_availability_first_available
+            )
             else "NONE"
         ),
         "exact_external_owner": (
             "EXTERNAL_EGRESS_PEER_OR_PROFILE_PROVIDER"
-            if not selected_full_target else "NONE"
+            if (
+                not selected_full_target
+                and not shared_availability_first_available
+            ) else "NONE"
         ),
         "existing_owner_reentry": (
             "admin egress-draft lifecycle -> Matrix/quality/capacity "
@@ -16607,6 +16713,8 @@ def controlled_source_topology_diagnostic(
             if topology_plan["campaign_completion_feasible"]
             else "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
             if shared_target_capacity_available
+            else "SHARED_TARGET_AVAILABILITY_FIRST_ACTION_CLASS_AUTHORITY_REQUIRED"
+            if shared_availability_first_available
             else "SHARED_TARGET_ROLE_OR_QUALITY_REVALIDATION_REQUIRED"
             if shared_target_role_collision else "EXTERNAL_RESOURCE_REQUIRED"
             if not selected_full_target
@@ -16623,6 +16731,8 @@ def controlled_source_topology_diagnostic(
             if topology_plan["current_next_action_feasible"]
             else "PREPARE_EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available
+            else "PREPARE_EXACT_DEGRADED_SHARED_TARGET_AVAILABILITY_FIRST_CONTRACT"
+            if shared_availability_first_available
             else "REVALIDATE_SHARED_TARGET_SET_FOR_ACTUAL_CONTROLLED_SOURCE"
             if shared_target_role_collision
             else "OBTAIN_OWNER_VERIFIED_FULL_CAMPAIGN_TARGET_CAPACITY"
@@ -16666,6 +16776,7 @@ def controlled_source_topology_diagnostic(
             if (
                 topology_plan["exact_external_resource"] != "NONE"
                 and not shared_target_role_collision
+                and not shared_availability_first_available
             )
             else []
         ),
@@ -16674,6 +16785,11 @@ def controlled_source_topology_diagnostic(
             "contract -> existing source reservation renewal/reconciliation -> "
             "existing Candidate/Packet/lease -> stages 5/10/25/48"
             if shared_target_capacity_available else
+            "existing actual-source-distinct availability projection -> exact "
+            "degraded shared-target action-class contract -> fresh planner "
+            "revalidation -> existing Candidate/Packet/lease only after "
+            "independent admission"
+            if shared_availability_first_available else
             "existing Matrix/quality observation -> target selection diagnostic "
             "with actual controlled-source role -> same topology diagnostic"
             if shared_target_role_collision else
@@ -16694,6 +16810,9 @@ def controlled_source_topology_diagnostic(
             "CONTROLLED_TOPOLOGY_SHARED_TARGET_CONTRACT_AND_SOURCE_RECONCILIATION_REQUIRED"
             if full_path_recommendation.get("status")
             == "SHARED_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED" else
+            "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED"
+            if full_path_recommendation.get("status")
+            == "SHARED_TARGET_AVAILABILITY_FIRST_ACTION_CLASS_AUTHORITY_REQUIRED" else
             "CONTROLLED_TOPOLOGY_SHARED_TARGET_REVALIDATION_REQUIRED"
             if full_path_recommendation.get("status")
             == "SHARED_TARGET_ROLE_OR_QUALITY_REVALIDATION_REQUIRED" else
@@ -16703,7 +16822,12 @@ def controlled_source_topology_diagnostic(
         "read_only": True,
         "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
         "current_campaign": campaign,
-        "shared_production_target_capacity_projection": shared_target_projection,
+        "shared_production_target_capacity_projection": (
+            actual_source_shared_projection
+        ),
+        "historical_source_shared_target_capacity_projection": (
+            shared_target_projection
+        ),
         "reservation_owner_capability": reservation_owner,
         "options": options,
         "POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC": (
@@ -16728,6 +16852,10 @@ def controlled_source_topology_diagnostic(
                 "an exact contract and source reservation reconciliation remain "
                 "independent boundaries"
                 if shared_target_capacity_available else
+                "an actual-source-distinct degraded shared target has one "
+                "bounded availability slot; it is not a campaign expansion and "
+                "requires an exact independent action-class contract"
+                if shared_availability_first_available else
                 "the selected controlled source is also the only derived target; "
                 "reuse the next Matrix/quality observation to select a distinct "
                 "healthy target rather than treating the collision as capacity"
@@ -16751,11 +16879,12 @@ def controlled_source_topology_diagnostic(
             ),
             "required_authority_action": required_authority_action,
             "shared_target_authority_boundary": str(
-                shared_target_projection.get("authority_boundary") or "NONE"
+                actual_source_shared_projection.get("authority_boundary") or "NONE"
             ),
             "required_external_input": (
                 "NONE" if (
                     selected_option or shared_target_capacity_available
+                    or shared_availability_first_available
                     or shared_target_role_collision
                 ) else
                 str(topology_plan.get("exact_external_resource") or "")
@@ -16769,6 +16898,9 @@ def controlled_source_topology_diagnostic(
                 "existing Authority owner -> fresh source reservation and target "
                 "revalidation -> existing Candidate/Packet/lease owners"
                 if shared_target_capacity_available else
+                "existing Authority owner -> fresh actual-source-distinct "
+                "availability contract -> existing Planner revalidation"
+                if shared_availability_first_available else
                 "existing Matrix/quality owner -> fresh actual-source target "
                 "selection -> same topology owner"
                 if shared_target_role_collision else

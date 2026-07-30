@@ -204,6 +204,46 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(insufficient["hard_reasons"])
         self.assertIn("authority_safe_scope", contract["limiting_bounds"])
 
+    def test_actual_source_reprojection_excludes_live_source_before_capacity_allocation(self):
+        rows = [
+            {
+                "target_id": "vless",
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {"state": "HEALTHY"},
+                "quality": {"current_stability": 0.99},
+                "capacity": {"target_safe_additional_capacity": 12},
+                "planner_score": 10.0,
+                "correlation_domain": "vless-domain",
+                "semantic_fingerprint": "v" * 64,
+            },
+            {
+                "target_id": "awg0",
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {"state": "DEGRADED_USABLE"},
+                "quality": {"current_stability": 0.72},
+                "capacity": {"target_safe_additional_capacity": 1},
+                "planner_score": 4.0,
+                "correlation_domain": "awg0-domain",
+                "semantic_fingerprint": "a" * 64,
+            },
+        ]
+        allocation = self.autoswitch.shared_target_stage_allocations(
+            rows=rows,
+            stages=[1, 2],
+            inventory_fingerprint="i" * 64,
+            excluded_target_ids={"vless"},
+        )
+
+        self.assertEqual(allocation["excluded_target_ids"], ["vless"])
+        self.assertEqual(allocation["ranked_target_ids"], ["awg0"])
+        self.assertTrue(allocation["stage_allocations"]["1"]["feasible"])
+        self.assertEqual(
+            allocation["stage_allocations"]["1"]
+            ["immutable_allocation_projection"][0]["target_id"],
+            "awg0",
+        )
+        self.assertFalse(allocation["stage_allocations"]["2"]["feasible"])
+
     def test_registry_capacity_limits_are_consumed_by_existing_load_owner(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)
         planner.dynamic_load = {
@@ -2445,6 +2485,48 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertIn(
                 "locations={\"1\":46,\"exec\":1,\"vless\":1}",
                 full_path_live["CURRENT_POOL_AND_CAMPAIGN_STATE"],
+            )
+            runtime_status["controlled_source_topology"].update({
+                "status": (
+                    "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_CONTRACT_REQUIRED"
+                ),
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN": {
+                    "shared_target_capacity": {
+                        "availability_first_feasible": True,
+                        "availability_first_target_set": ["awg0"],
+                    },
+                },
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION": {
+                    "status": (
+                        "SHARED_TARGET_AVAILABILITY_FIRST_"
+                        "ACTION_CLASS_AUTHORITY_REQUIRED"
+                    ),
+                },
+            })
+            availability_boundary = (
+                self.sync.reconcile_active_standing_delegated_policy_to_cps(
+                    runtime_status, root=root,
+                )
+            )
+            self.assertEqual(
+                availability_boundary["next_action"],
+                "ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_"
+                "ACTION_CLASS_CONTRACT_REQUIRED",
+            )
+            availability_live = self.sync._markdown_field_table(
+                self.sync._markdown_section(
+                    cps_path.read_text(encoding="utf-8"),
+                    "## 0. Authoritative Live Current State",
+                    "## Authoritative Unfinished Capability Closure Registry",
+                )
+            )
+            self.assertEqual(
+                availability_live["CURRENT_STOP_CONDITION"].strip("`"),
+                "ENGINEERING_AUTHORITY",
+            )
+            self.assertIn(
+                "AVAILABILITY_FIRST_AUTHORITY",
+                availability_live["CURRENT_STATE_GENERATION"],
             )
             runtime_status.pop("controlled_source_topology")
             runtime_status[

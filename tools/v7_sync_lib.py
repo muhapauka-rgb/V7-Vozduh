@@ -2365,6 +2365,7 @@ def delegated_policy_live_state_consistency(
         and (
             not independent_program_frontier
             or controlled_certification_safe_frontier
+            or external_owner_terminal
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
     )
@@ -19250,8 +19251,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "NO_INSIDE_APPROVED_POLICY; PACKET-BOUND OPERATIONAL AUTHORITY "
             "REMAINS REQUIRED AFTER THE SAFE CANDIDATE/PACKET/LEASE PREFLIGHT"
             if controlled_source_topology_authority_approved else
-            "NO_NEW_AUTHORITY_REQUEST IS VALID UNTIL THE OWNER-BACKED "
-            "FULL-CAMPAIGN TARGET RESOURCE EXISTS AND PASSES FRESH "
+            "NO_NEW_AUTHORITY_REQUIRED; NO AUTHORITY REQUEST IS VALID UNTIL "
+            "THE OWNER-BACKED FULL-CAMPAIGN TARGET RESOURCE EXISTS AND PASSES FRESH "
             "MATRIX/QUALITY/CAPACITY ADMISSION"
             if controlled_topology_full_path_external else
             "NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER"
@@ -22629,6 +22630,12 @@ def cps_live_state_consistency(
     stop = live.get("CURRENT_STOP_CONDITION", "").strip("`")
     wip_stop = wip.get("current_primary_stop", "").strip("`")
     registry_stop = registry.get("CURRENT_STOP_CONDITION", "").strip("`")
+    external_owner_terminal = (
+        live.get("EXTERNAL_INPUT_REQUIRED", "").strip("`") == "TRUE"
+        and stop == "EXTERNAL_OWNER_REQUIRED"
+        and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
+        == "EXTERNAL_OWNER_REQUIRED"
+    )
     split_authority_natural_boundary = (
         stop == "ENGINEERING_AUTHORITY"
         and "ENGINEERING_AUTHORITY" in wip_stop
@@ -22646,6 +22653,7 @@ def cps_live_state_consistency(
             independent_program_frontier
             and not active_incident_drain_frontier
             and not controlled_certification_safe_frontier
+            and not external_owner_terminal
             and "REAL_WORLD_LIMIT" not in wip_stop
         )
     ):

@@ -571,6 +571,66 @@ class CpsAtomicReconciliationTest(unittest.TestCase):
             result["errors"],
         )
 
+    def test_external_owner_program_terminal_accepts_composite_wip_stop(self):
+        state = dict(self.state)
+        next_action = (
+            "EXTERNAL_OWNER_CONTROLLED_CERTIFICATION_FULL_PATH_"
+            "TARGET_CAPACITY_REQUIRED"
+        )
+        state.update({
+            "current_stop_condition": "EXTERNAL_OWNER_REQUIRED",
+            "current_program_execution_frontier": f"WAITING_INPUT:{next_action}",
+            "current_next_action_id": next_action,
+            "smallest_existing_next_action": next_action,
+            "wip_smallest_existing_next_action": next_action,
+            "wip_smallest_existing_next_action_id": next_action,
+            "wip_current_primary_stop": (
+                "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; "
+                "FULL_CAMPAIGN_TARGET_CAPACITY_NOT_OWNER_BACKED"
+            ),
+            "authority_required_now": (
+                "NO_NEW_AUTHORITY_REQUIRED; NO AUTHORITY REQUEST IS VALID "
+                "UNTIL OWNER-BACKED TARGET CAPACITY EXISTS"
+            ),
+            "wip_authority_required_now": (
+                "NO_NEW_AUTHORITY_REQUIRED; NO AUTHORITY REQUEST BEFORE "
+                "OWNER-BACKED TARGET CAPACITY EXISTS"
+            ),
+            "program_terminal_class": "EXTERNAL_OWNER_REQUIRED",
+            "program_terminal_state": (
+                f"EXTERNAL_OWNER_REQUIRED_{next_action}"
+            ),
+            "omp_continuation_required": "FALSE",
+            "external_input_required": "TRUE",
+            "external_input_type": (
+                "OWNER_VERIFIED_ISOLATED_CONTROLLED_TARGET_OR_"
+                "CORRELATION_DISTINCT_TARGET_SET_WITH_USABLE_CAPACITY_"
+                "AT_LEAST_48"
+            ),
+            "next_mission_formed": "FALSE",
+            "next_mission_id": "NONE",
+        })
+        rendered = self.lib.build_normalized_cps_document(
+            self.cps,
+            state=state,
+        )
+        result = self.lib.cps_live_state_consistency(
+            rendered,
+            root=ROOT,
+            omp_text=self.omp,
+            verify_external=False,
+            expected_state=state,
+        )
+        self.assertNotIn("cps_current_stop_divergence", result["errors"])
+        self.assertNotIn(
+            "delegated_policy_cps_stop_divergence",
+            result["errors"],
+        )
+        self.assertNotIn(
+            "delegated_policy_live_operational_authority_required",
+            result["errors"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

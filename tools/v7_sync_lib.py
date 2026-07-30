@@ -2233,6 +2233,7 @@ def delegated_policy_live_state_consistency(
     phase3_acceptance_frontier = program_frontier == "AEP_PHASE_3_INDEPENDENT_ACCEPTANCE"
     real_consumer_activation_frontier = program_frontier == "OMP_REAL_CONSUMER_ACTIVATION"
     safe_deploy_frontier = program_frontier.startswith("SAFE_DEPLOY_")
+    safe_reentry_frontier = program_frontier.startswith("WAITING_OWNER_EVENT:")
     heartbeat_reentry_active = (
         real_consumer_activation_frontier
         and live.get("HEARTBEAT_STATUS", "").strip("`") == "ACTIVE"
@@ -2242,7 +2243,7 @@ def delegated_policy_live_state_consistency(
         "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
         if engineering_authority_terminal else
         "NO_NEW_AUTHORITY_REQUIRED"
-        if external_owner_terminal else
+        if external_owner_terminal or safe_reentry_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_2_ACCEPTANCE_ONLY"
         if phase2_acceptance_frontier else
         "ENGINEERING_AUTHORITY_FOR_INDEPENDENT_AEP_PHASE_3_ACCEPTANCE_ONLY"
@@ -2645,6 +2646,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
             )
             waiting_input_frontier = program_frontier.startswith("WAITING_INPUT:")
+            safe_reentry_frontier = program_frontier.startswith("WAITING_OWNER_EVENT:")
             active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if waiting_input_frontier:
                 if (
@@ -2654,6 +2656,15 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     or not program_terminal_state.startswith(program_terminal)
                 ):
                     errors.append("program_waiting_input_boundary_invalid")
+            elif safe_reentry_frontier:
+                if (
+                    continuation != "FALSE" or external != "FALSE"
+                    or program_terminal != "SAFE_REENTRY_REQUIRED"
+                    or continuation_decision
+                    != "SAFE_REENTRY_PENDING_EXISTING_MATRIX_QUALITY_OBSERVATION"
+                    or not program_terminal_state.startswith("SAFE_REENTRY_REQUIRED_")
+                ):
+                    errors.append("program_safe_reentry_boundary_invalid")
             elif heartbeat_reentry_active:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "NATURAL_SCHEDULED_RUN":
                     errors.append("program_heartbeat_reentry_boundary_invalid")
@@ -19230,6 +19241,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         "current_next_action_id": primary_next_action,
         "current_program_execution_frontier": (
+            f"WAITING_OWNER_EVENT:{primary_next_action}"
+            if controlled_topology_shared_target_revalidation else
             primary_next_action
             if (
                 active_incident_drain

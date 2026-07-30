@@ -74,6 +74,12 @@ successor
 Это закрывает потерю causal consumer: Authority boundary теперь имеет точный
 producer и не маскируется под отсутствие внешнего ресурса.
 
+При первом атомарном CPS reconciliation тот же production result корректно
+остановился: legacy bridge не считал этот новый Engineering Authority frontier
+внешним input и отказался создавать противоречивый CPS. Bridge расширен через
+существующие CPS/OMP поля — stop, external-input type, next consumer, terminal
+и re-entry. Никакая новая очередь, registry или Authority system не создана.
+
 ## Verification before deploy
 
 - focused unit tests: `test_service_failure_automation_evolution`,

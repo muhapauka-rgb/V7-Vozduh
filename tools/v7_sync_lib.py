@@ -19306,6 +19306,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 or m8_approved_source_baseline_blocked
                 or pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
+                or controlled_topology_availability_first_authority
                 or controlled_topology_full_path_external
                 or controlled_topology_shared_target_revalidation
                 or controlled_target_rebind_authority_boundary
@@ -19335,6 +19336,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             f"EXACT_{controlled_source_topology_action}_ONLY; CURRENT TIER48 "
             "CAPABILITY AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
             if controlled_source_topology_authority_required else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_ONLY; "
+            "MAX_USERS=1; ACTUAL_SOURCE_DISTINCT; NO CAMPAIGN EXPANSION, "
+            "CANDIDATE, PACKET, LEASE OR PRODUCTION EFFECT"
+            if controlled_topology_availability_first_authority else
             "NO_INSIDE_APPROVED_POLICY; PACKET-BOUND OPERATIONAL AUTHORITY "
             "REMAINS REQUIRED AFTER THE SAFE CANDIDATE/PACKET/LEASE PREFLIGHT"
             if controlled_source_topology_authority_approved else
@@ -19375,6 +19381,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             f"EXACT_{controlled_source_topology_action}_ONLY; CURRENT TIER48 "
             "CAPABILITY AND CAMPAIGN AUTHORITY REMAIN UNCHANGED"
             if controlled_source_topology_authority_required else
+            "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION; "
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_ONLY; "
+            "MAX_USERS=1; ACTUAL_SOURCE_DISTINCT; NO CAMPAIGN EXPANSION, "
+            "CANDIDATE, PACKET, LEASE OR PRODUCTION EFFECT"
+            if controlled_topology_availability_first_authority else
             "NO_INSIDE_APPROVED_POLICY; PACKET-BOUND OPERATIONAL AUTHORITY "
             "REMAINS REQUIRED AFTER THE SAFE CANDIDATE/PACKET/LEASE PREFLIGHT"
             if controlled_source_topology_authority_approved else
@@ -19408,6 +19419,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
         "wip_current_primary_stop": (
             "NONE"
             if controlled_source_topology_authority_approved else
+            "ENGINEERING_AUTHORITY_PROGRAM_FRONTIER; "
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_PENDING"
+            if controlled_topology_availability_first_authority else
             "EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; "
             "FULL_CAMPAIGN_TARGET_CAPACITY_NOT_OWNER_BACKED"
             if controlled_topology_full_path_external else
@@ -19448,6 +19462,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "exact approved topology manifest -> existing Candidate/Packet/lease "
             "owners -> packet-bound restore-barrier operational boundary"
             if controlled_source_topology_authority_approved else
+            "actual-source-distinct degraded target projection -> existing "
+            "Authority request owner -> exact one-user action-class decision "
+            "-> fresh Planner revalidation"
+            if controlled_topology_availability_first_authority else
             "full-path topology diagnostic -> external target resource owner -> "
             "existing draft lifecycle -> Matrix/quality/capacity -> same ranking"
             if controlled_topology_full_path_external else
@@ -19489,6 +19507,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "identities for the approved one-identity topology manifest and "
             "stops before any production mutation at its packet-bound boundary."
             if controlled_source_topology_authority_approved else
+            "The existing Authority request owner may form one exact one-user "
+            "degraded-target action-class request from the current fingerprint; "
+            "no contract, Candidate, Packet, lease or production effect exists "
+            "until an independent decision is recorded."
+            if controlled_topology_availability_first_authority else
             "The capacity-2 draft is rejected as a bootstrap-only dead end. "
             "The same existing owners reenter automatically after a full-"
             "campaign target resource is owner-backed and observed."
@@ -19529,6 +19552,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if controlled_source_topology_authority_required else
             "existing Planner, Candidate, Packet, lease and restore-barrier preflight owners"
             if controlled_source_topology_authority_approved else
+            "existing independent Authority request/audit owner plus the "
+            "existing Matrix, quality, capacity and topology owners"
+            if controlled_topology_availability_first_authority else
             "existing external target resource owner plus admin draft, Matrix, quality, capacity and topology ranking owners"
             if controlled_topology_full_path_external else
             "existing external egress substrate owner plus service-matrix baseline consumer"
@@ -19604,6 +19630,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "current shared-target allocation collides with the actual controlled "
             "source; next Matrix/quality observation owns distinct-target revalidation"
             if controlled_topology_shared_target_revalidation else
+            "actual-source-distinct AWG target is DEGRADED_USABLE for one "
+            "availability identity only; exact independent action-class contract "
+            "is required before fresh Planner revalidation"
+            if controlled_topology_availability_first_authority else
             f"Exact approved certification source {controlled_substrate_source_id or 'UNKNOWN'} "
             f"is isolated but its Matrix baseline is {controlled_substrate_source_precondition}; "
             f"root_cause={controlled_substrate_root_cause}; "
@@ -19637,6 +19667,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if pending_controlled_topology_policy else
             "existing Candidate, Packet, lease and restore-barrier preflight owners"
             if controlled_source_topology_authority_approved else
+            "existing independent Authority request/audit plus Matrix, quality, "
+            "capacity and topology diagnostic owners"
+            if controlled_topology_availability_first_authority else
             "existing external egress resource owner plus admin draft lifecycle, Matrix, quality, capacity and topology ranking owners"
             if controlled_topology_full_path_external else
             "existing Matrix/quality and target-selection/topology diagnostic owners"
@@ -19675,6 +19708,9 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "one fresh actual-source-distinct target projection or an exact safe "
             "quality/capacity blocker; no Candidate, Packet, lease or mutation"
             if controlled_topology_shared_target_revalidation else
+            "one exact one-user degraded-target action-class decision or decline; "
+            "then fresh Planner revalidation, with no implicit campaign advance"
+            if controlled_topology_availability_first_authority else
             "fresh healthy exact-source Matrix baseline -> automatic approved campaign re-entry; no new Authority request"
             if m8_approved_source_baseline_blocked else
             "exact incremental identity delta to Tier 5 -> pool readiness -> existing T48-M8 plan/safe-cohort consumer"
@@ -19704,6 +19740,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
+                or controlled_topology_availability_first_authority
             ) else
             "CONTINUE_PROGRAM_FRONTIER"
             if (
@@ -19737,6 +19774,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
+                or controlled_topology_availability_first_authority
             ) else
             "EXTERNAL_OWNER_REQUIRED"
             if (
@@ -19763,6 +19801,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
+                or controlled_topology_availability_first_authority
             ) else
             "NONE_CONTROLLED_SOURCE_TOPOLOGY_PACKET_PREFLIGHT_SUCCESSOR_READY"
             if controlled_source_topology_authority_approved else
@@ -19799,6 +19838,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 m8_exact_authority_boundary
                 or m8_pool_boundary
                 or pending_controlled_topology_policy
+                or controlled_topology_availability_first_authority
                 or controlled_target_rebind_authority_boundary
                 or controlled_target_live_owner_boundary
                 or controlled_topology_full_path_external
@@ -19811,6 +19851,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if pending_controlled_topology_policy else
             controlled_source_topology_action
             if controlled_source_topology_authority_required else
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_DECISION"
+            if controlled_topology_availability_first_authority else
             controlled_topology_external_resource
             if controlled_topology_full_path_external else
             "FRESH_MATRIX_QUALITY_ACTUAL_SOURCE_DISTINCT_TARGET_OBSERVATION"
@@ -19835,6 +19877,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             if (
                 pending_controlled_topology_policy
                 or controlled_source_topology_authority_required
+                or controlled_topology_availability_first_authority
                 or controlled_topology_full_path_external
                 or controlled_topology_shared_target_revalidation
             ) else
@@ -19870,6 +19913,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CANDIDATE/PACKET/LEASE/RESTORE-BARRIER PREFLIGHT AND MUST NOT "
             "MUTATE PRODUCTION BEFORE THE PACKET-BOUND OPERATIONAL BOUNDARY"
             if controlled_source_topology_authority_approved else
+            "ACTUAL-SOURCE-DISTINCT AVAILABILITY TARGET IS DEGRADED_USABLE FOR "
+            "ONE IDENTITY ONLY. FORM ONE FRESH EXACT ACTION-CLASS REQUEST THROUGH "
+            "THE EXISTING AUTHORITY OWNER; NO CONTRACT, CANDIDATE, PACKET, LEASE, "
+            "RESTORE BARRIER OR PRODUCTION EFFECT IS LEGAL BEFORE ITS DECISION."
+            if controlled_topology_availability_first_authority else
             "POST-TRIAL RANKING DEFECT IS CLOSED: CAPACITY-2 DRAFTS ARE "
             "BOOTSTRAP-ONLY AND CANNOT SATISFY STAGE 5 OR THE 5/10/25/48 "
             f"CAMPAIGN. REQUIRED EXTERNAL RESOURCE={controlled_topology_external_resource}; "
@@ -19918,6 +19966,8 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 if controlled_source_topology_authority_required else
                 "CONTROLLED_SOURCE_TOPOLOGY_PACKET_PREFLIGHT"
                 if controlled_source_topology_authority_approved else
+                "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY"
+                if controlled_topology_availability_first_authority else
                 "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE"
                 if controlled_topology_full_path_external else
                 "T48_M8_APPROVED_SOURCE_BASELINE_BLOCKED"

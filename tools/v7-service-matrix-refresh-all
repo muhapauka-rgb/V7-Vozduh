@@ -1681,6 +1681,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "contract_id", "contract_hash", "admitted_max_users",
             "max_concurrent_transactions", "blockers", "source",
             "target", "trial_identity", "manifest_hash",
+            "stage", "diagnostic_status", "receipt_id",
             "source_incident_id", "automation_obligation_id",
             "affected_scope", "unresolved_scope",
         )
@@ -1734,6 +1735,7 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "service_failure_omp_consumer", "service_failure_post_action_passive_consumer",
         "service_failure_post_action_omp_consumer",
         "bounded_delegated_service_failure_action",
+        "availability_first_standing_policy_action",
         "controlled_topology_standing_policy_action",
     ):
         if key in payload:

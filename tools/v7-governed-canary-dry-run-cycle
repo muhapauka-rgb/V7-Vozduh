@@ -3117,7 +3117,74 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         "ok": not controlled_source,
         "blockers": [],
     }
-    if controlled_source:
+    if controlled_source and availability_mode:
+        # The availability-first standing envelope is an independently
+        # approved action class.  The older exact controlled-certification
+        # campaign remains lineage, but its expiry must not revoke the newer
+        # standing policy or recreate per-stage approval.  Fresh source,
+        # target, allocation, Packet and lease checks remain mandatory below.
+        source_assignments = [
+            row
+            for row in read_registry(state_dir / "users.registry")
+            if str(row.get("enabled") or "1").lower()
+            in {"1", "true", "yes"}
+            and str(row.get("current") or "") == approved_source
+        ]
+        ordinary_on_source = [
+            row
+            for row in source_assignments
+            if str(row.get("certification_user") or "").lower()
+            not in {"1", "true", "yes"}
+        ]
+        source_blockers: list[str] = []
+        if not source_row:
+            source_blockers.append(
+                "availability_first_controlled_source_missing"
+            )
+        if not controlled_source:
+            source_blockers.append(
+                "availability_first_source_not_controlled_certification_source"
+            )
+        if ordinary_on_source:
+            source_blockers.append(
+                "availability_first_controlled_source_contains_ordinary_users"
+            )
+        campaign_binding = {
+            "schema_version": (
+                "v7.availability-first-standing-source-binding.v1"
+            ),
+            "required": True,
+            "ok": not source_blockers,
+            "blockers": sorted(set(source_blockers)),
+            "authority_basis": (
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            ),
+            "source_id": approved_source,
+            "certification_users_on_source": (
+                len(source_assignments) - len(ordinary_on_source)
+            ),
+            "ordinary_users_on_source": len(ordinary_on_source),
+            "historical_campaign_request_id": str(
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_id",
+                    "",
+                )
+                or ""
+            ),
+            "historical_campaign_request_hash": str(
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_hash",
+                    "",
+                )
+                or ""
+            ),
+            "historical_campaign_is_authority": False,
+            "self_expansion_allowed": False,
+        }
+        blockers.extend(source_blockers)
+    elif controlled_source:
         campaign_request_id = str(
             getattr(
                 args,
@@ -5222,17 +5289,19 @@ def execute_availability_first_standing_stage(
         for row in allocation_rows
     ) != stage:
         blockers.append("availability_first_allocation_scope_mismatch")
-    source = str(
+    source_value = (
         (
-            (
-                diagnostic.get(
-                    "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"
-                )
-                or {}
-            ).get("controlled_source")
+            diagnostic.get(
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"
+            )
             or {}
-        ).get("source_id")
+        ).get("controlled_source")
         or ""
+    )
+    source = str(
+        source_value.get("source_id")
+        if isinstance(source_value, dict)
+        else source_value
     )
     current_campaign = (
         diagnostic.get("current_campaign")

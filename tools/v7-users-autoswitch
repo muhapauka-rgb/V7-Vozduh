@@ -14901,6 +14901,12 @@ def controlled_campaign_target_selection_diagnostic(
                 "stability_below_floor",
             }
         }.union(explicit_stability_blockers))
+        # Keep the Planner's normal quality floor separate from hard target
+        # ineligibility.  Availability-first deliberately allows a fresh,
+        # reachable target with sustained positive measurements to enter the
+        # bounded DEGRADED_USABLE/LAST_RESORT_USABLE path.  Feeding the same
+        # quality reason into both inputs would silently turn every soft SLO
+        # miss back into a hard failure.
         non_controlled_blockers = sorted({
             reason for reason in candidate.blocked
             if reason not in {
@@ -14908,6 +14914,7 @@ def controlled_campaign_target_selection_diagnostic(
                 "reserve_only",
                 "canary_reserved_production_assignment_blocked",
             }
+            and reason not in set(quality_blockers)
         })
         # ``controlled_certification_source_health_status`` is intentionally
         # stricter than an ordinary destination: it proves the source is safe
@@ -16671,6 +16678,9 @@ def controlled_source_topology_diagnostic(
         **shared_target_projection,
         "projection_scope": "ACTUAL_CONTROLLED_SOURCE_DISTINCT_TARGETS",
         "actual_controlled_source_id": selected_full_source_id,
+        "inventory_fingerprint": str(
+            target_diagnostic.get("inventory_fingerprint") or ""
+        ),
         "excluded_target_ids": list(
             actual_source_shared_allocation.get("excluded_target_ids") or []
         ),
@@ -16683,10 +16693,36 @@ def controlled_source_topology_diagnostic(
         "stage_allocations": dict(
             actual_source_shared_allocation.get("stage_allocations") or {}
         ),
+        # The executor re-reads this diagnostic after apply and needs the
+        # current target-specific verification facts.  Keep only the compact
+        # fields it consumes; full Matrix/quality truth remains with its
+        # existing owners.
+        "targets": [
+            {
+                "target_id": str(row.get("target_id") or ""),
+                "shared_target_availability": dict(
+                    row.get("shared_target_availability") or {}
+                ),
+                "quality": dict(row.get("quality") or {}),
+                "capacity": dict(row.get("capacity") or {}),
+                "semantic_fingerprint": str(
+                    row.get("semantic_fingerprint") or ""
+                ),
+            }
+            for row in rows
+            if str(row.get("target_id") or "")
+        ],
     }
+    availability_projection_stage = max(
+        1,
+        to_int(
+            actual_source_shared_projection.get("current_stage"),
+            1,
+        ),
+    )
     shared_current_allocation = (
         (actual_source_shared_projection.get("stage_allocations") or {}).get(
-            str(current_stage)
+            str(availability_projection_stage)
         ) if isinstance(
             actual_source_shared_projection.get("stage_allocations"), dict
         )
@@ -16716,8 +16752,48 @@ def controlled_source_topology_diagnostic(
         and shared_target_set
         and not shared_target_role_collision
     )
+    actual_current_rows = [
+        row
+        for row in (
+            shared_current_allocation.get("immutable_allocation_projection")
+            or []
+        )
+        if isinstance(row, dict)
+    ]
+    actual_current_boundaries = {
+        str(row.get("availability_policy_boundary") or "")
+        for row in actual_current_rows
+    }
+    actual_source_shared_projection.update({
+        "current_stage": availability_projection_stage,
+        "current_stage_feasible": bool(
+            shared_current_allocation.get("feasible")
+        ),
+        "campaign_completion_feasible": bool(
+            shared_completion_allocation.get("feasible")
+        ),
+        "authority_boundary": (
+            "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if (
+                "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                in actual_current_boundaries
+            )
+            else
+            "EXACT_LAST_RESORT_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if (
+                "EXACT_LAST_RESORT_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+                in actual_current_boundaries
+            )
+            else
+            "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+            if shared_current_allocation.get("feasible")
+            else "NONE"
+        ),
+    })
     shared_availability_first_allocation = (
-        (actual_source_shared_projection.get("stage_allocations") or {}).get("1")
+        (actual_source_shared_projection.get("stage_allocations") or {}).get(
+            str(availability_projection_stage)
+        )
         if isinstance(
             actual_source_shared_projection.get("stage_allocations"), dict
         ) else {}

@@ -315,7 +315,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "reservation_owner=operator_execution_governance "
                 "soft_limit=48 hard_limit=60\n"
                 "id=ordinary-good protocol=wireguard type=interface interface=wg-o "
-                "enabled=1 role=GLOBAL_STABLE soft_limit=48 hard_limit=60\n",
+                "enabled=1 role=GLOBAL_STABLE soft_limit=48 hard_limit=60\n"
+                "id=ordinary-degraded protocol=wireguard type=interface "
+                "interface=wg-d enabled=1 role=GLOBAL_STABLE soft_limit=48 "
+                "hard_limit=60\n",
                 encoding="utf-8",
             )
             state_dir.joinpath("v7-state.json").write_text(json.dumps({
@@ -336,10 +339,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "code": "200", "avg_mbps": 75,
                         "min_mbps": 60, "stability": 0.95,
                     },
+                    "ordinary-degraded": {
+                        "code": "200", "avg_mbps": 8,
+                        "min_mbps": 2, "stability": 0.3,
+                    },
                 },
             }), encoding="utf-8")
             matrix_items = {}
-            for target in ("a-exec-weak", "z-exec-good", "ordinary-good"):
+            for target in (
+                "a-exec-weak",
+                "z-exec-good",
+                "ordinary-good",
+                "ordinary-degraded",
+            ):
                 matrix_items[target] = {
                     "services": {
                         "google": {
@@ -381,6 +393,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 ("a-exec-weak", 0.2),
                 ("z-exec-good", 0.9),
                 ("ordinary-good", 0.95),
+                ("ordinary-degraded", 0.3),
             ):
                 quality_items[target] = {
                     "windows": {
@@ -515,6 +528,22 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(
             targets["ordinary-good"]["shared_target_policy_scope_status"],
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED",
+        )
+        self.assertTrue(
+            targets["ordinary-degraded"][
+                "shared_target_technically_eligible"
+            ]
+        )
+        self.assertEqual(
+            targets["ordinary-degraded"][
+                "shared_target_availability"
+            ]["state"],
+            "DEGRADED_USABLE",
+        )
+        self.assertFalse(
+            targets["ordinary-degraded"][
+                "shared_target_availability"
+            ]["hard_reasons"]
         )
         ordinary_capacity = targets["ordinary-good"]["capacity"]
         self.assertGreater(

@@ -94,6 +94,99 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(before, after)
         execute.assert_not_called()
 
+    def test_availability_first_stage_consumes_string_source_and_fails_closed_for_small_cohort(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                controlled_topology_planner="v7-users-autoswitch",
+                policy_file=str(root / "policy.json"),
+                operator_execution_audit_store=str(
+                    root / "operator-audit.jsonl"
+                ),
+                availability_first_stage=2,
+                expected_availability_first_allocation_fingerprint=(
+                    "a" * 64
+                ),
+            )
+            diagnostic = {
+                "status": (
+                    "CONTROLLED_TOPOLOGY_"
+                    "AVAILABILITY_FIRST_AUTO_ADMITTED"
+                ),
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                    "contract_id": "sdpc_unit",
+                    "contract_hash": "b" * 64,
+                    "blockers": [],
+                },
+                "shared_production_target_capacity_projection": {
+                    "availability_campaign": {
+                        "next_stage": 2,
+                        "blockers": [],
+                    },
+                    "stage_allocations": {
+                        "2": {
+                            "feasible": True,
+                            "allocation_fingerprint": "a" * 64,
+                            "immutable_allocation_projection": [{
+                                "target_id": "awg3",
+                                "allocated_users": 2,
+                            }],
+                        },
+                    },
+                },
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN": {
+                    "controlled_source": "vless",
+                },
+                "current_campaign": {
+                    "request_id": "historical",
+                    "request_hash": "c" * 64,
+                },
+            }
+            with mock.patch.object(
+                module,
+                "_availability_first_topology_diagnostic",
+                return_value={
+                    "ok": True,
+                    "diagnostic": diagnostic,
+                    "blockers": [],
+                },
+            ), mock.patch.object(
+                module,
+                "execute_governed_transaction_with_guards",
+            ) as execute:
+                result = module.execute_availability_first_standing_stage(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+        self.assertEqual(
+            result["stop_reason"],
+            "availability_first_standing_stage_not_admitted",
+        )
+        self.assertIn(
+            "availability_first_source_cohort_too_small",
+            result["blockers"],
+        )
+        execute.assert_not_called()
+
     def test_availability_first_subtransaction_reuses_standing_and_substrate_owners(self):
         module = load_cli_module()
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
@@ -189,7 +282,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         "campaign_stages": [5, 10, 25, 48],
                     },
                 },
-            ):
+            ) as legacy_campaign_binding:
                 result = module.standing_delegated_cohort_execution_binding(
                     args
                 )
@@ -204,6 +297,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ["controlled_certification_target_id"],
             "awg3",
         )
+        self.assertEqual(
+            result["controlled_certification_campaign_binding"][
+                "authority_basis"
+            ],
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS,
+        )
+        self.assertFalse(
+            result["controlled_certification_campaign_binding"][
+                "historical_campaign_is_authority"
+            ]
+        )
+        legacy_campaign_binding.assert_not_called()
 
     def test_bounded_planner_observe_refreshes_snapshots_through_existing_owner(self):
         module = load_cli_module()

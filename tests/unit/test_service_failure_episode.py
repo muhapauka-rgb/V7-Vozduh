@@ -1249,11 +1249,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "users_moved": 1,
                 "consumer_result": {"packet_id": "pkt_test", "nested": "x" * 100000},
             },
+            "availability_first_standing_policy_action": {
+                "status": "NOT_REQUIRED_OR_NOT_ADMITTED",
+                "ok": True,
+                "stage": 1,
+                "diagnostic_status": "MEASURED_STOP",
+                "consumer_result": {"nested": "x" * 100000},
+            },
         }
         projection = self.refresh.compact_refresh_projection(payload)
         serialized = json.dumps(projection)
         self.assertLess(len(serialized), 5000)
         self.assertEqual(projection["bounded_delegated_service_failure_action"]["consumer_result"]["packet_id"], "pkt_test")
+        self.assertEqual(
+            projection["availability_first_standing_policy_action"]["stage"],
+            1,
+        )
+        self.assertEqual(
+            projection["availability_first_standing_policy_action"][
+                "diagnostic_status"
+            ],
+            "MEASURED_STOP",
+        )
         self.assertNotIn("nested", serialized)
         self.assertTrue(projection["candidate_or_execution_forbidden"])
 

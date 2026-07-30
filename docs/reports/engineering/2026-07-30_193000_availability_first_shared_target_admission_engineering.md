@@ -93,11 +93,35 @@ producer и не маскируется под отсутствие внешне
 All focused checks passed. Existing legacy `DeprecationWarning` in
 `tools/v7_sync_lib.py` remains unrelated.
 
-## Exact next step
+## Completed production reconciliation
 
-Deploy this narrow runtime-owner change through `tools/v7-safe-deploy`, invoke
-the production read-only topology diagnostic, and classify the actual target
-set. If at least one distinct target is `DEGRADED_USABLE` or
-`LAST_RESORT_USABLE`, produce the exact existing Authority frontier only. If
-none is usable, retain an owner-backed capacity-substrate boundary instead of
-repeating diagnosis or manufacturing production evidence.
+The narrow compatibility repair was committed as `489a618d` and deployed only
+through `tools/v7-safe-deploy` (release
+`deploy-z8-14-Updatesystem-489a618-20260730T125008`). The manifest changed
+only `tools/v7_sync_lib.py`; no service restart was required.
+
+The production non-test reconciliation then completed with `PASS`. It consumed
+the existing CPS/OMP bridge and atomically published:
+
+- `CURRENT_STOP_CONDITION=ENGINEERING_AUTHORITY`;
+- `CURRENT_NEXT_ACTION_ID=ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED`;
+- `EXTERNAL_INPUT_TYPE=EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_DECISION`.
+
+Current owner-backed target truth is availability-first only: `vless` is
+excluded as the actual source; `awg3` is `DEGRADED_USABLE` for exactly one
+identity, with ordinary-user reserve preserved. The projection is deliberately
+not a 5→10→25→48 campaign admission and not a permission to execute.
+
+The reconciliation produced zero Authority expansion, contract issuance,
+policy write, Candidate, Packet, lease, restore-barrier write, routing
+mutation, user movement, rollback apply, Runtime apply or Production Maturity
+change.
+
+## Exact legal terminal
+
+`ENGINEERING_AUTHORITY_EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED`.
+
+Only the existing independent Authority request/audit owner may next form a
+fresh, short-lived, one-user action-class request bound to this exact current
+observation. An approval or decline remains independent. Before that decision,
+no Candidate, Packet, lease or production action is legal.

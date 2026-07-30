@@ -1250,11 +1250,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "consumer_result": {"packet_id": "pkt_test", "nested": "x" * 100000},
             },
             "availability_first_standing_policy_action": {
-                "status": "NOT_REQUIRED_OR_NOT_ADMITTED",
+                "status": "STOP_SAFE",
                 "ok": True,
                 "stage": 1,
                 "diagnostic_status": "MEASURED_STOP",
-                "consumer_result": {"nested": "x" * 100000},
+                "consumer_result": {
+                    "final_verdict": "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED",
+                    "transaction_status": "STOP_SAFE",
+                    "circuit_breaker": {
+                        "tripped": True,
+                        "remaining_subsets_stopped": True,
+                        "reason": "fresh_capacity_gate_failed",
+                        "nested": "x" * 100000,
+                    },
+                    "packet_set": [{
+                        "final_verdict": "STOP_SAFE",
+                        "stop_reason": "fresh_capacity_gate_failed",
+                        "target_id": "awg3",
+                        "users_moved": 0,
+                        "nested": "x" * 100000,
+                    }],
+                    "nested": "x" * 100000,
+                },
             },
         }
         projection = self.refresh.compact_refresh_projection(payload)
@@ -1270,6 +1287,21 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "diagnostic_status"
             ],
             "MEASURED_STOP",
+        )
+        availability_terminal = projection[
+            "availability_first_standing_policy_action"
+        ]["consumer_result"]
+        self.assertEqual(
+            availability_terminal["circuit_breaker"]["reason"],
+            "fresh_capacity_gate_failed",
+        )
+        self.assertEqual(
+            availability_terminal["packet_set"][0]["target_id"],
+            "awg3",
+        )
+        self.assertEqual(
+            availability_terminal["packet_set"][0]["users_moved"],
+            0,
         )
         self.assertNotIn("nested", serialized)
         self.assertTrue(projection["candidate_or_execution_forbidden"])

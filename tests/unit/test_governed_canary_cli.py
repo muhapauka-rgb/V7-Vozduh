@@ -188,6 +188,163 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         execute.assert_not_called()
 
+    def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless enabled=1 "
+                    "certification_user=1\n"
+                    "ip=10.7.0.101 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                controlled_topology_planner="v7-users-autoswitch",
+                policy_file=str(root / "policy.json"),
+                operator_execution_audit_store=str(
+                    root / "operator-audit.jsonl"
+                ),
+                availability_first_stage=2,
+                expected_availability_first_allocation_fingerprint=(
+                    "a" * 64
+                ),
+            )
+            diagnostic = {
+                "status": (
+                    "CONTROLLED_TOPOLOGY_"
+                    "AVAILABILITY_FIRST_AUTO_ADMITTED"
+                ),
+                "inventory_fingerprint": "d" * 64,
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                    "contract_id": "sdpc_unit",
+                    "contract_hash": "b" * 64,
+                    "blockers": [],
+                },
+                "shared_production_target_capacity_projection": {
+                    "availability_campaign": {
+                        "next_stage": 2,
+                        "blockers": [],
+                    },
+                    "stage_allocations": {
+                        "2": {
+                            "feasible": True,
+                            "allocation_fingerprint": "a" * 64,
+                            "immutable_allocation_projection": [{
+                                "target_id": "awg3",
+                                "allocated_users": 2,
+                                "capacity_reservation": 2,
+                            }],
+                        },
+                    },
+                    "targets": [{
+                        "target_id": "awg3",
+                        "shared_target_availability": {
+                            "state": "HEALTHY",
+                            "hard_reasons": [],
+                        },
+                        "quality": {"fresh": True},
+                        "capacity": {"headroom_users": 2},
+                    }],
+                },
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN": {
+                    "controlled_source": "vless",
+                },
+                "current_campaign": {
+                    "request_id": "cpsauth",
+                    "request_hash": "c" * 64,
+                },
+            }
+
+            def completed_transaction(transaction_args, **_kwargs):
+                user = (
+                    transaction_args
+                    ._availability_first_stage_request["expected_users"][0]
+                )
+                suffix = user.rsplit(".", 1)[-1]
+                return {
+                    "final_verdict": "L3_PRODUCTION_PROVEN",
+                    "transaction_status": "COMPLETED",
+                    "verification_result": "PASS",
+                    "users_moved": 1,
+                    "runtime_mutation_performed": True,
+                    "fresh_packet_id": f"pkt_{suffix}",
+                    "operation_id": f"operation_{suffix}",
+                    "feedback_materialization": {
+                        "materialized": True,
+                        "outcome_id": f"outcome_{suffix}",
+                    },
+                    "l3_learning_closure": {
+                        "materialized": True,
+                        "execution_closure_verification": {
+                            "terminal_consumer_verified": True,
+                            "behavior_chain_status": "COMPLETE",
+                        },
+                    },
+                }
+
+            with mock.patch.object(
+                module,
+                "_availability_first_topology_diagnostic",
+                return_value={
+                    "ok": True,
+                    "diagnostic": diagnostic,
+                    "blockers": [],
+                },
+            ), mock.patch.object(
+                module,
+                "execute_governed_transaction_with_guards",
+                side_effect=completed_transaction,
+            ) as execute:
+                result = module.execute_availability_first_standing_stage(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
+        )
+        self.assertEqual(result["users_moved"], 2)
+        self.assertEqual(len(result["packet_set"]), 2)
+        self.assertEqual(execute.call_count, 2)
+        transaction_args = [
+            call.args[0] for call in execute.call_args_list
+        ]
+        self.assertEqual(
+            [item.max_users for item in transaction_args],
+            [1, 1],
+        )
+        self.assertEqual(
+            [
+                item._availability_first_stage_request["expected_users"]
+                for item in transaction_args
+            ],
+            [["10.7.0.100"], ["10.7.0.101"]],
+        )
+        self.assertEqual(
+            len({
+                item._availability_first_stage_request[
+                    "subset_fingerprint"
+                ]
+                for item in transaction_args
+            }),
+            2,
+        )
+
     def test_availability_first_subtransaction_reuses_standing_and_substrate_owners(self):
         module = load_cli_module()
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)

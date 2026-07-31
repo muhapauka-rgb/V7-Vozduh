@@ -7318,84 +7318,104 @@ def execute_availability_first_standing_stage(
                 row.get("target_fingerprint") or ""
             ),
         })
-        transaction_args = copy.copy(args)
-        transaction_args.execute_bounded_delegated_transaction = True
-        transaction_args.execute_availability_first_standing_stage = True
-        transaction_args.max_users = count
-        transaction_args.approved_source = source
-        transaction_args.availability_first_target = target
-        transaction_args.expected_standing_policy_contract_id = str(
-            admission.get("contract_id") or ""
-        )
-        transaction_args.expected_standing_policy_contract_hash = str(
-            admission.get("contract_hash") or ""
-        )
-        transaction_args.controlled_certification_campaign_request_id = str(
-            current_campaign.get("request_id") or ""
-        )
-        transaction_args.controlled_certification_campaign_request_hash = str(
-            current_campaign.get("request_hash") or ""
-        )
-        transaction_args.controlled_certification_campaign_stage = 0
-        transaction_args._availability_first_stage_request = {
-            "stage": stage,
-            "target_id": target,
-            "expected_users": subset,
-            "subset_fingerprint": subset_fingerprint,
-            "allocation_fingerprint": allocation_fingerprint,
-            "inventory_fingerprint": str(
-                projection.get("inventory_fingerprint")
-                or diagnostic.get("inventory_fingerprint")
-                or ""
-            ),
-        }
-        transaction = execute_governed_transaction_with_guards(
-            transaction_args,
-            state_dir=state_dir,
-            event_dir=event_dir,
-            snapshot_root=snapshot_root,
-            audit_dir=audit_dir,
-            lease_file=lease_file,
-        )
-        compact = compact_transaction_result(transaction)
-        packet_set.append({
-            **compact,
-            "target_id": target,
-            "subset_fingerprint": subset_fingerprint,
-        })
-        passed = (
-            transaction.get("final_verdict")
-            in {"GOVERNED_TRANSACTION_COMPLETED", "L3_PRODUCTION_PROVEN"}
-            and str(transaction.get("verification_result") or "") == "PASS"
-            and int(transaction.get("users_moved") or 0) == count
-        )
-        if not passed:
-            if transaction.get("runtime_mutation_performed"):
-                current_routes = {
-                    str(item.get("ip") or ""): str(
-                        item.get("current") or ""
-                    )
-                    for item in read_registry(
-                        state_dir / "users.registry"
-                    )
-                }
-                moved_users.extend(
-                    user
-                    for user in subset
-                    if current_routes.get(user) == target
-                    and user not in moved_users
-                )
-            circuit_breaker = {
-                "tripped": True,
-                "remaining_subsets_stopped": True,
-                "reason": str(
-                    transaction.get("stop_reason")
-                    or transaction.get("final_verdict")
-                    or "availability_first_subset_failed"
+        subset_failed = False
+        # The existing route mutation primitive is intentionally one-user.
+        # A ladder stage is therefore one aggregate cohort transaction made
+        # of serial fresh one-user Packet/lease operations, not one widened
+        # packet.  This preserves the runtime primitive, max concurrency=1 and
+        # per-user rollback while avoiding an Authority or OMP round trip for
+        # every member.
+        for user in subset:
+            member_subset_fingerprint = operator_execution.sha256_json({
+                "stage": stage,
+                "target_id": target,
+                "users": [user],
+                "parent_subset_fingerprint": subset_fingerprint,
+            })
+            transaction_args = copy.copy(args)
+            transaction_args.execute_bounded_delegated_transaction = True
+            transaction_args.execute_availability_first_standing_stage = True
+            transaction_args.max_users = 1
+            transaction_args.approved_source = source
+            transaction_args.availability_first_target = target
+            transaction_args.expected_standing_policy_contract_id = str(
+                admission.get("contract_id") or ""
+            )
+            transaction_args.expected_standing_policy_contract_hash = str(
+                admission.get("contract_hash") or ""
+            )
+            transaction_args.controlled_certification_campaign_request_id = str(
+                current_campaign.get("request_id") or ""
+            )
+            transaction_args.controlled_certification_campaign_request_hash = str(
+                current_campaign.get("request_hash") or ""
+            )
+            transaction_args.controlled_certification_campaign_stage = 0
+            transaction_args._availability_first_stage_request = {
+                "stage": stage,
+                "target_id": target,
+                "expected_users": [user],
+                "subset_fingerprint": member_subset_fingerprint,
+                "allocation_fingerprint": allocation_fingerprint,
+                "inventory_fingerprint": str(
+                    projection.get("inventory_fingerprint")
+                    or diagnostic.get("inventory_fingerprint")
+                    or ""
                 ),
             }
+            transaction = execute_governed_transaction_with_guards(
+                transaction_args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+                audit_dir=audit_dir,
+                lease_file=lease_file,
+            )
+            compact = compact_transaction_result(transaction)
+            packet_set.append({
+                **compact,
+                "target_id": target,
+                "subset_fingerprint": member_subset_fingerprint,
+                "parent_subset_fingerprint": subset_fingerprint,
+            })
+            passed = (
+                transaction.get("final_verdict")
+                in {
+                    "GOVERNED_TRANSACTION_COMPLETED",
+                    "L3_PRODUCTION_PROVEN",
+                }
+                and str(transaction.get("verification_result") or "") == "PASS"
+                and int(transaction.get("users_moved") or 0) == 1
+            )
+            if not passed:
+                if transaction.get("runtime_mutation_performed"):
+                    current_routes = {
+                        str(item.get("ip") or ""): str(
+                            item.get("current") or ""
+                        )
+                        for item in read_registry(
+                            state_dir / "users.registry"
+                        )
+                    }
+                    if (
+                        current_routes.get(user) == target
+                        and user not in moved_users
+                    ):
+                        moved_users.append(user)
+                circuit_breaker = {
+                    "tripped": True,
+                    "remaining_subsets_stopped": True,
+                    "reason": str(
+                        transaction.get("stop_reason")
+                        or transaction.get("final_verdict")
+                        or "availability_first_subset_failed"
+                    ),
+                }
+                subset_failed = True
+                break
+            moved_users.append(user)
+        if subset_failed:
             break
-        moved_users.extend(subset)
 
     ordinary_after_apply = (
         _availability_first_ordinary_assignment_projection(state_dir)
@@ -7562,7 +7582,7 @@ def execute_availability_first_standing_stage(
     ordinary_final_unchanged = ordinary_final == ordinary_before
     complete = bool(
         len(moved_users) == stage
-        and len(packet_set) == len(allocation_rows)
+        and len(packet_set) == stage
         and not circuit_breaker["tripped"]
         and ordinary_unchanged
         and target_verification_passed

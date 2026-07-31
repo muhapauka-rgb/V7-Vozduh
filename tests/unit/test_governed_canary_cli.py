@@ -433,6 +433,104 @@ class GovernedCanaryCliTest(unittest.TestCase):
             switches[0],
         )
 
+    def test_interrupted_cohort_is_recovered_from_existing_audit_owners(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=awg3 enabled=1 "
+                    "certification_user=1\n"
+                    "ip=10.7.0.101 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            switches = [
+                {
+                    "ts": f"2026-07-31T17:00:0{index}+00:00",
+                    "user_ip": f"10.7.0.{100 + index}",
+                    "from": "vless",
+                    "to": "awg3",
+                }
+                for index in range(2)
+            ]
+            (events / "switch-history.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in switches),
+                encoding="utf-8",
+            )
+            fingerprint = "a" * 64
+            audits = [{
+                "created_at": "2026-07-31T16:57:00+00:00",
+                "effect_class": (
+                    "AVAILABILITY_FIRST_CAMPAIGN_STAGE_CONSUMED"
+                ),
+                "campaign_stage": 1,
+            }]
+            for index in range(2):
+                audits.append({
+                    "created_at": (
+                        f"2026-07-31T17:00:0{index}+00:00"
+                    ),
+                    "packet_id": f"pkt_{index}",
+                    "operation_id": f"op_{index}",
+                    "runtime_action_performed": True,
+                    "clearance_verdict": (
+                        "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                    ),
+                    "checks": {
+                        "moves": [{
+                            "user_ip": f"10.7.0.{100 + index}",
+                            "current_egress": "vless",
+                            "recommended_egress": "awg3",
+                            "availability_first_controlled_assignment": {
+                                "allocation_fingerprint": fingerprint,
+                                "source": "vless",
+                                "target": "awg3",
+                                "ordinary_user": False,
+                                "natural_production_credit": False,
+                            },
+                        }],
+                    },
+                })
+            with mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={
+                    "ok": True,
+                    "feedback_id": "feedback",
+                    "outcome_id": "outcome",
+                    "learning_record_id": "learning",
+                },
+            ):
+                projection = (
+                    module
+                    .availability_first_interrupted_cohort_audit_projection(
+                        state_dir=state,
+                        event_dir=events,
+                        audit_records=audits,
+                        completed_stages={1},
+                    )
+                )
+
+        action = projection[
+            "availability_first_standing_policy_action"
+        ]
+        self.assertEqual(action["stage"], 2)
+        self.assertEqual(action["status"], "STOP_SAFE")
+        self.assertEqual(
+            len(action["consumer_result"]["packet_set"]),
+            2,
+        )
+        self.assertEqual(
+            action["consumer_result"]["allocation_fingerprint"],
+            fingerprint,
+        )
+
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

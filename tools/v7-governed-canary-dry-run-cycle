@@ -6305,6 +6305,16 @@ def availability_first_partial_apply_recovery_context(
             }
 
     def projection_stream():
+        recovered_projection = (
+            availability_first_interrupted_cohort_audit_projection(
+                state_dir=state_dir,
+                event_dir=event_dir,
+                audit_records=audit_records,
+                completed_stages=completed_stages,
+            )
+        )
+        if recovered_projection:
+            yield "append_only_execution_audit", recovered_projection
         if isinstance(summary, dict):
             yield "current_summary", summary
         for path in sorted(
@@ -6788,6 +6798,202 @@ def exact_switch_after_clearance(
     return {}
 
 
+def availability_first_interrupted_cohort_audit_projection(
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    audit_records: list[dict[str, Any]],
+    completed_stages: set[int],
+) -> dict[str, Any]:
+    """Recover a timed-out stage from existing append-only owners.
+
+    A Matrix parent may hit its wall-clock budget after child Packets have
+    already committed their own execution, Outcome, Replay and Learning
+    records.  Reconstruct only an exact next-stage cohort whose common
+    allocation fingerprint, route commits and evidence all agree.  This is a
+    read-only projection; it never creates evidence or replays an action.
+    """
+    stage = next(
+        (
+            value
+            for value in operator_execution.AVAILABILITY_FIRST_LADDER
+            if value not in completed_stages
+        ),
+        0,
+    )
+    if stage <= 1:
+        return {}
+    completed_receipt_times = [
+        str(row.get("created_at") or "")
+        for row in audit_records
+        if (
+            isinstance(row, dict)
+            and str(row.get("effect_class") or "")
+            == "AVAILABILITY_FIRST_CAMPAIGN_STAGE_CONSUMED"
+            and int(row.get("campaign_stage") or 0) in completed_stages
+            and str(row.get("created_at") or "")
+        )
+    ]
+    if not completed_receipt_times:
+        return {}
+    cutoff = max(completed_receipt_times)
+    grouped: dict[str, dict[str, dict[str, Any]]] = {}
+    for audit_row in audit_records:
+        if (
+            not isinstance(audit_row, dict)
+            or str(audit_row.get("created_at") or "") <= cutoff
+            or audit_row.get("runtime_action_performed") is not True
+            or str(audit_row.get("clearance_verdict") or "")
+            != "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        ):
+            continue
+        checks = (
+            audit_row.get("checks")
+            if isinstance(audit_row.get("checks"), dict)
+            else {}
+        )
+        moves = [
+            row for row in (checks.get("moves") or [])
+            if isinstance(row, dict)
+        ]
+        if len(moves) != 1:
+            continue
+        move = moves[0]
+        semantic = move.get("availability_first_controlled_assignment")
+        semantic = semantic if isinstance(semantic, dict) else {}
+        fingerprint = str(
+            semantic.get("allocation_fingerprint") or ""
+        )
+        user = str(move.get("user_ip") or move.get("user") or "")
+        source = str(semantic.get("source") or "")
+        target = str(semantic.get("target") or "")
+        if not all((fingerprint, user, source, target)):
+            continue
+        grouped.setdefault(fingerprint, {})[user] = {
+            "audit": audit_row,
+            "move": move,
+            "source": source,
+            "target": target,
+        }
+
+    routes_by_user = {
+        str(row.get("ip") or ""): row
+        for row in read_registry(state_dir / "users.registry")
+        if row.get("ip")
+    }
+    switch_rows = intelligence_workers.read_jsonl_tail(
+        event_dir / "switch-history.jsonl",
+        limit=2048,
+        max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+    )
+    candidates: list[tuple[str, str, list[dict[str, Any]]]] = []
+    for fingerprint, members in grouped.items():
+        if len(members) != stage:
+            continue
+        packets: list[dict[str, Any]] = []
+        exact = True
+        latest_at = ""
+        for user, member in sorted(members.items()):
+            audit_row = member["audit"]
+            source = str(member["source"] or "")
+            target = str(member["target"] or "")
+            user_row = routes_by_user.get(user) or {}
+            packet_id = str(audit_row.get("packet_id") or "")
+            operation_id = str(audit_row.get("operation_id") or "")
+            evidence = availability_first_forward_evidence_status(
+                state_dir,
+                packet_id=packet_id,
+                operation_id=operation_id,
+                user=user,
+                source=source,
+                target=target,
+            )
+            forward_switch = exact_switch_after_clearance(
+                audit_row,
+                switch_rows,
+                user=user,
+                source=source,
+                target=target,
+            )
+            if (
+                not bool_value(user_row.get("certification_user"))
+                or str(user_row.get("current") or "")
+                not in {source, target}
+                or not packet_id
+                or not operation_id
+                or not forward_switch
+                or evidence.get("ok") is not True
+            ):
+                exact = False
+                break
+            latest_at = max(
+                latest_at,
+                str(audit_row.get("created_at") or ""),
+            )
+            packets.append({
+                "final_verdict": "L3_PRODUCTION_PROVEN",
+                "transaction_status": "COMPLETED",
+                "fresh_packet_id": packet_id,
+                "operation_id": operation_id,
+                "user": user,
+                "users": [user],
+                "source": source,
+                "target": target,
+                "target_id": target,
+                "users_moved": 1,
+                "runtime_mutation_performed": True,
+                "verification_result": "PASS",
+                "rollback_result": "NOT_REQUIRED",
+                "feedback_id": str(evidence.get("feedback_id") or ""),
+                "outcome_id": str(evidence.get("outcome_id") or ""),
+                "learning_record_id": str(
+                    evidence.get("learning_record_id") or ""
+                ),
+                "recovered_from_existing_owner_truth": True,
+            })
+        if exact and len(packets) == stage:
+            candidates.append((latest_at, fingerprint, packets))
+    if not candidates:
+        return {}
+    _, fingerprint, packets = max(candidates, key=lambda item: item[0])
+    return {
+        "availability_first_standing_policy_action": {
+            "schema_version": (
+                "v7.availability-first-matrix-consumer.v1"
+            ),
+            "status": "STOP_SAFE",
+            "ok": True,
+            "action_attempted": True,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "stage": stage,
+            "consumer_result": {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
+                ),
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": (
+                    "availability_first_parent_timeout_after_"
+                    "committed_child_outcomes"
+                ),
+                "stage": stage,
+                "packet_set": packets,
+                "circuit_breaker": {
+                    "tripped": True,
+                    "remaining_subsets_stopped": True,
+                    "reason": "availability_first_baseline_reset_failed",
+                },
+                "durable_successor": (
+                    "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
+                ),
+                "recovered_from_existing_owner_truth": True,
+                "allocation_fingerprint": fingerprint,
+            },
+        },
+    }
+
+
 def availability_first_restored_cohort_receipt_recovery_context(
     args: argparse.Namespace,
     *,
@@ -6894,6 +7100,16 @@ def availability_first_restored_cohort_receipt_recovery_context(
         int(value)
         for value in (campaign_status.get("completed_stages") or [])
     }
+    recovered_projection = (
+        availability_first_interrupted_cohort_audit_projection(
+            state_dir=state_dir,
+            event_dir=event_dir,
+            audit_records=audits,
+            completed_stages=completed_stages,
+        )
+    )
+    if recovered_projection:
+        projections.insert(0, recovered_projection)
     switch_rows = intelligence_workers.read_jsonl_tail(
         event_dir / "switch-history.jsonl",
         limit=2048,

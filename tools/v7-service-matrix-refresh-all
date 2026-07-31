@@ -1555,7 +1555,13 @@ def _run_availability_first_standing_policy_stage_once(
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             check=False,
-            timeout=max(300, min(int(timeout_sec or 1800), 7200)),
+            timeout=max(
+                300,
+                min(
+                    max(int(timeout_sec or 1800), stage * 360),
+                    21600,
+                ),
+            ),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {

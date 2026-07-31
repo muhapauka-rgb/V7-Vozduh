@@ -188,6 +188,57 @@ def availability_first_baseline_reset_truth(
         limit=256,
         max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
     )
+    barrier = read_json(
+        state_dir / "autoswitch-restore-barrier.json",
+        {},
+    )
+    post_clearance_identity_ok = bool(
+        str(result.get("final_verdict") or "")
+        == "GOVERNED_TRANSACTION_STOPPED"
+        and str(result.get("user") or "") == user
+        and str(result.get("source") or "") == execution_target
+        and str(result.get("target") or "") == baseline_source
+        and str(result.get("fresh_packet_id") or "")
+        and str(result.get("operation_id") or "")
+        and str(barrier.get("packet_id") or "")
+        == str(result.get("fresh_packet_id") or "")
+        and str(barrier.get("operation_id") or "")
+        == str(result.get("operation_id") or "")
+        and list(barrier.get("allowed_users") or []) == [user]
+        and list(barrier.get("allowed_targets") or []) == [baseline_source]
+    )
+    try:
+        clearance_at = datetime.fromisoformat(
+            str(barrier.get("created_at") or "").replace("Z", "+00:00")
+        )
+    except ValueError:
+        clearance_at = None
+    temporally_bound_switch = False
+    if clearance_at is not None:
+        for row in switch_rows:
+            if not isinstance(row, dict):
+                continue
+            try:
+                switch_at = datetime.fromisoformat(
+                    str(row.get("ts") or "").replace("Z", "+00:00")
+                )
+            except ValueError:
+                continue
+            if (
+                str(row.get("user_ip") or "") == user
+                and str(row.get("from") or "") == execution_target
+                and str(row.get("to") or "") == baseline_source
+                and clearance_at <= switch_at
+                and switch_at - clearance_at <= timedelta(minutes=5)
+            ):
+                temporally_bound_switch = True
+                break
+    if (
+        post_clearance_identity_ok
+        and current == baseline_source
+        and route.get("passed") is not True
+    ):
+        route = scoped_user_route_check(state_dir, user)
     switch_lineage = any(
         str(row.get("user_ip") or "") == user
         and str(row.get("from") or "") == execution_target
@@ -201,11 +252,20 @@ def availability_first_baseline_reset_truth(
         and route.get("passed") is True
         and switch_lineage
     )
+    post_clearance_reconciled = bool(
+        post_clearance_identity_ok
+        and current == baseline_source
+        and route.get("passed") is True
+        and temporally_bound_switch
+    )
+    ok = bool(ok or post_clearance_reconciled)
     return {
         "ok": ok,
         "mode": (
             "PARTIAL_CHILD_TERMINAL_RECONCILED_FROM_EXISTING_OWNERS"
-            if ok
+            if identity_ok and ok
+            else "POST_CLEARANCE_ROUTE_COMMIT_RECONCILED_FROM_EXISTING_OWNERS"
+            if post_clearance_reconciled
             else "BASELINE_RESET_NOT_PROVEN"
         ),
         "current_egress": current,
@@ -213,6 +273,8 @@ def availability_first_baseline_reset_truth(
         "operation_id": str(partial.get("operation_id") or ""),
         "route_check": route,
         "switch_lineage": switch_lineage,
+        "temporally_bound_switch": temporally_bound_switch,
+        "post_clearance_identity_ok": post_clearance_identity_ok,
         "natural_l8_credit": False,
         "production_outcome_credit": False,
     }
@@ -6189,6 +6251,313 @@ def availability_first_partial_apply_recovery_context(
     }
 
 
+def availability_first_restored_stage_receipt_recovery_context(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+) -> dict[str, Any]:
+    """Recover a missing Stage-1 receipt after its baseline was restored.
+
+    This is a read-only reconciliation across existing owners.  It is used
+    only when the forward transaction, reverse clearance, reverse route commit,
+    Outcome/Replay/Learning and current route all agree but an interrupted
+    parent failed to append the stage receipt.  It never replays either move.
+    """
+    summary = read_json(
+        state_dir / "service-matrix-refresh-summary.json",
+        {},
+    )
+    projections: list[dict[str, Any]] = []
+    if isinstance(summary, dict):
+        projections.append(summary)
+    for path in sorted(
+        event_dir.glob("service-matrix-refresh-*.jsonl"),
+        reverse=True,
+    )[:RECENT_MATRIX_EVENT_FILE_LIMIT]:
+        projections.extend(reversed(
+            intelligence_workers.read_jsonl_tail(
+                path,
+                limit=RECENT_MATRIX_EVENT_ROW_LIMIT,
+                max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+            )
+        ))
+    marker: dict[str, Any] = {}
+    for projection in projections:
+        if not isinstance(projection, dict):
+            continue
+        action = projection.get(
+            "availability_first_standing_policy_action"
+        )
+        action = action if isinstance(action, dict) else {}
+        result = action.get("consumer_result")
+        result = result if isinstance(result, dict) else {}
+        forward = result.get("partial_apply_recovery")
+        forward = forward if isinstance(forward, dict) else {}
+        reset = result.get("reset_transaction")
+        reset = reset if isinstance(reset, dict) else {}
+        if (
+            action.get("status") == "STOP_SAFE"
+            and forward.get("ok") is True
+            and int(forward.get("stage") or result.get("stage") or 0) == 1
+            and str(forward.get("user") or "")
+            and str(forward.get("source") or "")
+            and str(forward.get("target") or "")
+            and str(forward.get("packet_id") or "")
+            and str(forward.get("operation_id") or "")
+            and str(reset.get("fresh_packet_id") or "")
+            and str(reset.get("operation_id") or "")
+            and str(reset.get("user") or "") == str(forward.get("user") or "")
+            and str(reset.get("source") or "")
+            == str(forward.get("target") or "")
+            and str(reset.get("target") or "")
+            == str(forward.get("source") or "")
+        ):
+            marker = {
+                "forward": forward,
+                "reset": reset,
+                "projection_updated": str(
+                    projection.get("updated") or ""
+                ),
+            }
+            break
+    if not marker:
+        return {"pending": False, "blockers": []}
+
+    forward = marker["forward"]
+    reset = marker["reset"]
+    user = str(forward.get("user") or "")
+    source = str(forward.get("source") or "")
+    target = str(forward.get("target") or "")
+    forward_packet_id = str(forward.get("packet_id") or "")
+    forward_operation_id = str(forward.get("operation_id") or "")
+    reset_packet_id = str(reset.get("fresh_packet_id") or "")
+    reset_operation_id = str(reset.get("operation_id") or "")
+    blockers: list[str] = []
+
+    routes = {
+        str(row.get("ip") or ""): str(row.get("current") or "")
+        for row in read_registry(state_dir / "users.registry")
+        if row.get("ip")
+    }
+    if routes.get(user) != source:
+        return {"pending": False, "blockers": []}
+    route = scoped_user_route_check(state_dir, user)
+    if route.get("passed") is not True:
+        blockers.append("restored_stage_current_route_not_verified")
+
+    audits = operator_execution.read_audit_records(
+        Path(args.operator_execution_audit_store)
+    )
+    forward_audit = next(
+        (
+            row for row in reversed(audits)
+            if str(row.get("packet_id") or "") == forward_packet_id
+            and str(row.get("operation_id") or "")
+            == forward_operation_id
+            and row.get("runtime_action_performed") is True
+            and str(row.get("clearance_verdict") or "")
+            == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        ),
+        {},
+    )
+    reset_audit = next(
+        (
+            row for row in reversed(audits)
+            if str(row.get("packet_id") or "") == reset_packet_id
+            and str(row.get("operation_id") or "") == reset_operation_id
+            and row.get("runtime_action_performed") is True
+            and str(row.get("clearance_verdict") or "")
+            == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        ),
+        {},
+    )
+    forward_moves = (
+        (forward_audit.get("checks") or {}).get("moves")
+        if isinstance(forward_audit.get("checks"), dict)
+        else []
+    ) or []
+    reset_moves = (
+        (reset_audit.get("checks") or {}).get("moves")
+        if isinstance(reset_audit.get("checks"), dict)
+        else []
+    ) or []
+    forward_move = (
+        forward_moves[0]
+        if len(forward_moves) == 1
+        and isinstance(forward_moves[0], dict)
+        else {}
+    )
+    reset_move = (
+        reset_moves[0]
+        if len(reset_moves) == 1
+        and isinstance(reset_moves[0], dict)
+        else {}
+    )
+    semantic = forward_move.get(
+        "availability_first_controlled_assignment"
+    )
+    semantic = semantic if isinstance(semantic, dict) else {}
+    allocation_fingerprint = str(
+        semantic.get("allocation_fingerprint") or ""
+    )
+    if (
+        str(forward_move.get("user_ip") or "") != user
+        or str(forward_move.get("current_egress") or "") != source
+        or str(forward_move.get("recommended_egress") or "") != target
+        or str(semantic.get("source") or "") != source
+        or str(semantic.get("target") or "") != target
+        or not allocation_fingerprint
+        or bool(semantic.get("ordinary_user"))
+        or bool(semantic.get("natural_production_credit"))
+    ):
+        blockers.append("restored_stage_forward_audit_binding_invalid")
+    if (
+        str(reset_move.get("user_ip") or "") != user
+        or str(reset_move.get("current_egress") or "") != target
+        or str(reset_move.get("recommended_egress") or "") != source
+    ):
+        blockers.append("restored_stage_reset_audit_binding_invalid")
+
+    try:
+        clearance_at = datetime.fromisoformat(
+            str(reset_audit.get("created_at") or "").replace("Z", "+00:00")
+        )
+    except ValueError:
+        clearance_at = None
+    switch_bound = False
+    for row in intelligence_workers.read_jsonl_tail(
+        event_dir / "switch-history.jsonl",
+        limit=256,
+        max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+    ):
+        if not isinstance(row, dict) or clearance_at is None:
+            continue
+        try:
+            switch_at = datetime.fromisoformat(
+                str(row.get("ts") or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue
+        if (
+            str(row.get("user_ip") or "") == user
+            and str(row.get("from") or "") == target
+            and str(row.get("to") or "") == source
+            and clearance_at <= switch_at
+            and switch_at - clearance_at <= timedelta(minutes=5)
+        ):
+            switch_bound = True
+            break
+    if not switch_bound:
+        blockers.append("restored_stage_reset_switch_lineage_missing")
+
+    forward_evidence = availability_first_forward_evidence_status(
+        state_dir,
+        packet_id=forward_packet_id,
+        operation_id=forward_operation_id,
+        user=user,
+        source=source,
+        target=target,
+    )
+    if not forward_evidence.get("ok"):
+        blockers.extend(
+            forward_evidence.get("blockers")
+            or ["restored_stage_forward_evidence_incomplete"]
+        )
+
+    policy_root = read_json(Path(args.policy_file), {})
+    contract = (
+        policy_root.get("delegated_autonomy_policy")
+        if isinstance(
+            policy_root.get("delegated_autonomy_policy"),
+            dict,
+        )
+        else {}
+    )
+    validation = (
+        operator_execution.validate_standing_delegated_operational_policy(
+            contract,
+            audit_records=audits,
+        )
+    )
+    policy = (
+        validation.get("policy")
+        if isinstance(validation.get("policy"), dict)
+        else {}
+    )
+    availability_scope = (
+        (policy.get("action_class_scopes") or {}).get(
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    availability_scope = (
+        availability_scope
+        if isinstance(availability_scope, dict)
+        else {}
+    )
+    if not validation.get("ok"):
+        blockers.extend(validation.get("errors") or [])
+    if (
+        "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+        not in set(availability_scope.get("allowed_actions") or [])
+    ):
+        blockers.append("restored_stage_baseline_reset_not_in_policy")
+
+    recovered_target_fingerprint = operator_execution.sha256_json({
+        "packet_id": forward_packet_id,
+        "target": target,
+        "allocation_fingerprint": allocation_fingerprint,
+    })
+    recovered_capacity_fingerprint = operator_execution.sha256_json({
+        "packet_id": forward_packet_id,
+        "selected_move_hash": str(
+            (forward_audit.get("checks") or {}).get(
+                "selected_move_hash"
+            )
+            or ""
+        ),
+        "allocation_fingerprint": allocation_fingerprint,
+    })
+    return {
+        "schema_version": (
+            "v7.availability-first-restored-stage-receipt-recovery.v1"
+        ),
+        "pending": True,
+        "ok": not blockers,
+        "blockers": sorted(set(str(item) for item in blockers)),
+        "stage": 1,
+        "user": user,
+        "source": source,
+        "target": target,
+        "packet_id": forward_packet_id,
+        "operation_id": forward_operation_id,
+        "reset_packet_id": reset_packet_id,
+        "reset_operation_id": reset_operation_id,
+        "allocation_fingerprint": allocation_fingerprint,
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "route_check": route,
+        "switch_lineage": switch_bound,
+        "forward_evidence": forward_evidence,
+        "recovered_allocation": [{
+            "target_id": target,
+            "allocated_users": 1,
+            "capacity_reservation": 1,
+            "target_fingerprint": recovered_target_fingerprint,
+            "capacity_bounds_fingerprint": (
+                recovered_capacity_fingerprint
+            ),
+            "recovery_owner": (
+                "existing Packet audit + Outcome/closure + route owners"
+            ),
+        }],
+        "natural_l8_credit": False,
+        "production_outcome_credit": False,
+    }
+
+
 def execute_availability_first_standing_stage(
     args: argparse.Namespace,
     *,
@@ -6206,6 +6575,131 @@ def execute_availability_first_standing_stage(
     lease plus a fresh pre-apply capacity check is the existing-owner capacity
     reservation; no second reservation registry is introduced.
     """
+    restored = availability_first_restored_stage_receipt_recovery_context(
+        args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+    )
+    if restored.get("pending"):
+        if not restored.get("ok"):
+            return {
+                **transaction_stop(
+                    "availability_first_restored_stage_receipt_not_admitted",
+                    blockers=restored.get("blockers") or [],
+                ),
+                "restored_stage_receipt_recovery": restored,
+                "durable_successor": (
+                    "EXISTING_MATRIX_FRESH_RESTORED_STAGE_RECONCILIATION"
+                ),
+            }
+        forward_evidence = restored.get("forward_evidence") or {}
+        recovered_packet = {
+            "final_verdict": "L3_PRODUCTION_PROVEN",
+            "transaction_status": "COMPLETED",
+            "fresh_packet_id": str(restored.get("packet_id") or ""),
+            "operation_id": str(restored.get("operation_id") or ""),
+            "user": str(restored.get("user") or ""),
+            "users": [str(restored.get("user") or "")],
+            "source": str(restored.get("source") or ""),
+            "target": str(restored.get("target") or ""),
+            "target_id": str(restored.get("target") or ""),
+            "users_moved": 1,
+            "runtime_mutation_performed": True,
+            "verification_result": "PASS",
+            "rollback_result": "NOT_REQUIRED",
+            "feedback_id": str(
+                forward_evidence.get("feedback_id") or ""
+            ),
+            "outcome_id": str(
+                forward_evidence.get("outcome_id") or ""
+            ),
+            "learning_record_id": str(
+                forward_evidence.get("learning_record_id") or ""
+            ),
+            "recovered_from_existing_owner_truth": True,
+        }
+        recovered_allocation = [
+            row
+            for row in (restored.get("recovered_allocation") or [])
+            if isinstance(row, dict)
+        ]
+        execution_allocation_fingerprint = (
+            operator_execution.sha256_json({
+                "standing_policy_contract_id": str(
+                    restored.get("contract_id") or ""
+                ),
+                "stage": int(restored.get("stage") or 0),
+                "planner_allocation_fingerprint": str(
+                    restored.get("allocation_fingerprint") or ""
+                ),
+                "subsets": recovered_allocation,
+            })
+        )
+        return {
+            "schema_version": (
+                "v7.availability-first-restored-stage-receipt.v1"
+            ),
+            "transaction_status": "COMPLETED",
+            "final_verdict": (
+                "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+            ),
+            "stop_reason": "",
+            "stage": int(restored.get("stage") or 0),
+            "source": str(restored.get("source") or ""),
+            "standing_policy_contract_id": str(
+                restored.get("contract_id") or ""
+            ),
+            "standing_policy_contract_hash": str(
+                restored.get("contract_hash") or ""
+            ),
+            "planner_allocation_fingerprint": str(
+                restored.get("allocation_fingerprint") or ""
+            ),
+            "execution_allocation_fingerprint": (
+                execution_allocation_fingerprint
+            ),
+            "allocation": recovered_allocation,
+            "packet_set": [recovered_packet],
+            "packet_set_fingerprint": (
+                operator_execution.sha256_json([recovered_packet])
+            ),
+            "restored_stage_receipt_recovery": restored,
+            "baseline_reset_verified": True,
+            "baseline_reset_reconciliation": {
+                "ok": True,
+                "mode": (
+                    "POST_CLEARANCE_ROUTE_COMMIT_RECONCILED_"
+                    "FROM_EXISTING_OWNERS"
+                ),
+                "current_egress": str(restored.get("source") or ""),
+                "packet_id": str(
+                    restored.get("reset_packet_id") or ""
+                ),
+                "operation_id": str(
+                    restored.get("reset_operation_id") or ""
+                ),
+                "switch_lineage": True,
+                "natural_l8_credit": False,
+                "production_outcome_credit": False,
+            },
+            "allocation_immutable": True,
+            "capacity_reservation_verified": True,
+            "outcome_consumed": True,
+            "replay_consumed": True,
+            "learning_consumed": True,
+            "per_user_verification_passed": True,
+            "per_target_verification_passed": True,
+            "aggregate_verification_passed": True,
+            "ordinary_user_protection_passed": True,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "authority_expanded": False,
+            "production_maturity_change": False,
+            "natural_l8_credit": False,
+            "durable_successor": (
+                "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+            ),
+        }
     partial = availability_first_partial_apply_recovery_context(
         args,
         state_dir=state_dir,

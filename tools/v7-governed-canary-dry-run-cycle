@@ -2336,6 +2336,44 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             )
             if partial_apply.get(key) not in (None, "", [], {})
         }
+    cycle = result.get("cycle")
+    if isinstance(cycle, dict) and cycle:
+        candidate = (
+            cycle.get("candidate")
+            if isinstance(cycle.get("candidate"), dict)
+            else {}
+        )
+        packet_preview = (
+            cycle.get("packet_preview")
+            if isinstance(cycle.get("packet_preview"), dict)
+            else {}
+        )
+        safety_gates = (
+            (cycle.get("dry_run") or {}).get("safety_gates")
+            if isinstance((cycle.get("dry_run") or {}).get("safety_gates"), dict)
+            else {}
+        )
+        receipt["packet_preparation_diagnostic"] = {
+            "cycle_stop_reason": str(cycle.get("stop_reason") or ""),
+            "cycle_stop_detail": str(cycle.get("stop_detail") or ""),
+            "candidate_user": str(candidate.get("user") or ""),
+            "candidate_source": str(
+                candidate.get("current_channel") or ""
+            ),
+            "candidate_target": str(
+                candidate.get("recommended_channel") or ""
+            ),
+            "packet_preview_status": str(
+                packet_preview.get("status") or ""
+            ),
+            "packet_binding_blockers": list(
+                packet_preview.get("binding_blockers") or []
+            )[:12],
+            "safety_hard_stop": bool(safety_gates.get("hard_stop")),
+            "safety_blockers": list(
+                safety_gates.get("hard_stop_blockers") or []
+            )[:12],
+        }
     policy_binding = result.get("standing_delegated_policy_binding")
     if isinstance(policy_binding, dict):
         receipt["standing_delegated_policy_binding"] = {

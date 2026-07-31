@@ -2063,6 +2063,21 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     }
     if compact_reset:
         compact_result["reset_transaction"] = compact_reset
+        reset_diagnostic = reset.get("packet_preparation_diagnostic")
+        if isinstance(reset_diagnostic, dict):
+            compact_result["reset_transaction"][
+                "packet_preparation_diagnostic"
+            ] = {
+                key: reset_diagnostic.get(key)
+                for key in (
+                    "cycle_stop_reason", "cycle_stop_detail",
+                    "candidate_user", "candidate_source",
+                    "candidate_target", "packet_preview_status",
+                    "packet_binding_blockers", "safety_hard_stop",
+                    "safety_blockers",
+                )
+                if reset_diagnostic.get(key) not in (None, "", [], {})
+            }
     reset_reconciliation = result.get("baseline_reset_reconciliation")
     reset_reconciliation = (
         reset_reconciliation

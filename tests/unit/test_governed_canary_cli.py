@@ -2338,7 +2338,22 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "stop_reason": "atomic_execution_envelope_source_changed",
             "fresh_packet_id": "pkt_unit",
             "users_moved": 0,
-            "cycle": {"large": "x" * 100000},
+            "cycle": {
+                "large": "x" * 100000,
+                "stop_reason": "NO_ELIGIBLE_CANDIDATE",
+                "stop_detail": "candidate selection returned no safe move",
+                "candidate": {},
+                "packet_preview": {
+                    "status": "BLOCKED",
+                    "binding_blockers": ["candidate_missing"],
+                },
+                "dry_run": {
+                    "safety_gates": {
+                        "hard_stop": True,
+                        "hard_stop_blockers": ["candidate_missing"],
+                    },
+                },
+            },
             "service_failure_causal_binding": {
                 "source_incident_id": "sfinc_unit",
                 "source_event_id": "sfrev_unit",
@@ -2374,6 +2389,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(receipt["service_failure_causal_binding"]["source_incident_id"], "sfinc_unit")
         self.assertNotIn("cycle", receipt)
         self.assertFalse(receipt["full_cycle_embedded"])
+        self.assertEqual(
+            receipt["packet_preparation_diagnostic"][
+                "cycle_stop_reason"
+            ],
+            "NO_ELIGIBLE_CANDIDATE",
+        )
+        self.assertEqual(
+            receipt["packet_preparation_diagnostic"][
+                "packet_binding_blockers"
+            ],
+            ["candidate_missing"],
+        )
         self.assertEqual(
             receipt["standing_delegated_policy_binding"][
                 "controlled_certification_campaign_binding"

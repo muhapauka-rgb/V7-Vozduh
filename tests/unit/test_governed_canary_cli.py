@@ -1941,7 +1941,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
             (events / "service-matrix-refresh-20260731.jsonl").write_text(
                 "".join(
                     json.dumps(row) + "\n"
-                    for row in reset_projections
+                    # The first reset projection is intentionally absent:
+                    # append-only execution audit plus route/switch truth
+                    # must recover it without replaying the transaction.
+                    for row in reset_projections[1:]
                 ),
                 encoding="utf-8",
             )
@@ -2319,6 +2322,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "clearance_verdict": (
                     "RESTORE_BARRIER_CLEARANCE_WRITTEN"
                 ),
+                "checks": {
+                    "moves": [{
+                        "user_ip": "10.7.0.100",
+                        "availability_first_controlled_assignment": {
+                            "source": "vless",
+                            "target": "awg0",
+                            "allocation_fingerprint": "a" * 64,
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }],
+                },
             }]
             with mock.patch.object(
                 module.operator_execution,
@@ -2528,6 +2543,226 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(context["cohort_packet_count"], 2)
         self.assertTrue(context["cohort_projection_exact"])
         self.assertEqual(context["allocation_fingerprint"], "a" * 64)
+
+    def test_partial_recovery_uses_latest_open_stage_forward_lineage(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = tuple(f"10.7.0.{value}" for value in range(100, 105))
+            stage_five_packets = tuple(
+                f"pkt_stage5_{index}" for index in range(5)
+            )
+            stage_five_operations = tuple(
+                f"govexec_stage5_{index}" for index in range(5)
+            )
+            (state / "users.registry").write_text(
+                "".join(
+                    (
+                        f"ip={user} "
+                        f"current={'awg0' if index == 1 else 'vless'} "
+                        "enabled=1 certification_user=1\n"
+                    )
+                    for index, user in enumerate(users)
+                ),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg0 enabled=1 role=GLOBAL_STABLE\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 2,
+                        "consumer_result": {
+                            "stage": 2,
+                            "circuit_breaker": {
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": [{
+                                "final_verdict": "L3_PRODUCTION_PROVEN",
+                                "verification_result": "PASS",
+                                "users_moved": 1,
+                                "fresh_packet_id": "pkt_stage2_old",
+                                "operation_id": "govexec_stage2_old",
+                                "user": users[1],
+                                "source": "vless",
+                                "target": "awg0",
+                            }],
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            stage_five_set = [
+                {
+                    "final_verdict": "L3_PRODUCTION_PROVEN",
+                    "verification_result": "PASS",
+                    "users_moved": 1,
+                    "fresh_packet_id": packet_id,
+                    "operation_id": operation_id,
+                    "user": user,
+                    "source": "vless",
+                    "target": "awg0",
+                }
+                for packet_id, operation_id, user in zip(
+                    stage_five_packets,
+                    stage_five_operations,
+                    users,
+                )
+            ]
+            (events / "service-matrix-refresh-20260731.jsonl").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 5,
+                        "consumer_result": {
+                            "stage": 5,
+                            "circuit_breaker": {
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": stage_five_set,
+                        },
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": users[1],
+                    "from": "vless",
+                    "to": "awg0",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            lease_file = state / "operator-execution-lease.json"
+            lease_file.write_text("{}", encoding="utf-8")
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_stage5",
+                        "contract_hash": "c" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            audit = [{
+                "operation_id": "govexec_stage2_old",
+                "packet_id": "pkt_stage2_old",
+                "runtime_action_performed": True,
+                "clearance_verdict": (
+                    "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                ),
+                "checks": {
+                    "moves": [{
+                        "user_ip": users[1],
+                        "availability_first_controlled_assignment": {
+                            "source": "vless",
+                            "target": "awg0",
+                            "allocation_fingerprint": "2" * 64,
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }],
+                },
+            }]
+            audit.extend({
+                "operation_id": operation_id,
+                "packet_id": packet_id,
+                "runtime_action_performed": True,
+                "clearance_verdict": (
+                    "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                ),
+                "checks": {
+                    "selected_move_hash": str(index + 1) * 64,
+                    "moves": [{
+                        "user_ip": user,
+                        "availability_first_controlled_assignment": {
+                            "source": "vless",
+                            "target": "awg0",
+                            "allocation_fingerprint": "5" * 64,
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }],
+                },
+            } for index, (operation_id, packet_id, user) in enumerate(
+                zip(
+                    stage_five_operations,
+                    stage_five_packets,
+                    users,
+                )
+            ))
+            validation = {
+                "ok": True,
+                "errors": [],
+                "policy": {
+                    "action_class_scopes": {
+                        module.operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                            "allowed_actions": [
+                                "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+                            ],
+                        },
+                    },
+                },
+            }
+            args = argparse.Namespace(
+                policy_file=str(policy_file),
+                operator_execution_audit_store=str(root / "audit.jsonl"),
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value=validation,
+            ), mock.patch.object(
+                module.operator_execution,
+                "read_audit_records",
+                return_value=audit,
+            ), mock.patch.object(
+                module.operator_execution,
+                "availability_first_campaign_stage_status",
+                return_value={
+                    "ok": True,
+                    "completed_stages": [1, 2],
+                },
+            ), mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={
+                    "ok": True,
+                    "blockers": [],
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                },
+            ):
+                context = (
+                    module.availability_first_partial_apply_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                        lease_file=lease_file,
+                    )
+                )
+
+        self.assertTrue(context["pending"])
+        self.assertTrue(context["ok"], context)
+        self.assertEqual(context["stage"], 5)
+        self.assertEqual(context["user"], users[1])
+        self.assertEqual(context["packet_id"], stage_five_packets[1])
+        self.assertEqual(context["operation_id"], stage_five_operations[1])
+        self.assertEqual(context["allocation_fingerprint"], "5" * 64)
 
     def test_availability_forward_evidence_reuses_exact_outcome_and_closure_owners(self):
         module = load_cli_module()

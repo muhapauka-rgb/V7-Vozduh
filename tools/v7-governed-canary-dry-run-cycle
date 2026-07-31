@@ -6241,6 +6241,69 @@ def availability_first_partial_apply_recovery_context(
     cohort_packets: list[dict[str, Any]] = []
     projection_source = ""
     recovery_mode = ""
+    audit_records = operator_execution.read_audit_records(
+        Path(args.operator_execution_audit_store)
+    )
+    contract_root = read_json(Path(args.policy_file), {})
+    contract = (
+        contract_root.get("delegated_autonomy_policy")
+        if isinstance(
+            contract_root.get("delegated_autonomy_policy"),
+            dict,
+        )
+        else {}
+    )
+    campaign_status = (
+        operator_execution.availability_first_campaign_stage_status(
+            audit_records,
+            contract=contract,
+        )
+    )
+    completed_stages = {
+        int(value)
+        for value in (campaign_status.get("completed_stages") or [])
+    }
+    latest_forward_by_user: dict[str, dict[str, str]] = {}
+    for audit_row in audit_records:
+        if (
+            not isinstance(audit_row, dict)
+            or audit_row.get("runtime_action_performed") is not True
+            or str(audit_row.get("clearance_verdict") or "")
+            != "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        ):
+            continue
+        checks = (
+            audit_row.get("checks")
+            if isinstance(audit_row.get("checks"), dict)
+            else {}
+        )
+        for move in checks.get("moves") or []:
+            if not isinstance(move, dict):
+                continue
+            semantic = (
+                move.get("availability_first_controlled_assignment")
+                if isinstance(
+                    move.get(
+                        "availability_first_controlled_assignment"
+                    ),
+                    dict,
+                )
+                else {}
+            )
+            user = str(move.get("user_ip") or move.get("user") or "")
+            source = str(semantic.get("source") or "")
+            target = str(semantic.get("target") or "")
+            if not all((user, source, target)):
+                continue
+            latest_forward_by_user[user] = {
+                "packet_id": str(audit_row.get("packet_id") or ""),
+                "operation_id": str(
+                    audit_row.get("operation_id") or ""
+                ),
+                "source": source,
+                "target": target,
+            }
+
     def projection_stream():
         if isinstance(summary, dict):
             yield "current_summary", summary
@@ -6288,9 +6351,36 @@ def availability_first_partial_apply_recovery_context(
             )
             else {}
         )
+        candidate_stage = int(
+            candidate_result.get("stage")
+            or candidate.get("stage")
+            or 0
+        )
+        if candidate_stage in completed_stages:
+            continue
         for candidate_packet in candidate_packets:
             candidate_user = str(candidate_packet.get("user") or "")
             candidate_target = str(candidate_packet.get("target") or "")
+            candidate_source = str(candidate_packet.get("source") or "")
+            candidate_packet_id = str(
+                candidate_packet.get("fresh_packet_id") or ""
+            )
+            candidate_operation_id = str(
+                candidate_packet.get("operation_id") or ""
+            )
+            latest_forward = latest_forward_by_user.get(
+                candidate_user,
+                {},
+            )
+            latest_forward_matches = bool(
+                latest_forward
+                and latest_forward.get("packet_id")
+                == candidate_packet_id
+                and latest_forward.get("operation_id")
+                == candidate_operation_id
+                and latest_forward.get("source") == candidate_source
+                and latest_forward.get("target") == candidate_target
+            )
             partial_apply = bool(
                 str(candidate_packet.get("stop_reason") or "")
                 == "l3_production_validation_downstream_proof_failed"
@@ -6309,6 +6399,7 @@ def availability_first_partial_apply_recovery_context(
                 and (partial_apply or verified_stage_baseline_pending)
                 and candidate_user
                 and current_routes.get(candidate_user) == candidate_target
+                and latest_forward_matches
             ):
                 availability = candidate
                 result = candidate_result
@@ -6383,9 +6474,6 @@ def availability_first_partial_apply_recovery_context(
         blockers.append("partial_controlled_source_not_enabled")
     if not target_row or not bool_value(target_row.get("enabled")):
         blockers.append("partial_shared_target_not_enabled")
-    audit_records = operator_execution.read_audit_records(
-        Path(args.operator_execution_audit_store)
-    )
     matching_audit = next(
         (
             row
@@ -6468,15 +6556,6 @@ def availability_first_partial_apply_recovery_context(
         if isinstance(row, dict)
     ):
         blockers.append("partial_switch_lineage_missing")
-    contract_root = read_json(Path(args.policy_file), {})
-    contract = (
-        contract_root.get("delegated_autonomy_policy")
-        if isinstance(
-            contract_root.get("delegated_autonomy_policy"),
-            dict,
-        )
-        else {}
-    )
     validation = (
         operator_execution.validate_standing_delegated_operational_policy(
             contract,
@@ -6797,6 +6876,83 @@ def availability_first_restored_cohort_receipt_recovery_context(
             {},
         )
 
+    def reset_audit_after_forward(
+        *,
+        packet_id: str,
+        operation_id: str,
+        user: str,
+        source: str,
+        target: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Bind the first exact reverse audit after the latest assignment.
+
+        An interrupted parent may have persisted a reverse transaction under
+        an older projection even though a later stage supplied the assignment
+        that was actually current.  Append-only execution order, exact move
+        semantics and current route truth are authoritative.  A later forward
+        assignment supersedes the requested forward and prevents attribution
+        of its subsequent reset to the older Packet.
+        """
+        forward_index = next(
+            (
+                index
+                for index, row in enumerate(audits)
+                if str(row.get("packet_id") or "") == packet_id
+                and str(row.get("operation_id") or "") == operation_id
+            ),
+            -1,
+        )
+        if forward_index < 0:
+            return {}, {}
+        for row in audits[forward_index + 1:]:
+            if (
+                not isinstance(row, dict)
+                or row.get("runtime_action_performed") is not True
+                or str(row.get("clearance_verdict") or "")
+                != "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+            ):
+                continue
+            checks = (
+                row.get("checks")
+                if isinstance(row.get("checks"), dict)
+                else {}
+            )
+            moves = [
+                move for move in (checks.get("moves") or [])
+                if isinstance(move, dict)
+            ]
+            for move in moves:
+                move_user = str(
+                    move.get("user_ip") or move.get("user") or ""
+                )
+                semantic = move.get(
+                    "availability_first_controlled_assignment"
+                )
+                semantic = semantic if isinstance(semantic, dict) else {}
+                if (
+                    move_user == user
+                    and str(semantic.get("source") or "") == source
+                    and str(semantic.get("target") or "") == target
+                ):
+                    return {}, {}
+                if (
+                    move_user == user
+                    and str(
+                        move.get("current_egress")
+                        or move.get("source")
+                        or ""
+                    )
+                    == target
+                    and str(
+                        move.get("recommended_egress")
+                        or move.get("target")
+                        or ""
+                    )
+                    == source
+                ):
+                    return row, move
+        return {}, {}
+
     for projection in projections:
         if not isinstance(projection, dict):
             continue
@@ -6855,8 +7011,23 @@ def availability_first_restored_cohort_receipt_recovery_context(
             marker = reset_markers.get(key) or {}
             reset = marker.get("reset")
             reset = reset if isinstance(reset, dict) else {}
-            reset_packet_id = str(reset.get("fresh_packet_id") or "")
-            reset_operation_id = str(reset.get("operation_id") or "")
+            reset_audit, reset_move = reset_audit_after_forward(
+                packet_id=packet_id,
+                operation_id=operation_id,
+                user=user,
+                source=source,
+                target=target,
+            )
+            reset_packet_id = str(
+                reset_audit.get("packet_id")
+                or reset.get("fresh_packet_id")
+                or ""
+            )
+            reset_operation_id = str(
+                reset_audit.get("operation_id")
+                or reset.get("operation_id")
+                or ""
+            )
             row = routes_by_user.get(user) or {}
             if not all(
                 (
@@ -6882,7 +7053,11 @@ def availability_first_restored_cohort_receipt_recovery_context(
                 )
 
             forward_audit = audit_for(packet_id, operation_id)
-            reset_audit = audit_for(reset_packet_id, reset_operation_id)
+            if not reset_audit:
+                reset_audit = audit_for(
+                    reset_packet_id,
+                    reset_operation_id,
+                )
             forward_moves = (
                 (forward_audit.get("checks") or {}).get("moves")
                 if isinstance(forward_audit.get("checks"), dict)
@@ -6899,12 +7074,13 @@ def availability_first_restored_cohort_receipt_recovery_context(
                 and isinstance(forward_moves[0], dict)
                 else {}
             )
-            reset_move = (
-                reset_moves[0]
-                if len(reset_moves) == 1
-                and isinstance(reset_moves[0], dict)
-                else {}
-            )
+            if not reset_move:
+                reset_move = (
+                    reset_moves[0]
+                    if len(reset_moves) == 1
+                    and isinstance(reset_moves[0], dict)
+                    else {}
+                )
             semantic = forward_move.get(
                 "availability_first_controlled_assignment"
             )

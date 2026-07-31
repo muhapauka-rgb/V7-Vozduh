@@ -920,6 +920,96 @@ class GovernedCanaryCliTest(unittest.TestCase):
             drifted["blockers"],
         )
 
+    def test_availability_first_reset_admits_isolated_controlled_target_only(self):
+        module = load_cli_module()
+        egress = [
+            {
+                "id": "vless",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            },
+            {
+                "id": "execution-target",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            },
+        ]
+        users = [
+            {
+                "ip": "10.7.0.100",
+                "current": "execution-target",
+                "enabled": "1",
+                "certification_user": "1",
+                "certification_group": "campaign-a",
+            },
+            {
+                "ip": "10.7.0.101",
+                "current": "execution-target",
+                "enabled": "1",
+                "certification_user": "1",
+                "certification_group": "campaign-a",
+            },
+        ]
+        selected = module.controlled_certification_cleanup_selection(
+            users=users,
+            egress=egress,
+            user="10.7.0.100",
+            source="execution-target",
+            target="vless",
+            campaign_reset=True,
+            controlled_source="vless",
+            availability_first_reset=True,
+            availability_first_target="execution-target",
+        )
+        ordinary = module.controlled_certification_cleanup_selection(
+            users=[
+                *users,
+                {
+                    "ip": "10.0.0.9",
+                    "current": "execution-target",
+                    "enabled": "1",
+                },
+            ],
+            egress=egress,
+            user="10.7.0.100",
+            source="execution-target",
+            target="vless",
+            campaign_reset=True,
+            controlled_source="vless",
+            availability_first_reset=True,
+            availability_first_target="execution-target",
+        )
+        cross_campaign = module.controlled_certification_cleanup_selection(
+            users=[
+                users[0],
+                {
+                    **users[1],
+                    "certification_group": "campaign-b",
+                },
+            ],
+            egress=egress,
+            user="10.7.0.100",
+            source="execution-target",
+            target="vless",
+            campaign_reset=True,
+            controlled_source="vless",
+            availability_first_reset=True,
+            availability_first_target="execution-target",
+        )
+
+        self.assertEqual(selected["selection_status"], "SELECTED", selected)
+        self.assertTrue(
+            selected["availability_first_reset_source_isolated"]
+        )
+        self.assertIn(
+            "availability_first_reset_source_has_ordinary_user",
+            ordinary["blockers"],
+        )
+        self.assertIn(
+            "availability_first_reset_source_crosses_campaign",
+            cross_campaign["blockers"],
+        )
+
     def test_availability_baseline_reset_uses_cleanup_owner_not_cohort_executor(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -1267,9 +1267,36 @@ def controlled_certification_cleanup_selection(
             if bool_value(
                 source_row.get("controlled_certification_source")
             ):
-                blockers.append(
-                    "availability_first_reset_source_is_controlled_source"
+                # Availability-first allocation may legitimately use an
+                # already isolated controlled-certification channel as its
+                # execution target.  The exact Packet/lease still binds this
+                # source.  Admit baseline restoration only when every enabled
+                # occupant is a certification identity from the same campaign
+                # group; an ordinary or cross-campaign occupant fails closed.
+                source_occupants = [
+                    row
+                    for row in users
+                    if bool_value(row.get("enabled", "1"))
+                    and str(row.get("current") or "") == source
+                ]
+                subject_group = str(
+                    user_row.get("certification_group") or ""
                 )
+                if any(
+                    not bool_value(row.get("certification_user"))
+                    for row in source_occupants
+                ):
+                    blockers.append(
+                        "availability_first_reset_source_has_ordinary_user"
+                    )
+                if subject_group and any(
+                    str(row.get("certification_group") or "")
+                    != subject_group
+                    for row in source_occupants
+                ):
+                    blockers.append(
+                        "availability_first_reset_source_crosses_campaign"
+                    )
         elif (
             str(source_row.get("role") or "").upper() != "EXECUTION_ONLY"
             or str(source_row.get("reservation_owner") or "")
@@ -1323,6 +1350,16 @@ def controlled_certification_cleanup_selection(
         ),
         "max_users": 1,
         "campaign_reset": campaign_reset,
+        "availability_first_reset_source_isolated": bool(
+            availability_first_reset
+            and not any(
+                item in blockers
+                for item in (
+                    "availability_first_reset_source_has_ordinary_user",
+                    "availability_first_reset_source_crosses_campaign",
+                )
+            )
+        ),
     }
 
 

@@ -788,15 +788,23 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state_dir = root / "state"
             state_dir.mkdir()
             state_dir.joinpath("users.registry").write_text(
-                "ip=10.7.0.18 enabled=1 current=source "
+                "ip=10.7.0.18 enabled=1 current=vless "
                 "certification_user=1 certification_group=t48\n",
                 encoding="utf-8",
             )
             state_dir.joinpath("egress.registry").write_text(
                 "id=source protocol=amneziawg type=interface "
-                "interface=wg0 enabled=1\n"
+                "interface=wg0 enabled=1 certification_group=t48\n"
                 "id=vless protocol=vless type=interface "
-                "interface=tun0 enabled=1\n"
+                "interface=tun0 enabled=1 controlled_certification_source=1 "
+                "certification_group=t48 execution_reserved=1 "
+                "canary_reserved=1 "
+                "reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false "
+                "controlled_source_reservation_id=ctres_exact "
+                "controlled_source_reservation_expires_at="
+                "2099-01-01T00:00:00+00:00\n"
                 "id=awg3 protocol=amneziawg type=interface "
                 "interface=awg3 enabled=1\n",
                 encoding="utf-8",
@@ -863,15 +871,15 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "correlation_domain": "vless:tun0",
                     "shared_target_technically_eligible": True,
                     "shared_target_availability": {
-                        "state": "HEALTHY",
-                        "policy_boundary": "NONE",
+                        "state": "HARD_INELIGIBLE",
+                        "policy_boundary": "NO_EXECUTION_ADMISSION",
                     },
-                    "health": {"ok": True},
-                    "quality": {"blockers": []},
+                    "health": {"ok": False},
+                    "quality": {"blockers": ["controlled_source_degraded"]},
                     "capacity": {
                         "ordinary_users": 0,
-                        "certification_users": 0,
-                        "current_assigned_users": 0,
+                        "certification_users": 1,
+                        "current_assigned_users": 1,
                         "free_capacity_after_reserve": 60,
                         "planning_safe_additional_capacity": 60,
                         "capacity_bounds": {
@@ -929,6 +937,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(
             result["status"],
             "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+        )
+        self.assertEqual(
+            result["CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"][
+                "controlled_source"
+            ],
+            "vless",
+        )
+        self.assertEqual(
+            result["shared_production_target_capacity_projection"][
+                "actual_controlled_source_id"
+            ],
+            "vless",
         )
         self.assertEqual(
             result["standing_policy_admission"]["contract_id"],

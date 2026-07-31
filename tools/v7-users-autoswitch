@@ -17107,6 +17107,34 @@ def controlled_source_topology_diagnostic(
         repairable_source_candidates[0]
         if repairable_source_candidates else {}
     )
+    # Availability certification deliberately evaluates a controlled source
+    # that may be degraded.  Once the exact campaign cohort is wholly located
+    # on one still-valid reserved source, a transient source-health miss must
+    # not erase that source identity and make the admitted failover stage
+    # impossible to consume.  Reuse only the existing registry, assignment and
+    # reservation owners; this is not a source-selection or Authority grant.
+    availability_source_location = (
+        next(iter(campaign_identity_locations))
+        if (
+            campaign_identity_count > 0
+            and len(campaign_identity_locations) == 1
+            and next(iter(campaign_identity_locations.values()))
+            == campaign_identity_count
+        )
+        else ""
+    )
+    availability_existing_controlled_source = next((
+        row for row in rebind_candidates
+        if (
+            availability_policy_admission.get("ok")
+            and str(row.get("source_id") or "")
+            == availability_source_location
+            and row.get("continuing_campaign_source_repairable")
+            and (
+                row.get("existing_controlled_reservation") or {}
+            ).get("continuation_valid")
+        )
+    ), {})
     controlled_target_rows = [
         row for row in rows
         if row.get("controlled_rebind_eligible")
@@ -17125,7 +17153,11 @@ def controlled_source_topology_diagnostic(
         row for row in rows
         if str(row.get("target_id") or "") == pinned_target_id
     ), {})
-    selected_full_source = selected_rebind or selected_repairable_source
+    selected_full_source = (
+        selected_rebind
+        or selected_repairable_source
+        or availability_existing_controlled_source
+    )
     selected_full_target = (
         full_campaign_target_rows[0]
         if full_campaign_target_rows else {}

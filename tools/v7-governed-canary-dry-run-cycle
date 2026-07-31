@@ -6474,6 +6474,27 @@ def availability_first_restored_stage_receipt_recovery_context(
         )
         else {}
     )
+    campaign_status = (
+        operator_execution.availability_first_campaign_stage_status(
+            audits,
+            contract=contract,
+        )
+    )
+    if (
+        campaign_status.get("ok") is True
+        and 1 in {
+            int(value)
+            for value in (campaign_status.get("completed_stages") or [])
+        }
+    ):
+        return {
+            "pending": False,
+            "blockers": [],
+            "reason": "restored_stage_receipt_already_consumed",
+            "receipt_id": str(
+                (campaign_status.get("receipt_ids") or [""])[0]
+            ),
+        }
     validation = (
         operator_execution.validate_standing_delegated_operational_policy(
             contract,

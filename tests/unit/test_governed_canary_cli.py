@@ -1373,6 +1373,89 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(recovered["switch_lineage"])
         self.assertFalse(recovered["natural_l8_credit"])
 
+    def test_restored_stage_recovery_stops_after_existing_receipt(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "consumer_result": {
+                            "stage": 1,
+                            "partial_apply_recovery": {
+                                "ok": True,
+                                "stage": 1,
+                                "user": "10.7.0.100",
+                                "source": "vless",
+                                "target": "awg0",
+                                "packet_id": "pkt_forward",
+                                "operation_id": "govexec_forward",
+                            },
+                            "reset_transaction": {
+                                "fresh_packet_id": "pkt_reset",
+                                "operation_id": "govdry_reset",
+                                "user": "10.7.0.100",
+                                "source": "awg0",
+                                "target": "vless",
+                            },
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            audit_file = root / "audit.jsonl"
+            audit_file.write_text("", encoding="utf-8")
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_test",
+                        "contract_hash": "c" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                operator_execution_audit_store=str(audit_file),
+                policy_file=str(policy_file),
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "availability_first_campaign_stage_status",
+                return_value={
+                    "ok": True,
+                    "completed_stages": [1],
+                    "receipt_ids": ["afstage_existing"],
+                },
+            ):
+                recovered = (
+                    module
+                    .availability_first_restored_stage_receipt_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                    )
+                )
+
+        self.assertFalse(recovered["pending"])
+        self.assertEqual(
+            recovered["reason"],
+            "restored_stage_receipt_already_consumed",
+        )
+        self.assertEqual(recovered["receipt_id"], "afstage_existing")
+
     def test_partial_availability_apply_recovery_binds_route_packet_and_policy(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

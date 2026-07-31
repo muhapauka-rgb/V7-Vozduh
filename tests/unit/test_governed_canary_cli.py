@@ -1385,6 +1385,67 @@ class GovernedCanaryCliTest(unittest.TestCase):
             captured["command"],
         )
 
+    def test_availability_first_binds_exact_controlled_identity_to_existing_plan(self):
+        module = load_cli_module()
+        plan = self.ready_l3_plan(moves=[])
+        plan["decisions"] = [{
+            "user_ip": "10.7.0.100",
+            "current_egress": "vless",
+            "recommended_egress": "vless",
+            "move_type": "none",
+            "action": "keep",
+            "confidence": 0.99,
+        }]
+        binding = module.bind_availability_first_controlled_selection(
+            plan,
+            expected_users=["10.7.0.100"],
+            source="vless",
+            target="awg3",
+            allocation_fingerprint="a" * 64,
+        )
+        self.assertTrue(binding["ok"])
+        selected = binding["plan"]["selected_moves"]
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0]["user_ip"], "10.7.0.100")
+        self.assertEqual(selected[0]["current_egress"], "vless")
+        self.assertEqual(selected[0]["recommended_egress"], "awg3")
+        self.assertEqual(selected[0]["move_type"], "failover")
+        provenance = selected[0][
+            "availability_first_controlled_assignment"
+        ]
+        self.assertEqual(
+            provenance["event_provenance"],
+            "CONTROLLED_CERTIFICATION",
+        )
+        self.assertFalse(provenance["natural_production_credit"])
+        transition = (
+            module.operator_execution_pipeline
+            .l3_production_validation_runtime_action_transition(
+                binding["plan"],
+                max_users=1,
+            )
+        )
+        self.assertTrue(transition["ok"])
+
+    def test_availability_first_selection_fails_closed_on_identity_mismatch(self):
+        module = load_cli_module()
+        binding = module.bind_availability_first_controlled_selection(
+            {"decisions": [{
+                "user_ip": "10.7.0.100",
+                "current_egress": "vless",
+            }]},
+            expected_users=["10.7.0.101"],
+            source="vless",
+            target="awg3",
+            allocation_fingerprint="a" * 64,
+        )
+        self.assertFalse(binding["ok"])
+        self.assertIn(
+            "availability_first_planner_identity_missing:10.7.0.101",
+            binding["blockers"],
+        )
+        self.assertNotIn("selected_moves", binding["plan"])
+
     def test_autoswitch_apply_timeout_scales_with_batch_size(self):
         module = load_cli_module()
         self.assertEqual(module.autoswitch_apply_timeout_seconds(1), 90)

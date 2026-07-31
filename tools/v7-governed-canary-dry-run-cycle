@@ -610,6 +610,136 @@ def run_l3_production_validation_plan(
     }
 
 
+def bind_availability_first_controlled_selection(
+    plan: dict[str, Any],
+    *,
+    expected_users: list[str],
+    source: str,
+    target: str,
+    allocation_fingerprint: str,
+) -> dict[str, Any]:
+    """Bind controlled certification identities to the existing plan.
+
+    A healthy controlled source correctly produces no ordinary emergency
+    failover move.  Availability-first certification is a different approved
+    action-class context: the target still comes from the existing Planner,
+    while the exact certification identities come from the governed stage
+    allocation.  Reuse each Planner decision row so snapshot/source semantics
+    remain canonical; do not manufacture an incident or natural evidence.
+    """
+    plan = plan if isinstance(plan, dict) else {}
+    users = sorted({str(value) for value in expected_users if str(value)})
+    source = str(source or "")
+    target = str(target or "")
+    allocation_fingerprint = str(allocation_fingerprint or "")
+    blockers: list[str] = []
+    if not users:
+        blockers.append("availability_first_expected_users_missing")
+    if not source:
+        blockers.append("availability_first_source_missing")
+    if not target:
+        blockers.append("availability_first_target_missing")
+    if source and source == target:
+        blockers.append("availability_first_source_target_collision")
+    if len(allocation_fingerprint) != 64:
+        blockers.append("availability_first_allocation_fingerprint_invalid")
+
+    decisions = [
+        row for row in (plan.get("decisions") or [])
+        if isinstance(row, dict)
+    ]
+    by_identity = {
+        (
+            str(row.get("user_ip") or row.get("user") or ""),
+            str(row.get("current_egress") or row.get("from") or ""),
+        ): row
+        for row in decisions
+    }
+    selected: list[dict[str, Any]] = []
+    for user in users:
+        decision = by_identity.get((user, source))
+        if not isinstance(decision, dict):
+            blockers.append(
+                f"availability_first_planner_identity_missing:{user}"
+            )
+            continue
+        row = copy.deepcopy(decision)
+        row.update({
+            "user_ip": user,
+            "current_egress": source,
+            "recommended_egress": target,
+            # Reuse the canonical bounded switch primitive.  Evidence
+            # provenance below keeps this distinct from a natural incident.
+            "move_type": "failover",
+            "action": "switch",
+            "availability_first_controlled_assignment": {
+                "schema_version": (
+                    "v7.availability-first-controlled-selection.v1"
+                ),
+                "event_provenance": "CONTROLLED_CERTIFICATION",
+                "natural_production_credit": False,
+                "source": source,
+                "target": target,
+                "allocation_fingerprint": allocation_fingerprint,
+                "ordinary_user": False,
+            },
+        })
+        selected.append(row)
+    if blockers:
+        return {
+            "ok": False,
+            "status": "STOP_SAFE",
+            "blockers": sorted(set(blockers)),
+            "plan": plan,
+        }
+
+    bound = copy.deepcopy(plan)
+    bound["selected_moves"] = selected
+    summary = (
+        bound.get("summary")
+        if isinstance(bound.get("summary"), dict)
+        else {}
+    )
+    summary.update({
+        "selected_moves": len(selected),
+        "selected_move_count": len(selected),
+        "execution_mode": "availability_first_controlled_certification",
+        "availability_first_controlled_assignment": True,
+    })
+    bound["summary"] = summary
+    safety = (
+        bound.get("safety")
+        if isinstance(bound.get("safety"), dict)
+        else {}
+    )
+    safety["availability_first_controlled_selection"] = {
+        "schema_version": "v7.availability-first-controlled-selection.v1",
+        "status": "BOUND",
+        "owner": (
+            "tools/v7-users-autoswitch existing Planner decisions + "
+            "tools/v7-governed-canary-dry-run-cycle existing action-class "
+            "consumer"
+        ),
+        "users": users,
+        "source": source,
+        "target": target,
+        "allocation_fingerprint": allocation_fingerprint,
+        "event_provenance": "CONTROLLED_CERTIFICATION",
+        "natural_production_credit": False,
+        "ordinary_user_effect": "FORBIDDEN",
+        "new_planner_created": False,
+        "new_owner_created": False,
+    }
+    bound["safety"] = safety
+    return {
+        "ok": True,
+        "status": "BOUND",
+        "blockers": [],
+        "plan": bound,
+        "selected_users": users,
+    }
+
+
 def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     safety = payload.get("safety") if isinstance(payload.get("safety"), dict) else {}
     barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
@@ -3692,6 +3822,53 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
     if not plan:
         return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
+    availability_selection_binding: dict[str, Any] = {}
+    if availability_mode:
+        availability_selection_binding = (
+            bind_availability_first_controlled_selection(
+                plan,
+                expected_users=[
+                    str(value)
+                    for value in (
+                        availability_request.get("expected_users") or []
+                    )
+                    if str(value)
+                ],
+                source=str(args.approved_source or ""),
+                target=str(
+                    availability_request.get("target_id")
+                    or (
+                        getattr(
+                            args,
+                            "_standing_delegated_policy_authority",
+                            {},
+                        )
+                        or {}
+                    ).get("controlled_certification_target_id")
+                    or ""
+                ),
+                allocation_fingerprint=str(
+                    availability_request.get("allocation_fingerprint") or ""
+                ),
+            )
+        )
+        if availability_selection_binding.get("ok") is not True:
+            return transaction_stop(
+                "availability_first_planner_selection_binding_blocked",
+                availability_selection_binding=(
+                    availability_selection_binding
+                ),
+                l3_plan_run=l3_plan_run,
+            )
+        plan = (
+            availability_selection_binding.get("plan")
+            if isinstance(
+                availability_selection_binding.get("plan"),
+                dict,
+            )
+            else {}
+        )
+        l3_plan_run["payload"] = plan
     authorized_budget = authorized_l3_budget_from_plan(plan)
     authorized_l3_budget = int(authorized_budget.get("authorized_l3_budget") or 1)
     if requested_max_users > authorized_l3_budget:
@@ -3709,6 +3886,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             l3_plan_run=l3_plan_run,
             transition=transition,
             authorized_l3_budget=authorized_budget,
+            availability_selection_binding=(
+                availability_selection_binding
+            ),
         )
 
     if initial_control.get("state") == "OPEN":

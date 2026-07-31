@@ -920,6 +920,58 @@ class GovernedCanaryCliTest(unittest.TestCase):
             drifted["blockers"],
         )
 
+    def test_availability_baseline_reset_uses_cleanup_owner_not_cohort_executor(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            args = argparse.Namespace(
+                execute_controlled_topology_standing_transaction=False,
+                execute_availability_first_standing_stage=False,
+                execute_bounded_delegated_transaction=False,
+                _availability_first_stage_request={
+                    "allocation_fingerprint": "a" * 64,
+                },
+                _certification_cleanup_request={
+                    "user": "10.7.0.100",
+                    "source": "awg0",
+                    "target": "vless",
+                    "availability_first_reset": True,
+                },
+                engineering_authority_request_file="",
+                engineering_authority_decision="",
+                max_users=1,
+                approved_source="vless",
+                confirm_governed_transaction="",
+                execution_control_file=str(root / "missing-control.json"),
+            )
+            with mock.patch.object(
+                module,
+                "standing_delegated_cohort_execution_binding",
+                return_value={
+                    "ok": True,
+                    "delegated_policy_authority": {
+                        "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+                    },
+                },
+            ), mock.patch.object(
+                module,
+                "execute_l3_production_validation",
+            ) as cohort_executor:
+                result = module._execute_governed_transaction_with_guards_inner(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "snapshots",
+                    audit_dir=root / "audit",
+                    lease_file=root / "lease.json",
+                )
+
+        cohort_executor.assert_not_called()
+        self.assertEqual(
+            result["stop_reason"],
+            "autonomous_execution_control_not_open_at_start",
+        )
+
     def test_partial_availability_apply_recovery_binds_route_packet_and_policy(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

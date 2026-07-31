@@ -1420,6 +1420,41 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
         )
 
+    def test_matrix_projection_preserves_bounded_partial_reset_terminal(self):
+        projected = self.refresh._consumer_projection({
+            "status": "STOP_SAFE",
+            "consumer_result": {
+                "final_verdict": "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "availability_first_partial_apply_recovery_failed",
+                "partial_apply_recovery": {
+                    "pending": True,
+                    "ok": True,
+                    "stage": 1,
+                    "user": "10.7.0.100",
+                    "source": "vless",
+                    "target": "awg0",
+                    "packet_id": "pkt_partial",
+                    "operation_id": "govexec_partial",
+                    "projection_source": "append_only_matrix_event",
+                },
+                "reset_transaction": {
+                    "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                    "transaction_status": "STOP_SAFE",
+                    "stop_reason": "packet_not_ready",
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                },
+            },
+        })
+
+        consumer = projected["consumer_result"]
+        self.assertTrue(consumer["partial_apply_recovery"]["ok"])
+        self.assertEqual(
+            consumer["reset_transaction"]["stop_reason"],
+            "packet_not_ready",
+        )
+
     def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):
         payload = {
             "updated": "2026-07-27T14:00:00+00:00",

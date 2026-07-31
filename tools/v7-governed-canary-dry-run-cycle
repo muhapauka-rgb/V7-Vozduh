@@ -4495,6 +4495,12 @@ def _execute_governed_transaction_with_guards_inner(
     setup_mode = isinstance(setup_request, dict) and bool(setup_request)
     cleanup_request = getattr(args, "_certification_cleanup_request", None)
     cleanup_mode = isinstance(cleanup_request, dict) and bool(cleanup_request)
+    availability_first_reset = bool(
+        cleanup_mode
+        and bool_value(
+            cleanup_request.get("availability_first_reset")
+        )
+    )
     topology_request = getattr(args, "_controlled_topology_standing_request", None)
     topology_mode = (
         topology_mode
@@ -4504,6 +4510,7 @@ def _execute_governed_transaction_with_guards_inner(
     support_mode = setup_mode or cleanup_mode or topology_mode
     if not delegated_mode and not support_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
+    policy_binding: dict[str, Any] = {}
     if delegated_mode and (
         int(args.max_users) > 1 or availability_mode
     ):
@@ -4548,35 +4555,42 @@ def _execute_governed_transaction_with_guards_inner(
                 standing_delegated_policy_binding=policy_binding,
                 service_failure_causal_binding=causal_binding,
             )
-        cohort_args = argparse.Namespace(**vars(args))
-        # This is an internal compatibility gate on the existing L3 cohort
-        # executor.  Authority comes only from the audited standing contract
-        # above; this value neither grants nor expands Authority.
-        cohort_args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
-        cohort_args._standing_delegated_policy_authority = copy.deepcopy(
-            policy_binding.get("delegated_policy_authority") or {},
-        )
-        cohort_args._service_failure_causal_binding = (
-            {}
-            if availability_mode
-            else copy.deepcopy(causal_binding)
-        )
-        cohort_args._availability_first_causal_binding = (
-            copy.deepcopy(causal_binding)
-            if availability_mode
-            else {}
-        )
-        result = execute_l3_production_validation(
-            cohort_args,
-            state_dir=state_dir,
-            event_dir=event_dir,
-            snapshot_root=snapshot_root,
-            audit_dir=audit_dir,
-            lease_file=lease_file,
-        )
-        result["standing_delegated_policy_binding"] = policy_binding
-        result["runtime_automation_enabled"] = True
-        return result
+        if availability_first_reset:
+            # The standing policy admits the exact baseline restoration, but
+            # the existing single-user cleanup owner must materialize it.
+            # Sending this support request through the ordinary cohort path
+            # bypasses cleanup selection and creates a circular failed retry.
+            pass
+        else:
+            cohort_args = argparse.Namespace(**vars(args))
+            # This is an internal compatibility gate on the existing L3
+            # cohort executor. Authority comes only from the audited standing
+            # contract above; this value neither grants nor expands Authority.
+            cohort_args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            cohort_args._standing_delegated_policy_authority = copy.deepcopy(
+                policy_binding.get("delegated_policy_authority") or {},
+            )
+            cohort_args._service_failure_causal_binding = (
+                {}
+                if availability_mode
+                else copy.deepcopy(causal_binding)
+            )
+            cohort_args._availability_first_causal_binding = (
+                copy.deepcopy(causal_binding)
+                if availability_mode
+                else {}
+            )
+            result = execute_l3_production_validation(
+                cohort_args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+                audit_dir=audit_dir,
+                lease_file=lease_file,
+            )
+            result["standing_delegated_policy_binding"] = policy_binding
+            result["runtime_automation_enabled"] = True
+            return result
     if int(args.max_users) != 1:
         return transaction_stop("transaction_max_users_must_be_one")
 
@@ -4766,12 +4780,6 @@ def _execute_governed_transaction_with_guards_inner(
     if topology_mode:
         delegated_admission = topology_policy_binding
     elif support_mode:
-        availability_first_reset = bool(
-            cleanup_mode
-            and bool_value(
-                cleanup_request.get("availability_first_reset")
-            )
-        )
         if availability_first_reset:
             delegated_admission = policy_binding
         else:
@@ -4905,7 +4913,10 @@ def _execute_governed_transaction_with_guards_inner(
                 # Topology execution is admitted by the audited standing
                 # delegated policy.  Only explicit operator setup/cleanup
                 # keeps the historical dual-confirmation packet contract.
-                setup_mode=(setup_mode or cleanup_mode),
+                setup_mode=(
+                    setup_mode
+                    or (cleanup_mode and not availability_first_reset)
+                ),
                 delegated_admission=delegated_admission,
             ),
             engineering_authority=engineering_authority,

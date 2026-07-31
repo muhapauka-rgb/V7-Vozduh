@@ -1796,6 +1796,32 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     compact_packet_set = [row for row in compact_packet_set if row]
     if compact_packet_set:
         compact_result["packet_set"] = compact_packet_set
+    partial = result.get("partial_apply_recovery")
+    partial = partial if isinstance(partial, dict) else {}
+    compact_partial = {
+        key: partial.get(key)
+        for key in (
+            "pending", "ok", "blockers", "stage", "user", "source",
+            "target", "packet_id", "operation_id", "projection_source",
+        )
+        if partial.get(key) not in (None, "", [], {})
+    }
+    if compact_partial:
+        compact_result["partial_apply_recovery"] = compact_partial
+    reset = result.get("reset_transaction")
+    reset = reset if isinstance(reset, dict) else {}
+    compact_reset = {
+        key: reset.get(key)
+        for key in (
+            "final_verdict", "transaction_status", "stop_reason",
+            "fresh_packet_id", "operation_id", "user", "source", "target",
+            "runtime_mutation_performed", "verification_result",
+            "rollback_result", "users_moved",
+        )
+        if reset.get(key) not in (None, "", [], {})
+    }
+    if compact_reset:
+        compact_result["reset_transaction"] = compact_reset
     # A governed executor keeps the full Outcome with the execution owner,
     # but its bounded receipt deliberately nests this one immutable pointer.
     # Preserve the pointer (not the nested payload) so the Matrix lifecycle

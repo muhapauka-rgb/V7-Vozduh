@@ -6751,6 +6751,43 @@ def availability_first_partial_apply_recovery_context(
     }
 
 
+def exact_switch_after_clearance(
+    audit_row: dict[str, Any],
+    switch_rows: list[dict[str, Any]],
+    *,
+    user: str,
+    source: str,
+    target: str,
+) -> dict[str, Any]:
+    """Return the exact route commit produced after one clearance audit."""
+    try:
+        clearance_at = datetime.fromisoformat(
+            str(audit_row.get("created_at") or "").replace(
+                "Z", "+00:00"
+            )
+        )
+    except ValueError:
+        return {}
+    for switch in switch_rows:
+        if not isinstance(switch, dict):
+            continue
+        try:
+            switch_at = datetime.fromisoformat(
+                str(switch.get("ts") or "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue
+        if (
+            str(switch.get("user_ip") or "") == user
+            and str(switch.get("from") or "") == source
+            and str(switch.get("to") or "") == target
+            and clearance_at <= switch_at
+            and switch_at - clearance_at <= timedelta(minutes=5)
+        ):
+            return switch
+    return {}
+
+
 def availability_first_restored_cohort_receipt_recovery_context(
     args: argparse.Namespace,
     *,
@@ -6904,6 +6941,7 @@ def availability_first_restored_cohort_receipt_recovery_context(
         )
         if forward_index < 0:
             return {}, {}
+        latest_reverse: tuple[dict[str, Any], dict[str, Any]] = ({}, {})
         for row in audits[forward_index + 1:]:
             if (
                 not isinstance(row, dict)
@@ -6950,8 +6988,16 @@ def availability_first_restored_cohort_receipt_recovery_context(
                     )
                     == source
                 ):
-                    return row, move
-        return {}, {}
+                    latest_reverse = (row, move)
+                    if exact_switch_after_clearance(
+                        row,
+                        switch_rows,
+                        user=user,
+                        source=target,
+                        target=source,
+                    ):
+                        return row, move
+        return latest_reverse
 
     for projection in projections:
         if not isinstance(projection, dict):
@@ -7117,37 +7163,13 @@ def availability_first_restored_cohort_receipt_recovery_context(
                     "restored_cohort_reset_audit_binding_invalid"
                 )
 
-            try:
-                clearance_at = datetime.fromisoformat(
-                    str(reset_audit.get("created_at") or "").replace(
-                        "Z", "+00:00"
-                    )
-                )
-            except ValueError:
-                clearance_at = None
-            switch_bound = False
-            if clearance_at is not None:
-                for switch in switch_rows:
-                    if not isinstance(switch, dict):
-                        continue
-                    try:
-                        switch_at = datetime.fromisoformat(
-                            str(switch.get("ts") or "").replace(
-                                "Z", "+00:00"
-                            )
-                        )
-                    except ValueError:
-                        continue
-                    if (
-                        str(switch.get("user_ip") or "") == user
-                        and str(switch.get("from") or "") == target
-                        and str(switch.get("to") or "") == source
-                        and clearance_at <= switch_at
-                        and switch_at - clearance_at
-                        <= timedelta(minutes=5)
-                    ):
-                        switch_bound = True
-                        break
+            switch_bound = bool(exact_switch_after_clearance(
+                reset_audit,
+                switch_rows,
+                user=user,
+                source=target,
+                target=source,
+            ))
             if not switch_bound:
                 blockers.append(
                     "restored_cohort_reset_switch_lineage_missing"

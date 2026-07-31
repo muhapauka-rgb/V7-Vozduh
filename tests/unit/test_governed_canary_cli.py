@@ -396,6 +396,43 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(result["runtime_mutation_performed"])
         self.assertEqual(result["users_moved"], 0)
 
+    def test_switch_lineage_skips_clearance_without_route_commit(self):
+        module = load_cli_module()
+        user = "10.7.0.101"
+        source = "amneziawg-exec-20260528-10-8-1-14"
+        target = "vless"
+        switches = [{
+            "ts": "2026-07-31T15:40:37.704423+00:00",
+            "user_ip": user,
+            "from": source,
+            "to": target,
+        }]
+
+        self.assertEqual(
+            module.exact_switch_after_clearance(
+                {
+                    "created_at": "2026-07-31T15:24:56.350952+00:00",
+                },
+                switches,
+                user=user,
+                source=source,
+                target=target,
+            ),
+            {},
+        )
+        self.assertEqual(
+            module.exact_switch_after_clearance(
+                {
+                    "created_at": "2026-07-31T15:40:33.911507+00:00",
+                },
+                switches,
+                user=user,
+                source=source,
+                target=target,
+            ),
+            switches[0],
+        )
+
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -1293,7 +1293,67 @@ def run_availability_first_standing_policy_stage(
         and allocation.get("feasible") is True
         and allocation.get("allocation_fingerprint")
     )
-    if not ready:
+    prior_summary = read_json(
+        state_dir / "service-matrix-refresh-summary.json",
+        {},
+    )
+    prior_availability = (
+        prior_summary.get("availability_first_standing_policy_action")
+        if isinstance(
+            prior_summary.get(
+                "availability_first_standing_policy_action"
+            ),
+            dict,
+        )
+        else {}
+    )
+    prior_result = (
+        prior_availability.get("consumer_result")
+        if isinstance(prior_availability.get("consumer_result"), dict)
+        else {}
+    )
+    prior_packets = [
+        row
+        for row in (prior_result.get("packet_set") or [])
+        if isinstance(row, dict)
+    ]
+    try:
+        current_user_rows = [
+            parse_kv_line(line)
+            for line in (
+                state_dir / "users.registry"
+            ).read_text(
+                encoding="utf-8",
+                errors="replace",
+            ).splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    except OSError:
+        current_user_rows = []
+    current_routes = {
+        str(row.get("ip") or ""): str(row.get("current") or "")
+        for row in current_user_rows
+        if row.get("ip")
+    }
+    partial_apply_pending = bool(
+        prior_availability.get("status") == "STOP_SAFE"
+        and len(prior_packets) == 1
+        and str(prior_packets[0].get("stop_reason") or "")
+        == "l3_production_validation_downstream_proof_failed"
+        and str(prior_packets[0].get("user") or "")
+        and current_routes.get(
+            str(prior_packets[0].get("user") or "")
+        )
+        == str(prior_packets[0].get("target") or "")
+    )
+    if partial_apply_pending:
+        stage = int(
+            prior_result.get("stage")
+            or prior_availability.get("stage")
+            or stage
+            or 0
+        )
+    if not ready and not partial_apply_pending:
         return {
             "schema_version": "v7.availability-first-matrix-consumer.v1",
             "status": (

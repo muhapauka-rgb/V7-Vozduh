@@ -1123,6 +1123,8 @@ def controlled_certification_cleanup_selection(
     target: str,
     campaign_reset: bool = False,
     controlled_source: str = "",
+    availability_first_reset: bool = False,
+    availability_first_target: str = "",
 ) -> dict[str, Any]:
     """Admit only exact pre-state restoration after a consumed controlled run."""
     blockers: list[str] = []
@@ -1152,7 +1154,18 @@ def controlled_certification_cleanup_selection(
             blockers.append(
                 "campaign_reset_target_not_exact_controlled_source"
             )
-        if (
+        if availability_first_reset:
+            if str(source_row.get("id") or "") != availability_first_target:
+                blockers.append(
+                    "availability_first_reset_current_source_changed"
+                )
+            if bool_value(
+                source_row.get("controlled_certification_source")
+            ):
+                blockers.append(
+                    "availability_first_reset_source_is_controlled_source"
+                )
+        elif (
             str(source_row.get("role") or "").upper() != "EXECUTION_ONLY"
             or str(source_row.get("reservation_owner") or "")
             != "operator_execution_governance"
@@ -2084,6 +2097,24 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     ):
         if key in result:
             receipt[key] = result.get(key)
+    partial_apply = result.get("partial_apply_reconciliation")
+    if isinstance(partial_apply, dict) and partial_apply:
+        receipt["partial_apply_reconciliation"] = {
+            key: partial_apply.get(key)
+            for key in (
+                "schema_version",
+                "status",
+                "operation_id",
+                "packet_id",
+                "user",
+                "source",
+                "target",
+                "current_egress",
+                "verification_complete",
+                "rollback_required",
+            )
+            if partial_apply.get(key) not in (None, "", [], {})
+        }
     policy_binding = result.get("standing_delegated_policy_binding")
     if isinstance(policy_binding, dict):
         receipt["standing_delegated_policy_binding"] = {
@@ -2354,7 +2385,11 @@ def transaction_packet_constraints_ok(packet: dict[str, Any], cycle: dict[str, A
 
 def autoswitch_apply_timeout_seconds(max_users: int) -> int:
     users = max(1, int(max_users or 1))
-    return min(900, max(90, 60 + users * 30))
+    # A live Matrix verification includes fresh service/route probes and
+    # Learning closure after the route write.  Ninety seconds was shorter than
+    # one observed single-user production verification and could kill the
+    # consumer after mutation but before it emitted its terminal payload.
+    return min(3600, max(330, 300 + users * 30))
 
 
 def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) -> dict[str, Any]:
@@ -2456,6 +2491,12 @@ def run_autoswitch_apply(
     try:
         proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout_seconds)
     except (OSError, subprocess.TimeoutExpired) as exc:
+        stdout = getattr(exc, "stdout", "") or ""
+        stderr = getattr(exc, "stderr", "") or ""
+        if isinstance(stdout, bytes):
+            stdout = stdout.decode("utf-8", errors="replace")
+        if isinstance(stderr, bytes):
+            stderr = stderr.decode("utf-8", errors="replace")
         return {
             "ok": False,
             "command": command,
@@ -2463,6 +2504,9 @@ def run_autoswitch_apply(
             "error": str(exc),
             "payload": {},
             "timeout_seconds": timeout_seconds,
+            "timed_out": isinstance(exc, subprocess.TimeoutExpired),
+            "stdout_tail": str(stdout)[-1200:],
+            "stderr_tail": str(stderr)[-1200:],
         }
     try:
         payload = json.loads(proc.stdout)
@@ -4205,6 +4249,69 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
+    if apply_run.get("timed_out"):
+        current_user = next(
+            (
+                row
+                for row in read_registry(state_dir / "users.registry")
+                if str(row.get("ip") or "") == user
+            ),
+            {},
+        )
+        current_egress = str(current_user.get("current") or "")
+        mutation_observed = bool(
+            user
+            and target
+            and source
+            and current_egress == target
+            and current_egress != source
+        )
+        if mutation_observed:
+            apply_payload = {
+                "operation": {
+                    "operation_id": str(
+                        packet_identity.get("operation_id") or ""
+                    ),
+                    "terminal_state": "PARTIAL_APPLY_UNVERIFIED",
+                    "terminal_reason": (
+                        "autoswitch_apply_timeout_after_route_mutation"
+                    ),
+                    "rollback_verdict": "REQUIRED_BY_FRESH_RECONCILIATION",
+                },
+                "apply_result": {
+                    "applied": True,
+                    "results": [
+                        {
+                            "user_ip": user,
+                            "from": source,
+                            "to": target,
+                            "rc": 0,
+                            "verify_rc": 1,
+                            "verification_reason": (
+                                "consumer_timed_out_before_terminal_proof"
+                            ),
+                            "rollback_attempted": False,
+                        }
+                    ],
+                },
+                "l3_learning_closure": {},
+            }
+            apply_run["partial_apply_reconciliation"] = {
+                "schema_version": (
+                    "v7.autoswitch-timeout-route-reconciliation.v1"
+                ),
+                "status": "PARTIAL_APPLY_OBSERVED",
+                "operation_id": str(
+                    packet_identity.get("operation_id") or ""
+                ),
+                "packet_id": str(packet_identity.get("packet_id") or ""),
+                "user": user,
+                "source": source,
+                "target": target,
+                "current_egress": current_egress,
+                "verification_complete": False,
+                "rollback_required": True,
+            }
     operation = dict(apply_payload.get("operation") or {})
     operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
     terminal_status = lease_terminal_status_from_apply(apply_payload)
@@ -4272,6 +4379,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "controlled_certification_evidence": controlled_evidence,
         "feedback_materialization": feedback_materialization,
         "production_proof_quality": production_proof_quality,
+        "partial_apply_reconciliation": (
+            apply_run.get("partial_apply_reconciliation") or {}
+        ),
         "l3_learning_closure": l3_learning,
         "capability_state": capability_state,
         "production_proven": production_proven,
@@ -4582,6 +4692,12 @@ def _execute_governed_transaction_with_guards_inner(
             controlled_source=str(
                 cleanup_request.get("controlled_source") or ""
             ),
+            availability_first_reset=bool_value(
+                cleanup_request.get("availability_first_reset")
+            ),
+            availability_first_target=str(
+                cleanup_request.get("availability_first_target") or ""
+            ),
         )
         if certification_cleanup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -4647,23 +4763,36 @@ def _execute_governed_transaction_with_guards_inner(
     if topology_mode:
         delegated_admission = topology_policy_binding
     elif support_mode:
-        delegated_admission = {
-            "schema_version": "v7.controlled-certification-setup-authority.v1",
-            "allowed": True,
-            "blockers": [],
-            "authority": {
-                "authority_basis": "OPERATOR_ENGINEERING_AUTHORITY",
-                "engineering_authority_source": "EXPLICIT_POLYGON_L7_MISSION_CONTINUATION" if setup_mode else "EXACT_CONTRACT_REQUIRED_CLEANUP",
-                "action_class": "single-user governed candidate failover",
-                "max_users_per_transaction": 1,
-                "max_concurrent_transactions": 1,
-                "candidate_identity": "FRESH_ONLY",
-                "packet_reuse": "FORBIDDEN",
-                "self_expansion_allowed": False,
-                "scope": (certification_setup_selection if setup_mode else certification_cleanup_selection).get("authority_scope"),
-            },
-        }
-        if cleanup_mode and bool_value(cleanup_request.get("campaign_reset")):
+        availability_first_reset = bool(
+            cleanup_mode
+            and bool_value(
+                cleanup_request.get("availability_first_reset")
+            )
+        )
+        if availability_first_reset:
+            delegated_admission = policy_binding
+        else:
+            delegated_admission = {
+                "schema_version": "v7.controlled-certification-setup-authority.v1",
+                "allowed": True,
+                "blockers": [],
+                "authority": {
+                    "authority_basis": "OPERATOR_ENGINEERING_AUTHORITY",
+                    "engineering_authority_source": "EXPLICIT_POLYGON_L7_MISSION_CONTINUATION" if setup_mode else "EXACT_CONTRACT_REQUIRED_CLEANUP",
+                    "action_class": "single-user governed candidate failover",
+                    "max_users_per_transaction": 1,
+                    "max_concurrent_transactions": 1,
+                    "candidate_identity": "FRESH_ONLY",
+                    "packet_reuse": "FORBIDDEN",
+                    "self_expansion_allowed": False,
+                    "scope": (certification_setup_selection if setup_mode else certification_cleanup_selection).get("authority_scope"),
+                },
+            }
+        if (
+            not availability_first_reset
+            and cleanup_mode
+            and bool_value(cleanup_request.get("campaign_reset"))
+        ):
             delegated_admission["authority"][
                 "authority_basis"
             ] = "CONTROLLED_CERTIFICATION_CAMPAIGN_APPROVAL"
@@ -5425,6 +5554,229 @@ def _availability_first_topology_diagnostic(
     }
 
 
+def availability_first_partial_apply_recovery_context(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Bind an interrupted availability apply to current owner truth."""
+    summary = read_json(
+        state_dir / "service-matrix-refresh-summary.json",
+        {},
+    )
+    availability = (
+        summary.get("availability_first_standing_policy_action")
+        if isinstance(
+            summary.get("availability_first_standing_policy_action"),
+            dict,
+        )
+        else {}
+    )
+    result = (
+        availability.get("consumer_result")
+        if isinstance(availability.get("consumer_result"), dict)
+        else {}
+    )
+    packets = [
+        row
+        for row in (result.get("packet_set") or [])
+        if isinstance(row, dict)
+    ]
+    if (
+        availability.get("status") != "STOP_SAFE"
+        or len(packets) != 1
+    ):
+        return {"pending": False, "blockers": []}
+    packet = packets[0]
+    if str(packet.get("stop_reason") or "") != (
+        "l3_production_validation_downstream_proof_failed"
+    ):
+        return {"pending": False, "blockers": []}
+    user = str(packet.get("user") or "")
+    source = str(packet.get("source") or "")
+    target = str(packet.get("target") or "")
+    packet_id = str(packet.get("fresh_packet_id") or "")
+    operation_id = str(packet.get("operation_id") or "")
+    stage = int(result.get("stage") or availability.get("stage") or 0)
+    blockers: list[str] = []
+    lease = operator_execution.load_execution_lease(lease_file)
+    immutable = (
+        lease.get("immutable_packet_identity")
+        if isinstance(lease.get("immutable_packet_identity"), dict)
+        else {}
+    )
+    for actual, expected, reason in (
+        (immutable.get("packet_id"), packet_id, "partial_packet_changed"),
+        (
+            immutable.get("operation_id"),
+            operation_id,
+            "partial_operation_changed",
+        ),
+        (immutable.get("user"), user, "partial_user_changed"),
+        (immutable.get("source"), source, "partial_source_changed"),
+        (immutable.get("target"), target, "partial_target_changed"),
+    ):
+        if not expected or str(actual or "") != expected:
+            blockers.append(reason)
+    user_rows = [
+        row
+        for row in read_registry(state_dir / "users.registry")
+        if str(row.get("ip") or "") == user
+    ]
+    if len(user_rows) != 1:
+        blockers.append("partial_user_identity_not_unique")
+        user_row: dict[str, Any] = {}
+    else:
+        user_row = user_rows[0]
+    if not bool_value(user_row.get("certification_user")):
+        blockers.append("partial_user_not_certification_identity")
+    if str(user_row.get("current") or "") != target:
+        return {"pending": False, "blockers": []}
+    egress = read_registry(state_dir / "egress.registry")
+    source_row = next(
+        (row for row in egress if str(row.get("id") or "") == source),
+        {},
+    )
+    target_row = next(
+        (row for row in egress if str(row.get("id") or "") == target),
+        {},
+    )
+    if not bool_value(
+        source_row.get("controlled_certification_source")
+    ):
+        blockers.append("partial_source_not_controlled")
+    if not bool_value(source_row.get("enabled")):
+        blockers.append("partial_controlled_source_not_enabled")
+    if not target_row or not bool_value(target_row.get("enabled")):
+        blockers.append("partial_shared_target_not_enabled")
+    selected_moves = (
+        (
+            (lease.get("packet") or {}).get("approved_plan_lock")
+            or {}
+        ).get("selected_moves")
+        or []
+    )
+    semantic = (
+        (selected_moves[0] or {}).get(
+            "availability_first_controlled_assignment"
+        )
+        if len(selected_moves) == 1
+        and isinstance(selected_moves[0], dict)
+        else {}
+    )
+    allocation_fingerprint = str(
+        (semantic or {}).get("allocation_fingerprint") or ""
+    )
+    if (
+        str((semantic or {}).get("source") or "") != source
+        or str((semantic or {}).get("target") or "") != target
+        or not allocation_fingerprint
+        or bool((semantic or {}).get("natural_production_credit"))
+        or bool((semantic or {}).get("ordinary_user"))
+    ):
+        blockers.append("partial_availability_semantic_invalid")
+    audit_records = operator_execution.read_audit_records(
+        Path(args.operator_execution_audit_store)
+    )
+    if not any(
+        str(row.get("operation_id") or "") == operation_id
+        and str(row.get("packet_id") or "") == packet_id
+        and row.get("runtime_action_performed") is True
+        and str(row.get("clearance_verdict") or "")
+        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        for row in audit_records
+    ):
+        blockers.append("partial_restore_clearance_lineage_missing")
+    try:
+        switch_rows = [
+            json.loads(line)
+            for line in (
+                event_dir / "switch-history.jsonl"
+            ).read_text(
+                encoding="utf-8",
+                errors="replace",
+            ).splitlines()[-2000:]
+            if line.strip()
+        ]
+    except (OSError, json.JSONDecodeError):
+        switch_rows = []
+    if not any(
+        str(row.get("user_ip") or "") == user
+        and str(row.get("from") or "") == source
+        and str(row.get("to") or "") == target
+        for row in switch_rows
+        if isinstance(row, dict)
+    ):
+        blockers.append("partial_switch_lineage_missing")
+    contract_root = read_json(Path(args.policy_file), {})
+    contract = (
+        contract_root.get("delegated_autonomy_policy")
+        if isinstance(
+            contract_root.get("delegated_autonomy_policy"),
+            dict,
+        )
+        else {}
+    )
+    validation = (
+        operator_execution.validate_standing_delegated_operational_policy(
+            contract,
+            audit_records=audit_records,
+        )
+    )
+    policy = (
+        validation.get("policy")
+        if isinstance(validation.get("policy"), dict)
+        else {}
+    )
+    scopes = (
+        policy.get("action_class_scopes")
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    availability_scope = (
+        scopes.get(
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(
+            scopes.get(
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            ),
+            dict,
+        )
+        else {}
+    )
+    if not validation.get("ok"):
+        blockers.extend(validation.get("errors") or [])
+    if (
+        "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+        not in set(availability_scope.get("allowed_actions") or [])
+    ):
+        blockers.append("partial_baseline_reset_not_in_policy")
+    if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
+        blockers.append("partial_stage_not_in_ladder")
+    return {
+        "schema_version": (
+            "v7.availability-first-partial-apply-recovery-context.v1"
+        ),
+        "pending": True,
+        "ok": not blockers,
+        "blockers": sorted(set(str(item) for item in blockers)),
+        "stage": stage,
+        "user": user,
+        "source": source,
+        "target": target,
+        "packet_id": packet_id,
+        "operation_id": operation_id,
+        "allocation_fingerprint": allocation_fingerprint,
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "ordinary_user": False,
+        "natural_l8_credit": False,
+    }
+
+
 def execute_availability_first_standing_stage(
     args: argparse.Namespace,
     *,
@@ -5442,6 +5794,120 @@ def execute_availability_first_standing_stage(
     lease plus a fresh pre-apply capacity check is the existing-owner capacity
     reservation; no second reservation registry is introduced.
     """
+    partial = availability_first_partial_apply_recovery_context(
+        args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        lease_file=lease_file,
+    )
+    if partial.get("pending"):
+        if not partial.get("ok"):
+            return {
+                **transaction_stop(
+                    "availability_first_partial_apply_recovery_not_admitted",
+                    blockers=partial.get("blockers") or [],
+                ),
+                "partial_apply_recovery": partial,
+                "durable_successor": (
+                    "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
+                ),
+            }
+        stage = int(partial.get("stage") or 0)
+        user = str(partial.get("user") or "")
+        target = str(partial.get("target") or "")
+        source = str(partial.get("source") or "")
+        reset_args = copy.copy(args)
+        reset_args._certification_cleanup_request = {
+            "user": user,
+            "source": target,
+            "target": source,
+            "campaign_reset": True,
+            "controlled_source": source,
+            "availability_first_reset": True,
+            "availability_first_target": target,
+        }
+        reset_args.skip_planner_observe = True
+        reset_args.execute_bounded_delegated_transaction = False
+        reset_args.execute_availability_first_standing_stage = False
+        reset_args.max_users = 1
+        reset_args.approved_source = source
+        reset_args.availability_first_target = target
+        reset_args.expected_standing_policy_contract_id = str(
+            partial.get("contract_id") or ""
+        )
+        reset_args.expected_standing_policy_contract_hash = str(
+            partial.get("contract_hash") or ""
+        )
+        reset_args._availability_first_stage_request = {
+            "stage": stage,
+            "target_id": target,
+            "expected_users": [user],
+            "subset_fingerprint": operator_execution.sha256_json({
+                "stage": stage,
+                "target_id": target,
+                "users": [user],
+            }),
+            "allocation_fingerprint": str(
+                partial.get("allocation_fingerprint") or ""
+            ),
+        }
+        reset_args.engineering_authority_request_file = ""
+        reset = execute_governed_transaction_with_guards(
+            reset_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        reset_complete = bool(
+            reset.get("final_verdict")
+            == "GOVERNED_TRANSACTION_COMPLETED"
+            and str(reset.get("verification_result") or "") == "PASS"
+            and next(
+                (
+                    str(row.get("current") or "")
+                    for row in read_registry(
+                        state_dir / "users.registry"
+                    )
+                    if str(row.get("ip") or "") == user
+                ),
+                "",
+            )
+            == source
+        )
+        return {
+            "schema_version": (
+                "v7.availability-first-partial-apply-reconciliation.v1"
+            ),
+            "transaction_status": "STOP_SAFE",
+            "final_verdict": (
+                "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED"
+                if reset_complete
+                else "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
+            ),
+            "stop_reason": (
+                "fresh_retry_required_after_partial_apply_reconciliation"
+                if reset_complete
+                else "availability_first_partial_apply_recovery_failed"
+            ),
+            "stage": stage,
+            "partial_apply_recovery": partial,
+            "reset_transaction": compact_transaction_result(reset),
+            "baseline_reset_verified": reset_complete,
+            "runtime_mutation_performed": bool(
+                reset.get("runtime_mutation_performed")
+            ),
+            "users_moved": int(reset.get("users_moved") or 0),
+            "authority_expanded": False,
+            "production_maturity_change": False,
+            "natural_l8_credit": False,
+            "durable_successor": (
+                "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN"
+                if reset_complete
+                else "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
+            ),
+        }
     planner = _availability_first_topology_diagnostic(
         args,
         state_dir=state_dir,
@@ -5662,6 +6128,21 @@ def execute_availability_first_standing_stage(
             and int(transaction.get("users_moved") or 0) == count
         )
         if not passed:
+            if transaction.get("runtime_mutation_performed"):
+                current_routes = {
+                    str(item.get("ip") or ""): str(
+                        item.get("current") or ""
+                    )
+                    for item in read_registry(
+                        state_dir / "users.registry"
+                    )
+                }
+                moved_users.extend(
+                    user
+                    for user in subset
+                    if current_routes.get(user) == target
+                    and user not in moved_users
+                )
             circuit_breaker = {
                 "tripped": True,
                 "remaining_subsets_stopped": True,
@@ -5771,11 +6252,32 @@ def execute_availability_first_standing_stage(
                 "target": source,
                 "campaign_reset": True,
                 "controlled_source": source,
+                "availability_first_reset": True,
+                "availability_first_target": current_target,
             }
             reset_args.skip_planner_observe = True
             reset_args.execute_bounded_delegated_transaction = False
             reset_args.execute_availability_first_standing_stage = False
-            reset_args._availability_first_stage_request = None
+            reset_args.max_users = 1
+            reset_args.approved_source = source
+            reset_args.availability_first_target = current_target
+            reset_args.expected_standing_policy_contract_id = str(
+                admission.get("contract_id") or ""
+            )
+            reset_args.expected_standing_policy_contract_hash = str(
+                admission.get("contract_hash") or ""
+            )
+            reset_args._availability_first_stage_request = {
+                "stage": stage,
+                "target_id": current_target,
+                "expected_users": [user],
+                "subset_fingerprint": operator_execution.sha256_json({
+                    "stage": stage,
+                    "target_id": current_target,
+                    "users": [user],
+                }),
+                "allocation_fingerprint": allocation_fingerprint,
+            }
             reset_args.engineering_authority_request_file = ""
             reset = execute_governed_transaction_with_guards(
                 reset_args,

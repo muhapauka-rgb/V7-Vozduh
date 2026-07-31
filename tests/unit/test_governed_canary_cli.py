@@ -3,6 +3,7 @@ import importlib.util
 import json
 import hashlib
 import argparse
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -855,6 +856,205 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "RESTORE_EXACT_APPROVED_CONTROLLED_CAMPAIGN_BASELINE",
         )
 
+    def test_availability_first_reset_admits_exact_shared_target_to_controlled_source(self):
+        module = load_cli_module()
+        selected = module.controlled_certification_cleanup_selection(
+            users=[{
+                "ip": "10.7.0.100",
+                "current": "awg0",
+                "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[
+                {
+                    "id": "vless",
+                    "enabled": "1",
+                    "controlled_certification_source": "1",
+                },
+                {
+                    "id": "awg0",
+                    "enabled": "1",
+                    "role": "GLOBAL_STABLE",
+                },
+            ],
+            user="10.7.0.100",
+            source="awg0",
+            target="vless",
+            campaign_reset=True,
+            controlled_source="vless",
+            availability_first_reset=True,
+            availability_first_target="awg0",
+        )
+        drifted = module.controlled_certification_cleanup_selection(
+            users=[{
+                "ip": "10.7.0.100",
+                "current": "awg0",
+                "enabled": "1",
+                "certification_user": "1",
+            }],
+            egress=[
+                {
+                    "id": "vless",
+                    "enabled": "1",
+                    "controlled_certification_source": "1",
+                },
+                {"id": "awg0", "enabled": "1"},
+            ],
+            user="10.7.0.100",
+            source="awg0",
+            target="vless",
+            campaign_reset=True,
+            controlled_source="vless",
+            availability_first_reset=True,
+            availability_first_target="awg3",
+        )
+
+        self.assertEqual(selected["selection_status"], "SELECTED", selected)
+        self.assertNotIn(
+            "campaign_reset_current_source_not_exact_execution_target",
+            selected["blockers"],
+        )
+        self.assertEqual(drifted["selection_status"], "STOP_SAFE")
+        self.assertIn(
+            "availability_first_reset_current_source_changed",
+            drifted["blockers"],
+        )
+
+    def test_partial_availability_apply_recovery_binds_route_packet_and_policy(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            packet_id = "pkt_partial"
+            operation_id = "govexec_partial"
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=awg0 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg0 enabled=1 role=GLOBAL_STABLE\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 1,
+                        "consumer_result": {
+                            "stage": 1,
+                            "packet_set": [{
+                                "stop_reason": (
+                                    "l3_production_validation_downstream_proof_failed"
+                                ),
+                                "fresh_packet_id": packet_id,
+                                "operation_id": operation_id,
+                                "user": "10.7.0.100",
+                                "source": "vless",
+                                "target": "awg0",
+                            }],
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            lease = {
+                "immutable_packet_identity": {
+                    "packet_id": packet_id,
+                    "operation_id": operation_id,
+                    "user": "10.7.0.100",
+                    "source": "vless",
+                    "target": "awg0",
+                },
+                "packet": {
+                    "approved_plan_lock": {
+                        "selected_moves": [{
+                            "availability_first_controlled_assignment": {
+                                "source": "vless",
+                                "target": "awg0",
+                                "allocation_fingerprint": "a" * 64,
+                                "ordinary_user": False,
+                                "natural_production_credit": False,
+                            },
+                        }],
+                    },
+                },
+            }
+            lease_file = state / "operator-execution-lease.json"
+            lease_file.write_text(json.dumps(lease), encoding="utf-8")
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": "10.7.0.100",
+                    "from": "vless",
+                    "to": "awg0",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_partial",
+                        "contract_hash": "b" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                policy_file=str(policy_file),
+                operator_execution_audit_store=str(
+                    root / "audit.jsonl"
+                ),
+            )
+            validation = {
+                "ok": True,
+                "errors": [],
+                "policy": {
+                    "action_class_scopes": {
+                        module.operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                            "allowed_actions": [
+                                "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+                            ],
+                        },
+                    },
+                },
+            }
+            audit = [{
+                "operation_id": operation_id,
+                "packet_id": packet_id,
+                "runtime_action_performed": True,
+                "clearance_verdict": (
+                    "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                ),
+            }]
+            with mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value=validation,
+            ), mock.patch.object(
+                module.operator_execution,
+                "read_audit_records",
+                return_value=audit,
+            ):
+                context = (
+                    module.availability_first_partial_apply_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                        lease_file=lease_file,
+                    )
+                )
+
+        self.assertTrue(context["pending"])
+        self.assertTrue(context["ok"], context)
+        self.assertEqual(context["packet_id"], packet_id)
+        self.assertEqual(context["operation_id"], operation_id)
+        self.assertEqual(context["source"], "vless")
+        self.assertEqual(context["target"], "awg0")
+
     def test_controlled_cleanup_requires_prior_one_use_authority_consumption(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -1556,9 +1756,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
     def test_autoswitch_apply_timeout_scales_with_batch_size(self):
         module = load_cli_module()
-        self.assertEqual(module.autoswitch_apply_timeout_seconds(1), 90)
-        self.assertEqual(module.autoswitch_apply_timeout_seconds(10), 360)
-        self.assertEqual(module.autoswitch_apply_timeout_seconds(100), 900)
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(1), 330)
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(10), 600)
+        self.assertEqual(module.autoswitch_apply_timeout_seconds(100), 3300)
 
     def test_l3_production_proof_counts_service_verify_failure_as_verification_failure(self):
         module = load_cli_module()
@@ -1617,11 +1817,37 @@ class GovernedCanaryCliTest(unittest.TestCase):
         finally:
             module.subprocess.run = original_run
 
-        self.assertEqual(captured["timeout"], 360)
-        self.assertEqual(result["timeout_seconds"], 360)
+        self.assertEqual(captured["timeout"], 600)
+        self.assertEqual(result["timeout_seconds"], 600)
         self.assertIn("--emergency-failover-autonomy", captured["command"])
         timeout_index = captured["command"].index("--service-matrix-lock-timeout-sec")
         self.assertEqual(captured["command"][timeout_index + 1], "5")
+
+    def test_run_autoswitch_apply_marks_timeout_without_claiming_no_effect(self):
+        module = load_cli_module()
+
+        def fake_run(*_args, **_kwargs):
+            raise subprocess.TimeoutExpired(
+                cmd=["v7-users-autoswitch"],
+                timeout=330,
+                output=b"partial",
+            )
+
+        with mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+            result = module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path(
+                    "/state/autoswitch-restore-barrier.json"
+                ),
+                max_users=1,
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["timed_out"])
+        self.assertEqual(result["returncode"], 124)
+        self.assertEqual(result["stdout_tail"], "partial")
 
     def test_l3_restore_barrier_preflight_reset_archives_completed_lock_when_lease_inactive(self):
         module = load_cli_module()

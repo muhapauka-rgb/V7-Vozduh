@@ -396,6 +396,69 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(result["runtime_mutation_performed"])
         self.assertEqual(result["users_moved"], 0)
 
+    def test_restored_target_bound_cohort_emits_target_receipt_terminal(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            restored = {
+                "pending": True,
+                "ok": True,
+                "stage": 2,
+                "target_bound_trial": True,
+                "target_bound_trial_target": "awg3",
+                "campaign_next_stage": 25,
+                "source": "vless",
+                "packet_set": [{
+                    "fresh_packet_id": f"pkt_target_{index}",
+                    "operation_id": f"govexec_target_{index}",
+                    "user": f"10.7.0.{100 + index}",
+                    "source": "vless",
+                    "target": "awg3",
+                } for index in range(2)],
+                "reset_reconciliations": [
+                    {"ok": True, "user": f"10.7.0.{100 + index}"}
+                    for index in range(2)
+                ],
+                "allocation_fingerprint": "a" * 64,
+                "contract_id": "sdpc_target",
+                "contract_hash": "b" * 64,
+                "recovered_allocation": [{
+                    "target_id": "awg3",
+                    "allocated_users": 2,
+                    "capacity_reservation": 2,
+                    "target_fingerprint": "c" * 64,
+                    "capacity_bounds_fingerprint": "d" * 64,
+                }],
+            }
+            with mock.patch.object(
+                module,
+                "availability_first_restored_stage_receipt_recovery_context",
+                return_value=restored,
+            ):
+                result = module.execute_availability_first_standing_stage(
+                    argparse.Namespace(),
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED",
+        )
+        self.assertTrue(result["target_bound_trial"])
+        self.assertEqual(result["target_bound_trial_target"], "awg3")
+        self.assertEqual(result["campaign_next_stage"], 25)
+        self.assertFalse(result["runtime_mutation_performed"])
+
     def test_switch_lineage_skips_clearance_without_route_commit(self):
         module = load_cli_module()
         user = "10.7.0.101"
@@ -516,6 +579,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         completed_stages={1},
                     )
                 )
+                target_projection = (
+                    module
+                    .availability_first_interrupted_cohort_audit_projection(
+                        state_dir=state,
+                        event_dir=events,
+                        audit_records=audits,
+                        completed_stages={1, 2, 5, 10},
+                        expected_stage=2,
+                        expected_target="awg3",
+                        campaign_next_stage=25,
+                    )
+                )
 
         action = projection[
             "availability_first_standing_policy_action"
@@ -529,6 +604,22 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             action["consumer_result"]["allocation_fingerprint"],
             fingerprint,
+        )
+        target_action = target_projection[
+            "availability_first_standing_policy_action"
+        ]
+        self.assertTrue(
+            target_action["consumer_result"]["target_bound_trial"]
+        )
+        self.assertEqual(
+            target_action["consumer_result"][
+                "target_bound_trial_target"
+            ],
+            "awg3",
+        )
+        self.assertEqual(
+            target_action["consumer_result"]["campaign_next_stage"],
+            25,
         )
 
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
@@ -647,7 +738,26 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 module,
                 "execute_governed_transaction_with_guards",
                 side_effect=completed_transaction,
-            ) as execute:
+            ) as execute, mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                side_effect=lambda _state_dir, **kwargs: {
+                    "ok": True,
+                    "feedback_id": (
+                        "feedback_" + kwargs["user"].rsplit(".", 1)[-1]
+                    ),
+                    "outcome_id": (
+                        "outcome_" + kwargs["user"].rsplit(".", 1)[-1]
+                    ),
+                    "learning_record_id": (
+                        "learning_" + kwargs["user"].rsplit(".", 1)[-1]
+                    ),
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                    "blockers": [],
+                },
+            ):
                 result = module.execute_availability_first_standing_stage(
                     args,
                     state_dir=state,
@@ -663,6 +773,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(result["users_moved"], 2)
         self.assertEqual(len(result["packet_set"]), 2)
+        self.assertTrue(result["outcome_consumed"])
+        self.assertTrue(result["replay_consumed"])
+        self.assertTrue(result["learning_consumed"])
+        self.assertTrue(
+            all(
+                row["outcome_consumed"]
+                and row["replay_consumed"]
+                and row["learning_consumed"]
+                for row in result["packet_set"]
+            )
+        )
         self.assertEqual(execute.call_count, 2)
         transaction_args = [
             call.args[0] for call in execute.call_args_list

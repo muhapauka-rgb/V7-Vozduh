@@ -6804,6 +6804,9 @@ def availability_first_interrupted_cohort_audit_projection(
     event_dir: Path,
     audit_records: list[dict[str, Any]],
     completed_stages: set[int],
+    expected_stage: int = 0,
+    expected_target: str = "",
+    campaign_next_stage: int = 0,
 ) -> dict[str, Any]:
     """Recover a timed-out stage from existing append-only owners.
 
@@ -6813,15 +6816,20 @@ def availability_first_interrupted_cohort_audit_projection(
     allocation fingerprint, route commits and evidence all agree.  This is a
     read-only projection; it never creates evidence or replays an action.
     """
-    stage = next(
-        (
-            value
-            for value in operator_execution.AVAILABILITY_FIRST_LADDER
-            if value not in completed_stages
-        ),
-        0,
-    )
-    if stage <= 1:
+    target_bound_mode = bool(expected_target)
+    stage = int(expected_stage or 0)
+    if stage <= 0:
+        stage = next(
+            (
+                value
+                for value in operator_execution.AVAILABILITY_FIRST_LADDER
+                if value not in completed_stages
+            ),
+            0,
+        )
+    if stage <= 0 or (
+        not target_bound_mode and stage <= 1
+    ):
         return {}
     completed_receipt_times = [
         str(row.get("created_at") or "")
@@ -6889,6 +6897,15 @@ def availability_first_interrupted_cohort_audit_projection(
     candidates: list[tuple[str, str, list[dict[str, Any]]]] = []
     for fingerprint, members in grouped.items():
         if len(members) != stage:
+            continue
+        member_targets = {
+            str(member.get("target") or "")
+            for member in members.values()
+        }
+        if (
+            target_bound_mode
+            and member_targets != {expected_target}
+        ):
             continue
         packets: list[dict[str, Any]] = []
         exact = True
@@ -6978,6 +6995,14 @@ def availability_first_interrupted_cohort_audit_projection(
                     "committed_child_outcomes"
                 ),
                 "stage": stage,
+                "target_bound_trial": target_bound_mode,
+                "target_bound_trial_target": (
+                    expected_target if target_bound_mode else ""
+                ),
+                "campaign_next_stage": (
+                    int(campaign_next_stage or 0)
+                    if target_bound_mode else 0
+                ),
                 "packet_set": packets,
                 "circuit_breaker": {
                     "tripped": True,
@@ -7106,6 +7131,20 @@ def availability_first_restored_cohort_receipt_recovery_context(
             event_dir=event_dir,
             audit_records=audits,
             completed_stages=completed_stages,
+            expected_stage=int(
+                getattr(args, "availability_first_stage", 0) or 0
+            ),
+            expected_target=str(
+                getattr(
+                    args,
+                    "availability_first_target_bound_trial_target",
+                    "",
+                )
+                or ""
+            ),
+            campaign_next_stage=int(
+                campaign_status.get("next_stage") or 0
+            ),
         )
     )
     if recovered_projection:
@@ -7228,6 +7267,10 @@ def availability_first_restored_cohort_receipt_recovery_context(
         circuit_breaker = (
             circuit_breaker if isinstance(circuit_breaker, dict) else {}
         )
+        target_bound_mode = bool(result.get("target_bound_trial"))
+        target_bound_target = str(
+            result.get("target_bound_trial_target") or ""
+        )
         stage = int(result.get("stage") or action.get("stage") or 0)
         packets = [
             row for row in (result.get("packet_set") or [])
@@ -7238,9 +7281,10 @@ def availability_first_restored_cohort_receipt_recovery_context(
             action.get("status") != "STOP_SAFE"
             or str(circuit_breaker.get("reason") or "")
             != "availability_first_baseline_reset_failed"
-            or stage <= 1
+            or stage <= 0
+            or (not target_bound_mode and stage <= 1)
             or stage not in operator_execution.AVAILABILITY_FIRST_LADDER
-            or stage in completed_stages
+            or (not target_bound_mode and stage in completed_stages)
             or len(packets) != stage
             or len(set(users)) != stage
             or not all(users)
@@ -7517,6 +7561,13 @@ def availability_first_restored_cohort_receipt_recovery_context(
             "ok": not blockers,
             "blockers": sorted(set(str(item) for item in blockers)),
             "stage": stage,
+            "target_bound_trial": target_bound_mode,
+            "target_bound_trial_target": target_bound_target,
+            "campaign_next_stage": int(
+                result.get("campaign_next_stage")
+                or campaign_status.get("next_stage")
+                or 0
+            ),
             "source": str(packets[0].get("source") or ""),
             "packet_set": recovered_packets,
             "reset_reconciliations": reset_reconciliations,
@@ -7950,14 +8001,27 @@ def execute_availability_first_standing_stage(
         )
         return {
             "schema_version": (
-                "v7.availability-first-restored-stage-receipt.v1"
+                "v7.availability-first-restored-target-bound-receipt.v1"
+                if restored.get("target_bound_trial")
+                else "v7.availability-first-restored-stage-receipt.v1"
             ),
             "transaction_status": "COMPLETED",
             "final_verdict": (
-                "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+                if restored.get("target_bound_trial")
+                else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
             ),
             "stop_reason": "",
             "stage": int(restored.get("stage") or 0),
+            "target_bound_trial": bool(
+                restored.get("target_bound_trial")
+            ),
+            "target_bound_trial_target": str(
+                restored.get("target_bound_trial_target") or ""
+            ),
+            "campaign_next_stage": int(
+                restored.get("campaign_next_stage") or 0
+            ),
             "source": str(restored.get("source") or ""),
             "standing_policy_contract_id": str(
                 restored.get("contract_id") or ""
@@ -8554,11 +8618,36 @@ def execute_availability_first_standing_stage(
                 lease_file=lease_file,
             )
             compact = compact_transaction_result(transaction)
+            evidence = availability_first_forward_evidence_status(
+                state_dir,
+                packet_id=str(compact.get("fresh_packet_id") or ""),
+                operation_id=str(compact.get("operation_id") or ""),
+                user=user,
+                source=source,
+                target=target,
+            )
             packet_set.append({
                 **compact,
                 "target_id": target,
                 "subset_fingerprint": member_subset_fingerprint,
                 "parent_subset_fingerprint": subset_fingerprint,
+                "feedback_id": str(evidence.get("feedback_id") or ""),
+                "outcome_id": str(evidence.get("outcome_id") or ""),
+                "learning_record_id": str(
+                    evidence.get("learning_record_id") or ""
+                ),
+                "outcome_consumed": bool(
+                    evidence.get("outcome_consumed")
+                ),
+                "replay_consumed": bool(
+                    evidence.get("replay_consumed")
+                ),
+                "learning_consumed": bool(
+                    evidence.get("learning_consumed")
+                ),
+                "evidence_blockers": list(
+                    evidence.get("blockers") or []
+                ),
             })
             passed = (
                 transaction.get("final_verdict")
@@ -8780,86 +8869,21 @@ def execute_availability_first_standing_stage(
     outcome_consumed = bool(
         packet_set
         and all(
-            bool(
-                (
-                    row.get("feedback_materialization")
-                    if isinstance(
-                        row.get("feedback_materialization"),
-                        dict,
-                    )
-                    else {}
-                ).get("materialized")
-                and (
-                    row.get("feedback_materialization")
-                    if isinstance(
-                        row.get("feedback_materialization"),
-                        dict,
-                    )
-                    else {}
-                ).get("outcome_id")
-            )
+            row.get("outcome_consumed") is True
             for row in packet_set
         )
     )
     replay_consumed = bool(
         packet_set
         and all(
-            bool(
-                (
-                    (
-                        row.get("l3_learning_closure")
-                        if isinstance(
-                            row.get("l3_learning_closure"),
-                            dict,
-                        )
-                        else {}
-                    ).get("execution_closure_verification")
-                    or {}
-                ).get("terminal_consumer_verified")
-            )
-            and str(
-                (
-                    (
-                        row.get("l3_learning_closure")
-                        if isinstance(
-                            row.get("l3_learning_closure"),
-                            dict,
-                        )
-                        else {}
-                    ).get("execution_closure_verification")
-                    or {}
-                ).get("behavior_chain_status")
-                or ""
-            )
-            == "COMPLETE"
+            row.get("replay_consumed") is True
             for row in packet_set
         )
     )
     learning_consumed = bool(
         packet_set
         and all(
-            bool(
-                (
-                    row.get("l3_learning_closure")
-                    if isinstance(
-                        row.get("l3_learning_closure"),
-                        dict,
-                    )
-                    else {}
-                ).get("materialized")
-                or str(
-                    (
-                        row.get("l3_learning_closure")
-                        if isinstance(
-                            row.get("l3_learning_closure"),
-                            dict,
-                        )
-                        else {}
-                    ).get("reason")
-                    or ""
-                )
-                == "already_materialized"
-            )
+            row.get("learning_consumed") is True
             for row in packet_set
         )
     )

@@ -1460,12 +1460,6 @@ def _run_availability_first_standing_policy_stage_once(
             for row in (candidate_result.get("packet_set") or [])
             if isinstance(row, dict)
         ]
-        candidate_packet = (
-            candidate_packets[0]
-            if len(candidate_packets) == 1
-            else {}
-        )
-        candidate_user = str(candidate_packet.get("user") or "")
         circuit_breaker = (
             candidate_result.get("circuit_breaker")
             if isinstance(
@@ -1474,29 +1468,33 @@ def _run_availability_first_standing_policy_stage_once(
             )
             else {}
         )
-        partial_or_cleanup_pending = bool(
-            str(candidate_packet.get("stop_reason") or "")
-            == "l3_production_validation_downstream_proof_failed"
-            or (
-                str(candidate_packet.get("final_verdict") or "")
-                == "L3_PRODUCTION_PROVEN"
-                and str(candidate_packet.get("verification_result") or "")
-                == "PASS"
-                and int(candidate_packet.get("users_moved") or 0) == 1
-                and str(circuit_breaker.get("reason") or "")
-                == "availability_first_baseline_reset_failed"
+        for candidate_packet in candidate_packets:
+            candidate_user = str(candidate_packet.get("user") or "")
+            partial_or_cleanup_pending = bool(
+                str(candidate_packet.get("stop_reason") or "")
+                == "l3_production_validation_downstream_proof_failed"
+                or (
+                    str(candidate_packet.get("final_verdict") or "")
+                    == "L3_PRODUCTION_PROVEN"
+                    and str(candidate_packet.get("verification_result") or "")
+                    == "PASS"
+                    and int(candidate_packet.get("users_moved") or 0) == 1
+                    and str(circuit_breaker.get("reason") or "")
+                    == "availability_first_baseline_reset_failed"
+                )
             )
-        )
-        if (
-            candidate.get("status") == "STOP_SAFE"
-            and partial_or_cleanup_pending
-            and candidate_user
-            and current_routes.get(candidate_user)
-            == str(candidate_packet.get("target") or "")
-        ):
-            prior_availability = candidate
-            prior_result = candidate_result
-            partial_apply_pending = True
+            if (
+                candidate.get("status") == "STOP_SAFE"
+                and partial_or_cleanup_pending
+                and candidate_user
+                and current_routes.get(candidate_user)
+                == str(candidate_packet.get("target") or "")
+            ):
+                prior_availability = candidate
+                prior_result = candidate_result
+                partial_apply_pending = True
+                break
+        if partial_apply_pending:
             break
     if partial_apply_pending:
         stage = int(
@@ -2044,6 +2042,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         for key in (
             "pending", "ok", "blockers", "stage", "user", "source",
             "target", "packet_id", "operation_id", "projection_source",
+            "recovery_mode", "cohort_packet_count",
+            "cohort_projection_exact",
         )
         if partial.get(key) not in (None, "", [], {})
     }

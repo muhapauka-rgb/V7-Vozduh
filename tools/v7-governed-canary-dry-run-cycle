@@ -6146,6 +6146,7 @@ def availability_first_partial_apply_recovery_context(
     availability: dict[str, Any] = {}
     result: dict[str, Any] = {}
     packet: dict[str, Any] = {}
+    cohort_packets: list[dict[str, Any]] = []
     projection_source = ""
     recovery_mode = ""
     def projection_stream():
@@ -6187,13 +6188,6 @@ def availability_first_partial_apply_recovery_context(
             for row in (candidate_result.get("packet_set") or [])
             if isinstance(row, dict)
         ]
-        candidate_packet = (
-            candidate_packets[0]
-            if len(candidate_packets) == 1
-            else {}
-        )
-        candidate_user = str(candidate_packet.get("user") or "")
-        candidate_target = str(candidate_packet.get("target") or "")
         circuit_breaker = (
             candidate_result.get("circuit_breaker")
             if isinstance(
@@ -6202,34 +6196,40 @@ def availability_first_partial_apply_recovery_context(
             )
             else {}
         )
-        partial_apply = bool(
-            str(candidate_packet.get("stop_reason") or "")
-            == "l3_production_validation_downstream_proof_failed"
-        )
-        verified_stage_baseline_pending = bool(
-            str(candidate_packet.get("final_verdict") or "")
-            == "L3_PRODUCTION_PROVEN"
-            and str(candidate_packet.get("verification_result") or "")
-            == "PASS"
-            and int(candidate_packet.get("users_moved") or 0) == 1
-            and str(circuit_breaker.get("reason") or "")
-            == "availability_first_baseline_reset_failed"
-        )
-        if (
-            candidate.get("status") == "STOP_SAFE"
-            and (partial_apply or verified_stage_baseline_pending)
-            and candidate_user
-            and current_routes.get(candidate_user) == candidate_target
-        ):
-            availability = candidate
-            result = candidate_result
-            packet = candidate_packet
-            projection_source = source_kind
-            recovery_mode = (
-                "VERIFIED_STAGE_BASELINE_PENDING"
-                if verified_stage_baseline_pending
-                else "PARTIAL_APPLY_BASELINE_PENDING"
+        for candidate_packet in candidate_packets:
+            candidate_user = str(candidate_packet.get("user") or "")
+            candidate_target = str(candidate_packet.get("target") or "")
+            partial_apply = bool(
+                str(candidate_packet.get("stop_reason") or "")
+                == "l3_production_validation_downstream_proof_failed"
             )
+            verified_stage_baseline_pending = bool(
+                str(candidate_packet.get("final_verdict") or "")
+                == "L3_PRODUCTION_PROVEN"
+                and str(candidate_packet.get("verification_result") or "")
+                == "PASS"
+                and int(candidate_packet.get("users_moved") or 0) == 1
+                and str(circuit_breaker.get("reason") or "")
+                == "availability_first_baseline_reset_failed"
+            )
+            if (
+                candidate.get("status") == "STOP_SAFE"
+                and (partial_apply or verified_stage_baseline_pending)
+                and candidate_user
+                and current_routes.get(candidate_user) == candidate_target
+            ):
+                availability = candidate
+                result = candidate_result
+                packet = candidate_packet
+                cohort_packets = candidate_packets
+                projection_source = source_kind
+                recovery_mode = (
+                    "VERIFIED_STAGE_BASELINE_PENDING"
+                    if verified_stage_baseline_pending
+                    else "PARTIAL_APPLY_BASELINE_PENDING"
+                )
+                break
+        if packet:
             break
     if not packet:
         return {"pending": False, "blockers": []}
@@ -6246,19 +6246,20 @@ def availability_first_partial_apply_recovery_context(
         if isinstance(lease.get("immutable_packet_identity"), dict)
         else {}
     )
-    for actual, expected, reason in (
-        (immutable.get("packet_id"), packet_id, "partial_packet_changed"),
-        (
-            immutable.get("operation_id"),
-            operation_id,
-            "partial_operation_changed",
-        ),
-        (immutable.get("user"), user, "partial_user_changed"),
-        (immutable.get("source"), source, "partial_source_changed"),
-        (immutable.get("target"), target, "partial_target_changed"),
-    ):
-        if not expected or str(actual or "") != expected:
-            blockers.append(reason)
+    if recovery_mode == "PARTIAL_APPLY_BASELINE_PENDING":
+        for actual, expected, reason in (
+            (immutable.get("packet_id"), packet_id, "partial_packet_changed"),
+            (
+                immutable.get("operation_id"),
+                operation_id,
+                "partial_operation_changed",
+            ),
+            (immutable.get("user"), user, "partial_user_changed"),
+            (immutable.get("source"), source, "partial_source_changed"),
+            (immutable.get("target"), target, "partial_target_changed"),
+        ):
+            if not expected or str(actual or "") != expected:
+                blockers.append(reason)
     user_rows = [
         row
         for row in read_registry(state_dir / "users.registry")
@@ -6290,19 +6291,55 @@ def availability_first_partial_apply_recovery_context(
         blockers.append("partial_controlled_source_not_enabled")
     if not target_row or not bool_value(target_row.get("enabled")):
         blockers.append("partial_shared_target_not_enabled")
-    selected_moves = (
+    audit_records = operator_execution.read_audit_records(
+        Path(args.operator_execution_audit_store)
+    )
+    matching_audit = next(
+        (
+            row
+            for row in reversed(audit_records)
+            if str(row.get("operation_id") or "") == operation_id
+            and str(row.get("packet_id") or "") == packet_id
+            and row.get("runtime_action_performed") is True
+            and str(row.get("clearance_verdict") or "")
+            == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        ),
+        {},
+    )
+    lease_selected_moves = (
         (
             (lease.get("packet") or {}).get("approved_plan_lock")
             or {}
         ).get("selected_moves")
         or []
     )
-    semantic = (
-        (selected_moves[0] or {}).get(
-            "availability_first_controlled_assignment"
-        )
+    audit_checks = (
+        matching_audit.get("checks")
+        if isinstance(matching_audit.get("checks"), dict)
+        else {}
+    )
+    audit_moves = [
+        row
+        for row in (audit_checks.get("moves") or [])
+        if isinstance(row, dict)
+    ]
+    selected_moves = (
+        audit_moves
+        if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        else lease_selected_moves
+    )
+    selected_move = (
+        selected_moves[0]
         if len(selected_moves) == 1
         and isinstance(selected_moves[0], dict)
+        else {}
+    )
+    semantic = (
+        selected_move.get("availability_first_controlled_assignment")
+        if isinstance(
+            selected_move.get("availability_first_controlled_assignment"),
+            dict,
+        )
         else {}
     )
     allocation_fingerprint = str(
@@ -6316,17 +6353,7 @@ def availability_first_partial_apply_recovery_context(
         or bool((semantic or {}).get("ordinary_user"))
     ):
         blockers.append("partial_availability_semantic_invalid")
-    audit_records = operator_execution.read_audit_records(
-        Path(args.operator_execution_audit_store)
-    )
-    if not any(
-        str(row.get("operation_id") or "") == operation_id
-        and str(row.get("packet_id") or "") == packet_id
-        and row.get("runtime_action_performed") is True
-        and str(row.get("clearance_verdict") or "")
-        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
-        for row in audit_records
-    ):
+    if not matching_audit:
         blockers.append("partial_restore_clearance_lineage_missing")
     try:
         switch_rows = [
@@ -6408,7 +6435,61 @@ def availability_first_partial_apply_recovery_context(
         else {}
     )
     if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING":
-        if stage != 1:
+        cohort_users = [
+            str(row.get("user") or "")
+            for row in cohort_packets
+        ]
+        cohort_exact = bool(
+            stage > 0
+            and len(cohort_packets) == stage
+            and len(set(cohort_users)) == stage
+            and all(cohort_users)
+        )
+        if cohort_exact:
+            registry_by_user = {
+                str(row.get("ip") or ""): row
+                for row in read_registry(state_dir / "users.registry")
+                if row.get("ip")
+            }
+            for cohort_packet in cohort_packets:
+                cohort_user = str(cohort_packet.get("user") or "")
+                cohort_source = str(cohort_packet.get("source") or "")
+                cohort_target = str(cohort_packet.get("target") or "")
+                cohort_packet_id = str(
+                    cohort_packet.get("fresh_packet_id") or ""
+                )
+                cohort_operation_id = str(
+                    cohort_packet.get("operation_id") or ""
+                )
+                cohort_row = registry_by_user.get(cohort_user, {})
+                if (
+                    str(cohort_packet.get("final_verdict") or "")
+                    != "L3_PRODUCTION_PROVEN"
+                    or str(cohort_packet.get("verification_result") or "")
+                    != "PASS"
+                    or int(cohort_packet.get("users_moved") or 0) != 1
+                    or cohort_source != source
+                    or current_routes.get(cohort_user)
+                    not in {cohort_source, cohort_target}
+                    or not bool_value(
+                        cohort_row.get("certification_user")
+                    )
+                    or not cohort_packet_id
+                    or not cohort_operation_id
+                    or not any(
+                        str(row.get("packet_id") or "")
+                        == cohort_packet_id
+                        and str(row.get("operation_id") or "")
+                        == cohort_operation_id
+                        and row.get("runtime_action_performed") is True
+                        and str(row.get("clearance_verdict") or "")
+                        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                        for row in audit_records
+                    )
+                ):
+                    cohort_exact = False
+                    break
+        if not cohort_exact:
             blockers.append(
                 "verified_stage_recovery_requires_exact_cohort_projection"
             )
@@ -6421,19 +6502,41 @@ def availability_first_partial_apply_recovery_context(
         "packet_id": packet_id,
         "target": target,
         "snapshot_bundle_hash": str(
-            immutable.get("snapshot_bundle_hash") or ""
+            (
+                audit_checks.get("snapshot_bundle_hash")
+                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                else immutable.get("snapshot_bundle_hash")
+            )
+            or ""
         ),
         "allocation_fingerprint": allocation_fingerprint,
     })
     recovered_capacity_fingerprint = operator_execution.sha256_json({
         "packet_id": packet_id,
         "source_bundle_hash": str(
-            immutable.get("source_bundle_hash") or ""
+            (
+                audit_checks.get("source_bundle_hash")
+                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                else immutable.get("source_bundle_hash")
+            )
+            or ""
         ),
         "selected_move_hash": str(
-            immutable.get("selected_move_hash") or ""
+            (
+                audit_checks.get("selected_move_hash")
+                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                else immutable.get("selected_move_hash")
+            )
+            or ""
         ),
-        "max_users": int(immutable.get("max_users") or 0),
+        "max_users": int(
+            (
+                audit_checks.get("max_users")
+                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                else immutable.get("max_users")
+            )
+            or 1
+        ),
     })
     return {
         "schema_version": (
@@ -6455,6 +6558,12 @@ def availability_first_partial_apply_recovery_context(
         "natural_l8_credit": False,
         "projection_source": projection_source,
         "recovery_mode": recovery_mode,
+        "cohort_packet_count": len(cohort_packets),
+        "cohort_projection_exact": bool(
+            recovery_mode != "VERIFIED_STAGE_BASELINE_PENDING"
+            or "verified_stage_recovery_requires_exact_cohort_projection"
+            not in blockers
+        ),
         "forward_evidence": forward_evidence,
         "recovered_allocation": [{
             "target_id": target,
@@ -7023,6 +7132,7 @@ def execute_availability_first_standing_stage(
         )
         recovered_stage_complete = bool(
             reset_complete
+            and stage == 1
             and str(partial.get("recovery_mode") or "")
             == "VERIFIED_STAGE_BASELINE_PENDING"
             and forward_evidence.get("ok") is True

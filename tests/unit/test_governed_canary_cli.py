@@ -188,6 +188,88 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         execute.assert_not_called()
 
+    def test_stage_two_cleanup_reconciles_baseline_without_false_stage_completion(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            args = argparse.Namespace()
+            partial = {
+                "pending": True,
+                "ok": True,
+                "stage": 2,
+                "user": "10.7.0.100",
+                "source": "vless",
+                "target": "awg0",
+                "packet_id": "pkt_stage2_a",
+                "operation_id": "govexec_stage2_a",
+                "allocation_fingerprint": "a" * 64,
+                "contract_id": "sdpc_stage2",
+                "contract_hash": "b" * 64,
+                "recovery_mode": "VERIFIED_STAGE_BASELINE_PENDING",
+                "cohort_packet_count": 2,
+                "cohort_projection_exact": True,
+                "forward_evidence": {
+                    "ok": True,
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                },
+                "recovered_allocation": [{
+                    "target_id": "awg0",
+                    "allocated_users": 1,
+                    "capacity_reservation": 1,
+                }],
+            }
+            reset = {
+                "final_verdict": "L3_PRODUCTION_PROVEN",
+                "transaction_status": "COMPLETED",
+                "runtime_mutation_performed": True,
+                "users_moved": 1,
+            }
+            with mock.patch.object(
+                module,
+                "availability_first_restored_stage_receipt_recovery_context",
+                return_value={"pending": False},
+            ), mock.patch.object(
+                module,
+                "availability_first_partial_apply_recovery_context",
+                return_value=partial,
+            ), mock.patch.object(
+                module,
+                "execute_governed_transaction_with_guards",
+                return_value=reset,
+            ), mock.patch.object(
+                module,
+                "availability_first_baseline_reset_truth",
+                return_value={"ok": True, "current_egress": "vless"},
+            ):
+                result = module.execute_availability_first_standing_stage(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
+        )
+        self.assertEqual(result["transaction_status"], "STOP_SAFE")
+        self.assertTrue(result["baseline_reset_verified"])
+        self.assertEqual(result["packet_set"], [])
+        self.assertEqual(
+            result["durable_successor"],
+            "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN",
+        )
+
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -1813,6 +1895,186 @@ class GovernedCanaryCliTest(unittest.TestCase):
             context["projection_source"],
             "append_only_matrix_event",
         )
+
+    def test_verified_stage_two_recovery_reuses_cohort_audit_after_lease_advanced(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = ("10.7.0.100", "10.7.0.101")
+            packets = ("pkt_stage2_a", "pkt_stage2_b")
+            operations = ("govexec_stage2_a", "govexec_stage2_b")
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=awg0 enabled=1 "
+                    "certification_user=1\n"
+                    "ip=10.7.0.101 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg0 enabled=1 role=GLOBAL_STABLE\n",
+                encoding="utf-8",
+            )
+            packet_set = [
+                {
+                    "final_verdict": "L3_PRODUCTION_PROVEN",
+                    "transaction_status": "COMPLETED",
+                    "verification_result": "PASS",
+                    "users_moved": 1,
+                    "fresh_packet_id": packet_id,
+                    "operation_id": operation_id,
+                    "user": user,
+                    "source": "vless",
+                    "target": "awg0",
+                }
+                for packet_id, operation_id, user in zip(
+                    packets, operations, users
+                )
+            ]
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 2,
+                        "consumer_result": {
+                            "stage": 2,
+                            "circuit_breaker": {
+                                "tripped": True,
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": packet_set,
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            # The second user's reset legitimately advanced the one-operation
+            # lease. Recovery of the first user must therefore use immutable
+            # forward audit lineage rather than the current lease.
+            lease_file = state / "operator-execution-lease.json"
+            lease_file.write_text(
+                json.dumps({
+                    "immutable_packet_identity": {
+                        "packet_id": "pkt_reset_b",
+                        "operation_id": "govdry_reset_b",
+                        "user": users[1],
+                        "source": "awg0",
+                        "target": "vless",
+                    },
+                }),
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": users[0],
+                    "from": "vless",
+                    "to": "awg0",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_stage2",
+                        "contract_hash": "c" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            audit = [
+                {
+                    "operation_id": operation_id,
+                    "packet_id": packet_id,
+                    "runtime_action_performed": True,
+                    "clearance_verdict": (
+                        "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                    ),
+                    "checks": {
+                        "selected_move_hash": str(index) * 64,
+                        "moves": [{
+                            "user_ip": user,
+                            "current_egress": "vless",
+                            "recommended_egress": "awg0",
+                            "availability_first_controlled_assignment": {
+                                "source": "vless",
+                                "target": "awg0",
+                                "allocation_fingerprint": "a" * 64,
+                                "ordinary_user": False,
+                                "natural_production_credit": False,
+                            },
+                        }],
+                    },
+                }
+                for index, (packet_id, operation_id, user) in enumerate(
+                    zip(packets, operations, users), start=1
+                )
+            ]
+            validation = {
+                "ok": True,
+                "errors": [],
+                "policy": {
+                    "action_class_scopes": {
+                        module.operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                            "allowed_actions": [
+                                "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+                            ],
+                        },
+                    },
+                },
+            }
+            args = argparse.Namespace(
+                policy_file=str(policy_file),
+                operator_execution_audit_store=str(root / "audit.jsonl"),
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value=validation,
+            ), mock.patch.object(
+                module.operator_execution,
+                "read_audit_records",
+                return_value=audit,
+            ), mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={
+                    "ok": True,
+                    "blockers": [],
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                },
+            ):
+                context = (
+                    module.availability_first_partial_apply_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                        lease_file=lease_file,
+                    )
+                )
+
+        self.assertTrue(context["pending"])
+        self.assertTrue(context["ok"], context)
+        self.assertEqual(context["stage"], 2)
+        self.assertEqual(context["user"], users[0])
+        self.assertEqual(context["packet_id"], packets[0])
+        self.assertEqual(
+            context["recovery_mode"],
+            "VERIFIED_STAGE_BASELINE_PENDING",
+        )
+        self.assertEqual(context["cohort_packet_count"], 2)
+        self.assertTrue(context["cohort_projection_exact"])
+        self.assertEqual(context["allocation_fingerprint"], "a" * 64)
 
     def test_availability_forward_evidence_reuses_exact_outcome_and_closure_owners(self):
         module = load_cli_module()

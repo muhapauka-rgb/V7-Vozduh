@@ -255,6 +255,75 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertFalse(allocation["stage_allocations"]["2"]["feasible"])
 
+    def test_shared_allocator_continues_target_specific_proven_ladder(self):
+        rows = [
+            {
+                "target_id": "higher-stability-unproven",
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {
+                    "state": "DEGRADED_USABLE",
+                },
+                "quality": {"current_stability": 0.9},
+                "capacity": {
+                    "target_safe_additional_capacity": 1,
+                    "planning_safe_additional_capacity": 1,
+                    "availability_first_proven_additional_scope": 0,
+                },
+                "planner_score": 10.0,
+                "correlation_domain": "domain-a",
+                "semantic_fingerprint": "a" * 64,
+            },
+            {
+                "target_id": "proven-stage-one",
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {
+                    "state": "DEGRADED_USABLE",
+                },
+                "quality": {"current_stability": 0.5},
+                "capacity": {
+                    "target_safe_additional_capacity": 2,
+                    "planning_safe_additional_capacity": 2,
+                    "availability_first_proven_additional_scope": 1,
+                },
+                "planner_score": 5.0,
+                "correlation_domain": "domain-b",
+                "semantic_fingerprint": "b" * 64,
+            },
+        ]
+        allocation = self.autoswitch.shared_target_stage_allocations(
+            rows=rows,
+            stages=[2],
+            inventory_fingerprint="i" * 64,
+        )
+
+        self.assertEqual(
+            allocation["ranked_target_ids"],
+            ["proven-stage-one", "higher-stability-unproven"],
+        )
+        stage = allocation["stage_allocations"]["2"]
+        self.assertTrue(stage["feasible"])
+        self.assertEqual(
+            stage["immutable_allocation_projection"],
+            [{
+                "target_id": "proven-stage-one",
+                "correlation_domain": "domain-b",
+                "allocated_users": 2,
+                "capacity_reservation": 2,
+                "capacity_reservation_semantics": (
+                    "SERIALIZED_PACKET_LEASE_RESERVATION_WITH_FRESH_"
+                    "PRE_APPLY_REVALIDATION"
+                ),
+                "capacity_bounds_fingerprint": (
+                    self.autoswitch.sha256_json({})
+                ),
+                "ordinary_users_unchanged": 0,
+                "availability_classification": "DEGRADED_USABLE",
+                "availability_policy_boundary": "",
+                "target_fault_injection": "FORBIDDEN",
+                "target_fingerprint": "b" * 64,
+            }],
+        )
+
     def test_shared_target_fingerprint_ignores_display_age_but_binds_freshness(self):
         base = {
             "target_id": "awg3",

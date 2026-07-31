@@ -14862,6 +14862,18 @@ def shared_target_stage_allocations(
                 ) or ""),
                 3,
             ),
+            -to_int(
+                (row.get("capacity") or {}).get(
+                    "availability_first_proven_additional_scope"
+                ),
+                0,
+            ),
+            -to_int(
+                (row.get("capacity") or {}).get(
+                    "planning_safe_additional_capacity"
+                ),
+                0,
+            ),
             -to_float((row.get("quality") or {}).get("current_stability"), 0.0),
             -to_int(
                 (row.get("capacity") or {}).get(

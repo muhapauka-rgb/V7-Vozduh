@@ -1516,6 +1516,16 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 binding["plan"]
             )
         )
+        packet = module.operator_execution.packet_from_plan(
+            binding["plan"],
+            approval_author="availability-first-owner",
+            approval_reviewer="availability-first-reviewer",
+        )
+        locked_move = packet["approved_plan_lock"]["selected_moves"][0]
+        self.assertEqual(
+            locked_move["availability_first_controlled_assignment"],
+            provenance,
+        )
         selected_scope = module.availability_first_selected_scope(
             canonical_selected
         )

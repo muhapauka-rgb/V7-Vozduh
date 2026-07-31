@@ -54,6 +54,7 @@ SELECTED_MOVE_SEMANTIC_FIELDS = (
     "candidates",
     "scores",
     "service_failover",
+    "availability_first_controlled_assignment",
 )
 RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
@@ -2370,6 +2371,288 @@ class AutoswitchPlanner:
             "source_state": str(source.state) if source is not None else "",
         }
 
+    def _exact_availability_first_controlled_scope(
+        self,
+        selected_moves: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Consume the existing availability-first semantic binding.
+
+        Availability-first certification deliberately moves certification
+        identities from a healthy controlled source to an independently
+        selected shared target.  It is therefore neither an ordinary
+        production incident nor the older deliberately unavailable-source
+        verifier.  The exact standing Authority contract, immutable allocation
+        binding and live registry facts must all agree before this context may
+        bypass incident-source continuity.
+        """
+        moves = [
+            move for move in selected_moves
+            if isinstance(move, dict)
+        ]
+        if not moves or not any(
+            isinstance(
+                move.get("availability_first_controlled_assignment"),
+                dict,
+            )
+            for move in moves
+        ):
+            return {
+                "schema_version": (
+                    "v7.availability-first-controlled-scope.v1"
+                ),
+                "ok": False,
+                "reasons": [
+                    "availability_first_semantic_binding_missing"
+                ],
+                "event_provenance": "",
+                "natural_production_credit": False,
+                "ordinary_user_effect": "FORBIDDEN",
+                "authority_expanded": False,
+                "new_owner_created": False,
+            }
+        reasons: list[str] = []
+        standing_contract = (
+            (self.policy or {}).get("delegated_autonomy_policy")
+            if isinstance((self.policy or {}).get("delegated_autonomy_policy"), dict)
+            else {}
+        )
+        audit_store = Path(getattr(
+            self.args,
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
+        standing_validation = (
+            operator_execution.validate_standing_delegated_operational_policy(
+                standing_contract,
+                audit_records=operator_execution.read_audit_records(audit_store),
+            )
+            if standing_contract
+            else {
+                "ok": False,
+                "errors": ["standing_delegated_policy_missing"],
+                "policy": {},
+            }
+        )
+        standing_scope = (
+            standing_validation.get("policy")
+            if isinstance(standing_validation.get("policy"), dict)
+            else {}
+        )
+        action_scopes = (
+            standing_scope.get("action_class_scopes")
+            if isinstance(standing_scope.get("action_class_scopes"), dict)
+            else {}
+        )
+        availability_scope = (
+            action_scopes.get(
+                operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            )
+            if isinstance(
+                action_scopes.get(
+                    operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+                ),
+                dict,
+            )
+            else {}
+        )
+        if standing_validation.get("ok") is not True:
+            reasons.extend(
+                str(value)
+                for value in (
+                    standing_validation.get("errors")
+                    or ["availability_first_standing_policy_invalid"]
+                )
+                if str(value)
+            )
+        if (
+            standing_scope.get("policy_profile")
+            != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        ):
+            reasons.append("availability_first_policy_profile_not_active")
+        if (
+            operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+            not in set(standing_scope.get("allowed_action_classes") or [])
+        ):
+            reasons.append("availability_first_action_class_not_active")
+        if availability_scope.get("certification_identities_only") is not True:
+            reasons.append("availability_first_certification_identity_fence_missing")
+        max_users = to_int(
+            availability_scope.get("max_users_per_transaction"),
+            0,
+        )
+        if not moves:
+            reasons.append("availability_first_exact_move_missing")
+        if max_users < 1 or len(moves) > max_users:
+            reasons.append("availability_first_scope_above_contract_ceiling")
+
+        requested_user = str(getattr(self.args, "user", "") or "").strip()
+        requested_source = str(
+            getattr(self.args, "source_egress", "") or ""
+        ).strip()
+        requested_target = str(
+            getattr(self.args, "target_egress", "") or ""
+        ).strip()
+        registry_rows = [
+            row for row in parse_registry(self.state_dir / "users.registry")
+            if isinstance(row, dict)
+        ]
+        users_by_ip = {
+            str(row.get("ip") or ""): row for row in registry_rows
+        }
+        egress_rows = {
+            str(row.get("id") or ""): row
+            for row in parse_registry(self.state_dir / "egress.registry")
+            if isinstance(row, dict)
+        }
+        allocation_fingerprints: set[str] = set()
+        sources: set[str] = set()
+        targets: set[str] = set()
+        users: list[str] = []
+        member_proof: list[dict[str, Any]] = []
+        for move in moves:
+            user_ip = str(move.get("user_ip") or "")
+            source = str(move.get("current_egress") or "")
+            target = str(move.get("recommended_egress") or "")
+            binding = (
+                move.get("availability_first_controlled_assignment")
+                if isinstance(
+                    move.get("availability_first_controlled_assignment"),
+                    dict,
+                )
+                else {}
+            )
+            user_row = users_by_ip.get(user_ip) or {}
+            source_row = egress_rows.get(source) or {}
+            target_obj = self.egress.get(target)
+            fingerprint = str(
+                binding.get("allocation_fingerprint") or ""
+            )
+            allocation_fingerprints.add(fingerprint)
+            sources.add(source)
+            targets.add(target)
+            users.append(user_ip)
+            if binding.get("schema_version") != (
+                "v7.availability-first-controlled-selection.v1"
+            ):
+                reasons.append(
+                    f"availability_first_binding_schema_invalid:{user_ip}"
+                )
+            if binding.get("event_provenance") != "CONTROLLED_CERTIFICATION":
+                reasons.append(
+                    f"availability_first_provenance_invalid:{user_ip}"
+                )
+            if binding.get("natural_production_credit") is not False:
+                reasons.append(
+                    f"availability_first_natural_credit_invalid:{user_ip}"
+                )
+            if binding.get("ordinary_user") is not False:
+                reasons.append(
+                    f"availability_first_ordinary_user_fence_invalid:{user_ip}"
+                )
+            if (
+                str(binding.get("source") or "") != source
+                or str(binding.get("target") or "") != target
+            ):
+                reasons.append(
+                    f"availability_first_source_target_binding_mismatch:{user_ip}"
+                )
+            if len(fingerprint) != 64:
+                reasons.append(
+                    f"availability_first_allocation_fingerprint_invalid:{user_ip}"
+                )
+            if not user_row or not bool_value(user_row.get("enabled")):
+                reasons.append(
+                    f"availability_first_user_missing_or_disabled:{user_ip}"
+                )
+            if str(user_row.get("current") or "") != source:
+                reasons.append(
+                    f"availability_first_user_source_mismatch:{user_ip}"
+                )
+            if not bool_value(user_row.get("certification_user")):
+                reasons.append(
+                    f"availability_first_user_not_certification_identity:{user_ip}"
+                )
+            if not bool_value(
+                source_row.get("controlled_certification_source")
+            ):
+                reasons.append(
+                    f"availability_first_source_not_controlled:{source}"
+                )
+            if source == target:
+                reasons.append(
+                    f"availability_first_source_target_collision:{user_ip}"
+                )
+            if target_obj is None or not target_obj.enabled:
+                reasons.append(
+                    f"availability_first_target_not_enabled:{target}"
+                )
+            member_proof.append({
+                "user_ip": user_ip,
+                "source": source,
+                "target": target,
+                "certification_user": bool_value(
+                    user_row.get("certification_user")
+                ),
+                "source_controlled": bool_value(
+                    source_row.get("controlled_certification_source")
+                ),
+                "binding_fingerprint": fingerprint,
+            })
+
+        if len(allocation_fingerprints) != 1:
+            reasons.append(
+                "availability_first_allocation_fingerprint_not_uniform"
+            )
+        if len(sources) != 1:
+            reasons.append("availability_first_source_not_exact")
+        if requested_user and users != [requested_user]:
+            reasons.append("availability_first_requested_user_mismatch")
+        if requested_source and sources != {requested_source}:
+            reasons.append("availability_first_requested_source_mismatch")
+        if requested_target and targets != {requested_target}:
+            reasons.append("availability_first_requested_target_mismatch")
+        for source in sources:
+            ordinary_on_source = [
+                str(row.get("ip") or "")
+                for row in registry_rows
+                if str(row.get("current") or "") == source
+                and bool_value(row.get("enabled"))
+                and not bool_value(row.get("certification_user"))
+            ]
+            if ordinary_on_source:
+                reasons.append(
+                    "availability_first_controlled_source_contains_ordinary_users"
+                )
+
+        return {
+            "schema_version": "v7.availability-first-controlled-scope.v1",
+            "ok": not reasons,
+            "reasons": sorted(set(reasons)),
+            "standing_policy_contract_id": str(
+                standing_contract.get("contract_id") or ""
+            ),
+            "standing_policy_contract_hash": str(
+                standing_contract.get("contract_hash") or ""
+            ),
+            "policy_profile": str(
+                standing_scope.get("policy_profile") or ""
+            ),
+            "users": users,
+            "sources": sorted(sources),
+            "targets": sorted(targets),
+            "allocation_fingerprint": (
+                next(iter(allocation_fingerprints))
+                if len(allocation_fingerprints) == 1
+                else ""
+            ),
+            "member_scope_fingerprint": sha256_json(member_proof),
+            "event_provenance": "CONTROLLED_CERTIFICATION",
+            "natural_production_credit": False,
+            "ordinary_user_effect": "FORBIDDEN",
+            "authority_expanded": False,
+            "new_owner_created": False,
+        }
+
     def _activate_controlled_verifier_contention(self, move: dict[str, Any], operation_id: str) -> dict[str, Any]:
         scope = self._exact_controlled_verifier_scope([move])
         source = str(move.get("current_egress") or "")
@@ -4206,7 +4489,14 @@ class AutoswitchPlanner:
             else {}
         )
         context_moves = list(selected) if selected else list(evidence_candidates or [])
+        availability_first_scope = (
+            self._exact_availability_first_controlled_scope(context_moves)
+        )
         context_source = str(incident_source_continuity.get("incident_source") or "")
+        if availability_first_scope.get("ok"):
+            context_source = str(
+                (availability_first_scope.get("sources") or [""])[0]
+            )
         controlled_members = []
         for move in context_moves:
             user_ip = str(move.get("user_ip") or "")
@@ -4219,14 +4509,17 @@ class AutoswitchPlanner:
                 "certification_user_in_scope": bool_value(proof.get("certification_user_in_scope")),
             })
         exact_controlled_context = bool(
-            context_moves
-            and context_source
-            and bool_value(controlled_failure.get("confirmed"))
-            and all(
-                row["confirmed"]
-                and row["certification_user_in_scope"]
-                and row["source"] == context_source
-                for row in controlled_members
+            availability_first_scope.get("ok")
+            or (
+                context_moves
+                and context_source
+                and bool_value(controlled_failure.get("confirmed"))
+                and all(
+                    row["confirmed"]
+                    and row["certification_user_in_scope"]
+                    and row["source"] == context_source
+                    for row in controlled_members
+                )
             )
         )
         ordinary_runtime_max = max(
@@ -4249,7 +4542,9 @@ class AutoswitchPlanner:
         gate["runtime_scope"] = {
             "schema_version": "v7.service-failure-execution-context-proof.v1",
             "context": (
-                "CONTROLLED_CERTIFICATION_CONTEXT"
+                "AVAILABILITY_FIRST_CONTROLLED_CERTIFICATION_CONTEXT"
+                if availability_first_scope.get("ok")
+                else "CONTROLLED_CERTIFICATION_CONTEXT"
                 if exact_controlled_context
                 else "ORDINARY_PRODUCTION_SERVICE_FAILURE"
             ),
@@ -4264,6 +4559,9 @@ class AutoswitchPlanner:
             "selected_runtime_max": selected_runtime_max,
             "contract_rewritten": False,
             "authority_expanded": False,
+            "availability_first_controlled_scope": (
+                availability_first_scope
+            ),
         }
         if not enabled:
             gate["wake"] = self._l3_wake_decision(policy, [])
@@ -4299,9 +4597,34 @@ class AutoswitchPlanner:
         evidence_source = list(selected) if selected else list(evidence_candidates or [])
         incident_source = str(incident_source_continuity.get("incident_source") or "")
         for move in evidence_source:
-            if bool_value(incident_source_continuity.get("active")) and str(move.get("current_egress") or "") != incident_source:
+            if (
+                not availability_first_scope.get("ok")
+                and bool_value(incident_source_continuity.get("active"))
+                and str(move.get("current_egress") or "") != incident_source
+            ):
                 blockers.append("incident_source_selected_move_mismatch")
-            evidence = self._emergency_failover_move_evidence(move)
+            if availability_first_scope.get("ok"):
+                evidence = {
+                    "schema_version": (
+                        "v7.availability-first-controlled-move-evidence.v1"
+                    ),
+                    "ok": True,
+                    "blockers": [],
+                    "user_ip": str(move.get("user_ip") or ""),
+                    "current_egress": str(
+                        move.get("current_egress") or ""
+                    ),
+                    "recommended_egress": str(
+                        move.get("recommended_egress") or ""
+                    ),
+                    "event_provenance": "CONTROLLED_CERTIFICATION",
+                    "natural_production_credit": False,
+                    "authority_source": (
+                        "ACTIVE_STANDING_AVAILABILITY_FIRST_POLICY"
+                    ),
+                }
+            else:
+                evidence = self._emergency_failover_move_evidence(move)
             per_move.append(evidence)
             move_key = (
                 str(move.get("user_ip") or ""),
@@ -4366,7 +4689,20 @@ class AutoswitchPlanner:
         if selected and gate["retry_budget_per_incident"] < 1:
             blockers.append("l3_retry_budget_exhausted")
 
-        wake = self._l3_wake_decision(policy, per_move)
+        wake = (
+            {
+                "schema_version": "v7.l3-wake-decision.v1",
+                "accepted": True,
+                "blockers": [],
+                "reason": (
+                    "availability_first_standing_policy_packet_consumption"
+                ),
+                "event_provenance": "CONTROLLED_CERTIFICATION",
+                "natural_production_credit": False,
+            }
+            if availability_first_scope.get("ok")
+            else self._l3_wake_decision(policy, per_move)
+        )
         if not wake.get("accepted"):
             blockers.extend(str(reason) for reason in wake.get("blockers") or [])
         failed_sources = sorted({
@@ -4436,7 +4772,22 @@ class AutoswitchPlanner:
         gate["blockers"] = sorted(set(blockers))
         gate["ok"] = bool(bounded) and not gate["blockers"]
         gate["selected_moves_after_gate"] = len(bounded) if gate["ok"] else 0
-        if gate["ok"] and bool_value(approved_envelope.get("ok")):
+        if (
+            gate["ok"]
+            and bool_value(approved_envelope.get("ok"))
+            and availability_first_scope.get("ok")
+        ):
+            gate["decision"] = (
+                "authorize_availability_first_controlled_certification_envelope"
+            )
+            gate["authority_source"] = (
+                "active_standing_availability_first_policy"
+            )
+            gate["production_validation_only"] = True
+            gate["autonomy_certified"] = False
+            gate["event_provenance"] = "CONTROLLED_CERTIFICATION"
+            gate["natural_production_credit"] = False
+        elif gate["ok"] and bool_value(approved_envelope.get("ok")):
             gate["decision"] = (
                 "authorize_governed_production_validation_envelope"
                 if len(bounded) > 1
@@ -9593,12 +9944,16 @@ class AutoswitchPlanner:
         if requested_target and locked_targets != [requested_target]:
             reasons.append("approved_plan_lock_target_scope_mismatch")
         controlled_verifier_scope = self._exact_controlled_verifier_scope(selected)
+        availability_first_scope = (
+            self._exact_availability_first_controlled_scope(selected)
+        )
         incident_source_continuity = self._l3_active_incident_source_context()
         incident_source = str(incident_source_continuity.get("incident_source") or "")
         if (
             bool_value(incident_source_continuity.get("active"))
             and locked_sources != [incident_source]
             and not controlled_verifier_scope.get("ok")
+            and not availability_first_scope.get("ok")
         ):
             reasons.append("approved_plan_lock_incident_source_mismatch")
         committed_identity = self._committed_apply_identity_validation(
@@ -9655,6 +10010,9 @@ class AutoswitchPlanner:
                 "committed_apply_identity": committed_identity,
                 "incident_source_continuity": incident_source_continuity,
                 "controlled_verifier_scope": controlled_verifier_scope,
+                "availability_first_controlled_scope": (
+                    availability_first_scope
+                ),
             }
         return {
             "present": True,
@@ -9674,6 +10032,9 @@ class AutoswitchPlanner:
             "selected_moves": selected,
             "committed_apply_identity": committed_identity,
             "incident_source_continuity": incident_source_continuity,
+            "availability_first_controlled_scope": (
+                availability_first_scope
+            ),
         }
 
     def _committed_selected_moves_from_approved_plan_lock(self, plan: dict[str, Any]) -> list[dict[str, Any]]:

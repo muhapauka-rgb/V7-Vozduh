@@ -365,6 +365,123 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(gate["effective_max_users_per_run"], 4)
         self.assertFalse(gate["runtime_scope"]["authority_expanded"])
 
+    def test_availability_first_gate_does_not_require_incident_source_failure(self):
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.emergency_failover_policy = {
+            "enabled": True,
+            "max_users_per_run": 4,
+            "max_users_per_channel": 4,
+            "require_restore_barrier": True,
+            "require_rollback": True,
+            "require_verification": True,
+            "retry_budget_per_incident": 1,
+            "runtime_scope_axes": {
+                "authority_approved_max": 48,
+                "controlled_certification_runtime_max": 48,
+                "ordinary_production_runtime_max": 4,
+            },
+        }
+        planner.args = mock.Mock(
+            source_egress="vless",
+            rollback_on_verify_fail=True,
+            verify=True,
+            emergency_failover_autonomy=True,
+            apply=True,
+        )
+        planner.authority_budget_policy = {
+            "current_allowed_user_budget": 48,
+        }
+        planner.generation = {"planner_generation_id": "generation"}
+        move = {
+            "user_ip": "10.7.0.100",
+            "current_egress": "vless",
+            "recommended_egress": "awg3",
+            "move_type": "failover",
+            "availability_first_controlled_assignment": {
+                "schema_version": (
+                    "v7.availability-first-controlled-selection.v1"
+                ),
+                "event_provenance": "CONTROLLED_CERTIFICATION",
+                "natural_production_credit": False,
+                "source": "vless",
+                "target": "awg3",
+                "allocation_fingerprint": "c" * 64,
+                "ordinary_user": False,
+            },
+        }
+        availability_scope = {
+            "ok": True,
+            "sources": ["vless"],
+            "event_provenance": "CONTROLLED_CERTIFICATION",
+            "natural_production_credit": False,
+        }
+        with mock.patch.object(
+            planner,
+            "_approved_l3_production_validation_envelope",
+            return_value={
+                "ok": True,
+                "selected_move_count": 1,
+                "clearance_max_selected_moves": 1,
+                "authorized_l3_budget": 1,
+            },
+        ), mock.patch.object(
+            planner,
+            "_l3_active_incident_source_context",
+            return_value={
+                "active": True,
+                "incident_source": "1",
+                "scope": {
+                    "source_failed": True,
+                    "controlled_certification_failure": {
+                        "confirmed": False,
+                    },
+                },
+            },
+        ), mock.patch.object(
+            planner,
+            "_l3_failed_source_scope",
+            return_value={"source_failed": False},
+        ), mock.patch.object(
+            planner,
+            "_exact_availability_first_controlled_scope",
+            return_value=availability_scope,
+        ), mock.patch.object(
+            planner,
+            "_controlled_certification_failure_context",
+            return_value={
+                "confirmed": False,
+                "certification_user_in_scope": False,
+            },
+        ), mock.patch.object(
+            planner,
+            "_emergency_failover_move_evidence",
+        ) as ordinary_evidence:
+            selected, gate = (
+                planner._emergency_failover_authority_gate(
+                    [move],
+                    {"failover_quarantine": True},
+                )
+            )
+
+        self.assertEqual(len(selected), 1)
+        self.assertTrue(gate["ok"])
+        self.assertEqual(gate["blockers"], [])
+        self.assertEqual(
+            gate["decision"],
+            (
+                "authorize_availability_first_controlled_"
+                "certification_envelope"
+            ),
+        )
+        self.assertEqual(
+            gate["runtime_scope"]["context"],
+            "AVAILABILITY_FIRST_CONTROLLED_CERTIFICATION_CONTEXT",
+        )
+        self.assertFalse(gate["natural_production_credit"])
+        ordinary_evidence.assert_not_called()
+        self.assertEqual(gate["effective_max_users_per_run"], 1)
+        self.assertFalse(gate["runtime_scope"]["authority_expanded"])
+
     def test_exact_controlled_certification_context_can_consume_tier48_ceiling(self):
         selected, gate = self._runtime_scope_gate_fixture(controlled=True)
 
@@ -550,6 +667,118 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(scope["fresh_user_egress"], "vless")
         self.assertFalse(scope["source_enabled"])
         self.assertEqual(scope["source_state"], "maintenance")
+
+    def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                current_egress="vless",
+                vless_registry_extra=(
+                    " controlled_certification_source=1"
+                ),
+            )
+            (root / "state" / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless table=1098 enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["delegated_autonomy_policy"] = {
+                "contract_id": "sdpc_unit",
+                "contract_hash": "a" * 64,
+            }
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--user", "10.7.0.100",
+                        "--source-egress", "vless",
+                        "--target-egress", "1",
+                        "--max-selected-moves", "1",
+                    ],
+                )
+            )
+            move = {
+                "user_ip": "10.7.0.100",
+                "current_egress": "vless",
+                "recommended_egress": "1",
+                "move_type": "failover",
+                "availability_first_controlled_assignment": {
+                    "schema_version": (
+                        "v7.availability-first-controlled-selection.v1"
+                    ),
+                    "event_provenance": "CONTROLLED_CERTIFICATION",
+                    "natural_production_credit": False,
+                    "source": "vless",
+                    "target": "1",
+                    "allocation_fingerprint": "b" * 64,
+                    "ordinary_user": False,
+                },
+            }
+            standing_scope = {
+                "policy_profile": (
+                    operator_execution
+                    .AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+                ),
+                "allowed_action_classes": [
+                    operator_execution
+                    .AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+                ],
+                "action_class_scopes": {
+                    operator_execution
+                    .AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                        "certification_identities_only": True,
+                        "max_users_per_transaction": 48,
+                    },
+                },
+            }
+            with mock.patch.object(
+                operator_execution,
+                "read_audit_records",
+                return_value=[],
+            ), mock.patch.object(
+                operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={
+                    "ok": True,
+                    "errors": [],
+                    "policy": standing_scope,
+                },
+            ):
+                scope = (
+                    planner._exact_availability_first_controlled_scope(
+                        [move]
+                    )
+                )
+                invalid = json.loads(json.dumps(move))
+                invalid[
+                    "availability_first_controlled_assignment"
+                ]["natural_production_credit"] = True
+                rejected = (
+                    planner._exact_availability_first_controlled_scope(
+                        [invalid]
+                    )
+                )
+
+        self.assertTrue(scope["ok"])
+        self.assertEqual(scope["users"], ["10.7.0.100"])
+        self.assertEqual(scope["sources"], ["vless"])
+        self.assertEqual(scope["targets"], ["1"])
+        self.assertEqual(
+            scope["event_provenance"],
+            "CONTROLLED_CERTIFICATION",
+        )
+        self.assertFalse(scope["natural_production_credit"])
+        self.assertFalse(rejected["ok"])
+        self.assertIn(
+            "availability_first_natural_credit_invalid:10.7.0.100",
+            rejected["reasons"],
+        )
 
     def test_execution_control_open_denies_apply_without_changing_plan(self):
         with tempfile.TemporaryDirectory() as tmp:

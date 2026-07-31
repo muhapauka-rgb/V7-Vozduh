@@ -61,6 +61,7 @@ SELECTED_MOVE_SEMANTIC_FIELDS = (
     "candidates",
     "scores",
     "service_failover",
+    "availability_first_controlled_assignment",
 )
 MATERIAL_STATE_FIELDS = [
     "breaker_generation",

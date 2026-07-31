@@ -122,6 +122,241 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("users", rows[0])
         self.assertFalse(rows[0]["natural_l8_credit"])
 
+    def test_target_bound_receipt_advances_target_only_and_is_exact_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_store = Path(tmp) / "operator-execution-audit.jsonl"
+            result = {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+                ),
+                "stage": 5,
+                "target_bound_trial_target": "awg3",
+                "campaign_next_stage": 25,
+                "standing_policy_contract_id": "sdpc_" + "a" * 24,
+                "standing_policy_contract_hash": "a" * 64,
+                "planner_allocation_fingerprint": "b" * 64,
+                "execution_allocation_fingerprint": "c" * 64,
+                "packet_set_fingerprint": "d" * 64,
+                "allocation": [{
+                    "target_id": "awg3",
+                    "allocated_users": 5,
+                    "target_fingerprint": "e" * 64,
+                    "capacity_bounds_fingerprint": "f" * 64,
+                }],
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+            }
+            first = (
+                self.refresh
+                .record_availability_first_target_bound_consumption(
+                    audit_store=audit_store,
+                    result=result,
+                )
+            )
+            duplicate = (
+                self.refresh
+                .record_availability_first_target_bound_consumption(
+                    audit_store=audit_store,
+                    result=result,
+                )
+            )
+            rows = [
+                json.loads(line)
+                for line in audit_store.read_text(
+                    encoding="utf-8"
+                ).splitlines()
+            ]
+        self.assertTrue(first["audit_write"])
+        self.assertTrue(duplicate["duplicate_suppressed"])
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0]["effect_class"],
+            "AVAILABILITY_FIRST_TARGET_BOUND_CONSUMED",
+        )
+        self.assertEqual(rows[0]["verified_scope"], 5)
+        self.assertNotIn("users", rows[0])
+
+    def test_target_growth_projection_breaks_aggregate_stage_cycle(self):
+        rows = [{
+            "target_id": "amnezia",
+            "correlation_domain": "domain-a",
+            "shared_target_technically_eligible": True,
+            "shared_target_availability": {
+                "state": "DEGRADED_USABLE",
+                "policy_boundary": "EXACT_POLICY",
+            },
+            "semantic_fingerprint": "a" * 64,
+            "capacity": {
+                "availability_first_proven_additional_scope": 9,
+                "availability_first_next_trial_scope": 10,
+                "target_safe_additional_capacity": 9,
+                "ordinary_users": 0,
+                "capacity_bounds": {"safe": 9},
+            },
+        }, {
+            "target_id": "awg3",
+            "correlation_domain": "domain-b",
+            "shared_target_technically_eligible": True,
+            "shared_target_availability": {
+                "state": "DEGRADED_USABLE",
+                "policy_boundary": "EXACT_POLICY",
+            },
+            "semantic_fingerprint": "b" * 64,
+            "capacity": {
+                "availability_first_proven_additional_scope": 1,
+                "availability_first_next_trial_scope": 2,
+                "target_safe_additional_capacity": 2,
+                "ordinary_users": 11,
+                "capacity_bounds": {"safe": 2},
+            },
+        }]
+        projection = (
+            self.autoswitch
+            .availability_first_target_growth_trial_projection(
+                rows=rows,
+                campaign={
+                    "next_stage": 25,
+                    "standing_policy_contract_id": "sdpc_test",
+                    "target_proven_bounds": {
+                        "amnezia": 9,
+                        "awg3": 1,
+                    },
+                },
+                inventory_fingerprint="c" * 64,
+                excluded_target_ids={"vless"},
+            )
+        )
+        self.assertTrue(projection["feasible"])
+        self.assertEqual(projection["target_id"], "awg3")
+        self.assertEqual(projection["trial_scope"], 2)
+        self.assertEqual(
+            projection["production_credit_class"],
+            "TARGET_BOUND_ONLY_NOT_CAMPAIGN_STAGE",
+        )
+
+    def test_matrix_consumes_target_bound_predecessor_before_stage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            audit_store = root / "audit.jsonl"
+            policy_file = root / "policy.json"
+            policy_file.write_text("{}", encoding="utf-8")
+            planner_payload = {
+                "status": (
+                    "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
+                ),
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                    "blockers": [],
+                },
+                "shared_production_target_capacity_projection": {
+                    "availability_campaign": {
+                        "next_stage": 25,
+                        "completed": False,
+                        "blockers": [],
+                    },
+                    "stage_allocations": {
+                        "25": {
+                            "feasible": False,
+                            "allocation_fingerprint": "",
+                        },
+                    },
+                    "target_growth_trial": {
+                        "status": "TARGET_BOUND_TRIAL_READY",
+                        "ok": True,
+                        "feasible": True,
+                        "campaign_next_stage": 25,
+                        "target_id": "awg3",
+                        "trial_scope": 2,
+                        "allocation_fingerprint": "a" * 64,
+                        "immutable_allocation_projection": [{
+                            "target_id": "awg3",
+                            "allocated_users": 2,
+                        }],
+                    },
+                },
+            }
+            executor_payload = {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+                ),
+                "transaction_status": "COMPLETED",
+                "stage": 2,
+                "target_bound_trial_target": "awg3",
+                "campaign_next_stage": 25,
+                "standing_policy_contract_id": "sdpc_" + "b" * 24,
+                "standing_policy_contract_hash": "b" * 64,
+                "planner_allocation_fingerprint": "a" * 64,
+                "execution_allocation_fingerprint": "c" * 64,
+                "packet_set_fingerprint": "d" * 64,
+                "allocation": [{
+                    "target_id": "awg3",
+                    "allocated_users": 2,
+                    "target_fingerprint": "e" * 64,
+                    "capacity_bounds_fingerprint": "f" * 64,
+                }],
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+                "users_moved": 2,
+                "runtime_mutation_performed": True,
+            }
+            calls = []
+
+            def run(command, **_kwargs):
+                calls.append(command)
+                payload = (
+                    planner_payload if len(calls) == 1 else executor_payload
+                )
+                return SimpleNamespace(
+                    returncode=0,
+                    stdout=json.dumps(payload),
+                )
+
+            with mock.patch.object(self.refresh.subprocess, "run", side_effect=run):
+                result = (
+                    self.refresh
+                    ._run_availability_first_standing_policy_stage_once(
+                        "planner",
+                        "executor",
+                        state_dir=state_dir,
+                        event_dir=event_dir,
+                        policy_file=policy_file,
+                        audit_store=audit_store,
+                        timeout_sec=30,
+                    )
+                )
+        self.assertTrue(result["action_completed"], result)
+        self.assertEqual(result["completion_kind"], "TARGET_BOUND_TRIAL")
+        self.assertEqual(result["stage"], 2)
+        self.assertIn(
+            "--availability-first-target-bound-trial-target",
+            calls[1],
+        )
+        self.assertTrue(
+            result["stage_consumption"]["receipt_id"].startswith(
+                "aftbound_"
+            )
+        )
+
     def test_expected_http_response_is_visible_methodology_limit_not_failure_episode(self):
         for http_code in ("404", "405"):
             with self.subTest(http_code=http_code), mock.patch.object(

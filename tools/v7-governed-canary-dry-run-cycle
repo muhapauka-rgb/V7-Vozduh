@@ -8328,15 +8328,33 @@ def execute_availability_first_standing_stage(
         if isinstance(projection.get("availability_campaign"), dict)
         else {}
     )
+    target_bound_trial_target = str(
+        getattr(
+            args,
+            "availability_first_target_bound_trial_target",
+            "",
+        )
+        or ""
+    )
+    target_bound_trial = (
+        projection.get("target_growth_trial")
+        if isinstance(projection.get("target_growth_trial"), dict)
+        else {}
+    )
+    target_bound_mode = bool(target_bound_trial_target)
     stage = int(
         getattr(args, "availability_first_stage", 0)
         or campaign.get("next_stage")
         or 0
     )
     allocation = (
-        (projection.get("stage_allocations") or {}).get(str(stage), {})
-        if isinstance(projection.get("stage_allocations"), dict)
-        else {}
+        target_bound_trial
+        if target_bound_mode
+        else (
+            (projection.get("stage_allocations") or {}).get(str(stage), {})
+            if isinstance(projection.get("stage_allocations"), dict)
+            else {}
+        )
     )
     allocation_rows = [
         row
@@ -8354,16 +8372,33 @@ def execute_availability_first_standing_stage(
         or ""
     )
     blockers = list(planner.get("blockers") or [])
-    if diagnostic.get("status") != (
-        "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+    if (
+        not target_bound_mode
+        and diagnostic.get("status")
+        != "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
     ):
         blockers.append("availability_first_topology_not_auto_admitted")
     if admission.get("ok") is not True:
         blockers.extend(admission.get("blockers") or [])
     if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
         blockers.append("availability_first_stage_not_in_ladder")
-    if int(campaign.get("next_stage") or 0) != stage:
+    if (
+        not target_bound_mode
+        and int(campaign.get("next_stage") or 0) != stage
+    ):
         blockers.append("availability_first_stage_not_current")
+    if target_bound_mode and (
+        target_bound_trial.get("status") != "TARGET_BOUND_TRIAL_READY"
+        or target_bound_trial.get("feasible") is not True
+        or str(target_bound_trial.get("target_id") or "")
+        != target_bound_trial_target
+        or int(target_bound_trial.get("trial_scope") or 0) != stage
+        or int(target_bound_trial.get("campaign_next_stage") or 0)
+        != int(campaign.get("next_stage") or 0)
+    ):
+        blockers.append(
+            "availability_first_target_bound_trial_not_current"
+        )
     if not allocation.get("feasible") or not allocation_rows:
         blockers.append("availability_first_exact_allocation_not_feasible")
     allocation_fingerprint = str(
@@ -8833,14 +8868,23 @@ def execute_availability_first_standing_stage(
     )
     complete = complete and evidence_complete
     return {
-        "schema_version": "v7.availability-first-standing-stage.v1",
+        "schema_version": (
+            "v7.availability-first-target-bound-trial-result.v1"
+            if target_bound_mode
+            else "v7.availability-first-standing-stage.v1"
+        ),
         "transaction_status": "COMPLETED" if complete else "STOP_SAFE",
         "final_verdict": (
-            "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+            "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+            if complete and target_bound_mode
+            else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
             if complete
             else "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
         ),
         "stage": stage,
+        "target_bound_trial": target_bound_mode,
+        "target_bound_trial_target": target_bound_trial_target,
+        "campaign_next_stage": int(campaign.get("next_stage") or 0),
         "source": source,
         "standing_policy_contract_id": str(
             admission.get("contract_id") or ""
@@ -8894,7 +8938,9 @@ def execute_availability_first_standing_stage(
         "production_maturity_change": False,
         "natural_l8_credit": False,
         "durable_successor": (
-            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_TARGET_BOUND"
+            if complete and target_bound_mode
+            else "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
             if complete
             else "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_EXACT_STOP_SAFE"
         ),
@@ -9465,6 +9511,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="",
     )
     parser.add_argument(
+        "--availability-first-target-bound-trial-target",
+        default="",
+    )
+    parser.add_argument(
         "--expected-availability-first-allocation-fingerprint",
         default="",
     )
@@ -9744,8 +9794,10 @@ def main(argv=None) -> int:
         )
         return (
             0
-            if result.get("final_verdict")
-            == "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+            if result.get("final_verdict") in {
+                "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
+                "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED",
+            }
             else 2
         )
     if args.execute_governed_transaction or args.execute_bounded_delegated_transaction:

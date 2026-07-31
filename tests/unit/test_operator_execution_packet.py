@@ -581,6 +581,55 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 advanced["target_proven_bounds"],
                 {"awg3": 1},
             )
+            operator_execution.append_record(audit_path, {
+                "record_type": (
+                    operator_execution
+                    .CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+                ),
+                "effect_class": (
+                    operator_execution
+                    .AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS
+                ),
+                "receipt_id": "aftbound_awg3_five",
+                "standing_policy_contract_id": contract["contract_id"],
+                "standing_policy_contract_hash": contract["contract_hash"],
+                "campaign_next_stage": 25,
+                "target_id": "awg3",
+                "verified_scope": 5,
+                "target_fingerprint": "c" * 64,
+                "capacity_bounds_fingerprint": "d" * 64,
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+                "ordinary_customer_count": 0,
+            })
+            target_advanced = (
+                operator_execution.availability_first_campaign_stage_status(
+                    read_audit_records(audit_path),
+                    contract=contract,
+                    now=now + timedelta(seconds=1),
+                )
+            )
+            self.assertTrue(
+                target_advanced["ok"],
+                target_advanced["blockers"],
+            )
+            self.assertEqual(target_advanced["next_stage"], 2)
+            self.assertEqual(
+                target_advanced["target_proven_bounds"],
+                {"awg3": 5},
+            )
+            self.assertEqual(
+                target_advanced["target_bound_receipt_ids"],
+                ["aftbound_awg3_five"],
+            )
 
     def test_combined_standing_policy_requires_independent_activation_and_fails_closed_on_scope_change(self):
         now = datetime(2026, 7, 29, tzinfo=timezone.utc)

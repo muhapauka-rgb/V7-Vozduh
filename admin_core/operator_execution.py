@@ -138,6 +138,9 @@ CONTROLLED_CERTIFICATION_CAMPAIGN_STAGES = (5, 10, 25, 48)
 AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS = (
     "AVAILABILITY_FIRST_CAMPAIGN_STAGE_CONSUMED"
 )
+AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS = (
+    "AVAILABILITY_FIRST_TARGET_BOUND_CONSUMED"
+)
 CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES = (
     "IDENTITY_PROVISIONING",
     "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT",
@@ -871,6 +874,16 @@ def availability_first_campaign_stage_status(
         and str(row.get("standing_policy_contract_id") or "")
         == contract_id
     ]
+    target_bound_rows = [
+        row
+        for row in records
+        if row.get("record_type")
+        == CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE
+        and row.get("effect_class")
+        == AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS
+        and str(row.get("standing_policy_contract_id") or "")
+        == contract_id
+    ]
     receipts_by_stage = {}
     target_proven_bounds = {}
     for row in stage_rows:
@@ -940,6 +953,64 @@ def availability_first_campaign_stage_status(
                 as_int(target_proven_bounds.get(target_id), 0),
                 verified_scope,
             )
+    target_bound_receipts = {}
+    for row in target_bound_rows:
+        target_id = str(row.get("target_id") or "")
+        verified_scope = as_int(row.get("verified_scope"), 0)
+        identity = (target_id, verified_scope)
+        target_bound_receipts.setdefault(identity, []).append(row)
+        if (
+            str(row.get("standing_policy_contract_hash") or "")
+            != contract_hash
+        ):
+            blockers.append(
+                "availability_first_target_bound_contract_hash_mismatch:"
+                f"{target_id}:{verified_scope}"
+            )
+        if (
+            not target_id
+            or verified_scope not in AVAILABILITY_FIRST_LADDER
+            or not str(row.get("target_fingerprint") or "")
+            or not str(row.get("capacity_bounds_fingerprint") or "")
+        ):
+            blockers.append(
+                "availability_first_target_bound_identity_invalid:"
+                f"{target_id}:{verified_scope}"
+            )
+        if not all(
+            row.get(key) is True
+            for key in (
+                "allocation_immutable",
+                "capacity_reservation_verified",
+                "outcome_consumed",
+                "replay_consumed",
+                "learning_consumed",
+                "per_user_verification_passed",
+                "per_target_verification_passed",
+                "aggregate_verification_passed",
+                "ordinary_user_protection_passed",
+                "baseline_reset_verified",
+            )
+        ):
+            blockers.append(
+                "availability_first_target_bound_incomplete:"
+                f"{target_id}:{verified_scope}"
+            )
+        if as_int(row.get("ordinary_customer_count"), -1) != 0:
+            blockers.append(
+                "availability_first_target_bound_ordinary_customer_effect:"
+                f"{target_id}:{verified_scope}"
+            )
+        target_proven_bounds[target_id] = max(
+            as_int(target_proven_bounds.get(target_id), 0),
+            verified_scope,
+        )
+    for (target_id, verified_scope), rows in target_bound_receipts.items():
+        if len(rows) != 1:
+            blockers.append(
+                "availability_first_target_bound_duplicate:"
+                f"{target_id}:{verified_scope}"
+            )
     for stage, rows in receipts_by_stage.items():
         if len(rows) != 1:
             blockers.append(f"availability_first_stage_duplicate:{stage}")
@@ -983,6 +1054,11 @@ def availability_first_campaign_stage_status(
             for stage in valid_completed
         ],
         "target_proven_bounds": target_proven_bounds,
+        "target_bound_receipt_ids": [
+            str(rows[0].get("receipt_id") or "")
+            for _, rows in sorted(target_bound_receipts.items())
+            if len(rows) == 1
+        ],
         "blockers": sorted(set(blockers)),
         "owner": (
             "existing admin_core/operator_execution.py append-only "

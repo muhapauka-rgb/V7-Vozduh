@@ -46,6 +46,9 @@ CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS = (
 AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS = (
     operator_execution.AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
 )
+AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS = (
+    operator_execution.AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS
+)
 RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
@@ -597,6 +600,146 @@ def record_availability_first_stage_consumption(
                 for item in (result.get("allocation") or [])
                 if isinstance(item, dict)
             ],
+            "allocation_immutable": True,
+            "capacity_reservation_verified": True,
+            "outcome_consumed": True,
+            "replay_consumed": True,
+            "learning_consumed": True,
+            "per_user_verification_passed": True,
+            "per_target_verification_passed": True,
+            "aggregate_verification_passed": True,
+            "ordinary_user_protection_passed": True,
+            "baseline_reset_verified": True,
+            "ordinary_customer_count": 0,
+            "raw_identity_list_stored": False,
+            "natural_l8_credit": False,
+            "created_at": now_iso(),
+        })
+    return {
+        "receipt_id": str(row.get("receipt_id") or receipt_id),
+        "audit_write": True,
+        "duplicate_suppressed": False,
+    }
+
+
+def record_availability_first_target_bound_consumption(
+    *,
+    audit_store: Path,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    """Append one compact target-growth receipt through the existing owner."""
+    verified_scope = int(result.get("stage") or 0)
+    target_id = str(result.get("target_bound_trial_target") or "")
+    contract_id = str(result.get("standing_policy_contract_id") or "")
+    contract_hash = str(result.get("standing_policy_contract_hash") or "")
+    allocation = [
+        row for row in (result.get("allocation") or [])
+        if isinstance(row, dict)
+    ]
+    required = (
+        "allocation_immutable",
+        "capacity_reservation_verified",
+        "outcome_consumed",
+        "replay_consumed",
+        "learning_consumed",
+        "per_user_verification_passed",
+        "per_target_verification_passed",
+        "aggregate_verification_passed",
+        "ordinary_user_protection_passed",
+        "baseline_reset_verified",
+    )
+    blockers = [
+        name for name in required if result.get(name) is not True
+    ]
+    if (
+        result.get("final_verdict")
+        != "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+    ):
+        blockers.append("availability_first_target_bound_not_complete")
+    if verified_scope not in operator_execution.AVAILABILITY_FIRST_LADDER:
+        blockers.append("availability_first_target_bound_not_in_ladder")
+    if (
+        len(allocation) != 1
+        or str(allocation[0].get("target_id") or "") != target_id
+        or int(allocation[0].get("allocated_users") or 0)
+        != verified_scope
+    ):
+        blockers.append("availability_first_target_bound_allocation_invalid")
+    if not target_id or not contract_id or not contract_hash:
+        blockers.append("availability_first_target_bound_identity_missing")
+    if blockers:
+        return {
+            "receipt_id": "",
+            "audit_write": False,
+            "duplicate_suppressed": False,
+            "blockers": sorted(set(blockers)),
+        }
+    target = allocation[0]
+    semantic = {
+        "contract_id": contract_id,
+        "contract_hash": contract_hash,
+        "target_id": target_id,
+        "verified_scope": verified_scope,
+        "execution_allocation_fingerprint": str(
+            result.get("execution_allocation_fingerprint") or ""
+        ),
+        "packet_set_fingerprint": str(
+            result.get("packet_set_fingerprint") or ""
+        ),
+    }
+    receipt_id = "aftbound_" + operator_execution.sha256_json(
+        semantic
+    )[:24]
+    with operator_execution.current_action_class_contract_policy_lock(
+        audit_store
+    ):
+        rows = operator_execution.read_audit_records(audit_store)
+        prior = [
+            row for row in rows
+            if row.get("record_type")
+            == CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE
+            and row.get("effect_class")
+            == AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS
+            and str(row.get("standing_policy_contract_id") or "")
+            == contract_id
+            and str(row.get("target_id") or "") == target_id
+            and int(row.get("verified_scope") or 0) == verified_scope
+        ]
+        if prior:
+            return {
+                "receipt_id": str(prior[-1].get("receipt_id") or ""),
+                "audit_write": False,
+                "duplicate_suppressed": True,
+            }
+        row = operator_execution.append_record(audit_store, {
+            "schema_version": (
+                "v7.availability-first-target-bound-receipt.v1"
+            ),
+            "record_type": CONTROLLED_CAMPAIGN_EFFECT_RECORD_TYPE,
+            "effect_class": AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS,
+            "receipt_id": receipt_id,
+            "standing_policy_contract_id": contract_id,
+            "standing_policy_contract_hash": contract_hash,
+            "campaign_next_stage": int(
+                result.get("campaign_next_stage") or 0
+            ),
+            "target_id": target_id,
+            "verified_scope": verified_scope,
+            "planner_allocation_fingerprint": str(
+                result.get("planner_allocation_fingerprint") or ""
+            ),
+            "execution_allocation_fingerprint": str(
+                result.get("execution_allocation_fingerprint") or ""
+            ),
+            "packet_set_fingerprint": str(
+                result.get("packet_set_fingerprint") or ""
+            ),
+            "target_fingerprint": str(
+                target.get("target_fingerprint") or ""
+            ),
+            "capacity_bounds_fingerprint": str(
+                target.get("capacity_bounds_fingerprint") or ""
+            ),
             "allocation_immutable": True,
             "capacity_reservation_verified": True,
             "outcome_consumed": True,
@@ -1383,20 +1526,43 @@ def _run_availability_first_standing_policy_stage_once(
         if isinstance(projection.get("availability_campaign"), dict)
         else {}
     )
-    stage = int(campaign.get("next_stage") or 0)
-    allocation = (
-        (projection.get("stage_allocations") or {}).get(str(stage), {})
+    campaign_stage = int(campaign.get("next_stage") or 0)
+    stage_allocation = (
+        (projection.get("stage_allocations") or {}).get(
+            str(campaign_stage),
+            {},
+        )
         if isinstance(projection.get("stage_allocations"), dict)
         else {}
     )
+    target_growth_trial = (
+        projection.get("target_growth_trial")
+        if isinstance(projection.get("target_growth_trial"), dict)
+        else {}
+    )
+    target_bound_mode = bool(
+        not stage_allocation.get("feasible")
+        and target_growth_trial.get("status") == "TARGET_BOUND_TRIAL_READY"
+        and target_growth_trial.get("feasible") is True
+    )
+    stage = int(
+        target_growth_trial.get("trial_scope")
+        if target_bound_mode
+        else campaign_stage
+        or 0
+    )
+    allocation = target_growth_trial if target_bound_mode else stage_allocation
     ready = bool(
         planner_proc.returncode == 0
-        and diagnostic.get("status")
-        == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
         and admission.get("ok") is True
         and stage in operator_execution.AVAILABILITY_FIRST_LADDER
         and allocation.get("feasible") is True
         and allocation.get("allocation_fingerprint")
+        and (
+            target_bound_mode
+            or diagnostic.get("status")
+            == "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+        )
     )
     prior_summary = read_json(
         state_dir / "service-matrix-refresh-summary.json",
@@ -1542,6 +1708,11 @@ def _run_availability_first_standing_policy_stage_once(
         planner,
         "--pretty",
     ]
+    if target_bound_mode:
+        command.extend([
+            "--availability-first-target-bound-trial-target",
+            str(target_growth_trial.get("target_id") or ""),
+        ])
     # Do not bind the executor to the wrapper's earlier live-snapshot
     # fingerprint.  Matrix/quality owners may publish a newer generation
     # between these two processes, producing an endless safe-stop TOCTOU loop.
@@ -1582,16 +1753,27 @@ def _run_availability_first_standing_policy_stage_once(
         result = parsed if isinstance(parsed, dict) else {}
     except json.JSONDecodeError:
         result = {}
+    expected_verdict = (
+        "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+        if target_bound_mode
+        else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+    )
     completed = (
         proc.returncode == 0
-        and result.get("final_verdict")
-        == "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+        and result.get("final_verdict") == expected_verdict
         and int(result.get("stage") or 0) == stage
     )
     receipt = (
-        record_availability_first_stage_consumption(
-            audit_store=audit_store,
-            result=result,
+        (
+            record_availability_first_target_bound_consumption(
+                audit_store=audit_store,
+                result=result,
+            )
+            if target_bound_mode
+            else record_availability_first_stage_consumption(
+                audit_store=audit_store,
+                result=result,
+            )
         )
         if completed
         else {
@@ -1630,6 +1812,14 @@ def _run_availability_first_standing_policy_stage_once(
         ),
         "users_moved": int(result.get("users_moved") or 0),
         "stage": stage,
+        "completion_kind": (
+            "TARGET_BOUND_TRIAL"
+            if target_bound_mode
+            else "CAMPAIGN_STAGE"
+        ),
+        "target_bound_trial_target": str(
+            target_growth_trial.get("target_id") or ""
+        ) if target_bound_mode else "",
         "allocation_fingerprint": str(
             allocation.get("allocation_fingerprint") or ""
         ),
@@ -1675,7 +1865,8 @@ def run_availability_first_standing_policy_stage(
     )
     attempts: list[dict[str, Any]] = []
     completed_stages: list[int] = []
-    seen_stages: set[int] = set()
+    completed_successors: list[dict[str, Any]] = []
+    seen_successors: set[tuple[str, int, str]] = set()
     for _ in range(limit):
         current = _run_availability_first_standing_policy_stage_once(
             planner,
@@ -1690,9 +1881,16 @@ def run_availability_first_standing_policy_stage(
         if not current.get("action_completed"):
             break
         stage = int(current.get("stage") or 0)
+        completion_kind = str(
+            current.get("completion_kind") or "CAMPAIGN_STAGE"
+        )
+        target_id = str(
+            current.get("target_bound_trial_target") or ""
+        )
+        successor_identity = (completion_kind, stage, target_id)
         if (
             stage not in operator_execution.AVAILABILITY_FIRST_LADDER
-            or stage in seen_stages
+            or successor_identity in seen_successors
         ):
             current.update({
                 "status": "STOP_SAFE",
@@ -1704,8 +1902,19 @@ def run_availability_first_standing_policy_stage(
                 "blockers": ["availability_first_stage_successor_repeated"],
             })
             break
-        seen_stages.add(stage)
+        seen_successors.add(successor_identity)
         completed_stages.append(stage)
+        completed_successors.append({
+            "completion_kind": completion_kind,
+            "scope": stage,
+            "target_id": target_id,
+            "receipt_id": str(
+                (current.get("stage_consumption") or {}).get(
+                    "receipt_id"
+                )
+                or ""
+            ),
+        })
     if len(attempts) == 1:
         return attempts[0]
 
@@ -1746,6 +1955,7 @@ def run_availability_first_standing_policy_stage(
         "stage_consumption": last_completed.get("stage_consumption") or {},
         "consumer_result": last_completed.get("consumer_result") or {},
         "completed_stages_this_invocation": completed_stages,
+        "completed_successors_this_invocation": completed_successors,
         "successor_probe": {
             key: successor_probe.get(key)
             for key in (

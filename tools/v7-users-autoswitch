@@ -14960,6 +14960,136 @@ def shared_target_stage_allocations(
     }
 
 
+def availability_first_target_growth_trial_projection(
+    *,
+    rows: list[dict[str, Any]],
+    campaign: dict[str, Any],
+    inventory_fingerprint: str,
+    excluded_target_ids: Optional[set[str]] = None,
+) -> dict[str, Any]:
+    """Select one exact target-bound predecessor when the next stage is short.
+
+    A degraded target's real production-proven bound grows independently from
+    the aggregate campaign ladder.  Without this predecessor the aggregate
+    next stage can become circular: it needs a larger target bound, while that
+    bound can only be learned by a smaller real controlled trial.  This is a
+    read-only projection over the same Matrix, capacity, policy and audit
+    owners; it is not a second campaign or evidence registry.
+    """
+    excluded = {str(value) for value in (excluded_target_ids or set()) if value}
+    next_stage = to_int(campaign.get("next_stage"), 0)
+    candidates: list[dict[str, Any]] = []
+    for row in rows:
+        target_id = str(row.get("target_id") or "")
+        capacity = row.get("capacity")
+        capacity = capacity if isinstance(capacity, dict) else {}
+        availability = row.get("shared_target_availability")
+        availability = (
+            availability if isinstance(availability, dict) else {}
+        )
+        proven = max(
+            0,
+            to_int(
+                (campaign.get("target_proven_bounds") or {}).get(target_id),
+                to_int(
+                    capacity.get(
+                        "availability_first_proven_additional_scope"
+                    ),
+                    0,
+                ),
+            ),
+        )
+        trial_scope = to_int(
+            capacity.get("availability_first_next_trial_scope"),
+            0,
+        )
+        safe_scope = to_int(
+            capacity.get("target_safe_additional_capacity"),
+            0,
+        )
+        if (
+            not target_id
+            or target_id in excluded
+            or not row.get("shared_target_technically_eligible")
+            or availability.get("state")
+            not in {"DEGRADED_USABLE", "LAST_RESORT_USABLE"}
+            or trial_scope not in operator_execution.AVAILABILITY_FIRST_LADDER
+            or trial_scope <= proven
+            or trial_scope >= next_stage
+            or safe_scope < trial_scope
+        ):
+            continue
+        allocation = {
+            "target_id": target_id,
+            "correlation_domain": str(row.get("correlation_domain") or ""),
+            "allocated_users": trial_scope,
+            "capacity_reservation": trial_scope,
+            "capacity_reservation_semantics": (
+                "SERIALIZED_PACKET_LEASE_RESERVATION_WITH_FRESH_"
+                "PRE_APPLY_REVALIDATION"
+            ),
+            "capacity_bounds_fingerprint": sha256_json(
+                capacity.get("capacity_bounds") or {}
+            ),
+            "ordinary_users_unchanged": int(
+                capacity.get("ordinary_users") or 0
+            ),
+            "availability_classification": str(
+                availability.get("state") or ""
+            ),
+            "availability_policy_boundary": str(
+                availability.get("policy_boundary") or ""
+            ),
+            "target_fault_injection": "FORBIDDEN",
+            "target_fingerprint": str(row.get("semantic_fingerprint") or ""),
+        }
+        fingerprint = sha256_json({
+            "standing_policy_contract_id": str(
+                campaign.get("standing_policy_contract_id") or ""
+            ),
+            "campaign_next_stage": next_stage,
+            "inventory_fingerprint": inventory_fingerprint,
+            "target_proven_bound": proven,
+            "trial_scope": trial_scope,
+            "allocation": allocation,
+        })
+        candidates.append({
+            "schema_version": (
+                "v7.availability-first-target-bound-trial.v1"
+            ),
+            "status": "TARGET_BOUND_TRIAL_READY",
+            "ok": True,
+            "feasible": True,
+            "campaign_next_stage": next_stage,
+            "target_id": target_id,
+            "proven_scope": proven,
+            "trial_scope": trial_scope,
+            "allocated_scope": trial_scope,
+            "immutable_allocation_projection": [allocation],
+            "allocation_fingerprint": fingerprint,
+            "ordinary_user_effect": "FORBIDDEN",
+            "target_fault_injection": "FORBIDDEN",
+            "production_credit_class": (
+                "TARGET_BOUND_ONLY_NOT_CAMPAIGN_STAGE"
+            ),
+        })
+    if not candidates:
+        return {
+            "schema_version": "v7.availability-first-target-bound-trial.v1",
+            "status": "NOT_REQUIRED_OR_NOT_FEASIBLE",
+            "ok": True,
+            "feasible": False,
+            "campaign_next_stage": next_stage,
+        }
+    return max(
+        candidates,
+        key=lambda item: (
+            int(item.get("trial_scope") or 0),
+            str(item.get("target_id") or ""),
+        ),
+    )
+
+
 def shared_target_semantic_fingerprint(row: dict[str, Any]) -> str:
     """Fingerprint target truth without wall-clock-only read metadata.
 
@@ -17214,6 +17344,54 @@ def controlled_source_topology_diagnostic(
             if str(row.get("target_id") or "")
         ],
     }
+    actual_next_allocation = (
+        (actual_source_shared_projection.get("stage_allocations") or {}).get(
+            str(
+                (
+                    actual_source_shared_projection.get(
+                        "availability_campaign"
+                    )
+                    or {}
+                ).get("next_stage")
+                or 0
+            ),
+            {},
+        )
+    )
+    actual_source_shared_projection["target_growth_trial"] = (
+        availability_first_target_growth_trial_projection(
+            rows=rows,
+            campaign=(
+                actual_source_shared_projection.get("availability_campaign")
+                or {}
+            ),
+            inventory_fingerprint=str(
+                actual_source_shared_projection.get(
+                    "inventory_fingerprint"
+                )
+                or ""
+            ),
+            excluded_target_ids={selected_full_source_id},
+        )
+        if not actual_next_allocation.get("feasible")
+        else {
+            "schema_version": (
+                "v7.availability-first-target-bound-trial.v1"
+            ),
+            "status": "NOT_REQUIRED_NEXT_STAGE_FEASIBLE",
+            "ok": True,
+            "feasible": False,
+            "campaign_next_stage": int(
+                (
+                    actual_source_shared_projection.get(
+                        "availability_campaign"
+                    )
+                    or {}
+                ).get("next_stage")
+                or 0
+            ),
+        }
+    )
     availability_projection_stage = max(
         1,
         to_int(

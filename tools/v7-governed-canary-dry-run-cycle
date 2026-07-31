@@ -3251,9 +3251,10 @@ def controlled_topology_standing_execution_binding(
         blockers.append("controlled_topology_contract_id_changed")
     if str(contract.get("contract_hash") or "") != expected_contract_hash:
         blockers.append("controlled_topology_contract_hash_changed")
-    if str(policy.get("policy_profile") or "") != (
-        operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
-    ):
+    if str(policy.get("policy_profile") or "") not in {
+        operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
+        operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+    }:
         blockers.append("controlled_topology_policy_profile_not_active")
     if (
         operator_execution.CONTROLLED_TOPOLOGY_DELEGATED_ACTION_CLASS

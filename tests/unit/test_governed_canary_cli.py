@@ -4626,6 +4626,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     ),
                     max_users=48,
                     include_controlled_topology=True,
+                    include_availability_first=True,
                 )
             )
             operator_execution.register_standing_delegated_policy_request(

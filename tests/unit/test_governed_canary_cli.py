@@ -270,6 +270,78 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN",
         )
 
+    def test_stage_two_restored_cohort_emits_one_complete_stage_receipt(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            packets = [
+                {
+                    "final_verdict": "L3_PRODUCTION_PROVEN",
+                    "transaction_status": "COMPLETED",
+                    "fresh_packet_id": f"pkt_stage2_{index}",
+                    "operation_id": f"govexec_stage2_{index}",
+                    "user": f"10.7.0.{99 + index}",
+                    "source": "vless",
+                    "target": "awg0",
+                    "users_moved": 1,
+                    "verification_result": "PASS",
+                }
+                for index in (1, 2)
+            ]
+            restored = {
+                "pending": True,
+                "ok": True,
+                "stage": 2,
+                "source": "vless",
+                "packet_set": packets,
+                "reset_reconciliations": [
+                    {"ok": True, "user": row["user"]}
+                    for row in packets
+                ],
+                "allocation_fingerprint": "a" * 64,
+                "contract_id": "sdpc_stage2",
+                "contract_hash": "b" * 64,
+                "recovered_allocation": [{
+                    "target_id": "awg0",
+                    "allocated_users": 2,
+                    "capacity_reservation": 2,
+                    "target_fingerprint": "c" * 64,
+                    "capacity_bounds_fingerprint": "d" * 64,
+                }],
+            }
+            with mock.patch.object(
+                module,
+                "availability_first_restored_stage_receipt_recovery_context",
+                return_value=restored,
+            ):
+                result = module.execute_availability_first_standing_stage(
+                    argparse.Namespace(),
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
+        )
+        self.assertEqual(result["transaction_status"], "COMPLETED")
+        self.assertEqual(result["stage"], 2)
+        self.assertEqual(len(result["packet_set"]), 2)
+        self.assertEqual(len(result["baseline_reset_reconciliations"]), 2)
+        self.assertTrue(result["baseline_reset_verified"])
+        self.assertTrue(result["aggregate_verification_passed"])
+        self.assertFalse(result["runtime_mutation_performed"])
+        self.assertEqual(result["users_moved"], 0)
+
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -1751,6 +1823,278 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "b" * 64,
         )
         self.assertTrue(recovered["switch_lineage"])
+        self.assertFalse(recovered["natural_l8_credit"])
+
+    def test_restored_stage_two_receipt_reconciles_serial_member_resets(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = ("10.7.0.100", "10.7.0.101")
+            forward_packets = ("pkt_forward_a", "pkt_forward_b")
+            forward_operations = ("govexec_forward_a", "govexec_forward_b")
+            reset_packets = ("pkt_reset_a", "pkt_reset_b")
+            reset_operations = ("govdry_reset_a", "govdry_reset_b")
+            (state / "users.registry").write_text(
+                "".join(
+                    f"ip={user} current=vless enabled=1 "
+                    "certification_user=1 certification_group=campaign-a\n"
+                    for user in users
+                ),
+                encoding="utf-8",
+            )
+            packet_set = [
+                {
+                    "final_verdict": "L3_PRODUCTION_PROVEN",
+                    "transaction_status": "COMPLETED",
+                    "fresh_packet_id": packet_id,
+                    "operation_id": operation_id,
+                    "user": user,
+                    "source": "vless",
+                    "target": "awg0",
+                    "target_id": "awg0",
+                    "users_moved": 1,
+                    "verification_result": "PASS",
+                    "rollback_result": "NOT_REQUIRED",
+                }
+                for user, packet_id, operation_id in zip(
+                    users,
+                    forward_packets,
+                    forward_operations,
+                )
+            ]
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "consumer_result": {
+                            "stage": 2,
+                            "packet_set": packet_set,
+                            "circuit_breaker": {
+                                "tripped": True,
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            reset_projections = []
+            for index, (
+                user,
+                forward_packet,
+                forward_operation,
+                reset_packet,
+                reset_operation,
+            ) in enumerate(
+                zip(
+                    users,
+                    forward_packets,
+                    forward_operations,
+                    reset_packets,
+                    reset_operations,
+                )
+            ):
+                reset_projections.append({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "consumer_result": {
+                            "stage": 2,
+                            "partial_apply_recovery": {
+                                "ok": True,
+                                "stage": 2,
+                                "user": user,
+                                "source": "vless",
+                                "target": "awg0",
+                                "packet_id": forward_packet,
+                                "operation_id": forward_operation,
+                            },
+                            "reset_transaction": {
+                                "fresh_packet_id": reset_packet,
+                                "operation_id": reset_operation,
+                                "user": user,
+                                "source": "awg0",
+                                "target": "vless",
+                            },
+                            "baseline_reset_reconciliation": {
+                                "ok": True,
+                            },
+                        },
+                    },
+                    "updated": (
+                        f"2026-07-31T06:12:{20 + index:02d}+00:00"
+                    ),
+                })
+            (events / "service-matrix-refresh-20260731.jsonl").write_text(
+                "".join(
+                    json.dumps(row) + "\n"
+                    for row in reset_projections
+                ),
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                "".join(
+                    json.dumps({
+                        "user_ip": user,
+                        "from": "awg0",
+                        "to": "vless",
+                        "ts": (
+                            f"2026-07-31T06:11:{55 + index:02d}+00:00"
+                        ),
+                    }) + "\n"
+                    for index, user in enumerate(users)
+                ),
+                encoding="utf-8",
+            )
+            audits = []
+            for index, (
+                user,
+                forward_packet,
+                forward_operation,
+                reset_packet,
+                reset_operation,
+            ) in enumerate(
+                zip(
+                    users,
+                    forward_packets,
+                    forward_operations,
+                    reset_packets,
+                    reset_operations,
+                )
+            ):
+                audits.extend((
+                    {
+                        "packet_id": forward_packet,
+                        "operation_id": forward_operation,
+                        "runtime_action_performed": True,
+                        "clearance_verdict": (
+                            "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                        ),
+                        "checks": {
+                            "selected_move_hash": str(index + 1) * 64,
+                            "moves": [{
+                                "user_ip": user,
+                                "current_egress": "vless",
+                                "recommended_egress": "awg0",
+                                "availability_first_controlled_assignment": {
+                                    "source": "vless",
+                                    "target": "awg0",
+                                    "allocation_fingerprint": "a" * 64,
+                                    "ordinary_user": False,
+                                    "natural_production_credit": False,
+                                },
+                            }],
+                        },
+                    },
+                    {
+                        "packet_id": reset_packet,
+                        "operation_id": reset_operation,
+                        "runtime_action_performed": True,
+                        "clearance_verdict": (
+                            "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                        ),
+                        "created_at": (
+                            f"2026-07-31T06:11:{51 + index:02d}+00:00"
+                        ),
+                        "checks": {
+                            "moves": [{
+                                "user_ip": user,
+                                "current_egress": "awg0",
+                                "recommended_egress": "vless",
+                            }],
+                        },
+                    },
+                ))
+            audit_file = root / "audit.jsonl"
+            audit_file.write_text(
+                "".join(json.dumps(row) + "\n" for row in audits),
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_stage2",
+                        "contract_hash": "c" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                operator_execution_audit_store=str(audit_file),
+                policy_file=str(policy_file),
+            )
+            with mock.patch.object(
+                module,
+                "scoped_user_route_check",
+                return_value={"passed": True},
+            ), mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={
+                    "ok": True,
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                    "feedback_id": "execfb_stage2",
+                    "outcome_id": "execfb_stage2",
+                    "learning_record_id": "learn_stage2",
+                },
+            ), mock.patch.object(
+                module.operator_execution,
+                "availability_first_campaign_stage_status",
+                return_value={
+                    "ok": True,
+                    "completed_stages": [1],
+                },
+            ), mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={
+                    "ok": True,
+                    "errors": [],
+                    "policy": {
+                        "action_class_scopes": {
+                            module.operator_execution
+                            .AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                                "allowed_actions": [
+                                    (
+                                        "RESTORE_CONTROLLED_"
+                                        "CERTIFICATION_BASELINE"
+                                    ),
+                                ],
+                            },
+                        },
+                    },
+                },
+            ):
+                recovered = (
+                    module
+                    .availability_first_restored_stage_receipt_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                    )
+                )
+
+        self.assertTrue(recovered["pending"])
+        self.assertTrue(recovered["ok"], recovered)
+        self.assertEqual(recovered["stage"], 2)
+        self.assertEqual(len(recovered["packet_set"]), 2)
+        self.assertEqual(len(recovered["reset_reconciliations"]), 2)
+        self.assertEqual(
+            recovered["allocation_fingerprint"],
+            "a" * 64,
+        )
+        self.assertEqual(
+            recovered["recovered_allocation"][0]["allocated_users"],
+            2,
+        )
         self.assertFalse(recovered["natural_l8_credit"])
 
     def test_restored_stage_recovery_stops_after_existing_receipt(self):

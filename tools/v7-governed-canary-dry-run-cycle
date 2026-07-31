@@ -2424,7 +2424,7 @@ def run_autoswitch_apply(
         command.extend(["--source-egress", source])
     if target:
         command.extend(["--target-egress", target])
-    if campaign_request_id or campaign_request_hash or campaign_target:
+    if campaign_request_id or campaign_request_hash:
         command.extend([
             "--controlled-certification-campaign-request-id",
             campaign_request_id,
@@ -4177,14 +4177,32 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         execution_control_file=str(control_file),
         emergency_failover_autonomy=True,
         campaign_request_id=str(
-            getattr(args, "controlled_certification_campaign_request_id", "")
-            or ""
+            ""
+            if availability_mode
+            else (
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_id",
+                    "",
+                )
+                or ""
+            )
         ),
         campaign_request_hash=str(
-            getattr(args, "controlled_certification_campaign_request_hash", "")
-            or ""
+            ""
+            if availability_mode
+            else (
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_hash",
+                    "",
+                )
+                or ""
+            )
         ),
-        campaign_target=campaign_target,
+        campaign_target=(
+            "" if availability_mode else campaign_target
+        ),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})

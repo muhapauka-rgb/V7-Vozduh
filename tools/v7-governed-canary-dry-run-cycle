@@ -5566,33 +5566,81 @@ def availability_first_partial_apply_recovery_context(
         state_dir / "service-matrix-refresh-summary.json",
         {},
     )
-    availability = (
-        summary.get("availability_first_standing_policy_action")
-        if isinstance(
-            summary.get("availability_first_standing_policy_action"),
-            dict,
+    projections: list[dict[str, Any]] = [summary]
+    for path in sorted(
+        event_dir.glob("service-matrix-refresh-*.jsonl"),
+        reverse=True,
+    ):
+        try:
+            rows = path.read_text(
+                encoding="utf-8",
+                errors="replace",
+            ).splitlines()[-2000:]
+        except OSError:
+            continue
+        for line in reversed(rows):
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(row, dict):
+                projections.append(row)
+    current_routes = {
+        str(row.get("ip") or ""): str(row.get("current") or "")
+        for row in read_registry(state_dir / "users.registry")
+        if row.get("ip")
+    }
+    availability: dict[str, Any] = {}
+    result: dict[str, Any] = {}
+    packet: dict[str, Any] = {}
+    projection_source = ""
+    for index, projection in enumerate(projections):
+        candidate = (
+            projection.get(
+                "availability_first_standing_policy_action"
+            )
+            if isinstance(
+                projection.get(
+                    "availability_first_standing_policy_action"
+                ),
+                dict,
+            )
+            else {}
         )
-        else {}
-    )
-    result = (
-        availability.get("consumer_result")
-        if isinstance(availability.get("consumer_result"), dict)
-        else {}
-    )
-    packets = [
-        row
-        for row in (result.get("packet_set") or [])
-        if isinstance(row, dict)
-    ]
-    if (
-        availability.get("status") != "STOP_SAFE"
-        or len(packets) != 1
-    ):
-        return {"pending": False, "blockers": []}
-    packet = packets[0]
-    if str(packet.get("stop_reason") or "") != (
-        "l3_production_validation_downstream_proof_failed"
-    ):
+        candidate_result = (
+            candidate.get("consumer_result")
+            if isinstance(candidate.get("consumer_result"), dict)
+            else {}
+        )
+        candidate_packets = [
+            row
+            for row in (candidate_result.get("packet_set") or [])
+            if isinstance(row, dict)
+        ]
+        candidate_packet = (
+            candidate_packets[0]
+            if len(candidate_packets) == 1
+            else {}
+        )
+        candidate_user = str(candidate_packet.get("user") or "")
+        candidate_target = str(candidate_packet.get("target") or "")
+        if (
+            candidate.get("status") == "STOP_SAFE"
+            and str(candidate_packet.get("stop_reason") or "")
+            == "l3_production_validation_downstream_proof_failed"
+            and candidate_user
+            and current_routes.get(candidate_user) == candidate_target
+        ):
+            availability = candidate
+            result = candidate_result
+            packet = candidate_packet
+            projection_source = (
+                "current_summary"
+                if index == 0
+                else "append_only_matrix_event"
+            )
+            break
+    if not packet:
         return {"pending": False, "blockers": []}
     user = str(packet.get("user") or "")
     source = str(packet.get("source") or "")
@@ -5774,6 +5822,7 @@ def availability_first_partial_apply_recovery_context(
         "contract_hash": str(contract.get("contract_hash") or ""),
         "ordinary_user": False,
         "natural_l8_credit": False,
+        "projection_source": projection_source,
     }
 
 

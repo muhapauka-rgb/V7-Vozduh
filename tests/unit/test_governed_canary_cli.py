@@ -945,6 +945,23 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         "status": "STOP_SAFE",
                         "stage": 1,
                         "consumer_result": {
+                            "stop_reason": (
+                                "availability_first_standing_stage_not_admitted"
+                            ),
+                            "blockers": [
+                                "availability_first_source_cohort_too_small"
+                            ],
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            (events / "service-matrix-refresh-20260731.jsonl").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 1,
+                        "consumer_result": {
                             "stage": 1,
                             "packet_set": [{
                                 "stop_reason": (
@@ -958,7 +975,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                             }],
                         },
                     },
-                }),
+                }) + "\n",
                 encoding="utf-8",
             )
             lease = {
@@ -1054,6 +1071,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(context["operation_id"], operation_id)
         self.assertEqual(context["source"], "vless")
         self.assertEqual(context["target"], "awg0")
+        self.assertEqual(
+            context["projection_source"],
+            "append_only_matrix_event",
+        )
 
     def test_controlled_cleanup_requires_prior_one_use_authority_consumption(self):
         module = load_cli_module()

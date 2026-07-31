@@ -1297,26 +1297,25 @@ def run_availability_first_standing_policy_stage(
         state_dir / "service-matrix-refresh-summary.json",
         {},
     )
-    prior_availability = (
-        prior_summary.get("availability_first_standing_policy_action")
-        if isinstance(
-            prior_summary.get(
-                "availability_first_standing_policy_action"
-            ),
-            dict,
-        )
-        else {}
-    )
-    prior_result = (
-        prior_availability.get("consumer_result")
-        if isinstance(prior_availability.get("consumer_result"), dict)
-        else {}
-    )
-    prior_packets = [
-        row
-        for row in (prior_result.get("packet_set") or [])
-        if isinstance(row, dict)
-    ]
+    prior_projections: list[dict[str, Any]] = [prior_summary]
+    for path in sorted(
+        event_dir.glob("service-matrix-refresh-*.jsonl"),
+        reverse=True,
+    ):
+        try:
+            rows = path.read_text(
+                encoding="utf-8",
+                errors="replace",
+            ).splitlines()[-2000:]
+        except OSError:
+            continue
+        for line in reversed(rows):
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(row, dict):
+                prior_projections.append(row)
     try:
         current_user_rows = [
             parse_kv_line(line)
@@ -1335,17 +1334,50 @@ def run_availability_first_standing_policy_stage(
         for row in current_user_rows
         if row.get("ip")
     }
-    partial_apply_pending = bool(
-        prior_availability.get("status") == "STOP_SAFE"
-        and len(prior_packets) == 1
-        and str(prior_packets[0].get("stop_reason") or "")
-        == "l3_production_validation_downstream_proof_failed"
-        and str(prior_packets[0].get("user") or "")
-        and current_routes.get(
-            str(prior_packets[0].get("user") or "")
+    prior_availability: dict[str, Any] = {}
+    prior_result: dict[str, Any] = {}
+    partial_apply_pending = False
+    for prior_projection in prior_projections:
+        candidate = (
+            prior_projection.get(
+                "availability_first_standing_policy_action"
+            )
+            if isinstance(
+                prior_projection.get(
+                    "availability_first_standing_policy_action"
+                ),
+                dict,
+            )
+            else {}
         )
-        == str(prior_packets[0].get("target") or "")
-    )
+        candidate_result = (
+            candidate.get("consumer_result")
+            if isinstance(candidate.get("consumer_result"), dict)
+            else {}
+        )
+        candidate_packets = [
+            row
+            for row in (candidate_result.get("packet_set") or [])
+            if isinstance(row, dict)
+        ]
+        candidate_packet = (
+            candidate_packets[0]
+            if len(candidate_packets) == 1
+            else {}
+        )
+        candidate_user = str(candidate_packet.get("user") or "")
+        if (
+            candidate.get("status") == "STOP_SAFE"
+            and str(candidate_packet.get("stop_reason") or "")
+            == "l3_production_validation_downstream_proof_failed"
+            and candidate_user
+            and current_routes.get(candidate_user)
+            == str(candidate_packet.get("target") or "")
+        ):
+            prior_availability = candidate
+            prior_result = candidate_result
+            partial_apply_pending = True
+            break
     if partial_apply_pending:
         stage = int(
             prior_result.get("stage")

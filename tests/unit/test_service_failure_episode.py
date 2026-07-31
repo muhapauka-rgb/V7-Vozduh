@@ -1316,6 +1316,105 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             fingerprint,
         )
 
+    def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=awg0 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "consumer_result": {
+                            "stop_reason": (
+                                "availability_first_standing_stage_not_admitted"
+                            ),
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            (events / "service-matrix-refresh-20260731.jsonl").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 1,
+                        "consumer_result": {
+                            "stage": 1,
+                            "packet_set": [{
+                                "stop_reason": (
+                                    "l3_production_validation_downstream_proof_failed"
+                                ),
+                                "user": "10.7.0.100",
+                                "source": "vless",
+                                "target": "awg0",
+                            }],
+                        },
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            diagnostic = {
+                "status": "STOP_SAFE",
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                },
+                "shared_production_target_capacity_projection": {
+                    "availability_campaign": {
+                        "next_stage": 1,
+                        "completed": False,
+                    },
+                    "stage_allocations": {},
+                },
+            }
+            reconciled = {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED"
+                ),
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": (
+                    "fresh_retry_required_after_partial_apply_reconciliation"
+                ),
+                "stage": 1,
+                "baseline_reset_verified": True,
+            }
+            calls = [
+                mock.Mock(returncode=2, stdout=json.dumps(diagnostic)),
+                mock.Mock(returncode=2, stdout=json.dumps(reconciled)),
+            ]
+            with mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                side_effect=calls,
+            ) as run:
+                result = (
+                    self.refresh.run_availability_first_standing_policy_stage(
+                        "v7-users-autoswitch",
+                        "v7-governed-canary-dry-run-cycle",
+                        state_dir=state,
+                        event_dir=events,
+                        policy_file=root / "policy.json",
+                        audit_store=root / "audit.jsonl",
+                    )
+                )
+
+        self.assertEqual(len(run.call_args_list), 2)
+        self.assertIn(
+            "--execute-availability-first-standing-stage",
+            run.call_args_list[1].args[0],
+        )
+        self.assertEqual(result["status"], "STOP_SAFE")
+        self.assertEqual(
+            result["consumer_result"]["final_verdict"],
+            "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
+        )
+
     def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):
         payload = {
             "updated": "2026-07-27T14:00:00+00:00",

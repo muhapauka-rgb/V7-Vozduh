@@ -1448,7 +1448,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         "authority_basis": "DELEGATED_AUTONOMY_POLICY",
                     },
                 },
-            ), mock.patch.object(
+            ) as standing_binding, mock.patch.object(
                 module,
                 "execute_l3_production_validation",
             ) as cohort_executor:
@@ -1462,6 +1462,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 )
 
         cohort_executor.assert_not_called()
+        standing_binding.assert_called_once_with(args)
         self.assertEqual(
             result["stop_reason"],
             "autonomous_execution_control_not_open_at_start",

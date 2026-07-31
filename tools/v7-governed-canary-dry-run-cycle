@@ -4982,7 +4982,7 @@ def _execute_governed_transaction_with_guards_inner(
     if not delegated_mode and not support_mode and args.confirm_governed_transaction != "EXECUTE_GOVERNED_TRANSACTION_APPROVED":
         return transaction_stop("transaction_confirmation_required")
     policy_binding: dict[str, Any] = {}
-    if delegated_mode and (
+    if (delegated_mode or availability_first_reset) and (
         int(args.max_users) > 1 or availability_mode
     ):
         policy_binding = standing_delegated_cohort_execution_binding(args)

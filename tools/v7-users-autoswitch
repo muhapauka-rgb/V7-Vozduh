@@ -16070,7 +16070,10 @@ def _controlled_source_reservation_owner_capability() -> dict[str, Any]:
     required_semantics = {
         "reserve_mode": "certification-reserve",
         "release_mode": "certification-release",
-        "empty_source_gate": "controlled_source_reservation_requires_empty_source",
+        "empty_or_same_campaign_source_gate": (
+            "controlled_source_reservation_requires_empty_or_"
+            "same_campaign_certification_source"
+        ),
         "cas_gate": "egress_fingerprint_changed",
         "ordinary_assignment_fence": "production_assignment_allowed",
         "planner_reservation_fence": "canary_reserved",
@@ -16543,7 +16546,11 @@ def controlled_source_topology_diagnostic(
         and str(row.get("ip") or "")
     )
     trial_identity = certification_users[0] if certification_users else ""
-    certification_identity_fingerprint = sha256_json(certification_users)
+    certification_identity_fingerprint = sha256_json(sorted(
+        str(row.get("ip") or "")
+        for row in campaign_identity_rows
+        if str(row.get("ip") or "")
+    ))
 
     rebind_candidates = []
     for row in rows:
@@ -16615,6 +16622,12 @@ def controlled_source_topology_diagnostic(
                 )
             )
         )
+        continuing_campaign_source_repairable = bool(
+            reserved_controlled_source
+            and ordinary_users == 0
+            and bool(assigned_certification_rows)
+            and campaign_group_aligned
+        )
         continuing_reservation_valid = bool(
             reserved_controlled_source
             and ordinary_users == 0
@@ -16633,27 +16646,31 @@ def controlled_source_topology_diagnostic(
             hard_gate_blockers.append(
                 "ordinary_users_share_whole_egress_failure_domain"
             )
-        if not empty and not reserved_controlled_source:
+        if (
+            not empty
+            and not reserved_controlled_source
+            and not continuing_campaign_source_repairable
+        ):
             hard_gate_blockers.append("source_not_empty_before_reservation")
-        if reserved_controlled_source and not reservation_unexpired:
+        if (
+            reserved_controlled_source
+            and not reservation_unexpired
+            and not continuing_campaign_source_repairable
+        ):
             hard_gate_blockers.append(
                 "controlled_source_reservation_expired"
             )
-        if reserved_controlled_source and not reservation_group_aligned:
+        if (
+            reserved_controlled_source
+            and not reservation_group_aligned
+            and not continuing_campaign_source_repairable
+        ):
             hard_gate_blockers.append(
                 "controlled_source_reservation_group_mismatch"
             )
         if reserved_controlled_source and not campaign_group_aligned:
             hard_gate_blockers.append(
                 "controlled_source_campaign_group_mismatch"
-            )
-        if (
-            not empty
-            and reserved_controlled_source
-            and continuing_reservation_valid
-        ):
-            hard_gate_blockers.append(
-                "current_rebind_executor_supports_initial_empty_bootstrap_only"
             )
         if free_capacity < 1:
             hard_gate_blockers.append("one_identity_capacity_unavailable")
@@ -16704,6 +16721,9 @@ def controlled_source_topology_diagnostic(
             ),
             "initial_empty_reservation_eligible": bool(
                 empty and ordinary_users == 0
+            ),
+            "continuing_campaign_source_repairable": (
+                continuing_campaign_source_repairable
             ),
             "existing_controlled_reservation": {
                 "present": reserved_controlled_source,
@@ -16781,12 +16801,40 @@ def controlled_source_topology_diagnostic(
     existing_exact_source = source_id
     selected_source = str(selected_rebind.get("source_id") or "")
     selected_option = (
+        "OPTION_1_CONTINUE_EXISTING_CONTROLLED_EGRESS"
+        if selected_rebind
+        and selected_rebind.get(
+            "continuing_campaign_source_repairable"
+        ) else
         "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS"
         if selected_rebind else
         "OPTION_2_PROVISION_EXISTING_VALID_DRAFT"
         if selected_draft else
         ""
     )
+    trial_identity_source = existing_exact_source
+    if (
+        selected_option
+        == "OPTION_1_CONTINUE_EXISTING_CONTROLLED_EGRESS"
+    ):
+        remaining_campaign_identities = sorted(
+            (
+                row for row in campaign_identity_rows
+                if str(row.get("current") or "") != selected_source
+                and str(row.get("ip") or "")
+            ),
+            key=lambda row: str(row.get("ip") or ""),
+        )
+        if remaining_campaign_identities:
+            trial_identity = str(
+                remaining_campaign_identities[0].get("ip") or ""
+            )
+            trial_identity_source = str(
+                remaining_campaign_identities[0].get("current") or ""
+            )
+        else:
+            trial_identity = ""
+            trial_identity_source = ""
     if selected_option.startswith("OPTION_1"):
         required_authority_action = "REBIND_CONTROLLED_CERTIFICATION_SOURCE"
         exact_resource = selected_source
@@ -16821,13 +16869,13 @@ def controlled_source_topology_diagnostic(
     )
     manifest = {
         "selected_option": selected_option,
-        "existing_source": existing_exact_source,
+        "existing_source": trial_identity_source,
         "selected_source_or_draft": exact_resource,
         "trial_identity": trial_identity,
         "trial_identity_count": 1 if trial_identity else 0,
         "identity_set_fingerprint": certification_identity_fingerprint,
         "expected_assignment_delta": (
-            f"{trial_identity}:{existing_exact_source}->{selected_source}"
+            f"{trial_identity}:{trial_identity_source}->{selected_source}"
             if trial_identity and selected_source else
             f"{trial_identity}:{existing_exact_source}->NEW_DEDICATED_SOURCE"
             if trial_identity and selected_draft else ""
@@ -16835,6 +16883,13 @@ def controlled_source_topology_diagnostic(
         "expected_ordinary_assignment_delta": "NONE",
         "expected_ordinary_route_delta": "NONE",
         "capacity_reservation": 1,
+        "certification_group": campaign_group,
+        "reservation_mode": (
+            "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE"
+            if selected_option
+            == "OPTION_1_CONTINUE_EXISTING_CONTROLLED_EGRESS"
+            else "INITIAL_EMPTY_CONTROLLED_SOURCE_RESERVATION"
+        ),
         "max_concurrent_transactions": 1,
         "reservation_owner": reservation_owner.get("owner"),
         "verification": (

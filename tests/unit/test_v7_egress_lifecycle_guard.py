@@ -358,7 +358,7 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             )
             self.assertEqual(nonempty.returncode, 2, nonempty.stdout)
             self.assertIn(
-                "controlled_source_reservation_requires_empty_source",
+                "controlled_source_reservation_requires_empty_or_same_campaign_certification_source",
                 nonempty.stdout,
             )
 
@@ -375,6 +375,55 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             )
             self.assertEqual(changed.returncode, 2, changed.stdout)
             self.assertIn("egress_fingerprint_changed", changed.stdout)
+
+    def test_controlled_source_reserve_renews_same_campaign_certification_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=vless protocol=vless type=interface interface=tun0 "
+                "enabled=1 controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=old-group\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                original,
+                (
+                    "ip=10.7.0.100 current=vless enabled=1 "
+                    "certification_user=1 certification_group=t48\n"
+                ),
+            )
+            fingerprint = hashlib.sha256(
+                original.rstrip("\n").encode()
+            ).hexdigest()
+
+            renewed = self.run_set_state(
+                state,
+                "vless",
+                "certification-reserve",
+                "--certification-group",
+                "t48",
+                "--reservation-id",
+                "csr_renewed",
+                "--reservation-expires-at",
+                "2099-01-01T00:00:00+00:00",
+                "--expected-egress-fingerprint",
+                fingerprint,
+                "--apply",
+                "--confirm",
+                "RESERVE_CONTROLLED_CERTIFICATION_SOURCE",
+            )
+
+            self.assertEqual(
+                renewed.returncode,
+                0,
+                renewed.stdout + renewed.stderr,
+            )
+            self.assertIn("ACTION=controlled_source_reserved", renewed.stdout)
+            self.assertIn("same_campaign_continuation=1", renewed.stdout)
+            self.assertIn(
+                "certification_group=t48",
+                (state / "egress.registry").read_text(encoding="utf-8"),
+            )
 
     def test_controlled_source_reservation_expiry_duplicate_and_release_identity_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:

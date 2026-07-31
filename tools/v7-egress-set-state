@@ -316,6 +316,8 @@ config="$(kv_get "$line" config)"
 [ -n "$config" ] || config="$(kv_get "$line" config_path)"
 enabled_now="$(kv_get "$line" enabled)"
 [ -n "$enabled_now" ] || enabled_now=1
+controlled_certification_source_now="$(kv_get "$line" controlled_certification_source)"
+reservation_owner_now="$(kv_get "$line" reservation_owner)"
 
 echo "===== V7 EGRESS SET STATE ====="
 date -Is
@@ -351,16 +353,52 @@ if [ "$STATE" = "certification-reserve" ]; then
     }
     END {print count+0}
   ' "$USERS_REG")"
-  [ "$assigned_count" -eq 0 ] || {
+  assigned_ordinary_count="$(awk -v e="$EGRESS_ID" '
+    {
+      enabled="1"; current=""; certification="0"
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^enabled=/) enabled=substr($i,9)
+        if ($i ~ /^current=/) current=substr($i,9)
+        if ($i ~ /^certification_user=/) certification=substr($i,20)
+      }
+      if (enabled == "1" && current == e && certification != "1") count++
+    }
+    END {print count+0}
+  ' "$USERS_REG")"
+  assigned_group_mismatch_count="$(awk -v e="$EGRESS_ID" -v expected="$CERTIFICATION_GROUP" '
+    {
+      enabled="1"; current=""; certification="0"; group=""
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^enabled=/) enabled=substr($i,9)
+        if ($i ~ /^current=/) current=substr($i,9)
+        if ($i ~ /^certification_user=/) certification=substr($i,20)
+        if ($i ~ /^certification_group=/) group=substr($i,21)
+      }
+      if (enabled == "1" && current == e && (certification != "1" || group != expected)) count++
+    }
+    END {print count+0}
+  ' "$USERS_REG")"
+  continuation_eligible=0
+  if [ "$assigned_count" -gt 0 ] \
+    && [ "$assigned_ordinary_count" -eq 0 ] \
+    && [ "$assigned_group_mismatch_count" -eq 0 ] \
+    && [ "$controlled_certification_source_now" = "1" ] \
+    && [ "$reservation_owner_now" = "operator_execution_governance" ]; then
+    continuation_eligible=1
+  fi
+  [ "$assigned_count" -eq 0 ] || [ "$continuation_eligible" -eq 1 ] || {
     echo "ACTION=blocked"
-    echo "reason=controlled_source_reservation_requires_empty_source"
+    echo "reason=controlled_source_reservation_requires_empty_or_same_campaign_certification_source"
     echo "assigned_enabled_users=$assigned_count"
+    echo "assigned_ordinary_users=$assigned_ordinary_count"
+    echo "assigned_group_mismatch_users=$assigned_group_mismatch_count"
     exit 2
   }
   echo "reservation_id=$RESERVATION_ID"
   echo "reservation_expires_at=$RESERVATION_EXPIRES_AT"
   echo "assigned_enabled_users=$assigned_count"
-  echo "ordinary_users=0"
+  echo "ordinary_users=$assigned_ordinary_count"
+  echo "same_campaign_continuation=$continuation_eligible"
   echo "would_set=controlled_certification_source,certification_group,execution_reserved,canary_reserved,reservation_owner,autoswitch_allowed,rebalance_allowed,production_assignment_allowed,controlled_source_reservation_id,controlled_source_reservation_expires_at"
   if [ "$APPLY" -ne 1 ]; then
     echo "MODE=dry_run"

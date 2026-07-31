@@ -611,6 +611,39 @@ class GovernedCanaryCliTest(unittest.TestCase):
             occupied["blockers"],
         )
 
+        continuation = module.controlled_certification_setup_selection(
+            users=[
+                {
+                    "ip": "10.7.0.100",
+                    "current": "1",
+                    "enabled": "1",
+                    "certification_user": "1",
+                    "certification_group": "t48",
+                },
+                {
+                    "ip": "10.7.0.76",
+                    "current": "vless",
+                    "enabled": "1",
+                    "certification_user": "1",
+                    "certification_group": "t48",
+                },
+            ],
+            egress=[{
+                "id": "vless",
+                "enabled": "1",
+                "controlled_certification_source": "1",
+            }],
+            user="10.7.0.100",
+            source="vless",
+            certification_identity_mode="REGISTRY_MARKED",
+            allow_same_campaign_occupants=True,
+        )
+        self.assertEqual(
+            continuation["selection_status"],
+            "SELECTED",
+        )
+        self.assertTrue(continuation["same_campaign_continuation"])
+
     def test_controlled_topology_gate_profile_does_not_fabricate_user_trust(self):
         module = load_cli_module()
         candidate = {
@@ -4674,6 +4707,128 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             binding["manifest"]["manifest_hash"],
             "c" * 64,
+        )
+
+    def test_controlled_topology_binding_allows_same_campaign_continuation(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            policy_path = root / "policy.json"
+            audit_path = root / "authority-audit.jsonl"
+            policy_path.write_text(
+                json.dumps({"authority_budget": {}}, sort_keys=True),
+                encoding="utf-8",
+            )
+            state.joinpath("users.registry").write_text(
+                "ip=10.7.0.76 enabled=1 current=source "
+                "certification_user=1 certification_group=t48\n"
+                "ip=10.7.0.100 enabled=1 current=vless "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            state.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg interface=wg0 enabled=1\n"
+                "id=vless protocol=vless interface=tun0 enabled=1 "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance\n",
+                encoding="utf-8",
+            )
+            request = (
+                operator_execution
+                .build_standing_delegated_policy_authority_request(
+                    policy_generation_hash=operator_execution.sha256_file(
+                        policy_path
+                    ),
+                    active_program=(
+                        "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                    ),
+                    max_users=48,
+                    include_controlled_topology=True,
+                )
+            )
+            operator_execution.register_standing_delegated_policy_request(
+                request,
+                audit_store=audit_path,
+            )
+            activated = (
+                operator_execution.issue_standing_delegated_policy_from_audit(
+                    policy_path,
+                    request_id=request["request_id"],
+                    request_hash=request["request_hash"],
+                    decision=(
+                        "APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY"
+                    ),
+                    audit_store=audit_path,
+                    actor_id="unit-authority",
+                )
+            )
+            contract = activated["contract"]
+            manifest = {
+                "manifest_hash": "d" * 64,
+                "trial_identity": "10.7.0.76",
+                "trial_identity_count": 1,
+                "existing_source": "source",
+                "selected_source_or_draft": "vless",
+                "expected_ordinary_assignment_delta": "NONE",
+                "expected_ordinary_route_delta": "NONE",
+                "certification_group": "t48",
+                "reservation_mode": (
+                    "RENEW_AND_CONTINUE_SAME_CAMPAIGN_"
+                    "CERTIFICATION_SOURCE"
+                ),
+            }
+            diagnostic = {
+                "status": (
+                    "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+                ),
+                "production_preflight": {"manifest": manifest},
+                "standing_policy_admission": {
+                    "status": (
+                        "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
+                        "CONTROLLED_TOPOLOGY_POLICY"
+                    ),
+                    "ok": True,
+                    "contract_id": contract["contract_id"],
+                    "contract_hash": contract["contract_hash"],
+                },
+            }
+            args = module.build_parser().parse_args([
+                "--execute-controlled-topology-standing-transaction",
+                "--state-dir", str(state),
+                "--policy-file", str(policy_path),
+                "--operator-execution-audit-store", str(audit_path),
+                "--expected-standing-policy-contract-id",
+                contract["contract_id"],
+                "--expected-standing-policy-contract-hash",
+                contract["contract_hash"],
+                "--expected-controlled-topology-manifest-hash",
+                manifest["manifest_hash"],
+                "--controlled-topology-user", manifest["trial_identity"],
+                "--controlled-topology-source", manifest["existing_source"],
+                "--controlled-topology-target",
+                manifest["selected_source_or_draft"],
+            ])
+            with mock.patch.object(
+                module.subprocess,
+                "run",
+                return_value=mock.Mock(
+                    returncode=0,
+                    stdout=json.dumps(diagnostic),
+                ),
+            ):
+                binding = (
+                    module.controlled_topology_standing_execution_binding(
+                        args,
+                        state_dir=state,
+                    )
+                )
+
+        self.assertTrue(binding["allowed"], binding)
+        self.assertEqual(
+            binding["manifest"]["reservation_mode"],
+            "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE",
         )
 
     def test_compact_topology_receipt_preserves_reservation_effects(self):

@@ -1856,6 +1856,76 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "10.7.0.100",
         )
 
+    def test_topology_standing_consumer_chains_fresh_same_campaign_successors(self):
+        attempts = [
+            {
+                "status": "ACTION_COMPLETED",
+                "ok": True,
+                "action_attempted": True,
+                "action_completed": True,
+                "runtime_mutation_performed": True,
+                "reservation_mutation_performed": True,
+                "users_moved": 1,
+                "trial_identity": "10.7.0.76",
+                "source": "1",
+                "target": "vless",
+                "manifest_hash": "a" * 64,
+                "started_at": "2026-07-31T00:00:00+00:00",
+            },
+            {
+                "status": "ACTION_COMPLETED",
+                "ok": True,
+                "action_attempted": True,
+                "action_completed": True,
+                "runtime_mutation_performed": True,
+                "reservation_mutation_performed": True,
+                "users_moved": 1,
+                "trial_identity": "10.7.0.77",
+                "source": "1",
+                "target": "vless",
+                "manifest_hash": "b" * 64,
+            },
+            {
+                "status": "NOT_REQUIRED_OR_NOT_ADMITTED",
+                "ok": True,
+                "action_attempted": False,
+                "action_completed": False,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "diagnostic_status": (
+                    "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
+                ),
+            },
+        ]
+        with mock.patch.object(
+            self.refresh,
+            "_run_controlled_topology_standing_policy_action_once",
+            side_effect=attempts,
+        ) as consume:
+            result = (
+                self.refresh.run_controlled_topology_standing_policy_action(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/state"),
+                    event_dir=Path("/events"),
+                    policy_file=Path("/policy"),
+                    audit_store=Path("/audit"),
+                    max_successive_rebindings=48,
+                )
+            )
+
+        self.assertEqual(consume.call_count, 3)
+        self.assertEqual(result["status"], "ACTION_COMPLETED")
+        self.assertEqual(result["users_moved"], 2)
+        self.assertEqual(
+            [
+                row["trial_identity"]
+                for row in result["completed_rebindings"]
+            ],
+            ["10.7.0.76", "10.7.0.77"],
+        )
+        self.assertFalse(result["authority_expanded"])
+
     def test_topology_standing_consumer_does_not_execute_without_admission(self):
         diagnostic = {
             "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",

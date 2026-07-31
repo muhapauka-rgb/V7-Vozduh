@@ -1007,7 +1007,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         )
 
-    def test_post_trial_topology_rejects_expired_group_mismatch_and_capacity_two_draft(self):
+    def test_post_trial_topology_reuses_same_campaign_source_and_rejects_capacity_two_draft(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             state_dir = root / "state"
@@ -1095,6 +1095,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "_controlled_source_draft_candidates",
                     return_value=[draft],
                 ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_reservation_owner_capability",
+                    return_value={
+                        "status": "READY",
+                        "owner": "tools/v7-egress-set-state",
+                    },
+                ),
             ):
                 result = (
                     self.autoswitch.controlled_source_topology_diagnostic(
@@ -1119,33 +1127,26 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "can_accept_full_campaign_pool"
             ]
         )
-        self.assertFalse(
+        self.assertTrue(
             post_trial["post_trial_resource"][
                 "can_remain_controlled_source_now"
             ]
         )
-        self.assertIn(
-            "controlled_source_reservation_expired",
-            post_trial["dedicated_draft_selection_cause"][
-                "exact_defects"
-            ],
-        )
-        self.assertIn(
-            "controlled_source_reservation_group_mismatch",
-            post_trial["dedicated_draft_selection_cause"][
-                "exact_defects"
-            ],
-        )
-        self.assertFalse(
-            result["CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"][
-                "campaign_completion_feasible"
-            ]
+        self.assertEqual(
+            result["recommendation"]["selected_option"],
+            "OPTION_1_CONTINUE_EXISTING_CONTROLLED_EGRESS",
         )
         self.assertEqual(
-            result[
-                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_RECOMMENDATION"
-            ]["status"],
-            "EXTERNAL_RESOURCE_REQUIRED",
+            result["production_preflight"]["manifest"][
+                "reservation_mode"
+            ],
+            "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE",
+        )
+        self.assertEqual(
+            result["production_preflight"]["manifest"][
+                "certification_group"
+            ],
+            "t48",
         )
         polygon = result["polygon_fault_verification_contract"]
         self.assertTrue({
@@ -1183,7 +1184,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "ONE_DURABLE_SUCCESSOR",
             "NO_SYNTHETIC_PRODUCTION_CREDIT",
         }.issubset(set(polygon["invariants"])))
-        self.assertFalse(result["authority_package"]["actionable"])
+        self.assertTrue(result["authority_package"]["actionable"])
 
     def test_controlled_source_topology_authority_audit_is_exact_once(self):
         manifest = {

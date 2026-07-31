@@ -1207,6 +1207,7 @@ def controlled_certification_setup_selection(
     user: str,
     source: str,
     certification_identity_mode: str = "HISTORICAL_POOL",
+    allow_same_campaign_occupants: bool = False,
 ) -> dict[str, Any]:
     """Admit one historical dedicated identity for bounded pool preparation."""
     blockers: list[str] = []
@@ -1246,12 +1247,24 @@ def controlled_certification_setup_selection(
     if str(source_row.get("enabled") or "").lower() not in {"1", "true", "yes"}:
         blockers.append("controlled_certification_source_not_enabled")
     unrelated = [
-        str(row.get("ip") or "") for row in users
+        row for row in users
         if bool_value(row.get("enabled", "1"))
         and str(row.get("current") or "") == source
         and str(row.get("ip") or "") != user
     ]
-    if unrelated:
+    subject_group = str(user_row.get("certification_group") or "")
+    same_campaign_continuation = bool(
+        allow_same_campaign_occupants
+        and subject_group
+        and unrelated
+        and all(
+            bool_value(row.get("certification_user"))
+            and str(row.get("certification_group") or "")
+            == subject_group
+            for row in unrelated
+        )
+    )
+    if unrelated and not same_campaign_continuation:
         blockers.append("controlled_source_has_other_assigned_users")
     source_hash = operator_execution.sha256_json({
         "user": user,
@@ -1278,6 +1291,7 @@ def controlled_certification_setup_selection(
         "ordinary_customer_used": False,
         "authority_scope": "ONE_EXISTING_DEDICATED_IDENTITY_TO_ONE_EXISTING_CONTROLLED_SOURCE",
         "max_users": 1,
+        "same_campaign_continuation": same_campaign_continuation,
     }
 
 
@@ -3372,12 +3386,32 @@ def controlled_topology_standing_execution_binding(
             blockers.append("controlled_topology_user_source_changed")
     if len(target_rows) != 1:
         blockers.append("controlled_topology_target_identity_not_unique")
-    if any(
-        bool_value(row.get("enabled"))
+    target_assigned = [
+        row for row in users
+        if bool_value(row.get("enabled", "1"))
         and str(row.get("current") or "") == expected_target
-        for row in users
-    ):
-        blockers.append("controlled_topology_target_no_longer_empty")
+    ]
+    manifest_group = str(manifest.get("certification_group") or "")
+    continuing_target = bool(
+        target_assigned
+        and manifest.get("reservation_mode")
+        == "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE"
+        and manifest_group
+        and all(
+            bool_value(row.get("certification_user"))
+            and str(row.get("certification_group") or "")
+            == manifest_group
+            for row in target_assigned
+        )
+        and len(target_rows) == 1
+        and bool_value(target_rows[0].get("controlled_certification_source"))
+        and str(target_rows[0].get("reservation_owner") or "")
+        == "operator_execution_governance"
+    )
+    if target_assigned and not continuing_target:
+        blockers.append(
+            "controlled_topology_target_not_empty_same_campaign_continuation"
+        )
 
     authority = {
         "authority_basis": "DELEGATED_AUTONOMY_POLICY",
@@ -4915,6 +4949,7 @@ def _execute_governed_transaction_with_guards_inner(
             certification_identity_mode=(
                 "REGISTRY_MARKED" if topology_mode else "HISTORICAL_POOL"
             ),
+            allow_same_campaign_occupants=topology_mode,
         )
         if certification_setup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -5475,7 +5510,10 @@ def execute_controlled_topology_standing_transaction(
     reservation_expiry = (
         datetime.now(timezone.utc) + timedelta(minutes=30)
     ).isoformat()
-    certification_group = "ctop-" + manifest_hash[:12]
+    certification_group = str(
+        manifest.get("certification_group")
+        or "ctop-" + manifest_hash[:12]
+    )
     reserve_command = [
         str(getattr(args, "egress_state_owner", "") or "v7-egress-set-state"),
         target,

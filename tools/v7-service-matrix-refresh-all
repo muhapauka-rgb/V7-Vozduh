@@ -1014,7 +1014,7 @@ def run_controlled_certification_campaign_reset(
     }
 
 
-def run_controlled_topology_standing_policy_action(
+def _run_controlled_topology_standing_policy_action_once(
     planner: str,
     executor: str,
     *,
@@ -1208,6 +1208,108 @@ def run_controlled_topology_standing_policy_action(
         "target": str(manifest.get("selected_source_or_draft") or ""),
         "consumer_result": result,
         "output_tail": (proc.stdout or "")[-2000:] if not (completed or stopped) else "",
+    }
+
+
+def run_controlled_topology_standing_policy_action(
+    planner: str,
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    timeout_sec: int = 360,
+    max_successive_rebindings: int = 1,
+) -> dict[str, Any]:
+    """Consume serial same-campaign topology successors through Matrix.
+
+    The fixed upper bound is the approved certification-pool size.  Every
+    iteration re-runs the existing Planner and creates a fresh Packet/lease;
+    the first safe stop ends the loop.
+    """
+    limit = max(1, min(int(max_successive_rebindings or 1), 48))
+    attempts: list[dict[str, Any]] = []
+    completed: list[dict[str, Any]] = []
+    seen_users: set[str] = set()
+    for _ in range(limit):
+        current = _run_controlled_topology_standing_policy_action_once(
+            planner,
+            executor,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+            timeout_sec=timeout_sec,
+        )
+        attempts.append(current)
+        if not current.get("action_completed"):
+            break
+        user = str(current.get("trial_identity") or "")
+        if not user or user in seen_users:
+            current.update({
+                "status": "STOP_SAFE",
+                "ok": True,
+                "action_completed": False,
+                "blockers": [
+                    "controlled_topology_successor_identity_repeated"
+                ],
+            })
+            break
+        seen_users.add(user)
+        completed.append(current)
+    if len(attempts) == 1:
+        return attempts[0]
+    successor = (
+        attempts[-1]
+        if attempts and not attempts[-1].get("action_completed")
+        else {}
+    )
+    return {
+        "schema_version": (
+            "v7.controlled-topology-standing-successor-loop.v1"
+        ),
+        "status": (
+            "ACTION_COMPLETED"
+            if completed
+            else str(attempts[-1].get("status") or "STOP_SAFE")
+        ),
+        "ok": all(row.get("ok") is True for row in attempts),
+        "started_at": str(attempts[0].get("started_at") or ""),
+        "completed_at": now_iso(),
+        "action_attempted": any(
+            row.get("action_attempted") for row in attempts
+        ),
+        "action_completed": bool(completed),
+        "runtime_mutation_performed": any(
+            row.get("runtime_mutation_performed") for row in attempts
+        ),
+        "reservation_mutation_performed": any(
+            row.get("reservation_mutation_performed") for row in attempts
+        ),
+        "users_moved": sum(
+            int(row.get("users_moved") or 0) for row in completed
+        ),
+        "completed_rebindings": [
+            {
+                "trial_identity": str(row.get("trial_identity") or ""),
+                "source": str(row.get("source") or ""),
+                "target": str(row.get("target") or ""),
+                "manifest_hash": str(row.get("manifest_hash") or ""),
+            }
+            for row in completed
+        ],
+        "successor_probe": {
+            key: successor.get(key)
+            for key in (
+                "status", "ok", "stop_reason", "blockers",
+                "diagnostic_status",
+            )
+            if successor.get(key) not in (None, "", [], {})
+        },
+        "authority_expanded": False,
+        "production_maturity_change": False,
+        "natural_l8_credit": False,
     }
 
 
@@ -2566,6 +2668,9 @@ def main() -> int:
                     operator_execution.AVAILABILITY_FIRST_LADDER
                 ),
             )
+            availability_action = payload[
+                "availability_first_standing_policy_action"
+            ]
         availability_action = (
             payload.get("availability_first_standing_policy_action")
             if isinstance(
@@ -2589,6 +2694,7 @@ def main() -> int:
                 policy_file=Path(args.policy_file),
                 audit_store=Path(args.operator_execution_audit_store),
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 360,
+                max_successive_rebindings=48,
             )
         topology_action = (
             payload.get("controlled_topology_standing_policy_action")
@@ -2598,6 +2704,27 @@ def main() -> int:
             )
             else {}
         )
+        if topology_action.get("action_completed"):
+            payload[
+                "availability_first_pre_topology_action"
+            ] = availability_action
+            payload[
+                "availability_first_standing_policy_action"
+            ] = run_availability_first_standing_policy_stage(
+                str(args.passive_consumer),
+                str(args.governed_executor),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 1800,
+                max_successive_stages=len(
+                    operator_execution.AVAILABILITY_FIRST_LADDER
+                ),
+            )
+            availability_action = payload[
+                "availability_first_standing_policy_action"
+            ]
         any_action_completed = bool(
             bounded_action.get("action_completed")
             or availability_action.get("action_completed")

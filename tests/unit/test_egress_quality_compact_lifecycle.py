@@ -160,6 +160,54 @@ class EgressQualityCompactLifecycleTest(unittest.TestCase):
             self.assertFalse((state_dir / "egress-quality-summary.json").exists())
             self.assertFalse((state_dir / "egress-quality-ring.json").exists())
 
+    def test_terminal_matching_execution_lease_releases_quality_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            self.write_runtime_sources(state_dir)
+            packet_id = "pkt_terminal"
+            operation_id = "op_terminal"
+            (state_dir / "autoswitch-restore-barrier.json").write_text(
+                json.dumps({
+                    "packet_id": packet_id,
+                    "operation_id": operation_id,
+                    "clearance_expires_at": (
+                        datetime.now(timezone.utc) + timedelta(minutes=15)
+                    ).isoformat(),
+                    "clearance_expected_selected_moves": 1,
+                    "approved_selected_moves_hash": (
+                        "unit-test-selected-move"
+                    ),
+                    "allowed_users": ["10.0.0.2"],
+                }),
+                encoding="utf-8",
+            )
+            (state_dir / "operator-execution-lease.json").write_text(
+                json.dumps({
+                    "schema_version": (
+                        "v7.execution-lease.v1"
+                    ),
+                    "status": "EXECUTION_FINISHED",
+                    "immutable_packet_identity": {
+                        "packet_id": packet_id,
+                        "operation_id": operation_id,
+                    },
+                }),
+                encoding="utf-8",
+            )
+
+            result = self.run_compactor(state_dir)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(
+                payload["restore_barrier_pause"]["reason"],
+                "terminal_execution_lease_releases_quality_summary_writer",
+            )
+            self.assertTrue(
+                (state_dir / "egress-quality-summary.json").exists()
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

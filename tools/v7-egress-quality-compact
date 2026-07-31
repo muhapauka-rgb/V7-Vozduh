@@ -13,10 +13,18 @@ import fcntl
 import json
 import math
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from admin_core import operator_execution  # noqa: E402
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -72,12 +80,19 @@ def write_json_atomic(path: Path, data: Any) -> None:
     os.replace(tmp, path)
 
 
-def restore_barrier_write_pause(restore_barrier_file: Path) -> dict[str, Any]:
+def restore_barrier_write_pause(
+    restore_barrier_file: Path,
+    execution_lease_file: Path,
+) -> dict[str, Any]:
     barrier = read_json(restore_barrier_file, {})
+    lease = operator_execution.load_execution_lease(execution_lease_file)
+    lease_state = operator_execution.execution_lease_state(lease)
     status: dict[str, Any] = {
         "schema": "v7.quality-summary-restore-barrier-bind.v1",
         "owner": "tools/v7-egress-quality-compact",
         "restore_barrier_file": str(restore_barrier_file),
+        "execution_lease_file": str(execution_lease_file),
+        "execution_lease_state": lease_state,
         "pause_writes": False,
         "reason": "restore_barrier_not_active",
         "runtime_behavior_changed": False,
@@ -94,7 +109,34 @@ def restore_barrier_write_pause(restore_barrier_file: Path) -> dict[str, Any]:
     selected_hash = str(barrier.get("approved_selected_moves_hash") or "")
     allowed_users = barrier.get("allowed_users") if isinstance(barrier.get("allowed_users"), list) else []
     barrier_active = bool(clearance_expires_at and clearance_expires_at > now)
+    immutable = (
+        lease.get("immutable_packet_identity")
+        if isinstance(lease.get("immutable_packet_identity"), dict)
+        else {}
+    )
+    terminal_lease_matches_barrier = bool(
+        not lease_state.get("active")
+        and str(lease_state.get("reason") or "") == "execution_lease_terminal"
+        and str(immutable.get("packet_id") or "")
+        == str(barrier.get("packet_id") or "")
+        and str(immutable.get("operation_id") or "")
+        == str(barrier.get("operation_id") or "")
+    )
     if barrier_active and expected_moves > 0 and selected_hash and allowed_users:
+        if terminal_lease_matches_barrier:
+            status.update({
+                "pause_writes": False,
+                "reason": (
+                    "terminal_execution_lease_releases_quality_summary_writer"
+                ),
+                "clearance_expires_at": clearance_expires_at.isoformat(),
+                "clearance_expected_selected_moves": expected_moves,
+                "allowed_users": sorted(
+                    str(user) for user in allowed_users
+                ),
+                "approved_selected_moves_hash": selected_hash,
+            })
+            return status
         status.update({
             "pause_writes": True,
             "reason": "active_restore_barrier_clearance_window",
@@ -327,6 +369,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--summary-file", default=str(DEFAULT_SUMMARY_FILE))
     parser.add_argument("--ring-file", default=str(DEFAULT_RING_FILE))
     parser.add_argument("--restore-barrier-file", default=str(DEFAULT_RESTORE_BARRIER_FILE))
+    parser.add_argument(
+        "--execution-lease-file",
+        default="",
+        help=(
+            "existing execution lease owner; defaults to "
+            "<state-dir>/operator-execution-lease.json"
+        ),
+    )
     parser.add_argument("--max-items", type=int, default=DEFAULT_MAX_ITEMS)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--pretty", action="store_true")
@@ -339,10 +389,18 @@ def main() -> int:
     summary_file = Path(args.summary_file)
     ring_file = Path(args.ring_file)
     restore_barrier_file = Path(args.restore_barrier_file)
+    execution_lease_file = (
+        Path(args.execution_lease_file)
+        if args.execution_lease_file
+        else state_dir / "operator-execution-lease.json"
+    )
     skip_payload: Optional[dict[str, Any]] = None
     try:
         with service_matrix_lifecycle_lock(state_dir, args.lock_timeout_sec) as lock_status:
-            restore_barrier_pause = restore_barrier_write_pause(restore_barrier_file)
+            restore_barrier_pause = restore_barrier_write_pause(
+                restore_barrier_file,
+                execution_lease_file,
+            )
             if restore_barrier_pause.get("pause_writes"):
                 skip_payload = {
                     "updated": now_iso(),

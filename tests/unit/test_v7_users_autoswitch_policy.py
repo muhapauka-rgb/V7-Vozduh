@@ -4173,6 +4173,104 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["safety"]["l3_incident"]["terminal_outcome"], "ROLLBACK_SUCCESS")
         self.assertEqual(plan["operation"]["terminal_state"], "ROLLED_BACK")
 
+    def test_availability_first_execution_eligibility_does_not_require_failed_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                current_egress="vless",
+                vless_registry_extra=(
+                    " controlled_certification_source=1"
+                ),
+                emergency_failover_autonomy={"enabled": True},
+            )
+            (root / "state" / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless table=1098 enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--emergency-failover-autonomy",
+                        "--mode", "guarded",
+                        "--apply",
+                        "--user", "10.7.0.100",
+                        "--source-egress", "vless",
+                        "--target-egress", "1",
+                    ],
+                )
+            )
+            move = {
+                "user_ip": "10.7.0.100",
+                "current_egress": "vless",
+                "recommended_egress": "1",
+                "move_type": "failover",
+                "execution_mode": "emergency_failover",
+                "operation_id": "availability-operation",
+                "selected_move_hash": "availability-hash",
+                "availability_first_controlled_assignment": {
+                    "schema_version": (
+                        "v7.availability-first-controlled-selection.v1"
+                    ),
+                    "event_provenance": "CONTROLLED_CERTIFICATION",
+                    "natural_production_credit": False,
+                    "source": "vless",
+                    "target": "1",
+                    "allocation_fingerprint": "d" * 64,
+                    "ordinary_user": False,
+                },
+            }
+            plan = {
+                "summary": {"execution_mode": "emergency_failover"},
+                "operation": {
+                    "operation_id": "availability-operation",
+                    "selected_move_hash": "availability-hash",
+                },
+                "selected_moves": [move],
+                "safety": {
+                    "emergency_failover_autonomy": {
+                        "enabled": True,
+                        "ok": True,
+                        "approved_production_validation_envelope": {
+                            "ok": True,
+                        },
+                    },
+                    "restore_barrier": {
+                        "clearance_max_selected_moves": 1,
+                        "approved_plan_lock_validation": {
+                            "ok": True,
+                            "selected_move_count": 1,
+                        },
+                    },
+                },
+            }
+            with mock.patch.object(
+                planner,
+                "_exact_availability_first_controlled_scope",
+                return_value={
+                    "ok": True,
+                    "sources": ["vless"],
+                    "targets": ["1"],
+                    "natural_production_credit": False,
+                },
+            ), mock.patch.object(
+                planner,
+                "_emergency_failover_move_evidence",
+            ) as ordinary_evidence:
+                eligibility = planner._l3_execution_eligibility(plan)
+
+        self.assertTrue(eligibility["ok"])
+        self.assertEqual(eligibility["decision"], "EXECUTE")
+        self.assertEqual(eligibility["blockers"], [])
+        self.assertTrue(
+            eligibility["availability_first_controlled_scope"]["ok"]
+        )
+        ordinary_evidence.assert_not_called()
+
     def test_l3_execution_stops_safe_when_target_lost_before_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

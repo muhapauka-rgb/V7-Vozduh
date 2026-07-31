@@ -10494,6 +10494,9 @@ class AutoswitchPlanner:
 
         operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
         selected = [move for move in (plan.get("selected_moves") or []) if isinstance(move, dict)]
+        availability_first_scope = (
+            self._exact_availability_first_controlled_scope(selected)
+        )
         wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
         incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
         selected_hash = str(operation.get("selected_move_hash") or "")
@@ -10560,7 +10563,24 @@ class AutoswitchPlanner:
                 move_blockers.append("target_not_eligible_before_apply")
             if current_id and target_id and current_id == target_id:
                 move_blockers.append("source_target_same_before_apply")
-            live_evidence = self._emergency_failover_move_evidence(move)
+            if availability_first_scope.get("ok"):
+                live_evidence = {
+                    "schema_version": (
+                        "v7.availability-first-live-execution-evidence.v1"
+                    ),
+                    "ok": True,
+                    "blockers": [],
+                    "event_provenance": "CONTROLLED_CERTIFICATION",
+                    "natural_production_credit": False,
+                    "source_failure_required": False,
+                    "authority_source": (
+                        "ACTIVE_STANDING_AVAILABILITY_FIRST_POLICY"
+                    ),
+                }
+            else:
+                live_evidence = self._emergency_failover_move_evidence(
+                    move
+                )
             if "required_service_failure_required" in (live_evidence.get("blockers") or []):
                 move_blockers.append("source_recovered_before_apply")
             if "target_required_services_not_ready" in (live_evidence.get("blockers") or []):
@@ -10591,6 +10611,9 @@ class AutoswitchPlanner:
             "approved_batch_scope": approved_batch_scope,
             "max_allowed_selected_moves": max_allowed_selected,
             "approved_selected_move_count": approved_selected_count,
+            "availability_first_controlled_scope": (
+                availability_first_scope
+            ),
             "packet_identity_preserved": True,
             "lease_identity_preserved": True,
             "new_execution_path_created": False,

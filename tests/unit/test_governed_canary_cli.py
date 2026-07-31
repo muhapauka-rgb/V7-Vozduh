@@ -1199,6 +1199,60 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "append_only_matrix_event",
         )
 
+    def test_availability_forward_evidence_reuses_exact_outcome_and_closure_owners(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            packet_id = "pkt_stage1"
+            operation_id = "govexec_stage1"
+            feedback_id = "execfb_stage1"
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1",
+                "packet_id": packet_id,
+                "feedback_id": feedback_id,
+                "decision_trace_id": operation_id,
+                "input_snapshot_identity": "snapshot-stage1",
+                "closure_reference": "runtime-stage1",
+                "user": "10.7.0.100",
+                "source_channel": "vless",
+                "target_channel": "awg0",
+                "outcome_status": "success",
+                "terminal_outcome_classification": "SUCCESS",
+                "outcome_quality": {"verification_complete": True},
+                "knowledge_growth": {"knowledge_gained": True},
+                "learning_record": {
+                    "learning_record_id": "learn_stage1",
+                },
+            }
+            closure = {
+                "schema_version": "v7.execution-feedback-closure.v1",
+                "packet_id": packet_id,
+                "closure_state": "CLOSED",
+                "terminal_outcome_classification": "SUCCESS",
+            }
+            (state / "execution-events.jsonl").write_text(
+                json.dumps(outcome) + "\n",
+                encoding="utf-8",
+            )
+            (state / "closure-records.jsonl").write_text(
+                json.dumps(closure) + "\n",
+                encoding="utf-8",
+            )
+            evidence = module.availability_first_forward_evidence_status(
+                state,
+                packet_id=packet_id,
+                operation_id=operation_id,
+                user="10.7.0.100",
+                source="vless",
+                target="awg0",
+            )
+
+        self.assertTrue(evidence["ok"], evidence)
+        self.assertTrue(evidence["outcome_consumed"])
+        self.assertTrue(evidence["replay_consumed"])
+        self.assertTrue(evidence["learning_consumed"])
+        self.assertEqual(evidence["feedback_id"], feedback_id)
+
     def test_controlled_cleanup_requires_prior_one_use_authority_consumption(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

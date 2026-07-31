@@ -1420,6 +1420,118 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
         )
 
+    def test_matrix_consumes_verified_stage_pending_only_baseline_cleanup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=awg0 enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 1,
+                        "consumer_result": {
+                            "stage": 1,
+                            "circuit_breaker": {
+                                "tripped": True,
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": [{
+                                "final_verdict": "L3_PRODUCTION_PROVEN",
+                                "transaction_status": "COMPLETED",
+                                "verification_result": "PASS",
+                                "users_moved": 1,
+                                "user": "10.7.0.100",
+                                "source": "vless",
+                                "target": "awg0",
+                            }],
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            diagnostic = {
+                "status": "STOP_SAFE",
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                },
+                "shared_production_target_capacity_projection": {
+                    "availability_campaign": {
+                        "next_stage": 1,
+                        "completed": False,
+                    },
+                    "stage_allocations": {},
+                },
+            }
+            reconciled = {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                ),
+                "transaction_status": "COMPLETED",
+                "stage": 1,
+                "standing_policy_contract_id": "sdpc_test",
+                "standing_policy_contract_hash": "a" * 64,
+                "allocation_immutable": True,
+                "capacity_reservation_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "per_user_verification_passed": True,
+                "per_target_verification_passed": True,
+                "aggregate_verification_passed": True,
+                "ordinary_user_protection_passed": True,
+                "baseline_reset_verified": True,
+                "allocation": [{
+                    "target_id": "awg0",
+                    "allocated_users": 1,
+                    "target_fingerprint": "b" * 64,
+                    "capacity_bounds_fingerprint": "c" * 64,
+                }],
+            }
+            calls = [
+                mock.Mock(returncode=2, stdout=json.dumps(diagnostic)),
+                mock.Mock(returncode=0, stdout=json.dumps(reconciled)),
+            ]
+            with mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                side_effect=calls,
+            ) as run, mock.patch.object(
+                self.refresh,
+                "record_availability_first_stage_consumption",
+                return_value={
+                    "receipt_id": "afstage_test",
+                    "audit_write": True,
+                    "duplicate_suppressed": False,
+                },
+            ) as record:
+                result = (
+                    self.refresh.run_availability_first_standing_policy_stage(
+                        "v7-users-autoswitch",
+                        "v7-governed-canary-dry-run-cycle",
+                        state_dir=state,
+                        event_dir=events,
+                        policy_file=root / "policy.json",
+                        audit_store=root / "audit.jsonl",
+                    )
+                )
+
+        self.assertEqual(len(run.call_args_list), 2)
+        self.assertEqual(result["status"], "ACTION_COMPLETED")
+        self.assertTrue(result["action_completed"])
+        record.assert_called_once()
+
     def test_matrix_projection_preserves_bounded_partial_reset_terminal(self):
         projected = self.refresh._consumer_projection({
             "status": "STOP_SAFE",

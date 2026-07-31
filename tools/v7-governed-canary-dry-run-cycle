@@ -5699,6 +5699,114 @@ def _availability_first_topology_diagnostic(
     }
 
 
+def availability_first_forward_evidence_status(
+    state_dir: Path,
+    *,
+    packet_id: str,
+    operation_id: str,
+    user: str,
+    source: str,
+    target: str,
+) -> dict[str, Any]:
+    """Read exact forward Outcome/Replay/Learning from existing owners."""
+    outcomes = intelligence_workers.read_jsonl_tail(
+        state_dir / "execution-events.jsonl",
+        limit=512,
+        max_bytes=4_000_000,
+    )
+    closures = intelligence_workers.read_jsonl_tail(
+        state_dir / "closure-records.jsonl",
+        limit=512,
+        max_bytes=4_000_000,
+    )
+    outcome = next(
+        (
+            row
+            for row in reversed(outcomes)
+            if str(row.get("schema_version") or "")
+            == "v7.execution-outcome-record.v1"
+            and str(row.get("packet_id") or "") == packet_id
+            and str(row.get("decision_trace_id") or "") == operation_id
+            and str(row.get("user") or "") == user
+            and str(row.get("source_channel") or "") == source
+            and str(row.get("target_channel") or "") == target
+        ),
+        {},
+    )
+    closure = next(
+        (
+            row
+            for row in reversed(closures)
+            if str(row.get("schema_version") or "")
+            == "v7.execution-feedback-closure.v1"
+            and str(row.get("packet_id") or "") == packet_id
+            and str(row.get("closure_state") or "") == "CLOSED"
+        ),
+        {},
+    )
+    quality = (
+        outcome.get("outcome_quality")
+        if isinstance(outcome.get("outcome_quality"), dict)
+        else {}
+    )
+    learning = (
+        outcome.get("learning_record")
+        if isinstance(outcome.get("learning_record"), dict)
+        else {}
+    )
+    growth = (
+        outcome.get("knowledge_growth")
+        if isinstance(outcome.get("knowledge_growth"), dict)
+        else {}
+    )
+    outcome_ok = bool(
+        str(outcome.get("terminal_outcome_classification") or "")
+        == "SUCCESS"
+        and str(outcome.get("outcome_status") or "") == "success"
+        and quality.get("verification_complete") is True
+    )
+    replay_ok = bool(
+        str(outcome.get("input_snapshot_identity") or "")
+        and str(outcome.get("decision_trace_id") or "") == operation_id
+        and str(outcome.get("closure_reference") or "")
+        and closure
+        and str(closure.get("terminal_outcome_classification") or "")
+        == "SUCCESS"
+    )
+    learning_ok = bool(
+        str(learning.get("learning_record_id") or "")
+        and growth.get("knowledge_gained") is True
+    )
+    blockers = []
+    if not outcome_ok:
+        blockers.append("forward_outcome_not_consumed")
+    if not replay_ok:
+        blockers.append("forward_replay_lineage_not_consumed")
+    if not learning_ok:
+        blockers.append("forward_learning_not_consumed")
+    return {
+        "schema_version": (
+            "v7.availability-first-forward-evidence-status.v1"
+        ),
+        "ok": not blockers,
+        "blockers": blockers,
+        "packet_id": packet_id,
+        "operation_id": operation_id,
+        "feedback_id": str(outcome.get("feedback_id") or ""),
+        "outcome_id": str(outcome.get("feedback_id") or ""),
+        "learning_record_id": str(
+            learning.get("learning_record_id") or ""
+        ),
+        "outcome_consumed": outcome_ok,
+        "replay_consumed": replay_ok,
+        "learning_consumed": learning_ok,
+        "owner_paths": [
+            "execution-events.jsonl",
+            "closure-records.jsonl",
+        ],
+    }
+
+
 def availability_first_partial_apply_recovery_context(
     args: argparse.Namespace,
     *,
@@ -5720,6 +5828,7 @@ def availability_first_partial_apply_recovery_context(
     result: dict[str, Any] = {}
     packet: dict[str, Any] = {}
     projection_source = ""
+    recovery_mode = ""
     def projection_stream():
         if isinstance(summary, dict):
             yield "current_summary", summary
@@ -5766,10 +5875,30 @@ def availability_first_partial_apply_recovery_context(
         )
         candidate_user = str(candidate_packet.get("user") or "")
         candidate_target = str(candidate_packet.get("target") or "")
+        circuit_breaker = (
+            candidate_result.get("circuit_breaker")
+            if isinstance(
+                candidate_result.get("circuit_breaker"),
+                dict,
+            )
+            else {}
+        )
+        partial_apply = bool(
+            str(candidate_packet.get("stop_reason") or "")
+            == "l3_production_validation_downstream_proof_failed"
+        )
+        verified_stage_baseline_pending = bool(
+            str(candidate_packet.get("final_verdict") or "")
+            == "L3_PRODUCTION_PROVEN"
+            and str(candidate_packet.get("verification_result") or "")
+            == "PASS"
+            and int(candidate_packet.get("users_moved") or 0) == 1
+            and str(circuit_breaker.get("reason") or "")
+            == "availability_first_baseline_reset_failed"
+        )
         if (
             candidate.get("status") == "STOP_SAFE"
-            and str(candidate_packet.get("stop_reason") or "")
-            == "l3_production_validation_downstream_proof_failed"
+            and (partial_apply or verified_stage_baseline_pending)
             and candidate_user
             and current_routes.get(candidate_user) == candidate_target
         ):
@@ -5777,6 +5906,11 @@ def availability_first_partial_apply_recovery_context(
             result = candidate_result
             packet = candidate_packet
             projection_source = source_kind
+            recovery_mode = (
+                "VERIFIED_STAGE_BASELINE_PENDING"
+                if verified_stage_baseline_pending
+                else "PARTIAL_APPLY_BASELINE_PENDING"
+            )
             break
     if not packet:
         return {"pending": False, "blockers": []}
@@ -5942,6 +6076,46 @@ def availability_first_partial_apply_recovery_context(
         blockers.append("partial_baseline_reset_not_in_policy")
     if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
         blockers.append("partial_stage_not_in_ladder")
+    forward_evidence = (
+        availability_first_forward_evidence_status(
+            state_dir,
+            packet_id=packet_id,
+            operation_id=operation_id,
+            user=user,
+            source=source,
+            target=target,
+        )
+        if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        else {}
+    )
+    if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING":
+        if stage != 1:
+            blockers.append(
+                "verified_stage_recovery_requires_exact_cohort_projection"
+            )
+        if not forward_evidence.get("ok"):
+            blockers.extend(
+                forward_evidence.get("blockers")
+                or ["verified_stage_forward_evidence_incomplete"]
+            )
+    recovered_target_fingerprint = operator_execution.sha256_json({
+        "packet_id": packet_id,
+        "target": target,
+        "snapshot_bundle_hash": str(
+            immutable.get("snapshot_bundle_hash") or ""
+        ),
+        "allocation_fingerprint": allocation_fingerprint,
+    })
+    recovered_capacity_fingerprint = operator_execution.sha256_json({
+        "packet_id": packet_id,
+        "source_bundle_hash": str(
+            immutable.get("source_bundle_hash") or ""
+        ),
+        "selected_move_hash": str(
+            immutable.get("selected_move_hash") or ""
+        ),
+        "max_users": int(immutable.get("max_users") or 0),
+    })
     return {
         "schema_version": (
             "v7.availability-first-partial-apply-recovery-context.v1"
@@ -5961,6 +6135,20 @@ def availability_first_partial_apply_recovery_context(
         "ordinary_user": False,
         "natural_l8_credit": False,
         "projection_source": projection_source,
+        "recovery_mode": recovery_mode,
+        "forward_evidence": forward_evidence,
+        "recovered_allocation": [{
+            "target_id": target,
+            "allocated_users": 1,
+            "capacity_reservation": 1,
+            "target_fingerprint": recovered_target_fingerprint,
+            "capacity_bounds_fingerprint": (
+                recovered_capacity_fingerprint
+            ),
+            "recovery_owner": (
+                "immutable Packet identity + existing Outcome/closure owners"
+            ),
+        }],
     }
 
 
@@ -6056,26 +6244,125 @@ def execute_availability_first_standing_stage(
             execution_target=target,
         )
         reset_complete = bool(reset_truth.get("ok"))
+        forward_evidence = (
+            partial.get("forward_evidence")
+            if isinstance(partial.get("forward_evidence"), dict)
+            else {}
+        )
+        recovered_stage_complete = bool(
+            reset_complete
+            and str(partial.get("recovery_mode") or "")
+            == "VERIFIED_STAGE_BASELINE_PENDING"
+            and forward_evidence.get("ok") is True
+        )
+        recovered_allocation = [
+            row
+            for row in (partial.get("recovered_allocation") or [])
+            if isinstance(row, dict)
+        ]
+        recovered_packet = {
+            "final_verdict": "L3_PRODUCTION_PROVEN",
+            "transaction_status": "COMPLETED",
+            "fresh_packet_id": str(partial.get("packet_id") or ""),
+            "operation_id": str(partial.get("operation_id") or ""),
+            "user": user,
+            "users": [user],
+            "source": source,
+            "target": target,
+            "target_id": target,
+            "users_moved": 1,
+            "runtime_mutation_performed": True,
+            "verification_result": "PASS",
+            "rollback_result": "NOT_REQUIRED",
+            "feedback_id": str(
+                forward_evidence.get("feedback_id") or ""
+            ),
+            "outcome_id": str(
+                forward_evidence.get("outcome_id") or ""
+            ),
+            "learning_record_id": str(
+                forward_evidence.get("learning_record_id") or ""
+            ),
+            "recovered_from_existing_owner_truth": True,
+        }
+        execution_allocation_fingerprint = (
+            operator_execution.sha256_json({
+                "standing_policy_contract_id": str(
+                    partial.get("contract_id") or ""
+                ),
+                "stage": stage,
+                "planner_allocation_fingerprint": str(
+                    partial.get("allocation_fingerprint") or ""
+                ),
+                "subsets": recovered_allocation,
+            })
+        )
         return {
             "schema_version": (
                 "v7.availability-first-partial-apply-reconciliation.v1"
             ),
-            "transaction_status": "STOP_SAFE",
+            "transaction_status": (
+                "COMPLETED" if recovered_stage_complete else "STOP_SAFE"
+            ),
             "final_verdict": (
-                "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED"
+                "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                if recovered_stage_complete
+                else "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED"
                 if reset_complete
                 else "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
             ),
             "stop_reason": (
-                "fresh_retry_required_after_partial_apply_reconciliation"
+                ""
+                if recovered_stage_complete
+                else "fresh_retry_required_after_partial_apply_reconciliation"
                 if reset_complete
                 else "availability_first_partial_apply_recovery_failed"
             ),
             "stage": stage,
+            "source": source,
+            "standing_policy_contract_id": str(
+                partial.get("contract_id") or ""
+            ),
+            "standing_policy_contract_hash": str(
+                partial.get("contract_hash") or ""
+            ),
+            "planner_allocation_fingerprint": str(
+                partial.get("allocation_fingerprint") or ""
+            ),
+            "execution_allocation_fingerprint": (
+                execution_allocation_fingerprint
+            ),
+            "allocation": recovered_allocation,
+            "packet_set": (
+                [recovered_packet] if recovered_stage_complete else []
+            ),
+            "packet_set_fingerprint": (
+                operator_execution.sha256_json([recovered_packet])
+                if recovered_stage_complete
+                else ""
+            ),
             "partial_apply_recovery": partial,
             "reset_transaction": compact_transaction_result(reset),
             "baseline_reset_verified": reset_complete,
             "baseline_reset_reconciliation": reset_truth,
+            "allocation_immutable": recovered_stage_complete,
+            "capacity_reservation_verified": recovered_stage_complete,
+            "outcome_consumed": bool(
+                recovered_stage_complete
+                and forward_evidence.get("outcome_consumed")
+            ),
+            "replay_consumed": bool(
+                recovered_stage_complete
+                and forward_evidence.get("replay_consumed")
+            ),
+            "learning_consumed": bool(
+                recovered_stage_complete
+                and forward_evidence.get("learning_consumed")
+            ),
+            "per_user_verification_passed": recovered_stage_complete,
+            "per_target_verification_passed": recovered_stage_complete,
+            "aggregate_verification_passed": recovered_stage_complete,
+            "ordinary_user_protection_passed": recovered_stage_complete,
             "runtime_mutation_performed": bool(
                 reset.get("runtime_mutation_performed")
             ),
@@ -6084,7 +6371,9 @@ def execute_availability_first_standing_stage(
             "production_maturity_change": False,
             "natural_l8_credit": False,
             "durable_successor": (
-                "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN"
+                "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+                if recovered_stage_complete
+                else "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN"
                 if reset_complete
                 else "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
             ),

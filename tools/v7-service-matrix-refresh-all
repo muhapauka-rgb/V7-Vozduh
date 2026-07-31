@@ -1364,10 +1364,30 @@ def run_availability_first_standing_policy_stage(
             else {}
         )
         candidate_user = str(candidate_packet.get("user") or "")
+        circuit_breaker = (
+            candidate_result.get("circuit_breaker")
+            if isinstance(
+                candidate_result.get("circuit_breaker"),
+                dict,
+            )
+            else {}
+        )
+        partial_or_cleanup_pending = bool(
+            str(candidate_packet.get("stop_reason") or "")
+            == "l3_production_validation_downstream_proof_failed"
+            or (
+                str(candidate_packet.get("final_verdict") or "")
+                == "L3_PRODUCTION_PROVEN"
+                and str(candidate_packet.get("verification_result") or "")
+                == "PASS"
+                and int(candidate_packet.get("users_moved") or 0) == 1
+                and str(circuit_breaker.get("reason") or "")
+                == "availability_first_baseline_reset_failed"
+            )
+        )
         if (
             candidate.get("status") == "STOP_SAFE"
-            and str(candidate_packet.get("stop_reason") or "")
-            == "l3_production_validation_downstream_proof_failed"
+            and partial_or_cleanup_pending
             and candidate_user
             and current_routes.get(candidate_user)
             == str(candidate_packet.get("target") or "")

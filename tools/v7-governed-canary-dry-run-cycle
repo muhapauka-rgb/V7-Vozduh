@@ -5097,6 +5097,50 @@ def _execute_governed_transaction_with_guards_inner(
     )
     surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
     surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
+    availability_reset_snapshot_refresh: dict[str, Any] = {}
+    if availability_first_reset:
+        # A serialized cohort reset changes route-backed risk/blast/overview
+        # inputs after every member.  Reusing the preceding member's
+        # snapshots makes the next exact cleanup Packet fail permanently with
+        # snapshot_mismatch.  Consume the existing snapshot writer before
+        # every reset child, then rebuild the same decision surface from that
+        # fresh generation.  This is observation-state maintenance only; it
+        # grants no Authority and performs no routing mutation.
+        availability_reset_snapshot_refresh = (
+            refresh_controlled_topology_execution_snapshots(
+                args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+            )
+        )
+        if not availability_reset_snapshot_refresh.get("ok"):
+            return transaction_stop(
+                "availability_first_baseline_snapshot_refresh_failed",
+                snapshot_refresh=availability_reset_snapshot_refresh,
+            )
+        surface = operator_decision_surface.build_operator_decision_surface(
+            snapshot_root=snapshot_root,
+            users=users,
+            egress=egress,
+            runtime_state=runtime_state,
+            decision_records=records,
+        )
+        inventory = autonomy_trust_acceleration.build_acceleration_inventory(
+            snapshot_root=snapshot_root,
+            decision_surface=surface,
+            shadow_history=shadow_history,
+            decision_records=records,
+            event_rows=events,
+        )
+        surface["knowledge_quality_read_model"] = inventory.get(
+            "knowledge_quality_read_model",
+            {},
+        )
+        surface["decision_outcome_learning"] = inventory.get(
+            "decision_outcome_learning",
+            {},
+        )
     topology_policy_binding: dict[str, Any] = {}
     if topology_mode:
         topology_policy_binding = copy.deepcopy(

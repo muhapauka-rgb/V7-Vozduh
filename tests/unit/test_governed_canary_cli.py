@@ -1493,6 +1493,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 return_value={},
             ), mock.patch.object(
                 module,
+                "refresh_controlled_topology_execution_snapshots",
+                return_value={
+                    "ok": True,
+                    "returncode": 0,
+                },
+            ) as snapshot_refresh, mock.patch.object(
+                module,
                 "attach_controlled_execution_source_binding",
             ), mock.patch.object(
                 module.operator_execution_pipeline,
@@ -1509,6 +1516,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 )
 
         self.assertEqual(result["stop_reason"], "packet_not_ready")
+        snapshot_refresh.assert_called_once()
         self.assertEqual(
             captured_surface["controlled_execution_gate_profile"],
             "CONTROLLED_CERTIFICATION_TOPOLOGY",

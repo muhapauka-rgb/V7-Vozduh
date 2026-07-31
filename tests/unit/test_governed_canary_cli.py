@@ -188,7 +188,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         execute.assert_not_called()
 
-    def test_stage_two_cleanup_reconciles_baseline_without_false_stage_completion(self):
+    def test_stage_two_cleanup_consumes_restored_cohort_without_timer_wait(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -226,24 +226,68 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "capacity_reservation": 1,
                 }],
             }
+            partial_second = {
+                **partial,
+                "user": "10.7.0.101",
+                "packet_id": "pkt_stage2_b",
+                "operation_id": "govexec_stage2_b",
+            }
             reset = {
                 "final_verdict": "L3_PRODUCTION_PROVEN",
                 "transaction_status": "COMPLETED",
                 "runtime_mutation_performed": True,
                 "users_moved": 1,
             }
+            restored = {
+                "pending": True,
+                "ok": True,
+                "stage": 2,
+                "source": "vless",
+                "packet_set": [
+                    {
+                        "fresh_packet_id": "pkt_stage2_a",
+                        "operation_id": "govexec_stage2_a",
+                        "user": "10.7.0.100",
+                        "source": "vless",
+                        "target": "awg0",
+                    },
+                    {
+                        "fresh_packet_id": "pkt_stage2_b",
+                        "operation_id": "govexec_stage2_b",
+                        "user": "10.7.0.101",
+                        "source": "vless",
+                        "target": "awg0",
+                    },
+                ],
+                "reset_reconciliations": [
+                    {"ok": True, "user": "10.7.0.100"},
+                    {"ok": True, "user": "10.7.0.101"},
+                ],
+                "allocation_fingerprint": "a" * 64,
+                "contract_id": "sdpc_stage2",
+                "contract_hash": "b" * 64,
+                "recovered_allocation": [{
+                    "target_id": "awg0",
+                    "allocated_users": 2,
+                    "capacity_reservation": 2,
+                }],
+            }
             with mock.patch.object(
                 module,
                 "availability_first_restored_stage_receipt_recovery_context",
-                return_value={"pending": False},
+                side_effect=[
+                    {"pending": False},
+                    {"pending": False},
+                    restored,
+                ],
             ), mock.patch.object(
                 module,
                 "availability_first_partial_apply_recovery_context",
-                return_value=partial,
+                side_effect=[partial, partial_second],
             ), mock.patch.object(
                 module,
                 "execute_governed_transaction_with_guards",
-                return_value=reset,
+                side_effect=[reset, reset],
             ), mock.patch.object(
                 module,
                 "availability_first_baseline_reset_truth",
@@ -260,14 +304,24 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual(
             result["final_verdict"],
-            "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
+            "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
         )
-        self.assertEqual(result["transaction_status"], "STOP_SAFE")
+        self.assertEqual(result["transaction_status"], "COMPLETED")
         self.assertTrue(result["baseline_reset_verified"])
-        self.assertEqual(result["packet_set"], [])
+        self.assertEqual(len(result["packet_set"]), 2)
         self.assertEqual(
             result["durable_successor"],
-            "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN",
+            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE",
+        )
+        self.assertEqual(result["serial_baseline_reset_count"], 2)
+        self.assertEqual(
+            [
+                row["user"]
+                for row in result[
+                    "serial_baseline_reset_reconciliations"
+                ]
+            ],
+            ["10.7.0.100", "10.7.0.101"],
         )
 
     def test_stage_two_restored_cohort_emits_one_complete_stage_receipt(self):

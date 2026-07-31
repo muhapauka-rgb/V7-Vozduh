@@ -7907,6 +7907,63 @@ def execute_availability_first_standing_stage(
                 "subsets": recovered_allocation,
             })
         )
+        recovery_depth = int(
+            getattr(args, "_availability_first_recovery_depth", 0)
+            or 0
+        )
+        if reset_complete and stage > 1 and recovery_depth < stage:
+            successor_args = copy.copy(args)
+            successor_args._availability_first_recovery_depth = (
+                recovery_depth + 1
+            )
+            successor_args._availability_first_recovery_only = True
+            successor = execute_availability_first_standing_stage(
+                successor_args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+                audit_dir=audit_dir,
+                lease_file=lease_file,
+            )
+            prior_reconciliations = [
+                row
+                for row in (
+                    successor.get(
+                        "serial_baseline_reset_reconciliations"
+                    )
+                    or []
+                )
+                if isinstance(row, dict)
+            ]
+            return {
+                **successor,
+                "serial_baseline_reset_reconciliations": [
+                    {
+                        "stage": stage,
+                        "user": user,
+                        "packet_id": str(
+                            partial.get("packet_id") or ""
+                        ),
+                        "operation_id": str(
+                            partial.get("operation_id") or ""
+                        ),
+                        "reset_transaction": compact_transaction_result(
+                            reset
+                        ),
+                        "baseline_reset_reconciliation": reset_truth,
+                    },
+                    *prior_reconciliations,
+                ],
+                "serial_baseline_reset_count": (
+                    1
+                    + int(
+                        successor.get(
+                            "serial_baseline_reset_count"
+                        )
+                        or 0
+                    )
+                ),
+            }
         return {
             "schema_version": (
                 "v7.availability-first-partial-apply-reconciliation.v1"
@@ -7986,6 +8043,21 @@ def execute_availability_first_standing_stage(
                 else "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_COOLDOWN"
                 if reset_complete
                 else "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
+            ),
+        }
+    if bool(
+        getattr(args, "_availability_first_recovery_only", False)
+    ):
+        return {
+            **transaction_stop(
+                "availability_first_recovery_lineage_not_ready",
+                blockers=[
+                    "availability_first_recovery_requires_exact_"
+                    "pending_or_restored_cohort"
+                ],
+            ),
+            "durable_successor": (
+                "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
             ),
         }
     planner = _availability_first_topology_diagnostic(

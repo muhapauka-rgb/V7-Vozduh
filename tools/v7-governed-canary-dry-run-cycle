@@ -2744,6 +2744,174 @@ def run_autoswitch_apply(
     }
 
 
+def recover_controlled_topology_apply_terminal(
+    apply_run: dict[str, Any],
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    audit_store: Path,
+    restore_barrier_file: Path,
+    user: str,
+    source: str,
+    target: str,
+    packet_id: str,
+    operation_id: str,
+) -> dict[str, Any]:
+    """Recover only a lost topology child terminal from existing owner truth.
+
+    The route owner can commit and verify the exact single-user move before a
+    later child consumer loses its JSON terminal.  Repeating that move would
+    violate fresh-Packet and exact-once law.  This recovery accepts only the
+    exact restore-barrier identity, its append-only clearance audit, a
+    temporally bound switch-history row, current route truth and a fresh scoped
+    route verification.  It never turns an unverified partial apply into
+    availability-stage evidence.
+    """
+    recovered = copy.deepcopy(apply_run if isinstance(apply_run, dict) else {})
+    payload = (
+        recovered.get("payload")
+        if isinstance(recovered.get("payload"), dict)
+        else {}
+    )
+    reported_apply = (
+        payload.get("apply_result")
+        if isinstance(payload.get("apply_result"), dict)
+        else {}
+    )
+    if (
+        reported_apply.get("applied")
+        and isinstance(reported_apply.get("results"), list)
+        and reported_apply.get("results")
+    ):
+        return recovered
+
+    blockers: list[str] = []
+    barrier = read_json(restore_barrier_file, {})
+    if (
+        str(barrier.get("packet_id") or "") != packet_id
+        or str(barrier.get("operation_id") or "") != operation_id
+        or list(barrier.get("allowed_users") or []) != [user]
+        or list(barrier.get("allowed_targets") or []) != [target]
+    ):
+        blockers.append("topology_recovery_restore_barrier_identity_mismatch")
+
+    audit_rows = operator_execution.read_audit_records(audit_store)
+    if not any(
+        str(row.get("packet_id") or "") == packet_id
+        and str(row.get("operation_id") or "") == operation_id
+        and row.get("runtime_action_performed") is True
+        and str(row.get("clearance_verdict") or "")
+        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+        for row in audit_rows
+    ):
+        blockers.append("topology_recovery_clearance_audit_missing")
+
+    current = next(
+        (
+            str(row.get("current") or "")
+            for row in read_registry(state_dir / "users.registry")
+            if str(row.get("ip") or "") == user
+        ),
+        "",
+    )
+    if current != target or current == source:
+        blockers.append("topology_recovery_current_route_mismatch")
+
+    route = (
+        scoped_user_route_check(state_dir, user)
+        if not blockers
+        else {"passed": False, "reason": "topology_recovery_identity_blocked"}
+    )
+    if route.get("passed") is not True:
+        blockers.append("topology_recovery_scoped_route_verification_failed")
+
+    try:
+        clearance_at = datetime.fromisoformat(
+            str(barrier.get("created_at") or "").replace("Z", "+00:00")
+        )
+    except ValueError:
+        clearance_at = None
+        blockers.append("topology_recovery_clearance_time_invalid")
+    switch_rows = intelligence_workers.read_jsonl_tail(
+        event_dir / "switch-history.jsonl",
+        limit=256,
+        max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+    )
+    switch_row: dict[str, Any] = {}
+    if clearance_at is not None:
+        for row in reversed(switch_rows):
+            if not isinstance(row, dict):
+                continue
+            try:
+                switch_at = datetime.fromisoformat(
+                    str(row.get("ts") or "").replace("Z", "+00:00")
+                )
+            except ValueError:
+                continue
+            if (
+                str(row.get("user_ip") or "") == user
+                and str(row.get("from") or "") == source
+                and str(row.get("to") or "") == target
+                and clearance_at <= switch_at
+                and switch_at - clearance_at <= timedelta(minutes=5)
+            ):
+                switch_row = row
+                break
+    if not switch_row:
+        blockers.append("topology_recovery_temporal_switch_lineage_missing")
+
+    recovery = {
+        "schema_version": "v7.controlled-topology-apply-terminal-recovery.v1",
+        "status": (
+            "VERIFIED_APPLY_TERMINAL_RECOVERED"
+            if not blockers
+            else "RECOVERY_NOT_ADMITTED"
+        ),
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "packet_id": packet_id,
+        "operation_id": operation_id,
+        "user": user,
+        "source": source,
+        "target": target,
+        "current_egress": current,
+        "route_verification": route,
+        "switch_timestamp": str(switch_row.get("ts") or ""),
+        "child_returncode": recovered.get("returncode"),
+        "natural_l8_credit": False,
+        "availability_stage_credit": False,
+    }
+    recovered["partial_apply_reconciliation"] = recovery
+    if blockers:
+        return recovered
+    recovered["ok"] = True
+    recovered["payload"] = {
+        "operation": {
+            "operation_id": operation_id,
+            "terminal_state": "APPLIED",
+            "terminal_reason": (
+                "selected_move_applied_terminal_recovered_from_owner_truth"
+            ),
+            "rollback_verdict": "NOT_REQUIRED",
+        },
+        "apply_result": {
+            "applied": True,
+            "results": [{
+                "user_ip": user,
+                "from": source,
+                "to": target,
+                "rc": 0,
+                "verify_rc": 0,
+                "verification_reason": (
+                    "current_route_and_scoped_route_owner_verified"
+                ),
+                "rollback_attempted": False,
+            }],
+        },
+    }
+    return recovered
+
+
 def lease_terminal_status_from_apply(payload: dict[str, Any]) -> str:
     operation = payload.get("operation") if isinstance(payload.get("operation"), dict) else {}
     apply_result = payload.get("apply_result") if isinstance(payload.get("apply_result"), dict) else {}
@@ -5302,6 +5470,19 @@ def _execute_governed_transaction_with_guards_inner(
         execution_control_file=str(control_file),
         **controlled_engineering_apply_options(engineering_authority),
     )
+    if topology_mode:
+        apply_run = recover_controlled_topology_apply_terminal(
+            apply_run,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            audit_store=audit_store,
+            restore_barrier_file=restore_barrier_file,
+            user=user,
+            source=source,
+            target=target,
+            packet_id=str(packet_identity.get("packet_id") or ""),
+            operation_id=str(packet_identity.get("operation_id") or ""),
+        )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})
     operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}

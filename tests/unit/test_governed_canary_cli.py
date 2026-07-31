@@ -4832,6 +4832,90 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "RENEW_AND_CONTINUE_SAME_CAMPAIGN_CERTIFICATION_SOURCE",
         )
 
+    def test_controlled_topology_recovers_lost_child_terminal_from_exact_owner_truth(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            now = datetime.now(timezone.utc)
+            state.joinpath("users.registry").write_text(
+                "ip=10.7.0.101 enabled=1 current=vless "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            barrier = {
+                "packet_id": "pkt_exact",
+                "operation_id": "op_exact",
+                "allowed_users": ["10.7.0.101"],
+                "allowed_targets": ["vless"],
+                "created_at": now.isoformat(),
+            }
+            barrier_path = state / "autoswitch-restore-barrier.json"
+            barrier_path.write_text(
+                json.dumps(barrier),
+                encoding="utf-8",
+            )
+            audit_path = audit / "operator-execution-audit.jsonl"
+            audit_path.write_text(
+                json.dumps({
+                    "packet_id": "pkt_exact",
+                    "operation_id": "op_exact",
+                    "runtime_action_performed": True,
+                    "clearance_verdict": (
+                        "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                    ),
+                }) + "\n",
+                encoding="utf-8",
+            )
+            events.joinpath("switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": "10.7.0.101",
+                    "from": "source",
+                    "to": "vless",
+                    "ts": (now + timedelta(seconds=2)).isoformat(),
+                }) + "\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                module,
+                "scoped_user_route_check",
+                return_value={
+                    "passed": True,
+                    "reason": "exact_user_route_verified",
+                },
+            ):
+                recovered = (
+                    module.recover_controlled_topology_apply_terminal(
+                        {"ok": False, "returncode": 2, "payload": {}},
+                        state_dir=state,
+                        event_dir=events,
+                        audit_store=audit_path,
+                        restore_barrier_file=barrier_path,
+                        user="10.7.0.101",
+                        source="source",
+                        target="vless",
+                        packet_id="pkt_exact",
+                        operation_id="op_exact",
+                    )
+                )
+
+        self.assertTrue(recovered["ok"])
+        self.assertTrue(recovered["payload"]["apply_result"]["applied"])
+        self.assertEqual(
+            recovered["partial_apply_reconciliation"]["status"],
+            "VERIFIED_APPLY_TERMINAL_RECOVERED",
+        )
+        self.assertFalse(
+            recovered["partial_apply_reconciliation"][
+                "availability_stage_credit"
+            ]
+        )
+
     def test_compact_topology_receipt_preserves_reservation_effects(self):
         module = load_cli_module()
         output = module.controlled_topology_cli_output(

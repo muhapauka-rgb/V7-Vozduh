@@ -5110,6 +5110,16 @@ def _execute_governed_transaction_with_guards_inner(
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )
+    elif availability_first_reset:
+        # This is the exact standing-policy-bound restoration of an already
+        # moved certification identity, not a new risk-taking recommendation.
+        # Keep snapshot, identity, route, target, rollback and execution gates,
+        # while reusing the existing controlled-certification profile so
+        # per-user Learning/trust floors cannot strand a verified cohort away
+        # from its baseline.
+        surface["controlled_execution_gate_profile"] = (
+            "CONTROLLED_CERTIFICATION_TOPOLOGY"
+        )
     planner_observe = {"skipped": True}
     if not args.skip_planner_observe and not support_mode:
         planner_observe = run_planner_observe(

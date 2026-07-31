@@ -1360,6 +1360,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 }) + "\n",
                 encoding="utf-8",
             )
+            (events / "service-matrix-refresh-20260727.jsonl").write_bytes(
+                b"x" * (
+                    self.refresh.RECENT_MATRIX_EVENT_BYTE_LIMIT * 2
+                )
+            )
             diagnostic = {
                 "status": "STOP_SAFE",
                 "availability_first_standing_policy_admission": {

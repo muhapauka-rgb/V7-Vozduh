@@ -52,6 +52,9 @@ SELECTED_MOVE_SEMANTIC_FIELDS = ("reason", "important_services", "candidates", "
 CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE = (
     "controlled_certification_substrate_effect"
 )
+RECENT_MATRIX_EVENT_FILE_LIMIT = 8
+RECENT_MATRIX_EVENT_ROW_LIMIT = 64
+RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 
 
 def to_int(value: Any, default: int = 0) -> int:
@@ -5566,25 +5569,6 @@ def availability_first_partial_apply_recovery_context(
         state_dir / "service-matrix-refresh-summary.json",
         {},
     )
-    projections: list[dict[str, Any]] = [summary]
-    for path in sorted(
-        event_dir.glob("service-matrix-refresh-*.jsonl"),
-        reverse=True,
-    ):
-        try:
-            rows = path.read_text(
-                encoding="utf-8",
-                errors="replace",
-            ).splitlines()[-2000:]
-        except OSError:
-            continue
-        for line in reversed(rows):
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(row, dict):
-                projections.append(row)
     current_routes = {
         str(row.get("ip") or ""): str(row.get("current") or "")
         for row in read_registry(state_dir / "users.registry")
@@ -5594,7 +5578,23 @@ def availability_first_partial_apply_recovery_context(
     result: dict[str, Any] = {}
     packet: dict[str, Any] = {}
     projection_source = ""
-    for index, projection in enumerate(projections):
+    def projection_stream():
+        if isinstance(summary, dict):
+            yield "current_summary", summary
+        for path in sorted(
+            event_dir.glob("service-matrix-refresh-*.jsonl"),
+            reverse=True,
+        )[:RECENT_MATRIX_EVENT_FILE_LIMIT]:
+            for row in reversed(
+                intelligence_workers.read_jsonl_tail(
+                    path,
+                    limit=RECENT_MATRIX_EVENT_ROW_LIMIT,
+                    max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+                )
+            ):
+                yield "append_only_matrix_event", row
+
+    for source_kind, projection in projection_stream():
         candidate = (
             projection.get(
                 "availability_first_standing_policy_action"
@@ -5634,11 +5634,7 @@ def availability_first_partial_apply_recovery_context(
             availability = candidate
             result = candidate_result
             packet = candidate_packet
-            projection_source = (
-                "current_summary"
-                if index == 0
-                else "append_only_matrix_event"
-            )
+            projection_source = source_kind
             break
     if not packet:
         return {"pending": False, "blockers": []}

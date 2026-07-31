@@ -978,6 +978,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 }) + "\n",
                 encoding="utf-8",
             )
+            (events / "service-matrix-refresh-20260727.jsonl").write_bytes(
+                b"x" * (
+                    module.RECENT_MATRIX_EVENT_BYTE_LIMIT * 2
+                )
+            )
             lease = {
                 "immutable_packet_identity": {
                     "packet_id": packet_id,

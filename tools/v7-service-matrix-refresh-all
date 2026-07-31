@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from admin_core import operator_execution  # noqa: E402
+from admin_core import intelligence_workers, operator_execution  # noqa: E402
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -46,6 +46,9 @@ CONTROLLED_CAMPAIGN_STAGE_EFFECT_CLASS = (
 AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS = (
     operator_execution.AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS
 )
+RECENT_MATRIX_EVENT_FILE_LIMIT = 8
+RECENT_MATRIX_EVENT_ROW_LIMIT = 64
+RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 
 
 def now_iso() -> str:
@@ -1297,25 +1300,20 @@ def run_availability_first_standing_policy_stage(
         state_dir / "service-matrix-refresh-summary.json",
         {},
     )
-    prior_projections: list[dict[str, Any]] = [prior_summary]
-    for path in sorted(
-        event_dir.glob("service-matrix-refresh-*.jsonl"),
-        reverse=True,
-    ):
-        try:
-            rows = path.read_text(
-                encoding="utf-8",
-                errors="replace",
-            ).splitlines()[-2000:]
-        except OSError:
-            continue
-        for line in reversed(rows):
-            try:
-                row = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(row, dict):
-                prior_projections.append(row)
+    def prior_projection_stream():
+        if isinstance(prior_summary, dict):
+            yield prior_summary
+        for path in sorted(
+            event_dir.glob("service-matrix-refresh-*.jsonl"),
+            reverse=True,
+        )[:RECENT_MATRIX_EVENT_FILE_LIMIT]:
+            yield from reversed(
+                intelligence_workers.read_jsonl_tail(
+                    path,
+                    limit=RECENT_MATRIX_EVENT_ROW_LIMIT,
+                    max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+                )
+            )
     try:
         current_user_rows = [
             parse_kv_line(line)
@@ -1337,7 +1335,7 @@ def run_availability_first_standing_policy_stage(
     prior_availability: dict[str, Any] = {}
     prior_result: dict[str, Any] = {}
     partial_apply_pending = False
-    for prior_projection in prior_projections:
+    for prior_projection in prior_projection_stream():
         candidate = (
             prior_projection.get(
                 "availability_first_standing_policy_action"

@@ -1297,6 +1297,94 @@ class GovernedCanaryCliTest(unittest.TestCase):
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
 
+    def test_l3_validation_target_alone_does_not_activate_old_campaign_contract(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            module.run_l3_production_validation_plan(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path(
+                    "/state/autoswitch-restore-barrier.json"
+                ),
+                max_users=1,
+                source="vless",
+                target="awg3",
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertIn("--target-egress", captured["command"])
+        self.assertNotIn(
+            "--controlled-certification-campaign-request-id",
+            captured["command"],
+        )
+        self.assertNotIn(
+            "--controlled-certification-campaign-target",
+            captured["command"],
+        )
+
+    def test_l3_validation_exact_campaign_identity_remains_strict(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            module.run_l3_production_validation_plan(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path(
+                    "/state/autoswitch-restore-barrier.json"
+                ),
+                max_users=1,
+                source="1",
+                target="execution-only",
+                campaign_request_id="cpsauth_exact",
+                campaign_request_hash="b" * 64,
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        self.assertIn(
+            "--controlled-certification-campaign-request-id",
+            captured["command"],
+        )
+        request_index = captured["command"].index(
+            "--controlled-certification-campaign-request-id"
+        )
+        self.assertEqual(
+            captured["command"][request_index + 1],
+            "cpsauth_exact",
+        )
+        self.assertIn(
+            "--controlled-certification-campaign-target",
+            captured["command"],
+        )
+
     def test_autoswitch_apply_timeout_scales_with_batch_size(self):
         module = load_cli_module()
         self.assertEqual(module.autoswitch_apply_timeout_seconds(1), 90)

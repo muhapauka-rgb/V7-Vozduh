@@ -572,7 +572,7 @@ def run_l3_production_validation_plan(
         command.extend(["--source-egress", source])
     if target:
         command.extend(["--target-egress", target])
-    if campaign_request_id or campaign_request_hash or target:
+    if campaign_request_id or campaign_request_hash:
         command.extend([
             "--controlled-certification-campaign-request-id",
             campaign_request_id,
@@ -3658,13 +3658,34 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 or {}
             ).get("controlled_certification_target_id") or ""
         ),
-        campaign_request_id=str(
-            getattr(args, "controlled_certification_campaign_request_id", "")
-            or ""
+        # Availability-first is independently admitted by its current standing
+        # Action Class contract.  The older controlled-campaign identity is
+        # lineage only and may bind a different source/execution-only target;
+        # passing it here would incorrectly re-activate that stale admission
+        # contract.  The legacy controlled-campaign path remains strict.
+        campaign_request_id=(
+            ""
+            if availability_mode
+            else str(
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_id",
+                    "",
+                )
+                or ""
+            )
         ),
-        campaign_request_hash=str(
-            getattr(args, "controlled_certification_campaign_request_hash", "")
-            or ""
+        campaign_request_hash=(
+            ""
+            if availability_mode
+            else str(
+                getattr(
+                    args,
+                    "controlled_certification_campaign_request_hash",
+                    "",
+                )
+                or ""
+            )
         ),
         pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )

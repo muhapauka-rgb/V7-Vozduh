@@ -1445,6 +1445,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "runtime_mutation_performed": False,
                     "users_moved": 0,
                 },
+                "stage": 1,
+                "baseline_reset_verified": True,
+                "outcome_consumed": True,
+                "replay_consumed": True,
+                "learning_consumed": True,
+                "durable_successor": (
+                    "EXISTING_MATRIX_RECOMPUTE_"
+                    "AVAILABILITY_FIRST_NEXT_STAGE"
+                ),
+                "baseline_reset_reconciliation": {
+                    "ok": True,
+                    "mode": (
+                        "PARTIAL_CHILD_TERMINAL_RECONCILED_"
+                        "FROM_EXISTING_OWNERS"
+                    ),
+                    "current_egress": "vless",
+                    "packet_id": "pkt_reset",
+                    "operation_id": "govexec_reset",
+                    "switch_lineage": True,
+                    "natural_l8_credit": False,
+                    "production_outcome_credit": False,
+                },
             },
         })
 
@@ -1453,6 +1475,21 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             consumer["reset_transaction"]["stop_reason"],
             "packet_not_ready",
+        )
+        self.assertEqual(consumer["stage"], 1)
+        self.assertTrue(consumer["baseline_reset_verified"])
+        self.assertTrue(consumer["outcome_consumed"])
+        self.assertEqual(
+            consumer["baseline_reset_reconciliation"]["mode"],
+            (
+                "PARTIAL_CHILD_TERMINAL_RECONCILED_"
+                "FROM_EXISTING_OWNERS"
+            ),
+        )
+        self.assertFalse(
+            consumer["baseline_reset_reconciliation"][
+                "production_outcome_credit"
+            ]
         )
 
     def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):

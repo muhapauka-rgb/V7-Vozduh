@@ -1753,7 +1753,9 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "final_verdict", "status", "next_output", "legal_terminal",
             "receipt_id", "obligation_id", "frontier_id", "packet_id",
             "feedback_id", "outcome_id", "transaction_status", "stop_reason",
-            "blockers",
+            "blockers", "stage", "baseline_reset_verified",
+            "outcome_consumed", "replay_consumed", "learning_consumed",
+            "durable_successor",
         )
         if result.get(key) not in (None, "", [], {})
     }
@@ -1822,6 +1824,45 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     }
     if compact_reset:
         compact_result["reset_transaction"] = compact_reset
+    reset_reconciliation = result.get("baseline_reset_reconciliation")
+    reset_reconciliation = (
+        reset_reconciliation
+        if isinstance(reset_reconciliation, dict)
+        else {}
+    )
+    compact_reset_reconciliation = {
+        key: reset_reconciliation.get(key)
+        for key in (
+            "ok", "mode", "current_egress", "packet_id", "operation_id",
+            "switch_lineage", "natural_l8_credit",
+            "production_outcome_credit",
+        )
+        if reset_reconciliation.get(key) not in (None, "", [], {})
+    }
+    if compact_reset_reconciliation:
+        compact_result["baseline_reset_reconciliation"] = (
+            compact_reset_reconciliation
+        )
+    reset_reconciliations = [
+        {
+            key: row.get(key)
+            for key in (
+                "ok", "mode", "current_egress", "packet_id",
+                "operation_id", "switch_lineage",
+                "natural_l8_credit", "production_outcome_credit",
+            )
+            if row.get(key) not in (None, "", [], {})
+        }
+        for row in (result.get("baseline_reset_reconciliations") or [])
+        if isinstance(row, dict)
+    ]
+    reset_reconciliations = [
+        row for row in reset_reconciliations if row
+    ]
+    if reset_reconciliations:
+        compact_result["baseline_reset_reconciliations"] = (
+            reset_reconciliations
+        )
     # A governed executor keeps the full Outcome with the execution owner,
     # but its bounded receipt deliberately nests this one immutable pointer.
     # Preserve the pointer (not the nested payload) so the Matrix lifecycle

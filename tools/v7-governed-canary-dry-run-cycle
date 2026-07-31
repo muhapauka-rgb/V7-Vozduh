@@ -116,6 +116,108 @@ def scoped_user_route_check(state_dir: Path, user: str) -> dict[str, Any]:
     }
 
 
+def availability_first_baseline_reset_truth(
+    result: dict[str, Any],
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    user: str,
+    baseline_source: str,
+    execution_target: str,
+) -> dict[str, Any]:
+    """Reconcile baseline cleanup without creating certification evidence.
+
+    A cleanup child may lose its terminal payload after the route owner
+    committed the reverse move.  Normal success remains the preferred proof.
+    The fallback accepts only the fresh partial-apply identity, current route
+    truth, the scoped route verifier and the existing switch-history owner.
+    It proves cleanup/containment only and never creates Outcome or L7 credit.
+    """
+    current = next(
+        (
+            str(row.get("current") or "")
+            for row in read_registry(state_dir / "users.registry")
+            if str(row.get("ip") or "") == user
+        ),
+        "",
+    )
+    normal = bool(
+        result.get("final_verdict") == "GOVERNED_TRANSACTION_COMPLETED"
+        and str(result.get("verification_result") or "") == "PASS"
+        and current == baseline_source
+    )
+    if normal:
+        return {
+            "ok": True,
+            "mode": "VERIFIED_CHILD_TERMINAL",
+            "current_egress": current,
+            "natural_l8_credit": False,
+            "production_outcome_credit": False,
+        }
+    partial = (
+        result.get("partial_apply_reconciliation")
+        if isinstance(
+            result.get("partial_apply_reconciliation"),
+            dict,
+        )
+        else {}
+    )
+    identity_ok = bool(
+        str(partial.get("status") or "") == "PARTIAL_APPLY_OBSERVED"
+        and str(partial.get("user") or "") == user
+        and str(partial.get("source") or "") == execution_target
+        and str(partial.get("target") or "") == baseline_source
+        and str(partial.get("current_egress") or "") == baseline_source
+        and str(partial.get("packet_id") or "")
+        == str(result.get("fresh_packet_id") or "")
+        and str(partial.get("operation_id") or "")
+        == str(result.get("operation_id") or "")
+        and result.get("restore_barrier_written_now") is True
+        and result.get("apply_executed") is True
+    )
+    route = (
+        scoped_user_route_check(state_dir, user)
+        if identity_ok and current == baseline_source
+        else {
+            "passed": False,
+            "reason": "partial_reset_identity_or_current_route_mismatch",
+        }
+    )
+    switch_rows = intelligence_workers.read_jsonl_tail(
+        event_dir / "switch-history.jsonl",
+        limit=256,
+        max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
+    )
+    switch_lineage = any(
+        str(row.get("user_ip") or "") == user
+        and str(row.get("from") or "") == execution_target
+        and str(row.get("to") or "") == baseline_source
+        for row in switch_rows
+        if isinstance(row, dict)
+    )
+    ok = bool(
+        identity_ok
+        and current == baseline_source
+        and route.get("passed") is True
+        and switch_lineage
+    )
+    return {
+        "ok": ok,
+        "mode": (
+            "PARTIAL_CHILD_TERMINAL_RECONCILED_FROM_EXISTING_OWNERS"
+            if ok
+            else "BASELINE_RESET_NOT_PROVEN"
+        ),
+        "current_egress": current,
+        "packet_id": str(partial.get("packet_id") or ""),
+        "operation_id": str(partial.get("operation_id") or ""),
+        "route_check": route,
+        "switch_lineage": switch_lineage,
+        "natural_l8_credit": False,
+        "production_outcome_credit": False,
+    }
+
+
 def materialize_due_delayed_observations(
     state_dir: Path,
     *,
@@ -5945,22 +6047,15 @@ def execute_availability_first_standing_stage(
             audit_dir=audit_dir,
             lease_file=lease_file,
         )
-        reset_complete = bool(
-            reset.get("final_verdict")
-            == "GOVERNED_TRANSACTION_COMPLETED"
-            and str(reset.get("verification_result") or "") == "PASS"
-            and next(
-                (
-                    str(row.get("current") or "")
-                    for row in read_registry(
-                        state_dir / "users.registry"
-                    )
-                    if str(row.get("ip") or "") == user
-                ),
-                "",
-            )
-            == source
+        reset_truth = availability_first_baseline_reset_truth(
+            reset,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            user=user,
+            baseline_source=source,
+            execution_target=target,
         )
+        reset_complete = bool(reset_truth.get("ok"))
         return {
             "schema_version": (
                 "v7.availability-first-partial-apply-reconciliation.v1"
@@ -5980,6 +6075,7 @@ def execute_availability_first_standing_stage(
             "partial_apply_recovery": partial,
             "reset_transaction": compact_transaction_result(reset),
             "baseline_reset_verified": reset_complete,
+            "baseline_reset_reconciliation": reset_truth,
             "runtime_mutation_performed": bool(
                 reset.get("runtime_mutation_performed")
             ),
@@ -6318,6 +6414,7 @@ def execute_availability_first_standing_stage(
         }
 
     reset_transactions: list[dict[str, Any]] = []
+    reset_reconciliations: list[dict[str, Any]] = []
     reset_ok = len(moved_users) == stage
     if moved_users:
         current_rows = {
@@ -6373,11 +6470,16 @@ def execute_availability_first_standing_stage(
                 lease_file=lease_file,
             )
             reset_transactions.append(compact_transaction_result(reset))
-            if (
-                reset.get("final_verdict")
-                != "GOVERNED_TRANSACTION_COMPLETED"
-                or str(reset.get("verification_result") or "") != "PASS"
-            ):
+            reset_truth = availability_first_baseline_reset_truth(
+                reset,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                user=user,
+                baseline_source=source,
+                execution_target=current_target,
+            )
+            reset_reconciliations.append(reset_truth)
+            if not reset_truth.get("ok"):
                 reset_ok = False
                 circuit_breaker = {
                     "tripped": True,
@@ -6553,6 +6655,7 @@ def execute_availability_first_standing_stage(
         "learning_consumed": learning_consumed,
         "baseline_reset_verified": reset_ok,
         "reset_transactions": reset_transactions,
+        "baseline_reset_reconciliations": reset_reconciliations,
         "ordinary_assignment_before": ordinary_before,
         "ordinary_assignment_after_apply": ordinary_after_apply,
         "ordinary_assignment_final": ordinary_final,

@@ -972,6 +972,72 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "autonomous_execution_control_not_open_at_start",
         )
 
+    def test_availability_baseline_reset_reconciles_missing_child_terminal_without_outcome_credit(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                (
+                    "ip=10.7.0.100 current=vless enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": "10.7.0.100",
+                    "from": "awg0",
+                    "to": "vless",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            result = {
+                "final_verdict": "STOP_SAFE",
+                "fresh_packet_id": "pkt_reset",
+                "operation_id": "govexec_reset",
+                "restore_barrier_written_now": True,
+                "apply_executed": True,
+                "partial_apply_reconciliation": {
+                    "status": "PARTIAL_APPLY_OBSERVED",
+                    "packet_id": "pkt_reset",
+                    "operation_id": "govexec_reset",
+                    "user": "10.7.0.100",
+                    "source": "awg0",
+                    "target": "vless",
+                    "current_egress": "vless",
+                },
+            }
+            with mock.patch.object(
+                module,
+                "scoped_user_route_check",
+                return_value={
+                    "passed": True,
+                    "reason": "exact_user_route_verified",
+                },
+            ):
+                reconciled = (
+                    module.availability_first_baseline_reset_truth(
+                        result,
+                        state_dir=state,
+                        event_dir=events,
+                        user="10.7.0.100",
+                        baseline_source="vless",
+                        execution_target="awg0",
+                    )
+                )
+
+        self.assertTrue(reconciled["ok"], reconciled)
+        self.assertEqual(
+            reconciled["mode"],
+            "PARTIAL_CHILD_TERMINAL_RECONCILED_FROM_EXISTING_OWNERS",
+        )
+        self.assertFalse(reconciled["production_outcome_credit"])
+        self.assertFalse(reconciled["natural_l8_credit"])
+
     def test_partial_availability_apply_recovery_binds_route_packet_and_policy(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

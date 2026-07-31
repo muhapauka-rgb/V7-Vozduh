@@ -336,13 +336,20 @@ class GovernedCanaryCliTest(unittest.TestCase):
             [["10.7.0.100"], ["10.7.0.101"]],
         )
         self.assertEqual(
-            len({
+            {
                 item._availability_first_stage_request[
                     "subset_fingerprint"
                 ]
                 for item in transaction_args
-            }),
-            2,
+            },
+            {
+                operator_execution.sha256_json({
+                    "stage": 2,
+                    "target_id": "awg3",
+                    "users": [user],
+                })
+                for user in ("10.7.0.100", "10.7.0.101")
+            },
         )
 
     def test_availability_first_subtransaction_reuses_standing_and_substrate_owners(self):

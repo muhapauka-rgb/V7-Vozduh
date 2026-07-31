@@ -7330,7 +7330,6 @@ def execute_availability_first_standing_stage(
                 "stage": stage,
                 "target_id": target,
                 "users": [user],
-                "parent_subset_fingerprint": subset_fingerprint,
             })
             transaction_args = copy.copy(args)
             transaction_args.execute_bounded_delegated_transaction = True

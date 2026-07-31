@@ -796,7 +796,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "id=source protocol=amneziawg type=interface "
                 "interface=wg0 enabled=1\n"
                 "id=vless protocol=vless type=interface "
-                "interface=tun0 enabled=1\n",
+                "interface=tun0 enabled=1\n"
+                "id=awg3 protocol=amneziawg type=interface "
+                "interface=awg3 enabled=1\n",
                 encoding="utf-8",
             )
             policy_path = root / "policy.json"
@@ -817,6 +819,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     ),
                     max_users=48,
                     include_controlled_topology=True,
+                    include_availability_first=True,
                     now=now,
                 )
             )
@@ -850,10 +853,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "request_hash": "a" * 64,
                     "source_id": "source",
                 },
+                "shared_production_target_capacity_projection": {
+                    "current_stage": 1,
+                },
                 "targets": [{
                     "target_id": "vless",
                     "protocol": "vless",
                     "interface": "tun0",
+                    "correlation_domain": "vless:tun0",
+                    "shared_target_technically_eligible": True,
+                    "shared_target_availability": {
+                        "state": "HEALTHY",
+                        "policy_boundary": "NONE",
+                    },
                     "health": {"ok": True},
                     "quality": {"blockers": []},
                     "capacity": {
@@ -861,11 +873,44 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "certification_users": 0,
                         "current_assigned_users": 0,
                         "free_capacity_after_reserve": 60,
+                        "planning_safe_additional_capacity": 60,
+                        "capacity_bounds": {
+                            "hard_capacity_remaining": {"value": 60},
+                        },
                     },
                     "verification_supported": True,
                     "rollback_containment_supported": True,
                     "owner_lineage": {},
                     "semantic_fingerprint": "b" * 64,
+                }, {
+                    "target_id": "awg3",
+                    "protocol": "amneziawg",
+                    "interface": "awg3",
+                    "correlation_domain": "amneziawg:awg3",
+                    "shared_target_technically_eligible": True,
+                    "shared_target_availability": {
+                        "state": "DEGRADED_USABLE",
+                        "policy_boundary": (
+                            "EXACT_DEGRADED_SHARED_TARGET_"
+                            "ACTION_CLASS_CONTRACT_REQUIRED"
+                        ),
+                    },
+                    "health": {"ok": True},
+                    "quality": {"blockers": ["below_normal_floor"]},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 0,
+                        "current_assigned_users": 0,
+                        "free_capacity_after_reserve": 9,
+                        "planning_safe_additional_capacity": 1,
+                        "capacity_bounds": {
+                            "hard_capacity_remaining": {"value": 9},
+                        },
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "owner_lineage": {},
+                    "semantic_fingerprint": "c" * 64,
                 }],
             }
             with mock.patch.object(
@@ -882,6 +927,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY",
         )
         self.assertEqual(
+            result["status"],
+            "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+        )
+        self.assertEqual(
             result["standing_policy_admission"]["contract_id"],
             activated["contract"]["contract_id"],
         )
@@ -892,7 +941,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertTrue(
             result["durable_successor"].startswith(
                 "AUTO_ADMITTED_BY_STANDING_DELEGATED_"
-                "CONTROLLED_TOPOLOGY_POLICY"
+                "AVAILABILITY_FIRST_POLICY"
             )
         )
         self.assertFalse(

@@ -17772,13 +17772,13 @@ def controlled_source_topology_diagnostic(
     result = {
         "schema_version": "v7.controlled-source-topology-capability-map.v1",
         "status": (
-            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
-            if preflight_ready else
             "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
             if (
                 shared_availability_first_available
                 and availability_policy_admission.get("ok")
             ) else
+            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+            if preflight_ready else
             "CONTROLLED_TOPOLOGY_FULL_PATH_EXTERNAL_RESOURCE_REQUIRED"
             if full_path_recommendation.get("status")
             == "EXTERNAL_RESOURCE_REQUIRED" else
@@ -18003,15 +18003,15 @@ def controlled_source_topology_diagnostic(
             ],
         },
         "durable_successor": (
-            "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
-            "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"
-            if preflight_ready and topology_policy_admission.get("ok") else
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY:"
             "EXISTING_MATRIX_PLANNER_CANDIDATE_PACKET_LEASE_CONSUMER"
             if (
                 shared_availability_first_available
                 and availability_policy_admission.get("ok")
             ) else
+            "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
+            "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"
+            if preflight_ready and topology_policy_admission.get("ok") else
             "ENGINEERING_AUTHORITY_REQUIRED:"
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT"
             if shared_target_capacity_available else

@@ -1426,6 +1426,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
             )
         )
         self.assertTrue(transition["ok"])
+        canonical_selected = (
+            module.operator_execution.selected_moves_from_plan(
+                binding["plan"]
+            )
+        )
+        selected_scope = module.availability_first_selected_scope(
+            canonical_selected
+        )
+        self.assertEqual(
+            selected_scope["users"],
+            ["10.7.0.100"],
+        )
+        self.assertEqual(selected_scope["targets"], ["awg3"])
 
     def test_availability_first_selection_fails_closed_on_identity_mismatch(self):
         module = load_cli_module()

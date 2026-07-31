@@ -740,6 +740,30 @@ def bind_availability_first_controlled_selection(
     }
 
 
+def availability_first_selected_scope(
+    selected: dict[str, Any],
+) -> dict[str, list[str]]:
+    """Read the canonical selected-move scope from its constraints contract."""
+    selected = selected if isinstance(selected, dict) else {}
+    constraints = (
+        selected.get("constraints")
+        if isinstance(selected.get("constraints"), dict)
+        else {}
+    )
+    return {
+        "users": sorted(
+            str(value)
+            for value in (constraints.get("allowed_users") or [])
+            if str(value)
+        ),
+        "targets": sorted(
+            str(value)
+            for value in (constraints.get("allowed_targets") or [])
+            if str(value)
+        ),
+    }
+
+
 def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
     safety = payload.get("safety") if isinstance(payload.get("safety"), dict) else {}
     barrier = safety.get("restore_barrier") if isinstance(safety.get("restore_barrier"), dict) else {}
@@ -3921,6 +3945,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             auto_window_blockers.append("l3_auto_window_outside_authorized_tier")
         if availability_mode:
             selected_moves = operator_execution.selected_moves_from_plan(plan)
+            selected_scope = availability_first_selected_scope(
+                selected_moves
+            )
             expected_users = sorted(
                 str(value)
                 for value in (
@@ -3928,20 +3955,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 )
                 if str(value)
             )
-            actual_users = sorted(
-                str(value)
-                for value in (
-                    selected_moves.get("allowed_users") or []
-                )
-                if str(value)
-            )
-            actual_targets = sorted(
-                str(value)
-                for value in (
-                    selected_moves.get("allowed_targets") or []
-                )
-                if str(value)
-            )
+            actual_users = selected_scope["users"]
+            actual_targets = selected_scope["targets"]
             expected_target = str(
                 availability_request.get("target_id") or ""
             )

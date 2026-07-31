@@ -969,6 +969,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertEqual(missing["status"], "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION")
             self.assertFalse(missing["action_attempted"])
 
+    def test_advisory_without_result_has_no_obligation_and_does_not_crash(self):
+        self.assertEqual(
+            self.refresh.service_failure_obligation_from_advisory(None),
+            {},
+        )
+        self.assertEqual(
+            self.refresh.service_failure_obligation_from_advisory(
+                {"status": "PASS", "result": None}
+            ),
+            {},
+        )
+        obligation = {"automation_obligation_id": "sfaob_exact"}
+        self.assertEqual(
+            self.refresh.service_failure_obligation_from_advisory(
+                {"status": "PASS", "result": {"obligation": obligation}}
+            ),
+            obligation,
+        )
+
     def test_campaign_binding_rejects_shallow_ready_target_when_full_admission_fails(self):
         authority = {
             "status": "APPROVED",

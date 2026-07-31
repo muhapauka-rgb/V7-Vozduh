@@ -907,6 +907,19 @@ def run_bounded_delegated_service_failure_action(
     }
 
 
+def service_failure_obligation_from_advisory(
+    advisory_result: Any,
+) -> dict[str, Any]:
+    """Return only a well-formed current obligation from an advisory result."""
+    if not isinstance(advisory_result, dict):
+        return {}
+    advisory_payload = advisory_result.get("result")
+    if not isinstance(advisory_payload, dict):
+        return {}
+    obligation = advisory_payload.get("obligation")
+    return obligation if isinstance(obligation, dict) else {}
+
+
 def run_controlled_certification_campaign_reset(
     executor: str,
     *,
@@ -2166,7 +2179,9 @@ def main() -> int:
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
     )
-    advisory_payload = advisory_result.get("result") if isinstance(advisory_result, dict) else {}
+    service_failure_obligation = service_failure_obligation_from_advisory(
+        advisory_result
+    )
     if args.skip_service_failure_omp_consumer:
         payload["service_failure_omp_consumer"] = {
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
@@ -2199,11 +2214,7 @@ def main() -> int:
             operator_execution_audit_store=Path(
                 args.operator_execution_audit_store
             ),
-            service_failure_obligation=(
-                advisory_payload.get("obligation")
-                if isinstance(advisory_payload.get("obligation"), dict)
-                else {}
-            ),
+            service_failure_obligation=service_failure_obligation,
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]

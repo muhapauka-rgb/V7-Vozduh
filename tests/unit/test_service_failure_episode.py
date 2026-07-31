@@ -1316,6 +1316,100 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             fingerprint,
         )
 
+    def test_matrix_consumes_successive_availability_stages_boundedly(self):
+        completed_one = {
+            "status": "ACTION_COMPLETED",
+            "ok": True,
+            "started_at": "2026-07-31T06:00:00+00:00",
+            "action_attempted": True,
+            "action_completed": True,
+            "runtime_mutation_performed": True,
+            "users_moved": 1,
+            "stage": 1,
+            "stage_consumption": {"receipt_id": "afstage_1"},
+            "consumer_result": {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                ),
+                "stage": 1,
+            },
+        }
+        completed_two = {
+            **completed_one,
+            "users_moved": 2,
+            "stage": 2,
+            "stage_consumption": {"receipt_id": "afstage_2"},
+            "consumer_result": {
+                "final_verdict": (
+                    "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                ),
+                "stage": 2,
+            },
+        }
+        stage_five_blocked = {
+            "status": "NOT_REQUIRED_OR_NOT_ADMITTED",
+            "ok": True,
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "stage": 5,
+            "blockers": ["stage_capacity_not_yet_proven"],
+            "durable_successor": (
+                "EXISTING_MATRIX_FRESH_CAPACITY_REVALIDATION"
+            ),
+        }
+        with mock.patch.object(
+            self.refresh,
+            "_run_availability_first_standing_policy_stage_once",
+            side_effect=[
+                completed_one,
+                completed_two,
+                stage_five_blocked,
+            ],
+        ) as consume:
+            result = (
+                self.refresh.run_availability_first_standing_policy_stage(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/opt/v7/egress/state"),
+                    event_dir=Path("/opt/v7/events"),
+                    policy_file=Path("/etc/v7/policy.json"),
+                    audit_store=Path(
+                        "/opt/v7/audit/operator-execution-audit.jsonl"
+                    ),
+                    max_successive_stages=6,
+                )
+            )
+
+        self.assertEqual(consume.call_count, 3)
+        self.assertTrue(result["action_completed"])
+        self.assertEqual(
+            result["completed_stages_this_invocation"],
+            [1, 2],
+        )
+        self.assertEqual(result["stage"], 2)
+        self.assertEqual(result["users_moved"], 3)
+        self.assertEqual(
+            result["successor_probe"]["stage"],
+            5,
+        )
+        self.assertFalse(result["authority_expanded"])
+        self.assertFalse(result["natural_l8_credit"])
+        projected = self.refresh._consumer_projection(result)
+        self.assertEqual(
+            projected["completed_stages_this_invocation"],
+            [1, 2],
+        )
+        self.assertEqual(
+            projected["stage_consumption"]["receipt_id"],
+            "afstage_2",
+        )
+        self.assertEqual(
+            projected["successor_probe"]["stage"],
+            5,
+        )
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

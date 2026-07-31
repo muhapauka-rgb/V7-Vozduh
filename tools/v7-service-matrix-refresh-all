@@ -1211,7 +1211,7 @@ def run_controlled_topology_standing_policy_action(
     }
 
 
-def run_availability_first_standing_policy_stage(
+def _run_availability_first_standing_policy_stage_once(
     planner: str,
     executor: str,
     *,
@@ -1539,6 +1539,123 @@ def run_availability_first_standing_policy_stage(
             if not (completed or stopped)
             else ""
         ),
+    }
+
+
+def run_availability_first_standing_policy_stage(
+    planner: str,
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    timeout_sec: int = 1800,
+    max_successive_stages: int = 1,
+) -> dict[str, Any]:
+    """Consume bounded fresh ladder successors inside one Matrix generation.
+
+    Every iteration re-enters the existing Planner and executor from durable
+    receipt truth.  It does not reuse an allocation, Candidate, Packet or
+    lease.  The bound is the fixed ladder length and serial execution remains
+    one transaction at a time.  A first non-complete successor stops the loop.
+    """
+    limit = max(
+        1,
+        min(
+            int(max_successive_stages or 1),
+            len(operator_execution.AVAILABILITY_FIRST_LADDER),
+        ),
+    )
+    attempts: list[dict[str, Any]] = []
+    completed_stages: list[int] = []
+    seen_stages: set[int] = set()
+    for _ in range(limit):
+        current = _run_availability_first_standing_policy_stage_once(
+            planner,
+            executor,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+            timeout_sec=timeout_sec,
+        )
+        attempts.append(current)
+        if not current.get("action_completed"):
+            break
+        stage = int(current.get("stage") or 0)
+        if (
+            stage not in operator_execution.AVAILABILITY_FIRST_LADDER
+            or stage in seen_stages
+        ):
+            current.update({
+                "status": "STOP_SAFE",
+                "ok": True,
+                "action_completed": bool(completed_stages),
+                "durable_successor": (
+                    "EXISTING_MATRIX_RECONCILE_DUPLICATE_STAGE_SUCCESSOR"
+                ),
+                "blockers": ["availability_first_stage_successor_repeated"],
+            })
+            break
+        seen_stages.add(stage)
+        completed_stages.append(stage)
+    if len(attempts) == 1:
+        return attempts[0]
+
+    completed_attempts = [
+        row for row in attempts if row.get("action_completed")
+    ]
+    last_completed = (
+        completed_attempts[-1] if completed_attempts else {}
+    )
+    successor_probe = (
+        attempts[-1]
+        if attempts and not attempts[-1].get("action_completed")
+        else {}
+    )
+    return {
+        "schema_version": (
+            "v7.availability-first-matrix-successor-loop.v1"
+        ),
+        "status": (
+            "ACTION_COMPLETED"
+            if completed_attempts
+            else str(attempts[-1].get("status") or "STOP_SAFE")
+        ),
+        "ok": all(row.get("ok") is True for row in attempts),
+        "started_at": str(attempts[0].get("started_at") or ""),
+        "completed_at": now_iso(),
+        "action_attempted": any(
+            row.get("action_attempted") for row in attempts
+        ),
+        "action_completed": bool(completed_attempts),
+        "runtime_mutation_performed": any(
+            row.get("runtime_mutation_performed") for row in attempts
+        ),
+        "users_moved": sum(
+            int(row.get("users_moved") or 0) for row in attempts
+        ),
+        "stage": int(last_completed.get("stage") or 0),
+        "stage_consumption": last_completed.get("stage_consumption") or {},
+        "consumer_result": last_completed.get("consumer_result") or {},
+        "completed_stages_this_invocation": completed_stages,
+        "successor_probe": {
+            key: successor_probe.get(key)
+            for key in (
+                "status", "ok", "stage", "diagnostic_status",
+                "blockers", "durable_successor",
+            )
+            if successor_probe.get(key) not in (None, "", [], {})
+        },
+        "durable_successor": (
+            str(successor_probe.get("durable_successor") or "")
+            if successor_probe
+            else "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
+        ),
+        "authority_expanded": False,
+        "production_maturity_change": False,
+        "natural_l8_credit": False,
     }
 
 
@@ -1915,11 +2032,42 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "max_concurrent_transactions", "blockers", "source",
             "target", "trial_identity", "manifest_hash",
             "stage", "diagnostic_status", "receipt_id",
+            "durable_successor", "completed_stages_this_invocation",
             "source_incident_id", "automation_obligation_id",
             "affected_scope", "unresolved_scope",
         )
         if value.get(key) not in (None, "", [], {})
     } | ({"consumer_result": compact_result} if compact_result else {})
+    stage_consumption = value.get("stage_consumption")
+    stage_consumption = (
+        stage_consumption
+        if isinstance(stage_consumption, dict)
+        else {}
+    )
+    compact_stage_consumption = {
+        key: stage_consumption.get(key)
+        for key in (
+            "receipt_id", "audit_write", "duplicate_suppressed",
+            "blockers",
+        )
+        if stage_consumption.get(key) not in (None, "", [], {})
+    }
+    if compact_stage_consumption:
+        projected["stage_consumption"] = compact_stage_consumption
+    successor_probe = value.get("successor_probe")
+    successor_probe = (
+        successor_probe if isinstance(successor_probe, dict) else {}
+    )
+    compact_successor_probe = {
+        key: successor_probe.get(key)
+        for key in (
+            "status", "ok", "stage", "diagnostic_status",
+            "blockers", "durable_successor",
+        )
+        if successor_probe.get(key) not in (None, "", [], {})
+    }
+    if compact_successor_probe:
+        projected["successor_probe"] = compact_successor_probe
     if compact_causal:
         projected["service_failure_causal_binding"] = compact_causal
     return projected
@@ -2414,6 +2562,9 @@ def main() -> int:
                 policy_file=Path(args.policy_file),
                 audit_store=Path(args.operator_execution_audit_store),
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 1800,
+                max_successive_stages=len(
+                    operator_execution.AVAILABILITY_FIRST_LADDER
+                ),
             )
         availability_action = (
             payload.get("availability_first_standing_policy_action")

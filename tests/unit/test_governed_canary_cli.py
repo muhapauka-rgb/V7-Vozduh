@@ -3131,6 +3131,69 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(locked_move["candidates"][0]["egress"], "awg3")
         self.assertTrue(apply_calls[0]["emergency_failover_autonomy"])
 
+    def test_l3_reconciles_route_mutation_when_child_terminal_payload_is_missing(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.make_transaction_state(root)
+            args = self.transaction_args(root)
+            args.execute_l3_production_validation = True
+            args.confirm_l3_production_validation = (
+                "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            )
+            original_plan = module.run_l3_production_validation_plan
+            original_apply = module.run_autoswitch_apply
+            try:
+                module.run_l3_production_validation_plan = lambda **kwargs: {
+                    "ok": True,
+                    "returncode": 0,
+                    "command": ["l3-plan"],
+                    "payload": self.ready_l3_plan(),
+                }
+
+                def mutate_without_terminal(**_kwargs):
+                    (root / "state" / "users.registry").write_text(
+                        (
+                            "ip=10.7.0.5 current=awg3 enabled=1 "
+                            "certification_user=1\n"
+                        ),
+                        encoding="utf-8",
+                    )
+                    return {
+                        "ok": False,
+                        "returncode": 2,
+                        "payload": {},
+                        "timed_out": False,
+                    }
+
+                module.run_autoswitch_apply = mutate_without_terminal
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=root / "state",
+                    event_dir=root / "events",
+                    snapshot_root=root / "state" / "intelligence",
+                    audit_dir=root / "audit",
+                    lease_file=(
+                        root / "state" / "operator-execution-lease.json"
+                    ),
+                )
+            finally:
+                module.run_l3_production_validation_plan = original_plan
+                module.run_autoswitch_apply = original_apply
+
+        partial = result["partial_apply_reconciliation"]
+        self.assertEqual(result["final_verdict"], "STOP_SAFE")
+        self.assertTrue(result["apply_executed"])
+        self.assertEqual(result["verification_result"], "FAIL")
+        self.assertEqual(partial["status"], "PARTIAL_APPLY_OBSERVED")
+        self.assertEqual(partial["current_egress"], "awg3")
+        self.assertFalse(partial["child_timed_out"])
+        self.assertEqual(partial["child_returncode"], 2)
+        self.assertEqual(
+            partial["terminal_reason"],
+            "autoswitch_apply_terminal_missing_after_route_mutation",
+        )
+
     def test_l3_production_validation_resets_completed_barrier_before_fresh_batch_plan(self):
         module = load_cli_module()
         stale_moves = [

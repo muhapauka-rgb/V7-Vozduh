@@ -2115,6 +2115,9 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
                 "current_egress",
                 "verification_complete",
                 "rollback_required",
+                "child_timed_out",
+                "child_returncode",
+                "terminal_reason",
             )
             if partial_apply.get(key) not in (None, "", [], {})
         }
@@ -4252,7 +4255,27 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
     )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
-    if apply_run.get("timed_out"):
+    reported_apply = (
+        apply_payload.get("apply_result")
+        if isinstance(apply_payload.get("apply_result"), dict)
+        else {}
+    )
+    reported_results = (
+        reported_apply.get("results")
+        if isinstance(reported_apply.get("results"), list)
+        else []
+    )
+    # The child can exit without its terminal JSON after the existing route
+    # owner has already committed the write (timeout, signal, truncated output
+    # or another post-write consumer failure).  Bind that state to the same
+    # partial-apply reconciliation used for timeouts.  Current route truth is
+    # only enough to prove that mutation needs reconciliation; it is never
+    # promoted to verified Outcome/Learning evidence here.
+    terminal_proof_missing = bool(
+        not reported_apply.get("applied")
+        and not reported_results
+    )
+    if apply_run.get("timed_out") or terminal_proof_missing:
         current_user = next(
             (
                 row
@@ -4270,15 +4293,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             and current_egress != source
         )
         if mutation_observed:
+            partial_reason = (
+                "autoswitch_apply_timeout_after_route_mutation"
+                if apply_run.get("timed_out")
+                else "autoswitch_apply_terminal_missing_after_route_mutation"
+            )
             apply_payload = {
                 "operation": {
                     "operation_id": str(
                         packet_identity.get("operation_id") or ""
                     ),
                     "terminal_state": "PARTIAL_APPLY_UNVERIFIED",
-                    "terminal_reason": (
-                        "autoswitch_apply_timeout_after_route_mutation"
-                    ),
+                    "terminal_reason": partial_reason,
                     "rollback_verdict": "REQUIRED_BY_FRESH_RECONCILIATION",
                 },
                 "apply_result": {
@@ -4314,6 +4340,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 "current_egress": current_egress,
                 "verification_complete": False,
                 "rollback_required": True,
+                "child_timed_out": bool(apply_run.get("timed_out")),
+                "child_returncode": apply_run.get("returncode"),
+                "terminal_reason": partial_reason,
             }
     operation = dict(apply_payload.get("operation") or {})
     operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}

@@ -480,6 +480,84 @@ class V7TruthCheckTest(unittest.TestCase):
             self.assertEqual(result["final_verdict"], "PASS")
             self.assertEqual(result["runtime_access_status"], "READY")
 
+    def test_matrix_owned_successor_requires_live_matrix_timer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            cps_path.write_text(
+                "\n".join([
+                    "## 0. Authoritative Live Current State", "",
+                    "| Field | Value |", "|---|---|",
+                    f"| `ACTIVE_PROGRAM` | `{self.tool.sync_lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID}` |",
+                    "| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_25` |",
+                    "| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_25` |",
+                    "", "## Authoritative Unfinished Capability Closure Registry",
+                ]),
+                encoding="utf-8",
+            )
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(root / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot()
+            timer_command = self.tool.command_key([
+                "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+            ])
+            snapshot["command_results"][timer_command] = {
+                "rc": 3, "stdout": "Active: inactive (dead)", "stderr": "",
+            }
+            Path(manifest["runtime_snapshot_path"]).write_text(
+                json.dumps(snapshot), encoding="utf-8"
+            )
+            result = self.tool.combine_results(
+                manifest, mode="runtime-readonly", runner=self.runner(), cwd=root
+            )
+        self.assertEqual(result["final_verdict"], "NO-GO")
+        self.assertIn(
+            "matrix_owned_successor_without_live_timer_caller",
+            result["blockers"],
+        )
+        self.assertEqual(
+            result["runtime"]["matrix_runtime_consumer"]["status"],
+            "MATRIX_SUCCESSOR_WITHOUT_LIVE_TIMER_CALLER",
+        )
+
+    def test_matrix_owned_successor_accepts_live_matrix_timer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            cps_path.write_text(
+                "\n".join([
+                    "## 0. Authoritative Live Current State", "",
+                    "| Field | Value |", "|---|---|",
+                    f"| `ACTIVE_PROGRAM` | `{self.tool.sync_lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID}` |",
+                    "| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_25` |",
+                    "| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_25` |",
+                    "", "## Authoritative Unfinished Capability Closure Registry",
+                ]),
+                encoding="utf-8",
+            )
+            manifest = self.manifest(workspace=tmp)
+            manifest["runtime_snapshot_path"] = str(root / "runtime-snapshot.json")
+            snapshot = self.runtime_snapshot()
+            timer_command = self.tool.command_key([
+                "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+            ])
+            snapshot["command_results"][timer_command] = {
+                "rc": 0, "stdout": "Active: active (waiting)", "stderr": "",
+            }
+            Path(manifest["runtime_snapshot_path"]).write_text(
+                json.dumps(snapshot), encoding="utf-8"
+            )
+            result = self.tool.combine_results(
+                manifest, mode="runtime-readonly", runner=self.runner(), cwd=root
+            )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(
+            result["runtime"]["matrix_runtime_consumer"]["status"],
+            "LIVE_MATRIX_TIMER_PROVEN",
+        )
+
     def test_deploy_metadata_runtime_identity_remains_fail_closed_on_mismatch(self):
         with tempfile.TemporaryDirectory() as tmp:
             manifest = self.manifest(workspace=tmp)

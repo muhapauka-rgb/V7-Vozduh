@@ -79,6 +79,12 @@ RUNTIME_READONLY_COMMANDS = [
     ["sha256sum", "/usr/local/bin/v7-egress-quality-compact"],
     ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
     ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
+    # The Service Matrix (rather than the deliberately inactive legacy
+    # autoswitch timer) is the production consumer named by a Matrix-owned
+    # controlled-certification successor.  Keep its caller status observable
+    # in the same read-only runtime snapshot as the successor itself.
+    ["systemctl", "status", "v7-service-matrix-refresh.service", "--no-pager"],
+    ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"],
     ["systemctl", "status", "v7-admin-api.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.timer", "--no-pager"],
@@ -650,6 +656,47 @@ def runtime_readonly_check(
     if derived.get("service_status_known") is True and derived.get("autoswitch_service_active") is False:
         if derived.get("service_inactive_explained") is not True:
             blockers.append("autoswitch_service_inactive_unexplained")
+
+    # CPS may name the Matrix as the sole next consumer even though the
+    # historical autoswitch service is intentionally inactive.  Previously
+    # runtime truth accepted that projection without checking whether the
+    # named Matrix timer was actually able to deliver a wake.  That creates a
+    # durable successor with no provable live caller.  The check is strictly
+    # observational: it neither starts the timer nor invokes Matrix manually.
+    matrix_successor = current_matrix_owned_service_failure_successor(
+        Path(str(manifest.get("canonical_workspace") or ""))
+    )
+    matrix_timer_command = command_key(
+        ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"]
+    )
+    matrix_service_command = command_key(
+        ["systemctl", "status", "v7-service-matrix-refresh.service", "--no-pager"]
+    )
+    matrix_timer_result = command_results.get(matrix_timer_command)
+    matrix_service_result = command_results.get(matrix_service_command)
+    matrix_timer_output = str(
+        (matrix_timer_result or {}).get("stdout") or ""
+    ).lower()
+    matrix_timer_active = bool(
+        isinstance(matrix_timer_result, dict)
+        and int(matrix_timer_result.get("rc", 1)) == 0
+        and "active: active" in matrix_timer_output
+    )
+    matrix_runtime_consumer = {
+        "required_by_current_cps": bool(matrix_successor.get("matrix_owned")),
+        "frontier": str(matrix_successor.get("frontier") or ""),
+        "consumer": str(matrix_successor.get("consumer") or ""),
+        "timer_status_known": isinstance(matrix_timer_result, dict),
+        "timer_active": matrix_timer_active,
+        "service_status_known": isinstance(matrix_service_result, dict),
+        "status": (
+            "LIVE_MATRIX_TIMER_PROVEN"
+            if not matrix_successor.get("matrix_owned") or matrix_timer_active
+            else "MATRIX_SUCCESSOR_WITHOUT_LIVE_TIMER_CALLER"
+        ),
+    }
+    if matrix_successor.get("matrix_owned") and not matrix_timer_active:
+        blockers.append("matrix_owned_successor_without_live_timer_caller")
     for key in (
         "binary_hashes_known",
         "binary_hashes_match_authoritative",
@@ -688,6 +735,7 @@ def runtime_readonly_check(
         "allowed_readonly_commands": RUNTIME_READONLY_COMMANDS,
         "missing_commands": missing_commands,
         "unknown_commands": unknown_commands,
+        "matrix_runtime_consumer": matrix_runtime_consumer,
         "derived": derived,
         "commit_mismatch_classification": commit_mismatch_classification,
         "blockers": blockers,

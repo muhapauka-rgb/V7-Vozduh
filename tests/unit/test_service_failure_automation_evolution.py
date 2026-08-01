@@ -1191,6 +1191,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             post_trial["campaign_identity_locations"],
             {"source": 47, "vless": 1},
         )
+        accounting = post_trial["campaign_identity_accounting"]
+        self.assertEqual(accounting["status"], "ACCOUNTED")
+        self.assertEqual(accounting["expected_identity_count"], 48)
+        self.assertEqual(accounting["accounted_count"], 48)
+        self.assertFalse(accounting["raw_user_list_stored"])
         self.assertTrue(
             post_trial["post_trial_resource"][
                 "can_accept_full_campaign_pool"

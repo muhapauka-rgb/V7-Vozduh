@@ -697,6 +697,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "request_id": "cpsauth",
                     "request_hash": "c" * 64,
                 },
+                "campaign_identity_accounting": {
+                    "status": "ACCOUNTED",
+                    "expected_identity_count": 2,
+                    "accounted_count": 2,
+                    "identity_set_fingerprint": "e" * 64,
+                    "raw_user_list_stored": False,
+                },
             }
 
             def completed_transaction(transaction_args, **_kwargs):

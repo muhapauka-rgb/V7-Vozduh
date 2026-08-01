@@ -16681,6 +16681,74 @@ def controlled_source_topology_diagnostic(
         for row in campaign_identity_rows
         if str(row.get("ip") or "")
     ))
+    # This is deliberately a compact derived read model, not a second
+    # campaign registry.  The assignments owner remains authoritative for
+    # every identity.  A stage may proceed only when the complete immutable
+    # certification cohort can be balanced against current route truth;
+    # retaining raw user lists here would make periodic Matrix projections
+    # grow with the cohort.
+    campaign_identity_ips = sorted(
+        str(row.get("ip") or "")
+        for row in campaign_identity_rows
+        if str(row.get("ip") or "")
+    )
+    campaign_identity_unique_count = len(set(campaign_identity_ips))
+    campaign_identity_unassigned_count = sum(
+        1
+        for row in campaign_identity_rows
+        if not str(row.get("current") or "").strip()
+        or str(row.get("current") or "") == "UNASSIGNED"
+    )
+    campaign_identity_source_count = int(
+        campaign_identity_locations.get(source_id, 0)
+    )
+    campaign_identity_target_counts = {
+        location: int(count)
+        for location, count in campaign_identity_locations.items()
+        if location != source_id
+    }
+    campaign_identity_target_count = sum(
+        campaign_identity_target_counts.values()
+    )
+    campaign_identity_accounted_count = (
+        campaign_identity_source_count + campaign_identity_target_count
+    )
+    campaign_identity_accounting = {
+        "schema_version": "v7.controlled-campaign-identity-accounting.v1",
+        "status": (
+            "ACCOUNTED"
+            if (
+                campaign_identity_count > 0
+                and campaign_identity_unique_count == campaign_identity_count
+                and campaign_identity_unassigned_count == 0
+                and campaign_identity_accounted_count
+                == campaign_identity_count
+            )
+            else "CAMPAIGN_IDENTITY_ACCOUNTING_BROKEN"
+        ),
+        "expected_identity_count": campaign_identity_count,
+        "identity_set_fingerprint": certification_identity_fingerprint,
+        "baseline_source_id": source_id,
+        "baseline_source_count": campaign_identity_source_count,
+        "target_count": campaign_identity_target_count,
+        "target_locations": dict(sorted(campaign_identity_target_counts.items())),
+        "active_forward_count": 0,
+        "active_reset_count": 0,
+        "contained_count": 0,
+        "accounted_count": campaign_identity_accounted_count,
+        "unique_identity_count": campaign_identity_unique_count,
+        "unassigned_count": campaign_identity_unassigned_count,
+        "raw_user_list_stored": False,
+        "balance": {
+            "expected": campaign_identity_count,
+            "baseline_source": campaign_identity_source_count,
+            "targets": campaign_identity_target_count,
+            "active_forward": 0,
+            "active_reset": 0,
+            "contained": 0,
+            "accounted": campaign_identity_accounted_count,
+        },
+    }
 
     rebind_candidates = []
     for row in rows:
@@ -17651,6 +17719,7 @@ def controlled_source_topology_diagnostic(
         "campaign_identity_locations": dict(
             sorted(campaign_identity_locations.items())
         ),
+        "campaign_identity_accounting": campaign_identity_accounting,
         "all_48_identities_accounted_for": (
             campaign_identity_count == 48
             and sum(campaign_identity_locations.values()) == 48
@@ -18007,6 +18076,7 @@ def controlled_source_topology_diagnostic(
         "read_only": True,
         "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
         "current_campaign": campaign,
+        "campaign_identity_accounting": campaign_identity_accounting,
         "shared_production_target_capacity_projection": (
             actual_source_shared_projection
         ),

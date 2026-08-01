@@ -8594,6 +8594,13 @@ def execute_availability_first_standing_stage(
         if isinstance(diagnostic.get("current_campaign"), dict)
         else {}
     )
+    campaign_identity_accounting = (
+        diagnostic.get("campaign_identity_accounting")
+        if isinstance(diagnostic.get("campaign_identity_accounting"), dict)
+        else {}
+    )
+    if campaign_identity_accounting.get("status") != "ACCOUNTED":
+        blockers.append("availability_first_campaign_identity_accounting_not_accounted")
     if not source:
         blockers.append("availability_first_controlled_source_missing")
     users = [
@@ -8800,6 +8807,11 @@ def execute_availability_first_standing_stage(
         if isinstance(post_apply_planner.get("diagnostic"), dict)
         else {}
     )
+    post_apply_campaign_identity_accounting = (
+        post_apply_diagnostic.get("campaign_identity_accounting")
+        if isinstance(post_apply_diagnostic.get("campaign_identity_accounting"), dict)
+        else {}
+    )
     post_apply_targets = {
         str(row.get("target_id") or ""): row
         for row in (
@@ -8860,6 +8872,12 @@ def execute_availability_first_standing_stage(
             "tripped": True,
             "remaining_subsets_stopped": True,
             "reason": "ordinary_assignment_fingerprint_changed",
+        }
+    if post_apply_campaign_identity_accounting.get("status") != "ACCOUNTED":
+        circuit_breaker = {
+            "tripped": True,
+            "remaining_subsets_stopped": True,
+            "reason": "availability_first_campaign_identity_accounting_not_accounted_after_apply",
         }
 
     reset_transactions: list[dict[str, Any]] = []
@@ -9019,6 +9037,10 @@ def execute_availability_first_standing_stage(
         ),
         "inventory_fingerprint": str(
             diagnostic.get("inventory_fingerprint") or ""
+        ),
+        "campaign_identity_accounting_before": campaign_identity_accounting,
+        "campaign_identity_accounting_after": (
+            post_apply_campaign_identity_accounting
         ),
         "allocation": execution_allocation,
         "packet_set": packet_set,

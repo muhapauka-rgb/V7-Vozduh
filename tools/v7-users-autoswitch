@@ -16168,6 +16168,10 @@ def controlled_campaign_target_selection_diagnostic(
         "CAMPAIGN_TARGET_PINNING_WITHOUT_DYNAMIC_RESELECTION",
         "CAMPAIGN_TARGET_INVENTORY_GENERATION_NOT_CONSUMED",
     ]
+    if legal_outcome == "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY":
+        historical_defects_closed.append(
+            "STANDING_POLICY_SEMANTIC_COVERAGE_GATE_CONSUMER_BINDING"
+        )
     current_residuals: list[str] = []
     if pinned_target_id and not pinned.get("full_live_admission"):
         current_residuals.append(
@@ -16190,10 +16194,6 @@ def controlled_campaign_target_selection_diagnostic(
     if legal_outcome == "ENGINEERING_BINDING_GAP":
         current_residuals.append(
             "STANDING_POLICY_SEMANTIC_COVERAGE_ENGINEERING_BINDING_GAP"
-        )
-    if legal_outcome == "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY":
-        current_residuals.append(
-            "STANDING_POLICY_SEMANTIC_COVERAGE_GATE_CONSUMER_BINDING_REPAIRED"
         )
     result = {
         "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
@@ -16261,10 +16261,10 @@ def controlled_campaign_target_selection_diagnostic(
         ),
         "current_stage_feasible": any(
             row.get("current_stage_feasible") for row in ranked
-        ),
+        ) or bool(shared_current.get("feasible")),
         "campaign_completion_feasible": any(
             row.get("campaign_completion_feasible") for row in ranked
-        ),
+        ) or bool(shared_completion.get("feasible")),
         "multi_target_projection": {
             "existing_generic_multi_target_binding_found": True,
             "current_campaign_multi_target_authority": False,

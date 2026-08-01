@@ -242,6 +242,66 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "TARGET_BOUND_ONLY_NOT_CAMPAIGN_STAGE",
         )
 
+    def test_semantic_coverage_reuses_active_policy_for_shared_degraded_target(self):
+        policy = (
+            self.autoswitch.operator_execution
+            .standing_delegated_operational_policy_template(
+                max_users=48,
+                include_availability_first=True,
+            )
+        )
+        scope = policy["action_class_scopes"][
+            self.autoswitch.operator_execution
+            .AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        ]
+        allocation = {
+            "feasible": True,
+            "immutable_allocation_projection": [{
+                "target_id": "awg3",
+                "availability_classification": "DEGRADED_USABLE",
+                "allocated_users": 25,
+            }],
+        }
+        covered = (
+            self.autoswitch
+            .availability_first_standing_policy_semantic_coverage_gate(
+                standing_validation={"ok": True, "errors": [], "policy": policy},
+                policy_contract={"contract_id": "sdpc_unit", "contract_hash": "a" * 64},
+                availability_scope=scope,
+                stage=25,
+                allocation=allocation,
+            )
+        )
+        self.assertTrue(covered["ok"], covered)
+        self.assertEqual(
+            covered["status"],
+            "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY",
+        )
+        self.assertEqual(covered["normalized_effect"]["ordinary_route_delta"], 0)
+        self.assertFalse(covered["forbidden_effects"]["authority_expansion"])
+
+        insufficient = dict(scope)
+        insufficient["max_users_per_transaction"] = 10
+        blocked = (
+            self.autoswitch
+            .availability_first_standing_policy_semantic_coverage_gate(
+                standing_validation={"ok": True, "errors": [], "policy": policy},
+                policy_contract={"contract_id": "sdpc_unit", "contract_hash": "a" * 64},
+                availability_scope=insufficient,
+                stage=25,
+                allocation=allocation,
+            )
+        )
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(
+            blocked["status"],
+            "GENUINE_AUTHORITY_EXPANSION_REQUIRED",
+        )
+        self.assertIn(
+            "max_users_per_transaction",
+            blocked["mismatched_dimensions"],
+        )
+
     def test_matrix_consumes_target_bound_predecessor_before_stage(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

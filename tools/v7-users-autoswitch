@@ -15112,6 +15112,169 @@ def shared_target_semantic_fingerprint(row: dict[str, Any]) -> str:
     return sha256_json(semantic)
 
 
+def availability_first_standing_policy_semantic_coverage_gate(
+    *,
+    standing_validation: dict[str, Any],
+    policy_contract: dict[str, Any],
+    availability_scope: dict[str, Any],
+    stage: int,
+    allocation: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare one shared-target effect with the active standing envelope.
+
+    This is a compact, read-only consumer of the existing policy, Planner and
+    capacity owners.  It deliberately does not issue Authority, create a
+    Candidate/Packet/lease, or turn an allocation into execution.  Its purpose
+    is to prevent a label-only shared-target boundary from being projected as
+    a new Authority request when the current standing contract already covers
+    the exact certification-only effect.
+    """
+    contract = policy_contract if isinstance(policy_contract, dict) else {}
+    scope = availability_scope if isinstance(availability_scope, dict) else {}
+    allocation = allocation if isinstance(allocation, dict) else {}
+    rows = [
+        row for row in (allocation.get("immutable_allocation_projection") or [])
+        if isinstance(row, dict)
+    ]
+    target_classes = sorted({
+        str(row.get("availability_classification") or "")
+        for row in rows
+        if str(row.get("availability_classification") or "")
+    })
+    actions = (
+        ["ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET_SET"]
+        if len(rows) > 1 else ["ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET"]
+        if len(rows) == 1 else []
+    )
+    effect = {
+        "action_class": operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS,
+        "actions": actions,
+        "identity_class": "CERTIFICATION_ONLY",
+        "total_mission_cohort": int(stage or 0),
+        "batch_size": 1,
+        "max_concurrent_transactions": 1,
+        "target_classifications": target_classes,
+        "ordinary_route_delta": 0,
+        "ordinary_assignment_delta": 0,
+        "ordinary_fault_injection_delta": 0,
+        "target_fault_injection": False,
+        "external_resource_creation": False,
+        "credential_mutation": False,
+        "hard_limit_mutation": False,
+        "self_expansion": False,
+        "verification": "PER_USER_PER_TARGET_AGGREGATE",
+        "rollback_containment": "TARGET_LOCAL_REQUIRED",
+        "natural_l8_credit": False,
+    }
+    mismatches: list[str] = []
+    if not standing_validation.get("ok"):
+        mismatches.extend(
+            "standing_contract:" + str(error)
+            for error in (standing_validation.get("errors") or [])
+        )
+    policy = (
+        standing_validation.get("policy")
+        if isinstance(standing_validation.get("policy"), dict)
+        else {}
+    )
+    if policy.get("policy_profile") != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE:
+        mismatches.append("policy_profile")
+    if (
+        operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        not in set(policy.get("allowed_action_classes") or [])
+    ):
+        mismatches.append("action_class")
+    allowed_actions = set(scope.get("allowed_actions") or [])
+    if not actions or any(action not in allowed_actions for action in actions):
+        mismatches.append("allowed_actions")
+    if scope.get("certification_identities_only") is not True:
+        mismatches.append("certification_identities_only")
+    if int(stage or 0) < 1 or int(stage or 0) > to_int(
+        scope.get("max_users_per_transaction"), 0,
+    ):
+        mismatches.append("max_users_per_transaction")
+    if to_int(scope.get("max_concurrent_transactions"), 0) < 1:
+        mismatches.append("max_concurrent_transactions")
+    if int(stage or 0) not in set(
+        to_int(item, 0) for item in (scope.get("ladder") or [])
+    ):
+        mismatches.append("ladder")
+    allowed_classes = set(scope.get("allowed_target_classifications") or [])
+    if not target_classes or any(value not in allowed_classes for value in target_classes):
+        mismatches.append("allowed_target_classifications")
+    required_fences = {
+        "ordinary_identity_delta": 0,
+        "ordinary_route_delta": 0,
+        "ordinary_assignment_mutation_allowed": False,
+        "ordinary_reclassification_allowed": False,
+        "shared_target_fault_injection_allowed": False,
+        "shared_target_restart_allowed": False,
+        "hard_limit_modification_allowed": False,
+        "private_credential_mutation_allowed": False,
+        "external_resource_creation_allowed": False,
+        "authority_self_expansion_allowed": False,
+        "immutable_allocation_required": True,
+        "fresh_inventory_required": True,
+        "fresh_candidate_required": True,
+        "fresh_packet_or_packet_set_required": True,
+        "fresh_lease_required": True,
+        "restore_barrier_before_apply_required": True,
+        "per_user_verification_required": True,
+        "per_target_verification_required": True,
+        "aggregate_verification_required": True,
+        "ordinary_user_quality_verification_required": True,
+        "cohort_circuit_breaker_required": True,
+        "partial_target_containment_required": True,
+        "rollback_or_redistribution_required": True,
+        "baseline_reset_between_stages_required": True,
+        "capacity_double_counting_forbidden": True,
+        "source_target_collision_forbidden": True,
+    }
+    for name, expected in required_fences.items():
+        if scope.get(name) != expected:
+            mismatches.append(name)
+    mismatches = sorted(set(mismatches))
+    covered = not mismatches
+    structural_binding_gap = any(
+        value.startswith("standing_contract:")
+        for value in mismatches
+    )
+    dimensions = [
+        "action_class", "allowed_actions", "identity_class",
+        "total_mission_cohort", "batch_size", "concurrency",
+        "target_classifications", "ordinary_user_fences",
+        "fault_injection_fence", "verification", "rollback_containment",
+        "freshness", "self_expansion", "natural_l8_credit",
+    ]
+    return {
+        "schema_version": "v7.standing-policy-semantic-coverage-gate.v1",
+        "status": (
+            "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY"
+            if covered else "GENUINE_AUTHORITY_EXPANSION_REQUIRED"
+            if not structural_binding_gap else "ENGINEERING_BINDING_GAP"
+        ),
+        "ok": covered,
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "normalized_effect": effect,
+        "matched_dimensions": dimensions if covered else [],
+        "mismatched_dimensions": mismatches,
+        "forbidden_effects": {
+            "policy_write": False,
+            "authority_issuance": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
 def controlled_campaign_target_selection_diagnostic(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -15957,11 +16120,47 @@ def controlled_campaign_target_selection_diagnostic(
         str(operator_execution.AVAILABILITY_FIRST_LADDER[-1]),
         {},
     )
+    standing_policy_semantic_coverage = (
+        availability_first_standing_policy_semantic_coverage_gate(
+            standing_validation=standing_validation,
+            policy_contract=policy_contract,
+            availability_scope=availability_scope,
+            stage=availability_current_stage,
+            allocation=shared_current,
+        )
+        if shared_current.get("feasible")
+        else {
+            "schema_version": "v7.standing-policy-semantic-coverage-gate.v1",
+            "status": "NOT_EVALUATED_NO_CURRENT_FEASIBLE_ALLOCATION",
+            "ok": False,
+            "contract_id": str(policy_contract.get("contract_id") or ""),
+            "contract_hash": str(policy_contract.get("contract_hash") or ""),
+            "normalized_effect": {},
+            "matched_dimensions": [],
+            "mismatched_dimensions": ["current_stage_allocation_not_feasible"],
+            "forbidden_effects": {
+                "policy_write": False,
+                "authority_issuance": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": 0,
+                "rollback_apply": False,
+                "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+    )
     if (
         legal_outcome == "NO_CURRENT_TARGET_CAPACITY_WITH_EXACT_OWNER_BOUNDARY"
         and shared_current.get("feasible")
     ):
-        legal_outcome = "SHARED_PRODUCTION_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED"
+        legal_outcome = str(
+            standing_policy_semantic_coverage.get("status")
+            or "ENGINEERING_BINDING_GAP"
+        )
 
     historical_defects_closed = [
         "CAMPAIGN_TARGET_ID_ORDER_SELECTION_DEFECT",
@@ -15984,9 +16183,17 @@ def controlled_campaign_target_selection_diagnostic(
         current_residuals.append(
             "MULTI_TARGET_EXECUTION_AUTHORITY_REQUIRED"
         )
-    if legal_outcome == "SHARED_PRODUCTION_TARGET_ACTION_CLASS_AUTHORITY_REQUIRED":
+    if legal_outcome == "GENUINE_AUTHORITY_EXPANSION_REQUIRED":
         current_residuals.append(
             "EXACT_SHARED_PRODUCTION_TARGET_ACTION_CLASS_CONTRACT_REQUIRED"
+        )
+    if legal_outcome == "ENGINEERING_BINDING_GAP":
+        current_residuals.append(
+            "STANDING_POLICY_SEMANTIC_COVERAGE_ENGINEERING_BINDING_GAP"
+        )
+    if legal_outcome == "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY":
+        current_residuals.append(
+            "STANDING_POLICY_SEMANTIC_COVERAGE_GATE_CONSUMER_BINDING_REPAIRED"
         )
     result = {
         "schema_version": "v7.controlled-campaign-target-selection-diagnostic.v1",
@@ -16139,6 +16346,9 @@ def controlled_campaign_target_selection_diagnostic(
             "target_fault_injection": "FORBIDDEN",
             "candidate_packet_lease_created": False,
         },
+        "standing_policy_semantic_coverage_gate": (
+            standing_policy_semantic_coverage
+        ),
         "hysteresis_and_no_churn": {
             "health_owner": "existing Matrix observations",
             "stability_owner": str(args.quality_summary_file),

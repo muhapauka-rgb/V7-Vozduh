@@ -1905,6 +1905,89 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED",
         )
 
+    def test_matrix_does_not_recover_completed_stage_over_current_successor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=awg0 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            # This is historical Stage-10 partial-reset evidence.  Its
+            # immutable receipt already consumed Stage 10, so it cannot take
+            # ownership from the live Stage-25 successor.
+            (events / "service-matrix-refresh-20260801.jsonl").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 10,
+                        "consumer_result": {
+                            "stage": 10,
+                            "circuit_breaker": {
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": [{
+                                "final_verdict": "L3_PRODUCTION_PROVEN",
+                                "verification_result": "PASS",
+                                "users_moved": 1,
+                                "user": "10.7.0.100",
+                                "source": "vless",
+                                "target": "awg0",
+                            }],
+                        },
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            diagnostic = {
+                "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+                "availability_first_standing_policy_admission": {"ok": True},
+                "shared_production_target_capacity_projection": {
+                    "current_stage": 25,
+                    "availability_campaign": {
+                        "next_stage": 25,
+                        "completed_stages": [1, 2, 5, 10],
+                        "completed": False,
+                    },
+                    "stage_allocations": {
+                        "25": {
+                            "feasible": True,
+                            "allocation_fingerprint": "a" * 64,
+                        },
+                    },
+                },
+            }
+            stopped = {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "fresh_live_gate_failed",
+            }
+            calls = [
+                mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+                mock.Mock(returncode=2, stdout=json.dumps(stopped)),
+            ]
+            with mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                side_effect=calls,
+            ) as run:
+                self.refresh.run_availability_first_standing_policy_stage(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=root / "policy.json",
+                    audit_store=root / "audit.jsonl",
+                )
+        command = run.call_args_list[1].args[0]
+        stage_index = command.index("--availability-first-stage") + 1
+        self.assertEqual(command[stage_index], "25")
+
     def test_matrix_consumes_verified_stage_pending_only_baseline_cleanup(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

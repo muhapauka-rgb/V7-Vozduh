@@ -1526,6 +1526,11 @@ def _run_availability_first_standing_policy_stage_once(
         if isinstance(projection.get("availability_campaign"), dict)
         else {}
     )
+    completed_campaign_stages = {
+        int(value)
+        for value in (campaign.get("completed_stages") or [])
+        if str(value).strip().isdigit()
+    }
     # ``current_stage`` is the canonical projection published by the shared
     # target-capacity owner.  ``availability_campaign`` is retained as the
     # append-only campaign history/progress view and may briefly describe the
@@ -1630,6 +1635,20 @@ def _run_availability_first_standing_policy_stage_once(
             if isinstance(candidate.get("consumer_result"), dict)
             else {}
         )
+        # A completion receipt is immutable campaign truth.  A historical
+        # partial-reset row for that already consumed stage must never
+        # override the canonical successor (for example Stage-10 -> Stage-25)
+        # on every later Matrix cycle.  An incomplete current stage remains
+        # eligible for the existing partial-recovery path below.
+        candidate_stage = int(
+            candidate_result.get("campaign_stage")
+            or candidate_result.get("stage")
+            or candidate.get("campaign_stage")
+            or candidate.get("stage")
+            or 0
+        )
+        if candidate_stage in completed_campaign_stages:
+            continue
         candidate_packets = [
             row
             for row in (candidate_result.get("packet_set") or [])

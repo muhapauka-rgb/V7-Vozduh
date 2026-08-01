@@ -1611,6 +1611,54 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             fingerprint,
         )
 
+    def test_matrix_prefers_canonical_current_stage_over_stale_campaign_row(self):
+        fingerprint = "a" * 64
+        diagnostic = {
+            "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+            "availability_first_standing_policy_admission": {"ok": True},
+            "shared_production_target_capacity_projection": {
+                "current_stage": 25,
+                "availability_campaign": {
+                    # Historical progress can still name the predecessor.
+                    "next_stage": 10,
+                    "completed": False,
+                },
+                "stage_allocations": {
+                    "25": {
+                        "feasible": True,
+                        "allocation_fingerprint": fingerprint,
+                    },
+                },
+            },
+        }
+        stopped = {
+            "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+            "transaction_status": "STOP_SAFE",
+            "stop_reason": "fresh_live_gate_failed",
+        }
+        calls = [
+            mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+            mock.Mock(returncode=2, stdout=json.dumps(stopped)),
+        ]
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            side_effect=calls,
+        ) as run:
+            self.refresh.run_availability_first_standing_policy_stage(
+                "v7-users-autoswitch",
+                "v7-governed-canary-dry-run-cycle",
+                state_dir=Path("/opt/v7/egress/state"),
+                event_dir=Path("/opt/v7/events"),
+                policy_file=Path("/etc/v7/policy.json"),
+                audit_store=Path(
+                    "/opt/v7/audit/operator-execution-audit.jsonl"
+                ),
+            )
+        command = run.call_args_list[1].args[0]
+        stage_index = command.index("--availability-first-stage") + 1
+        self.assertEqual(command[stage_index], "25")
+
     def test_matrix_consumes_successive_availability_stages_boundedly(self):
         completed_one = {
             "status": "ACTION_COMPLETED",

@@ -1526,7 +1526,16 @@ def _run_availability_first_standing_policy_stage_once(
         if isinstance(projection.get("availability_campaign"), dict)
         else {}
     )
-    campaign_stage = int(campaign.get("next_stage") or 0)
+    # ``current_stage`` is the canonical projection published by the shared
+    # target-capacity owner.  ``availability_campaign`` is retained as the
+    # append-only campaign history/progress view and may briefly describe the
+    # just-consumed predecessor.  Never let that historical nested view make
+    # Matrix dispatch a stale stage after the canonical successor advanced.
+    campaign_stage = int(
+        projection.get("current_stage")
+        or campaign.get("next_stage")
+        or 0
+    )
     stage_allocation = (
         (projection.get("stage_allocations") or {}).get(
             str(campaign_stage),

@@ -8503,9 +8503,19 @@ def execute_availability_first_standing_stage(
         else {}
     )
     target_bound_mode = bool(target_bound_trial_target)
+    # The shared capacity projection is the live owner of the executable
+    # stage.  The nested campaign row is progress history and can lag one
+    # consumed stage during atomic successor publication.  A supplied Matrix
+    # stage must therefore be compared to the canonical current_stage, not to
+    # the historical row, or a valid Stage-N+1 dispatch is rejected as stale.
+    current_stage = int(
+        projection.get("current_stage")
+        or campaign.get("next_stage")
+        or 0
+    )
     stage = int(
         getattr(args, "availability_first_stage", 0)
-        or campaign.get("next_stage")
+        or current_stage
         or 0
     )
     allocation = (
@@ -8545,7 +8555,7 @@ def execute_availability_first_standing_stage(
         blockers.append("availability_first_stage_not_in_ladder")
     if (
         not target_bound_mode
-        and int(campaign.get("next_stage") or 0) != stage
+        and current_stage != stage
     ):
         blockers.append("availability_first_stage_not_current")
     if target_bound_mode and (

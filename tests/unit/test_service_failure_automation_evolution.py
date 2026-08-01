@@ -1195,6 +1195,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(accounting["status"], "ACCOUNTED")
         self.assertEqual(accounting["expected_identity_count"], 48)
         self.assertEqual(accounting["accounted_count"], 48)
+        self.assertEqual(accounting["balance"]["baseline_source"], 47)
+        self.assertEqual(accounting["balance"]["active_forward"], 1)
+        self.assertEqual(accounting["balance"]["targets"], 0)
         self.assertFalse(accounting["raw_user_list_stored"])
         self.assertTrue(
             post_trial["post_trial_resource"][

@@ -16732,8 +16732,15 @@ def controlled_source_topology_diagnostic(
     campaign_identity_target_count = sum(
         campaign_identity_target_counts.values()
     )
+    # Availability-first certification always returns the cohort to the
+    # controlled baseline.  Until that reset receipt is consumed, every
+    # non-baseline current route is therefore an in-flight forward/reset
+    # member, not a stable target allocation.  This keeps the balance causal
+    # without duplicating the mutable execution lease or raw identity set.
+    campaign_identity_active_forward_count = campaign_identity_target_count
     campaign_identity_accounted_count = (
-        campaign_identity_source_count + campaign_identity_target_count
+        campaign_identity_source_count
+        + campaign_identity_active_forward_count
     )
     campaign_identity_accounting = {
         "schema_version": "v7.controlled-campaign-identity-accounting.v1",
@@ -16757,9 +16764,9 @@ def controlled_source_topology_diagnostic(
             else "HISTORICAL_CAMPAIGN_SOURCE_FALLBACK_AMBIGUOUS_OR_EMPTY"
         ),
         "baseline_source_count": campaign_identity_source_count,
-        "target_count": campaign_identity_target_count,
+        "target_count": 0,
         "target_locations": dict(sorted(campaign_identity_target_counts.items())),
-        "active_forward_count": 0,
+        "active_forward_count": campaign_identity_active_forward_count,
         "active_reset_count": 0,
         "contained_count": 0,
         "accounted_count": campaign_identity_accounted_count,
@@ -16769,8 +16776,8 @@ def controlled_source_topology_diagnostic(
         "balance": {
             "expected": campaign_identity_count,
             "baseline_source": campaign_identity_source_count,
-            "targets": campaign_identity_target_count,
-            "active_forward": 0,
+            "targets": 0,
+            "active_forward": campaign_identity_active_forward_count,
             "active_reset": 0,
             "contained": 0,
             "accounted": campaign_identity_accounted_count,

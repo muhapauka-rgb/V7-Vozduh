@@ -83,7 +83,6 @@ RUNTIME_READONLY_COMMANDS = [
     # autoswitch timer) is the production consumer named by a Matrix-owned
     # controlled-certification successor.  Keep its caller status observable
     # in the same read-only runtime snapshot as the successor itself.
-    ["systemctl", "status", "v7-service-matrix-refresh.service", "--no-pager"],
     ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"],
     ["systemctl", "status", "v7-admin-api.service", "--no-pager"],
     ["systemctl", "status", "v7-intelligence-snapshot-refresh.service", "--no-pager"],
@@ -309,6 +308,33 @@ def current_matrix_owned_service_failure_successor(root: Path) -> dict[str, Any]
         "frontier": frontier,
         "consumer": "tools/v7-service-matrix-refresh-all" if matrix_owned else "",
         "errors": [],
+    }
+
+
+def read_live_matrix_timer_status(
+    manifest: dict[str, Any], *, runner: CommandRunner = run_command,
+) -> dict[str, Any]:
+    """Read the CPS-named Matrix caller without changing Runtime state.
+
+    The runtime snapshot is intentionally compact and can predate an added
+    read-only probe.  A Matrix-owned successor therefore obtains this one
+    static systemd status directly from the already configured production
+    target.  It never invokes Matrix, starts a unit, or changes a timer.
+    """
+    target = str(manifest.get("production_ssh_target") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", target):
+        return {"ok": False, "error": "production_ssh_target_invalid"}
+    static_remote_command = shlex.join([
+        "systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager",
+    ])
+    result = runner(["ssh", target, static_remote_command], ROOT_DIR, 30)
+    return {
+        "ok": bool(result.get("ok")),
+        "command": ["ssh", target, static_remote_command],
+        "rc": int(result.get("returncode", result.get("rc", 1)) or 0),
+        "stdout": str(result.get("stdout") or ""),
+        "stderr": str(result.get("stderr") or ""),
+        "source": "v7-truth-check-live-readonly-matrix-timer",
     }
 
 
@@ -611,7 +637,27 @@ def runtime_readonly_check(
 
     allowed_keys = {command_key(command) for command in RUNTIME_READONLY_COMMANDS}
     required_keys = set(allowed_keys)
-    command_results = snapshot.get("command_results") if isinstance(snapshot.get("command_results"), dict) else {}
+    command_results = dict(
+        snapshot.get("command_results")
+        if isinstance(snapshot.get("command_results"), dict)
+        else {}
+    )
+    matrix_successor = current_matrix_owned_service_failure_successor(
+        Path(str(manifest.get("canonical_workspace") or ""))
+    )
+    matrix_timer_command = command_key(
+        ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"]
+    )
+    if (
+        matrix_successor.get("matrix_owned")
+        and matrix_timer_command not in command_results
+    ):
+        # Fill only the exact missing caller-status cell from the existing
+        # production read-only access path.  This is an observation, not a
+        # snapshot write or a substitute for the Matrix consumer.
+        command_results[matrix_timer_command] = read_live_matrix_timer_status(
+            manifest, runner=runner,
+        )
     observed_keys = set(command_results)
     derived = snapshot.get("derived") if isinstance(snapshot.get("derived"), dict) else {}
     local_commit = str((local or {}).get("current_commit") or "")
@@ -663,17 +709,7 @@ def runtime_readonly_check(
     # named Matrix timer was actually able to deliver a wake.  That creates a
     # durable successor with no provable live caller.  The check is strictly
     # observational: it neither starts the timer nor invokes Matrix manually.
-    matrix_successor = current_matrix_owned_service_failure_successor(
-        Path(str(manifest.get("canonical_workspace") or ""))
-    )
-    matrix_timer_command = command_key(
-        ["systemctl", "status", "v7-service-matrix-refresh.timer", "--no-pager"]
-    )
-    matrix_service_command = command_key(
-        ["systemctl", "status", "v7-service-matrix-refresh.service", "--no-pager"]
-    )
     matrix_timer_result = command_results.get(matrix_timer_command)
-    matrix_service_result = command_results.get(matrix_service_command)
     matrix_timer_output = str(
         (matrix_timer_result or {}).get("stdout") or ""
     ).lower()
@@ -688,7 +724,9 @@ def runtime_readonly_check(
         "consumer": str(matrix_successor.get("consumer") or ""),
         "timer_status_known": isinstance(matrix_timer_result, dict),
         "timer_active": matrix_timer_active,
-        "service_status_known": isinstance(matrix_service_result, dict),
+        "timer_status_source": str(
+            (matrix_timer_result or {}).get("source") or "runtime_snapshot"
+        ),
         "status": (
             "LIVE_MATRIX_TIMER_PROVEN"
             if not matrix_successor.get("matrix_owned") or matrix_timer_active

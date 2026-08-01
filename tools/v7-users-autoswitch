@@ -16667,6 +16667,25 @@ def controlled_source_topology_diagnostic(
             campaign_identity_locations.get(location, 0) + 1
         )
     campaign_identity_count = len(campaign_identity_rows)
+    # ``campaign.source_id`` is immutable historical admission lineage.  It
+    # can legitimately differ from the current controlled source after an
+    # owner-backed topology rebind.  Accounting needs present route truth, so
+    # use the single live controlled source carrying this campaign group when
+    # it is unambiguous; otherwise retain the historical source and fail the
+    # semantic selection closed in the projection rather than guessing.
+    live_campaign_source_candidates = sorted(
+        str(row.get("id") or "")
+        for row in registry_rows
+        if bool_value(row.get("controlled_certification_source"))
+        and str(row.get("certification_group") or "") == campaign_group
+        and int(campaign_identity_locations.get(str(row.get("id") or ""), 0))
+        > 0
+    )
+    campaign_identity_baseline_source_id = (
+        live_campaign_source_candidates[0]
+        if len(live_campaign_source_candidates) == 1
+        else source_id
+    )
     reservation_owner = _controlled_source_reservation_owner_capability()
     certification_users = sorted(
         str(row.get("ip") or "")
@@ -16700,12 +16719,15 @@ def controlled_source_topology_diagnostic(
         or str(row.get("current") or "") == "UNASSIGNED"
     )
     campaign_identity_source_count = int(
-        campaign_identity_locations.get(source_id, 0)
+        campaign_identity_locations.get(
+            campaign_identity_baseline_source_id,
+            0,
+        )
     )
     campaign_identity_target_counts = {
         location: int(count)
         for location, count in campaign_identity_locations.items()
-        if location != source_id
+        if location != campaign_identity_baseline_source_id
     }
     campaign_identity_target_count = sum(
         campaign_identity_target_counts.values()
@@ -16728,7 +16750,12 @@ def controlled_source_topology_diagnostic(
         ),
         "expected_identity_count": campaign_identity_count,
         "identity_set_fingerprint": certification_identity_fingerprint,
-        "baseline_source_id": source_id,
+        "baseline_source_id": campaign_identity_baseline_source_id,
+        "baseline_source_selection": (
+            "CURRENT_CONTROLLED_SOURCE_GROUP_OCCUPANCY"
+            if len(live_campaign_source_candidates) == 1
+            else "HISTORICAL_CAMPAIGN_SOURCE_FALLBACK_AMBIGUOUS_OR_EMPTY"
+        ),
         "baseline_source_count": campaign_identity_source_count,
         "target_count": campaign_identity_target_count,
         "target_locations": dict(sorted(campaign_identity_target_counts.items())),

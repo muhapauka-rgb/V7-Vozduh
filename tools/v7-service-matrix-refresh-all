@@ -2207,11 +2207,26 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "receipt_id", "obligation_id", "frontier_id", "packet_id",
             "feedback_id", "outcome_id", "transaction_status", "stop_reason",
             "blockers", "stage", "baseline_reset_verified",
+            "target_bound_trial", "target_bound_trial_target",
+            "campaign_next_stage", "completion_kind",
             "outcome_consumed", "replay_consumed", "learning_consumed",
             "durable_successor",
         )
         if result.get(key) not in (None, "", [], {})
     }
+    # A target-bound trial has a verified scope (often 5 or 10) but is not a
+    # campaign-stage receipt for that number.  Retain both identities in the
+    # compact Matrix projection so transient runtime work cannot be mistaken
+    # for a duplicate of an already consumed campaign stage.
+    if result.get("target_bound_trial") is True:
+        compact_result["execution_scope_kind"] = "TARGET_BOUND_TRIAL"
+        compact_result["trial_scope"] = int(result.get("stage") or 0)
+        compact_result["campaign_stage"] = int(
+            result.get("campaign_next_stage") or 0
+        )
+    elif result.get("stage") not in (None, "", 0):
+        compact_result["execution_scope_kind"] = "CAMPAIGN_STAGE"
+        compact_result["campaign_stage"] = int(result.get("stage") or 0)
     # Availability-first stages may stop inside one governed subset after the
     # outer stage has already passed admission.  Preserve the bounded terminal
     # and circuit-breaker reason so the next Matrix/OMP consumer can identify

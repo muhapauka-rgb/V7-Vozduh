@@ -1981,6 +1981,22 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             ]
         )
 
+    def test_matrix_projection_distinguishes_target_trial_from_campaign_stage(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "stage": 10,
+                "target_bound_trial": True,
+                "target_bound_trial_target": "awg3",
+                "campaign_next_stage": 25,
+                "transaction_status": "STOP_SAFE",
+            },
+        })
+        result = projected["consumer_result"]
+        self.assertEqual(result["execution_scope_kind"], "TARGET_BOUND_TRIAL")
+        self.assertEqual(result["trial_scope"], 10)
+        self.assertEqual(result["campaign_stage"], 25)
+        self.assertEqual(result["target_bound_trial_target"], "awg3")
+
     def test_refresh_projection_keeps_child_consumer_output_out_of_periodic_journal(self):
         payload = {
             "updated": "2026-07-27T14:00:00+00:00",

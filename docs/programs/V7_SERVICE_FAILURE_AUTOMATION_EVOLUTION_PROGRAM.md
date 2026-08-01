@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `3.1`
+Version: `3.2`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,33 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V3.2 active executable correction — partial cohort recovery and internal drain
+
+V3.2 closes an implementation-only recovery gap in the existing
+availability-first Matrix -> governed executor -> audit -> CPS/OMP chain. It
+creates no Program, Planner, Runtime, registry, queue, watcher, scheduler,
+Authority owner, policy store, executor or evidence store.
+
+If an immutable stage cohort contains both verified forward members and one or
+more members that never completed forward execution, the stage is incomplete.
+It must never be represented as a completed cohort or receive a stage receipt.
+The existing executor must reconstruct every successful member from its exact
+Packet, audit, route, switch, Outcome, Replay and Learning lineage; restore
+only members still outside the controlled baseline; then immediately re-enter
+the existing fresh planner for the same stage. Members with no successful
+forward terminal are not reset and are not credited.
+
+All successful recovery/reset steps remain inside the same bounded Matrix
+invocation. A new Matrix generation is required only for a material freshness,
+capacity, health, lease, circuit-breaker or policy invalidation. Existing
+single-user Packet/lease semantics and `max_concurrent_transactions=1` remain
+the current safety bound; they do not imply one Matrix generation per user.
+
+The stage receipt is legal only after a fresh complete immutable cohort has
+per-user, per-target, aggregate and ordinary-user verification,
+Outcome/Replay/Learning and full baseline reset. The next stage is then
+consumed by the existing bounded successor loop without operator input.
 
 ## V3.1 active executable revision — standing availability-first ladder
 

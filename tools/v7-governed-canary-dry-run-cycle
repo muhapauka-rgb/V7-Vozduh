@@ -6368,6 +6368,17 @@ def availability_first_partial_apply_recovery_context(
         )
         if candidate_stage in completed_stages:
             continue
+        cohort_has_incomplete_member = bool(
+            candidate_stage > 1
+            and len(candidate_packets) == candidate_stage
+            and any(
+                str(item.get("final_verdict") or "")
+                != "L3_PRODUCTION_PROVEN"
+                or str(item.get("verification_result") or "") != "PASS"
+                or int(item.get("users_moved") or 0) != 1
+                for item in candidate_packets
+            )
+        )
         for candidate_packet in candidate_packets:
             candidate_user = str(candidate_packet.get("user") or "")
             candidate_target = str(candidate_packet.get("target") or "")
@@ -6404,6 +6415,10 @@ def availability_first_partial_apply_recovery_context(
                 and str(circuit_breaker.get("reason") or "")
                 == "availability_first_baseline_reset_failed"
             )
+            partial_cohort_baseline_pending = bool(
+                verified_stage_baseline_pending
+                and cohort_has_incomplete_member
+            )
             if (
                 candidate.get("status") == "STOP_SAFE"
                 and (partial_apply or verified_stage_baseline_pending)
@@ -6417,6 +6432,9 @@ def availability_first_partial_apply_recovery_context(
                 cohort_packets = candidate_packets
                 projection_source = source_kind
                 recovery_mode = (
+                    "PARTIAL_COHORT_BASELINE_PENDING"
+                    if partial_cohort_baseline_pending
+                    else
                     "VERIFIED_STAGE_BASELINE_PENDING"
                     if verified_stage_baseline_pending
                     else "PARTIAL_APPLY_BASELINE_PENDING"
@@ -6515,7 +6533,10 @@ def availability_first_partial_apply_recovery_context(
     ]
     selected_moves = (
         audit_moves
-        if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        if recovery_mode in {
+            "VERIFIED_STAGE_BASELINE_PENDING",
+            "PARTIAL_COHORT_BASELINE_PENDING",
+        }
         else lease_selected_moves
     )
     selected_move = (
@@ -6612,7 +6633,10 @@ def availability_first_partial_apply_recovery_context(
             source=source,
             target=target,
         )
-        if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        if recovery_mode in {
+            "VERIFIED_STAGE_BASELINE_PENDING",
+            "PARTIAL_COHORT_BASELINE_PENDING",
+        }
         else {}
     )
     if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING":
@@ -6674,18 +6698,24 @@ def availability_first_partial_apply_recovery_context(
             blockers.append(
                 "verified_stage_recovery_requires_exact_cohort_projection"
             )
-        if not forward_evidence.get("ok"):
-            blockers.extend(
-                forward_evidence.get("blockers")
-                or ["verified_stage_forward_evidence_incomplete"]
-            )
+    if recovery_mode in {
+        "VERIFIED_STAGE_BASELINE_PENDING",
+        "PARTIAL_COHORT_BASELINE_PENDING",
+    } and not forward_evidence.get("ok"):
+        blockers.extend(
+            forward_evidence.get("blockers")
+            or ["verified_stage_forward_evidence_incomplete"]
+        )
     recovered_target_fingerprint = operator_execution.sha256_json({
         "packet_id": packet_id,
         "target": target,
         "snapshot_bundle_hash": str(
             (
                 audit_checks.get("snapshot_bundle_hash")
-                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                if recovery_mode in {
+                    "VERIFIED_STAGE_BASELINE_PENDING",
+                    "PARTIAL_COHORT_BASELINE_PENDING",
+                }
                 else immutable.get("snapshot_bundle_hash")
             )
             or ""
@@ -6697,7 +6727,10 @@ def availability_first_partial_apply_recovery_context(
         "source_bundle_hash": str(
             (
                 audit_checks.get("source_bundle_hash")
-                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                if recovery_mode in {
+                    "VERIFIED_STAGE_BASELINE_PENDING",
+                    "PARTIAL_COHORT_BASELINE_PENDING",
+                }
                 else immutable.get("source_bundle_hash")
             )
             or ""
@@ -6705,7 +6738,10 @@ def availability_first_partial_apply_recovery_context(
         "selected_move_hash": str(
             (
                 audit_checks.get("selected_move_hash")
-                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                if recovery_mode in {
+                    "VERIFIED_STAGE_BASELINE_PENDING",
+                    "PARTIAL_COHORT_BASELINE_PENDING",
+                }
                 else immutable.get("selected_move_hash")
             )
             or ""
@@ -6713,7 +6749,10 @@ def availability_first_partial_apply_recovery_context(
         "max_users": int(
             (
                 audit_checks.get("max_users")
-                if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+                if recovery_mode in {
+                    "VERIFIED_STAGE_BASELINE_PENDING",
+                    "PARTIAL_COHORT_BASELINE_PENDING",
+                }
                 else immutable.get("max_users")
             )
             or 1
@@ -6741,9 +6780,12 @@ def availability_first_partial_apply_recovery_context(
         "recovery_mode": recovery_mode,
         "cohort_packet_count": len(cohort_packets),
         "cohort_projection_exact": bool(
-            recovery_mode != "VERIFIED_STAGE_BASELINE_PENDING"
-            or "verified_stage_recovery_requires_exact_cohort_projection"
-            not in blockers
+            recovery_mode != "PARTIAL_COHORT_BASELINE_PENDING"
+            and (
+                recovery_mode != "VERIFIED_STAGE_BASELINE_PENDING"
+                or "verified_stage_recovery_requires_exact_cohort_projection"
+                    not in blockers
+            )
         ),
         "forward_evidence": forward_evidence,
         "recovered_allocation": [{
@@ -7288,6 +7330,13 @@ def availability_first_restored_cohort_receipt_recovery_context(
             or len(packets) != stage
             or len(set(users)) != stage
             or not all(users)
+            or any(
+                str(row.get("final_verdict") or "")
+                != "L3_PRODUCTION_PROVEN"
+                or str(row.get("verification_result") or "") != "PASS"
+                or int(row.get("users_moved") or 0) != 1
+                for row in packets
+            )
         ):
             continue
         # An outstanding member must first be consumed by the existing

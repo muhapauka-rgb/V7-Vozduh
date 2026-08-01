@@ -2855,6 +2855,139 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(context["cohort_projection_exact"])
         self.assertEqual(context["allocation_fingerprint"], "a" * 64)
 
+    def test_partial_cohort_recovery_resets_only_completed_members_before_retry(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = tuple(f"10.7.0.{100 + index}" for index in range(5))
+            packets = [
+                {
+                    "final_verdict": (
+                        "L3_PRODUCTION_PROVEN" if index < 2 else "STOP_SAFE"
+                    ),
+                    "verification_result": "PASS" if index < 2 else "NOT_RUN",
+                    "users_moved": 1 if index < 2 else 0,
+                    "fresh_packet_id": f"pkt_stage5_{index}",
+                    "operation_id": f"govexec_stage5_{index}",
+                    "user": user,
+                    "source": "vless",
+                    "target": "awg0",
+                }
+                for index, user in enumerate(users)
+            ]
+            (state / "users.registry").write_text(
+                "".join(
+                    f"ip={user} current={'awg0' if index == 0 else 'vless'} "
+                    "enabled=1 certification_user=1\n"
+                    for index, user in enumerate(users)
+                ),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg0 enabled=1 role=GLOBAL_STABLE\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 5,
+                        "consumer_result": {
+                            "stage": 5,
+                            "circuit_breaker": {
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": packets,
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "user_ip": users[0], "from": "vless", "to": "awg0",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({"delegated_autonomy_policy": {
+                    "contract_id": "sdpc_stage5",
+                    "contract_hash": "c" * 64,
+                }}),
+                encoding="utf-8",
+            )
+            audit = [{
+                "operation_id": packets[0]["operation_id"],
+                "packet_id": packets[0]["fresh_packet_id"],
+                "runtime_action_performed": True,
+                "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                "checks": {"moves": [{
+                    "user_ip": users[0],
+                    "availability_first_controlled_assignment": {
+                        "source": "vless", "target": "awg0",
+                        "allocation_fingerprint": "5" * 64,
+                        "ordinary_user": False,
+                        "natural_production_credit": False,
+                    },
+                }]},
+            }]
+            validation = {
+                "ok": True,
+                "errors": [],
+                "policy": {"action_class_scopes": {
+                    module.operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                        "allowed_actions": [
+                            "RESTORE_CONTROLLED_CERTIFICATION_BASELINE",
+                        ],
+                    },
+                }},
+            }
+            args = argparse.Namespace(
+                policy_file=str(policy_file),
+                operator_execution_audit_store=str(root / "audit.jsonl"),
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value=validation,
+            ), mock.patch.object(
+                module.operator_execution,
+                "read_audit_records",
+                return_value=audit,
+            ), mock.patch.object(
+                module.operator_execution,
+                "availability_first_campaign_stage_status",
+                return_value={"ok": True, "completed_stages": [1, 2]},
+            ), mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={"ok": True, "blockers": []},
+            ):
+                context = module.availability_first_partial_apply_recovery_context(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertTrue(context["pending"])
+        self.assertTrue(context["ok"], context)
+        self.assertEqual(context["stage"], 5)
+        self.assertEqual(context["user"], users[0])
+        self.assertEqual(
+            context["recovery_mode"],
+            "PARTIAL_COHORT_BASELINE_PENDING",
+        )
+        self.assertFalse(context["cohort_projection_exact"])
+
     def test_partial_recovery_uses_latest_open_stage_forward_lineage(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

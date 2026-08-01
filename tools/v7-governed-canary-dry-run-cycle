@@ -6225,7 +6225,14 @@ def availability_first_partial_apply_recovery_context(
     event_dir: Path,
     lease_file: Path,
 ) -> dict[str, Any]:
-    """Bind an interrupted availability apply to current owner truth."""
+    """Bind an interrupted availability apply to current owner truth.
+
+    A single Matrix-owned recovery may reset several already verified cohort
+    members serially.  The forward audit is append-only for that invocation;
+    retain it on the shallow-copied execution arguments instead of repeatedly
+    parsing the full historical audit between members.  Route, registry,
+    policy and evidence checks deliberately remain fresh on every call.
+    """
     summary = read_json(
         state_dir / "service-matrix-refresh-summary.json",
         {},
@@ -6241,9 +6248,25 @@ def availability_first_partial_apply_recovery_context(
     cohort_packets: list[dict[str, Any]] = []
     projection_source = ""
     recovery_mode = ""
-    audit_records = operator_execution.read_audit_records(
-        Path(args.operator_execution_audit_store)
+    cached_audit_records = getattr(
+        args,
+        "_availability_first_recovery_forward_audit_records",
+        None,
     )
+    if isinstance(cached_audit_records, list) and all(
+        isinstance(row, dict) for row in cached_audit_records
+    ):
+        audit_records = cached_audit_records
+    else:
+        audit_records = operator_execution.read_audit_records(
+            Path(args.operator_execution_audit_store)
+        )
+        # This is invocation-local lineage cache only, never a durable owner
+        # or a substitute for fresh live gates. copy.copy(args) preserves it
+        # while the same recovery Mission drains its exact pending members.
+        args._availability_first_recovery_forward_audit_records = (
+            audit_records
+        )
     contract_root = read_json(Path(args.policy_file), {})
     contract = (
         contract_root.get("delegated_autonomy_policy")
@@ -6304,7 +6327,21 @@ def availability_first_partial_apply_recovery_context(
                 "target": target,
             }
 
-    def projection_stream():
+    cached_projection_rows = getattr(
+        args,
+        "_availability_first_recovery_forward_projection_rows",
+        None,
+    )
+    if isinstance(cached_projection_rows, list) and all(
+        isinstance(item, tuple)
+        and len(item) == 2
+        and isinstance(item[0], str)
+        and isinstance(item[1], dict)
+        for item in cached_projection_rows
+    ):
+        projection_rows = cached_projection_rows
+    else:
+        projection_rows: list[tuple[str, dict[str, Any]]] = []
         recovered_projection = (
             availability_first_interrupted_cohort_audit_projection(
                 state_dir=state_dir,
@@ -6314,9 +6351,11 @@ def availability_first_partial_apply_recovery_context(
             )
         )
         if recovered_projection:
-            yield "append_only_execution_audit", recovered_projection
+            projection_rows.append((
+                "append_only_execution_audit", recovered_projection,
+            ))
         if isinstance(summary, dict):
-            yield "current_summary", summary
+            projection_rows.append(("current_summary", summary))
         for path in sorted(
             event_dir.glob("service-matrix-refresh-*.jsonl"),
             reverse=True,
@@ -6328,9 +6367,18 @@ def availability_first_partial_apply_recovery_context(
                     max_bytes=RECENT_MATRIX_EVENT_BYTE_LIMIT,
                 )
             ):
-                yield "append_only_matrix_event", row
+                if isinstance(row, dict):
+                    projection_rows.append((
+                        "append_only_matrix_event", row,
+                    ))
+        # The parent writes its next summary only after this stage terminal.
+        # These rows are immutable forward lineage for one recovery run;
+        # route, registry, policy and Outcome checks below stay fresh.
+        args._availability_first_recovery_forward_projection_rows = (
+            projection_rows
+        )
 
-    for source_kind, projection in projection_stream():
+    for source_kind, projection in projection_rows:
         candidate = (
             projection.get(
                 "availability_first_standing_policy_action"

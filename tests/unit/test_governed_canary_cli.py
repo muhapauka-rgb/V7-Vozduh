@@ -2822,7 +2822,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 module.operator_execution,
                 "read_audit_records",
                 return_value=audit,
-            ), mock.patch.object(
+            ) as read_audit_records, mock.patch.object(
                 module,
                 "availability_first_forward_evidence_status",
                 return_value={
@@ -2834,6 +2834,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 },
             ):
                 context = (
+                    module.availability_first_partial_apply_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                        lease_file=lease_file,
+                    )
+                )
+                repeated_context = (
                     module.availability_first_partial_apply_recovery_context(
                         args,
                         state_dir=state,
@@ -2854,6 +2862,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(context["cohort_packet_count"], 2)
         self.assertTrue(context["cohort_projection_exact"])
         self.assertEqual(context["allocation_fingerprint"], "a" * 64)
+        self.assertEqual(repeated_context["packet_id"], packets[0])
+        self.assertEqual(read_audit_records.call_count, 1)
 
     def test_partial_cohort_recovery_resets_only_completed_members_before_retry(self):
         module = load_cli_module()

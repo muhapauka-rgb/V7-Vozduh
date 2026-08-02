@@ -2403,6 +2403,19 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     ):
         if key in result:
             receipt[key] = result.get(key)
+    downstream = result.get("downstream_proof_diagnostic")
+    if isinstance(downstream, dict) and downstream:
+        receipt["downstream_proof_diagnostic"] = {
+            key: downstream.get(key)
+            for key in (
+                "apply_command_ok", "apply_returncode", "apply_timed_out",
+                "child_final_verdict", "child_transaction_status",
+                "child_stop_reason", "child_stop_detail", "proof_blockers",
+                "capability_production_proven",
+            )
+            if downstream.get(key) not in (None, "", [], {})
+            or key in {"apply_command_ok", "apply_timed_out"}
+        }
     partial_apply = result.get("partial_apply_reconciliation")
     if isinstance(partial_apply, dict) and partial_apply:
         receipt["partial_apply_reconciliation"] = {
@@ -4901,6 +4914,33 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     capability_state = l3_learning.get("capability_state") if isinstance(l3_learning.get("capability_state"), dict) else {}
     production_proof_quality = l3_production_validation_proof_quality(apply_run, apply_payload)
     production_proven = bool(capability_state.get("production_proven")) and bool(production_proof_quality.get("ok"))
+    downstream_proof_diagnostic = {
+        "apply_command_ok": bool(apply_run.get("ok")),
+        "apply_returncode": apply_run.get("returncode"),
+        "apply_timed_out": bool(apply_run.get("timed_out")),
+        "child_final_verdict": str(
+            apply_payload.get("final_verdict") or ""
+        ),
+        "child_transaction_status": str(
+            apply_payload.get("transaction_status")
+            or apply_payload.get("status")
+            or ""
+        ),
+        "child_stop_reason": str(
+            apply_payload.get("stop_reason")
+            or apply_payload.get("reason")
+            or ""
+        ),
+        "child_stop_detail": str(
+            apply_payload.get("stop_detail") or ""
+        ),
+        "proof_blockers": list(
+            production_proof_quality.get("blockers") or []
+        )[:12],
+        "capability_production_proven": bool(
+            capability_state.get("production_proven")
+        ),
+    }
     verification_passed = bool(results) and all(
         int(row.get("verify_rc", 1)) == 0
         and (row.get("service_verify_rc") is None or int(row.get("service_verify_rc", 1)) == 0)
@@ -4953,6 +4993,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "controlled_certification_evidence": controlled_evidence,
         "feedback_materialization": feedback_materialization,
         "production_proof_quality": production_proof_quality,
+        "downstream_proof_diagnostic": downstream_proof_diagnostic,
         "partial_apply_reconciliation": (
             apply_run.get("partial_apply_reconciliation") or {}
         ),

@@ -1267,11 +1267,29 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
             "transaction_status": "STOP_SAFE",
             "stop_reason": "exact_existing_owner_terminal",
+            "downstream_proof_diagnostic": {
+                "apply_command_ok": False,
+                "apply_returncode": 2,
+                "apply_timed_out": False,
+                "child_stop_reason": "exact_child_terminal",
+                "proof_blockers": ["runtime_apply_not_performed"],
+                "sensitive_payload": "must-not-project",
+            },
         })
 
         self.assertEqual(
             result["stop_reason"],
             "exact_existing_owner_terminal",
+        )
+        self.assertEqual(
+            result["downstream_proof_diagnostic"]["child_stop_reason"],
+            "exact_child_terminal",
+        )
+        self.assertFalse(
+            result["downstream_proof_diagnostic"]["apply_command_ok"]
+        )
+        self.assertNotIn(
+            "sensitive_payload", result["downstream_proof_diagnostic"]
         )
 
     def test_exact_engineering_authority_projects_only_bound_controlled_candidate(self):

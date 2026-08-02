@@ -2299,6 +2299,21 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         for row in packet_set
         if isinstance(row, dict)
     ]
+    for compact_packet, packet in zip(compact_packet_set, packet_set):
+        downstream = packet.get("downstream_proof_diagnostic")
+        if isinstance(downstream, dict) and downstream:
+            compact_packet["downstream_proof_diagnostic"] = {
+                key: downstream.get(key)
+                for key in (
+                    "apply_command_ok", "apply_returncode",
+                    "apply_timed_out", "child_final_verdict",
+                    "child_transaction_status", "child_stop_reason",
+                    "child_stop_detail", "proof_blockers",
+                    "capability_production_proven",
+                )
+                if downstream.get(key) not in (None, "", [], {})
+                or key in {"apply_command_ok", "apply_timed_out"}
+            }
     compact_packet_set = [row for row in compact_packet_set if row]
     if compact_packet_set:
         compact_result["packet_set"] = compact_packet_set

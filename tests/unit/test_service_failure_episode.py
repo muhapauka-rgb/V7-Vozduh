@@ -2241,6 +2241,16 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                         "stop_reason": "fresh_capacity_gate_failed",
                         "target_id": "awg3",
                         "users_moved": 0,
+                        "downstream_proof_diagnostic": {
+                            "apply_command_ok": False,
+                            "apply_returncode": 2,
+                            "apply_timed_out": False,
+                            "child_stop_reason": "exact_child_terminal",
+                            "proof_blockers": [
+                                "runtime_apply_not_performed"
+                            ],
+                            "sensitive_payload": "must-not-project",
+                        },
                         "nested": "x" * 100000,
                     }],
                     "nested": "x" * 100000,
@@ -2275,6 +2285,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             availability_terminal["packet_set"][0]["users_moved"],
             0,
+        )
+        self.assertEqual(
+            availability_terminal["packet_set"][0][
+                "downstream_proof_diagnostic"
+            ]["child_stop_reason"],
+            "exact_child_terminal",
+        )
+        self.assertNotIn(
+            "sensitive_payload",
+            availability_terminal["packet_set"][0][
+                "downstream_proof_diagnostic"
+            ],
         )
         self.assertNotIn("nested", serialized)
         self.assertTrue(projection["candidate_or_execution_forbidden"])

@@ -6525,6 +6525,8 @@ def availability_first_partial_apply_recovery_context(
                     or partial_cohort_baseline_pending
                 )
                 and candidate_user
+                and candidate_packet.get("containment_required")
+                    is not False
                 and current_routes.get(candidate_user) == candidate_target
                 and latest_forward_matches
             ):
@@ -7105,17 +7107,20 @@ def availability_first_interrupted_cohort_audit_projection(
             )
             current_route = str(user_row.get("current") or "")
             superseding_switch = {}
-            if forward_switch and current_route not in {source, target}:
-                forward_at = str(forward_switch.get("ts") or "")
+            if not forward_switch or current_route not in {source, target}:
+                lineage_after = str(
+                    forward_switch.get("ts")
+                    or audit_row.get("created_at")
+                    or ""
+                )
                 superseding_switch = next(
                     (
                         row
                         for row in switch_rows
                         if isinstance(row, dict)
                         and str(row.get("user_ip") or "") == user
-                        and str(row.get("from") or "") == target
                         and str(row.get("to") or "") == current_route
-                        and str(row.get("ts") or "") > forward_at
+                        and str(row.get("ts") or "") > lineage_after
                     ),
                     {},
                 )
@@ -7127,7 +7132,7 @@ def availability_first_interrupted_cohort_audit_projection(
                 )
                 or not packet_id
                 or not operation_id
-                or not forward_switch
+                or (not forward_switch and not superseding_switch)
             ):
                 exact = False
                 break
@@ -7135,7 +7140,10 @@ def availability_first_interrupted_cohort_audit_projection(
                 latest_at,
                 str(audit_row.get("created_at") or ""),
             )
-            evidence_ok = evidence.get("ok") is True
+            forward_effect_proven = bool(forward_switch)
+            evidence_ok = bool(
+                forward_effect_proven and evidence.get("ok") is True
+            )
             packets.append({
                 "final_verdict": (
                     "L3_PRODUCTION_PROVEN"
@@ -7157,14 +7165,17 @@ def availability_first_interrupted_cohort_audit_projection(
                 "target": target,
                 "target_id": target,
                 "current_route": current_route,
-                "containment_required": current_route == target,
+                "containment_required": bool(
+                    forward_effect_proven and current_route == target
+                ),
                 "baseline_restored": current_route == source,
                 "superseded_by_later_route": bool(superseding_switch),
+                "effect_not_proven": not forward_effect_proven,
                 "superseding_switch_at": str(
                     superseding_switch.get("ts") or ""
                 ),
                 "users_moved": 1 if evidence_ok else 0,
-                "runtime_mutation_performed": True,
+                "runtime_mutation_performed": forward_effect_proven,
                 "verification_result": (
                     "PASS" if evidence_ok else "STOP_SAFE"
                 ),

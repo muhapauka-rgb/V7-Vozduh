@@ -639,7 +639,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
             switch_rows = [
                 *(
                     json.dumps({
-                        "ts": f"2026-07-31T17:00:0{index}+00:00",
+                        "ts": (
+                            "2026-07-31T17:10:00+00:00"
+                            if index == 1 else
+                            "2026-07-31T17:00:00+00:00"
+                        ),
                         "user_ip": user,
                         "from": "vless",
                         "to": "awg3",
@@ -647,7 +651,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     for index, user in enumerate(users)
                 ),
                 json.dumps({
-                    "ts": "2026-07-31T17:05:00+00:00",
+                    "ts": "2026-07-31T17:11:00+00:00",
                     "user_ip": users[1],
                     "from": "awg3",
                     "to": "wireguard",
@@ -725,6 +729,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertTrue(
             result["packet_set"][1]["superseded_by_later_route"]
+        )
+        self.assertTrue(
+            result["packet_set"][1]["effect_not_proven"]
+        )
+        self.assertFalse(
+            result["packet_set"][1]["containment_required"]
         )
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()

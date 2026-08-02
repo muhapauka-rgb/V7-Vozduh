@@ -2134,6 +2134,17 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "EXISTING_MATRIX_RECOMPUTE_"
                     "AVAILABILITY_FIRST_NEXT_STAGE"
                 ),
+                "stage_total_duration_us": 123456,
+                "serial_baseline_reset_count": 1,
+                "performance_timeline": [{
+                    "phase": "reset_transaction",
+                    "owner": "existing governed transaction owner",
+                    "status": "STOP_SAFE",
+                    "member_id": "10.7.0.100",
+                    "started_offset_us": 100,
+                    "duration_us": 123000,
+                    "sensitive_payload": "must-not-project",
+                }],
                 "baseline_reset_reconciliation": {
                     "ok": True,
                     "mode": (
@@ -2170,6 +2181,15 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             consumer["baseline_reset_reconciliation"][
                 "production_outcome_credit"
             ]
+        )
+        self.assertEqual(consumer["stage_total_duration_us"], 123456)
+        self.assertEqual(consumer["serial_baseline_reset_count"], 1)
+        self.assertEqual(
+            consumer["performance_timeline"][0]["phase"],
+            "reset_transaction",
+        )
+        self.assertNotIn(
+            "sensitive_payload", consumer["performance_timeline"][0]
         )
 
     def test_matrix_projection_distinguishes_target_trial_from_campaign_stage(self):

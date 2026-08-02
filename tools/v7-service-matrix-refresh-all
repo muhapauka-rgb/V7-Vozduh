@@ -2364,6 +2364,35 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         compact_result["baseline_reset_reconciliation"] = (
             compact_reset_reconciliation
         )
+    timeline = [
+        row for row in (result.get("performance_timeline") or [])
+        if isinstance(row, dict)
+    ]
+    compact_timeline = [
+        {
+            key: row.get(key)
+            for key in (
+                "phase", "owner", "status", "member_id", "packet_id",
+                "operation_id", "completed_at", "started_offset_us",
+                "duration_us",
+            )
+            if row.get(key) not in (None, "", [], {})
+        }
+        for row in timeline[-256:]
+    ]
+    if compact_timeline:
+        compact_result["performance_timeline"] = compact_timeline
+        compact_result["performance_timeline_truncated"] = (
+            len(timeline) > len(compact_timeline)
+        )
+    if result.get("stage_total_duration_us") not in (None, ""):
+        compact_result["stage_total_duration_us"] = int(
+            result.get("stage_total_duration_us") or 0
+        )
+    if result.get("serial_baseline_reset_count") not in (None, ""):
+        compact_result["serial_baseline_reset_count"] = int(
+            result.get("serial_baseline_reset_count") or 0
+        )
     reset_reconciliations = [
         {
             key: row.get(key)

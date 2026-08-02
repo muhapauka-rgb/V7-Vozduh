@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import copy
 import fcntl
+import gzip
 import hashlib
 import json
 import os
@@ -5788,6 +5789,62 @@ def read_audit_records(audit_store):
             records.append(json.loads(line))
         except json.JSONDecodeError:
             records.append({"record_type": "CORRUPT_RECORD", "raw_hash": sha256_bytes(line.encode("utf-8"))})
+    return records
+
+
+def read_live_execution_lineage_records(audit_store, *, max_rotated_segments=8):
+    """Read compact durable execution lineage across bounded audit rotation.
+
+    The active audit file is intentionally rotated.  Authority decisions and
+    exact-once campaign receipts remain authoritative after that rotation, but
+    loading every historical audit row on each Matrix/member invocation would
+    turn the append-only log into a scale bottleneck.  Reuse the same audit
+    owner and stream only the durable decision/receipt record classes from a
+    bounded number of recent segments.
+
+    This is a read projection, not a registry or cache: the source of truth
+    remains the append-only operator-execution audit.
+    """
+    path = Path(audit_store)
+    names = [path]
+    for index in range(1, max(0, int(max_rotated_segments)) + 1):
+        plain = path.with_name(f"{path.name}.{index}")
+        compressed = path.with_name(f"{path.name}.{index}.gz")
+        if plain.exists():
+            names.append(plain)
+        elif compressed.exists():
+            names.append(compressed)
+    durable_record_types = {
+        STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE,
+        CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE,
+        CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE,
+        CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE,
+    }
+    durable_effect_classes = {
+        AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS,
+        AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS,
+        CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS,
+    }
+    records = []
+    # oldest -> newest keeps append-only semantic consumers deterministic.
+    for candidate in reversed(names):
+        try:
+            opener = gzip.open if candidate.suffix == ".gz" else open
+            with opener(candidate, "rt", encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    if not line.strip():
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if (
+                        row.get("record_type") in durable_record_types
+                        or row.get("effect_class") in durable_effect_classes
+                    ):
+                        records.append(row)
+        except OSError:
+            continue
     return records
 
 

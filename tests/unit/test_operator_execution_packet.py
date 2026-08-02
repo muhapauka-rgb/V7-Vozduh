@@ -500,6 +500,46 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 rejected["errors"],
             )
 
+    def test_live_execution_lineage_keeps_authority_after_audit_rotation(self):
+        now = datetime(2026, 7, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / "policy.json"
+            audit_path = root / "operator-execution-audit.jsonl"
+            write_json(policy_path, {"authority_budget": {}})
+            request = build_standing_delegated_policy_authority_request(
+                policy_generation_hash=sha256_file(policy_path),
+                active_program=(
+                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                ),
+                max_users=48,
+                include_availability_first=True,
+                now=now,
+            )
+            register_standing_delegated_policy_request(
+                request, audit_store=audit_path, now=now,
+            )
+            activated = issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            audit_path.rename(root / "operator-execution-audit.jsonl.1")
+            audit_path.write_text("", encoding="utf-8")
+            lineage = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+            )
+            valid = validate_standing_delegated_operational_policy(
+                activated["contract"],
+                audit_records=lineage,
+                now=now + timedelta(seconds=1),
+            )
+            self.assertTrue(valid["ok"], valid["errors"])
+
     def test_availability_first_campaign_status_consumes_only_exact_prefix(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

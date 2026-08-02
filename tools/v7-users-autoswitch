@@ -15336,15 +15336,15 @@ def controlled_campaign_target_selection_diagnostic(
             "forbidden_effects": forbidden_effects,
         }
 
-    audit_records = operator_execution.read_audit_records(
-        Path(args.action_class_audit_store)
-    )
     policy_root = read_json(Path(args.policy_file), {})
     policy_contract = (
         policy_root.get("delegated_autonomy_policy")
         if isinstance(policy_root, dict)
         and isinstance(policy_root.get("delegated_autonomy_policy"), dict)
         else {}
+    )
+    audit_records = operator_execution.read_live_execution_lineage_records(
+        Path(args.action_class_audit_store)
     )
     standing_validation = (
         operator_execution.validate_standing_delegated_operational_policy(
@@ -18755,7 +18755,9 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
     policy_root = policy_root if isinstance(policy_root, dict) else {}
     contract = policy_root.get("delegated_autonomy_policy")
     contract = contract if isinstance(contract, dict) else {}
-    audit_records = operator_execution.read_audit_records(Path(args.action_class_audit_store))
+    audit_records = operator_execution.read_live_execution_lineage_records(
+        Path(args.action_class_audit_store)
+    )
     validation = operator_execution.validate_standing_delegated_operational_policy(
         contract,
         audit_records=audit_records,

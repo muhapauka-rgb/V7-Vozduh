@@ -792,6 +792,28 @@ class GovernedCanaryCliTest(unittest.TestCase):
             )
         )
         self.assertEqual(execute.call_count, 2)
+        self.assertGreater(result["stage_total_duration_us"], 0)
+        self.assertEqual(
+            sum(
+                row["phase"] == "member_governed_transaction"
+                for row in result["performance_timeline"]
+            ),
+            2,
+        )
+        self.assertEqual(
+            sum(
+                row["phase"] == "member_outcome_replay_learning"
+                for row in result["performance_timeline"]
+            ),
+            2,
+        )
+        self.assertTrue(
+            all(
+                isinstance(row.get("duration_us"), int)
+                and row["duration_us"] >= 0
+                for row in result["performance_timeline"]
+            )
+        )
         transaction_args = [
             call.args[0] for call in execute.call_args_list
         ]

@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,50 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=True, separators=(",", ":")) + "\n")
+
+
+def live_policy_lineage_records(args: argparse.Namespace) -> list[dict[str, Any]]:
+    """Reuse one bounded immutable Authority/receipt projection per Mission."""
+    cached = getattr(args, "_live_policy_lineage_records", None)
+    if isinstance(cached, list) and all(isinstance(row, dict) for row in cached):
+        return cached
+    records = operator_execution.read_live_execution_lineage_records(
+        Path(args.operator_execution_audit_store)
+    )
+    args._live_policy_lineage_records = records
+    return records
+
+
+def live_runtime_lineage_records(args: argparse.Namespace) -> list[dict[str, Any]]:
+    """Reuse bounded rotated runtime lineage only during one recovery Mission."""
+    cached = getattr(args, "_live_runtime_lineage_records", None)
+    if isinstance(cached, list) and all(isinstance(row, dict) for row in cached):
+        return cached
+    audit_store = Path(args.operator_execution_audit_store)
+    records = operator_execution.read_live_execution_lineage_records(
+        audit_store,
+        include_runtime_actions=True,
+    )
+    # The active segment can also contain current in-flight rows outside the
+    # compact recovery classes.  Merge it once so recovery never trades fresh
+    # owner truth for rotated truth.  Record hashes keep the projection exact
+    # and deterministic when the active rows were already selected above.
+    seen = {
+        str(row.get("record_hash") or operator_execution.sha256_json(row))
+        for row in records
+    }
+    for row in operator_execution.read_audit_records(audit_store):
+        if not isinstance(row, dict):
+            continue
+        identity = str(
+            row.get("record_hash") or operator_execution.sha256_json(row)
+        )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        records.append(row)
+    args._live_runtime_lineage_records = records
+    return records
 
 
 def scoped_user_route_check(state_dir: Path, user: str) -> dict[str, Any]:
@@ -2594,9 +2639,7 @@ def resolved_l3_requested_max_users(args: argparse.Namespace) -> dict[str, Any]:
     contract = policy_root.get("delegated_autonomy_policy")
     validation = operator_execution.validate_standing_delegated_operational_policy(
         contract if isinstance(contract, dict) else {},
-        audit_records=operator_execution.read_audit_records(
-            Path(args.operator_execution_audit_store),
-        ),
+        audit_records=live_policy_lineage_records(args),
     )
     policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     max_users = int(policy.get("max_users_per_action") or 1) if validation.get("ok") else 1
@@ -2833,7 +2876,10 @@ def recover_controlled_topology_apply_terminal(
     ):
         blockers.append("topology_recovery_restore_barrier_identity_mismatch")
 
-    audit_rows = operator_execution.read_audit_records(audit_store)
+    audit_rows = operator_execution.read_live_execution_lineage_records(
+        audit_store,
+        include_runtime_actions=True,
+    )
     if not any(
         str(row.get("packet_id") or "") == packet_id
         and str(row.get("operation_id") or "") == operation_id
@@ -3422,9 +3468,7 @@ def controlled_topology_standing_execution_binding(
     )
     validation = operator_execution.validate_standing_delegated_operational_policy(
         contract,
-        audit_records=operator_execution.read_audit_records(
-            Path(args.operator_execution_audit_store),
-        ),
+        audit_records=live_policy_lineage_records(args),
     )
     policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     scopes = (
@@ -3728,9 +3772,7 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
     contract = contract if isinstance(contract, dict) else {}
     validation = operator_execution.validate_standing_delegated_operational_policy(
         contract,
-        audit_records=operator_execution.read_audit_records(
-            Path(args.operator_execution_audit_store),
-        ),
+        audit_records=live_policy_lineage_records(args),
     )
     policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     requested_max_users = int(getattr(args, "max_users", 0) or 0)
@@ -5346,9 +5388,7 @@ def _execute_governed_transaction_with_guards_inner(
                 if isinstance(policy_root.get("delegated_autonomy_policy"), dict)
                 else {}
             ),
-            authority_audit_records=operator_execution.read_audit_records(
-                Path(args.operator_execution_audit_store),
-            ),
+            authority_audit_records=live_policy_lineage_records(args),
         )
         if not delegated_admission.get("allowed"):
             return transaction_stop("delegated_policy_admission_denied", cycle=cycle, delegated_policy_admission=delegated_admission)
@@ -6258,9 +6298,7 @@ def availability_first_partial_apply_recovery_context(
     ):
         audit_records = cached_audit_records
     else:
-        audit_records = operator_execution.read_audit_records(
-            Path(args.operator_execution_audit_store)
-        )
+        audit_records = live_runtime_lineage_records(args)
         # This is invocation-local lineage cache only, never a durable owner
         # or a substitute for fresh live gates. copy.copy(args) preserves it
         # while the same recovery Mission drains its exact pending members.
@@ -7193,9 +7231,7 @@ def availability_first_restored_cohort_receipt_recovery_context(
         for row in read_registry(state_dir / "users.registry")
         if row.get("ip")
     }
-    audits = operator_execution.read_audit_records(
-        Path(args.operator_execution_audit_store)
-    )
+    audits = live_runtime_lineage_records(args)
     policy_root = read_json(Path(args.policy_file), {})
     contract = (
         policy_root.get("delegated_autonomy_policy")
@@ -7781,9 +7817,7 @@ def availability_first_restored_stage_receipt_recovery_context(
     if route.get("passed") is not True:
         blockers.append("restored_stage_current_route_not_verified")
 
-    audits = operator_execution.read_audit_records(
-        Path(args.operator_execution_audit_store)
-    )
+    audits = live_runtime_lineage_records(args)
     forward_audit = next(
         (
             row for row in reversed(audits)
@@ -8031,10 +8065,45 @@ def execute_availability_first_standing_stage(
     lease plus a fresh pre-apply capacity check is the existing-owner capacity
     reservation; no second reservation registry is introduced.
     """
+    mission_started_ns = time.monotonic_ns()
+    performance_timeline: list[dict[str, Any]] = []
+
+    def record_phase(
+        phase: str,
+        started_ns: int,
+        *,
+        owner: str,
+        status: str = "PASS",
+        member: str = "",
+        packet_id: str = "",
+        operation_id: str = "",
+    ) -> None:
+        completed_ns = time.monotonic_ns()
+        performance_timeline.append({
+            "phase": phase,
+            "owner": owner,
+            "status": status,
+            "member_id": member,
+            "packet_id": packet_id,
+            "operation_id": operation_id,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "started_offset_us": max(
+                0, (started_ns - mission_started_ns) // 1_000
+            ),
+            "duration_us": max(0, (completed_ns - started_ns) // 1_000),
+        })
+
+    restored_started_ns = time.monotonic_ns()
     restored = availability_first_restored_stage_receipt_recovery_context(
         args,
         state_dir=state_dir,
         event_dir=event_dir,
+    )
+    record_phase(
+        "restored_receipt_reconciliation",
+        restored_started_ns,
+        owner="existing Packet/audit/route/Outcome owners",
+        status="PENDING" if restored.get("pending") else "NO_WORK",
     )
     if restored.get("pending"):
         if not restored.get("ok"):
@@ -8047,6 +8116,7 @@ def execute_availability_first_standing_stage(
                 "durable_successor": (
                     "EXISTING_MATRIX_FRESH_RESTORED_STAGE_RECONCILIATION"
                 ),
+                "performance_timeline": performance_timeline,
             }
         forward_evidence = restored.get("forward_evidence") or {}
         recovered_packets = [
@@ -8176,12 +8246,23 @@ def execute_availability_first_standing_stage(
             "durable_successor": (
                 "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
             ),
+            "performance_timeline": performance_timeline,
+            "stage_total_duration_us": max(
+                0, (time.monotonic_ns() - mission_started_ns) // 1_000
+            ),
         }
+    partial_started_ns = time.monotonic_ns()
     partial = availability_first_partial_apply_recovery_context(
         args,
         state_dir=state_dir,
         event_dir=event_dir,
         lease_file=lease_file,
+    )
+    record_phase(
+        "partial_apply_reconciliation",
+        partial_started_ns,
+        owner="existing rotated execution audit + route/Outcome owners",
+        status="PENDING" if partial.get("pending") else "NO_WORK",
     )
     if partial.get("pending"):
         if not partial.get("ok"):
@@ -8194,6 +8275,7 @@ def execute_availability_first_standing_stage(
                 "durable_successor": (
                     "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
                 ),
+                "performance_timeline": performance_timeline,
             }
         stage = int(partial.get("stage") or 0)
         user = str(partial.get("user") or "")
@@ -8235,6 +8317,7 @@ def execute_availability_first_standing_stage(
             ),
         }
         reset_args.engineering_authority_request_file = ""
+        reset_started_ns = time.monotonic_ns()
         reset = execute_governed_transaction_with_guards(
             reset_args,
             state_dir=state_dir,
@@ -8243,6 +8326,16 @@ def execute_availability_first_standing_stage(
             audit_dir=audit_dir,
             lease_file=lease_file,
         )
+        record_phase(
+            "reset_transaction",
+            reset_started_ns,
+            owner="existing governed transaction owner",
+            status=str(reset.get("final_verdict") or "UNKNOWN"),
+            member=user,
+            packet_id=str(reset.get("fresh_packet_id") or ""),
+            operation_id=str(reset.get("operation_id") or ""),
+        )
+        reset_verify_started_ns = time.monotonic_ns()
         reset_truth = availability_first_baseline_reset_truth(
             reset,
             state_dir=state_dir,
@@ -8250,6 +8343,13 @@ def execute_availability_first_standing_stage(
             user=user,
             baseline_source=source,
             execution_target=target,
+        )
+        record_phase(
+            "reset_verification",
+            reset_verify_started_ns,
+            owner="existing route and baseline verification owners",
+            status="PASS" if reset_truth.get("ok") else "STOP_SAFE",
+            member=user,
         )
         reset_complete = bool(reset_truth.get("ok"))
         forward_evidence = (
@@ -8316,6 +8416,7 @@ def execute_availability_first_standing_stage(
                 recovery_depth + 1
             )
             successor_args._availability_first_recovery_only = True
+            successor_started_ns = time.monotonic_ns()
             successor = execute_availability_first_standing_stage(
                 successor_args,
                 state_dir=state_dir,
@@ -8323,6 +8424,12 @@ def execute_availability_first_standing_stage(
                 snapshot_root=snapshot_root,
                 audit_dir=audit_dir,
                 lease_file=lease_file,
+            )
+            record_phase(
+                "internal_successor",
+                successor_started_ns,
+                owner="same Matrix-owned Stage Mission",
+                status=str(successor.get("final_verdict") or "UNKNOWN"),
             )
             prior_reconciliations = [
                 row
@@ -8361,6 +8468,19 @@ def execute_availability_first_standing_stage(
                         )
                         or 0
                     )
+                ),
+                "performance_timeline": [
+                    *performance_timeline,
+                    *(
+                        successor.get("performance_timeline")
+                        if isinstance(
+                            successor.get("performance_timeline"), list
+                        )
+                        else []
+                    ),
+                ],
+                "stage_total_duration_us": max(
+                    0, (time.monotonic_ns() - mission_started_ns) // 1_000
                 ),
             }
         return {
@@ -8443,6 +8563,10 @@ def execute_availability_first_standing_stage(
                 if reset_complete
                 else "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
             ),
+            "performance_timeline": performance_timeline,
+            "stage_total_duration_us": max(
+                0, (time.monotonic_ns() - mission_started_ns) // 1_000
+            ),
         }
     if bool(
         getattr(args, "_availability_first_recovery_only", False)
@@ -8458,10 +8582,18 @@ def execute_availability_first_standing_stage(
             "durable_successor": (
                 "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
             ),
+            "performance_timeline": performance_timeline,
         }
+    planner_started_ns = time.monotonic_ns()
     planner = _availability_first_topology_diagnostic(
         args,
         state_dir=state_dir,
+    )
+    record_phase(
+        "planner_and_allocation",
+        planner_started_ns,
+        owner="existing topology/Planner consumer",
+        status=str(planner.get("status") or "UNKNOWN"),
     )
     diagnostic = (
         planner.get("diagnostic")
@@ -8644,6 +8776,10 @@ def execute_availability_first_standing_stage(
             "planner": planner,
             "runtime_mutation_performed": False,
             "users_moved": 0,
+            "performance_timeline": performance_timeline,
+            "stage_total_duration_us": max(
+                0, (time.monotonic_ns() - mission_started_ns) // 1_000
+            ),
         }
 
     offset = 0
@@ -8723,6 +8859,7 @@ def execute_availability_first_standing_stage(
                     or ""
                 ),
             }
+            transaction_started_ns = time.monotonic_ns()
             transaction = execute_governed_transaction_with_guards(
                 transaction_args,
                 state_dir=state_dir,
@@ -8732,6 +8869,16 @@ def execute_availability_first_standing_stage(
                 lease_file=lease_file,
             )
             compact = compact_transaction_result(transaction)
+            record_phase(
+                "member_governed_transaction",
+                transaction_started_ns,
+                owner="existing Candidate/Packet/lease/apply/verification owner",
+                status=str(transaction.get("final_verdict") or "UNKNOWN"),
+                member=user,
+                packet_id=str(compact.get("fresh_packet_id") or ""),
+                operation_id=str(compact.get("operation_id") or ""),
+            )
+            evidence_started_ns = time.monotonic_ns()
             evidence = availability_first_forward_evidence_status(
                 state_dir,
                 packet_id=str(compact.get("fresh_packet_id") or ""),
@@ -8739,6 +8886,15 @@ def execute_availability_first_standing_stage(
                 user=user,
                 source=source,
                 target=target,
+            )
+            record_phase(
+                "member_outcome_replay_learning",
+                evidence_started_ns,
+                owner="existing Outcome/Replay/Learning owners",
+                status="PASS" if evidence.get("ok") else "STOP_SAFE",
+                member=user,
+                packet_id=str(compact.get("fresh_packet_id") or ""),
+                operation_id=str(compact.get("operation_id") or ""),
             )
             packet_set.append({
                 **compact,
@@ -8808,9 +8964,16 @@ def execute_availability_first_standing_stage(
     ordinary_unchanged = (
         ordinary_after_apply == ordinary_before
     )
+    post_apply_started_ns = time.monotonic_ns()
     post_apply_planner = _availability_first_topology_diagnostic(
         args,
         state_dir=state_dir,
+    )
+    record_phase(
+        "aggregate_target_verification",
+        post_apply_started_ns,
+        owner="existing topology/quality/capacity owners",
+        status=str(post_apply_planner.get("status") or "UNKNOWN"),
     )
     post_apply_diagnostic = (
         post_apply_planner.get("diagnostic")
@@ -8938,6 +9101,7 @@ def execute_availability_first_standing_stage(
                 "allocation_fingerprint": allocation_fingerprint,
             }
             reset_args.engineering_authority_request_file = ""
+            reset_started_ns = time.monotonic_ns()
             reset = execute_governed_transaction_with_guards(
                 reset_args,
                 state_dir=state_dir,
@@ -8946,7 +9110,17 @@ def execute_availability_first_standing_stage(
                 audit_dir=audit_dir,
                 lease_file=lease_file,
             )
+            record_phase(
+                "member_reset_transaction",
+                reset_started_ns,
+                owner="existing governed reset owner",
+                status=str(reset.get("final_verdict") or "UNKNOWN"),
+                member=user,
+                packet_id=str(reset.get("fresh_packet_id") or ""),
+                operation_id=str(reset.get("operation_id") or ""),
+            )
             reset_transactions.append(compact_transaction_result(reset))
+            reset_verify_started_ns = time.monotonic_ns()
             reset_truth = availability_first_baseline_reset_truth(
                 reset,
                 state_dir=state_dir,
@@ -8954,6 +9128,13 @@ def execute_availability_first_standing_stage(
                 user=user,
                 baseline_source=source,
                 execution_target=current_target,
+            )
+            record_phase(
+                "member_reset_verification",
+                reset_verify_started_ns,
+                owner="existing route and baseline verification owners",
+                status="PASS" if reset_truth.get("ok") else "STOP_SAFE",
+                member=user,
             )
             reset_reconciliations.append(reset_truth)
             if not reset_truth.get("ok"):
@@ -9096,6 +9277,10 @@ def execute_availability_first_standing_stage(
             else "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
             if complete
             else "EXISTING_MATRIX_FRESH_REVALIDATION_AFTER_EXACT_STOP_SAFE"
+        ),
+        "performance_timeline": performance_timeline,
+        "stage_total_duration_us": max(
+            0, (time.monotonic_ns() - mission_started_ns) // 1_000
         ),
     }
 

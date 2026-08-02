@@ -5792,7 +5792,12 @@ def read_audit_records(audit_store):
     return records
 
 
-def read_live_execution_lineage_records(audit_store, *, max_rotated_segments=8):
+def read_live_execution_lineage_records(
+    audit_store,
+    *,
+    max_rotated_segments=8,
+    include_runtime_actions=False,
+):
     """Read compact durable execution lineage across bounded audit rotation.
 
     The active audit file is intentionally rotated.  Authority decisions and
@@ -5838,9 +5843,16 @@ def read_live_execution_lineage_records(audit_store, *, max_rotated_segments=8):
                         row = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    runtime_action = bool(
+                        include_runtime_actions
+                        and row.get("runtime_action_performed") is True
+                        and str(row.get("clearance_verdict") or "")
+                        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                    )
                     if (
                         row.get("record_type") in durable_record_types
                         or row.get("effect_class") in durable_effect_classes
+                        or runtime_action
                     ):
                         records.append(row)
         except OSError:

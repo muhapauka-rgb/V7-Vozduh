@@ -2144,7 +2144,7 @@ def controlled_campaign_execution_target_admission(
         return {"ok": False, "active": False, "blockers": ["not_requested"]}
     blockers: list[str] = []
     status = operator_execution.controlled_certification_substrate_authority_status(
-        operator_execution.read_audit_records(
+        operator_execution.read_live_execution_lineage_records(
             Path(args.action_class_audit_store)
         )
     )
@@ -2424,7 +2424,9 @@ class AutoswitchPlanner:
         standing_validation = (
             operator_execution.validate_standing_delegated_operational_policy(
                 standing_contract,
-                audit_records=operator_execution.read_audit_records(audit_store),
+                audit_records=operator_execution.read_live_execution_lineage_records(
+                    audit_store
+                ),
             )
             if standing_contract
             else {
@@ -2833,7 +2835,9 @@ class AutoswitchPlanner:
             prepared_class=prepared_class,
             certified_class=certified_class,
             standing_policy_contract=standing_policy_contract,
-            authority_audit_records=operator_execution.read_audit_records(authority_audit_store),
+            authority_audit_records=operator_execution.read_live_execution_lineage_records(
+                authority_audit_store
+            ),
         )
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
@@ -2922,11 +2926,13 @@ class AutoswitchPlanner:
         standing_contract = (self.policy or {}).get("delegated_autonomy_policy")
         standing_validation = operator_execution.validate_standing_delegated_operational_policy(
             standing_contract if isinstance(standing_contract, dict) else {},
-            audit_records=operator_execution.read_audit_records(Path(getattr(
-                self.args,
-                "action_class_audit_store",
-                str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
-            ))),
+            audit_records=operator_execution.read_live_execution_lineage_records(
+                Path(getattr(
+                    self.args,
+                    "action_class_audit_store",
+                    str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+                ))
+            ),
         )
         standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
         standing_max_users = max(0, to_int(standing_scope.get("max_users_per_action"), 0))
@@ -13054,7 +13060,9 @@ class AutoswitchPlanner:
         ))
         validation = operator_execution.validate_standing_delegated_operational_policy(
             contract,
-            audit_records=operator_execution.read_audit_records(audit_store),
+            audit_records=operator_execution.read_live_execution_lineage_records(
+                audit_store
+            ),
         )
         runtime_axes = operator_execution.standing_delegated_policy_runtime_axes(
             validation.get("contract") or contract
@@ -16803,7 +16811,7 @@ def controlled_source_topology_diagnostic(
     }
     topology_authority_status = (
         operator_execution.controlled_source_topology_authority_status(
-            operator_execution.read_audit_records(
+            operator_execution.read_live_execution_lineage_records(
                 Path(args.action_class_audit_store)
             )
         )
@@ -19142,7 +19150,9 @@ def controlled_certification_substrate_authority_request_only(
     audit_store = Path(args.action_class_audit_store)
     validation = operator_execution.validate_standing_delegated_operational_policy(
         contract,
-        audit_records=operator_execution.read_audit_records(audit_store),
+        audit_records=operator_execution.read_live_execution_lineage_records(
+            audit_store
+        ),
     )
     pool = controlled_certification_pool_status(Path(args.state_dir))
     sources = [

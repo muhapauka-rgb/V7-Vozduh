@@ -500,6 +500,37 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 rejected["errors"],
             )
 
+    def test_live_execution_lineage_option_keeps_runtime_clearance_after_rotation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            audit_path = root / "operator-execution-audit.jsonl"
+            runtime = {
+                "record_type": "runtime_action_record_persisted",
+                "record_hash": "a" * 64,
+                "runtime_action_performed": True,
+                "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                "packet_id": "pkt_stage25",
+                "operation_id": "operation_stage25",
+            }
+            audit_path.write_text(
+                json.dumps(runtime, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            audit_path.rename(root / "operator-execution-audit.jsonl.1")
+            audit_path.write_text("", encoding="utf-8")
+            compact = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+            )
+            recovery = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+                include_runtime_actions=True,
+            )
+            self.assertFalse(any(row.get("packet_id") for row in compact))
+            self.assertEqual(
+                [row.get("packet_id") for row in recovery],
+                ["pkt_stage25"],
+            )
+
     def test_live_execution_lineage_keeps_authority_after_audit_rotation(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

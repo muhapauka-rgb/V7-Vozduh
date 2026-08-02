@@ -151,7 +151,9 @@ def controlled_certification_matrix_binding(
     target_selection_diagnostic: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Project the next approved controlled stage from the existing audit owner."""
-    records = operator_execution.read_audit_records(audit_store)
+    records = operator_execution.read_live_execution_lineage_records(
+        audit_store
+    )
     status = operator_execution.controlled_certification_substrate_authority_status(
         records,
         now=now,
@@ -438,7 +440,9 @@ def record_controlled_campaign_stage_consumption(
     with operator_execution.current_action_class_contract_policy_lock(
         audit_store
     ):
-        records = operator_execution.read_audit_records(audit_store)
+        records = operator_execution.read_live_execution_lineage_records(
+            audit_store
+        )
         prior = [
             row
             for row in records
@@ -549,7 +553,9 @@ def record_availability_first_stage_consumption(
     with operator_execution.current_action_class_contract_policy_lock(
         audit_store
     ):
-        rows = operator_execution.read_audit_records(audit_store)
+        rows = operator_execution.read_live_execution_lineage_records(
+            audit_store
+        )
         prior = [
             row
             for row in rows
@@ -693,7 +699,9 @@ def record_availability_first_target_bound_consumption(
     with operator_execution.current_action_class_contract_policy_lock(
         audit_store
     ):
-        rows = operator_execution.read_audit_records(audit_store)
+        rows = operator_execution.read_live_execution_lineage_records(
+            audit_store
+        )
         prior = [
             row for row in rows
             if row.get("record_type")

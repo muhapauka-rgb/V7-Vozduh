@@ -713,6 +713,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         completed_stages={1},
                     )
                 )
+                partial_projection = (
+                    module
+                    .availability_first_interrupted_cohort_audit_projection(
+                        state_dir=state,
+                        event_dir=events,
+                        audit_records=audits,
+                        completed_stages={1, 2},
+                        expected_stage=5,
+                        expected_target="awg3",
+                    )
+                )
 
         result = projection[
             "availability_first_standing_policy_action"
@@ -736,6 +747,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(
             result["packet_set"][1]["containment_required"]
         )
+        partial_result = partial_projection[
+            "availability_first_standing_policy_action"
+        ]["consumer_result"]
+        self.assertEqual(partial_result["planned_stage_size"], 5)
+        self.assertEqual(partial_result["executed_member_count"], 2)
+        self.assertTrue(partial_result["partial_execution_cohort"])
+
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

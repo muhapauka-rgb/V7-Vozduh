@@ -6457,7 +6457,8 @@ def availability_first_partial_apply_recovery_context(
             continue
         cohort_has_incomplete_member = bool(
             candidate_stage > 1
-            and len(candidate_packets) == candidate_stage
+            and len(candidate_packets) > 0
+            and len(candidate_packets) <= candidate_stage
             and any(
                 str(item.get("final_verdict") or "")
                 != "L3_PRODUCTION_PROVEN"
@@ -6472,7 +6473,8 @@ def availability_first_partial_apply_recovery_context(
                 "recovered_from_existing_owner_truth"
             ) is True
             and candidate_stage > 1
-            and len(candidate_packets) == candidate_stage
+            and len(candidate_packets) > 0
+            and len(candidate_packets) <= candidate_stage
         )
         for candidate_packet in candidate_packets:
             candidate_user = str(candidate_packet.get("user") or "")
@@ -6752,10 +6754,16 @@ def availability_first_partial_apply_recovery_context(
             str(row.get("user") or "")
             for row in cohort_packets
         ]
+        expected_cohort_count = (
+            len(cohort_packets)
+            if audit_containment_recovery
+            else stage
+        )
         cohort_exact = bool(
             stage > 0
-            and len(cohort_packets) == stage
-            and len(set(cohort_users)) == stage
+            and 0 < expected_cohort_count <= stage
+            and len(cohort_packets) == expected_cohort_count
+            and len(set(cohort_users)) == expected_cohort_count
             and all(cohort_users)
         )
         if cohort_exact:
@@ -7069,7 +7077,7 @@ def availability_first_interrupted_cohort_audit_projection(
     )
     candidates: list[tuple[str, str, list[dict[str, Any]]]] = []
     for fingerprint, members in grouped.items():
-        if len(members) != stage:
+        if not (0 < len(members) <= stage):
             continue
         member_targets = {
             str(member.get("target") or "")
@@ -7191,7 +7199,7 @@ def availability_first_interrupted_cohort_audit_projection(
                     evidence.get("blockers") or []
                 ),
             })
-        if exact and len(packets) == stage:
+        if exact and 0 < len(packets) <= stage:
             candidates.append((latest_at, fingerprint, packets))
     if not candidates:
         return {}
@@ -7226,6 +7234,9 @@ def availability_first_interrupted_cohort_audit_projection(
                     int(campaign_next_stage or 0)
                     if target_bound_mode else 0
                 ),
+                "planned_stage_size": stage,
+                "executed_member_count": len(packets),
+                "partial_execution_cohort": len(packets) < stage,
                 "packet_set": packets,
                 "circuit_breaker": {
                     "tripped": True,

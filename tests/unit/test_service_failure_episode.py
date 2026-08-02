@@ -31,6 +31,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         cls.autoswitch = load_module("v7_users_autoswitch_episode", AUTOSWITCH_TOOL)
         cls.refresh = load_module("v7_service_matrix_refresh_episode", REFRESH_TOOL)
 
+    def test_exact_service_subset_reuses_existing_parallel_probe_owner(self):
+        selected = self.matrix.exact_services_to_run(
+            "all", "telegram,google,telegram"
+        )
+        self.assertEqual(selected, ["telegram", "google"])
+        with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
+            self.matrix.exact_services_to_run("all", "telegram,unknown")
+
     def test_failure_episode_survives_repeated_matrix_writes_and_resets_on_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             matrix_file = Path(tmp) / "service-matrix.json"

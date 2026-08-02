@@ -4264,6 +4264,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
 
         self.assertEqual(proc.returncode, 0)
         self.assertIn("--lock-timeout-sec", captured["command"])
+        self.assertIn("--services", captured["command"])
+        self.assertEqual(
+            captured["command"][captured["command"].index("--services") + 1],
+            "telegram",
+        )
         self.assertEqual(captured["command"][captured["command"].index("--lock-timeout-sec") + 1], "17")
         self.assertEqual(captured["timeout"], 27)
 

@@ -16,12 +16,16 @@ import hashlib
 import json
 import os
 import re
+import resource
 import socket
 import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+
+PROCESS_STARTED_NS = time.monotonic_ns()
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -748,6 +752,28 @@ def services_to_run(service: str) -> list[str]:
     return [service]
 
 
+def exact_services_to_run(service: str, services: str) -> list[str]:
+    """Return one exact bounded service subset through the existing owner.
+
+    The legacy positional service remains authoritative when ``--services`` is
+    absent.  A comma-separated subset lets the governed verifier reuse the
+    existing parallel probe executor and perform one lock/write lifecycle,
+    rather than spawning one complete Matrix process per service.
+    """
+    if not services:
+        return services_to_run(service)
+    requested: list[str] = []
+    for raw in services.split(","):
+        service_id = safe_id(raw.strip(), SAFE_SERVICE_RE)
+        if not service_id or service_id not in SERVICE_CATALOG:
+            raise ValueError(f"invalid_service_subset:{raw.strip()}")
+        if service_id not in requested:
+            requested.append(service_id)
+    if not requested:
+        raise ValueError("empty_service_subset")
+    return requested
+
+
 def update_matrix(
     matrix_file: Path,
     egress_id: str,
@@ -1019,6 +1045,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run V7 egress service matrix diagnostics.")
     parser.add_argument("egress")
     parser.add_argument("service", nargs="?", default="all")
+    parser.add_argument(
+        "--services",
+        default="",
+        help="Exact comma-separated service subset; uses the existing parallel probe owner.",
+    )
     parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
     parser.add_argument("--matrix-file", default="")
     parser.add_argument("--event-dir", default=str(DEFAULT_EVENT_DIR))
@@ -1032,6 +1063,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    main_entered_ns = time.monotonic_ns()
+    usage_before = resource.getrusage(resource.RUSAGE_SELF)
     args = build_parser().parse_args()
     egress_id = safe_id(args.egress, SAFE_EGRESS_RE)
     service = safe_id(args.service, SAFE_SERVICE_RE) or "all"
@@ -1043,9 +1076,14 @@ def main() -> int:
     matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
     iface = args.interface.strip() or egress_interface(state_dir, egress_id)
     timeout = max(3, min(int(args.timeout or 8), 30))
-    selected = services_to_run(service)
+    try:
+        selected = exact_services_to_run(service, str(args.services or ""))
+    except ValueError as exc:
+        print(json.dumps({"error": str(exc)}, ensure_ascii=False))
+        return 2
     row = egress_row(state_dir, egress_id)
     identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
+    probes_started_ns = time.monotonic_ns()
     if interface_required(row) and not interface_live(iface):
         results = {service_id: not_started_result(service_id, iface) for service_id in selected}
     else:
@@ -1066,6 +1104,8 @@ def main() -> int:
                         "reason": f"{exc.__class__.__name__}: {exc}",
                         "error": f"{exc.__class__.__name__}: {exc}",
                     }
+    probes_completed_ns = time.monotonic_ns()
+    durable_write_started_ns = time.monotonic_ns()
     try:
         matrix, lock_info = update_matrix(
             matrix_file,
@@ -1097,6 +1137,7 @@ def main() -> int:
             },
         }, ensure_ascii=False, indent=2 if args.pretty else None))
         return 2
+    durable_write_completed_ns = time.monotonic_ns()
     row = (matrix.get("items") or {}).get(egress_id, {})
     payload = {
         "action": "service_matrix_test",
@@ -1110,6 +1151,43 @@ def main() -> int:
         "results": results,
         "matrix_file": str(matrix_file),
         "service_matrix_lock": lock_info,
+        "performance_timeline": {
+            "schema_version": "v7.service-matrix-probe-timing.v1",
+            "clock_source": "time.monotonic_ns",
+            "owner": "tools/v7-service-matrix-test",
+            "selected_service_count": len(selected),
+            "spans": [
+                {
+                    "stage": "python_module_initialization",
+                    "duration_ms": round((main_entered_ns - PROCESS_STARTED_NS) / 1_000_000.0, 3),
+                    "critical_path": True,
+                },
+                {
+                    "stage": "service_probe_setup_and_parallel_attempts",
+                    "duration_ms": round((probes_completed_ns - probes_started_ns) / 1_000_000.0, 3),
+                    "critical_path": True,
+                },
+                {
+                    "stage": "matrix_lock_and_durable_write",
+                    "duration_ms": round((durable_write_completed_ns - durable_write_started_ns) / 1_000_000.0, 3),
+                    "critical_path": True,
+                },
+            ],
+            "probe_attempts": [
+                {
+                    "service": service_id,
+                    "duration_ms": round(float((results.get(service_id) or {}).get("elapsed_sec") or (results.get(service_id) or {}).get("total_sec") or 0.0) * 1000.0, 3),
+                    "status": str((results.get(service_id) or {}).get("status") or "UNKNOWN"),
+                }
+                for service_id in selected
+            ],
+            "process": {
+                "user_cpu_ms": round((resource.getrusage(resource.RUSAGE_SELF).ru_utime - usage_before.ru_utime) * 1000.0, 3),
+                "system_cpu_ms": round((resource.getrusage(resource.RUSAGE_SELF).ru_stime - usage_before.ru_stime) * 1000.0, 3),
+                "voluntary_context_switches": max(0, resource.getrusage(resource.RUSAGE_SELF).ru_nvcsw - usage_before.ru_nvcsw),
+                "involuntary_context_switches": max(0, resource.getrusage(resource.RUSAGE_SELF).ru_nivcsw - usage_before.ru_nivcsw),
+            },
+        },
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0

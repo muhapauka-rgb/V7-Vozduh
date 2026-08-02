@@ -92,7 +92,12 @@ fi
 "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
 
 echo "[V7] user $USER_IP -> $EGRESS / table $table / dev $dev"
+read -r V7_ROUTE_WRITE_STARTED _ < /proc/uptime
 ip route replace default dev "$dev" table "$table"
+read -r V7_ROUTE_WRITE_COMPLETED _ < /proc/uptime
+V7_ROUTE_WRITE_MS=$(awk -v start="$V7_ROUTE_WRITE_STARTED" -v end="$V7_ROUTE_WRITE_COMPLETED" 'BEGIN { printf "%.3f", (end-start)*1000 }')
+echo "V7_TIMING_ROUTE_WRITE_CLOCK=linux_monotonic_uptime"
+echo "V7_TIMING_ROUTE_WRITE_MS=$V7_ROUTE_WRITE_MS"
 
 now=$(date +%s)
 cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE

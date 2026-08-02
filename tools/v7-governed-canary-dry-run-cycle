@@ -18,6 +18,7 @@ import ipaddress
 import json
 import os
 import re
+import resource
 import subprocess
 import sys
 import tempfile
@@ -2944,6 +2945,8 @@ def run_autoswitch_apply(
     campaign_target: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
+    process_started_ns = time.monotonic_ns()
+    child_usage_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     command = [
         str(planner_observe_executable()),
         "--mode",
@@ -3000,8 +3003,16 @@ def run_autoswitch_apply(
         command.insert(1, "--emergency-failover-autonomy")
     if controlled_verifier_contention:
         command.insert(1, "--controlled-verifier-contention")
+    child_env = dict(os.environ)
+    child_env["V7_PARENT_LAUNCH_MONOTONIC_NS"] = str(process_started_ns)
     try:
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout_seconds)
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            env=child_env,
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         stdout = getattr(exc, "stdout", "") or ""
         stderr = getattr(exc, "stderr", "") or ""
@@ -3024,6 +3035,7 @@ def run_autoswitch_apply(
         payload = json.loads(proc.stdout)
     except json.JSONDecodeError:
         payload = {}
+    child_usage_after = resource.getrusage(resource.RUSAGE_CHILDREN)
     return {
         "ok": proc.returncode == 0 and isinstance(payload, dict),
         "command": command,
@@ -3032,6 +3044,16 @@ def run_autoswitch_apply(
         "stderr_tail": proc.stderr[-1200:],
         "stdout_tail": proc.stdout[-1200:] if not isinstance(payload, dict) else "",
         "timeout_seconds": timeout_seconds,
+        "performance_forensics": {
+            "schema_version": "v7.autoswitch-child-process-forensics.v1",
+            "clock_source": "time.monotonic_ns",
+            "wall_ms": round((time.monotonic_ns() - process_started_ns) / 1_000_000.0, 3),
+            "user_cpu_ms": round((child_usage_after.ru_utime - child_usage_before.ru_utime) * 1000.0, 3),
+            "system_cpu_ms": round((child_usage_after.ru_stime - child_usage_before.ru_stime) * 1000.0, 3),
+            "voluntary_context_switches": max(0, child_usage_after.ru_nvcsw - child_usage_before.ru_nvcsw),
+            "involuntary_context_switches": max(0, child_usage_after.ru_nivcsw - child_usage_before.ru_nivcsw),
+            "max_rss_kib": int(child_usage_after.ru_maxrss),
+        },
     }
 
 
@@ -5122,6 +5144,27 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         feedback_completed_ns=feedback_completed_ns,
         affected_users=max(1, len(users)),
     )
+    child_timeline = (
+        apply_payload.get("performance_timeline")
+        if isinstance(apply_payload.get("performance_timeline"), dict)
+        else {}
+    )
+    execution_timing["nested_timeline"] = child_timeline
+    execution_timing["system_evidence"] = dict(
+        apply_run.get("performance_forensics") or {}
+    )
+    execution_timing["critical_path_reconciliation"] = {
+        "parent_apply_and_verification_ms": next(
+            (
+                float(row.get("duration_ms") or 0.0)
+                for row in (execution_timing.get("spans") or [])
+                if row.get("stage") == "apply_and_verification"
+            ),
+            0.0,
+        ),
+        "child_total_ms": float(child_timeline.get("total_ms") or 0.0),
+        "measurement_error_owner": "parent subprocess startup/serialization/teardown",
+    }
     return {
         "schema_version": "v7.l3-production-validation-execution.v1",
         "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",

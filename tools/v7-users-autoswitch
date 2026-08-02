@@ -16,6 +16,7 @@ import json
 import math
 import os
 import re
+import resource
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 from admin_core import operation_scoped_binding, operator_execution, shadow_autonomy
+
+
+PROCESS_STARTED_NS = time.monotonic_ns()
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -2231,13 +2235,16 @@ def controlled_campaign_execution_target_admission(
 
 class AutoswitchPlanner:
     def __init__(self, args: argparse.Namespace):
+        constructor_started_ns = time.monotonic_ns()
         self.args = args
+        self._performance_spans: list[dict[str, Any]] = []
         self.controlled_campaign_target_admission = (
             controlled_campaign_execution_target_admission(args)
         )
         self.operation_started_at = now_iso()
         self.state_dir = Path(args.state_dir)
         lock_enabled = effective_pre_planner_refresh_mode(args) == "write"
+        lock_started_ns = time.monotonic_ns()
         self.service_matrix_lock_fd, self.service_matrix_lock = acquire_service_matrix_lock(
             self.state_dir,
             to_int(
@@ -2246,6 +2253,13 @@ class AutoswitchPlanner:
             ),
             enabled=lock_enabled,
         )
+        self._record_performance_span(
+            "lease_lock_acquisition",
+            lock_started_ns,
+            owner="tools/v7-users-autoswitch.acquire_service_matrix_lock",
+            status="PASS" if not lock_enabled or self.service_matrix_lock.get("acquired") else "STOP_SAFE",
+        )
+        owner_reads_started_ns = time.monotonic_ns()
         self.event_dir = Path(args.event_dir)
         self.l3_runtime_state_file = self.state_dir / "l3-runtime-state.json"
         self.l3_capability_state_file = self.state_dir / "l3-capability-state.json"
@@ -2265,15 +2279,34 @@ class AutoswitchPlanner:
         self.restore_barrier = self._restore_barrier_status()
         self.generation = self._generation_status()
         self.service_prefs = read_json(self.state_dir / "service-preferences.json", {})
+        self._record_performance_span(
+            "live_owner_discovery_and_projection_reads",
+            owner_reads_started_ns,
+            owner="existing state/policy/Matrix/restore-barrier owners",
+        )
         self.intelligence_snapshot_root = Path(args.intelligence_snapshot_root)
+        refresh_started_ns = time.monotonic_ns()
         self.pre_planner_refresh = self._run_pre_planner_refresh()
         self._reload_intelligence_sources_after_pre_planner_refresh()
         self._retry_pre_planner_refresh_after_source_reload()
         self.intelligence_snapshots = self._load_intelligence_snapshots()
+        self._record_performance_span(
+            "pre_planner_refresh_and_snapshot_reads",
+            refresh_started_ns,
+            owner="existing v7-intelligence-snapshot-refresh + snapshot owners",
+            status="STOP_SAFE" if self.pre_planner_refresh.get("stop_required") else "PASS",
+        )
         self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
+        registry_started_ns = time.monotonic_ns()
         self.users = self._load_users()
         self.egress = self._load_egress()
         self._sync_egress_user_counts()
+        self._record_performance_span(
+            "registry_and_live_inventory_reads",
+            registry_started_ns,
+            owner="users.registry + egress.registry",
+        )
+        policy_resolution_started_ns = time.monotonic_ns()
         self.switch_policy = self._switch_policy()
         self.authority_budget_policy = self._authority_budget_policy()
         self.quality_policy = self._quality_policy()
@@ -2292,6 +2325,50 @@ class AutoswitchPlanner:
         self.reconnect_events = self._observe_reconnect_events()
         self._routing_intelligence_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
         self._active_execution_control: dict[str, Any] = {}
+        self._record_performance_span(
+            "policy_capacity_quality_resolution",
+            policy_resolution_started_ns,
+            owner="tools/v7-users-autoswitch existing policy owners",
+        )
+        self._record_performance_span(
+            "planner_initialization_total",
+            constructor_started_ns,
+            owner="tools/v7-users-autoswitch.AutoswitchPlanner",
+        )
+
+    def _record_performance_span(
+        self,
+        stage: str,
+        started_ns: int,
+        *,
+        owner: str,
+        status: str = "PASS",
+        parent: str = "governed_transaction",
+        critical_path: bool = True,
+        details: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        completed_ns = time.monotonic_ns()
+        row = {
+            "stage": stage,
+            "parent": parent,
+            "owner": owner,
+            "clock_source": "time.monotonic_ns",
+            "duration_ms": round(max(0, completed_ns - started_ns) / 1_000_000.0, 3),
+            "status": status,
+            "critical_path": bool(critical_path),
+        }
+        if details:
+            row["details"] = details
+        self._performance_spans.append(row)
+        return row
+
+    def performance_timeline(self) -> dict[str, Any]:
+        return {
+            "schema_version": "v7.governed-transaction-nested-timing.v1",
+            "clock_source": "time.monotonic_ns",
+            "owner": "tools/v7-users-autoswitch",
+            "spans": list(self._performance_spans),
+        }
 
     def _exact_controlled_verifier_scope(self, selected_moves: list[dict[str, Any]]) -> dict[str, Any]:
         requested_user = str(getattr(self.args, "user", "") or "").strip()
@@ -12544,6 +12621,7 @@ class AutoswitchPlanner:
                     "remaining_forward_mutations_stopped": True,
                 }
         for move_index, move in enumerate(selected_moves):
+            fresh_validation_started_ns = time.monotonic_ns()
             item_control = self._execution_control_decision(
                 mutation_kind="forward",
                 action_class=self._execution_action_class(move.get("move_type", "")),
@@ -12553,6 +12631,13 @@ class AutoswitchPlanner:
                 source_bundle_hash=str(getattr(self.args, "approved_source_bundle_hash", "") or ""),
                 snapshot_bundle_hash=str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
                 max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
+            )
+            self._record_performance_span(
+                "pre_apply_fresh_state_validation",
+                fresh_validation_started_ns,
+                owner="existing autonomous execution control owner",
+                status="PASS" if item_control.get("allowed_forward_mutation") else "STOP_SAFE",
+                parent="apply_and_verification",
             )
             if not item_control.get("allowed_forward_mutation"):
                 if bounded_checkpoint_enabled:
@@ -12575,7 +12660,24 @@ class AutoswitchPlanner:
             ip = move["user_ip"]
             target = move["recommended_egress"]
             current = move["current_egress"]
+            route_write_started_ns = time.monotonic_ns()
             proc = self._run_switch(ip, target, move.get("move_type", "planned"))
+            route_write_span = self._record_performance_span(
+                "route_writer_subprocess_and_low_level_mutation",
+                route_write_started_ns,
+                owner="existing v7-user-switch route writer",
+                status="PASS" if proc.returncode == 0 else "FAIL",
+                parent="apply_and_verification",
+                details={"member_fingerprint": hashlib.sha256(ip.encode()).hexdigest()[:12]},
+            )
+            low_level_match = re.search(
+                r"^V7_TIMING_ROUTE_WRITE_MS=([0-9]+(?:\.[0-9]+)?)$",
+                proc.stdout or "",
+                flags=re.MULTILINE,
+            )
+            low_level_route_ms = (
+                float(low_level_match.group(1)) if low_level_match else None
+            )
             row = {
                 "user_ip": ip,
                 "from": current,
@@ -12588,14 +12690,30 @@ class AutoswitchPlanner:
                 "output": proc.stdout[-4000:],
                 "rollback_attempted": False,
                 "terminal_outcome_classification": "APPLY_FAILURE" if proc.returncode != 0 else "APPLY_COMPLETED_PENDING_VERIFICATION",
+                "route_writer_timing": route_write_span,
+                "low_level_route_mutation_timing": {
+                    "clock_source": "linux_monotonic_uptime",
+                    "duration_ms": low_level_route_ms,
+                    "owner": "tools/runtime-support/v7-user-switch",
+                    "status": "PASS" if low_level_route_ms is not None else "UNMEASURED",
+                },
             }
             if proc.returncode == 0 and self.args.verify:
+                route_visibility_started_ns = time.monotonic_ns()
                 verify = self._verify_routes_for_apply(ip if emergency_mode else "", target if emergency_mode else "")
+                route_visibility_span = self._record_performance_span(
+                    "route_visibility_verification",
+                    route_visibility_started_ns,
+                    owner="tools/v7-users-autoswitch._verify_routes_for_apply",
+                    status="PASS" if verify.returncode == 0 else "FAIL",
+                    parent="apply_and_verification",
+                )
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
                 row["route_verification_scope"] = "selected_user" if emergency_mode else "global"
                 if emergency_mode:
                     row["route_verification_expected_egress"] = target
+                row["route_visibility_timing"] = route_visibility_span
                 service_verify = None
                 if verify.returncode == 0 and emergency_mode:
                     controlled_condition = None
@@ -12613,7 +12731,22 @@ class AutoswitchPlanner:
                             stdout="controlled verifier condition not activated; induced failure suppressed\n",
                         )
                     else:
+                        service_verify_started_ns = time.monotonic_ns()
                         service_verify = self._verify_emergency_required_services(move)
+                        service_verify_span = self._record_performance_span(
+                            "required_service_verification",
+                            service_verify_started_ns,
+                            owner="existing v7-service-matrix-test",
+                            status="PASS" if service_verify.returncode == 0 else "FAIL",
+                            parent="apply_and_verification",
+                        )
+                        row["service_verification_timing"] = service_verify_span
+                        try:
+                            service_payload = json.loads(service_verify.stdout or "{}")
+                        except json.JSONDecodeError:
+                            service_payload = {}
+                        if isinstance(service_payload, dict) and isinstance(service_payload.get("performance_timeline"), dict):
+                            row["service_probe_nested_timing"] = service_payload["performance_timeline"]
                     row["service_verify_rc"] = service_verify.returncode
                     row["service_verify_output"] = service_verify.stdout[-4000:]
                 verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)
@@ -12655,7 +12788,15 @@ class AutoswitchPlanner:
                             break
                         continue
                     self._active_execution_control = rollback_control
+                    rollback_started_ns = time.monotonic_ns()
                     rollback = self._run_switch(ip, current, "rollback")
+                    row["rollback_timing"] = self._record_performance_span(
+                        "rollback_apply",
+                        rollback_started_ns,
+                        owner="existing v7-user-switch rollback owner",
+                        status="PASS" if rollback.returncode == 0 else "FAIL",
+                        parent="apply_and_verification",
+                    )
                     row["rollback_rc"] = rollback.returncode
                     row["rollback_output"] = rollback.stdout[-4000:]
                     row["rollback_result"] = "OK" if rollback.returncode == 0 else "FAIL"
@@ -14486,33 +14627,33 @@ class AutoswitchPlanner:
         timeout_sec = max(1, min(to_int(self.emergency_failover_policy.get("service_verify_timeout_seconds"), 5), 30))
         lock_timeout_sec = max(1, to_int(getattr(self.args, "service_matrix_lock_timeout_sec", DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS), DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS))
         command_timeout_sec = timeout_sec + lock_timeout_sec + 5
-        outputs: list[str] = []
-        for service in services:
-            try:
-                proc = subprocess.run(
-                    [
-                        "v7-service-matrix-test",
-                        target,
-                        service,
-                        "--timeout",
-                        str(timeout_sec),
-                        "--state-dir",
-                        str(self.state_dir),
-                        "--lock-timeout-sec",
-                        str(lock_timeout_sec),
-                    ],
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    check=False,
-                    timeout=command_timeout_sec,
-                )
-            except (OSError, subprocess.TimeoutExpired) as exc:
-                return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout=f"service verify error: {exc}\n")
-            outputs.append(proc.stdout or "")
-            if proc.returncode != 0:
-                return subprocess.CompletedProcess(proc.args, proc.returncode, stdout="".join(outputs))
-        return subprocess.CompletedProcess(["v7-service-matrix-test"], 0, stdout="".join(outputs) or "service verify ok\n")
+        # Reuse the existing service Matrix owner's bounded parallel executor.
+        # One exact subset now incurs one Python startup, one lock lifecycle and
+        # one durable Matrix write instead of repeating all three per service.
+        command_timeout_sec = timeout_sec + lock_timeout_sec + 5
+        command = [
+            "v7-service-matrix-test",
+            target,
+            "--services",
+            ",".join(services),
+            "--timeout",
+            str(timeout_sec),
+            "--state-dir",
+            str(self.state_dir),
+            "--lock-timeout-sec",
+            str(lock_timeout_sec),
+        ]
+        try:
+            return subprocess.run(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=command_timeout_sec,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return subprocess.CompletedProcess(command, 1, stdout=f"service verify error: {exc}\n")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -19554,6 +19695,8 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
 
 
 def main() -> int:
+    main_entered_ns = time.monotonic_ns()
+    usage_before = resource.getrusage(resource.RUSAGE_SELF)
     args = build_arg_parser().parse_args()
     if args.prepare_controlled_source_topology_authority_request:
         result = controlled_source_topology_authority_request_only(args)
@@ -19591,7 +19734,28 @@ def main() -> int:
         result = action_class_contract_reconciliation_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
+    planner_init_started_ns = time.monotonic_ns()
     planner = AutoswitchPlanner(args)
+    parent_launch_ns = to_int(os.environ.get("V7_PARENT_LAUNCH_MONOTONIC_NS"), 0)
+    if parent_launch_ns and parent_launch_ns <= main_entered_ns:
+        planner._performance_spans.insert(0, {
+            "stage": "executor_process_startup",
+            "parent": "governed_transaction",
+            "owner": "tools/v7-governed-canary-dry-run-cycle -> tools/v7-users-autoswitch",
+            "clock_source": "time.monotonic_ns",
+            "duration_ms": round((main_entered_ns - parent_launch_ns) / 1_000_000.0, 3),
+            "status": "PASS",
+            "critical_path": True,
+        })
+    planner._performance_spans.insert(0, {
+        "stage": "python_module_initialization",
+        "parent": "governed_transaction",
+        "owner": "tools/v7-users-autoswitch Python process",
+        "clock_source": "time.monotonic_ns",
+        "duration_ms": round((main_entered_ns - PROCESS_STARTED_NS) / 1_000_000.0, 3),
+        "status": "PASS",
+        "critical_path": True,
+    })
     if args.promote_authority_to:
         result = planner.promote_authority(args.promote_authority_to)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
@@ -19606,9 +19770,49 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         state = (result.get("operation") or {}).get("terminal_state")
         return 0 if state in {"ROLLBACK_DRY_RUN", "ROLLBACK_COMPLETED"} else 1
+    planner_entry_started_ns = time.monotonic_ns()
     plan = planner.plan()
+    planner._record_performance_span(
+        "planner_entry_target_capacity_and_allocation",
+        planner_entry_started_ns,
+        owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+    )
+    apply_started_ns = time.monotonic_ns()
     plan["apply_result"] = planner.apply(plan)
+    planner._record_performance_span(
+        "apply_and_verification_total",
+        apply_started_ns,
+        owner="tools/v7-users-autoswitch.AutoswitchPlanner.apply",
+        status="PASS" if (plan.get("apply_result") or {}).get("applied") else "STOP_SAFE",
+    )
+    finalize_started_ns = time.monotonic_ns()
     planner.finalize_operation(plan)
+    planner._record_performance_span(
+        "durable_audit_feedback_and_successor_publication",
+        finalize_started_ns,
+        owner="tools/v7-users-autoswitch.finalize_operation",
+    )
+    usage_after = resource.getrusage(resource.RUSAGE_SELF)
+    timeline = planner.performance_timeline()
+    timeline["process"] = {
+        "user_cpu_ms": round((usage_after.ru_utime - usage_before.ru_utime) * 1000.0, 3),
+        "system_cpu_ms": round((usage_after.ru_stime - usage_before.ru_stime) * 1000.0, 3),
+        "voluntary_context_switches": max(0, usage_after.ru_nvcsw - usage_before.ru_nvcsw),
+        "involuntary_context_switches": max(0, usage_after.ru_nivcsw - usage_before.ru_nivcsw),
+        "max_rss_kib": int(usage_after.ru_maxrss),
+        "subprocess_count_lower_bound": sum(
+            1
+            for row in timeline["spans"]
+            if row.get("stage") in {
+                "executor_process_startup",
+                "route_writer_subprocess_and_low_level_mutation",
+                "required_service_verification",
+                "rollback_apply",
+            }
+        ),
+    }
+    timeline["total_ms"] = round((time.monotonic_ns() - planner_init_started_ns) / 1_000_000.0, 3)
+    plan["performance_timeline"] = timeline
     print(json.dumps(plan, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
     return 0
 

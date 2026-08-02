@@ -915,6 +915,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "runtime_mutation_performed": True,
                     "fresh_packet_id": "pkt_cohort",
                     "operation_id": "operation_cohort",
+                    "execution_timing": {
+                        "schema_version": "v7.governed-execution-timing.v1",
+                        "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+                        "spans": [{"stage": "planner", "duration_ms": 5.0}],
+                    },
                     "feedback_materialization": {
                         "materialized": True,
                         "outcome_id": "outcome_cohort",
@@ -1027,6 +1032,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             {row["fresh_packet_id"] for row in result["packet_set"]},
             {"pkt_cohort"},
+        )
+        self.assertTrue(
+            all("execution_timing" not in row for row in result["packet_set"])
+        )
+        self.assertEqual(len(result["cohort_execution_timings"]), 1)
+        self.assertEqual(
+            result["cohort_execution_timings"][0]["cohort_size"],
+            2,
         )
         self.assertEqual(
             {

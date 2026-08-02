@@ -9374,6 +9374,7 @@ def execute_availability_first_standing_stage(
 
     offset = 0
     packet_set: list[dict[str, Any]] = []
+    cohort_execution_timings: list[dict[str, Any]] = []
     moved_users: list[str] = []
     execution_allocation: list[dict[str, Any]] = []
     circuit_breaker = {
@@ -9455,6 +9456,15 @@ def execute_availability_first_standing_stage(
             lease_file=lease_file,
         )
         compact = compact_transaction_result(transaction)
+        cohort_timing = compact.pop("execution_timing", None)
+        if isinstance(cohort_timing, dict) and cohort_timing:
+            cohort_execution_timings.append({
+                "target_id": target,
+                "subset_fingerprint": subset_fingerprint,
+                "cohort_size": len(subset),
+                "packet_id": str(compact.get("fresh_packet_id") or ""),
+                "timing": cohort_timing,
+            })
         record_phase(
             "cohort_governed_transaction",
             transaction_started_ns,
@@ -9824,6 +9834,7 @@ def execute_availability_first_standing_stage(
         ),
         "allocation": execution_allocation,
         "packet_set": packet_set,
+        "cohort_execution_timings": cohort_execution_timings,
         "packet_set_fingerprint": operator_execution.sha256_json(packet_set),
         "users_moved": len(moved_users),
         "runtime_mutation_performed": bool(moved_users),

@@ -2400,6 +2400,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
         "rollback_attempted", "rollback_result", "a4_evidence_updated",
         "users_moved", "runtime_automation_enabled", "authority_expanded",
         "production_proven", "error", "stop_detail",
+        "execution_timing",
     ):
         if key in result:
             receipt[key] = result.get(key)
@@ -2568,6 +2569,147 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             },
         }
     return receipt
+
+
+def governed_execution_timing_projection(
+    *,
+    transaction_started_ns: int,
+    planner_completed_ns: int,
+    packet_completed_ns: int,
+    clearance_completed_ns: int,
+    apply_completed_ns: int,
+    feedback_completed_ns: int,
+    affected_users: int,
+) -> dict[str, Any]:
+    """Bind monotonic critical-path spans to the existing Runtime Time owner.
+
+    UTC timestamps remain audit/order metadata.  Durations are calculated only
+    from one process-local monotonic clock and are never reconstructed by
+    subtracting wall clocks.  The projection is compact and embedded in the
+    existing transaction receipt; it is not a new ledger or truth source.
+    """
+    points = [
+        transaction_started_ns,
+        planner_completed_ns,
+        packet_completed_ns,
+        clearance_completed_ns,
+        apply_completed_ns,
+        feedback_completed_ns,
+    ]
+    if any(point < transaction_started_ns for point in points) or points != sorted(points):
+        return {
+            "schema_version": "v7.governed-execution-timing.v1",
+            "status": "INVALID_MONOTONIC_SEQUENCE",
+            "clock_source": "time.monotonic_ns",
+            "durable_owner": "existing governed transaction receipt",
+        }
+
+    def duration_ms(start: int, end: int) -> float:
+        return round(max(0, end - start) / 1_000_000.0, 3)
+
+    spans = [
+        {
+            "stage": "planner",
+            "duration_ms": duration_ms(transaction_started_ns, planner_completed_ns),
+        },
+        {
+            "stage": "packet_and_lease",
+            "duration_ms": duration_ms(planner_completed_ns, packet_completed_ns),
+        },
+        {
+            "stage": "restore_barrier",
+            "duration_ms": duration_ms(packet_completed_ns, clearance_completed_ns),
+        },
+        {
+            # The existing autoswitch child owns route apply plus its mandatory
+            # live verification.  Do not fabricate a finer split until that
+            # producer exposes one.
+            "stage": "apply_and_verification",
+            "duration_ms": duration_ms(clearance_completed_ns, apply_completed_ns),
+        },
+        {
+            "stage": "feedback_and_learning",
+            "duration_ms": duration_ms(apply_completed_ns, feedback_completed_ns),
+        },
+    ]
+    total_ms = duration_ms(transaction_started_ns, feedback_completed_ns)
+    ordered = sorted(spans, key=lambda row: float(row["duration_ms"]), reverse=True)
+    users = max(1, int(affected_users or 1))
+    span_by_stage = {str(row["stage"]): float(row["duration_ms"]) for row in spans}
+    existing_owner_analysis = (
+        operator_execution_pipeline.execution_performance_foundation(
+            planner_result={
+                "stage": "planner",
+                "duration_ms": span_by_stage["planner"],
+                "operation": {"selected_move_count": users},
+            },
+            contracts=[
+                {
+                    "contract_id": "current-transaction-packet-and-lease",
+                    "stage": "packet",
+                    "duration_ms": span_by_stage["packet_and_lease"],
+                    "selected_move_count": users,
+                },
+                {
+                    "contract_id": "current-transaction-restore-barrier",
+                    "stage": "restore_barrier",
+                    "duration_ms": span_by_stage["restore_barrier"],
+                },
+            ],
+            events=[
+                {
+                    "event_id": "current-transaction-apply-and-verification",
+                    "event_type": "APPLY_COMPLETED",
+                    "duration_ms": span_by_stage["apply_and_verification"],
+                },
+                {
+                    "event_id": "current-transaction-feedback-and-learning",
+                    "event_type": "FEEDBACK_MATERIALIZED",
+                    "duration_ms": span_by_stage["feedback_and_learning"],
+                },
+            ],
+        )
+    )
+    requested_metrics = existing_owner_analysis.get("requested_metrics") or {}
+    slow_metrics = sorted(
+        (
+            {
+                "metric": name,
+                "value_ms": float(metric.get("value") or 0.0),
+                "threshold_ms": float(
+                    operator_execution_pipeline.SLOW_PATH_THRESHOLDS_MS.get(name)
+                    or 0.0
+                ),
+            }
+            for name, metric in requested_metrics.items()
+            if isinstance(metric, dict)
+            and metric.get("available")
+            and float(metric.get("value") or 0.0)
+            > float(operator_execution_pipeline.SLOW_PATH_THRESHOLDS_MS.get(name) or 0.0)
+        ),
+        key=lambda row: row["value_ms"],
+        reverse=True,
+    )
+    return {
+        "schema_version": "v7.governed-execution-timing.v1",
+        "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+        "clock_source": "time.monotonic_ns",
+        "wall_clock_used_for_elapsed": False,
+        "unit": "milliseconds",
+        "spans": spans,
+        "total_duration_ms": total_ms,
+        "per_user_duration_ms": round(total_ms / users, 3),
+        "dominant_stage": str((ordered[0] if ordered else {}).get("stage") or "NONE"),
+        "dominant_duration_ms": float((ordered[0] if ordered else {}).get("duration_ms") or 0.0),
+        "analysis_consumer": "admin_core.operator_execution_pipeline.execution_performance_foundation",
+        "analysis_schema_version": str(existing_owner_analysis.get("schema_version") or ""),
+        "available_metrics": list(existing_owner_analysis.get("available_metrics") or []),
+        "missing_metrics": list(existing_owner_analysis.get("missing_metrics") or []),
+        "slow_paths": slow_metrics[:3],
+        "durable_owner": "existing governed transaction receipt",
+        "bounded_rows_per_transaction": len(spans),
+        "raw_identity_list_stored": False,
+    }
 
 
 def controlled_topology_cli_output(
@@ -4367,6 +4509,7 @@ def service_failure_obligation_execution_binding(
 
 
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
+    transaction_started_ns = time.monotonic_ns()
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_tier = resolved_l3_requested_max_users(args)
@@ -4498,6 +4641,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             else {}
         )
         l3_plan_run["payload"] = plan
+    planner_completed_ns = time.monotonic_ns()
     authorized_budget = authorized_l3_budget_from_plan(plan)
     authorized_l3_budget = int(authorized_budget.get("authorized_l3_budget") or 1)
     if requested_max_users > authorized_l3_budget:
@@ -4700,6 +4844,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             transition=transition,
             execution_lease_create_result=lease_create_result,
         )
+    packet_completed_ns = time.monotonic_ns()
 
     audit_store = audit_dir / "operator-execution-audit.jsonl"
     lifecycle_store = audit_dir / "governance-lifecycle.jsonl"
@@ -4728,6 +4873,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             clearance_result=clearance_result,
             lease_terminalization=terminal,
         )
+    clearance_completed_ns = time.monotonic_ns()
 
     pre_apply_control = operator_execution.autonomous_execution_control_decision(
         control_file,
@@ -4809,6 +4955,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             "" if availability_mode else campaign_target
         ),
     )
+    apply_completed_ns = time.monotonic_ns()
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     reported_apply = (
         apply_payload.get("apply_result")
@@ -4965,6 +5112,16 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         if controlled_evidence
         else {"materialized": False, "reason": "not_controlled_certification_scope"}
     )
+    feedback_completed_ns = time.monotonic_ns()
+    execution_timing = governed_execution_timing_projection(
+        transaction_started_ns=transaction_started_ns,
+        planner_completed_ns=planner_completed_ns,
+        packet_completed_ns=packet_completed_ns,
+        clearance_completed_ns=clearance_completed_ns,
+        apply_completed_ns=apply_completed_ns,
+        feedback_completed_ns=feedback_completed_ns,
+        affected_users=max(1, len(users)),
+    )
     return {
         "schema_version": "v7.l3-production-validation-execution.v1",
         "transaction_status": "COMPLETED" if production_proven else "STOP_SAFE",
@@ -5021,6 +5178,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
+        "execution_timing": execution_timing,
     }
 
 
@@ -8428,6 +8586,8 @@ def execute_availability_first_standing_stage(
         owner: str,
         status: str = "PASS",
         member: str = "",
+        cohort_size: int = 0,
+        subset_fingerprint: str = "",
         packet_id: str = "",
         operation_id: str = "",
     ) -> None:
@@ -8437,6 +8597,8 @@ def execute_availability_first_standing_stage(
             "owner": owner,
             "status": status,
             "member_id": member,
+            "cohort_size": max(0, int(cohort_size or 0)),
+            "subset_fingerprint": subset_fingerprint,
             "packet_id": packet_id,
             "operation_id": operation_id,
             "completed_at": datetime.now(timezone.utc).isoformat(),
@@ -9244,68 +9406,75 @@ def execute_availability_first_standing_stage(
             ),
         })
         subset_failed = False
-        # The existing route mutation primitive is intentionally one-user.
-        # A ladder stage is therefore one aggregate cohort transaction made
-        # of serial fresh one-user Packet/lease operations, not one widened
-        # packet.  This preserves the runtime primitive, max concurrency=1 and
-        # per-user rollback while avoiding an Authority or OMP round trip for
-        # every member.
-        for user in subset:
-            member_subset_fingerprint = operator_execution.sha256_json({
-                "stage": stage,
-                "target_id": target,
-                "users": [user],
-            })
-            transaction_args = copy.copy(args)
-            transaction_args.execute_bounded_delegated_transaction = True
-            transaction_args.execute_availability_first_standing_stage = True
-            transaction_args.max_users = 1
-            transaction_args.approved_source = source
-            transaction_args.availability_first_target = target
-            transaction_args.expected_standing_policy_contract_id = str(
-                admission.get("contract_id") or ""
-            )
-            transaction_args.expected_standing_policy_contract_hash = str(
-                admission.get("contract_hash") or ""
-            )
-            transaction_args.controlled_certification_campaign_request_id = str(
-                current_campaign.get("request_id") or ""
-            )
-            transaction_args.controlled_certification_campaign_request_hash = str(
-                current_campaign.get("request_hash") or ""
-            )
-            transaction_args.controlled_certification_campaign_stage = 0
-            transaction_args._availability_first_stage_request = {
-                "stage": stage,
-                "target_id": target,
-                "expected_users": [user],
-                "subset_fingerprint": member_subset_fingerprint,
-                "allocation_fingerprint": allocation_fingerprint,
-                "inventory_fingerprint": str(
-                    projection.get("inventory_fingerprint")
-                    or diagnostic.get("inventory_fingerprint")
-                    or ""
-                ),
+        # Reuse the existing cohort-capable L3 execution primitive.  The
+        # standing contract already bounds max users per transaction and keeps
+        # max concurrency=1; the canonical Packet contains per-user rollback
+        # items and the child verifier returns one result per user.  Running a
+        # complete Planner/Packet/apply lifecycle once per member added no
+        # safety and multiplied Stage-25 latency.  One fresh Packet per exact
+        # immutable allocation subset preserves every live gate without
+        # expanding Authority.
+        transaction_args = copy.copy(args)
+        transaction_args.execute_bounded_delegated_transaction = True
+        transaction_args.execute_availability_first_standing_stage = True
+        transaction_args.max_users = len(subset)
+        transaction_args.approved_source = source
+        transaction_args.availability_first_target = target
+        transaction_args.expected_standing_policy_contract_id = str(
+            admission.get("contract_id") or ""
+        )
+        transaction_args.expected_standing_policy_contract_hash = str(
+            admission.get("contract_hash") or ""
+        )
+        transaction_args.controlled_certification_campaign_request_id = str(
+            current_campaign.get("request_id") or ""
+        )
+        transaction_args.controlled_certification_campaign_request_hash = str(
+            current_campaign.get("request_hash") or ""
+        )
+        transaction_args.controlled_certification_campaign_stage = 0
+        transaction_args._availability_first_stage_request = {
+            "stage": stage,
+            "target_id": target,
+            "expected_users": list(subset),
+            "subset_fingerprint": subset_fingerprint,
+            "allocation_fingerprint": allocation_fingerprint,
+            "inventory_fingerprint": str(
+                projection.get("inventory_fingerprint")
+                or diagnostic.get("inventory_fingerprint")
+                or ""
+            ),
+        }
+        transaction_started_ns = time.monotonic_ns()
+        transaction = execute_governed_transaction_with_guards(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        compact = compact_transaction_result(transaction)
+        record_phase(
+            "cohort_governed_transaction",
+            transaction_started_ns,
+            owner="existing Candidate/Packet/lease/apply/verification owner",
+            status=str(transaction.get("final_verdict") or "UNKNOWN"),
+            cohort_size=len(subset),
+            subset_fingerprint=subset_fingerprint,
+            packet_id=str(compact.get("fresh_packet_id") or ""),
+            operation_id=str(compact.get("operation_id") or ""),
+        )
+        passed = (
+            transaction.get("final_verdict")
+            in {
+                "GOVERNED_TRANSACTION_COMPLETED",
+                "L3_PRODUCTION_PROVEN",
             }
-            transaction_started_ns = time.monotonic_ns()
-            transaction = execute_governed_transaction_with_guards(
-                transaction_args,
-                state_dir=state_dir,
-                event_dir=event_dir,
-                snapshot_root=snapshot_root,
-                audit_dir=audit_dir,
-                lease_file=lease_file,
-            )
-            compact = compact_transaction_result(transaction)
-            record_phase(
-                "member_governed_transaction",
-                transaction_started_ns,
-                owner="existing Candidate/Packet/lease/apply/verification owner",
-                status=str(transaction.get("final_verdict") or "UNKNOWN"),
-                member=user,
-                packet_id=str(compact.get("fresh_packet_id") or ""),
-                operation_id=str(compact.get("operation_id") or ""),
-            )
+            and str(transaction.get("verification_result") or "") == "PASS"
+            and int(transaction.get("users_moved") or 0) == len(subset)
+        )
+        for user in subset:
             evidence_started_ns = time.monotonic_ns()
             evidence = availability_first_forward_evidence_status(
                 state_dir,
@@ -9327,8 +9496,10 @@ def execute_availability_first_standing_stage(
             packet_set.append({
                 **compact,
                 "target_id": target,
-                "subset_fingerprint": member_subset_fingerprint,
-                "parent_subset_fingerprint": subset_fingerprint,
+                "subset_fingerprint": subset_fingerprint,
+                "cohort_packet": True,
+                "cohort_size": len(subset),
+                "cohort_member": user,
                 "feedback_id": str(evidence.get("feedback_id") or ""),
                 "outcome_id": str(evidence.get("outcome_id") or ""),
                 "learning_record_id": str(
@@ -9347,42 +9518,32 @@ def execute_availability_first_standing_stage(
                     evidence.get("blockers") or []
                 ),
             })
-            passed = (
-                transaction.get("final_verdict")
-                in {
-                    "GOVERNED_TRANSACTION_COMPLETED",
-                    "L3_PRODUCTION_PROVEN",
+            if passed and evidence.get("ok"):
+                moved_users.append(user)
+        if not passed or any(
+            not bool(row.get("outcome_consumed"))
+            or not bool(row.get("replay_consumed"))
+            or not bool(row.get("learning_consumed"))
+            for row in packet_set[-len(subset):]
+        ):
+            if transaction.get("runtime_mutation_performed"):
+                current_routes = {
+                    str(item.get("ip") or ""): str(item.get("current") or "")
+                    for item in read_registry(state_dir / "users.registry")
                 }
-                and str(transaction.get("verification_result") or "") == "PASS"
-                and int(transaction.get("users_moved") or 0) == 1
-            )
-            if not passed:
-                if transaction.get("runtime_mutation_performed"):
-                    current_routes = {
-                        str(item.get("ip") or ""): str(
-                            item.get("current") or ""
-                        )
-                        for item in read_registry(
-                            state_dir / "users.registry"
-                        )
-                    }
-                    if (
-                        current_routes.get(user) == target
-                        and user not in moved_users
-                    ):
+                for user in subset:
+                    if current_routes.get(user) == target and user not in moved_users:
                         moved_users.append(user)
-                circuit_breaker = {
-                    "tripped": True,
-                    "remaining_subsets_stopped": True,
-                    "reason": str(
-                        transaction.get("stop_reason")
-                        or transaction.get("final_verdict")
-                        or "availability_first_subset_failed"
-                    ),
-                }
-                subset_failed = True
-                break
-            moved_users.append(user)
+            circuit_breaker = {
+                "tripped": True,
+                "remaining_subsets_stopped": True,
+                "reason": str(
+                    transaction.get("stop_reason")
+                    or transaction.get("final_verdict")
+                    or "availability_first_subset_failed"
+                ),
+            }
+            subset_failed = True
         if subset_failed:
             break
 

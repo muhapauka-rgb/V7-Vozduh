@@ -23,6 +23,44 @@ def load_cli_module():
 
 
 class GovernedCanaryCliTest(unittest.TestCase):
+    def test_governed_execution_timing_reuses_existing_owner_and_is_bounded(self):
+        module = load_cli_module()
+        timing = module.governed_execution_timing_projection(
+            transaction_started_ns=1_000_000_000,
+            planner_completed_ns=7_000_000_000,
+            packet_completed_ns=8_000_000_000,
+            clearance_completed_ns=9_000_000_000,
+            apply_completed_ns=80_000_000_000,
+            feedback_completed_ns=81_000_000_000,
+            affected_users=1,
+        )
+
+        self.assertEqual(timing["status"], "MONOTONIC_BREAKDOWN_CONSUMED")
+        self.assertEqual(timing["clock_source"], "time.monotonic_ns")
+        self.assertFalse(timing["wall_clock_used_for_elapsed"])
+        self.assertEqual(timing["dominant_stage"], "apply_and_verification")
+        self.assertEqual(timing["bounded_rows_per_transaction"], 5)
+        self.assertEqual(
+            timing["analysis_consumer"],
+            "admin_core.operator_execution_pipeline.execution_performance_foundation",
+        )
+        self.assertIn("apply_duration_ms", timing["available_metrics"])
+        self.assertLess(len(json.dumps(timing)), 5000)
+
+    def test_governed_execution_timing_rejects_non_monotonic_sequence(self):
+        module = load_cli_module()
+        timing = module.governed_execution_timing_projection(
+            transaction_started_ns=10,
+            planner_completed_ns=20,
+            packet_completed_ns=19,
+            clearance_completed_ns=30,
+            apply_completed_ns=40,
+            feedback_completed_ns=50,
+            affected_users=1,
+        )
+
+        self.assertEqual(timing["status"], "INVALID_MONOTONIC_SEQUENCE")
+
     def test_availability_first_stage_fails_closed_before_any_effect_without_policy(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
@@ -780,7 +818,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(partial_result["executed_member_count"], 2)
         self.assertTrue(partial_result["partial_execution_cohort"])
 
-    def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
+    def test_availability_first_stage_reuses_one_fresh_cohort_packet_per_allocation(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -865,22 +903,21 @@ class GovernedCanaryCliTest(unittest.TestCase):
             }
 
             def completed_transaction(transaction_args, **_kwargs):
-                user = (
+                users = list(
                     transaction_args
-                    ._availability_first_stage_request["expected_users"][0]
+                    ._availability_first_stage_request["expected_users"]
                 )
-                suffix = user.rsplit(".", 1)[-1]
                 return {
                     "final_verdict": "L3_PRODUCTION_PROVEN",
                     "transaction_status": "COMPLETED",
                     "verification_result": "PASS",
-                    "users_moved": 1,
+                    "users_moved": len(users),
                     "runtime_mutation_performed": True,
-                    "fresh_packet_id": f"pkt_{suffix}",
-                    "operation_id": f"operation_{suffix}",
+                    "fresh_packet_id": "pkt_cohort",
+                    "operation_id": "operation_cohort",
                     "feedback_materialization": {
                         "materialized": True,
-                        "outcome_id": f"outcome_{suffix}",
+                        "outcome_id": "outcome_cohort",
                     },
                     "l3_learning_closure": {
                         "materialized": True,
@@ -949,14 +986,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 for row in result["packet_set"]
             )
         )
-        self.assertEqual(execute.call_count, 2)
+        self.assertEqual(execute.call_count, 1)
         self.assertGreater(result["stage_total_duration_us"], 0)
         self.assertEqual(
             sum(
-                row["phase"] == "member_governed_transaction"
+                row["phase"] == "cohort_governed_transaction"
                 for row in result["performance_timeline"]
             ),
-            2,
+            1,
         )
         self.assertEqual(
             sum(
@@ -977,14 +1014,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
         ]
         self.assertEqual(
             [item.max_users for item in transaction_args],
-            [1, 1],
+            [2],
         )
         self.assertEqual(
             [
                 item._availability_first_stage_request["expected_users"]
                 for item in transaction_args
             ],
-            [["10.7.0.100"], ["10.7.0.101"]],
+            [["10.7.0.100", "10.7.0.101"]],
+        )
+        self.assertTrue(all(row["cohort_packet"] for row in result["packet_set"]))
+        self.assertEqual(
+            {row["fresh_packet_id"] for row in result["packet_set"]},
+            {"pkt_cohort"},
         )
         self.assertEqual(
             {
@@ -997,9 +1039,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 operator_execution.sha256_json({
                     "stage": 2,
                     "target_id": "awg3",
-                    "users": [user],
+                    "users": ["10.7.0.100", "10.7.0.101"],
                 })
-                for user in ("10.7.0.100", "10.7.0.101")
             },
         )
 

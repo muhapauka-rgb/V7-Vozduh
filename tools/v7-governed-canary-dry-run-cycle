@@ -2399,7 +2399,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
         "restore_barrier_written_now", "apply_executed", "verification_result",
         "rollback_attempted", "rollback_result", "a4_evidence_updated",
         "users_moved", "runtime_automation_enabled", "authority_expanded",
-        "production_proven", "error",
+        "production_proven", "error", "stop_detail",
     ):
         if key in result:
             receipt[key] = result.get(key)
@@ -5730,6 +5730,7 @@ def _execute_governed_transaction_with_guards_inner(
         service_failure_causal_binding=(packet.get("service_failure_causal_binding") if isinstance(packet.get("service_failure_causal_binding"), dict) else None),
     )
     apply_stop_reason = ""
+    apply_stop_detail = ""
     if not apply_result.get("applied"):
         apply_stop_reason = str(
             operation.get("terminal_reason")
@@ -5742,11 +5743,29 @@ def _execute_governed_transaction_with_guards_inner(
                 else "autoswitch_apply_not_applied"
             )
         )
+        atomic_validation = (
+            apply_result.get("atomic_execution_envelope_validation")
+            if isinstance(
+                apply_result.get("atomic_execution_envelope_validation"),
+                dict,
+            )
+            else {}
+        )
+        apply_stop_detail = str(
+            apply_result.get("unsafe_blocker")
+            or atomic_validation.get("reason")
+            or ",".join(
+                str(item)
+                for item in (atomic_validation.get("mismatches") or [])
+            )
+            or ""
+        )
     return {
         "schema_version": "v7.governed-execution-transaction.v1",
         "transaction_status": "COMPLETED" if apply_result.get("applied") else "STOP_SAFE",
         "final_verdict": "GOVERNED_TRANSACTION_COMPLETED" if apply_result.get("applied") else "GOVERNED_TRANSACTION_STOPPED",
         "stop_reason": apply_stop_reason,
+        "stop_detail": apply_stop_detail,
         "fresh_packet_id": packet.get("packet_id", ""),
         "decision_id": packet.get("decision_id", ""),
         "operation_id": packet.get("operation_id", ""),
@@ -6445,6 +6464,8 @@ def availability_first_partial_apply_recovery_context(
                 )
                 else {}
             )
+            if semantic.get("baseline_reset") is True:
+                continue
             user = str(move.get("user_ip") or move.get("user") or "")
             source = str(semantic.get("source") or "")
             target = str(semantic.get("target") or "")
@@ -7143,6 +7164,8 @@ def availability_first_interrupted_cohort_audit_projection(
         move = moves[0]
         semantic = move.get("availability_first_controlled_assignment")
         semantic = semantic if isinstance(semantic, dict) else {}
+        if semantic.get("baseline_reset") is True:
+            continue
         fingerprint = str(
             semantic.get("allocation_fingerprint") or ""
         )

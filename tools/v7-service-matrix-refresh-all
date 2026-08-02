@@ -2321,7 +2321,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     compact_reset = {
         key: reset.get(key)
         for key in (
-            "final_verdict", "transaction_status", "stop_reason",
+            "final_verdict", "transaction_status", "stop_reason", "stop_detail",
             "fresh_packet_id", "operation_id", "user", "source", "target",
             "runtime_mutation_performed", "verification_result",
             "rollback_result", "users_moved",

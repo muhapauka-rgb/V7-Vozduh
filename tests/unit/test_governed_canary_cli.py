@@ -560,6 +560,24 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         }],
                     },
                 })
+            audits.append({
+                "created_at": "2026-07-31T17:05:00+00:00",
+                "packet_id": "pkt_reset_clearance_only",
+                "operation_id": "op_reset_clearance_only",
+                "runtime_action_performed": True,
+                "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                "checks": {"moves": [{
+                    "user_ip": "10.7.0.100",
+                    "availability_first_controlled_assignment": {
+                        "allocation_fingerprint": fingerprint,
+                        "source": "awg3",
+                        "target": "vless",
+                        "baseline_reset": True,
+                        "ordinary_user": False,
+                        "natural_production_credit": False,
+                    },
+                }]},
+            })
             with mock.patch.object(
                 module,
                 "availability_first_forward_evidence_status",
@@ -604,6 +622,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             action["consumer_result"]["allocation_fingerprint"],
             fingerprint,
+        )
+        self.assertEqual(
+            action["consumer_result"]["packet_set"][0][
+                "fresh_packet_id"
+            ],
+            "pkt_0",
         )
         target_action = target_projection[
             "availability_first_standing_policy_action"

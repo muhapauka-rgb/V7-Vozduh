@@ -3402,6 +3402,31 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     users,
                 )
             ))
+            # A pre-fix baseline reset could retain stale forward semantic.
+            # Its actual reverse direction must not hide the original packet
+            # that still owns containment for this user.
+            audit.append({
+                "operation_id": "govexec_stale_reset",
+                "packet_id": "pkt_stale_reset",
+                "runtime_action_performed": True,
+                "clearance_verdict": (
+                    "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                ),
+                "checks": {
+                    "moves": [{
+                        "user_ip": users[1],
+                        "from": "awg0",
+                        "to": "vless",
+                        "availability_first_controlled_assignment": {
+                            "source": "vless",
+                            "target": "awg0",
+                            "allocation_fingerprint": "5" * 64,
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }],
+                },
+            })
             validation = {
                 "ok": True,
                 "errors": [],

@@ -5753,11 +5753,11 @@ def _execute_governed_transaction_with_guards_inner(
         )
         apply_stop_detail = str(
             apply_result.get("unsafe_blocker")
-            or atomic_validation.get("reason")
             or ",".join(
                 str(item)
                 for item in (atomic_validation.get("mismatches") or [])
             )
+            or atomic_validation.get("reason")
             or ""
         )
     return {
@@ -6469,6 +6469,23 @@ def availability_first_partial_apply_recovery_context(
             user = str(move.get("user_ip") or move.get("user") or "")
             source = str(semantic.get("source") or "")
             target = str(semantic.get("target") or "")
+            actual_source = str(
+                move.get("current_egress") or move.get("from") or ""
+            )
+            actual_target = str(
+                move.get("recommended_egress") or move.get("to") or ""
+            )
+            # Older reset attempts could carry a stale forward semantic before
+            # baseline_reset was propagated through every Packet consumer.
+            # When the executed move exposes its direction, it is authoritative
+            # for classifying the audit row: a reverse move must never replace
+            # the original forward lineage for this user.
+            if (
+                actual_source
+                and actual_target
+                and (actual_source != source or actual_target != target)
+            ):
+                continue
             if not all((user, source, target)):
                 continue
             latest_forward_by_user[user] = {
@@ -7172,6 +7189,18 @@ def availability_first_interrupted_cohort_audit_projection(
         user = str(move.get("user_ip") or move.get("user") or "")
         source = str(semantic.get("source") or "")
         target = str(semantic.get("target") or "")
+        actual_source = str(
+            move.get("current_egress") or move.get("from") or ""
+        )
+        actual_target = str(
+            move.get("recommended_egress") or move.get("to") or ""
+        )
+        if (
+            actual_source
+            and actual_target
+            and (actual_source != source or actual_target != target)
+        ):
+            continue
         if not all((fingerprint, user, source, target)):
             continue
         grouped.setdefault(fingerprint, {})[user] = {

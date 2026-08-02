@@ -6390,12 +6390,16 @@ def selected_moves_from_preview(preview):
         current = str(item.get("rollback_target") or item.get("current_egress") or "")
         target = str(item.get("forward_target") or item.get("recommended_egress") or (allowed_targets[0] if allowed_targets else ""))
         if user_ip and current and target:
-            moves.append({
+            move = {
                 "user_ip": user_ip,
                 "current_egress": current,
                 "recommended_egress": target,
                 "move_type": str(item.get("move_type") or "governed_canary"),
-            })
+            }
+            for key in SELECTED_MOVE_SEMANTIC_FIELDS:
+                if key in item:
+                    move[key] = copy.deepcopy(item.get(key))
+            moves.append(move)
     if not moves and allowed_users and allowed_targets:
         moves.append({
             "user_ip": allowed_users[0],

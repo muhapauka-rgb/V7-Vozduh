@@ -184,6 +184,13 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             ],
             binding,
         )
+        selected = operator_execution.selected_moves_from_preview(preview)
+        self.assertEqual(
+            selected["moves"][0][
+                "availability_first_controlled_assignment"
+            ],
+            binding,
+        )
 
     def test_autonomy_candidate_selection_review_finds_better_candidate_without_mutation(self):
         decision_surface = {

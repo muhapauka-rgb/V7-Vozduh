@@ -6288,6 +6288,7 @@ def availability_first_partial_apply_recovery_context(
     cohort_packets: list[dict[str, Any]] = []
     projection_source = ""
     recovery_mode = ""
+    audit_containment_recovery = False
     cached_audit_records = getattr(
         args,
         "_availability_first_recovery_forward_audit_records",
@@ -6465,6 +6466,14 @@ def availability_first_partial_apply_recovery_context(
                 for item in candidate_packets
             )
         )
+        audit_containment_cohort = bool(
+            candidate_result.get("containment_only") is True
+            and candidate_result.get(
+                "recovered_from_existing_owner_truth"
+            ) is True
+            and candidate_stage > 1
+            and len(candidate_packets) == candidate_stage
+        )
         for candidate_packet in candidate_packets:
             candidate_user = str(candidate_packet.get("user") or "")
             candidate_target = str(candidate_packet.get("target") or "")
@@ -6502,12 +6511,19 @@ def availability_first_partial_apply_recovery_context(
                 == "availability_first_baseline_reset_failed"
             )
             partial_cohort_baseline_pending = bool(
-                verified_stage_baseline_pending
-                and cohort_has_incomplete_member
+                cohort_has_incomplete_member
+                and (
+                    verified_stage_baseline_pending
+                    or audit_containment_cohort
+                )
             )
             if (
                 candidate.get("status") == "STOP_SAFE"
-                and (partial_apply or verified_stage_baseline_pending)
+                and (
+                    partial_apply
+                    or verified_stage_baseline_pending
+                    or partial_cohort_baseline_pending
+                )
                 and candidate_user
                 and current_routes.get(candidate_user) == candidate_target
                 and latest_forward_matches
@@ -6525,6 +6541,7 @@ def availability_first_partial_apply_recovery_context(
                     if verified_stage_baseline_pending
                     else "PARTIAL_APPLY_BASELINE_PENDING"
                 )
+                audit_containment_recovery = audit_containment_cohort
                 break
         if packet:
             break
@@ -6725,7 +6742,10 @@ def availability_first_partial_apply_recovery_context(
         }
         else {}
     )
-    if recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING":
+    if (
+        recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        or audit_containment_recovery
+    ):
         cohort_users = [
             str(row.get("user") or "")
             for row in cohort_packets
@@ -6754,12 +6774,7 @@ def availability_first_partial_apply_recovery_context(
                 )
                 cohort_row = registry_by_user.get(cohort_user, {})
                 if (
-                    str(cohort_packet.get("final_verdict") or "")
-                    != "L3_PRODUCTION_PROVEN"
-                    or str(cohort_packet.get("verification_result") or "")
-                    != "PASS"
-                    or int(cohort_packet.get("users_moved") or 0) != 1
-                    or cohort_source != source
+                    cohort_source != source
                     or current_routes.get(cohort_user)
                     not in {cohort_source, cohort_target}
                     or not bool_value(
@@ -6784,10 +6799,10 @@ def availability_first_partial_apply_recovery_context(
             blockers.append(
                 "verified_stage_recovery_requires_exact_cohort_projection"
             )
-    if recovery_mode in {
-        "VERIFIED_STAGE_BASELINE_PENDING",
-        "PARTIAL_COHORT_BASELINE_PENDING",
-    } and not forward_evidence.get("ok"):
+    if (
+        recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        and not forward_evidence.get("ok")
+    ):
         blockers.extend(
             forward_evidence.get("blockers")
             or ["verified_stage_forward_evidence_incomplete"]
@@ -6866,13 +6881,20 @@ def availability_first_partial_apply_recovery_context(
         "recovery_mode": recovery_mode,
         "cohort_packet_count": len(cohort_packets),
         "cohort_projection_exact": bool(
-            recovery_mode != "PARTIAL_COHORT_BASELINE_PENDING"
+            (
+                recovery_mode != "PARTIAL_COHORT_BASELINE_PENDING"
+                or audit_containment_recovery
+            )
             and (
-                recovery_mode != "VERIFIED_STAGE_BASELINE_PENDING"
+                recovery_mode not in {
+                    "VERIFIED_STAGE_BASELINE_PENDING",
+                    "PARTIAL_COHORT_BASELINE_PENDING",
+                }
                 or "verified_stage_recovery_requires_exact_cohort_projection"
                     not in blockers
             )
         ),
+        "production_outcome_credit": False,
         "forward_evidence": forward_evidence,
         "recovered_allocation": [{
             "target_id": target,
@@ -6939,10 +6961,11 @@ def availability_first_interrupted_cohort_audit_projection(
     """Recover a timed-out stage from existing append-only owners.
 
     A Matrix parent may hit its wall-clock budget after child Packets have
-    already committed their own execution, Outcome, Replay and Learning
-    records.  Reconstruct only an exact next-stage cohort whose common
-    allocation fingerprint, route commits and evidence all agree.  This is a
-    read-only projection; it never creates evidence or replays an action.
+    already committed execution.  Reconstruct an exact next-stage cohort
+    whose common allocation fingerprint, restore clearance, switch lineage
+    and current routes agree.  Outcome/Replay/Learning may be incomplete: in
+    that case the projection authorizes containment only and never grants
+    production evidence credit.  This is read-only and never replays action.
     """
     target_bound_mode = bool(expected_target)
     stage = int(expected_stage or 0)
@@ -7067,7 +7090,6 @@ def availability_first_interrupted_cohort_audit_projection(
                 or not packet_id
                 or not operation_id
                 or not forward_switch
-                or evidence.get("ok") is not True
             ):
                 exact = False
                 break
@@ -7075,9 +7097,20 @@ def availability_first_interrupted_cohort_audit_projection(
                 latest_at,
                 str(audit_row.get("created_at") or ""),
             )
+            evidence_ok = evidence.get("ok") is True
             packets.append({
-                "final_verdict": "L3_PRODUCTION_PROVEN",
-                "transaction_status": "COMPLETED",
+                "final_verdict": (
+                    "L3_PRODUCTION_PROVEN"
+                    if evidence_ok
+                    else "GOVERNED_TRANSACTION_STOPPED"
+                ),
+                "transaction_status": (
+                    "COMPLETED" if evidence_ok else "STOP_SAFE"
+                ),
+                "stop_reason": (
+                    "" if evidence_ok else
+                    "l3_production_validation_downstream_proof_failed"
+                ),
                 "fresh_packet_id": packet_id,
                 "operation_id": operation_id,
                 "user": user,
@@ -7085,9 +7118,11 @@ def availability_first_interrupted_cohort_audit_projection(
                 "source": source,
                 "target": target,
                 "target_id": target,
-                "users_moved": 1,
+                "users_moved": 1 if evidence_ok else 0,
                 "runtime_mutation_performed": True,
-                "verification_result": "PASS",
+                "verification_result": (
+                    "PASS" if evidence_ok else "STOP_SAFE"
+                ),
                 "rollback_result": "NOT_REQUIRED",
                 "feedback_id": str(evidence.get("feedback_id") or ""),
                 "outcome_id": str(evidence.get("outcome_id") or ""),
@@ -7095,6 +7130,10 @@ def availability_first_interrupted_cohort_audit_projection(
                     evidence.get("learning_record_id") or ""
                 ),
                 "recovered_from_existing_owner_truth": True,
+                "production_outcome_credit": evidence_ok,
+                "evidence_blockers": list(
+                    evidence.get("blockers") or []
+                ),
             })
         if exact and len(packets) == stage:
             candidates.append((latest_at, fingerprint, packets))
@@ -7141,6 +7180,14 @@ def availability_first_interrupted_cohort_audit_projection(
                     "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
                 ),
                 "recovered_from_existing_owner_truth": True,
+                "containment_only": any(
+                    item.get("production_outcome_credit") is not True
+                    for item in packets
+                ),
+                "production_outcome_credit": all(
+                    item.get("production_outcome_credit") is True
+                    for item in packets
+                ),
                 "allocation_fingerprint": fingerprint,
             },
         },

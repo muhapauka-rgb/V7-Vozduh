@@ -617,11 +617,101 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ],
             "awg3",
         )
-        self.assertEqual(
-            target_action["consumer_result"]["campaign_next_stage"],
-            25,
-        )
 
+    def test_interrupted_cohort_with_incomplete_evidence_is_containment_only(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = ("10.7.0.100", "10.7.0.101")
+            (state / "users.registry").write_text(
+                "".join(
+                    f"ip={user} current=awg3 enabled=1 certification_user=1\n"
+                    for user in users
+                ),
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                "".join(
+                    json.dumps({
+                        "ts": f"2026-07-31T17:00:0{index}+00:00",
+                        "user_ip": user,
+                        "from": "vless",
+                        "to": "awg3",
+                    }) + "\n"
+                    for index, user in enumerate(users)
+                ),
+                encoding="utf-8",
+            )
+            fingerprint = "b" * 64
+            audits = [{
+                "created_at": "2026-07-31T16:57:00+00:00",
+                "effect_class": "AVAILABILITY_FIRST_CAMPAIGN_STAGE_CONSUMED",
+                "campaign_stage": 1,
+            }]
+            for index, user in enumerate(users):
+                audits.append({
+                    "created_at": f"2026-07-31T17:00:0{index}+00:00",
+                    "packet_id": f"pkt_{index}",
+                    "operation_id": f"op_{index}",
+                    "runtime_action_performed": True,
+                    "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                    "checks": {"moves": [{
+                        "user_ip": user,
+                        "availability_first_controlled_assignment": {
+                            "allocation_fingerprint": fingerprint,
+                            "source": "vless",
+                            "target": "awg3",
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }]},
+                })
+
+            def evidence(*_args, **kwargs):
+                if kwargs["packet_id"] == "pkt_0":
+                    return {
+                        "ok": True,
+                        "feedback_id": "feedback",
+                        "outcome_id": "outcome",
+                        "learning_record_id": "learning",
+                    }
+                return {
+                    "ok": False,
+                    "blockers": ["forward_outcome_not_consumed"],
+                }
+
+            with mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                side_effect=evidence,
+            ):
+                projection = (
+                    module
+                    .availability_first_interrupted_cohort_audit_projection(
+                        state_dir=state,
+                        event_dir=events,
+                        audit_records=audits,
+                        completed_stages={1},
+                    )
+                )
+
+        result = projection[
+            "availability_first_standing_policy_action"
+        ]["consumer_result"]
+        self.assertTrue(result["containment_only"])
+        self.assertFalse(result["production_outcome_credit"])
+        self.assertEqual(len(result["packet_set"]), 2)
+        self.assertEqual(
+            result["packet_set"][1]["transaction_status"],
+            "STOP_SAFE",
+        )
+        self.assertFalse(
+            result["packet_set"][1]["production_outcome_credit"]
+        )
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

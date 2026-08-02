@@ -2136,6 +2136,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 ),
                 "stage_total_duration_us": 123456,
                 "serial_baseline_reset_count": 1,
+                "allocation_lineage_refresh_count": 1,
                 "performance_timeline": [{
                     "phase": "reset_transaction",
                     "owner": "existing governed transaction owner",
@@ -2184,6 +2185,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertEqual(consumer["stage_total_duration_us"], 123456)
         self.assertEqual(consumer["serial_baseline_reset_count"], 1)
+        self.assertEqual(consumer["allocation_lineage_refresh_count"], 1)
         self.assertEqual(
             consumer["performance_timeline"][0]["phase"],
             "reset_transaction",

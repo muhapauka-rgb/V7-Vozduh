@@ -8693,6 +8693,7 @@ def execute_availability_first_standing_stage(
                 recovery_depth + 1
             )
             successor_args._availability_first_recovery_only = True
+            successor_args._availability_first_allow_lineage_refresh = True
             successor_started_ns = time.monotonic_ns()
             successor = execute_availability_first_standing_stage(
                 successor_args,
@@ -8848,6 +8849,77 @@ def execute_availability_first_standing_stage(
     if bool(
         getattr(args, "_availability_first_recovery_only", False)
     ):
+        if bool(
+            getattr(
+                args,
+                "_availability_first_allow_lineage_refresh",
+                False,
+            )
+        ):
+            refresh_args = copy.copy(args)
+            refresh_args._availability_first_allow_lineage_refresh = False
+            refresh_count = int(
+                getattr(
+                    args,
+                    "_availability_first_lineage_refresh_count",
+                    0,
+                )
+                or 0
+            )
+            refresh_args._availability_first_lineage_refresh_count = (
+                refresh_count + 1
+            )
+            for cache_name in (
+                "_live_runtime_lineage_records",
+                "_availability_first_recovery_forward_audit_records",
+                "_availability_first_recovery_forward_projection_rows",
+            ):
+                if hasattr(refresh_args, cache_name):
+                    delattr(refresh_args, cache_name)
+            refresh_started_ns = time.monotonic_ns()
+            refreshed = execute_availability_first_standing_stage(
+                refresh_args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+                audit_dir=audit_dir,
+                lease_file=lease_file,
+            )
+            record_phase(
+                "allocation_lineage_refresh_successor",
+                refresh_started_ns,
+                owner="existing bounded rotated execution lineage owner",
+                status=str(
+                    refreshed.get("final_verdict") or "UNKNOWN"
+                ),
+            )
+            return {
+                **refreshed,
+                "allocation_lineage_refresh_count": (
+                    refresh_count
+                    + 1
+                    + int(
+                        refreshed.get(
+                            "allocation_lineage_refresh_count"
+                        )
+                        or 0
+                    )
+                ),
+                "performance_timeline": [
+                    *performance_timeline,
+                    *(
+                        refreshed.get("performance_timeline")
+                        if isinstance(
+                            refreshed.get("performance_timeline"), list
+                        )
+                        else []
+                    ),
+                ],
+                "stage_total_duration_us": max(
+                    0,
+                    (time.monotonic_ns() - mission_started_ns) // 1_000,
+                ),
+            }
         return {
             **transaction_stop(
                 "availability_first_recovery_lineage_not_ready",

@@ -2393,6 +2393,10 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         compact_result["serial_baseline_reset_count"] = int(
             result.get("serial_baseline_reset_count") or 0
         )
+    if result.get("allocation_lineage_refresh_count") not in (None, ""):
+        compact_result["allocation_lineage_refresh_count"] = int(
+            result.get("allocation_lineage_refresh_count") or 0
+        )
     reset_reconciliations = [
         {
             key: row.get(key)

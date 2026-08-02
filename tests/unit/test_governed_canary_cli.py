@@ -278,12 +278,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 side_effect=[
                     {"pending": False},
                     {"pending": False},
+                    {"pending": False},
                     restored,
                 ],
             ), mock.patch.object(
                 module,
                 "availability_first_partial_apply_recovery_context",
-                side_effect=[partial, partial_second],
+                side_effect=[partial, {"pending": False}, partial_second],
             ), mock.patch.object(
                 module,
                 "execute_governed_transaction_with_guards",
@@ -314,6 +315,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE",
         )
         self.assertEqual(result["serial_baseline_reset_count"], 2)
+        self.assertEqual(result["allocation_lineage_refresh_count"], 1)
         self.assertEqual(
             [
                 row["user"]

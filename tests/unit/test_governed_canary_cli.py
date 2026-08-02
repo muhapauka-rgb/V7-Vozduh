@@ -1219,6 +1219,21 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "EMERGENCY_FAILOVER",
         )
 
+    def test_packet_owner_consumes_existing_cohort_authority_field(self):
+        module = load_cli_module()
+        authority = {
+            "authority_basis": "DELEGATED_AUTONOMY_POLICY",
+            "policy_id": "sdpc_test",
+        }
+
+        result = module.packet_materialization_authority(
+            delegated_mode=True,
+            setup_mode=False,
+            delegated_admission={"delegated_policy_authority": authority},
+        )
+
+        self.assertEqual(result, authority)
+
     def test_exact_engineering_authority_projects_only_bound_controlled_candidate(self):
         module = load_cli_module()
         request = {

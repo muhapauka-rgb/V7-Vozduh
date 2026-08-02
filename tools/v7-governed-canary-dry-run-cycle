@@ -2356,7 +2356,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
         "restore_barrier_written_now", "apply_executed", "verification_result",
         "rollback_attempted", "rollback_result", "a4_evidence_updated",
         "users_moved", "runtime_automation_enabled", "authority_expanded",
-        "production_proven",
+        "production_proven", "error",
     ):
         if key in result:
             receipt[key] = result.get(key)
@@ -3461,7 +3461,10 @@ def packet_materialization_authority(
     mislabeled as delegated autonomy merely to share the same execution path.
     """
     if delegated_mode and not setup_mode:
-        authority = delegated_admission.get("authority")
+        authority = (
+            delegated_admission.get("authority")
+            or delegated_admission.get("delegated_policy_authority")
+        )
         return authority if isinstance(authority, dict) and authority else None
     return None
 
@@ -5085,7 +5088,17 @@ def _execute_governed_transaction_with_guards_inner(
             # the existing single-user cleanup owner must materialize it.
             # Sending this support request through the ordinary cohort path
             # bypasses cleanup selection and creates a circular failed retry.
-            pass
+            # Normalize the cohort binding into the authority shape consumed
+            # by the canonical Packet owner. The binding owner deliberately
+            # names this field ``delegated_policy_authority``; leaving it only
+            # under that name makes packet materialization fail after preview.
+            delegated_admission = {
+                **policy_binding,
+                "allowed": True,
+                "authority": copy.deepcopy(
+                    policy_binding.get("delegated_policy_authority") or {}
+                ),
+            }
         else:
             cohort_args = argparse.Namespace(**vars(args))
             # This is an internal compatibility gate on the existing L3

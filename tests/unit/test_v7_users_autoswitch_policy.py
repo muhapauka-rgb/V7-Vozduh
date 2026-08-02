@@ -1070,6 +1070,46 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(validation["state"]["condition"], "ENVELOPE_VALID")
         self.assertEqual(validation["current_runtime_snapshot_hash"], runtime_snapshot_hash)
 
+    def test_operation_scoped_binding_preserves_approved_locked_move_semantics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root, ["--apply"]))
+            locked = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+                "readiness": "PACKET_BOUND",
+            }
+            merged_live = {
+                **locked,
+                "readiness": "LIVE_RECOMPUTED",
+            }
+            plan = {
+                "selected_moves": [merged_live],
+                "safety": {
+                    "restore_barrier": {
+                        "approved_plan_lock_validation": {
+                            "ok": True,
+                            "selected_moves": [locked],
+                        },
+                    },
+                },
+            }
+            with mock.patch.object(
+                self.tool.operation_scoped_binding,
+                "read_binding",
+                return_value={"status": "BOUND", "source_hashes": {}},
+            ) as read_binding:
+                binding = planner._operation_scoped_source_binding(plan)
+
+        self.assertEqual(
+            read_binding.call_args.kwargs["selected"]["readiness"],
+            "PACKET_BOUND",
+        )
+        self.assertEqual(binding["selected_move_source"], "approved_plan_lock")
+
     def test_execution_control_generation_change_stops_remaining_batch(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

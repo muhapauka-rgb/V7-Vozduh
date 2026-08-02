@@ -1477,6 +1477,7 @@ def controlled_certification_cleanup_selection(
             "user": user,
             "source": source,
             "target": target,
+            "move_type": "failover",
             "evidence_value": 0,
             "suitability_score": 100.0,
             "confidence": 100.0,

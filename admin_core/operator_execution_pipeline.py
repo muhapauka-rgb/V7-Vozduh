@@ -341,6 +341,11 @@ def recommendation_execution_contract(row: dict[str, Any]) -> dict[str, Any]:
         "review_warning": str(row.get("review_warning") or ""),
         "review_next_action": str(row.get("review_next_action") or ""),
         "emergency_only": bool(row.get("emergency_only")),
+        "availability_first_controlled_assignment": (
+            dict(row.get("availability_first_controlled_assignment") or {})
+            if isinstance(row.get("availability_first_controlled_assignment"), dict)
+            else {}
+        ),
         "packet_evidence_preview": (
             row.get("ctr_governance_evidence", {}).get("packet_preview")
             if isinstance(row.get("ctr_governance_evidence"), dict)
@@ -851,6 +856,13 @@ def _dry_run_candidates(decision_surface: dict[str, Any], max_users: int = 1) ->
             "review_warning": move.get("review_warning") or source.get("review_warning") or "",
             "review_next_action": move.get("review_next_action") or source.get("review_next_action") or "",
             "emergency_only": bool(move.get("emergency_only") or source.get("emergency_only")),
+            "availability_first_controlled_assignment": (
+                move.get("availability_first_controlled_assignment")
+                if isinstance(move.get("availability_first_controlled_assignment"), dict)
+                else source.get("availability_first_controlled_assignment")
+                if isinstance(source.get("availability_first_controlled_assignment"), dict)
+                else {}
+            ),
         }
         rows.append(recommendation_execution_contract(row))
     return rows[: max(0, max_users)]
@@ -2089,6 +2101,20 @@ def _preview_packet_for_candidate(
         "from": candidate.get("current_channel", ""),
         "to": candidate.get("recommended_channel", ""),
         "move_type": str(candidate.get("move_type") or "governed_canary"),
+        **(
+            {
+                "availability_first_controlled_assignment": dict(
+                    candidate.get("availability_first_controlled_assignment")
+                    or {}
+                )
+            }
+            if isinstance(
+                candidate.get("availability_first_controlled_assignment"),
+                dict,
+            )
+            and candidate.get("availability_first_controlled_assignment")
+            else {}
+        ),
     }
     selected_move_hash = stable_hash(semantic_payload)
     commit_authority_generation = authority_generation or ("authgen_" + stable_hash(semantic_payload)[:24])
@@ -2182,6 +2208,20 @@ def _preview_packet_for_candidate(
                     "rollback_target": rollback_target,
                     "forward_target": candidate.get("recommended_channel", ""),
                     "move_type": semantic_payload["move_type"],
+                    **(
+                        {
+                            "availability_first_controlled_assignment": dict(
+                                semantic_payload.get(
+                                    "availability_first_controlled_assignment"
+                                )
+                                or {}
+                            )
+                        }
+                        if semantic_payload.get(
+                            "availability_first_controlled_assignment"
+                        )
+                        else {}
+                    ),
                     "source_operation_id": operation_id,
                 }
             ],

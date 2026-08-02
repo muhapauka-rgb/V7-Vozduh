@@ -135,6 +135,56 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(contract["ctr_authority"]["runtime_execution_authority"], "none")
         self.assertFalse(contract["ctr_authority"]["packet_authority_changed"])
 
+    def test_availability_first_semantic_binding_reaches_packet_preview(self):
+        surface = self.governed_canary_surface(target="vless")
+        binding = {
+            "schema_version": "v7.availability-first-controlled-selection.v1",
+            "event_provenance": "CONTROLLED_CERTIFICATION",
+            "natural_production_credit": False,
+            "source": "awg0",
+            "target": "vless",
+            "allocation_fingerprint": "a" * 64,
+            "ordinary_user": False,
+            "baseline_reset": True,
+            "controlled_baseline_source": "vless",
+        }
+        surface["users_by_ip"]["10.7.0.5"].update({
+            "current_channel": "awg0",
+            "move_type": "failover",
+            "availability_first_controlled_assignment": binding,
+        })
+        surface["batch_preview"]["users_to_move"][0].update({
+            "from": "awg0",
+            "move_type": "failover",
+            "availability_first_controlled_assignment": binding,
+        })
+
+        candidate = pipeline._dry_run_candidates(surface, 1)[0]
+        preview = pipeline._preview_packet_for_candidate(
+            candidate,
+            cycle_id="cycle-reset",
+            execution_envelope={
+                "source_bundle": {
+                    "source_hashes": {
+                        "users_registry": "users-hash",
+                        "egress_registry": "egress-hash",
+                    },
+                },
+                "snapshot_bundle": {"hash": "snapshot-hash"},
+            },
+        )
+
+        self.assertEqual(candidate["move_type"], "failover")
+        self.assertEqual(
+            candidate["availability_first_controlled_assignment"], binding
+        )
+        self.assertEqual(
+            preview["rollback_manifest_preview"]["items"][0][
+                "availability_first_controlled_assignment"
+            ],
+            binding,
+        )
+
     def test_autonomy_candidate_selection_review_finds_better_candidate_without_mutation(self):
         decision_surface = {
             "users_by_ip": {

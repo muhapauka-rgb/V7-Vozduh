@@ -7901,7 +7901,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; cumulative reusable stages are `[1,2,5,10,25]`; Stage 25 is production-proven by the exactly-once receipt `afstage_2595c3494c52f5fa6ba96592`; the existing Matrix owner published the exact Stage 48 successor. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; cumulative reusable stages are `[1,2,5,10,25]`; Stage 25 is production-proven by exactly-once receipt `afstage_2595c3494c52f5fa6ba96592`; deployed cohort/Time repair is production-called; ordinary Matrix owns exact Stage-48 source/cohort revalidation. This pointer grants no Authority or mutation.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

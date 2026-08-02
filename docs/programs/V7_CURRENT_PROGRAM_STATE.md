@@ -3,9 +3,9 @@
 Status: active current state
 Program: OMP Continuation
 State captured: 2026-08-02T16:40:49+00:00
-Latest terminal Mission: `STAGE_25_RUNTIME_TIME_OWNER_AND_COHORT_REUSE_OPTIMIZATION_V1`
-Latest terminal Mission state: `STAGE_25_AVOIDABLE_FORWARD_LIFECYCLE_MULTIPLICATION_REPAIRED_STAGE_48_LIVE_SOURCE_BLOCKED`
-Latest terminal Mission report: `docs/reports/engineering/2026-08-02_233500_runtime_time_owner_stage25_latency_and_cohort_reuse.md`
+Latest terminal Mission: `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1`
+Latest terminal Mission state: `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN`
+Latest terminal Mission report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: Production commit `e84ee0b17f002a46a3a2b7bea61699245d8aaae2` consumes the existing topology diagnostic through the existing CPS/OMP owner. It distinguishes a real external-capacity boundary from a source/target role collision and retains only the automatic Matrix/quality re-entry.
 
@@ -28,24 +28,24 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `STOP_SAFE_AVAILABILITY_FIRST_CONTROLLED_SOURCE_MISSING_AND_SOURCE_COHORT_TOO_SMALL` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_LADDER` |
-| `CURRENT_SAFE_NEXT_ACTION` | `LET THE ORDINARY MATRIX REVALIDATE CONTROLLED-SOURCE IDENTITY AND CURRENT CERTIFICATION COHORT; DO NOT REPEAT STAGE 25 OR MOVE IDENTITIES TO MANUFACTURE STAGE-48 BENCHMARK EVIDENCE` |
+| `CURRENT_SAFE_NEXT_ACTION` | `LET THE EXISTING MATRIX RECOMPUTE AND CONSUME THE FRESH AVAILABILITY-FIRST STAGE 48 SUCCESSOR; CURRENT LIVE BLOCKERS ARE CONTROLLED-SOURCE IDENTITY AND SOURCE COHORT SIZE; STAGE 25 MUST NOT BE REPEATED` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_TIME_0D29365B_STAGE48_SOURCE_BOUNDARY` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STAGE25_TIME_OPTIMIZED_STAGE48_SOURCE_REVALIDATION_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `REVALIDATE_AVAILABILITY_FIRST_CONTROLLED_SOURCE_AND_COHORT_FOR_STAGE_48` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `REVALIDATE_AVAILABILITY_FIRST_CONTROLLED_SOURCE_AND_COHORT_FOR_STAGE_48` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `REVALIDATE_AVAILABILITY_FIRST_CONTROLLED_SOURCE_AND_COHORT_FOR_STAGE_48` |
+| `CURRENT_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_STAGE_48_STOP_SAFE_LIVE_SOURCE_BOUNDARY_WITH_AUTOMATIC_REENTRY` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_AVAILABILITY_FIRST_STAGE_48_SUCCESSOR_READY` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
@@ -55,7 +55,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `AVAILABILITY-FIRST-LADDER` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `77` |
-| `CONTINUATION_STOP_REASON` | `ORDINARY MATRIX CONSUMED DEPLOYED COHORT/TIME REPAIR AT 2026-08-02T16:39:33Z AND STOPPED BEFORE MUTATION: CONTROLLED SOURCE MISSING FROM CURRENT TOPOLOGY PROJECTION AND ONLY 41 OF 48 REQUIRED CERTIFICATION IDENTITIES ARE CURRENTLY ON VLESS; AUTOMATIC MATRIX REENTRY REMAINS OWNER` |
+| `CONTINUATION_STOP_REASON` | `STAGE 25 RECEIPT REMAINS CONSUMED; DEPLOYED COHORT/TIME REPAIR WAS PRODUCTION-CALLED; STAGE 48 LIVE ATTEMPT STOPPED BEFORE MUTATION ON CONTROLLED-SOURCE IDENTITY AND SOURCE COHORT SIZE; ORDINARY MATRIX RETAINS AUTOMATIC REENTRY` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; generation egid_be6367407f70e591005185a2; current route-backed scope affected=0, protected=0, unresolved=0, excluded_or_recovered=0; cumulative packet-bound lineage=63; last feedback execfb_f5770df829554ffabe72278c` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `CURRENT_SOURCE_SCOPE_EMPTY; no eligible source users; next ordinary Matrix observation owns reentry` |
@@ -714,7 +714,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48`; `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` | Stage 25 is production-proven by receipt `afstage_2595c3494c52f5fa6ba96592`; cumulative reusable ladder evidence is `[1,2,5,10,25]`; the remaining exact campaign frontier is Stage 48 | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` | existing Matrix, standing-policy and campaign receipt owners | `NONE` | fresh Stage 48 generation -> exact bounded terminal -> Outcome/Replay/Learning -> baseline reset -> append-only receipt; never repeat Stage 25 |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48`; `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` | Stage 25 is production-proven by receipt `afstage_2595c3494c52f5fa6ba96592`; deployed cohort/Time repair is production-called; remaining campaign frontier is Stage 48 with live source/cohort gates | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` | existing Matrix, standing-policy and topology owners | `NONE` | fresh Stage 48 generation -> admission or exact STOP_SAFE -> automatic reentry; never repeat Stage 25 or manufacture cohort evidence |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -782,7 +782,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; Stage 25 is exactly-once consumed; current next action is `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48`; no mutation is authorized by this projection |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is live-source/cohort STOP_SAFE; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; Stage 25 is exactly-once consumed; ordinary Matrix owns Stage-48 source/cohort revalidation; no mutation is authorized by this projection |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

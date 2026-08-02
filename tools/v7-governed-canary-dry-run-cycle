@@ -7589,7 +7589,13 @@ def availability_first_restored_cohort_receipt_recovery_context(
         )
     )
     if recovered_projection:
-        projections.insert(0, recovered_projection)
+        # Prefer the original immutable Matrix stage projection.  The audit
+        # reconstruction is a bounded fallback and may intentionally omit
+        # Outcome/Replay/Learning pointers that the original stage receipt
+        # already consumed.  Letting that smaller projection shadow the
+        # original creates a false incomplete-evidence terminal after a long
+        # cohort has already returned to baseline.
+        projections.append(recovered_projection)
     switch_rows = intelligence_workers.read_jsonl_tail(
         event_dir / "switch-history.jsonl",
         limit=2048,
@@ -7883,13 +7889,45 @@ def availability_first_restored_cohort_receipt_recovery_context(
                     "restored_cohort_reset_switch_lineage_missing"
                 )
 
-            evidence = availability_first_forward_evidence_status(
-                state_dir,
-                packet_id=packet_id,
-                operation_id=operation_id,
-                user=user,
-                source=source,
-                target=target,
+            projected_evidence_consumed = bool(
+                result.get("outcome_consumed") is True
+                and result.get("replay_consumed") is True
+                and result.get("learning_consumed") is True
+                and str(packet.get("feedback_id") or "")
+                and str(packet.get("outcome_id") or "")
+                and str(packet.get("learning_record_id") or "")
+                and str(packet.get("final_verdict") or "")
+                == "L3_PRODUCTION_PROVEN"
+                and str(packet.get("verification_result") or "") == "PASS"
+                and int(packet.get("users_moved") or 0) == 1
+            )
+            evidence = (
+                {
+                    "ok": True,
+                    "blockers": [],
+                    "feedback_id": str(packet.get("feedback_id") or ""),
+                    "outcome_id": str(packet.get("outcome_id") or ""),
+                    "learning_record_id": str(
+                        packet.get("learning_record_id") or ""
+                    ),
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                    "projection_reused": True,
+                    "projection_owner": (
+                        "immutable Matrix stage receipt + existing "
+                        "Outcome/Replay/Learning owners"
+                    ),
+                }
+                if projected_evidence_consumed
+                else availability_first_forward_evidence_status(
+                    state_dir,
+                    packet_id=packet_id,
+                    operation_id=operation_id,
+                    user=user,
+                    source=source,
+                    target=target,
+                )
             )
             if not evidence.get("ok"):
                 blockers.extend(

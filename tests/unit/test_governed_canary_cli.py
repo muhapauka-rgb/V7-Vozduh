@@ -2435,6 +2435,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "transaction_status": "COMPLETED",
                     "fresh_packet_id": packet_id,
                     "operation_id": operation_id,
+                    "feedback_id": f"execfb_{packet_id}",
+                    "outcome_id": f"outcome_{packet_id}",
+                    "learning_record_id": f"learn_{packet_id}",
                     "user": user,
                     "source": "vless",
                     "target": "awg0",
@@ -2456,6 +2459,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         "consumer_result": {
                             "stage": 2,
                             "packet_set": packet_set,
+                            "outcome_consumed": True,
+                            "replay_consumed": True,
+                            "learning_consumed": True,
                             "circuit_breaker": {
                                 "tripped": True,
                                 "reason": (
@@ -2631,7 +2637,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "outcome_id": "execfb_stage2",
                     "learning_record_id": "learn_stage2",
                 },
-            ), mock.patch.object(
+            ) as forward_evidence_lookup, mock.patch.object(
                 module.operator_execution,
                 "availability_first_campaign_stage_status",
                 return_value={
@@ -2668,6 +2674,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     )
                 )
 
+        forward_evidence_lookup.assert_not_called()
         self.assertTrue(recovered["pending"])
         self.assertTrue(recovered["ok"], recovered)
         self.assertEqual(recovered["stage"], 2)

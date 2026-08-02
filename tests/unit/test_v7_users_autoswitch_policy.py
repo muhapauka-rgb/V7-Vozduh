@@ -790,7 +790,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 emergency_failover_autonomy={"enabled": True},
             )
             (root / "state" / "users.registry").write_text(
-                "ip=10.7.0.100 current=1 table=1098 enabled=1 certification_user=1\n",
+                (
+                    "ip=10.7.0.100 current=1 table=1098 enabled=1 certification_user=1\n"
+                    "ip=10.0.0.2 current=1 table=1099 enabled=1\n"
+                ),
                 encoding="utf-8",
             )
             policy_path = root / "policy.json"

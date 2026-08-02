@@ -2509,6 +2509,7 @@ class AutoswitchPlanner:
         allocation_fingerprints: set[str] = set()
         sources: set[str] = set()
         targets: set[str] = set()
+        baseline_reset_sources: set[str] = set()
         users: list[str] = []
         member_proof: list[dict[str, Any]] = []
         for move in moves:
@@ -2530,6 +2531,8 @@ class AutoswitchPlanner:
                 binding.get("allocation_fingerprint") or ""
             )
             baseline_reset = binding.get("baseline_reset") is True
+            if baseline_reset:
+                baseline_reset_sources.add(source)
             allocation_fingerprints.add(fingerprint)
             sources.add(source)
             targets.add(target)
@@ -2632,6 +2635,12 @@ class AutoswitchPlanner:
         if requested_target and targets != {requested_target}:
             reasons.append("availability_first_requested_target_mismatch")
         for source in sources:
+            if source in baseline_reset_sources:
+                # A reset removes one certification identity from the shared
+                # execution target. Ordinary occupants on that shared channel
+                # are not in the Packet scope and must not make the exact
+                # return-to-controlled-baseline transaction impossible.
+                continue
             ordinary_on_source = [
                 str(row.get("ip") or "")
                 for row in registry_rows

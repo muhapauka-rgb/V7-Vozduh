@@ -12329,36 +12329,53 @@ class AutoswitchPlanner:
             return {"applied": False, "reason": "autoswitch_disabled_by_policy"}
         if mode == "observe":
             return {"applied": False, "reason": "mode_observe_blocks_apply"}
-        if not plan.get("selected_moves"):
-            committed_moves = self._committed_selected_moves_from_approved_plan_lock(plan)
-            if committed_moves:
-                plan["selected_moves"] = committed_moves
-                plan.setdefault("summary", {})["selected_moves"] = len(committed_moves)
-                operation = plan.get("operation") or {}
-                selected_hash = str(operation.get("selected_move_hash") or "")
-            else:
-                safety = plan.get("safety") or {}
-                barrier = safety.get("restore_barrier") or {}
-                approved_lock = barrier.get("approved_plan_lock_validation") or {}
-                diagnostics = safety.get("selected_moves_diagnostics") or {}
-                if approved_lock.get("present"):
-                    approved_lock_reason = str(approved_lock.get("reason") or "")
-                    if bool_value(approved_lock.get("ok")):
-                        approved_lock_reason = ""
-                    reason = str(
-                        approved_lock_reason
-                        or barrier.get("approved_plan_lock_blocker")
-                        or barrier.get("clearance_guard_reason")
-                        or "approved_plan_lock_selected_moves_missing"
-                    )
-                    return {
-                        "applied": False,
-                        "reason": "approved_plan_lock_selected_moves_missing",
-                        "unsafe_blocker": reason,
-                        "selected_moves_diagnostics": diagnostics,
-                        "approved_plan_lock_validation": approved_lock,
-                    }
-                return {"applied": False, "reason": "no_selected_moves"}
+        committed_moves = self._committed_selected_moves_from_approved_plan_lock(
+            plan
+        )
+        if committed_moves and not plan.get("selected_moves"):
+            # The approved Packet remains the execution identity even when a
+            # fresh planner independently selected the same route.  This also
+            # rehydrates its operation-scoped atomic envelope so volatile
+            # Matrix observations cannot replace the Packet source contract.
+            plan["selected_moves"] = committed_moves
+            plan.setdefault("summary", {})["selected_moves"] = len(
+                committed_moves
+            )
+            operation = plan.get("operation") or {}
+            selected_hash = str(
+                operation.get("selected_move_hash") or ""
+            )
+        elif committed_moves:
+            # The planner already consumed the approved lock and fresh live
+            # gates.  Keep those selected rows for execution, while retaining
+            # the Packet envelope rehydration performed by the helper above.
+            operation = plan.get("operation") or {}
+            selected_hash = str(
+                operation.get("selected_move_hash") or ""
+            )
+        elif not plan.get("selected_moves"):
+            safety = plan.get("safety") or {}
+            barrier = safety.get("restore_barrier") or {}
+            approved_lock = barrier.get("approved_plan_lock_validation") or {}
+            diagnostics = safety.get("selected_moves_diagnostics") or {}
+            if approved_lock.get("present"):
+                approved_lock_reason = str(approved_lock.get("reason") or "")
+                if bool_value(approved_lock.get("ok")):
+                    approved_lock_reason = ""
+                reason = str(
+                    approved_lock_reason
+                    or barrier.get("approved_plan_lock_blocker")
+                    or barrier.get("clearance_guard_reason")
+                    or "approved_plan_lock_selected_moves_missing"
+                )
+                return {
+                    "applied": False,
+                    "reason": "approved_plan_lock_selected_moves_missing",
+                    "unsafe_blocker": reason,
+                    "selected_moves_diagnostics": diagnostics,
+                    "approved_plan_lock_validation": approved_lock,
+                }
+            return {"applied": False, "reason": "no_selected_moves"}
         entry_control = self._execution_control_decision(
             mutation_kind="forward",
             action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),

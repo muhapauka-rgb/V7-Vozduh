@@ -849,6 +849,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     now=now,
                 )
             )
+            # The live audit rotates independently of the policy contract.
+            # Topology admission must retain the same durable Authority
+            # lineage that policy-status and target-selection consume.
+            audit_path.rename(root / "authority-audit.jsonl.1")
+            audit_path.write_text("", encoding="utf-8")
             args = self.autoswitch.build_arg_parser().parse_args([
                 "--state-dir", str(state_dir),
                 "--egress-drafts-dir", str(root / "drafts"),

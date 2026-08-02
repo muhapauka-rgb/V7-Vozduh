@@ -16597,7 +16597,14 @@ def controlled_source_topology_diagnostic(
     policy_validation = (
         operator_execution.validate_standing_delegated_operational_policy(
             policy_contract,
-            audit_records=operator_execution.read_audit_records(
+            # A standing Authority decision can legitimately live in a bounded
+            # rotated audit segment.  This topology consumer must use the same
+            # compact durable-lineage projection as the policy-status and
+            # target-selection consumers; otherwise one active contract is
+            # simultaneously PASS and "missing" depending on which existing
+            # consumer read it.  It remains a read-only projection, not a new
+            # registry or cache.
+            audit_records=operator_execution.read_live_execution_lineage_records(
                 Path(args.action_class_audit_store)
             ),
         )

@@ -10353,3 +10353,42 @@ does not itself certify Service Failure production behavior. Controlled
 adapter outcomes progress `5 -> 10 -> 25 -> 48`, each with fresh identities
 and live gates, and stop on the first unsafe terminal. Valid generic
 certification is reused and must not be ceremonially rerun.
+
+## 45. Runtime Time Reuse And Availability Cohort Critical-Path Law
+
+Classification: `PERMANENT_RULE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Time semantics owner: `docs/reference/V7_RUNTIME_MODEL.md`.
+Analysis owner: `admin_core.operator_execution_pipeline.execution_performance_foundation`.
+Runtime producer: `tools/v7-governed-canary-dry-run-cycle`.
+
+Wall-clock timestamps own audit ordering only. Exact elapsed performance uses
+one process-local monotonic clock. Wall-clock, freshness age, deadline/TTL and
+event ordering must never be substituted for monotonic elapsed duration.
+
+Availability-first governed transactions publish a compact five-stage timing
+projection through their existing receipt: planner, Packet/lease,
+restore-barrier, apply/verification and feedback/Learning. The projection is
+consumed by the existing performance foundation and is stored once per cohort
+Packet, never once per member. No second ledger, metrics registry, watcher or
+truth source is created.
+
+When the current standing policy, exact immutable allocation and all live
+gates admit more than one certification identity on one target subset, the
+existing cohort-capable L3 executor owns one fresh Candidate, Packet and lease
+for that exact subset. `max_concurrent_transactions=1`, per-user apply results,
+verification, rollback/containment, circuit breaker, Outcome, Replay and
+Learning remain mandatory. Repeating the entire governed lifecycle once per
+member is forbidden unless an owner-backed invalidation proves that cohort
+binding is unsafe for that exact action class.
+
+Historical Stage-25 receipt `afstage_2595c3494c52f5fa6ba96592` remains
+immutable and must not be repeated for benchmarking. Its observed forward
+member windows of approximately 92.882–147.411 seconds established the
+baseline; post-repair production p50/p95 requires a new independently admitted
+owner-driven cohort transaction and cannot be inferred from tests.
+
+Stage 48 remains STOP_SAFE while the controlled source is absent from current
+topology truth or fewer than 48 current certification identities occupy its
+source scope. The ordinary Matrix timer owns automatic revalidation. Identities
+must not be moved merely to manufacture latency or Stage-48 evidence.

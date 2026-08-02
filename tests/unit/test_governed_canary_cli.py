@@ -1188,6 +1188,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         inactive = module.controlled_engineering_apply_options({})
         active = module.controlled_engineering_apply_options({"request_id": "engauth_r1_test"})
+        delegated_reset = module.controlled_engineering_apply_options(
+            {},
+            availability_first_reset=True,
+        )
 
         self.assertFalse(inactive["emergency_failover_autonomy"])
         self.assertEqual(inactive["service_matrix_lock_timeout_sec"], 90)
@@ -1195,9 +1199,23 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(active["emergency_failover_autonomy"])
         self.assertEqual(active["service_matrix_lock_timeout_sec"], 5)
         self.assertTrue(active["controlled_verifier_contention"])
+        self.assertTrue(delegated_reset["emergency_failover_autonomy"])
+        self.assertEqual(
+            delegated_reset["service_matrix_lock_timeout_sec"], 5
+        )
+        self.assertTrue(
+            delegated_reset["controlled_verifier_contention"]
+        )
         self.assertEqual(module.controlled_engineering_action_class({}), "USER_SWITCH")
         self.assertEqual(
             module.controlled_engineering_action_class({"request_id": "engauth_r1_test"}),
+            "EMERGENCY_FAILOVER",
+        )
+        self.assertEqual(
+            module.controlled_engineering_action_class(
+                {},
+                availability_first_reset=True,
+            ),
             "EMERGENCY_FAILOVER",
         )
 

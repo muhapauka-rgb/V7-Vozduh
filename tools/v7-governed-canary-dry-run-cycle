@@ -2694,9 +2694,13 @@ def autoswitch_apply_timeout_seconds(max_users: int) -> int:
     return min(3600, max(330, 300 + users * 30))
 
 
-def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) -> dict[str, Any]:
+def controlled_engineering_apply_options(
+    engineering_authority: dict[str, Any],
+    *,
+    availability_first_reset: bool = False,
+) -> dict[str, Any]:
     """Activate the existing bounded verifier only for an exact R2 binding."""
-    active = bool(engineering_authority)
+    active = bool(engineering_authority) or availability_first_reset
     return {
         "emergency_failover_autonomy": active,
         "service_matrix_lock_timeout_sec": 5 if active else 90,
@@ -2704,8 +2708,16 @@ def controlled_engineering_apply_options(engineering_authority: dict[str, Any]) 
     }
 
 
-def controlled_engineering_action_class(engineering_authority: dict[str, Any]) -> str:
-    return "EMERGENCY_FAILOVER" if engineering_authority else "USER_SWITCH"
+def controlled_engineering_action_class(
+    engineering_authority: dict[str, Any],
+    *,
+    availability_first_reset: bool = False,
+) -> str:
+    return (
+        "EMERGENCY_FAILOVER"
+        if engineering_authority or availability_first_reset
+        else "USER_SWITCH"
+    )
 
 
 def run_autoswitch_apply(
@@ -5411,7 +5423,10 @@ def _execute_governed_transaction_with_guards_inner(
         if not preview_binding.get("ok"):
             return transaction_stop("approved_packet_binding_failed", cycle=cycle, approved_packet_binding=preview_binding)
 
-    runtime_action_class = controlled_engineering_action_class(engineering_authority)
+    runtime_action_class = controlled_engineering_action_class(
+        engineering_authority,
+        availability_first_reset=availability_first_reset,
+    )
     qualifying_service_failure_event = (
         delegated_admission.get("qualifying_service_failure_event")
         if isinstance(delegated_admission.get("qualifying_service_failure_event"), dict) else {}
@@ -5584,6 +5599,10 @@ def _execute_governed_transaction_with_guards_inner(
         )
         return transaction_stop("autonomous_execution_control_denied_pre_apply", execution_control=pre_apply_control, lease_terminalization=terminal)
 
+    apply_options = controlled_engineering_apply_options(
+        engineering_authority,
+        availability_first_reset=availability_first_reset,
+    )
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -5600,7 +5619,7 @@ def _execute_governed_transaction_with_guards_inner(
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
-        **controlled_engineering_apply_options(engineering_authority),
+        **apply_options,
     )
     if topology_mode:
         apply_run = recover_controlled_topology_apply_terminal(

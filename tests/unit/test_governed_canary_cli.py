@@ -1234,6 +1234,20 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual(result, authority)
 
+    def test_compact_failed_transaction_preserves_exact_stop_reason(self):
+        module = load_cli_module()
+
+        result = module.compact_transaction_result({
+            "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+            "transaction_status": "STOP_SAFE",
+            "stop_reason": "exact_existing_owner_terminal",
+        })
+
+        self.assertEqual(
+            result["stop_reason"],
+            "exact_existing_owner_terminal",
+        )
+
     def test_exact_engineering_authority_projects_only_bound_controlled_candidate(self):
         module = load_cli_module()
         request = {

@@ -5682,10 +5682,24 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         service_failure_causal_binding=(packet.get("service_failure_causal_binding") if isinstance(packet.get("service_failure_causal_binding"), dict) else None),
     )
+    apply_stop_reason = ""
+    if not apply_result.get("applied"):
+        apply_stop_reason = str(
+            operation.get("terminal_reason")
+            or apply_payload.get("stop_reason")
+            or apply_payload.get("final_verdict")
+            or apply_run.get("error")
+            or (
+                f"autoswitch_apply_returncode_{int(apply_run.get('returncode') or 0)}"
+                if int(apply_run.get("returncode") or 0) != 0
+                else "autoswitch_apply_not_applied"
+            )
+        )
     return {
         "schema_version": "v7.governed-execution-transaction.v1",
         "transaction_status": "COMPLETED" if apply_result.get("applied") else "STOP_SAFE",
         "final_verdict": "GOVERNED_TRANSACTION_COMPLETED" if apply_result.get("applied") else "GOVERNED_TRANSACTION_STOPPED",
+        "stop_reason": apply_stop_reason,
         "fresh_packet_id": packet.get("packet_id", ""),
         "decision_id": packet.get("decision_id", ""),
         "operation_id": packet.get("operation_id", ""),

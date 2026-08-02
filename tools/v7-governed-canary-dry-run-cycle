@@ -6773,10 +6773,30 @@ def availability_first_partial_apply_recovery_context(
                     cohort_packet.get("operation_id") or ""
                 )
                 cohort_row = registry_by_user.get(cohort_user, {})
+                cohort_current_route = current_routes.get(cohort_user)
+                cohort_route_owned = bool(
+                    cohort_current_route in {
+                        cohort_source,
+                        cohort_target,
+                    }
+                    or (
+                        cohort_packet.get(
+                            "superseded_by_later_route"
+                        ) is True
+                        and cohort_current_route
+                        == str(
+                            cohort_packet.get("current_route") or ""
+                        )
+                        and str(
+                            cohort_packet.get(
+                                "superseding_switch_at"
+                            ) or ""
+                        )
+                    )
+                )
                 if (
                     cohort_source != source
-                    or current_routes.get(cohort_user)
-                    not in {cohort_source, cohort_target}
+                    or not cohort_route_owned
                     or not bool_value(
                         cohort_row.get("certification_user")
                     )
@@ -7083,10 +7103,28 @@ def availability_first_interrupted_cohort_audit_projection(
                 source=source,
                 target=target,
             )
+            current_route = str(user_row.get("current") or "")
+            superseding_switch = {}
+            if forward_switch and current_route not in {source, target}:
+                forward_at = str(forward_switch.get("ts") or "")
+                superseding_switch = next(
+                    (
+                        row
+                        for row in switch_rows
+                        if isinstance(row, dict)
+                        and str(row.get("user_ip") or "") == user
+                        and str(row.get("from") or "") == target
+                        and str(row.get("to") or "") == current_route
+                        and str(row.get("ts") or "") > forward_at
+                    ),
+                    {},
+                )
             if (
                 not bool_value(user_row.get("certification_user"))
-                or str(user_row.get("current") or "")
-                not in {source, target}
+                or (
+                    current_route not in {source, target}
+                    and not superseding_switch
+                )
                 or not packet_id
                 or not operation_id
                 or not forward_switch
@@ -7118,6 +7156,13 @@ def availability_first_interrupted_cohort_audit_projection(
                 "source": source,
                 "target": target,
                 "target_id": target,
+                "current_route": current_route,
+                "containment_required": current_route == target,
+                "baseline_restored": current_route == source,
+                "superseded_by_later_route": bool(superseding_switch),
+                "superseding_switch_at": str(
+                    superseding_switch.get("ts") or ""
+                ),
                 "users_moved": 1 if evidence_ok else 0,
                 "runtime_mutation_performed": True,
                 "verification_result": (

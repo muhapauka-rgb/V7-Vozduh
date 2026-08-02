@@ -628,22 +628,33 @@ class GovernedCanaryCliTest(unittest.TestCase):
             events.mkdir()
             users = ("10.7.0.100", "10.7.0.101")
             (state / "users.registry").write_text(
-                "".join(
-                    f"ip={user} current=awg3 enabled=1 certification_user=1\n"
-                    for user in users
+                (
+                    f"ip={users[0]} current=awg3 enabled=1 "
+                    "certification_user=1\n"
+                    f"ip={users[1]} current=wireguard enabled=1 "
+                    "certification_user=1\n"
                 ),
                 encoding="utf-8",
             )
-            (events / "switch-history.jsonl").write_text(
-                "".join(
+            switch_rows = [
+                *(
                     json.dumps({
                         "ts": f"2026-07-31T17:00:0{index}+00:00",
                         "user_ip": user,
                         "from": "vless",
                         "to": "awg3",
-                    }) + "\n"
+                    })
                     for index, user in enumerate(users)
                 ),
+                json.dumps({
+                    "ts": "2026-07-31T17:05:00+00:00",
+                    "user_ip": users[1],
+                    "from": "awg3",
+                    "to": "wireguard",
+                }),
+            ]
+            (events / "switch-history.jsonl").write_text(
+                "".join(row + "\n" for row in switch_rows),
                 encoding="utf-8",
             )
             fingerprint = "b" * 64
@@ -711,6 +722,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertFalse(
             result["packet_set"][1]["production_outcome_credit"]
+        )
+        self.assertTrue(
+            result["packet_set"][1]["superseded_by_later_route"]
         )
     def test_availability_first_stage_serializes_cohort_through_fresh_one_user_packets(self):
         module = load_cli_module()

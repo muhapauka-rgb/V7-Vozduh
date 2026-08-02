@@ -5754,8 +5754,23 @@ def _execute_governed_transaction_with_guards_inner(
         apply_stop_detail = str(
             apply_result.get("unsafe_blocker")
             or ",".join(
+                f"source_hash:{item}"
+                for item in (
+                    atomic_validation.get("source_hash_mismatches") or []
+                )
+            )
+            or ",".join(
                 str(item)
-                for item in (atomic_validation.get("mismatches") or [])
+                for item in (
+                    (
+                        atomic_validation.get("state")
+                        if isinstance(
+                            atomic_validation.get("state"), dict
+                        )
+                        else {}
+                    ).get("mismatches")
+                    or []
+                )
             )
             or atomic_validation.get("reason")
             or ""

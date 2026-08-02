@@ -10381,10 +10381,17 @@ class AutoswitchPlanner:
         )
         if lease.get("ok"):
             return lease
+        source_hash_mismatches = sorted(
+            key
+            for key in set(approved_source_hashes) | set(current_source_hashes)
+            if str(approved_source_hashes.get(key) or "")
+            != str(current_source_hashes.get(key) or "")
+        )
         return {
             "ok": False,
             "state": self._atomicity_state(condition, trigger="apply_validation", mismatches=mismatches),
             "reason": f"atomic_execution_envelope_{condition.lower()}",
+            "source_hash_mismatches": source_hash_mismatches,
             "current_source_bundle_hash": current_source_bundle_hash,
             "approved_source_bundle_hash": envelope.get("source_bundle_hash", ""),
             "current_source_hashes": current_source_hashes,

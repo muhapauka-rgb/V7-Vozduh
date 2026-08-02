@@ -10392,3 +10392,51 @@ Stage 48 remains STOP_SAFE while the controlled source is absent from current
 topology truth or fewer than 48 current certification identities occupy its
 source scope. The ordinary Matrix timer owns automatic revalidation. Identities
 must not be moved merely to manufacture latency or Stage-48 evidence.
+
+### 45.1 One-Governed-Transaction Latency Forensics And Repair
+
+Mission identity:
+`ONE_GOVERNED_TRANSACTION_SECOND_BY_SECOND_LATENCY_FORENSICS_AND_REPAIR_V1`.
+Program owner remains
+`V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1`; this subsection creates
+no Program, Planner, Runtime, Time owner, registry, watcher or evidence store.
+
+The immutable Stage-25 receipt exposed 92.882--147.411 second member windows.
+Existing-owner forensics proved that the dominant avoidable producer was
+service verification: fourteen required services were executed through
+fourteen sequential Python process launches, Matrix lock acquisitions and
+durable writes, although the existing service-matrix owner already supported
+bounded parallel probes.
+
+Production commit `347cacbfb6e44679e626579ab662a5af9f391a4a` extends the
+existing owners with process-local monotonic spans and replaces that sequence
+with one exact bounded service subset, one parallel probe generation and one
+Matrix durable write. The exact fourteen-service comparison is owner-consumed:
+
+| Path | Elapsed | Result |
+| --- | ---: | --- |
+| backward-compatible sequential verifier | `91.965611 s` | `14/14 PASS` |
+| repaired bounded parallel verifier | `8.786229 s` | `14/14 PASS` |
+
+The repaired span assigns `7.521070 s` to parallel network/service probes,
+`1.265159 s` to the Matrix lock and durable write, `0.000374 s` to module
+initialization, and about `0.050091 s` to process CPU. This is a measured
+component terminal, not a fabricated full governed-transaction terminal.
+
+Stage 48 is blocked by the Time consumer until one lawful fresh existing-policy
+single-user governed transaction publishes and consumes the deployed nested
+monotonic timeline. Packet, lease, Authority, user and topology identities must
+be fresh. Stage 25 must not be repeated. Ordinary users must not be moved for
+benchmarking. If the existing controlled-topology owner reports incomplete
+source/target identity, the exact terminal is
+`FRESH_LAWFUL_CONTROLLED_SINGLE_TRANSACTION_BENCHMARK_SOURCE_TARGET_IDENTITY_REQUIRED`.
+Its durable re-entry is the next existing-owner topology generation where
+`source_target_identity_complete=true`; that output is consumed by the existing
+Matrix/governed-transaction path without a new Program or manual benchmark
+shortcut.
+
+Only after the full transaction proves every interval over one second, low
+level mutation versus governance overhead, same-path before/after improvement,
+and existing performance-foundation consumption may OMP emit
+`ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN` and release the Time side
+of the Stage-48 gate.

@@ -1753,6 +1753,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             controlled_source="vless",
             availability_first_reset=True,
             availability_first_target="awg0",
+            availability_first_allocation_fingerprint="a" * 64,
         )
         drifted = module.controlled_certification_cleanup_selection(
             users=[{
@@ -1776,6 +1777,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             controlled_source="vless",
             availability_first_reset=True,
             availability_first_target="awg3",
+            availability_first_allocation_fingerprint="a" * 64,
         )
 
         self.assertEqual(selected["selection_status"], "SELECTED", selected)
@@ -1829,6 +1831,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             controlled_source="vless",
             availability_first_reset=True,
             availability_first_target="execution-target",
+            availability_first_allocation_fingerprint="b" * 64,
         )
         ordinary = module.controlled_certification_cleanup_selection(
             users=[
@@ -1847,6 +1850,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             controlled_source="vless",
             availability_first_reset=True,
             availability_first_target="execution-target",
+            availability_first_allocation_fingerprint="b" * 64,
         )
         cross_campaign = module.controlled_certification_cleanup_selection(
             users=[
@@ -1864,6 +1868,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             controlled_source="vless",
             availability_first_reset=True,
             availability_first_target="execution-target",
+            availability_first_allocation_fingerprint="b" * 64,
         )
 
         self.assertEqual(selected["selection_status"], "SELECTED", selected)
@@ -1895,6 +1900,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "source": "awg0",
                     "target": "vless",
                     "availability_first_reset": True,
+                    "availability_first_allocation_fingerprint": "c" * 64,
                 },
                 engineering_authority_request_file="",
                 engineering_authority_decision="",
@@ -1969,6 +1975,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "campaign_reset": True,
                     "controlled_source": "vless",
                     "availability_first_reset": True,
+                    "availability_first_allocation_fingerprint": "c" * 64,
                     "availability_first_target": "awg0",
                 },
                 engineering_authority_request_file="",
@@ -2039,6 +2046,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             captured_surface["controlled_execution_gate_profile"],
             "CONTROLLED_CERTIFICATION_TOPOLOGY",
+        )
+        self.assertTrue(
+            captured_surface["users_by_ip"]["10.7.0.100"][
+                "availability_first_controlled_assignment"
+            ]["baseline_reset"]
         )
 
     def test_availability_baseline_reset_reconciles_missing_child_terminal_without_outcome_credit(self):

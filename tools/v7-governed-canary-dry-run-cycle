@@ -1225,6 +1225,13 @@ def merge_a4_gap_candidate_into_surface(surface: dict[str, Any], selection: dict
         "source_hash": str(selection.get("source_hash") or existing.get("source_hash") or ""),
         "reasons": ["A4 goal-directed selection chose a missing evidence candidate"],
     })
+    semantic_binding = selected.get(
+        "availability_first_controlled_assignment"
+    )
+    if isinstance(semantic_binding, dict) and semantic_binding:
+        existing["availability_first_controlled_assignment"] = (
+            copy.deepcopy(semantic_binding)
+        )
     users_by_ip[user] = existing
     out["users_by_ip"] = users_by_ip
     out["batch_preview"] = {
@@ -1239,6 +1246,15 @@ def merge_a4_gap_candidate_into_surface(surface: dict[str, Any], selection: dict
             "recommendation_hash": recommendation_hash,
             "a4_goal_directed": True,
             "evidence_value": selected.get("evidence_value", 1),
+            **(
+                {
+                    "availability_first_controlled_assignment": (
+                        copy.deepcopy(semantic_binding)
+                    )
+                }
+                if isinstance(semantic_binding, dict) and semantic_binding
+                else {}
+            ),
         }],
     }
     out["a4_goal_directed_selection"] = selection
@@ -1351,6 +1367,7 @@ def controlled_certification_cleanup_selection(
     controlled_source: str = "",
     availability_first_reset: bool = False,
     availability_first_target: str = "",
+    availability_first_allocation_fingerprint: str = "",
 ) -> dict[str, Any]:
     """Admit only exact pre-state restoration after a consumed controlled run."""
     blockers: list[str] = []
@@ -1381,6 +1398,10 @@ def controlled_certification_cleanup_selection(
                 "campaign_reset_target_not_exact_controlled_source"
             )
         if availability_first_reset:
+            if len(str(availability_first_allocation_fingerprint or "")) != 64:
+                blockers.append(
+                    "availability_first_reset_allocation_fingerprint_invalid"
+                )
             if str(source_row.get("id") or "") != availability_first_target:
                 blockers.append(
                     "availability_first_reset_current_source_changed"
@@ -1460,6 +1481,27 @@ def controlled_certification_cleanup_selection(
             "suitability_score": 100.0,
             "confidence": 100.0,
             "risk": 0.0,
+            **(
+                {
+                    "availability_first_controlled_assignment": {
+                        "schema_version": (
+                            "v7.availability-first-controlled-selection.v1"
+                        ),
+                        "event_provenance": "CONTROLLED_CERTIFICATION",
+                        "natural_production_credit": False,
+                        "source": source,
+                        "target": target,
+                        "allocation_fingerprint": str(
+                            availability_first_allocation_fingerprint or ""
+                        ),
+                        "ordinary_user": False,
+                        "baseline_reset": True,
+                        "controlled_baseline_source": target,
+                    }
+                }
+                if availability_first_reset
+                else {}
+            ),
         } if not blockers else {},
         "source_hash": source_hash,
         "evidence_class": "ENGINEERING_CLEANUP",
@@ -5308,6 +5350,10 @@ def _execute_governed_transaction_with_guards_inner(
             availability_first_target=str(
                 cleanup_request.get("availability_first_target") or ""
             ),
+            availability_first_allocation_fingerprint=str(
+                cleanup_request.get("availability_first_allocation_fingerprint")
+                or ""
+            ),
         )
         if certification_cleanup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -8450,6 +8496,9 @@ def execute_availability_first_standing_stage(
             "controlled_source": source,
             "availability_first_reset": True,
             "availability_first_target": target,
+            "availability_first_allocation_fingerprint": str(
+                partial.get("allocation_fingerprint") or ""
+            ),
         }
         reset_args.skip_planner_observe = True
         reset_args.execute_bounded_delegated_transaction = False

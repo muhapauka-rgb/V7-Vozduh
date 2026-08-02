@@ -2529,6 +2529,7 @@ class AutoswitchPlanner:
             fingerprint = str(
                 binding.get("allocation_fingerprint") or ""
             )
+            baseline_reset = binding.get("baseline_reset") is True
             allocation_fingerprints.add(fingerprint)
             sources.add(source)
             targets.add(target)
@@ -2574,11 +2575,27 @@ class AutoswitchPlanner:
                 reasons.append(
                     f"availability_first_user_not_certification_identity:{user_ip}"
                 )
+            controlled_row = (
+                egress_rows.get(target) or {}
+                if baseline_reset
+                else source_row
+            )
             if not bool_value(
-                source_row.get("controlled_certification_source")
+                controlled_row.get("controlled_certification_source")
             ):
                 reasons.append(
-                    f"availability_first_source_not_controlled:{source}"
+                    (
+                        "availability_first_reset_baseline_not_controlled:"
+                        if baseline_reset
+                        else "availability_first_source_not_controlled:"
+                    )
+                    + (target if baseline_reset else source)
+                )
+            if baseline_reset and str(
+                binding.get("controlled_baseline_source") or ""
+            ) != target:
+                reasons.append(
+                    f"availability_first_reset_baseline_binding_mismatch:{user_ip}"
                 )
             if source == target:
                 reasons.append(
@@ -2596,8 +2613,9 @@ class AutoswitchPlanner:
                     user_row.get("certification_user")
                 ),
                 "source_controlled": bool_value(
-                    source_row.get("controlled_certification_source")
+                    controlled_row.get("controlled_certification_source")
                 ),
+                "baseline_reset": baseline_reset,
                 "binding_fingerprint": fingerprint,
             })
 
@@ -10518,17 +10536,34 @@ class AutoswitchPlanner:
         )
         approved_validation_envelope = gate.get("approved_production_validation_envelope") if isinstance(gate.get("approved_production_validation_envelope"), dict) else {}
         approved_validation_scope = approved_batch_scope and bool_value(approved_validation_envelope.get("ok"))
+        availability_first_authorized = bool_value(
+            availability_first_scope.get("ok")
+        )
         max_allowed_selected = clearance_max_selected_moves if approved_batch_scope else 1
         live_users = {user.ip: user for user in self._load_users()}
         live_egress = self._load_egress()
         blockers: list[str] = []
         checked_moves: list[dict[str, Any]] = []
 
-        if not bool_value(gate.get("ok")) and not approved_validation_scope:
+        if (
+            not bool_value(gate.get("ok"))
+            and not approved_validation_scope
+            and not availability_first_authorized
+        ):
             blockers.append("l3_authority_gate_not_authorized")
-        if wake and not bool_value(wake.get("accepted")):
+        if (
+            wake
+            and not bool_value(wake.get("accepted"))
+            and not availability_first_authorized
+        ):
             blockers.append("l3_wake_not_accepted")
-        if incident and str(incident.get("incident_state") or "") != "READY_FOR_EXECUTION" and not approved_validation_scope:
+        if (
+            incident
+            and str(incident.get("incident_state") or "")
+            != "READY_FOR_EXECUTION"
+            and not approved_validation_scope
+            and not availability_first_authorized
+        ):
             blockers.append("l3_incident_not_ready")
         if len(selected) < 1:
             blockers.append("l3_requires_selected_move")

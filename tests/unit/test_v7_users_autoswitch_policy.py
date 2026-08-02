@@ -780,6 +780,90 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             rejected["reasons"],
         )
 
+    def test_availability_first_baseline_reset_uses_standing_scope_without_l3_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                current_egress="1",
+                vless_registry_extra=" controlled_certification_source=1",
+                emergency_failover_autonomy={"enabled": True},
+            )
+            (root / "state" / "users.registry").write_text(
+                "ip=10.7.0.100 current=1 table=1098 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["delegated_autonomy_policy"] = {
+                "contract_id": "sdpc_unit",
+                "contract_hash": "a" * 64,
+            }
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--emergency-failover-autonomy",
+                        "--mode", "guarded",
+                        "--apply",
+                        "--user", "10.7.0.100",
+                        "--source-egress", "1",
+                        "--target-egress", "vless",
+                    ],
+                )
+            )
+            move = {
+                "user_ip": "10.7.0.100",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+                "execution_mode": "emergency_failover",
+                "operation_id": "reset-operation",
+                "selected_move_hash": "reset-hash",
+                "availability_first_controlled_assignment": {
+                    "schema_version": "v7.availability-first-controlled-selection.v1",
+                    "event_provenance": "CONTROLLED_CERTIFICATION",
+                    "natural_production_credit": False,
+                    "source": "1",
+                    "target": "vless",
+                    "allocation_fingerprint": "b" * 64,
+                    "ordinary_user": False,
+                    "baseline_reset": True,
+                    "controlled_baseline_source": "vless",
+                },
+            }
+            standing_scope = {
+                "policy_profile": operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+                "allowed_action_classes": [operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS],
+                "action_class_scopes": {
+                    operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                        "certification_identities_only": True,
+                        "max_users_per_transaction": 48,
+                    },
+                },
+            }
+            plan = {
+                "summary": {"execution_mode": "emergency_failover"},
+                "operation": {
+                    "operation_id": "reset-operation",
+                    "selected_move_hash": "reset-hash",
+                },
+                "selected_moves": [move],
+                "safety": {"emergency_failover_autonomy": {"enabled": True, "ok": False}},
+            }
+            with mock.patch.object(
+                operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "errors": [], "policy": standing_scope},
+            ):
+                scope = planner._exact_availability_first_controlled_scope([move])
+                eligibility = planner._l3_execution_eligibility(plan)
+
+        self.assertTrue(scope["ok"], scope)
+        self.assertTrue(eligibility["ok"], eligibility)
+        self.assertNotIn("l3_authority_gate_not_authorized", eligibility["blockers"])
+
     def test_execution_control_open_denies_apply_without_changing_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

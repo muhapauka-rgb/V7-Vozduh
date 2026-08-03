@@ -4214,11 +4214,44 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
         blockers.append("standing_policy_contract_id_changed_after_matrix_admission")
     if not expected_contract_hash or str(contract.get("contract_hash") or "") != expected_contract_hash:
         blockers.append("standing_policy_contract_hash_changed_after_matrix_admission")
+    bounded_availability_request = (
+        getattr(args, "_availability_first_stage_request", None)
+        if isinstance(
+            getattr(args, "_availability_first_stage_request", None), dict
+        )
+        else {}
+    )
+    bounded_availability_users = [
+        str(value or "")
+        for value in (bounded_availability_request.get("expected_users") or [])
+        if str(value or "")
+    ]
+    registry_by_ip = {
+        str(row.get("ip") or ""): row
+        for row in read_registry(state_dir / "users.registry")
+        if str(row.get("ip") or "")
+    }
+    certification_only_availability_subset = bool(
+        availability_mode
+        and len(bounded_availability_users) == requested_max_users
+        and requested_max_users > 0
+        and all(
+            str((registry_by_ip.get(user) or {}).get("current") or "")
+            == approved_source
+            and str(
+                (registry_by_ip.get(user) or {}).get("certification_user")
+                or ""
+            ).lower() in {"1", "true", "yes"}
+            for user in bounded_availability_users
+        )
+    )
     if (
         int(policy.get("max_users_per_action") or 0) != requested_max_users
         and not (
-            controlled_source
-            and campaign_binding.get("ok")
+            (
+                (controlled_source and campaign_binding.get("ok"))
+                or certification_only_availability_subset
+            )
             and 0 < requested_max_users
             <= int(policy.get("max_users_per_action") or 0)
         )

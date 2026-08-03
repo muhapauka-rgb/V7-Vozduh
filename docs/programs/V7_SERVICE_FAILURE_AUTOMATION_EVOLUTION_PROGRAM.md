@@ -3285,3 +3285,21 @@ V1.5 replaces this with:
 M0 is read-only. It must prove the exact live location and semantic owner of
 the compact incident projection before any schema, retention, partition or
 consumer change is proposed.
+
+## V3.1 final performance-closure revision record
+
+The updated final performance-closure Mission before Stage 48 is
+`COMPLETE_CONSUMED`. Existing Matrix/path evidence reuse, lightweight user
+route binding, a lawful certification-only full transaction, baseline reset,
+Outcome/Replay/Learning and Time consumption are production-proven by receipt
+`perfclose_1f91af0c6253c6fe75e028c5`.
+
+Exact terminal:
+
+`ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN`
+
+`STAGE_48_OPTIMIZED_RUNTIME_READY`
+
+This revision grants no Stage-48 execution, campaign-stage credit, Natural L8,
+Authority expansion or Production Maturity change. The next boundary is the
+separate existing-owner admission `STAGE_48_EXISTING_OWNER_ADMISSION_REQUIRED`.

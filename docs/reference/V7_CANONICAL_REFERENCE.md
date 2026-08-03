@@ -1892,17 +1892,19 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 
 ## 7. Service Matrix
 
-- What it means: Per-service reachability/health diagnostics for channels/services.
+- What it means: Per-service reachability/health diagnostics for an exact egress path and channel profile. It is not user-route evidence.
 - Source of truth: Existing service matrix refresh/test outputs and admin service matrix read models.
 - Where it is calculated: Runtime tools `v7-service-matrix-refresh-all` and `v7-service-matrix-test`; admin rendering helpers in `admin/v7-admin-api`.
 - Where it is displayed: Checks, Channel Drawer service details, diagnostics, Attention item source when service failure affects users.
-- What affects it: Service test results, freshness, channel availability, runtime check outputs.
+- What affects it: Service test results, freshness, channel/profile/config generation, interface and network namespace, source-address class, expected egress identity, DNS, policy rules, routing tables, firewall/split-routing semantics, service-set/schema generation and runtime check outputs.
 - What does NOT affect it: It does not by itself execute user movement, bypass governance, or replace planner eligibility.
 - Operator meaning: "Which services work on this channel and what needs re-checking?"
-- Engineer meaning: Measurement/diagnostic input consumed by UI and planner gates.
-- Known caveats: Service Matrix is diagnostic/background automation, not a standalone business action. Manual refresh is allowed only through existing safe actions. First-level channel Services should track primary user-facing services; hidden endpoint checks such as auth/API companion endpoints remain supporting diagnostics unless they become explicit planner blockers.
+- Engineer meaning: The 14 probes run on the production runtime node in its current network namespace and bind sockets or curl to the target interface. Their evidence scope is `EGRESS_PATH_AND_CHANNEL_PROFILE`; the exact user's table/mark/assignment does not affect the probe. The existing Matrix row embeds only secret-free hashes and generations as `path_evidence`; raw addresses, rules, firewall state and credentials remain with their canonical owners.
+- Evidence reuse law: Fresh Matrix evidence may be inherited only after exact path, egress/config, service-set and identity-generation equality. The user movement path must separately prove current assignment plus Linux policy-table/route binding. Any missing, stale, mismatched or contradictory dimension fails closed into the existing full Matrix verifier. Capacity and policy admission remain fresh live gates and are not inherited from Matrix.
+- Probe classes: `google` is `CHANNEL_HEALTH_REQUIRED`; `telegram` is `EGRESS_PATH_REQUIRED`; `google_auth`, `youtube`, `apple`, `instagram`, `whatsapp`, `facebook`, `spotify`, `soundcloud`, `chatgpt`, `openai_auth`, `claude`, and `anthropic` are `CHANNEL_PROFILE_REQUIRED`. None is `USER_BINDING_REQUIRED`; none may be removed merely because another HTTP probe passes.
+- Known caveats: Service Matrix is diagnostic/background automation, not a standalone business action. Manual refresh is allowed only through existing safe actions. First-level channel Services should track primary user-facing services; hidden endpoint checks such as auth/API companion endpoints remain supporting diagnostics unless they become explicit planner blockers. A declared expected egress identity is fingerprinted without storing the raw address; a runtime-observed public-IP probe is not added to the per-user critical path.
 - Related reports / ADRs: `docs/operator_actions/OPERATOR_ACTIONS_AUTOMATION_REALITY_AUDIT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_2_OPERATOR_SURFACE_SIMPLIFICATION_REPORT.md`, `UX_4_CHANNEL_DRAWER_REBUILD_SPECIFICATION_REPORT.md`.
-- Last verified commit: `8ba2178f`.
+- Last verified commit: `73524669`.
 
 ## 8. Stability
 

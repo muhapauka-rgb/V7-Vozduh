@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-02T16:40:49+00:00
-Latest terminal Mission: `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1`
-Latest terminal Mission state: `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN`
-Latest terminal Mission report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
+State captured: 2026-08-03T06:56:19.890983+00:00
+Latest terminal Mission: `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1`
+Latest terminal Mission state: `STAGE_48_OPTIMIZED_RUNTIME_READY`
+Latest terminal Mission report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: Production commit `e84ee0b17f002a46a3a2b7bea61699245d8aaae2` consumes the existing topology diagnostic through the existing CPS/OMP owner. It distinguishes a real external-capacity boundary from a source/target role collision and retains only the automatic Matrix/quality re-entry.
 
@@ -13,7 +13,7 @@ Source: Production commit `e84ee0b17f002a46a3a2b7bea61699245d8aaae2` consumes th
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-02T16:40:49+00:00`
+Captured: `2026-08-03T06:56:19.890983+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,46 +21,46 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
-| `ARCHITECTURE_STATE` | `STAGE_25_PRODUCTION_PROVEN_AND_LOCKED; EXISTING_RUNTIME_TIME_OWNER_BOUND; DOMINANT_SEQUENTIAL_SERVICE_VERIFICATION_AMPLIFICATION_REPAIRED_AND_PRODUCTION_REBENCHMARKED; COHORT_FORWARD_EXECUTION_DEPLOYED` |
+| `ARCHITECTURE_STATE` | `STAGE_25_PRODUCTION_PROVEN_AND_LOCKED; MATRIX_EXACT_PATH_EVIDENCE_REUSE_AND_LIGHTWEIGHT_USER_ROUTE_BINDING_PRODUCTION_CONSUMED; FULL_GOVERNED_TRANSACTION_MONOTONIC_TIMELINE_CONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP + AEP + Codex Automation Platform existing boundary owner` |
 | `VOLATILE_STATE_OWNER` | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` |
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CURRENT_ACTIVE_SCOPE` | `AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_LADDER` |
-| `CURRENT_SAFE_NEXT_ACTION` | `LET THE EXISTING MATRIX RECOMPUTE AND CONSUME THE FRESH AVAILABILITY-FIRST STAGE 48 SUCCESSOR AS READ-ONLY REVALIDATION; CURRENT LIVE BLOCKERS ARE CONTROLLED-SOURCE IDENTITY, SOURCE COHORT SIZE AND THE TIME GATE; STAGE 48 EXECUTION AND STAGE 25 REPEAT ARE FORBIDDEN` |
+| `CURRENT_SAFE_NEXT_ACTION` | `PRESERVE STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED; DO NOT START STAGE 48 UNTIL THE SEPARATE EXISTING-OWNER ADMISSION IS CONSUMED; STAGE 25 AND THE PERFORMANCE BENCHMARK MUST NOT BE REPEATED` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
+| `CURRENT_EXECUTION_FRONTIER` | `NONE` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
+| `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_EXISTING_OWNER_STAGE_48_ADMISSION_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_AVAILABILITY_FIRST_STAGE_48_SUCCESSOR_READY` |
-| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` |
+| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_TYPE` | `EXISTING_OWNER_STAGE_48_ADMISSION` |
 | `TRANSACTION_TERMINAL_CLASS` | `SUCCESS` |
-| `PROGRAM_TERMINAL_CLASS` | `NONE` |
-| `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `AVAILABILITY-FIRST-LADDER` |
+| `PROGRAM_TERMINAL_CLASS` | `EXTERNAL_OWNER_REQUIRED` |
+| `NEXT_MISSION_FORMED` | `FALSE` |
+| `NEXT_MISSION_ID` | `NONE` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `77` |
-| `CONTINUATION_STOP_REASON` | `STAGE 25 RECEIPT REMAINS CONSUMED; DOMINANT SERVICE-VERIFICATION CRITICAL PATH IS PRODUCTION-REBENCHMARKED; STAGE 48 MATRIX REVALIDATION REMAINS AUTOMATIC BUT EXECUTION IS TIME-GATED UNTIL A FRESH COMPLETE CONTROLLED SOURCE/TARGET IDENTITY PERMITS ONE LAWFUL SINGLE-USER FULL-PATH BENCHMARK` |
-| `CURRENT_TIME_FORENSICS_MISSION` | `ONE_GOVERNED_TRANSACTION_SECOND_BY_SECOND_LATENCY_FORENSICS_AND_REPAIR_V1` |
-| `CURRENT_TIME_FORENSICS_STATUS` | `DOMINANT_AVOIDABLE_SINGLE_TRANSACTION_LATENCY_REPAIRED; SERVICE_VERIFICATION_SAME_PATH_BEFORE_AFTER_REBENCHMARK_CONSUMED; FULL_GOVERNED_TRANSACTION_REBENCHMARK_EXTERNAL_RESOURCE_REQUIRED` |
-| `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-03_004500_one_governed_transaction_latency_forensics_and_repair.md` |
-| `CURRENT_TIME_FORENSICS_REENTRY` | `fresh existing-owner controlled-topology generation with source_target_identity_complete=true -> one existing-policy single-user governed transaction -> deployed monotonic timeline -> existing performance consumer -> residual recomputation` |
-| `STAGE_48_TIME_GATE` | `BLOCKED_UNTIL_ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN` |
+| `CONTINUATION_STOP_REASON` | `FINAL PERFORMANCE CLOSURE RECEIPT IS CONSUMED; STAGE 48 IS OPTIMIZED-RUNTIME READY BUT EXECUTION REMAINS FORBIDDEN UNTIL A SEPARATE EXISTING-OWNER ADMISSION` |
+| `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
+| `CURRENT_TIME_FORENSICS_STATUS` | `ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_CONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
+| `CURRENT_TIME_FORENSICS_REENTRY` | `NONE; receipt perfclose_1f91af0c6253c6fe75e028c5 is immutable and non-repeatable` |
+| `STAGE_48_TIME_GATE` | `PASS_RECEIPT_PERFCLOSE_1F91AF0C6253; READINESS_ONLY_NOT_EXECUTION_AUTHORITY` |
 | `STAGE_48_EXECUTION_PERMITTED` | `FALSE` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; generation egid_be6367407f70e591005185a2; current route-backed scope affected=0, protected=0, unresolved=0, excluded_or_recovered=0; cumulative packet-bound lineage=63; last feedback execfb_f5770df829554ffabe72278c` |
@@ -187,24 +187,25 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_STATE_CONSISTENCY` | `PASS; section 0, registry, protected WIP and deterministic sequence share one generation and transition` |
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_S25_20260802T140251+0000` |
-| `LATEST_TERMINAL_MISSION_STATE` | `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-02T14:02:51+0000` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_PERFCLOSE_20260803T065619+0000` |
+| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-03T06:56:19+0000` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
+| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
-| `CURRENT_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
-| `CURRENT_RUN_NONCE` | `V7_S25_20260802T140251+0000` |
-| `CURRENT_MISSION_STATE` | `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
+| `CURRENT_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
+| `CURRENT_RUN_NONCE` | `V7_PERFCLOSE_20260803T065619+0000` |
+| `CURRENT_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
+| `AUTHORITY_REQUIRED_NOW` | `NO_NEW_AUTHORITY_REQUIRED; STAGE 48 NEEDS A SEPARATE EXISTING-OWNER PROGRAM ADMISSION, NOT IMPLICIT CONTINUATION` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `bounded autonomous controlled certification topology,bounded availability-first controlled failover,channel hard-fail failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -356,7 +357,7 @@ This section is the single live volatile current-state surface. Older production
 | `PRODUCTION_ROUTING_AUTONOMY_STATUS` | `NOT_CLAIMED` |
 | `AUTHORITY_PROMOTION_STATUS` | `NONE` |
 | `PRODUCTION_MATURITY_CHANGE_STATUS` | `NONE` |
-| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md` |
+| `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
 | `CURRENT_ACTION_CLASS_EVIDENCE_FRONTIER` | `single-user governed candidate failover:NATURAL_L8_WAITING` |
 | `ACTION_CLASS_ENGINEERING_FRONTIER` | `POLYGON-ACTION-CLASS-CHANNEL_HARD_FAILURE_FAILOVER-ENGINEERING-G1:CONSUMED` |
 | `NEXT_PRODUCT_ACTION_CLASS` | `NONE` |
@@ -602,20 +603,20 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
+| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
 | `OPEN_ENGINEERING_INTENTS` | `21` |
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
-| `LATEST_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
-| `PREVIOUS_TERMINAL_MISSION_ID` | `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1` |
+| `LATEST_TERMINAL_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
+| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
+| `PREVIOUS_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
 | `PRIOR_BDP_CANDIDATES` | `25` certified instances are terminal historical ladder evidence, not open work |
@@ -623,8 +624,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The approval and dedicated identities remain valid, but campaign execution stays STOP_SAFE until the exact source's existing owner produces a fresh healthy Matrix baseline; that observation is the durable automatic re-entry condition. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
+| `OMP_CONTINUATION_POINTER` | Performance closure receipt `perfclose_1f91af0c6253c6fe75e028c5` is consumed and non-repeatable. Stage 48 remains not executed until a separate existing-owner admission is consumed. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -633,14 +634,14 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48` |
-| `current_transition_id` | `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` |
-| `smallest_existing_next_action_id` | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` |
+| `current_state_generation` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
+| `current_transition_id` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `smallest_existing_next_action_id` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
-| `latest_terminal_mission_id` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
-| `latest_terminal_mission_state` | `AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN` |
-| `previous_terminal_mission_id` | `V7_L7_R1_V6_ROLLBACK_DIVERSITY_COMPLETION_AND_L8_BOUNDARY_V1` |
+| `latest_terminal_mission_id` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
+| `latest_terminal_mission_state` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `previous_terminal_mission_id` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
 | `protected_by_active_wip` | `TRUE` |
@@ -649,10 +650,10 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `current_primary_stop` | `EXTERNAL_OWNER_REQUIRED_PROGRAM_FRONTIER; REAL_WORLD_LIMIT_CAPABILITY_LOCAL; APPROVED_SOURCE_HAS_NO_FRESH_HEALTHY_BASELINE` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `NO_NEW_AUTHORITY_REQUIRED; EXACT APPROVED SOURCE MUST FIRST RECOVER THROUGH ITS EXISTING EXTERNAL/EGRESS OWNER` |
-| `last_responsible_link` | existing Matrix -> availability allocation -> serialized packet-set stage 25 -> Outcome/Replay/Learning -> baseline reset -> append-only stage receipt -> automatic next Matrix generation |
+| `last_responsible_link` | ordinary Matrix -> one-user governed performance benchmark -> Outcome/Replay/Learning -> baseline reset -> Time receipt -> Stage-48 readiness-only projection -> separate existing-owner admission |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48 |
+| `smallest_existing_next_action` | WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -720,7 +721,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48`; `SERVICE_FAILURE_AVAILABILITY_FIRST_STAGE_25_CONSUMED_STAGE_48_READY_V1` | Stage 25 is production-proven by receipt `afstage_2595c3494c52f5fa6ba96592`; deployed cohort/Time repair is production-called; remaining campaign frontier is Stage 48 with live source/cohort gates | `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48` | existing Matrix, standing-policy and topology owners | `NONE` | fresh Stage 48 generation -> admission or exact STOP_SAFE -> automatic reentry; never repeat Stage 25 or manufacture cohort evidence |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY`; `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` | Stage 25 remains immutable; performance receipt `perfclose_1f91af0c6253c6fe75e028c5` proves the fastest safe path and Stage-48 optimized-runtime readiness without Stage credit | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` | existing Matrix, standing-policy, Authority, CPS and OMP owners; EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS | `EXTERNAL_OWNER_REQUIRED` | separate existing-owner admission or exact STOP_SAFE; do not repeat Stage 25/benchmark and do not execute Stage 48 implicitly |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -788,7 +789,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is live-source/cohort STOP_SAFE; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; Stage 25 is exactly-once consumed; ordinary Matrix owns Stage-48 source/cohort revalidation; no mutation is authorized by this projection |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `EXTERNAL_OWNER_REQUIRED`; current performance Mission is complete; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; Stage 25 and performance receipt are exactly-once consumed; Stage 48 requires a separate existing-owner admission; no mutation is authorized by this projection |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

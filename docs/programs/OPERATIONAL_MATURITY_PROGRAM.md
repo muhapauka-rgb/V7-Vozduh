@@ -14,9 +14,9 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` (`AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN`).
+Latest consumed report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Previous consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md` (`L7_CONTROLLED_ROLLBACK_DIVERSITY_CONSUMED_L8_NATURAL_CAPTURE_READY`).
+Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` (`AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
@@ -7899,9 +7899,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; cumulative reusable stages are `[1,2,5,10,25]`; Stage 25 is production-proven by exactly-once receipt `afstage_2595c3494c52f5fa6ba96592`; deployed cohort/Time repair is production-called; ordinary Matrix owns exact Stage-48 source/cohort revalidation. This pointer grants no Authority or mutation.
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`
+Resolved contract state: CPS proves immutable performance receipt `perfclose_1f91af0c6253c6fe75e028c5`, fastest-safe-path production consumption and `STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED`. Stage 48 is not a formed Mission and cannot start until a separate existing-owner admission is consumed. This pointer grants no Authority or mutation.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8887,12 +8887,12 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `NONE`
-Resolved current next action: `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48`
-Current terminal report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
-Latest consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
+Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
+Resolved current next action: `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`
+Current terminal report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
+Latest consumed report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
-Previous consumed report: `docs/reports/engineering/2026-07-25_123800_l7_r1_v6_rollback_diversity_completion_and_l8_boundary.md`
+Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:
@@ -10440,3 +10440,40 @@ level mutation versus governance overhead, same-path before/after improvement,
 and existing performance-foundation consumption may OMP emit
 `ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN` and release the Time side
 of the Stage-48 gate.
+
+### 45.2 Final Performance Closure Production Consumption
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
+Scheduling Authority: `NONE`
+Execution Authority: `NONE`
+
+The ordinary enabled Matrix timer completed the required certification-only
+full-path transaction without a manual Matrix invocation. Certification user
+`10.7.0.107` moved `vless -> awg3`, passed verification, Outcome, Replay and
+Learning consumption, and returned `awg3 -> vless` through the existing reset
+owner. Forward Packet `pkt_d51d30891a225ed0827a5664`, reset Packet
+`pkt_preview_66d91f764ec9c5b46c49c0f1` and receipt
+`perfclose_1f91af0c6253c6fe75e028c5` are owner-backed and non-reusable.
+
+The full cycle consumed `227.573707 s`; the nested governed forward path
+consumed `92.054652 s`. Every interval over one second has an explicit
+existing owner. The existing performance foundation consumed the monotonic
+timeline under `v7.execution-performance-foundation.v1`.
+
+The exact fourteen-service same-path repair remains `91.965611 s ->
+8.786229 s`, `14/14 PASS`, speedup `10.47x`. Matrix evidence is canonical
+`EGRESS_PATH_AND_CHANNEL_PROFILE` evidence and is inherited only with exact
+path/config/egress/service-set identity plus independent user route-binding
+verification.
+
+The resulting terminals are:
+
+- `ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN`;
+- `STAGE_48_OPTIMIZED_RUNTIME_READY`.
+
+Receipt semantics are readiness only. `campaign_stage_credit=false`, Stage 48
+was not executed, no Natural L8 credit exists, and no Authority or Production
+Maturity changed. Runtime must expose
+`STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` until a separate existing-owner
+Stage-48 admission is consumed.

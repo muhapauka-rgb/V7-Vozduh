@@ -348,7 +348,7 @@ def egress_config_generation(row: dict[str, Any]) -> str:
     """Hash an owner-declared runtime config without exposing its contents."""
     paths = [
         Path(str(row.get(key)))
-        for key in ("config", "config_file", "runtime_config")
+        for key in ("config", "config_file", "config_path", "runtime_config")
         if str(row.get(key) or "").startswith("/")
     ]
     if str(row.get("protocol") or "").lower() == "vless":
@@ -454,6 +454,10 @@ def network_path_evidence(
         "network_namespace": netns_identity,
         "egress_identity_generation": identity["egress_identity_generation"],
         "egress_config_generation": identity["egress_config_generation"],
+        "expected_egress_ip_fingerprint": hashlib.sha256(
+            str(row.get("expected_ip") or "UNDECLARED").encode("utf-8")
+        ).hexdigest(),
+        "source_ip_class_fingerprint": components["interface_addresses"]["sha256"],
         "resolver_sha256": resolver_hash,
         "service_set_fingerprint": service_set_fingerprint,
         "matrix_schema_version": "v7.service-matrix-network-path.v1",

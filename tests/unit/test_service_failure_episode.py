@@ -43,7 +43,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)
             (state / "egress.registry").write_text(
-                "id=awg0 interface=awg0 protocol=wireguard enabled=1\n",
+                "id=awg0 interface=awg0 protocol=wireguard enabled=1 "
+                "expected_ip=203.0.113.7 config_path=/etc/v7/awg0.conf\n",
                 encoding="utf-8",
             )
             with mock.patch.object(
@@ -61,7 +62,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(evidence["scope"], "EGRESS_PATH_AND_CHANNEL_PROFILE")
         self.assertFalse(evidence["probe_execution_context"]["user_route_binding_used"])
         self.assertEqual(len(evidence["path_fingerprint"]), 64)
+        self.assertEqual(len(evidence["expected_egress_ip_fingerprint"]), 64)
+        self.assertEqual(evidence["source_ip_class_fingerprint"], "a" * 64)
+        self.assertNotIn("203.0.113.7", json.dumps(evidence))
         self.assertNotIn("raw_rules", evidence)
+
+    def test_expected_egress_ip_change_invalidates_path_fingerprint(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            row = {"id": "awg0", "interface": "awg0", "protocol": "wireguard", "expected_ip": "203.0.113.7"}
+            with mock.patch.object(
+                self.matrix,
+                "_bounded_command_fingerprint",
+                return_value={"status": "PASS", "sha256": "a" * 64, "returncode": 0},
+            ):
+                first = self.matrix.network_path_evidence(
+                    state, row, egress_id="awg0", iface="awg0", service_ids=["telegram"]
+                )
+                second = self.matrix.network_path_evidence(
+                    state, {**row, "expected_ip": "203.0.113.8"},
+                    egress_id="awg0", iface="awg0", service_ids=["telegram"]
+                )
+        self.assertNotEqual(first["path_fingerprint"], second["path_fingerprint"])
 
     def test_failure_episode_survives_repeated_matrix_writes_and_resets_on_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:

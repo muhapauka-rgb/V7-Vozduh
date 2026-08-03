@@ -226,6 +226,92 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         execute.assert_not_called()
 
+    def test_performance_benchmark_reuses_stage_one_policy_without_stage_credit(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=vless enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(
+                json.dumps({"items": {"vless": {"status": "OK"}}}),
+                encoding="utf-8",
+            )
+            args = argparse.Namespace(
+                controlled_topology_planner="v7-users-autoswitch",
+                policy_file=str(root / "policy.json"),
+                operator_execution_audit_store=str(root / "operator-audit.jsonl"),
+                availability_first_stage=48,
+                execute_performance_closure_benchmark=True,
+                expected_availability_first_allocation_fingerprint="",
+            )
+            diagnostic = {
+                "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+                "availability_first_standing_policy_admission": {
+                    "ok": True,
+                    "contract_id": "sdpc_unit",
+                    "contract_hash": "b" * 64,
+                    "blockers": [],
+                },
+                "shared_production_target_capacity_projection": {
+                    "current_stage": 48,
+                    "availability_campaign": {"next_stage": 48, "blockers": []},
+                    "stage_allocations": {
+                        "1": {
+                            "feasible": True,
+                            "allocation_fingerprint": "a" * 64,
+                            "immutable_allocation_projection": [{
+                                "target_id": "awg3",
+                                "allocated_users": 1,
+                                "capacity_reservation": 1,
+                            }],
+                        },
+                    },
+                },
+                "campaign_identity_accounting": {"status": "ACCOUNTED"},
+                "current_campaign": {},
+            }
+            stopped = {
+                "final_verdict": "STOP_SAFE",
+                "verification_result": "FAIL",
+                "users_moved": 0,
+                "runtime_mutation_performed": False,
+            }
+            with mock.patch.object(
+                module,
+                "_availability_first_topology_diagnostic",
+                return_value={"ok": True, "diagnostic": diagnostic, "blockers": []},
+            ), mock.patch.object(
+                module,
+                "execute_governed_transaction_with_guards",
+                return_value=stopped,
+            ) as execute, mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={"ok": False, "blockers": ["stopped"]},
+            ):
+                result = module.execute_availability_first_standing_stage(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit,
+                    lease_file=state / "lease.json",
+                )
+        self.assertTrue(result["performance_benchmark"])
+        self.assertFalse(result["campaign_stage_credit"])
+        call_args = execute.call_args.args[0]
+        self.assertEqual(call_args.approved_source, "vless")
+        self.assertEqual(call_args.max_users, 1)
+        self.assertEqual(call_args._availability_first_stage_request["stage"], 1)
+
     def test_stage_two_cleanup_consumes_restored_cohort_without_timer_wait(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

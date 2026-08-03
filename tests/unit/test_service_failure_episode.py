@@ -1854,6 +1854,51 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             )
 
         self.assertEqual(run.call_args_list[1].kwargs["timeout"], 17280)
+        command = run.call_args_list[1].args[0]
+        self.assertIn("--execute-performance-closure-benchmark", command)
+        self.assertNotIn("--execute-availability-first-standing-stage", command)
+        self.assertNotIn("--availability-first-stage", command)
+
+    def test_performance_closure_receipt_is_exact_once_and_has_no_stage_credit(self):
+        timing = {
+            "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+            "analysis_schema_version": "v7.execution-performance-foundation.v1",
+            "spans": [{"stage": "planner", "duration_ms": 1.0}],
+        }
+        result = {
+            "final_verdict": "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED",
+            "campaign_stage_credit": False,
+            "standing_policy_contract_id": "sdpc_test",
+            "execution_allocation_fingerprint": "a" * 64,
+            "packet_set_fingerprint": "b" * 64,
+            "cohort_execution_timings": [{"timing": timing}],
+            "performance_timeline": [],
+            "allocation_immutable": True,
+            "capacity_reservation_verified": True,
+            "outcome_consumed": True,
+            "replay_consumed": True,
+            "learning_consumed": True,
+            "per_user_verification_passed": True,
+            "per_target_verification_passed": True,
+            "aggregate_verification_passed": True,
+            "ordinary_user_protection_passed": True,
+            "baseline_reset_verified": True,
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Path(tmp) / "audit.jsonl"
+            first = self.refresh.record_performance_closure_consumption(
+                audit_store=store, result=result
+            )
+            duplicate = self.refresh.record_performance_closure_consumption(
+                audit_store=store, result=result
+            )
+            rows = self.refresh.operator_execution.read_audit_records(store)
+        self.assertTrue(first["audit_write"])
+        self.assertTrue(duplicate["duplicate_suppressed"])
+        matches = [row for row in rows if row.get("record_type") == self.refresh.PERFORMANCE_CLOSURE_RECORD_TYPE]
+        self.assertEqual(len(matches), 1)
+        self.assertFalse(matches[0]["campaign_stage_credit"])
+        self.assertFalse(matches[0]["stage_48_executed"])
 
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:

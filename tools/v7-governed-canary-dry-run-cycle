@@ -8620,6 +8620,9 @@ def execute_availability_first_standing_stage(
     reservation; no second reservation registry is introduced.
     """
     mission_started_ns = time.monotonic_ns()
+    performance_benchmark = bool(
+        getattr(args, "execute_performance_closure_benchmark", False)
+    )
     performance_timeline: list[dict[str, Any]] = []
 
     def record_phase(
@@ -9279,6 +9282,7 @@ def execute_availability_first_standing_stage(
         or 0
     )
     stage = int(
+        1 if performance_benchmark else
         getattr(args, "availability_first_stage", 0)
         or current_stage
         or 0
@@ -9319,7 +9323,8 @@ def execute_availability_first_standing_stage(
     if stage not in operator_execution.AVAILABILITY_FIRST_LADDER:
         blockers.append("availability_first_stage_not_in_ladder")
     if (
-        not target_bound_mode
+        not performance_benchmark
+        and not target_bound_mode
         and current_stage != stage
     ):
         blockers.append("availability_first_stage_not_current")
@@ -9376,6 +9381,34 @@ def execute_availability_first_standing_stage(
     )
     if campaign_identity_accounting.get("status") != "ACCOUNTED":
         blockers.append("availability_first_campaign_identity_accounting_not_accounted")
+    if performance_benchmark:
+        target_ids = {
+            str(item.get("target_id") or "")
+            for item in allocation_rows
+            if str(item.get("target_id") or "")
+        }
+        matrix_items = (
+            read_json(state_dir / "service-matrix.json", {}).get("items")
+            or {}
+        )
+        source_counts: dict[str, int] = {}
+        for item in read_registry(state_dir / "users.registry"):
+            current = str(item.get("current") or "")
+            if (
+                str(item.get("enabled") or "1").lower()
+                in {"1", "true", "yes"}
+                and str(item.get("certification_user") or "").lower()
+                in {"1", "true", "yes"}
+                and current
+                and current not in target_ids
+                and str(((matrix_items.get(current) or {}).get("status") or "")).upper()
+                == "OK"
+            ):
+                source_counts[current] = source_counts.get(current, 0) + 1
+        source = (
+            sorted(source_counts, key=lambda key: (-source_counts[key], key))[0]
+            if source_counts else ""
+        )
     if not source:
         blockers.append("availability_first_controlled_source_missing")
     users = [
@@ -9841,19 +9874,26 @@ def execute_availability_first_standing_stage(
     complete = complete and evidence_complete
     return {
         "schema_version": (
+            "v7.governed-performance-closure-benchmark.v1"
+            if performance_benchmark
+            else
             "v7.availability-first-target-bound-trial-result.v1"
             if target_bound_mode
             else "v7.availability-first-standing-stage.v1"
         ),
         "transaction_status": "COMPLETED" if complete else "STOP_SAFE",
         "final_verdict": (
-            "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+            "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED"
+            if complete and performance_benchmark
+            else "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
             if complete and target_bound_mode
             else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
             if complete
             else "AVAILABILITY_FIRST_STANDING_STAGE_STOPPED"
         ),
         "stage": stage,
+        "performance_benchmark": performance_benchmark,
+        "campaign_stage_credit": False if performance_benchmark else complete,
         "target_bound_trial": target_bound_mode,
         "target_bound_trial_target": target_bound_trial_target,
         "campaign_next_stage": int(campaign.get("next_stage") or 0),
@@ -9915,7 +9955,9 @@ def execute_availability_first_standing_stage(
         "production_maturity_change": False,
         "natural_l8_credit": False,
         "durable_successor": (
-            "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_TARGET_BOUND"
+            "TIME_OPTIMIZATION_LOOP_PRODUCTION_CONSUMPTION"
+            if complete and performance_benchmark
+            else "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_TARGET_BOUND"
             if complete and target_bound_mode
             else "EXISTING_MATRIX_RECOMPUTE_AVAILABILITY_FIRST_NEXT_STAGE"
             if complete
@@ -10483,6 +10525,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
     )
     parser.add_argument(
+        "--execute-performance-closure-benchmark",
+        action="store_true",
+        help=(
+            "Run one certification-only baseline/target/reset transaction "
+            "through the standing policy without campaign-stage credit."
+        ),
+    )
+    parser.add_argument(
         "--availability-first-stage",
         type=int,
         default=0,
@@ -10756,7 +10806,10 @@ def main(argv=None) -> int:
             == "ONE_IDENTITY_AUTONOMOUS_CONTROLLED_TOPOLOGY_TRIAL_PROVEN"
             else 2
         )
-    if args.execute_availability_first_standing_stage:
+    if (
+        args.execute_availability_first_standing_stage
+        or args.execute_performance_closure_benchmark
+    ):
         result = execute_availability_first_standing_stage(
             args,
             state_dir=state_dir,
@@ -10778,6 +10831,7 @@ def main(argv=None) -> int:
             if result.get("final_verdict") in {
                 "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
                 "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED",
+                "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED",
             }
             else 2
         )

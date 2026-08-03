@@ -52,6 +52,7 @@ AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS = (
 RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
+PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 
 
 def now_iso() -> str:
@@ -626,6 +627,89 @@ def record_availability_first_stage_consumption(
         "audit_write": True,
         "duplicate_suppressed": False,
     }
+
+
+def current_performance_closure_receipt(audit_store: Path) -> dict[str, Any]:
+    rows = operator_execution.read_live_execution_lineage_records(
+        audit_store, include_runtime_actions=True
+    )
+    seen = {str(row.get("record_hash") or "") for row in rows}
+    rows.extend(
+        row for row in operator_execution.read_audit_records(audit_store)
+        if str(row.get("record_hash") or "") not in seen
+    )
+    matches = [
+        row for row in rows
+        if row.get("record_type") == PERFORMANCE_CLOSURE_RECORD_TYPE
+        and row.get("time_optimization_loop_consumed") is True
+        and row.get("baseline_reset_verified") is True
+        and row.get("ordinary_user_protection_passed") is True
+    ]
+    return matches[-1] if matches else {}
+
+
+def record_performance_closure_consumption(
+    *, audit_store: Path, result: dict[str, Any]
+) -> dict[str, Any]:
+    required = (
+        "allocation_immutable",
+        "capacity_reservation_verified",
+        "outcome_consumed",
+        "replay_consumed",
+        "learning_consumed",
+        "per_user_verification_passed",
+        "per_target_verification_passed",
+        "aggregate_verification_passed",
+        "ordinary_user_protection_passed",
+        "baseline_reset_verified",
+    )
+    blockers = [name for name in required if result.get(name) is not True]
+    if result.get("final_verdict") != "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED":
+        blockers.append("performance_closure_benchmark_not_complete")
+    if result.get("campaign_stage_credit") is not False:
+        blockers.append("campaign_stage_credit_must_be_false")
+    timings = [
+        row.get("timing") for row in (result.get("cohort_execution_timings") or [])
+        if isinstance(row, dict) and isinstance(row.get("timing"), dict)
+    ]
+    if not timings or any(row.get("status") != "MONOTONIC_BREAKDOWN_CONSUMED" for row in timings):
+        blockers.append("nested_monotonic_timing_missing")
+    if blockers:
+        return {"receipt_id": "", "audit_write": False, "duplicate_suppressed": False, "blockers": sorted(set(blockers))}
+    semantic = {
+        "contract_id": str(result.get("standing_policy_contract_id") or ""),
+        "execution_allocation_fingerprint": str(result.get("execution_allocation_fingerprint") or ""),
+        "packet_set_fingerprint": str(result.get("packet_set_fingerprint") or ""),
+        "timing_fingerprint": operator_execution.sha256_json(timings),
+    }
+    receipt_id = "perfclose_" + operator_execution.sha256_json(semantic)[:24]
+    with operator_execution.current_action_class_contract_policy_lock(audit_store):
+        prior = current_performance_closure_receipt(audit_store)
+        if prior:
+            return {"receipt_id": str(prior.get("receipt_id") or ""), "audit_write": False, "duplicate_suppressed": True}
+        row = operator_execution.append_record(audit_store, {
+            "schema_version": "v7.governed-performance-closure-consumption.v1",
+            "record_type": PERFORMANCE_CLOSURE_RECORD_TYPE,
+            "receipt_id": receipt_id,
+            "standing_policy_contract_id": semantic["contract_id"],
+            "execution_allocation_fingerprint": semantic["execution_allocation_fingerprint"],
+            "packet_set_fingerprint": semantic["packet_set_fingerprint"],
+            "timing_fingerprint": semantic["timing_fingerprint"],
+            "execution_timings": timings,
+            "performance_timeline": list(result.get("performance_timeline") or []),
+            "time_analysis_owner": "admin_core.operator_execution_pipeline.execution_performance_foundation",
+            "time_analysis_schema": str((timings[0] or {}).get("analysis_schema_version") or ""),
+            "time_optimization_loop_consumed": True,
+            "one_governed_transaction_fastest_safe_path_proven": True,
+            "stage_48_optimized_runtime_ready": True,
+            "stage_48_executed": False,
+            "campaign_stage_credit": False,
+            "ordinary_user_protection_passed": True,
+            "baseline_reset_verified": True,
+            "natural_l8_credit": False,
+            "created_at": now_iso(),
+        })
+    return {"receipt_id": str(row.get("receipt_id") or receipt_id), "audit_write": True, "duplicate_suppressed": False}
 
 
 def record_availability_first_target_bound_consumption(
@@ -1727,11 +1811,19 @@ def _run_availability_first_standing_policy_stage_once(
                 + list(campaign.get("blockers") or [])
             )),
         }
+    performance_gate_receipt = current_performance_closure_receipt(
+        audit_store
+    )
+    performance_benchmark = bool(
+        stage == 48 and not performance_gate_receipt
+    )
     command = [
         executor,
-        "--execute-availability-first-standing-stage",
-        "--availability-first-stage",
-        str(stage),
+        (
+            "--execute-performance-closure-benchmark"
+            if performance_benchmark
+            else "--execute-availability-first-standing-stage"
+        ),
         "--state-dir",
         str(state_dir),
         "--event-dir",
@@ -1744,6 +1836,8 @@ def _run_availability_first_standing_policy_stage_once(
         planner,
         "--pretty",
     ]
+    if not performance_benchmark:
+        command[2:2] = ["--availability-first-stage", str(stage)]
     if target_bound_mode:
         command.extend([
             "--availability-first-target-bound-trial-target",
@@ -1790,18 +1884,29 @@ def _run_availability_first_standing_policy_stage_once(
     except json.JSONDecodeError:
         result = {}
     expected_verdict = (
-        "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
+        "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED"
+        if performance_benchmark
+        else "AVAILABILITY_FIRST_TARGET_BOUND_TRIAL_COMPLETED"
         if target_bound_mode
         else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
     )
     completed = (
         proc.returncode == 0
         and result.get("final_verdict") == expected_verdict
-        and int(result.get("stage") or 0) == stage
+        and (
+            int(result.get("stage") or 0) == 1
+            if performance_benchmark
+            else int(result.get("stage") or 0) == stage
+        )
     )
     receipt = (
         (
-            record_availability_first_target_bound_consumption(
+            record_performance_closure_consumption(
+                audit_store=audit_store,
+                result=result,
+            )
+            if performance_benchmark
+            else record_availability_first_target_bound_consumption(
                 audit_store=audit_store,
                 result=result,
             )
@@ -1848,6 +1953,10 @@ def _run_availability_first_standing_policy_stage_once(
         ),
         "users_moved": int(result.get("users_moved") or 0),
         "stage": stage,
+        "performance_benchmark": performance_benchmark,
+        "performance_gate_receipt_id": str(
+            performance_gate_receipt.get("receipt_id") or ""
+        ),
         "completion_kind": (
             "TARGET_BOUND_TRIAL"
             if target_bound_mode

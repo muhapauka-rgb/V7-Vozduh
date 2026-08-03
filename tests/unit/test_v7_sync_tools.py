@@ -51,9 +51,9 @@ class V7SyncToolsTest(unittest.TestCase):
         cps = (ROOT / "docs" / "programs" / "V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
         stop_drift = self.lib._replace_section_field(
             cps,
-            "### Active Protected Work In Progress",
-            "### Complete Or Locked Capability Records",
-            "current_primary_stop",
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_STOP_CONDITION",
             "`STOP_SAFE`",
         )
         result = self.lib.cps_live_state_consistency(stop_drift)

@@ -24690,6 +24690,13 @@ def safe_deploy_plan(
         "deployment_required": any(not item["matches"] for item in delta),
         "restart_admin_if_changed": restart_admin_if_changed,
         "planned_remote_paths": planned_remote_paths,
+        "remote_transaction_lock": {
+            "owner": "existing service-matrix lifecycle lock",
+            "path": "/opt/v7/egress/state/service-matrix.lock",
+            "mode": "EXCLUSIVE_FOR_DEPLOY_WRITE_WINDOW",
+            "timeout_sec": 120,
+            "new_lock_created": False,
+        },
         "deploy_manifest": deploy_manifest,
         "runtime_linkage": runtime_linkage,
         "runtime_fingerprint": deploy_manifest["runtime_fingerprint"],
@@ -24731,7 +24738,10 @@ def safe_deploy_plan(
         "set -eu\n"
         f"backup_root={planned_remote_paths['backup_root']}\n"
         f"release_dir={planned_remote_paths['release_dir']}\n"
-        "mkdir -p \"$backup_root\" \"$release_dir\"\n"
+        "matrix_lock=/opt/v7/egress/state/service-matrix.lock\n"
+        "mkdir -p \"$backup_root\" \"$release_dir\" \"$(dirname \"$matrix_lock\")\"\n"
+        "exec 9>\"$matrix_lock\"\n"
+        "flock -w 120 9\n"
         "for f in /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-audit-log /usr/local/bin/v7-admin-api; do "
         "if test -e \"$f\"; then cp -p \"$f\" \"$backup_root/$(basename \"$f\").pre-sync\"; fi; done\n"
         "python3 - <<'PY'\n"

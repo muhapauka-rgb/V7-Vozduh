@@ -1817,6 +1817,30 @@ def _run_availability_first_standing_policy_stage_once(
     performance_benchmark = bool(
         stage == 48 and not performance_gate_receipt
     )
+    if stage == 48 and performance_gate_receipt:
+        return {
+            "schema_version": "v7.availability-first-matrix-consumer.v1",
+            "status": "STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED",
+            "ok": True,
+            "started_at": started_at,
+            "completed_at": now_iso(),
+            "action_attempted": False,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "stage": stage,
+            "performance_benchmark": False,
+            "performance_gate_receipt_id": str(
+                performance_gate_receipt.get("receipt_id") or ""
+            ),
+            "stage_48_optimized_runtime_ready": True,
+            "stage_48_execution_permitted": False,
+            "campaign_stage_credit": False,
+            "durable_successor": (
+                "STAGE_48_EXISTING_OWNER_ADMISSION_REQUIRED"
+            ),
+            "blockers": ["stage_48_execution_not_admitted"],
+        }
     command = [
         executor,
         (
@@ -1958,7 +1982,9 @@ def _run_availability_first_standing_policy_stage_once(
             performance_gate_receipt.get("receipt_id") or ""
         ),
         "completion_kind": (
-            "TARGET_BOUND_TRIAL"
+            "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT"
+            if performance_benchmark
+            else "TARGET_BOUND_TRIAL"
             if target_bound_mode
             else "CAMPAIGN_STAGE"
         ),
@@ -2359,11 +2385,38 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         )
         if result.get(key) not in (None, "", [], {})
     }
+    for key in (
+        "performance_benchmark",
+        "campaign_stage_credit",
+        "stage_48_optimized_runtime_ready",
+        "stage_48_execution_permitted",
+    ):
+        if key in result:
+            compact_result[key] = result.get(key)
+    if result.get("performance_benchmark") is True:
+        compact_result["cohort_execution_timings"] = [
+            row
+            for row in (result.get("cohort_execution_timings") or [])
+            if isinstance(row, dict)
+        ]
+        compact_result["performance_timeline"] = [
+            row
+            for row in (result.get("performance_timeline") or [])
+            if isinstance(row, dict)
+        ]
     # A target-bound trial has a verified scope (often 5 or 10) but is not a
     # campaign-stage receipt for that number.  Retain both identities in the
     # compact Matrix projection so transient runtime work cannot be mistaken
     # for a duplicate of an already consumed campaign stage.
-    if result.get("target_bound_trial") is True:
+    if result.get("performance_benchmark") is True:
+        compact_result["execution_scope_kind"] = (
+            "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT"
+        )
+        compact_result["benchmark_scope"] = int(
+            result.get("stage") or 0
+        )
+        compact_result["campaign_stage"] = 0
+    elif result.get("target_bound_trial") is True:
         compact_result["execution_scope_kind"] = "TARGET_BOUND_TRIAL"
         compact_result["trial_scope"] = int(result.get("stage") or 0)
         compact_result["campaign_stage"] = int(
@@ -2434,7 +2487,8 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "pending", "ok", "blockers", "stage", "user", "source",
             "target", "packet_id", "operation_id", "projection_source",
             "recovery_mode", "cohort_packet_count",
-            "cohort_projection_exact",
+            "cohort_projection_exact", "performance_benchmark",
+            "campaign_stage_credit",
         )
         if partial.get(key) not in (None, "", [], {})
     }
@@ -2469,6 +2523,43 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 )
                 if reset_diagnostic.get(key) not in (None, "", [], {})
             }
+    reset_rows = [
+        row for row in (result.get("reset_transactions") or [])
+        if isinstance(row, dict)
+    ]
+    compact_reset_rows = [
+        {
+            key: row.get(key)
+            for key in (
+                "final_verdict", "transaction_status", "stop_reason",
+                "stop_detail", "fresh_packet_id", "operation_id", "user",
+                "source", "target", "runtime_mutation_performed",
+                "verification_result", "rollback_result", "users_moved",
+            )
+            if row.get(key) not in (None, "", [], {})
+        }
+        for row in reset_rows
+    ]
+    compact_reset_rows = [row for row in compact_reset_rows if row]
+    if compact_reset_rows:
+        compact_result["reset_transactions"] = compact_reset_rows
+    reset_reconciliations = [
+        row for row in (result.get("baseline_reset_reconciliations") or [])
+        if isinstance(row, dict)
+    ]
+    if reset_reconciliations:
+        compact_result["baseline_reset_reconciliations"] = [
+            {
+                key: row.get(key)
+                for key in (
+                    "ok", "mode", "current_egress", "packet_id",
+                    "operation_id", "switch_lineage", "natural_l8_credit",
+                    "production_outcome_credit",
+                )
+                if row.get(key) not in (None, "", [], {})
+            }
+            for row in reset_reconciliations
+        ]
     reset_reconciliation = result.get("baseline_reset_reconciliation")
     reset_reconciliation = (
         reset_reconciliation
@@ -2573,6 +2664,9 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "max_concurrent_transactions", "blockers", "source",
             "target", "trial_identity", "manifest_hash",
             "stage", "diagnostic_status", "receipt_id",
+            "performance_benchmark", "performance_gate_receipt_id",
+            "completion_kind", "stage_48_optimized_runtime_ready",
+            "stage_48_execution_permitted", "campaign_stage_credit",
             "durable_successor", "completed_stages_this_invocation",
             "source_incident_id", "automation_obligation_id",
             "affected_scope", "unresolved_scope",

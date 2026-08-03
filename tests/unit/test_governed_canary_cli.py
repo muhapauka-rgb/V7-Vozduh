@@ -311,6 +311,44 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(call_args.approved_source, "vless")
         self.assertEqual(call_args.max_users, 1)
         self.assertEqual(call_args._availability_first_stage_request["stage"], 1)
+        self.assertTrue(
+            call_args._availability_first_stage_request[
+                "performance_benchmark"
+            ]
+        )
+        self.assertFalse(
+            call_args._availability_first_stage_request[
+                "campaign_stage_credit"
+            ]
+        )
+
+    def test_performance_selection_binding_is_not_campaign_stage_credit(self):
+        module = load_cli_module()
+        plan = {
+            "decisions": [{
+                "user_ip": "10.7.0.100",
+                "current_egress": "vless",
+            }],
+        }
+        result = module.bind_availability_first_controlled_selection(
+            plan,
+            expected_users=["10.7.0.100"],
+            source="vless",
+            target="awg3",
+            allocation_fingerprint="a" * 64,
+            performance_benchmark=True,
+        )
+
+        self.assertTrue(result["ok"])
+        semantic = result["plan"]["selected_moves"][0][
+            "availability_first_controlled_assignment"
+        ]
+        self.assertTrue(semantic["performance_benchmark"])
+        self.assertFalse(semantic["campaign_stage_credit"])
+        self.assertEqual(
+            semantic["execution_scope_kind"],
+            "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT",
+        )
 
     def test_stage_two_cleanup_consumes_restored_cohort_without_timer_wait(self):
         module = load_cli_module()

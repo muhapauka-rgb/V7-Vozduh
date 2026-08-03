@@ -830,6 +830,7 @@ def bind_availability_first_controlled_selection(
     source: str,
     target: str,
     allocation_fingerprint: str,
+    performance_benchmark: bool = False,
 ) -> dict[str, Any]:
     """Bind controlled certification identities to the existing plan.
 
@@ -895,6 +896,13 @@ def bind_availability_first_controlled_selection(
                 "target": target,
                 "allocation_fingerprint": allocation_fingerprint,
                 "ordinary_user": False,
+                "performance_benchmark": bool(performance_benchmark),
+                "campaign_stage_credit": not bool(performance_benchmark),
+                "execution_scope_kind": (
+                    "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT"
+                    if performance_benchmark
+                    else "CAMPAIGN_STAGE"
+                ),
             },
         })
         selected.append(row)
@@ -4677,6 +4685,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 allocation_fingerprint=str(
                     availability_request.get("allocation_fingerprint") or ""
                 ),
+                performance_benchmark=bool(
+                    availability_request.get("performance_benchmark")
+                ),
             )
         )
         if availability_selection_binding.get("ok") is not True:
@@ -6874,7 +6885,14 @@ def availability_first_partial_apply_recovery_context(
             or candidate.get("stage")
             or 0
         )
-        if candidate_stage in completed_stages:
+        candidate_performance_benchmark = bool(
+            candidate_result.get("performance_benchmark") is True
+            or candidate.get("performance_benchmark") is True
+        )
+        if (
+            candidate_stage in completed_stages
+            and not candidate_performance_benchmark
+        ):
             continue
         cohort_has_incomplete_member = bool(
             candidate_stage > 1
@@ -6967,6 +6985,10 @@ def availability_first_partial_apply_recovery_context(
                     else "PARTIAL_APPLY_BASELINE_PENDING"
                 )
                 audit_containment_recovery = audit_containment_cohort
+                if candidate_performance_benchmark:
+                    recovery_mode = (
+                        "PERFORMANCE_BENCHMARK_BASELINE_PENDING"
+                    )
                 break
         if packet:
             break
@@ -7064,6 +7086,7 @@ def availability_first_partial_apply_recovery_context(
         if recovery_mode in {
             "VERIFIED_STAGE_BASELINE_PENDING",
             "PARTIAL_COHORT_BASELINE_PENDING",
+            "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
         }
         else lease_selected_moves
     )
@@ -7164,11 +7187,15 @@ def availability_first_partial_apply_recovery_context(
         if recovery_mode in {
             "VERIFIED_STAGE_BASELINE_PENDING",
             "PARTIAL_COHORT_BASELINE_PENDING",
+            "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
         }
         else {}
     )
     if (
-        recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        recovery_mode in {
+            "VERIFIED_STAGE_BASELINE_PENDING",
+            "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
+        }
         or audit_containment_recovery
     ):
         cohort_users = [
@@ -7251,7 +7278,10 @@ def availability_first_partial_apply_recovery_context(
                 "verified_stage_recovery_requires_exact_cohort_projection"
             )
     if (
-        recovery_mode == "VERIFIED_STAGE_BASELINE_PENDING"
+        recovery_mode in {
+            "VERIFIED_STAGE_BASELINE_PENDING",
+            "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
+        }
         and not forward_evidence.get("ok")
     ):
         blockers.extend(
@@ -7267,6 +7297,7 @@ def availability_first_partial_apply_recovery_context(
                 if recovery_mode in {
                     "VERIFIED_STAGE_BASELINE_PENDING",
                     "PARTIAL_COHORT_BASELINE_PENDING",
+                    "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
                 }
                 else immutable.get("snapshot_bundle_hash")
             )
@@ -7282,6 +7313,7 @@ def availability_first_partial_apply_recovery_context(
                 if recovery_mode in {
                     "VERIFIED_STAGE_BASELINE_PENDING",
                     "PARTIAL_COHORT_BASELINE_PENDING",
+                    "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
                 }
                 else immutable.get("source_bundle_hash")
             )
@@ -7293,6 +7325,7 @@ def availability_first_partial_apply_recovery_context(
                 if recovery_mode in {
                     "VERIFIED_STAGE_BASELINE_PENDING",
                     "PARTIAL_COHORT_BASELINE_PENDING",
+                    "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
                 }
                 else immutable.get("selected_move_hash")
             )
@@ -7304,6 +7337,7 @@ def availability_first_partial_apply_recovery_context(
                 if recovery_mode in {
                     "VERIFIED_STAGE_BASELINE_PENDING",
                     "PARTIAL_COHORT_BASELINE_PENDING",
+                    "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
                 }
                 else immutable.get("max_users")
             )
@@ -7346,7 +7380,17 @@ def availability_first_partial_apply_recovery_context(
             )
         ),
         "production_outcome_credit": False,
+        "performance_benchmark": (
+            recovery_mode == "PERFORMANCE_BENCHMARK_BASELINE_PENDING"
+        ),
+        "campaign_stage_credit": False,
         "forward_evidence": forward_evidence,
+        "cohort_execution_timings": list(
+            result.get("cohort_execution_timings") or []
+        ),
+        "forward_performance_timeline": list(
+            result.get("performance_timeline") or []
+        ),
         "recovered_allocation": [{
             "target_id": target,
             "allocated_users": 1,
@@ -7472,6 +7516,11 @@ def availability_first_interrupted_cohort_audit_projection(
         semantic = move.get("availability_first_controlled_assignment")
         semantic = semantic if isinstance(semantic, dict) else {}
         if semantic.get("baseline_reset") is True:
+            continue
+        # Performance closure is a one-user no-stage-credit scope.  Its
+        # compact Matrix projection owns recovery; never fold it into the
+        # current campaign stage reconstructed from append-only audit rows.
+        if semantic.get("performance_benchmark") is True:
             continue
         fingerprint = str(
             semantic.get("allocation_fingerprint") or ""
@@ -8957,9 +9006,14 @@ def execute_availability_first_standing_stage(
         recovered_stage_complete = bool(
             reset_complete
             and stage == 1
-            and str(partial.get("recovery_mode") or "")
-            == "VERIFIED_STAGE_BASELINE_PENDING"
+            and str(partial.get("recovery_mode") or "") in {
+                "VERIFIED_STAGE_BASELINE_PENDING",
+                "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
+            }
             and forward_evidence.get("ok") is True
+        )
+        recovered_performance_benchmark = bool(
+            partial.get("performance_benchmark") is True
         )
         recovered_allocation = [
             row
@@ -9083,13 +9137,18 @@ def execute_availability_first_standing_stage(
             }
         return {
             "schema_version": (
-                "v7.availability-first-partial-apply-reconciliation.v1"
+                "v7.governed-performance-closure-benchmark.v1"
+                if recovered_performance_benchmark
+                else "v7.availability-first-partial-apply-reconciliation.v1"
             ),
             "transaction_status": (
                 "COMPLETED" if recovered_stage_complete else "STOP_SAFE"
             ),
             "final_verdict": (
-                "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
+                "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED"
+                if recovered_stage_complete
+                and recovered_performance_benchmark
+                else "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED"
                 if recovered_stage_complete
                 else "AVAILABILITY_FIRST_PARTIAL_APPLY_BASELINE_RECONCILED"
                 if reset_complete
@@ -9103,6 +9162,8 @@ def execute_availability_first_standing_stage(
                 else "availability_first_partial_apply_recovery_failed"
             ),
             "stage": stage,
+            "performance_benchmark": recovered_performance_benchmark,
+            "campaign_stage_credit": False,
             "source": source,
             "standing_policy_contract_id": str(
                 partial.get("contract_id") or ""
@@ -9124,6 +9185,9 @@ def execute_availability_first_standing_stage(
                 operator_execution.sha256_json([recovered_packet])
                 if recovered_stage_complete
                 else ""
+            ),
+            "cohort_execution_timings": list(
+                partial.get("cohort_execution_timings") or []
             ),
             "partial_apply_recovery": partial,
             "reset_transaction": compact_transaction_result(reset),
@@ -9161,7 +9225,10 @@ def execute_availability_first_standing_stage(
                 if reset_complete
                 else "EXISTING_MATRIX_FRESH_PARTIAL_APPLY_RECONCILIATION"
             ),
-            "performance_timeline": performance_timeline,
+            "performance_timeline": [
+                *list(partial.get("forward_performance_timeline") or []),
+                *performance_timeline,
+            ],
             "stage_total_duration_us": max(
                 0, (time.monotonic_ns() - mission_started_ns) // 1_000
             ),
@@ -9549,6 +9616,8 @@ def execute_availability_first_standing_stage(
             "expected_users": list(subset),
             "subset_fingerprint": subset_fingerprint,
             "allocation_fingerprint": allocation_fingerprint,
+            "performance_benchmark": performance_benchmark,
+            "campaign_stage_credit": False if performance_benchmark else True,
             "inventory_fingerprint": str(
                 projection.get("inventory_fingerprint")
                 or diagnostic.get("inventory_fingerprint")
@@ -9784,6 +9853,9 @@ def execute_availability_first_standing_stage(
                 "controlled_source": source,
                 "availability_first_reset": True,
                 "availability_first_target": current_target,
+                "availability_first_allocation_fingerprint": (
+                    allocation_fingerprint
+                ),
             }
             reset_args.skip_planner_observe = True
             reset_args.execute_bounded_delegated_transaction = False
@@ -9807,6 +9879,8 @@ def execute_availability_first_standing_stage(
                     "users": [user],
                 }),
                 "allocation_fingerprint": allocation_fingerprint,
+                "performance_benchmark": performance_benchmark,
+                "campaign_stage_credit": False if performance_benchmark else True,
             }
             reset_args.engineering_authority_request_file = ""
             reset_started_ns = time.monotonic_ns()

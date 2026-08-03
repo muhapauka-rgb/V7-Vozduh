@@ -1900,6 +1900,87 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(matches[0]["campaign_stage_credit"])
         self.assertFalse(matches[0]["stage_48_executed"])
 
+    def test_performance_receipt_marks_stage_48_ready_without_execution(self):
+        diagnostic = {
+            "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
+            "availability_first_standing_policy_admission": {"ok": True},
+            "shared_production_target_capacity_projection": {
+                "current_stage": 48,
+                "availability_campaign": {
+                    "next_stage": 48,
+                    "completed": False,
+                    "completed_stages": [1, 2, 5, 10, 25],
+                },
+                "stage_allocations": {
+                    "48": {
+                        "feasible": True,
+                        "allocation_fingerprint": "a" * 64,
+                    },
+                },
+            },
+        }
+        with mock.patch.object(
+            self.refresh.subprocess,
+            "run",
+            return_value=mock.Mock(
+                returncode=0,
+                stdout=json.dumps(diagnostic),
+            ),
+        ) as run, mock.patch.object(
+            self.refresh,
+            "current_performance_closure_receipt",
+            return_value={"receipt_id": "perfclose_unit"},
+        ):
+            result = (
+                self.refresh._run_availability_first_standing_policy_stage_once(
+                    "v7-users-autoswitch",
+                    "v7-governed-canary-dry-run-cycle",
+                    state_dir=Path("/opt/v7/egress/state"),
+                    event_dir=Path("/opt/v7/events"),
+                    policy_file=Path("/etc/v7/policy.json"),
+                    audit_store=Path(
+                        "/opt/v7/audit/operator-execution-audit.jsonl"
+                    ),
+                )
+            )
+
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(
+            result["status"],
+            "STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED",
+        )
+        self.assertTrue(result["stage_48_optimized_runtime_ready"])
+        self.assertFalse(result["stage_48_execution_permitted"])
+        self.assertFalse(result["action_attempted"])
+        self.assertEqual(result["users_moved"], 0)
+
+    def test_performance_projection_preserves_no_stage_credit_scope(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": (
+                    "GOVERNED_PERFORMANCE_CLOSURE_BENCHMARK_COMPLETED"
+                ),
+                "stage": 1,
+                "performance_benchmark": True,
+                "campaign_stage_credit": False,
+                "cohort_execution_timings": [{
+                    "timing": {"status": "MONOTONIC_BREAKDOWN_CONSUMED"},
+                }],
+                "performance_timeline": [{"phase": "planner"}],
+            },
+        })
+
+        projected = projected["consumer_result"]
+        self.assertTrue(projected["performance_benchmark"])
+        self.assertFalse(projected["campaign_stage_credit"])
+        self.assertEqual(
+            projected["execution_scope_kind"],
+            "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT",
+        )
+        self.assertEqual(projected["benchmark_scope"], 1)
+        self.assertEqual(projected["campaign_stage"], 0)
+        self.assertEqual(len(projected["cohort_execution_timings"]), 1)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

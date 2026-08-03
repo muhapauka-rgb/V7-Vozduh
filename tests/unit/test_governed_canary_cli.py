@@ -350,6 +350,179 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT",
         )
 
+    def test_legacy_performance_partial_prefers_exact_matrix_scope(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            user = "10.7.0.107"
+            packet_id = "pkt_legacy_perf"
+            operation_id = "govexec_legacy_perf"
+            (state / "users.registry").write_text(
+                f"ip={user} current=awg3 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg3 enabled=1 role=GLOBAL_STABLE\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 48,
+                        "consumer_result": {
+                            "partial_apply_recovery": {
+                                "projection_source": (
+                                    "append_only_execution_audit"
+                                ),
+                            },
+                        },
+                    },
+                }),
+                encoding="utf-8",
+            )
+            packet = {
+                "final_verdict": "L3_PRODUCTION_PROVEN",
+                "transaction_status": "COMPLETED",
+                "verification_result": "PASS",
+                "users_moved": 1,
+                "fresh_packet_id": packet_id,
+                "operation_id": operation_id,
+                "user": user,
+                "source": "vless",
+                "target": "awg3",
+            }
+            (events / "service-matrix-refresh-20260803.jsonl").write_text(
+                json.dumps({
+                    "availability_first_standing_policy_action": {
+                        "status": "STOP_SAFE",
+                        "stage": 48,
+                        "consumer_result": {
+                            "stage": 1,
+                            "circuit_breaker": {
+                                "reason": (
+                                    "availability_first_baseline_reset_failed"
+                                ),
+                            },
+                            "packet_set": [packet],
+                            "cohort_execution_timings": [{
+                                "timing": {
+                                    "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+                                },
+                            }],
+                        },
+                    },
+                }) + "\n",
+                encoding="utf-8",
+            )
+            (events / "switch-history.jsonl").write_text(
+                json.dumps({
+                    "ts": "2026-08-03T04:17:48+00:00",
+                    "user_ip": user,
+                    "from": "vless",
+                    "to": "awg3",
+                }) + "\n",
+                encoding="utf-8",
+            )
+            policy_file = root / "policy.json"
+            policy_file.write_text(
+                json.dumps({
+                    "delegated_autonomy_policy": {
+                        "contract_id": "sdpc_perf",
+                        "contract_hash": "c" * 64,
+                    },
+                }),
+                encoding="utf-8",
+            )
+            audit = [{
+                "created_at": "2026-08-03T04:17:47+00:00",
+                "packet_id": packet_id,
+                "operation_id": operation_id,
+                "runtime_action_performed": True,
+                "clearance_verdict": "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                "checks": {
+                    "moves": [{
+                        "user_ip": user,
+                        "current_egress": "vless",
+                        "recommended_egress": "awg3",
+                        "availability_first_controlled_assignment": {
+                            "source": "vless",
+                            "target": "awg3",
+                            "allocation_fingerprint": "a" * 64,
+                            "ordinary_user": False,
+                            "natural_production_credit": False,
+                        },
+                    }],
+                },
+            }]
+            validation = {
+                "ok": True,
+                "errors": [],
+                "policy": {
+                    "action_class_scopes": {
+                        module.operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
+                            "allowed_actions": [
+                                "RESTORE_CONTROLLED_CERTIFICATION_BASELINE"
+                            ],
+                        },
+                    },
+                },
+            }
+            args = argparse.Namespace(
+                policy_file=str(policy_file),
+                operator_execution_audit_store=str(root / "audit.jsonl"),
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "availability_first_campaign_stage_status",
+                return_value={"completed_stages": [1, 2, 5, 10, 25]},
+            ), mock.patch.object(
+                module.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value=validation,
+            ), mock.patch.object(
+                module.operator_execution,
+                "read_audit_records",
+                return_value=audit,
+            ), mock.patch.object(
+                module,
+                "availability_first_forward_evidence_status",
+                return_value={
+                    "ok": True,
+                    "blockers": [],
+                    "outcome_consumed": True,
+                    "replay_consumed": True,
+                    "learning_consumed": True,
+                },
+            ):
+                context = (
+                    module.availability_first_partial_apply_recovery_context(
+                        args,
+                        state_dir=state,
+                        event_dir=events,
+                        lease_file=state / "lease.json",
+                    )
+                )
+
+        self.assertTrue(context["pending"])
+        self.assertTrue(context["ok"], context)
+        self.assertEqual(context["stage"], 1)
+        self.assertTrue(context["performance_benchmark"])
+        self.assertFalse(context["campaign_stage_credit"])
+        self.assertEqual(
+            context["projection_source"],
+            "append_only_matrix_event",
+        )
+        self.assertEqual(
+            context["recovery_mode"],
+            "PERFORMANCE_BENCHMARK_BASELINE_PENDING",
+        )
+
     def test_stage_two_cleanup_consumes_restored_cohort_without_timer_wait(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -6813,20 +6813,6 @@ def availability_first_partial_apply_recovery_context(
         projection_rows = cached_projection_rows
     else:
         projection_rows: list[tuple[str, dict[str, Any]]] = []
-        recovered_projection = (
-            availability_first_interrupted_cohort_audit_projection(
-                state_dir=state_dir,
-                event_dir=event_dir,
-                audit_records=audit_records,
-                completed_stages=completed_stages,
-            )
-        )
-        if recovered_projection:
-            projection_rows.append((
-                "append_only_execution_audit", recovered_projection,
-            ))
-        if isinstance(summary, dict):
-            projection_rows.append(("current_summary", summary))
         for path in sorted(
             event_dir.glob("service-matrix-refresh-*.jsonl"),
             reverse=True,
@@ -6842,6 +6828,23 @@ def availability_first_partial_apply_recovery_context(
                     projection_rows.append((
                         "append_only_matrix_event", row,
                     ))
+        if isinstance(summary, dict):
+            projection_rows.append(("current_summary", summary))
+        # Prefer the exact Matrix-produced scope over a reconstruction from
+        # generic execution audit.  Audit remains the fail-safe fallback when
+        # the parent died before publishing any Matrix projection.
+        recovered_projection = (
+            availability_first_interrupted_cohort_audit_projection(
+                state_dir=state_dir,
+                event_dir=event_dir,
+                audit_records=audit_records,
+                completed_stages=completed_stages,
+            )
+        )
+        if recovered_projection:
+            projection_rows.append((
+                "append_only_execution_audit", recovered_projection,
+            ))
         # The parent writes its next summary only after this stage terminal.
         # These rows are immutable forward lineage for one recovery run;
         # route, registry, policy and Outcome checks below stay fresh.
@@ -6888,6 +6891,25 @@ def availability_first_partial_apply_recovery_context(
         candidate_performance_benchmark = bool(
             candidate_result.get("performance_benchmark") is True
             or candidate.get("performance_benchmark") is True
+        )
+        legacy_performance_benchmark = bool(
+            not candidate_performance_benchmark
+            and candidate_stage == 1
+            and int(candidate.get("stage") or 0) == 48
+            and "campaign_stage_credit" not in candidate_result
+            and len(candidate_packets) == 1
+            and str(circuit_breaker.get("reason") or "")
+            == "availability_first_baseline_reset_failed"
+            and not any(
+                row.get("record_type")
+                == "governed_performance_closure_benchmark"
+                and row.get("time_optimization_loop_consumed") is True
+                for row in audit_records
+            )
+        )
+        candidate_performance_benchmark = bool(
+            candidate_performance_benchmark
+            or legacy_performance_benchmark
         )
         if (
             candidate_stage in completed_stages

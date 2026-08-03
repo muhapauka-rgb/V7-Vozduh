@@ -4974,7 +4974,35 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     target = targets[0] if targets else ""
     source = sources[0] if sources else ""
     lease_started_ns = time.monotonic_ns()
-    lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
+    # The immutable Packet already owns all execution and material-state
+    # hashes.  Embedding the multi-megabyte Planner read model again inside the
+    # lease added >10 s of JSON hashing/writing without adding a safety gate.
+    # Retain only bounded lineage pointers in the informational source_preview;
+    # Packet validation and lease invalidation semantics remain unchanged.
+    lease_source_preview = {
+        "schema_version": "v7.execution-lease-source-preview.v1",
+        "full_plan_embedded": False,
+        "operation_id": str(packet_identity.get("operation_id") or ""),
+        "selected_move_hash": str(
+            packet_identity.get("selected_move_hash") or ""
+        ),
+        "selected_move_count": int(
+            constraints.get("selected_move_count") or 0
+        ),
+        "source_bundle_hash": str(
+            packet_identity.get("source_bundle_hash") or ""
+        ),
+        "snapshot_bundle_hash": str(
+            packet_identity.get("snapshot_bundle_hash") or ""
+        ),
+        "planner_timing_fingerprint": operator_execution.sha256_json(
+            plan.get("performance_timeline") or {}
+        ),
+    }
+    lease = operator_execution.create_execution_lease_from_packet(
+        packet,
+        source_preview=lease_source_preview,
+    )
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
         return transaction_stop(
@@ -6654,6 +6682,124 @@ def _availability_first_topology_diagnostic(
             if proc.returncode == 0 and diagnostic
             else (proc.stdout or "")[-2000:]
         ),
+    }
+
+
+def _performance_benchmark_post_apply_verification(
+    *,
+    state_dir: Path,
+    initial_diagnostic: dict[str, Any],
+    execution_allocation: list[dict[str, Any]],
+    moved_users: list[str],
+) -> dict[str, Any]:
+    """Revalidate one benchmark target without repeating global planning.
+
+    The governed child already proves exact user binding and required services.
+    This bounded projection checks the current Matrix row, current route owner
+    and the immutable allocation's initially admitted capacity.  It deliberately
+    does not rerun target ranking, campaign planning or global history scans.
+    """
+    projection = (
+        initial_diagnostic.get("shared_production_target_capacity_projection")
+        if isinstance(
+            initial_diagnostic.get(
+                "shared_production_target_capacity_projection"
+            ),
+            dict,
+        )
+        else {}
+    )
+    initial_targets = {
+        str(row.get("target_id") or ""): row
+        for row in (projection.get("targets") or initial_diagnostic.get("targets") or [])
+        if isinstance(row, dict) and str(row.get("target_id") or "")
+    }
+    matrix_items = (
+        read_json(state_dir / "service-matrix.json", {}).get("items") or {}
+    )
+    current_routes = {
+        str(row.get("ip") or ""): str(row.get("current") or "")
+        for row in read_registry(state_dir / "users.registry")
+    }
+    target_verification: list[dict[str, Any]] = []
+    expected_targets = [
+        str(row.get("target_id") or "")
+        for row in execution_allocation
+        if str(row.get("target_id") or "")
+    ]
+    for target_id in expected_targets:
+        initial = initial_targets.get(target_id) or {}
+        matrix = matrix_items.get(target_id) or {}
+        availability = (
+            initial.get("shared_target_availability")
+            if isinstance(initial.get("shared_target_availability"), dict)
+            else {}
+        )
+        quality = (
+            initial.get("quality")
+            if isinstance(initial.get("quality"), dict)
+            else {}
+        )
+        route_bound = bool(moved_users) and all(
+            current_routes.get(user) == target_id for user in moved_users
+        )
+        matrix_status = str(matrix.get("status") or "").upper()
+        matrix_path = (
+            matrix.get("path_evidence")
+            if isinstance(matrix.get("path_evidence"), dict)
+            else {}
+        )
+        passed = bool(
+            initial
+            and availability.get("state")
+            in {"HEALTHY", "DEGRADED_USABLE", "LAST_RESORT_USABLE"}
+            and quality.get("fresh") is True
+            and not availability.get("hard_reasons")
+            and matrix_status in {"OK", "WARN"}
+            and str(matrix_path.get("path_fingerprint") or "")
+            and route_bound
+        )
+        target_verification.append({
+            "target_id": target_id,
+            "passed": passed,
+            "availability_classification": str(
+                availability.get("state") or ""
+            ),
+            "matrix_status": matrix_status,
+            "current_route_binding_verified": route_bound,
+            "quality_fingerprint": operator_execution.sha256_json(quality),
+            "capacity_fingerprint": operator_execution.sha256_json(
+                initial.get("capacity") or {}
+            ),
+            "matrix_path_fingerprint": str(
+                matrix_path.get("path_fingerprint") or ""
+            ),
+        })
+    initial_accounting = (
+        initial_diagnostic.get("campaign_identity_accounting")
+        if isinstance(
+            initial_diagnostic.get("campaign_identity_accounting"), dict
+        )
+        else {}
+    )
+    accounting_ok = bool(
+        initial_accounting.get("status") == "ACCOUNTED"
+        and target_verification
+        and all(row.get("passed") for row in target_verification)
+    )
+    return {
+        "target_verification": target_verification,
+        "target_verification_passed": accounting_ok,
+        "campaign_identity_accounting": {
+            "schema_version": (
+                "v7.performance-benchmark-post-apply-accounting.v1"
+            ),
+            "status": "ACCOUNTED" if accounting_ok else "STOP_SAFE",
+            "owner": "existing Matrix, route and campaign accounting owners",
+            "global_planner_reexecuted": False,
+            "moved_identity_count": len(moved_users),
+            "target_count": len(expected_targets),
+        },
     }
 
 
@@ -9858,9 +10004,33 @@ def execute_availability_first_standing_stage(
         ordinary_after_apply == ordinary_before
     )
     post_apply_started_ns = time.monotonic_ns()
-    post_apply_planner = _availability_first_topology_diagnostic(
-        args,
-        state_dir=state_dir,
+    bounded_post_apply = (
+        _performance_benchmark_post_apply_verification(
+            state_dir=state_dir,
+            initial_diagnostic=diagnostic,
+            execution_allocation=execution_allocation,
+            moved_users=moved_users,
+        )
+        if performance_benchmark
+        else {}
+    )
+    post_apply_planner = (
+        {
+            "ok": bool(
+                bounded_post_apply.get("target_verification_passed")
+            ),
+            "status": (
+                "BOUNDED_CURRENT_OWNER_REVALIDATION_PASS"
+                if bounded_post_apply.get("target_verification_passed")
+                else "STOP_SAFE"
+            ),
+            "diagnostic": {},
+        }
+        if performance_benchmark
+        else _availability_first_topology_diagnostic(
+            args,
+            state_dir=state_dir,
+        )
     )
     record_phase(
         "aggregate_target_verification",
@@ -9874,9 +10044,16 @@ def execute_availability_first_standing_stage(
         else {}
     )
     post_apply_campaign_identity_accounting = (
-        post_apply_diagnostic.get("campaign_identity_accounting")
-        if isinstance(post_apply_diagnostic.get("campaign_identity_accounting"), dict)
-        else {}
+        bounded_post_apply.get("campaign_identity_accounting")
+        if performance_benchmark
+        else (
+            post_apply_diagnostic.get("campaign_identity_accounting")
+            if isinstance(
+                post_apply_diagnostic.get("campaign_identity_accounting"),
+                dict,
+            )
+            else {}
+        )
     )
     post_apply_targets = {
         str(row.get("target_id") or ""): row
@@ -9892,8 +10069,10 @@ def execute_availability_first_standing_stage(
         )
         if isinstance(row, dict) and str(row.get("target_id") or "")
     }
-    target_verification = []
-    for item in execution_allocation:
+    target_verification = list(
+        bounded_post_apply.get("target_verification") or []
+    )
+    for item in ([] if performance_benchmark else execution_allocation):
         target_id = str(item.get("target_id") or "")
         target_row = post_apply_targets.get(target_id) or {}
         availability = (

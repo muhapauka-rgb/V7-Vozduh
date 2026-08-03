@@ -54,7 +54,7 @@ RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 PERFORMANCE_REVALIDATION_GENERATION = (
-    "stage48-second-level-critical-path-v1"
+    "stage48-second-level-critical-path-v2"
 )
 
 
@@ -686,6 +686,17 @@ def record_performance_closure_consumption(
     ]
     if not timings or any(row.get("status") != "MONOTONIC_BREAKDOWN_CONSUMED" for row in timings):
         blockers.append("nested_monotonic_timing_missing")
+    reset_timings = [
+        row
+        for row in (result.get("reset_execution_timings") or [])
+        if isinstance(row, dict) and isinstance(row.get("timing"), dict)
+    ]
+    if not reset_timings or any(
+        (row.get("timing") or {}).get("status")
+        != "MONOTONIC_BREAKDOWN_CONSUMED"
+        for row in reset_timings
+    ):
+        blockers.append("reset_nested_monotonic_timing_missing")
     if blockers:
         return {"receipt_id": "", "audit_write": False, "duplicate_suppressed": False, "blockers": sorted(set(blockers))}
     semantic = {
@@ -696,6 +707,9 @@ def record_performance_closure_consumption(
         "execution_allocation_fingerprint": str(result.get("execution_allocation_fingerprint") or ""),
         "packet_set_fingerprint": str(result.get("packet_set_fingerprint") or ""),
         "timing_fingerprint": operator_execution.sha256_json(timings),
+        "reset_timing_fingerprint": operator_execution.sha256_json(
+            reset_timings
+        ),
     }
     receipt_id = "perfclose_" + operator_execution.sha256_json(semantic)[:24]
     with operator_execution.current_action_class_contract_policy_lock(audit_store):
@@ -717,6 +731,7 @@ def record_performance_closure_consumption(
             "packet_set_fingerprint": semantic["packet_set_fingerprint"],
             "timing_fingerprint": semantic["timing_fingerprint"],
             "execution_timings": timings,
+            "reset_execution_timings": reset_timings,
             "performance_timeline": list(result.get("performance_timeline") or []),
             "time_analysis_owner": "admin_core.operator_execution_pipeline.execution_performance_foundation",
             "time_analysis_schema": str((timings[0] or {}).get("analysis_schema_version") or ""),

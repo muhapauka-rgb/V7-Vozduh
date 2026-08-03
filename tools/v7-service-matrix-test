@@ -439,7 +439,9 @@ def network_path_evidence(
     component_commands = {
         "interface_addresses": ["ip", "-j", "-brief", "addr", "show", "dev", iface],
         "policy_rules": ["ip", "-j", "rule", "show"],
-        "routing_tables": ["ip", "-j", "route", "show", "table", "all"],
+        "routing_tables": [
+            "ip", "-j", "route", "show", "table", "all", "dev", iface,
+        ],
         "firewall_rules": ["nft", "--stateless", "list", "ruleset"],
     }
     component_started_ns = time.monotonic_ns()
@@ -487,9 +489,18 @@ def network_path_evidence(
         "resolver_sha256": resolver_hash,
         "service_set_fingerprint": service_set_fingerprint,
         "matrix_schema_version": "v7.service-matrix-network-path.v1",
+        # Matrix evidence is channel/path scoped.  Per-user policy rules are
+        # deliberately observed but excluded from this fingerprint because a
+        # successful user move changes that separate route-binding owner.  A
+        # global policy-rule hash made every valid apply invalidate its own
+        # Matrix evidence and forced a redundant 14-service refresh.  The
+        # lightweight user route verifier remains the canonical binding proof.
         "component_hashes": {
-            name: value["sha256"] for name, value in sorted(components.items())
+            name: value["sha256"]
+            for name, value in sorted(components.items())
+            if name != "policy_rules"
         },
+        "excluded_binding_components": ["policy_rules"],
     }
     return {
         **basis,

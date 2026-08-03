@@ -1884,6 +1884,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "execution_allocation_fingerprint": "a" * 64,
             "packet_set_fingerprint": "b" * 64,
             "cohort_execution_timings": [{"timing": timing}],
+            "reset_execution_timings": [{
+                "packet_id": "pkt_reset",
+                "operation_id": "op_reset",
+                "timing": timing,
+            }],
             "performance_timeline": [],
             "allocation_immutable": True,
             "capacity_reservation_verified": True,
@@ -1909,6 +1914,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(duplicate["duplicate_suppressed"])
         matches = [row for row in rows if row.get("record_type") == self.refresh.PERFORMANCE_CLOSURE_RECORD_TYPE]
         self.assertEqual(len(matches), 1)
+        self.assertEqual(
+            matches[0]["performance_revalidation_generation"],
+            self.refresh.PERFORMANCE_REVALIDATION_GENERATION,
+        )
         self.assertFalse(matches[0]["campaign_stage_credit"])
         self.assertFalse(matches[0]["stage_48_executed"])
 

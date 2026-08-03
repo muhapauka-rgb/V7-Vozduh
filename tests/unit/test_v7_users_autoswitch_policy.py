@@ -573,13 +573,127 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 planner_class.return_value.plan.return_value = plan
                 result = self.tool.action_class_contract_reconciliation_only(self.args_for(root))
 
-        coherent_args = planner_class.call_args.args[0]
+        coherent_calls = [
+            call.args[0]
+            for call in planner_class.call_args_list
+            if call.args
+            and getattr(call.args[0], "mode", "") == "observe"
+            and getattr(call.args[0], "pre_planner_refresh", "") == "off"
+            and getattr(call.args[0], "emergency_failover_autonomy", False)
+        ]
+        self.assertEqual(len(coherent_calls), 1)
+        coherent_args = coherent_calls[0]
         self.assertEqual(coherent_args.mode, "observe")
         self.assertEqual(coherent_args.pre_planner_refresh, "off")
         self.assertTrue(coherent_args.emergency_failover_autonomy)
         self.assertTrue(result["coherent_snapshot_preflight"]["performed"])
         self.assertTrue(result["coherent_snapshot_preflight"]["source_stable"])
         self.assertTrue(result["coherent_snapshot_preflight"]["shared_service_matrix_lock_held"])
+
+    def test_fresh_matching_channel_path_matrix_is_reused_after_user_route_binding(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            path = {
+                "path_fingerprint": "a" * 64,
+                "service_set_fingerprint": "b" * 64,
+                "egress_identity_generation": "egid_test",
+                "measured_at": "2999-01-01T00:00:00+00:00",
+            }
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix.setdefault("items", {}).setdefault("1", {}).update({
+                "path_evidence": path,
+                "services": {
+                    "telegram": {
+                        "ok": True,
+                        "status": "OK",
+                        "tested_at": "2999-01-01T00:00:00+00:00",
+                        "egress_identity_generation": "egid_test",
+                    }
+                },
+            })
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            current = {**path}
+            original_run = self.tool.subprocess.run
+
+            def fake_run(command, **kwargs):
+                self.assertIn("--path-evidence-only", command)
+                return subprocess.CompletedProcess(
+                    command, 0,
+                    stdout=json.dumps({"status": "PASS", "path_evidence": current}),
+                )
+
+            try:
+                self.tool.subprocess.run = fake_run
+                result = planner._reuse_or_verify_emergency_required_services({
+                    "recommended_egress": "1",
+                    "important_services": ["telegram"],
+                })
+            finally:
+                self.tool.subprocess.run = original_run
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(payload["status"], "REUSED_FRESH_CHANNEL_PATH_MATRIX")
+        self.assertFalse(payload["full_matrix_refreshed"])
+        self.assertEqual(payload["matrix_scope"], "EGRESS_PATH_AND_CHANNEL_PROFILE")
+
+    def test_changed_path_fingerprint_runs_full_existing_matrix_verifier(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+            matrix_path = root / "state" / "service-matrix.json"
+            matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+            matrix.setdefault("items", {}).setdefault("1", {}).update({
+                "path_evidence": {
+                    "path_fingerprint": "a" * 64,
+                    "service_set_fingerprint": "b" * 64,
+                    "egress_identity_generation": "egid_test",
+                },
+                "services": {
+                    "telegram": {
+                        "ok": True,
+                        "status": "OK",
+                        "tested_at": "2999-01-01T00:00:00+00:00",
+                        "egress_identity_generation": "egid_test",
+                    }
+                },
+            })
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            original_run = self.tool.subprocess.run
+            planner._verify_emergency_required_services = lambda move: subprocess.CompletedProcess(
+                ["v7-service-matrix-test"], 0, stdout=json.dumps({"status": "OK"})
+            )
+
+            def fake_run(command, **kwargs):
+                return subprocess.CompletedProcess(
+                    command, 0,
+                    stdout=json.dumps({
+                        "status": "PASS",
+                        "path_evidence": {
+                            "path_fingerprint": "c" * 64,
+                            "service_set_fingerprint": "b" * 64,
+                            "egress_identity_generation": "egid_test",
+                        },
+                    }),
+                )
+
+            try:
+                self.tool.subprocess.run = fake_run
+                result = planner._reuse_or_verify_emergency_required_services({
+                    "recommended_egress": "1",
+                    "important_services": ["telegram"],
+                })
+            finally:
+                self.tool.subprocess.run = original_run
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(payload["matrix_reuse_decision"], "FULL_MATRIX_REFRESH_REQUIRED")
+        self.assertIn("path_fingerprint_changed", payload["matrix_reuse_invalidation_reasons"])
 
     def test_controlled_verifier_lifecycle_start_failure_restores_source_without_direct_rollback(self):
         with tempfile.TemporaryDirectory() as tmp:

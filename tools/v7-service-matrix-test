@@ -387,6 +387,98 @@ def canonical_egress_identity(row: dict[str, Any], *, egress_id: str, iface: str
     }
 
 
+def _bounded_command_fingerprint(command: list[str], *, timeout: int = 3) -> dict[str, Any]:
+    """Fingerprint one existing kernel/network owner without storing raw data."""
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(1, min(int(timeout), 5)),
+        )
+        output = proc.stdout or ""
+        return {
+            "status": "PASS" if proc.returncode == 0 else "UNAVAILABLE",
+            "sha256": hashlib.sha256(output.encode("utf-8", errors="replace")).hexdigest(),
+            "returncode": int(proc.returncode),
+        }
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "status": "UNAVAILABLE",
+            "sha256": hashlib.sha256(str(exc.__class__.__name__).encode()).hexdigest(),
+            "returncode": 127,
+        }
+
+
+def network_path_evidence(
+    state_dir: Path,
+    row: dict[str, Any],
+    *,
+    egress_id: str,
+    iface: str,
+    service_ids: list[str],
+) -> dict[str, Any]:
+    """Project the Matrix probe path through its existing topology owners.
+
+    The projection is embedded in the existing service-matrix row.  It stores
+    hashes and semantic classes only; raw rules, addresses, firewall state and
+    credentials remain with their canonical kernel/config owners.
+    """
+    identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
+    try:
+        netns_identity = os.readlink("/proc/self/ns/net")
+    except OSError:
+        netns_identity = "UNKNOWN"
+    resolver_path = Path("/etc/resolv.conf")
+    try:
+        resolver_hash = hashlib.sha256(resolver_path.read_bytes()).hexdigest()
+    except OSError:
+        resolver_hash = "UNAVAILABLE"
+    components = {
+        "interface_addresses": _bounded_command_fingerprint(["ip", "-j", "-brief", "addr", "show", "dev", iface]),
+        "policy_rules": _bounded_command_fingerprint(["ip", "-j", "rule", "show"]),
+        "routing_tables": _bounded_command_fingerprint(["ip", "-j", "route", "show", "table", "all"]),
+        "firewall_rules": _bounded_command_fingerprint(["nft", "--stateless", "list", "ruleset"]),
+    }
+    service_set = sorted(set(str(item) for item in service_ids if str(item)))
+    service_set_fingerprint = hashlib.sha256(
+        json.dumps(service_set, separators=(",", ":")).encode()
+    ).hexdigest()
+    basis = {
+        "schema_version": "v7.service-matrix-network-path.v1",
+        "scope": "EGRESS_PATH_AND_CHANNEL_PROFILE",
+        "channel_id": egress_id,
+        "interface": iface,
+        "network_namespace": netns_identity,
+        "egress_identity_generation": identity["egress_identity_generation"],
+        "egress_config_generation": identity["egress_config_generation"],
+        "resolver_sha256": resolver_hash,
+        "service_set_fingerprint": service_set_fingerprint,
+        "matrix_schema_version": "v7.service-matrix-network-path.v1",
+        "component_hashes": {
+            name: value["sha256"] for name, value in sorted(components.items())
+        },
+    }
+    return {
+        **basis,
+        "path_fingerprint": hashlib.sha256(
+            json.dumps(basis, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest(),
+        "measured_at": now_iso(),
+        "probe_execution_context": {
+            "host_scope": "CURRENT_RUNTIME_NODE",
+            "process_owner": "tools/v7-service-matrix-test",
+            "socket_binding": "SO_BINDTODEVICE_OR_CURL_INTERFACE",
+            "user_route_binding_used": False,
+            "raw_network_state_stored": False,
+        },
+        "component_status": {name: value["status"] for name, value in sorted(components.items())},
+        "service_ids": service_set,
+    }
+
+
 def service_failure_episode(
     previous: dict[str, Any],
     observed: dict[str, Any],
@@ -1034,6 +1126,13 @@ def update_matrix(
             "count": total,
             "status": "NOT_STARTED" if not_started else ("OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL")),
         })
+        row["path_evidence"] = network_path_evidence(
+            state_dir or matrix_file.parent,
+            egress_row(state_dir or matrix_file.parent, egress_id),
+            egress_id=egress_id,
+            iface=iface,
+            service_ids=sorted(services),
+        )
         row["route_class_fitness"] = route_class_fitness(row)
         data["updated"] = now_iso()
         write_json_atomic(matrix_file, data)
@@ -1058,6 +1157,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--interface", default="")
+    parser.add_argument(
+        "--path-evidence-only",
+        action="store_true",
+        help="Read and fingerprint the current probe path without probes or durable Matrix writes.",
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -1083,6 +1187,24 @@ def main() -> int:
         return 2
     row = egress_row(state_dir, egress_id)
     identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
+    if args.path_evidence_only:
+        evidence = network_path_evidence(
+            state_dir,
+            row,
+            egress_id=egress_id,
+            iface=iface,
+            service_ids=list(SERVICE_CATALOG),
+        )
+        print(json.dumps({
+            "action": "service_matrix_path_evidence",
+            "status": "PASS",
+            "egress": egress_id,
+            "interface": iface,
+            "path_evidence": evidence,
+            "runtime_behavior_changed": False,
+            "users_moved": 0,
+        }, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0
     probes_started_ns = time.monotonic_ns()
     if interface_required(row) and not interface_live(iface):
         results = {service_id: not_started_result(service_id, iface) for service_id in selected}

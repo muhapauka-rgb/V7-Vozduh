@@ -12732,7 +12732,7 @@ class AutoswitchPlanner:
                         )
                     else:
                         service_verify_started_ns = time.monotonic_ns()
-                        service_verify = self._verify_emergency_required_services(move)
+                        service_verify = self._reuse_or_verify_emergency_required_services(move)
                         service_verify_span = self._record_performance_span(
                             "required_service_verification",
                             service_verify_started_ns,
@@ -14654,6 +14654,95 @@ class AutoswitchPlanner:
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             return subprocess.CompletedProcess(command, 1, stdout=f"service verify error: {exc}\n")
+
+    def _reuse_or_verify_emergency_required_services(self, move: dict[str, Any]) -> subprocess.CompletedProcess[str]:
+        """Reuse fresh exact-path Matrix evidence or run its existing verifier.
+
+        Matrix probes execute through the target interface in the runtime host
+        namespace.  They prove egress-path/channel-profile reachability, not a
+        user's policy-table binding.  The latter remains fail-closed in
+        ``_verify_routes_for_apply`` before this method is reached.
+        """
+        started_ns = time.monotonic_ns()
+        target = str(move.get("recommended_egress") or "")
+        services = normalize_service_ids(move.get("important_services") or [])
+        matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
+        target_row = ((matrix.get("items") or {}).get(target) or {}) if isinstance(matrix, dict) else {}
+        stored_path = target_row.get("path_evidence") if isinstance(target_row.get("path_evidence"), dict) else {}
+        command = [
+            "v7-service-matrix-test", target, "--path-evidence-only",
+            "--state-dir", str(self.state_dir),
+        ]
+        try:
+            probe = subprocess.run(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+            current_payload = json.loads(probe.stdout or "{}") if probe.returncode == 0 else {}
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            current_payload = {}
+        current_path = current_payload.get("path_evidence") if isinstance(current_payload.get("path_evidence"), dict) else {}
+        matrix_services = target_row.get("services") if isinstance(target_row.get("services"), dict) else {}
+        invalidation_reasons: list[str] = []
+        if not stored_path or not current_path:
+            invalidation_reasons.append("path_evidence_missing")
+        elif str(stored_path.get("path_fingerprint") or "") != str(current_path.get("path_fingerprint") or ""):
+            invalidation_reasons.append("path_fingerprint_changed")
+        if str(stored_path.get("service_set_fingerprint") or "") != str(current_path.get("service_set_fingerprint") or ""):
+            invalidation_reasons.append("service_set_changed")
+        for service in services:
+            row = matrix_services.get(service) if isinstance(matrix_services.get(service), dict) else {}
+            freshness = self._service_truth_freshness(row)
+            status = str(row.get("status") or "").upper()
+            if not row:
+                invalidation_reasons.append(f"{service}:missing")
+            elif freshness.get("state") != "FRESH":
+                invalidation_reasons.append(f"{service}:not_fresh")
+            elif row.get("ok") is not True and status not in {"OK", "WARN", "DEGRADED", "HTTP_LIMITED"}:
+                invalidation_reasons.append(f"{service}:not_healthy")
+            if str(row.get("egress_identity_generation") or "") != str(stored_path.get("egress_identity_generation") or ""):
+                invalidation_reasons.append(f"{service}:identity_generation_changed")
+        if not invalidation_reasons:
+            duration_ms = round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3)
+            payload = {
+                "action": "reuse_service_matrix_path_evidence",
+                "status": "REUSED_FRESH_CHANNEL_PATH_MATRIX",
+                "ok": True,
+                "egress": target,
+                "required_services": services,
+                "matrix_scope": "EGRESS_PATH_AND_CHANNEL_PROFILE",
+                "path_fingerprint": str(stored_path.get("path_fingerprint") or ""),
+                "service_set_fingerprint": str(stored_path.get("service_set_fingerprint") or ""),
+                "matrix_measured_at": str(stored_path.get("measured_at") or target_row.get("updated") or ""),
+                "user_binding_evidence_owner": "tools/v7-users-autoswitch._verify_routes_for_apply",
+                "full_matrix_refreshed": False,
+                "performance_timeline": {
+                    "schema_version": "v7.service-matrix-reuse-timing.v1",
+                    "clock_source": "time.monotonic_ns",
+                    "owner": "tools/v7-users-autoswitch",
+                    "spans": [{"stage": "fresh_channel_path_matrix_lookup_and_fingerprint_validation", "duration_ms": duration_ms, "critical_path": True}],
+                },
+            }
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload, ensure_ascii=False))
+        refreshed = self._verify_emergency_required_services(move)
+        try:
+            payload = json.loads(refreshed.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        if isinstance(payload, dict) and payload:
+            payload["matrix_reuse_decision"] = "FULL_MATRIX_REFRESH_REQUIRED"
+            payload["matrix_reuse_invalidation_reasons"] = sorted(set(invalidation_reasons))
+            payload["user_binding_evidence_owner"] = "tools/v7-users-autoswitch._verify_routes_for_apply"
+            refreshed = subprocess.CompletedProcess(
+                refreshed.args,
+                refreshed.returncode,
+                stdout=json.dumps(payload, ensure_ascii=False),
+            )
+        return refreshed
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

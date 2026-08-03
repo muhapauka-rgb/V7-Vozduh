@@ -39,6 +39,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
 
+    def test_network_path_evidence_is_channel_path_scoped_and_secret_free(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "egress.registry").write_text(
+                "id=awg0 interface=awg0 protocol=wireguard enabled=1\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.matrix,
+                "_bounded_command_fingerprint",
+                return_value={"status": "PASS", "sha256": "a" * 64, "returncode": 0},
+            ):
+                evidence = self.matrix.network_path_evidence(
+                    state,
+                    self.matrix.egress_row(state, "awg0"),
+                    egress_id="awg0",
+                    iface="awg0",
+                    service_ids=["telegram", "google"],
+                )
+        self.assertEqual(evidence["scope"], "EGRESS_PATH_AND_CHANNEL_PROFILE")
+        self.assertFalse(evidence["probe_execution_context"]["user_route_binding_used"])
+        self.assertEqual(len(evidence["path_fingerprint"]), 64)
+        self.assertNotIn("raw_rules", evidence)
+
     def test_failure_episode_survives_repeated_matrix_writes_and_resets_on_recovery(self):
         with tempfile.TemporaryDirectory() as tmp:
             matrix_file = Path(tmp) / "service-matrix.json"

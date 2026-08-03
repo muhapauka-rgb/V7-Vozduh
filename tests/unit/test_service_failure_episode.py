@@ -66,6 +66,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(evidence["source_ip_class_fingerprint"], "a" * 64)
         self.assertNotIn("203.0.113.7", json.dumps(evidence))
         self.assertNotIn("raw_rules", evidence)
+        self.assertEqual(
+            evidence["performance_timeline"]["bounded_parallelism"], 4
+        )
+        self.assertEqual(
+            set(evidence["performance_timeline"]["component_duration_ms"]),
+            {
+                "interface_addresses",
+                "policy_rules",
+                "routing_tables",
+                "firewall_rules",
+            },
+        )
 
     def test_expected_egress_ip_change_invalidates_path_fingerprint(self):
         with tempfile.TemporaryDirectory() as tmp:

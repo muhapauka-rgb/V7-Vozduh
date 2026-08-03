@@ -53,6 +53,9 @@ RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
+PERFORMANCE_REVALIDATION_GENERATION = (
+    "stage48-second-level-critical-path-v1"
+)
 
 
 def now_iso() -> str:
@@ -629,7 +632,11 @@ def record_availability_first_stage_consumption(
     }
 
 
-def current_performance_closure_receipt(audit_store: Path) -> dict[str, Any]:
+def current_performance_closure_receipt(
+    audit_store: Path,
+    *,
+    revalidation_generation: str = "",
+) -> dict[str, Any]:
     rows = operator_execution.read_live_execution_lineage_records(
         audit_store, include_runtime_actions=True
     )
@@ -644,6 +651,11 @@ def current_performance_closure_receipt(audit_store: Path) -> dict[str, Any]:
         and row.get("time_optimization_loop_consumed") is True
         and row.get("baseline_reset_verified") is True
         and row.get("ordinary_user_protection_passed") is True
+        and (
+            not revalidation_generation
+            or str(row.get("performance_revalidation_generation") or "")
+            == revalidation_generation
+        )
     ]
     return matches[-1] if matches else {}
 
@@ -677,6 +689,9 @@ def record_performance_closure_consumption(
     if blockers:
         return {"receipt_id": "", "audit_write": False, "duplicate_suppressed": False, "blockers": sorted(set(blockers))}
     semantic = {
+        "performance_revalidation_generation": (
+            PERFORMANCE_REVALIDATION_GENERATION
+        ),
         "contract_id": str(result.get("standing_policy_contract_id") or ""),
         "execution_allocation_fingerprint": str(result.get("execution_allocation_fingerprint") or ""),
         "packet_set_fingerprint": str(result.get("packet_set_fingerprint") or ""),
@@ -684,12 +699,18 @@ def record_performance_closure_consumption(
     }
     receipt_id = "perfclose_" + operator_execution.sha256_json(semantic)[:24]
     with operator_execution.current_action_class_contract_policy_lock(audit_store):
-        prior = current_performance_closure_receipt(audit_store)
+        prior = current_performance_closure_receipt(
+            audit_store,
+            revalidation_generation=PERFORMANCE_REVALIDATION_GENERATION,
+        )
         if prior:
             return {"receipt_id": str(prior.get("receipt_id") or ""), "audit_write": False, "duplicate_suppressed": True}
         row = operator_execution.append_record(audit_store, {
             "schema_version": "v7.governed-performance-closure-consumption.v1",
             "record_type": PERFORMANCE_CLOSURE_RECORD_TYPE,
+            "performance_revalidation_generation": (
+                PERFORMANCE_REVALIDATION_GENERATION
+            ),
             "receipt_id": receipt_id,
             "standing_policy_contract_id": semantic["contract_id"],
             "execution_allocation_fingerprint": semantic["execution_allocation_fingerprint"],
@@ -1812,7 +1833,8 @@ def _run_availability_first_standing_policy_stage_once(
             )),
         }
     performance_gate_receipt = current_performance_closure_receipt(
-        audit_store
+        audit_store,
+        revalidation_generation=PERFORMANCE_REVALIDATION_GENERATION,
     )
     performance_benchmark = bool(
         stage == 48 and not performance_gate_receipt

@@ -4455,6 +4455,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             module.subprocess.run = original_run
 
         self.assertIn("--source-egress", captured["command"])
+        self.assertNotIn("--pretty", captured["command"])
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
 
@@ -4781,6 +4782,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(captured["timeout"], 600)
         self.assertEqual(result["timeout_seconds"], 600)
         self.assertIn("--emergency-failover-autonomy", captured["command"])
+        self.assertIn("--governed-execution-receipt", captured["command"])
+        self.assertNotIn("--pretty", captured["command"])
         timeout_index = captured["command"].index("--service-matrix-lock-timeout-sec")
         self.assertEqual(captured["command"][timeout_index + 1], "5")
 

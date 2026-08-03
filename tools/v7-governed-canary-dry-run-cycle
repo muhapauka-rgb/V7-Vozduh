@@ -779,7 +779,6 @@ def run_l3_production_validation_plan(
         str(snapshot_root),
         "--restore-barrier-file",
         str(restore_barrier_file),
-        "--pretty",
     ]
     if source:
         command.extend(["--source-egress", source])
@@ -2974,7 +2973,7 @@ def run_autoswitch_apply(
         "--allow-pre-planner-refresh-with-apply",
         "--service-matrix-lock-timeout-sec",
         str(max(1, min(int(service_matrix_lock_timeout_sec or 90), 90))),
-        "--pretty",
+        "--governed-execution-receipt",
     ]
     if user:
         command.extend(["--user", user])
@@ -4573,6 +4572,38 @@ def service_failure_obligation_execution_binding(
 
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     transaction_started_ns = time.monotonic_ns()
+    second_level_timeline: list[dict[str, Any]] = []
+
+    def record_second_level(
+        stage: str,
+        started_ns: int,
+        *,
+        owner: str,
+        parent: str,
+        status: str = "PASS",
+        blocking_reason: str = "",
+    ) -> None:
+        second_level_timeline.append({
+            "stage": stage,
+            "parent": parent,
+            "owner": owner,
+            "clock_source": "time.monotonic_ns",
+            "duration_ms": round(
+                max(0, time.monotonic_ns() - started_ns) / 1_000_000.0,
+                3,
+            ),
+            "status": status,
+            "blocking_reason": blocking_reason,
+            "critical_path": True,
+        })
+
+    overhead_started_ns = time.monotonic_ns()
+    for _ in range(64):
+        time.monotonic_ns()
+    timing_measurement_overhead_ms = round(
+        (time.monotonic_ns() - overhead_started_ns) / 1_000_000.0,
+        6,
+    )
     if args.confirm_l3_production_validation != "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED":
         return transaction_stop("l3_production_validation_confirmation_required")
     requested_tier = resolved_l3_requested_max_users(args)
@@ -4610,6 +4641,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             "l3_restore_barrier_preflight_reset_failed",
             restore_barrier_preflight_reset=restore_barrier_preflight_reset,
         )
+    planner_subprocess_started_ns = time.monotonic_ns()
     l3_plan_run = run_l3_production_validation_plan(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -4654,9 +4686,20 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
         pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )
+    record_second_level(
+        "planner_subprocess_full_lifecycle",
+        planner_subprocess_started_ns,
+        owner="tools/v7-users-autoswitch Planner subprocess",
+        parent="planner",
+        status="PASS" if l3_plan_run.get("ok") else "STOP_SAFE",
+        blocking_reason=(
+            "" if l3_plan_run.get("ok") else "planner_subprocess_failed"
+        ),
+    )
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
     if not plan:
         return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
+    planner_binding_started_ns = time.monotonic_ns()
     availability_selection_binding: dict[str, Any] = {}
     if availability_mode:
         availability_selection_binding = (
@@ -4707,6 +4750,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             else {}
         )
         l3_plan_run["payload"] = plan
+    record_second_level(
+        "planner_selection_and_authority_binding",
+        planner_binding_started_ns,
+        owner="existing availability selection and Authority binding owners",
+        parent="planner",
+    )
     planner_completed_ns = time.monotonic_ns()
     authorized_budget = authorized_l3_budget_from_plan(plan)
     authorized_l3_budget = int(authorized_budget.get("authorized_l3_budget") or 1)
@@ -4718,7 +4767,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             authorized_l3_budget=authorized_budget,
         )
 
+    transition_started_ns = time.monotonic_ns()
     transition = operator_execution_pipeline.l3_production_validation_runtime_action_transition(plan, max_users=requested_max_users)
+    record_second_level(
+        "candidate_transition_validation",
+        transition_started_ns,
+        owner="admin_core.operator_execution_pipeline",
+        parent="packet_and_lease",
+        status="PASS" if transition.get("ok") else "STOP_SAFE",
+    )
     if not transition.get("ok"):
         return transaction_stop(
             "l3_production_validation_transition_blocked",
@@ -4730,6 +4787,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             ),
         )
 
+    packet_materialization_started_ns = time.monotonic_ns()
     if initial_control.get("state") == "OPEN":
         operation_binding = attach_l3_operation_scoped_binding(
             plan,
@@ -4873,6 +4931,14 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         except Exception as exc:
             return transaction_stop("l3_packet_materialization_failed", l3_plan_run=l3_plan_run, transition=transition, error=str(exc))
 
+    record_second_level(
+        "operation_binding_control_window_and_packet_materialization",
+        packet_materialization_started_ns,
+        owner="existing Candidate/Packet/autonomous-control owners",
+        parent="packet_and_lease",
+    )
+
+    packet_validation_started_ns = time.monotonic_ns()
     try:
         packet_identity = operator_execution.packet_identity(packet)
     except Exception as exc:
@@ -4893,6 +4959,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             constraints=constraints,
             authorized_l3_budget=authorized_budget,
         )
+    record_second_level(
+        "packet_identity_scope_and_policy_validation",
+        packet_validation_started_ns,
+        owner="admin_core.operator_execution Packet validation",
+        parent="packet_and_lease",
+    )
 
     users = constraints["users"]
     targets = constraints["targets"]
@@ -4901,6 +4973,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     user = users[0] if users else ""
     target = targets[0] if targets else ""
     source = sources[0] if sources else ""
+    lease_started_ns = time.monotonic_ns()
     lease = operator_execution.create_execution_lease_from_packet(packet, source_preview=plan)
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
@@ -4910,6 +4983,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             transition=transition,
             execution_lease_create_result=lease_create_result,
         )
+    record_second_level(
+        "lease_construction_lock_validation_and_durable_write",
+        lease_started_ns,
+        owner="admin_core.operator_execution execution lease owner",
+        parent="packet_and_lease",
+    )
     packet_completed_ns = time.monotonic_ns()
 
     audit_store = audit_dir / "operator-execution-audit.jsonl"
@@ -5194,6 +5273,21 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         else {}
     )
     execution_timing["nested_timeline"] = child_timeline
+    execution_timing["planner_nested_timeline"] = (
+        plan.get("performance_timeline")
+        if isinstance(plan.get("performance_timeline"), dict)
+        else {}
+    )
+    execution_timing["second_level_timeline"] = {
+        "schema_version": "v7.governed-second-level-timing.v1",
+        "clock_source": "time.monotonic_ns",
+        "mission_id": "FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1",
+        "packet_id": str(packet_identity.get("packet_id") or ""),
+        "lease_id": str(lease.get("lease_id") or ""),
+        "operation_id": str(packet_identity.get("operation_id") or ""),
+        "measurement_overhead_ms": timing_measurement_overhead_ms,
+        "spans": second_level_timeline,
+    }
     execution_timing["system_evidence"] = dict(
         apply_run.get("performance_forensics") or {}
     )
@@ -10073,6 +10167,16 @@ def execute_availability_first_standing_stage(
         "learning_consumed": learning_consumed,
         "baseline_reset_verified": reset_ok,
         "reset_transactions": reset_transactions,
+        "reset_execution_timings": [
+            {
+                "packet_id": str(row.get("fresh_packet_id") or ""),
+                "operation_id": str(row.get("operation_id") or ""),
+                "timing": row.get("execution_timing"),
+            }
+            for row in reset_transactions
+            if isinstance(row, dict)
+            and isinstance(row.get("execution_timing"), dict)
+        ],
         "baseline_reset_reconciliations": reset_reconciliations,
         "ordinary_assignment_before": ordinary_before,
         "ordinary_assignment_after_apply": ordinary_after_apply,

@@ -436,12 +436,38 @@ def network_path_evidence(
         resolver_hash = hashlib.sha256(resolver_path.read_bytes()).hexdigest()
     except OSError:
         resolver_hash = "UNAVAILABLE"
-    components = {
-        "interface_addresses": _bounded_command_fingerprint(["ip", "-j", "-brief", "addr", "show", "dev", iface]),
-        "policy_rules": _bounded_command_fingerprint(["ip", "-j", "rule", "show"]),
-        "routing_tables": _bounded_command_fingerprint(["ip", "-j", "route", "show", "table", "all"]),
-        "firewall_rules": _bounded_command_fingerprint(["nft", "--stateless", "list", "ruleset"]),
+    component_commands = {
+        "interface_addresses": ["ip", "-j", "-brief", "addr", "show", "dev", iface],
+        "policy_rules": ["ip", "-j", "rule", "show"],
+        "routing_tables": ["ip", "-j", "route", "show", "table", "all"],
+        "firewall_rules": ["nft", "--stateless", "list", "ruleset"],
     }
+    component_started_ns = time.monotonic_ns()
+    component_timings: dict[str, float] = {}
+
+    def fingerprint_component(item: tuple[str, list[str]]) -> tuple[str, dict[str, Any], float]:
+        name, command = item
+        started_ns = time.monotonic_ns()
+        value = _bounded_command_fingerprint(command)
+        return name, value, round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3)
+
+    # These four reads are independent projections over existing kernel/config
+    # owners.  Serial execution multiplied a single slow nft/ip timeout across
+    # the user verification critical path and could force an unnecessary full
+    # Matrix refresh.  Bounded parallel reads preserve every fingerprint and
+    # fail-closed status while paying only the slowest owner latency.
+    components: dict[str, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=len(component_commands)) as pool:
+        for name, value, duration_ms in pool.map(
+            fingerprint_component,
+            component_commands.items(),
+        ):
+            components[name] = value
+            component_timings[name] = duration_ms
+    component_wall_ms = round(
+        (time.monotonic_ns() - component_started_ns) / 1_000_000.0,
+        3,
+    )
     service_set = sorted(set(str(item) for item in service_ids if str(item)))
     service_set_fingerprint = hashlib.sha256(
         json.dumps(service_set, separators=(",", ":")).encode()
@@ -479,6 +505,14 @@ def network_path_evidence(
             "raw_network_state_stored": False,
         },
         "component_status": {name: value["status"] for name, value in sorted(components.items())},
+        "performance_timeline": {
+            "schema_version": "v7.service-matrix-path-evidence-timing.v1",
+            "clock_source": "time.monotonic_ns",
+            "owner": "tools/v7-service-matrix-test.network_path_evidence",
+            "critical_path_wall_ms": component_wall_ms,
+            "component_duration_ms": dict(sorted(component_timings.items())),
+            "bounded_parallelism": len(component_commands),
+        },
         "service_ids": service_set,
     }
 

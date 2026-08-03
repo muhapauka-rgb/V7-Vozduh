@@ -14790,6 +14790,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")
     parser.add_argument("--emergency-failover-autonomy", action="store_true", help="Enable one-run bounded emergency failover autonomy from existing policy gates.")
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
+    parser.add_argument(
+        "--governed-execution-receipt",
+        action="store_true",
+        help=(
+            "Emit the compact governed caller receipt after all canonical "
+            "owners have consumed the full plan; execution semantics and "
+            "durable evidence are unchanged."
+        ),
+    )
     parser.add_argument("--verify", action="store_true", default=True, help="Run v7-user-route-check after apply.")
     parser.add_argument("--no-verify", dest="verify", action="store_false")
     parser.add_argument("--rollback-on-verify-fail", action="store_true", default=True)
@@ -19902,7 +19911,30 @@ def main() -> int:
     }
     timeline["total_ms"] = round((time.monotonic_ns() - planner_init_started_ns) / 1_000_000.0, 3)
     plan["performance_timeline"] = timeline
-    print(json.dumps(plan, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+    output = plan
+    if args.governed_execution_receipt:
+        output = {
+            "schema_version": "v7.autoswitch-governed-execution-receipt.v1",
+            "full_plan_embedded": False,
+            "durable_plan_owner": "existing execution audit and Outcome owners",
+            **{
+                key: plan.get(key)
+                for key in (
+                    "final_verdict",
+                    "transaction_status",
+                    "status",
+                    "stop_reason",
+                    "reason",
+                    "stop_detail",
+                    "operation",
+                    "apply_result",
+                    "l3_learning_closure",
+                    "performance_timeline",
+                )
+                if key in plan
+            },
+        }
+    print(json.dumps(output, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
     return 0
 
 

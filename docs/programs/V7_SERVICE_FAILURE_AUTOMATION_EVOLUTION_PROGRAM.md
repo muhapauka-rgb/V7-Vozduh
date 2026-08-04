@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.3`
+Version: `4.4`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,7 +9,7 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V4.3 current-client recovery proof correction
+## V4.4 current-client and class-path recovery SLO ladder
 
 CT-M0 is a consumed read-only audit. Its `141.353447 s` baseline is the full
 successful forward-plus-reset lifecycle and must not be presented as measured
@@ -61,7 +61,8 @@ the post-deploy lifecycle and publish, at minimum:
 - complete reset closure;
 - cold/warm sample identity, monotonic clock, unknown time and invalid samples.
 
-The first bounded legacy-path acceptance gate is:
+The first bounded legacy-path acceptance gate is a transitional ceiling, not
+the target SLO and not a CT-M0F completion terminal:
 
 ```text
 at least three valid controlled certification-only samples
@@ -71,16 +72,64 @@ AND HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH
 AND zero weakened verification, rollback, Authority or ordinary-user guards
 ```
 
-One cold and two warm samples are sufficient when their source/target/path and
-invalidation identities are explicit. Samples cannot be repeated merely to
-obtain a preferred percentile. If an owner-backed external network lower bound
-prevents the gate, CT-M0F remains incomplete and publishes the exact interval,
-owner, evidence and successor; the threshold is not silently weakened.
+Passing that ceiling emits
+`TRANSITIONAL_GATE_PASS_OPERATIONAL_LATENCY_RESIDUAL_READY` and automatically
+returns the exact measured latency residual to `CT-M0F-E_ENGINEERING` through
+the existing BDP/OMP consumer. It must not mark CT-M0F complete, unlock CT-M1
+or be described as fast failover.
+
+The required legacy operational gate is:
+
+```text
+at least five valid controlled certification-only samples
+AND at least one cold and two warm samples
+AND samples span at least two current owner-backed generations
+AND FAILURE_DETECTION_LATENCY p95 <= 2,000 ms
+AND DECISION_PLUS_ROUTE_COMMIT_LATENCY p95 <= 500 ms
+AND CLIENT_TRAFFIC_RECOVERY_LATENCY p95 <= 3,000 ms
+AND no valid CLIENT_TRAFFIC_RECOVERY_LATENCY sample > 5,000 ms
+AND HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH
+AND zero weakened verification, rollback, Authority or ordinary-user guards
+```
+
+Only that gate may emit `LEGACY_OPERATIONAL_RECOVERY_SLO_CONSUMED` and complete
+the current-client latency part of CT-M0F. A p99 claim requires at least 100
+owner-backed observations; production actions must never be manufactured only
+to fill a percentile. Until then p99 is `INSUFFICIENT_SAMPLE_COUNT`, never
+zero or inferred from p95.
+
+The future prepared class/bucket path has a separate mandatory target:
+
+```text
+FAILURE_DETECTION_LATENCY p95 <= 2,000 ms
+AND PREPARED_DECISION_VALIDATION_PLUS_KERNEL_COMMIT p95 <= 250 ms
+AND ROUTE_VISIBILITY_LATENCY p95 <= 100 ms
+AND CLIENT_TRAFFIC_RECOVERY_LATENCY p95 < 1,000 ms
+AND CLIENT_TRAFFIC_RECOVERY_LATENCY p99 <= 5,000 ms
+    only after at least 100 owner-backed observations
+AND 10-member versus 10,000-member cutover delta is within the declared
+    constant-time tolerance
+```
+
+The `<1,000 ms` class target is certified only through CT-M5/CT-M7/CT-M8
+evidence appropriate to each substrate. Logical or kernel Polygon evidence may
+prove complexity and cutover behavior, but only controlled production may
+prove route-bound client traffic recovery. The legacy `<3,000 ms` gate cannot
+substitute for the class target.
+
+One cold and two warm samples are sufficient only for the transitional ceiling
+when their source/target/path and invalidation identities are explicit. The
+operational gate requires the larger sample contract above. Samples cannot be
+repeated merely to obtain a preferred percentile. If an owner-backed external
+network lower bound prevents a gate, CT-M0F remains incomplete and publishes
+the exact interval, owner, evidence and successor; the threshold is not
+silently weakened.
 
 Required CT-M0F terminals are all mandatory:
 
 - `CURRENT_SINGLE_USER_CLIENT_RECOVERY_LATENCY_MEASURED`;
 - `CURRENT_SINGLE_USER_CRITICAL_PATH_SUBSTANTIALLY_REDUCED`;
+- `LEGACY_OPERATIONAL_RECOVERY_SLO_CONSUMED`;
 - `HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH`;
 - `CURRENT_LEGACY_EXCEPTION_PATH_BEFORE_AFTER_PRODUCTION_CONSUMED`;
 - `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED`.
@@ -3752,7 +3801,7 @@ reconciliation or unsupported legacy membership. The machine invariant is:
 
 `LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`.
 
-### V4.3 performance ledger and hot-path regression law
+### V4.4 performance ledger and hot-path regression law
 
 Every CT Mission must update
 `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER`, a projection of the existing
@@ -3946,7 +3995,7 @@ owners. It cannot create or execute a production Packet.
 
 Internal phase `CT-M0F-V_CONTROLLED_VALIDATION` must then use the existing
 Controlled Production Certification Program for exactly the current legacy
-single-user path and the V4.3 sample/gate contract. Its evidence proves only
+single-user path and the V4.4 ordered SLO ladder. Its evidence proves only
 current-path latency and fallback operability. It cannot certify class/bucket
 indirection, satisfy CT-M8, manufacture Natural L8, expand Runtime scope or
 advance Authority/Production Maturity.
@@ -3963,7 +4012,7 @@ Successor: CT-M1 becomes `READY` only after this terminal is consumed.
 
 Every CT-M0F result must include a consumed performance-ledger delta. Passing
 functional tests without old/new critical-path evidence is incomplete.
-CT-M0F cannot reach its terminal until every V4.3 current-client terminal is
+CT-M0F cannot reach its terminal until every V4.4 current-client terminal is
 consumed. CT-M1 remains `FORMED_DEPENDENCY_BLOCKED` while either E or V is
 incomplete.
 
@@ -4069,6 +4118,12 @@ hard-failure generation
 
 Timer remains watchdog. It is not the primary cutover wake.
 
+The measured hot path must enforce the V4.4 class-path engineering budgets:
+failure detection p95 <= `2,000 ms`, prepared-decision validation plus kernel
+commit p95 <= `250 ms`, route visibility p95 <= `100 ms`, and zero hidden full
+Planner or O(N) member work. CT-M5 evidence does not by itself claim
+route-bound production client recovery.
+
 Producer: existing failure/Matrix/Sentinel event owner.
 Output: exact fast-path trigger and operation generation.
 Consumer: existing governed executor, verification and successor owners.
@@ -4123,6 +4178,11 @@ Consumer: OMP certification and Product Evolution Frontier.
 Terminal:
 `TEN_THOUSAND_MEMBER_N_INDEPENDENT_FAILOVER_POLYGON_CERTIFIED`.
 
+For equal certified bucket count, 10 versus 10,000 members must preserve the
+declared constant-time tolerance for validation, kernel commit and visibility.
+Polygon may certify the subsecond engineering path; it cannot manufacture the
+CT-M8 production traffic-recovery receipt.
+
 ### Mission CT-M8 — bounded controlled-production certification
 
 Production starts only after CT-M7 and an exact existing-owner admission.
@@ -4132,6 +4192,13 @@ solely to manufacture evidence.
 Controlled production validates only residual blast classes: one bucket,
 multiple buckets, multiple targets, exception handling, rollback and forward
 recovery. It must not replay every numeric scale already proven by Polygon.
+
+The controlled-production Time owner must measure exact route-bound traffic.
+The class target is p95 `<1,000 ms`; p99 `<=5,000 ms` becomes a legal claim only
+after at least 100 owner-backed observations. A smaller sample set preserves
+`INSUFFICIENT_SAMPLE_COUNT` for p99 without blocking independently proven p95,
+safety, recovery or causal-closure criteria. No production action may be
+created only to populate this distribution.
 
 Producer: existing Controlled Production Certification Program.
 Output: owner-backed Outcome Passports and measured recovery SLO.
@@ -4163,7 +4230,7 @@ owned.
 Terminal:
 `CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
 
-### V4.3 dynamic Mission compression
+### V4.4 dynamic Mission compression
 
 CT-M0 is mandatory. CT-M0F is conditional on the exact M0 disposition matrix.
 CT-M1 through CT-M9 are capability stages, not mandatory empty containers.
@@ -4188,7 +4255,7 @@ identity, migration, projection, replay or model work. It is
 `POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
 `REAL_WORLD_LIMIT` while independent safe work exists.
 
-### V4.3 production-effect boundary
+### V4.4 production-effect boundary
 
 | Mission | Production routing/user effect |
 | --- | --- |
@@ -4210,7 +4277,7 @@ Authority expansion, Packet execution, restore-barrier write, routing
 mutation, user movement, rollback/forward-recovery apply, ordinary-user
 certification use and Production Maturity change.
 
-### V4.3 Program completion contract
+### V4.4 Program completion contract
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
@@ -4218,8 +4285,9 @@ criteria are owner-backed and consumed:
 - current data-plane feasibility and O(N)/O(K)/O(1) model proven;
 - current single-user client traffic recovery and reset traffic recovery are
   measured independently from full durable closure;
-- the CT-M0F post-deploy controlled legacy benchmark satisfies the V4.3
-  numeric gate, or CT-M0F remains open at the exact owner-backed interval;
+- the CT-M0F post-deploy controlled legacy benchmark consumes both the V4.4
+  transitional ceiling and operational `<3,000 ms` gate, or CT-M0F remains
+  open at the exact owner-backed latency residual;
 - heavy verification, Outcome/Replay/Learning and reset closure do not retain
   the client recovery terminal;
 - the existing Time owner has consumed a performance-ledger row for every
@@ -4251,6 +4319,8 @@ criteria are owner-backed and consumed:
 - 10,000-member logical and kernel Polygon criteria close;
 - controlled-production residuals are reconciled or exact Authority/
   real-world boundaries remain;
+- the prepared class/bucket path proves `<1,000 ms` p95 route-bound client
+  recovery in CT-M8; any p99 claim follows the V4.4 sample-count law;
 - Authority/Runtime recommendation is independently decided;
 - no open stage lacks `next_required_consumer` or `reentry_condition`;
 - CPS, OMP and Runtime projections agree;

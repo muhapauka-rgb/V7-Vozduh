@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.66`
+Version: `4.67`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -148,6 +148,18 @@ valid samples must prove p95 at or below 10 seconds, no sample above 15
 seconds, and heavy closure off the client critical path. This legacy-path proof
 does not certify class/bucket production, satisfy CT-M8, grant Authority,
 manufacture Natural L8 or change Production Maturity.
+
+V4.67 makes the 10-second CT-M0F threshold a transitional ceiling rather than
+the product SLO. Passing it automatically returns an exact latency residual to
+the same CT-M0F engineering owner until the legacy path proves detection p95
+at or below 2 seconds, decision-plus-route-commit p95 at or below 500 ms,
+route-bound client recovery p95 at or below 3 seconds and no valid recovery
+sample above 5 seconds. The future prepared class/bucket path separately
+requires sub-250 ms validation-plus-kernel commit, sub-100 ms visibility and
+subsecond p95 route-bound client recovery with N-invariant cutover. A p99 claim
+requires at least 100 owner-backed observations and may never be manufactured
+through unnecessary production actions. These are ordered gates inside the
+existing Program and owners, not new Missions or Authority.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -10554,7 +10566,7 @@ Maturity change remain absent. Exact next action remains
 Status: `ACTIVE_CPS_OWNED_FRONTIER`.
 
 Capability-plan owner:
-`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.3.
+`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.4.
 
 Live activation and sequencing owner:
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
@@ -10610,7 +10622,7 @@ Admission. A report without that consumption is
 | Stage | Required producer | Required output | Required existing consumer | Completion evidence | Exact successor |
 | --- | --- | --- | --- | --- | --- |
 | CT-M0 | route, registry, Matrix, Planner and Runtime read-only owners | disposition, cost, hot-path graph, invalidation, class identity, legacy scope and durable-closure contract | BDP Reality Gate -> OMP Candidate Admission | every M0 subterminal consumed and exactly one READY successor | CT-M0F READY + CT-M1 FORMED_DEPENDENCY_BLOCKED, or CT-M1 READY, or exact blocker |
-| CT-M0F-E/V (one conditional Mission) | exact existing owners named by M0, then existing Controlled Production/Time/Outcome owners | deployed fast primitives, measured route-bound client recovery, deferred closure split and certified legacy exception-selection contract | focused callers -> deploy/truth/convergence -> bounded certification-only validation -> BDP/OMP | all V4.3 client-recovery terminals plus `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED` consumed | CT-M1 READY |
+| CT-M0F-E/V (one conditional Mission) | exact existing owners named by M0, then existing Controlled Production/Time/Outcome owners | deployed fast primitives, measured route-bound client recovery, deferred closure split and certified legacy exception-selection contract | focused callers -> deploy/truth/convergence -> bounded certification-only validation -> BDP/OMP | all V4.4 transitional and operational client-recovery terminals plus `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED` consumed | CT-M1 READY |
 | CT-M1 | existing route owner extension + Polygon | kernel/class/bucket generation and crash receipt | Polygon result consumer -> BDP/OMP | 10 vs 10,000 N-independence and kernel/logical criteria consumed | CT-M2 or exact substrate residual |
 | CT-M2 | existing registry/projection owner | membership, exception, demand and snapshot generation | Planner, Packet and migration owners | exact snapshot replay and compact projection behavior change | CT-M3 |
 | CT-M3 | existing route/registry migration owner | bounded migrated scope with legacy parity/fallback | Runtime verification -> OMP | non-test migration consumer or exact no-effect shadow residual | CT-M4 |
@@ -10746,11 +10758,22 @@ For CT-M0F the Time projection must expose two independent clocks:
   verification, Outcome, Replay, Learning and bounded reset closure.
 
 Route visibility is an intermediate span, not proof of restored client
-traffic. Reset publishes its own route-bound recovery interval. CT-M0F needs
-one cold and two warm valid certification-only samples, p95 no greater than
-`10,000 ms`, no valid sample greater than `15,000 ms`, and zero retention of
-heavy closure in the client critical path. An evidenced external lower bound
-does not weaken the gate; it leaves CT-M0F open with an exact successor.
+traffic. Reset publishes its own route-bound recovery interval. The first
+CT-M0F ceiling needs one cold and two warm valid certification-only samples,
+p95 no greater than `10,000 ms`, no valid sample greater than `15,000 ms`, and
+zero retention of heavy closure in the client critical path. Passing it
+publishes an automatic latency residual and cannot close CT-M0F.
+
+CT-M0F closes its current-client latency criterion only after at least five
+valid samples across at least two current owner-backed generations prove
+detection p95 <= `2,000 ms`, decision-plus-route-commit p95 <= `500 ms`,
+route-bound client recovery p95 <= `3,000 ms`, no valid recovery sample above
+`5,000 ms`, and heavy closure outside the critical path. The prepared
+class/bucket path separately requires validation-plus-kernel commit p95 <=
+`250 ms`, route visibility p95 <= `100 ms`, and route-bound client recovery
+p95 < `1,000 ms`. A p99 <= `5,000 ms` is legal only after at least 100
+owner-backed observations. An evidenced external lower bound does not weaken
+any gate; it leaves the exact stage open with an owner-backed successor.
 
 Existing Matrix/topology/capacity/policy/membership generation producers must
 refresh prepared decisions before failure and deliver freshness acknowledgement
@@ -10771,6 +10794,7 @@ Required terminals are:
 - `CUTOVER_HIDDEN_O_N_GUARD_PROVEN`.
 - `CURRENT_SINGLE_USER_CLIENT_RECOVERY_LATENCY_MEASURED`;
 - `CURRENT_SINGLE_USER_CRITICAL_PATH_SUBSTANTIALLY_REDUCED`;
+- `LEGACY_OPERATIONAL_RECOVERY_SLO_CONSUMED`;
 - `HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH`;
 - `CURRENT_LEGACY_EXCEPTION_PATH_BEFORE_AFTER_PRODUCTION_CONSUMED`.
 
@@ -10889,7 +10913,8 @@ OMP may emit
 - every required M0 disposition, cost, hot-path, invalidation, class-identity,
   legacy-scope and durable-closure output is consumed;
 - CT-M0F is completed or owner-backed as not required;
-- CT-M0F-E is deployed and CT-M0F-V consumes the numeric current-client gate;
+- CT-M0F-E is deployed and CT-M0F-V consumes both the transitional ceiling
+  and the legacy operational `<3,000 ms` current-client gate;
 - current single-user traffic recovery is measured by an exact route-bound
   probe independently from durable closure and reset recovery;
 - every executed/compressed stage has a consumed existing-Time-owner
@@ -10909,6 +10934,8 @@ OMP may emit
 - mass compatible incidents cannot select the per-user legacy path;
 - logical and kernel 10,000-member Polygon criteria are consumed;
 - controlled-production residuals and SLOs are reconciled where admitted;
+- CT-M8 proves prepared class/bucket route-bound client recovery p95 below
+  `1,000 ms`; p99 remains explicitly sample-count-gated;
 - the independent Authority/Runtime recommendation is decided;
 - every open state has one next consumer and re-entry condition;
 - CPS/OMP/Runtime projections agree;

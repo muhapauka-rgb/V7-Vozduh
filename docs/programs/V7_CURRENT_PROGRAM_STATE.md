@@ -2,10 +2,10 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-03T06:56:19.890983+00:00
+State captured: 2026-08-04T08:44:48.576057+00:00
 Latest terminal Mission: `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1`
-Latest terminal Mission state: `STAGE_48_OPTIMIZED_RUNTIME_READY`
-Latest terminal Mission report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
+Latest terminal Mission state: `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`
+Latest terminal Mission report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
 Source: Production commit `e84ee0b17f002a46a3a2b7bea61699245d8aaae2` consumes the existing topology diagnostic through the existing CPS/OMP owner. It distinguishes a real external-capacity boundary from a source/target role collision and retains only the automatic Matrix/quality re-entry.
 
@@ -13,7 +13,7 @@ Source: Production commit `e84ee0b17f002a46a3a2b7bea61699245d8aaae2` consumes th
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-03T06:56:19.890983+00:00`
+Captured: `2026-08-04T08:44:48.576057+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
-| `ARCHITECTURE_STATE` | `STAGE_25_PRODUCTION_PROVEN_AND_LOCKED; MATRIX_EXACT_PATH_EVIDENCE_REUSE_AND_LIGHTWEIGHT_USER_ROUTE_BINDING_PRODUCTION_CONSUMED; FULL_GOVERNED_TRANSACTION_MONOTONIC_TIMELINE_CONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` |
+| `ARCHITECTURE_STATE` | `STAGE_25_PRODUCTION_PROVEN_AND_LOCKED; MATRIX_EXACT_PATH_EVIDENCE_REUSE_AND_LIGHTWEIGHT_USER_ROUTE_BINDING_PRODUCTION_CONSUMED; SECOND_LEVEL_FULL_GOVERNED_FORWARD_RESET_TIME_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP + AEP + Codex Automation Platform existing boundary owner` |
 | `VOLATILE_STATE_OWNER` | `docs/programs/V7_CURRENT_PROGRAM_STATE.md` |
@@ -30,10 +30,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CURRENT_ACTIVE_SCOPE` | `AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_LADDER` |
-| `CURRENT_SAFE_NEXT_ACTION` | `PRESERVE STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED; DO NOT START STAGE 48 UNTIL THE SEPARATE EXISTING-OWNER ADMISSION IS CONSUMED; STAGE 25 AND THE PERFORMANCE BENCHMARK MUST NOT BE REPEATED` |
+| `CURRENT_SAFE_NEXT_ACTION` | `PRESERVE STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED; DO NOT START STAGE 48 UNTIL THE SEPARATE EXISTING-OWNER ADMISSION IS CONSUMED; STAGE 25 AND PERFORMANCE RECEIPTS MUST NOT BE REPEATED` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_6E6C4FA62F83_STAGE48_REVALIDATED` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_SECOND_LEVEL_PERFORMANCE_CLOSURE_RECONSUMED_STAGE48_NOT_EXECUTED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
@@ -45,7 +45,7 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `PROGRAM_TERMINAL_EXISTING_OWNER_STAGE_48_ADMISSION_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` |
+| `PROGRAM_TERMINAL_STATE` | `EXTERNAL_OWNER_REQUIRED_STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_TYPE` | `EXISTING_OWNER_STAGE_48_ADMISSION` |
@@ -55,12 +55,12 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `NONE` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `77` |
-| `CONTINUATION_STOP_REASON` | `FINAL PERFORMANCE CLOSURE RECEIPT IS CONSUMED; STAGE 48 IS OPTIMIZED-RUNTIME READY BUT EXECUTION REMAINS FORBIDDEN UNTIL A SEPARATE EXISTING-OWNER ADMISSION` |
+| `CONTINUATION_STOP_REASON` | `SECOND-LEVEL PERFORMANCE RECEIPT perfclose_6e6c4fa62f834a8d4b88da24 IS PRODUCTION-CONSUMED; STAGE 48 READINESS IS REVALIDATED BUT EXECUTION REMAINS FORBIDDEN UNTIL A SEPARATE EXISTING-OWNER ADMISSION` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
-| `CURRENT_TIME_FORENSICS_STATUS` | `ONE_GOVERNED_TRANSACTION_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_CONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY` |
-| `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
-| `CURRENT_TIME_FORENSICS_REENTRY` | `NONE; receipt perfclose_1f91af0c6253c6fe75e028c5 is immutable and non-repeatable` |
-| `STAGE_48_TIME_GATE` | `PASS_RECEIPT_PERFCLOSE_1F91AF0C6253; READINESS_ONLY_NOT_EXECUTION_AUTHORITY` |
+| `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
+| `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
+| `CURRENT_TIME_FORENSICS_REENTRY` | `NONE; receipt perfclose_6e6c4fa62f834a8d4b88da24 and baseline perfclose_1f91af0c6253c6fe75e028c5 are immutable and non-repeatable` |
+| `STAGE_48_TIME_GATE` | `PASS_REVALIDATED_RECEIPT_PERFCLOSE_6E6C4FA62F83; READINESS_ONLY_NOT_EXECUTION_AUTHORITY` |
 | `STAGE_48_EXECUTION_PERMITTED` | `FALSE` |
 | `CURRENT_PASSIVE_CAPTURE_STATUS` | `PRODUCTION_DEPLOYED_AND_CONSUMED; commit c71ebc6bd90e7d1fd41ce83bc08258eb5b612b85; deploy deploy-z8-14-Updatesystem-c71ebc6-20260725T223719; production certification PASS; Matrix owner-cycle PASS at 2026-07-25T15:47:21Z; 9 incident/expiry groups produced 9 Outcome/Decision/Learning/Closure records and exact OMP product frontiers; repeat caller idempotent` |
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident sfinc_be20296fba3d8a6a33e58a583f1b58db; generation egid_be6367407f70e591005185a2; current route-backed scope affected=0, protected=0, unresolved=0, excluded_or_recovered=0; cumulative packet-bound lineage=63; last feedback execfb_f5770df829554ffabe72278c` |
@@ -188,17 +188,17 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_EXECUTION_MISSION_ID` | `NONE` |
 | `CURRENT_EXECUTION_MISSION_STATE` | `NONE` |
 | `LATEST_TERMINAL_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
-| `LATEST_TERMINAL_RUN_NONCE` | `V7_PERFCLOSE_20260803T065619+0000` |
-| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
-| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-03T06:56:19+0000` |
+| `LATEST_TERMINAL_RUN_NONCE` | `V7_PERFCLOSE_20260804T084448+0000` |
+| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
+| `LATEST_TERMINAL_MISSION_STARTED_AT` | `2026-08-04T08:26:03+0000` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
 | `PREVIOUS_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` |
 | `CURRENT_MISSION_ROLE` | `LATEST_TERMINAL_MISSION` |
 | `CURRENT_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
-| `CURRENT_RUN_NONCE` | `V7_PERFCLOSE_20260803T065619+0000` |
-| `CURRENT_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
+| `CURRENT_RUN_NONCE` | `V7_PERFCLOSE_20260804T084448+0000` |
+| `CURRENT_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -603,8 +603,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_PERFCLOSE_6E6C4FA62F83_STAGE48_REVALIDATED` |
+| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_SECOND_LEVEL_PERFORMANCE_CLOSURE_RECONSUMED_STAGE48_NOT_EXECUTED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -614,8 +614,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `OWNER_REVALIDATIONS_REQUIRED` | `5` numeric percentage reconciliations; no owner identity gap |
 | `ACTIVE_MISSIONS` | `NONE` |
 | `LATEST_TERMINAL_MISSION_ID` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
-| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
-| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` |
+| `LATEST_TERMINAL_MISSION_STATE` | `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
+| `LATEST_TERMINAL_MISSION_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
 | `PREVIOUS_TERMINAL_MISSION_ID` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `OPEN_CANDIDATE_IDS` | `NONE`; all observed packet previews are evidence only and discarded without Authority. |
@@ -624,7 +624,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | Performance closure receipt `perfclose_1f91af0c6253c6fe75e028c5` is consumed and non-repeatable. Stage 48 remains not executed until a separate existing-owner admission is consumed. |
+| `OMP_CONTINUATION_POINTER` | Second-level performance receipt `perfclose_6e6c4fa62f834a8d4b88da24` and baseline `perfclose_1f91af0c6253c6fe75e028c5` are consumed and non-repeatable. Stage 48 remains not executed until a separate existing-owner admission is consumed. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -634,13 +634,13 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY` |
-| `current_transition_id` | `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` |
+| `current_state_generation` | `cpsgen_SFA_PERFCLOSE_6E6C4FA62F83_STAGE48_REVALIDATED` |
+| `current_transition_id` | `SERVICE_FAILURE_SECOND_LEVEL_PERFORMANCE_CLOSURE_RECONSUMED_STAGE48_NOT_EXECUTED_V1` |
 | `smallest_existing_next_action_id` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
-| `latest_terminal_mission_state` | `STAGE_48_OPTIMIZED_RUNTIME_READY` |
+| `latest_terminal_mission_state` | `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `previous_terminal_mission_id` | `STAGE_25_FASTEST_SAFE_RUNTIME_PATH_PROVEN_V1` |
 | `authoritative_transition_input_mission_id` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `candidate_id` | `NOT_APPLICABLE; CAP-U07 consumes accepted U01 outcome evidence and creates no routing Candidate` |
@@ -721,7 +721,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_PERFCLOSE_1F91AF0C6253_STAGE48_READY`; `SERVICE_FAILURE_FINAL_PERFORMANCE_CLOSURE_CONSUMED_STAGE48_NOT_EXECUTED_V1` | Stage 25 remains immutable; performance receipt `perfclose_1f91af0c6253c6fe75e028c5` proves the fastest safe path and Stage-48 optimized-runtime readiness without Stage credit | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` | existing Matrix, standing-policy, Authority, CPS and OMP owners; EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS | `EXTERNAL_OWNER_REQUIRED` | separate existing-owner admission or exact STOP_SAFE; do not repeat Stage 25/benchmark and do not execute Stage 48 implicitly |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_PERFCLOSE_6E6C4FA62F83_STAGE48_REVALIDATED`; `SERVICE_FAILURE_SECOND_LEVEL_PERFORMANCE_CLOSURE_RECONSUMED_STAGE48_NOT_EXECUTED_V1` | Stage 25 remains immutable; second-level receipt `perfclose_6e6c4fa62f834a8d4b88da24` and baseline `perfclose_1f91af0c6253c6fe75e028c5` prove the revalidated fastest safe path and Stage-48 optimized-runtime readiness without Stage credit | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` | existing Matrix, standing-policy, Authority, CPS and OMP owners; EXISTING_OMP_ENGINEERING_POLYGON_AND_TRUTH_CONVERGENCE_OWNERS | `EXTERNAL_OWNER_REQUIRED` | separate existing-owner admission or exact STOP_SAFE; do not repeat Stage 25/benchmark and do not execute Stage 48 implicitly |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

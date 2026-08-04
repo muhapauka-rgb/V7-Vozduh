@@ -3303,3 +3303,45 @@ Exact terminal:
 This revision grants no Stage-48 execution, campaign-stage credit, Natural L8,
 Authority expansion or Production Maturity change. The next boundary is the
 separate existing-owner admission `STAGE_48_EXISTING_OWNER_ADMISSION_REQUIRED`.
+
+## V3.2 second-level performance revalidation record
+
+Classification: `COMPLETE_CONSUMED`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Evidence: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md`.
+
+The existing Time, Matrix, Planner, Packet, lease, governed execution, reset,
+Outcome, Replay, Learning, CPS and OMP owners consumed production generation
+`stage48-second-level-critical-path-v3` and immutable receipt
+`perfclose_6e6c4fa62f834a8d4b88da24`.
+
+The successful forward-and-reset critical path changed from `227.573707 s` to
+`141.353447 s`: reduction `86.220260 s` (`37.887%`), speedup `1.61x`.
+The complete active-work timeline including a real fail-closed reset and the
+automatic recovery generation was `248.210655 s`; this safety/recovery cost is
+preserved as evidence and is not misreported as an optimization win.
+
+Existing-owner repairs bounded rotated-history reads, bounded Planner lock
+waiting, removed duplicate reset surface construction, and preserved complete
+recovery-reset timing. Required verification, Candidate, Packet, lease,
+restore-barrier and reset semantics remain intact. The affected suite is green
+(`165` tests) and production timing overhead is below `0.016 ms` per recorded
+transaction timeline.
+
+Exact terminals:
+
+- `PLANNER_INTERNAL_CRITICAL_PATH_PROVEN`;
+- `PACKET_LEASE_INTERNAL_CRITICAL_PATH_PROVEN`;
+- `APPLY_VERIFICATION_INTERNAL_CRITICAL_PATH_PROVEN`;
+- `RESET_INTERNAL_CRITICAL_PATH_PROVEN`;
+- `EVERY_FULL_CYCLE_GT_1_SECOND_INTERVAL_OWNER_ATTRIBUTED`;
+- `DOMINANT_REMAINING_AVOIDABLE_LATENCY_REPAIRED`;
+- `FULL_GOVERNED_FORWARD_AND_RESET_BEFORE_AFTER_REBENCHMARK_CONSUMED`;
+- `TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED`;
+- `FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN`;
+- `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`.
+
+Receipt semantics remain readiness only. `stage_48_executed=false`,
+`campaign_stage_credit=false`, no Natural L8 credit, Authority expansion or
+Production Maturity change exists. The exact next boundary remains
+`WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`.

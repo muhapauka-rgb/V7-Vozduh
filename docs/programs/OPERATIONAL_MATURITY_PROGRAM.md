@@ -14,7 +14,7 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY`).
+Latest consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md` (`AVAILABILITY_FIRST_STAGE_25_PRODUCTION_PROVEN`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
@@ -7901,7 +7901,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
 Resolved current next action: `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`
-Resolved contract state: CPS proves immutable performance receipt `perfclose_1f91af0c6253c6fe75e028c5`, fastest-safe-path production consumption and `STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED`. Stage 48 is not a formed Mission and cannot start until a separate existing-owner admission is consumed. This pointer grants no Authority or mutation.
+Resolved contract state: CPS proves immutable baseline receipt `perfclose_1f91af0c6253c6fe75e028c5`, second-level revalidation receipt `perfclose_6e6c4fa62f834a8d4b88da24`, fastest-safe-path production reconsumption and `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED`. Stage 48 is not a formed Mission and cannot start until a separate existing-owner admission is consumed. This pointer grants no Authority or mutation.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -8889,8 +8889,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `EXTERNAL_OWNER_REQUIRED`
 Resolved current next action: `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`
-Current terminal report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
-Latest consumed report: `docs/reports/engineering/2026-08-03_233500_final_performance_closure_before_stage48.md`
+Current terminal report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md`
+Latest consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
@@ -10477,3 +10477,30 @@ was not executed, no Natural L8 credit exists, and no Authority or Production
 Maturity changed. Runtime must expose
 `STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED` until a separate existing-owner
 Stage-48 admission is consumed.
+
+### 45.3 Second-level Performance Revalidation Consumption
+
+Classification: `HISTORICAL_MILESTONE`.
+Live state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+Scheduling Authority: `NONE`.
+Execution Authority: `NONE`.
+
+The ordinary enabled Matrix timer produced and the existing Time consumer
+consumed generation `stage48-second-level-critical-path-v3`, receipt
+`perfclose_6e6c4fa62f834a8d4b88da24`. Existing-owner repairs bounded history
+reads and Planner lock waiting, removed duplicate reset surface construction,
+and added forward/reset recovery timing parity.
+
+The measured successful forward-and-reset critical path is `141.353447 s`
+versus baseline `227.573707 s`: reduction `86.220260 s` (`37.887%`), speedup
+`1.61x`. The full active-work timeline including a fail-closed reset and its
+automatic recovery was `248.210655 s`; it remains explicit safety/recovery
+evidence and is not counted as an acceleration.
+
+The existing performance foundation consumed the second-level Planner,
+Packet/lease, apply/verification and reset timelines. Every interval above one
+second has an owner; no unknown interval above one second remains. The final
+terminal is `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED`.
+Stage 48, Stage credit, Natural L8 credit, Authority expansion and Production
+Maturity change remain absent. Exact next action remains
+`WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`.

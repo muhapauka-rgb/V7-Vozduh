@@ -127,6 +127,7 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
                 "SELECTIVE_SERVICE_FAILURE_COHORT_ADAPTER_BRIDGE",
                 "EXACT_TIER_AUTHORITY_DECISION_REQUIRED",
                 "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED",
+                f"{self.state['current_next_action_id']}; READY",
             },
         )
         movement = live["USER_MOVEMENT"].strip("`")

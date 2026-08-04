@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.2`
+Version: `4.3`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,86 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V4.3 current-client recovery proof correction
+
+CT-M0 is a consumed read-only audit. Its `141.353447 s` baseline is the full
+successful forward-plus-reset lifecycle and must not be presented as measured
+client outage or as an acceleration result. No current-client speed claim is
+legal until the existing Time owner measures `CLIENT_TRAFFIC_RECOVERY_LATENCY`
+from the failure signal to the first successful exact route-bound traffic
+probe.
+
+CT-M0F remains one Mission, not a new Program or Mission, but has two
+machine-ordered internal phases:
+
+1. `CT-M0F-E_ENGINEERING` implements and deploys only the exact existing-owner
+   extensions admitted by CT-M0. It has zero routing/user effect.
+2. `CT-M0F-V_CONTROLLED_VALIDATION` starts only after E is deployed, its
+   focused callers, truth and convergence pass, and one exact current
+   owner-backed certification-only contract admits the validation. It measures
+   the current legacy single-user path with one certification identity and one
+   concurrent transaction. It cannot use an ordinary user, expand Authority,
+   certify the future class/bucket path, earn CT-M8 evidence, or change
+   Production Maturity.
+
+CT-M0F-E must separate the client critical path from durable closure:
+
+```text
+failure signal
+-> prepared decision generation check
+-> route mutation
+-> route visibility
+-> exact route-bound traffic recovery probe
+-> CLIENT_TRAFFIC_RECOVERY terminal
+-> durable deferred verification / Outcome / Replay / Learning / reset closure
+```
+
+The current-client clock stops only at the first successful route-bound traffic
+probe; route visibility alone is insufficient. The closure clock continues
+independently. Reset has its own `RESET_CLIENT_TRAFFIC_RECOVERY_LATENCY` and
+must not be folded into the forward recovery metric.
+
+CT-M0F-V must compare the immutable `141.353447 s` full-lifecycle baseline with
+the post-deploy lifecycle and publish, at minimum:
+
+- failure signal -> decision;
+- decision -> route mutation;
+- route mutation -> route visibility;
+- visibility -> successful client traffic recovery;
+- recovery -> durable closure activation;
+- deferred verification and full closure;
+- reset mutation -> reset traffic recovery;
+- complete reset closure;
+- cold/warm sample identity, monotonic clock, unknown time and invalid samples.
+
+The first bounded legacy-path acceptance gate is:
+
+```text
+at least three valid controlled certification-only samples
+AND CLIENT_TRAFFIC_RECOVERY_LATENCY p95 <= 10,000 ms
+AND no valid sample > 15,000 ms
+AND HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH
+AND zero weakened verification, rollback, Authority or ordinary-user guards
+```
+
+One cold and two warm samples are sufficient when their source/target/path and
+invalidation identities are explicit. Samples cannot be repeated merely to
+obtain a preferred percentile. If an owner-backed external network lower bound
+prevents the gate, CT-M0F remains incomplete and publishes the exact interval,
+owner, evidence and successor; the threshold is not silently weakened.
+
+Required CT-M0F terminals are all mandatory:
+
+- `CURRENT_SINGLE_USER_CLIENT_RECOVERY_LATENCY_MEASURED`;
+- `CURRENT_SINGLE_USER_CRITICAL_PATH_SUBSTANTIALLY_REDUCED`;
+- `HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH`;
+- `CURRENT_LEGACY_EXCEPTION_PATH_BEFORE_AFTER_PRODUCTION_CONSUMED`;
+- `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED`.
+
+Functional tests, local microbenchmarks, route visibility without a traffic
+probe, a report, deploy, or a faster closure after the client was already
+restored cannot substitute for these terminals.
 
 ## V3.2 active executable correction — partial cohort recovery and internal drain
 
@@ -3672,7 +3752,7 @@ reconciliation or unsupported legacy membership. The machine invariant is:
 
 `LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`.
 
-### V4.2 performance ledger and hot-path regression law
+### V4.3 performance ledger and hot-path regression law
 
 Every CT Mission must update
 `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER`, a projection of the existing
@@ -3858,16 +3938,34 @@ Matrix receipt guard and hidden-O(N) instrumentation. It may not create a route
 owner, registry, queue, watcher, Planner, Runtime, Authority system or parallel
 truth source.
 
+Internal phase `CT-M0F-E_ENGINEERING` must implement and deploy prepared
+decision production, bounded generation validation, the fresh-Matrix hot-path
+guard, bounded legacy registry mutation, traffic-recovery instrumentation,
+deferred closure activation and hidden-O(N) counters through the existing
+owners. It cannot create or execute a production Packet.
+
+Internal phase `CT-M0F-V_CONTROLLED_VALIDATION` must then use the existing
+Controlled Production Certification Program for exactly the current legacy
+single-user path and the V4.3 sample/gate contract. Its evidence proves only
+current-path latency and fallback operability. It cannot certify class/bucket
+indirection, satisfy CT-M8, manufacture Natural L8, expand Runtime scope or
+advance Authority/Production Maturity.
+
 Producer: exact existing owners named by the M0 disposition matrix.
 Output: repaired/reused fast primitives plus certified legacy exception
 selection contract.
-Consumer: focused non-test owner callers -> BDP/OMP residual recomputation.
+Consumer: focused non-test owner callers -> safe deploy/truth/convergence ->
+existing Controlled Production Certification owner -> Time/Outcome/Replay/
+Learning -> BDP/OMP residual recomputation.
 Terminal:
 `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED`.
 Successor: CT-M1 becomes `READY` only after this terminal is consumed.
 
 Every CT-M0F result must include a consumed performance-ledger delta. Passing
 functional tests without old/new critical-path evidence is incomplete.
+CT-M0F cannot reach its terminal until every V4.3 current-client terminal is
+consumed. CT-M1 remains `FORMED_DEPENDENCY_BLOCKED` while either E or V is
+incomplete.
 
 ### Mission CT-M1 — Polygon kernel primitive and generation protocol
 
@@ -4065,7 +4163,7 @@ owned.
 Terminal:
 `CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
 
-### V4.2 dynamic Mission compression
+### V4.3 dynamic Mission compression
 
 CT-M0 is mandatory. CT-M0F is conditional on the exact M0 disposition matrix.
 CT-M1 through CT-M9 are capability stages, not mandatory empty containers.
@@ -4090,12 +4188,13 @@ identity, migration, projection, replay or model work. It is
 `POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
 `REAL_WORLD_LIMIT` while independent safe work exists.
 
-### V4.2 production-effect boundary
+### V4.3 production-effect boundary
 
 | Mission | Production routing/user effect |
 | --- | --- |
 | CT-M0 | forbidden; read-only |
-| CT-M0F | forbidden; engineering/Polygon and non-test owner callers only |
+| CT-M0F-E | forbidden; engineering/Polygon and non-test owner callers only |
+| CT-M0F-V | one certification identity only through an exact existing-owner controlled-production contract; legacy latency proof only; no CT-M8/class/Authority/Maturity credit |
 | CT-M1 | forbidden; isolated Polygon only |
 | CT-M2 | forbidden; projection/shadow only |
 | CT-M3 | only separately admitted bounded migration; otherwise shadow |
@@ -4111,12 +4210,18 @@ Authority expansion, Packet execution, restore-barrier write, routing
 mutation, user movement, rollback/forward-recovery apply, ordinary-user
 certification use and Production Maturity change.
 
-### V4.2 Program completion contract
+### V4.3 Program completion contract
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
 
 - current data-plane feasibility and O(N)/O(K)/O(1) model proven;
+- current single-user client traffic recovery and reset traffic recovery are
+  measured independently from full durable closure;
+- the CT-M0F post-deploy controlled legacy benchmark satisfies the V4.3
+  numeric gate, or CT-M0F remains open at the exact owner-backed interval;
+- heavy verification, Outcome/Replay/Learning and reset closure do not retain
+  the client recovery terminal;
 - the existing Time owner has consumed a performance-ledger row for every
   executed or compressed CT stage;
 - old/new critical paths, 10/10,000 comparison, hidden-operation counters and

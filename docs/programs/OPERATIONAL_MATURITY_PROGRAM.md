@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.65`
+Version: `4.66`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -137,6 +137,17 @@ exception SLO, continuously refreshed prepared decisions through existing
 generation owners, a fresh-Matrix-receipt hot-path guard and machine rejection
 of incident-time hidden O(N) work. No performance store, daemon, owner or
 parallel truth source is created.
+
+V4.66 prevents CT-M0F from closing on engineering primitives while current
+client recovery remains unmeasured. CT-M0F keeps one Mission identity but has
+an effect-free engineering phase followed by an independently admitted
+certification-only validation phase through the existing Controlled Production
+owner. The existing Time owner must measure failure-to-route-bound-traffic
+recovery separately from durable closure and reset recovery. At least three
+valid samples must prove p95 at or below 10 seconds, no sample above 15
+seconds, and heavy closure off the client critical path. This legacy-path proof
+does not certify class/bucket production, satisfy CT-M8, grant Authority,
+manufacture Natural L8 or change Production Maturity.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -10540,18 +10551,20 @@ Maturity change remain absent. Exact next action remains
 
 ## 46. Constant-Time Cohort Failover OMP Integration
 
-Status: `APPROVED_CAPABILITY_PLAN_NOT_LIVE_FRONTIER`.
+Status: `ACTIVE_CPS_OWNED_FRONTIER`.
 
 Capability-plan owner:
-`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.2.
+`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.3.
 
 Live activation and sequencing owner:
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 This section integrates the constant-time capability stages into existing OMP
 admission, execution, completion, Product Evolution Frontier and automatic
-successor semantics. It has no scheduling or execution Authority. The current
-CPS frontier remains authoritative until CPS admits CT-M0.
+successor semantics. It has no scheduling or execution Authority. CPS has
+consumed CT-M0 and currently admits only CT-M0F-E; CPS remains the sole owner
+of the live internal phase and may admit CT-M0F-V only after its declared
+dependencies are consumed.
 
 ### 46.1 Admission identity
 
@@ -10597,7 +10610,7 @@ Admission. A report without that consumption is
 | Stage | Required producer | Required output | Required existing consumer | Completion evidence | Exact successor |
 | --- | --- | --- | --- | --- | --- |
 | CT-M0 | route, registry, Matrix, Planner and Runtime read-only owners | disposition, cost, hot-path graph, invalidation, class identity, legacy scope and durable-closure contract | BDP Reality Gate -> OMP Candidate Admission | every M0 subterminal consumed and exactly one READY successor | CT-M0F READY + CT-M1 FORMED_DEPENDENCY_BLOCKED, or CT-M1 READY, or exact blocker |
-| CT-M0F (conditional) | exact existing owners named by M0 | reusable/extended fast primitives and certified legacy exception-selection contract | focused owner callers -> BDP/OMP | `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED` consumed | CT-M1 READY |
+| CT-M0F-E/V (one conditional Mission) | exact existing owners named by M0, then existing Controlled Production/Time/Outcome owners | deployed fast primitives, measured route-bound client recovery, deferred closure split and certified legacy exception-selection contract | focused callers -> deploy/truth/convergence -> bounded certification-only validation -> BDP/OMP | all V4.3 client-recovery terminals plus `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED` consumed | CT-M1 READY |
 | CT-M1 | existing route owner extension + Polygon | kernel/class/bucket generation and crash receipt | Polygon result consumer -> BDP/OMP | 10 vs 10,000 N-independence and kernel/logical criteria consumed | CT-M2 or exact substrate residual |
 | CT-M2 | existing registry/projection owner | membership, exception, demand and snapshot generation | Planner, Packet and migration owners | exact snapshot replay and compact projection behavior change | CT-M3 |
 | CT-M3 | existing route/registry migration owner | bounded migrated scope with legacy parity/fallback | Runtime verification -> OMP | non-test migration consumer or exact no-effect shadow residual | CT-M4 |
@@ -10725,6 +10738,20 @@ The legacy exception path has a separately measured, evidence-derived
 into required safety work and removable/unknown delay. A safe fallback is not
 accepted as operationally complete merely because it eventually terminates.
 
+For CT-M0F the Time projection must expose two independent clocks:
+
+- `CLIENT_TRAFFIC_RECOVERY_LATENCY`: failure signal to the first successful
+  exact route-bound traffic probe;
+- `DURABLE_CLOSURE_LATENCY`: recovery terminal to completion of deferred
+  verification, Outcome, Replay, Learning and bounded reset closure.
+
+Route visibility is an intermediate span, not proof of restored client
+traffic. Reset publishes its own route-bound recovery interval. CT-M0F needs
+one cold and two warm valid certification-only samples, p95 no greater than
+`10,000 ms`, no valid sample greater than `15,000 ms`, and zero retention of
+heavy closure in the client critical path. An evidenced external lower bound
+does not weaken the gate; it leaves CT-M0F open with an exact successor.
+
 Existing Matrix/topology/capacity/policy/membership generation producers must
 refresh prepared decisions before failure and deliver freshness acknowledgement
 to the existing consumer. A failure event may perform only bounded generation
@@ -10742,6 +10769,10 @@ Required terminals are:
 - `PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN`;
 - `FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN`;
 - `CUTOVER_HIDDEN_O_N_GUARD_PROVEN`.
+- `CURRENT_SINGLE_USER_CLIENT_RECOVERY_LATENCY_MEASURED`;
+- `CURRENT_SINGLE_USER_CRITICAL_PATH_SUBSTANTIALLY_REDUCED`;
+- `HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH`;
+- `CURRENT_LEGACY_EXCEPTION_PATH_BEFORE_AFTER_PRODUCTION_CONSUMED`.
 
 ### 46.4 Incident and Product Evolution integration
 
@@ -10772,6 +10803,8 @@ Incident safety boundary.
 | Evidence | May prove | Must not prove |
 | --- | --- | --- |
 | M0 discovery | feasibility, existing owner, exact gap | implementation or production behavior |
+| CT-M0F-E engineering | implemented/deployed reusable current-path primitives and no-effect timing | real client recovery or class production evidence |
+| CT-M0F-V controlled legacy validation | exact current single-user recovery/closure latency and fallback operability | class/bucket production, CT-M8, Natural L8, Authority or Maturity |
 | logical Polygon | membership/partition/replay semantics | kernel atomicity or production outcome |
 | kernel Polygon | primitive latency/crash behavior | production Authority or user outcome |
 | shadow migration | parity and predicted effective route | actual production protection |
@@ -10856,6 +10889,9 @@ OMP may emit
 - every required M0 disposition, cost, hot-path, invalidation, class-identity,
   legacy-scope and durable-closure output is consumed;
 - CT-M0F is completed or owner-backed as not required;
+- CT-M0F-E is deployed and CT-M0F-V consumes the numeric current-client gate;
+- current single-user traffic recovery is measured by an exact route-bound
+  probe independently from durable closure and reset recovery;
 - every executed/compressed stage has a consumed existing-Time-owner
   performance-ledger projection;
 - legacy exception fallback has an evidence-derived bounded SLO;

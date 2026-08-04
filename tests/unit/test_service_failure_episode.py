@@ -41,6 +41,87 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
 
+    def test_prepared_class_decision_is_compact_and_generation_bound(self):
+        plan = {
+            "updated": "2026-08-05T01:00:00+00:00",
+            "operation": {"operation_id": "op_generation"},
+            "safety": {"generation": {
+                "planner_generation_id": "planner_generation",
+                "inputs": {
+                    "users_registry": "users_generation",
+                    "egress_registry": "egress_generation",
+                    "policy": "policy_generation",
+                    "org_policy": "org_generation",
+                    "service_preferences": "service_generation",
+                },
+                "volatile_inputs": {
+                    "service_matrix": "matrix_generation",
+                    "egress_speed": "capacity_generation",
+                    "autoswitch_safety": "anti_flap_generation",
+                },
+            }},
+            "decisions": [
+                {"user_ip": "10.0.0.2", "current_egress": "vless", "recommended_egress": "awg0", "important_services": ["google", "telegram"]},
+                {"user_ip": "10.0.0.3", "current_egress": "vless", "recommended_egress": "awg0", "important_services": ["telegram", "google"]},
+            ],
+        }
+        prepared = self.autoswitch.build_prepared_class_decision_projection(plan)
+        self.assertEqual(prepared["status"], "PREPARED_CLASS_DECISION_AVAILABLE")
+        self.assertEqual(prepared["class_count"], 1)
+        self.assertEqual(prepared["classes"][0]["member_count"], 2)
+        self.assertFalse(prepared["classes"][0]["raw_member_list_stored"])
+        self.assertNotIn("10.0.0.2", json.dumps(prepared))
+        self.assertEqual(
+            prepared["hot_validation_law"],
+            "COMPARE_DECLARED_GENERATIONS_ONLY_NO_WORLD_MODEL_REBUILD",
+        )
+        freshness = self.autoswitch.validate_prepared_class_decision_projection(
+            prepared, prepared["invalidators"],
+        )
+        self.assertEqual(freshness["status"], "PREPARED_CLASS_DECISION_FRESH")
+        self.assertFalse(freshness["world_model_rebuilt"])
+
+    def test_prepared_class_decision_consumer_rejects_changed_generation(self):
+        projection = {
+            "classes": [{"class_id": "pcd_unit"}],
+            "invalidators": {"target_health_and_path_generation": "old"},
+        }
+        result = self.autoswitch.validate_prepared_class_decision_projection(
+            projection, {"target_health_and_path_generation": "new"},
+        )
+        self.assertEqual(result["status"], "PREPARED_CLASS_DECISION_STALE")
+        self.assertEqual(result["invalidation_reasons"], ["target_health_and_path_generation"])
+        self.assertFalse(result["registry_scanned"])
+
+    def test_bounded_checkpoint_recovers_deferred_closure_without_forward_apply(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            checkpoint = {
+                "operation_id": "op_unit",
+                "packet_id": "pkt_unit",
+                "selected_move_hash": "moves_hash",
+                "cohort_fingerprint": "cohort_hash",
+                "state": "IN_PROGRESS",
+                "terminal_reason": "process_interrupted_after_generation_commit",
+                "subreceipts": [{"terminal": "SUCCESS"}],
+            }
+            l3_path = state / "l3-runtime-state.json"
+            l3_path.write_text(json.dumps({
+                "bounded_cohort_transactions": {"op_unit": checkpoint},
+            }), encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state
+            planner.l3_runtime_state_file = l3_path
+            planner.l3_runtime_state = {}
+            result = planner.reconcile_bounded_cohort_closure_obligations()
+            self.assertEqual(result["status"], "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN")
+            self.assertEqual(result["closure_obligations_published"], 1)
+            rows = [json.loads(line) for line in (state / "closure-records.jsonl").read_text().splitlines()]
+            self.assertEqual(rows[0]["next_required_consumer"], "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes")
+            self.assertFalse(rows[0]["forward_apply_allowed"])
+            again = planner.reconcile_bounded_cohort_closure_obligations()
+            self.assertEqual(again["closure_obligations_published"], 0)
+
     def test_network_path_evidence_is_channel_path_scoped_and_secret_free(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

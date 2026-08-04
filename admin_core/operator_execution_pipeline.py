@@ -3551,6 +3551,96 @@ def constant_time_failover_performance_ledger(
     }
 
 
+def exact_client_network_context_traffic_probe_contract(
+    receipt: dict[str, Any],
+    *,
+    expected_user: str,
+    expected_target_fingerprint: str,
+) -> dict[str, Any]:
+    """Validate an owner-backed client recovery receipt without probing here.
+
+    The Time owner consumes the receipt; it does not create a new probe owner.
+    A route lookup, kernel counter or host-management-path request can never be
+    promoted to client traffic recovery evidence by this function.
+    """
+    receipt = receipt if isinstance(receipt, dict) else {}
+    required_true = {
+        "exact_certification_identity_context": receipt.get("exact_certification_identity_context") is True,
+        "routing_table_or_fwmark_bound": receipt.get("routing_table_or_fwmark_bound") is True,
+        "payload_response_verified": receipt.get("payload_response_verified") is True,
+        "management_default_route_forbidden": receipt.get("management_default_route_used") is False,
+        "fresh_socket": receipt.get("fresh_socket") is True,
+        "fresh_dns_resolution": receipt.get("fresh_dns_resolution") is True,
+        "kernel_counter_only_forbidden": receipt.get("kernel_counter_only") is False,
+    }
+    blockers = [name for name, passed in required_true.items() if not passed]
+    if str(receipt.get("user") or "") != str(expected_user or ""):
+        blockers.append("exact_user_mismatch")
+    if str(receipt.get("observed_target_egress_fingerprint") or "") != str(expected_target_fingerprint or ""):
+        blockers.append("target_egress_fingerprint_mismatch")
+    if not str(receipt.get("probe_owner") or ""):
+        blockers.append("probe_owner_missing")
+    if not str(receipt.get("payload_fingerprint") or ""):
+        blockers.append("payload_fingerprint_missing")
+    timeout_ms = _as_int(receipt.get("timeout_ms"), 0)
+    retry_count = _as_int(receipt.get("retry_count"), -1)
+    cadence_ms = _as_int(receipt.get("observation_cadence_ms"), 0)
+    if timeout_ms <= 0:
+        blockers.append("timeout_contract_missing")
+    if retry_count < 0:
+        blockers.append("retry_contract_missing")
+    if cadence_ms <= 0:
+        blockers.append("observation_cadence_missing")
+    return {
+        "schema_version": "v7.exact-client-network-context-traffic-probe-contract.v1",
+        "status": "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_PROVEN" if not blockers else "PROBE_INVALID",
+        "ok": not blockers,
+        "blockers": sorted(set(blockers)),
+        "probe_owner": str(receipt.get("probe_owner") or ""),
+        "receipt_id": str(receipt.get("receipt_id") or ""),
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "user_movement": 0,
+    }
+
+
+def client_recovery_clock_contract(receipt: dict[str, Any]) -> dict[str, Any]:
+    """Derive detection and end-to-end recovery from one clock domain."""
+    receipt = receipt if isinstance(receipt, dict) else {}
+    clock = str(receipt.get("clock_source") or "")
+    first = _as_int(receipt.get("first_failed_observation_monotonic_ns"), 0)
+    confirmed = _as_int(receipt.get("confirmed_hard_failure_monotonic_ns"), 0)
+    recovered = _as_int(receipt.get("first_successful_client_traffic_monotonic_ns"), 0)
+    cadence_ms = max(0, _as_int(receipt.get("observation_cadence_ms"), 0))
+    blockers: list[str] = []
+    if clock != "time.monotonic_ns":
+        blockers.append("single_monotonic_clock_domain_required")
+    if not (first > 0 and confirmed >= first and recovered >= confirmed):
+        blockers.append("ordered_recovery_timestamps_required")
+    if cadence_ms <= 0:
+        blockers.append("observation_cadence_required")
+    if blockers:
+        detection_ms = None
+        post_confirmation_ms = None
+        end_to_end_ms = None
+    else:
+        detection_ms = round((confirmed - first) / 1_000_000.0, 3)
+        post_confirmation_ms = round((recovered - confirmed) / 1_000_000.0, 3)
+        end_to_end_ms = round((recovered - first) / 1_000_000.0, 3)
+    return {
+        "schema_version": "v7.client-recovery-clock-contract.v1",
+        "status": "CLIENT_RECOVERY_CLOCK_PROVEN" if not blockers else "CLIENT_RECOVERY_CLOCK_INVALID",
+        "ok": not blockers,
+        "clock_source": clock,
+        "failure_detection_clock_start": "FIRST_FAILED_OBSERVATION",
+        "detection_latency_ms": detection_ms,
+        "post_confirmation_recovery_ms": post_confirmation_ms,
+        "first_failure_evidence_to_client_recovery_latency_ms": end_to_end_ms,
+        "measurement_uncertainty_upper_bound_ms": cadence_ms if not blockers else None,
+        "blockers": blockers,
+    }
+
+
 def execution_observability_snapshot(
     *,
     contracts: list[dict[str, Any]] | None = None,

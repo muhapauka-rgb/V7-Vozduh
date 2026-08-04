@@ -429,6 +429,125 @@ def sha256_json(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, Any]:
+    """Compact the existing Planner result for pre-incident fast validation.
+
+    This is a projection of the normal Matrix/Planner owner, not a second
+    planner or a durable truth source.  The potentially O(N) member scan has
+    already happened before this helper is called.  The projection deliberately
+    retains only a precomputed membership fingerprint and generation-bound
+    invalidators; no member list, Candidate, Packet or lease crosses into the
+    incident hot path.
+    """
+    decisions = [row for row in (plan.get("decisions") or []) if isinstance(row, dict)]
+    safety = plan.get("safety") if isinstance(plan.get("safety"), dict) else {}
+    generation = safety.get("generation") if isinstance(safety.get("generation"), dict) else {}
+    stable_inputs = generation.get("inputs") if isinstance(generation.get("inputs"), dict) else {}
+    volatile_inputs = generation.get("volatile_inputs") if isinstance(generation.get("volatile_inputs"), dict) else {}
+    groups: dict[str, dict[str, Any]] = {}
+    exclusions = 0
+    for row in decisions:
+        user = str(row.get("user_ip") or row.get("user") or "")
+        source = str(row.get("current_egress") or "")
+        target = str(row.get("recommended_egress") or "")
+        if not user or not source or not target or source == target:
+            exclusions += 1
+            continue
+        services = sorted(str(item) for item in (row.get("important_services") or []) if str(item))
+        capacity = row.get("capacity_decision") if isinstance(row.get("capacity_decision"), dict) else {}
+        semantic = {
+            "source_channel": source,
+            "target_channel": target,
+            "service_routing_compatibility": services,
+            "route_class": str(row.get("route_class") or ""),
+            "policy_set": str(row.get("policy_set") or row.get("policy_class") or ""),
+            "correlation_domain": str(row.get("correlation_domain") or target),
+            "capacity_bucket": str(capacity.get("status") or capacity.get("decision") or "UNKNOWN"),
+            "exception_boundary": str(row.get("exception_boundary") or "NONE"),
+        }
+        class_id = "pcd_" + sha256_json(semantic)[:24]
+        item = groups.setdefault(class_id, {"semantic": semantic, "members": []})
+        item["members"].append(user)
+    prepared = []
+    for class_id, item in sorted(groups.items()):
+        members = sorted(set(item["members"]))
+        semantic = item["semantic"]
+        prepared.append({
+            "class_id": class_id,
+            **semantic,
+            "member_count": len(members),
+            "membership_fingerprint": sha256_json({"members": members}),
+            "raw_member_list_stored": False,
+            "prepared_action": "FAILOVER_TO_EXISTING_PLANNER_TARGET",
+            "execution_allowed": False,
+        })
+    invalidators = {
+        "planner_generation": str(generation.get("planner_generation_id") or ""),
+        "membership_generation": str(stable_inputs.get("users_registry") or ""),
+        "target_topology_generation": str(stable_inputs.get("egress_registry") or ""),
+        "policy_authority_generation": str(stable_inputs.get("policy") or ""),
+        "organization_policy_generation": str(stable_inputs.get("org_policy") or ""),
+        "service_routing_generation": str(stable_inputs.get("service_preferences") or ""),
+        "target_health_and_path_generation": str(volatile_inputs.get("service_matrix") or ""),
+        "capacity_reservation_generation": str(volatile_inputs.get("egress_speed") or ""),
+        "anti_flap_generation": str(volatile_inputs.get("autoswitch_safety") or ""),
+        "active_operation_generation": str((plan.get("operation") or {}).get("operation_id") or ""),
+        "rollback_target_availability_generation": str(volatile_inputs.get("service_matrix") or ""),
+    }
+    return {
+        "schema_version": "v7.prepared-class-decision-projection.v1",
+        "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        "producer_trigger_owner": "tools/v7-service-matrix-refresh-all",
+        "status": "PREPARED_CLASS_DECISION_AVAILABLE" if prepared else "NO_COMPATIBLE_PREPARED_CLASS",
+        "produced_at": str(plan.get("updated") or now_iso()),
+        "classes": prepared,
+        "class_count": len(prepared),
+        "excluded_decision_count": exclusions,
+        "invalidators": invalidators,
+        "hot_validation_law": "COMPARE_DECLARED_GENERATIONS_ONLY_NO_WORLD_MODEL_REBUILD",
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
+def validate_prepared_class_decision_projection(
+    projection: dict[str, Any], current_invalidators: dict[str, Any]
+) -> dict[str, Any]:
+    """Bounded consumer for a precomputed decision's declared invalidators."""
+    expected = projection.get("invalidators") if isinstance(projection.get("invalidators"), dict) else {}
+    reasons = sorted(
+        key for key, value in expected.items()
+        if str(value or "") != str(current_invalidators.get(key) or "")
+    )
+    missing = not projection or not expected or not (projection.get("classes") or [])
+    if missing:
+        status = "PREPARED_CLASS_DECISION_MISSING"
+        reasons = ["prepared_projection_or_generation_binding_missing"]
+    elif reasons:
+        status = "PREPARED_CLASS_DECISION_STALE"
+    else:
+        status = "PREPARED_CLASS_DECISION_FRESH"
+    return {
+        "schema_version": "v7.prepared-class-decision-freshness-consumer.v1",
+        "owner": "tools/v7-users-autoswitch",
+        "status": status,
+        "ok": status == "PREPARED_CLASS_DECISION_FRESH",
+        "invalidation_reasons": reasons,
+        "comparison_count": len(expected),
+        "world_model_rebuilt": False,
+        "registry_scanned": False,
+        "member_list_serialized": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_mutation_performed": False,
+    }
+
+
 def build_service_failure_adaptive_cohort_contract(
     movable: list[dict[str, Any]],
     *,
@@ -3162,6 +3281,15 @@ class AutoswitchPlanner:
             "terminal_reason": terminal_reason,
             "packet_reuse_for_new_transaction": "FORBIDDEN",
             "restart_semantics": "RESUME_CAUSAL_CLOSURE_FROM_CHECKPOINT_NO_DUPLICATE_FORWARD_APPLY",
+            "closure_obligation_id": "bcclose_" + sha256_json({
+                "operation_id": operation_id,
+                "selected_move_hash": selected_hash,
+                "cohort_fingerprint": cohort_fingerprint,
+            })[:24],
+            "closure_obligation_state": "PENDING_EXISTING_OWNER_CONSUMPTION",
+            "next_required_consumer": "tools/v7-users-autoswitch.reconcile_bounded_cohort_closure_obligations",
+            "reentry_condition": "NEXT_MATRIX_OR_AUTOSWITCH_REENTRY",
+            "durable_successor_published": True,
             "updated_at": now_iso(),
         }
         transactions[operation_id] = checkpoint
@@ -3169,6 +3297,84 @@ class AutoswitchPlanner:
         # is not a second execution registry.
         self._write_l3_runtime_state(state)
         return {"ok": True, "status": terminal_state, "checkpoint": checkpoint}
+
+    def reconcile_bounded_cohort_closure_obligations(self) -> dict[str, Any]:
+        """Publish checkpoint-backed closure work through existing owners.
+
+        This is crash recovery for the gap between a route-generation commit
+        and the heavier Outcome/Learning closure.  It never resumes forward
+        mutation or infers success; the normal execution/outcome reconciler
+        remains responsible for current route and verification truth.
+        """
+        state = self._load_l3_runtime_state()
+        transactions = state.get("bounded_cohort_transactions")
+        transactions = transactions if isinstance(transactions, dict) else {}
+        closure_path = self.state_dir / "closure-records.jsonl"
+        existing = {
+            str(row.get("object_id") or "")
+            for row in read_jsonl(closure_path)
+            if str(row.get("object_type") or "") == "bounded_cohort_closure_obligation"
+        }
+        rows: list[dict[str, Any]] = []
+        state_changed = False
+        now = now_iso()
+        for operation_id, checkpoint in sorted(transactions.items()):
+            if not isinstance(checkpoint, dict):
+                continue
+            obligation_id = str(checkpoint.get("closure_obligation_id") or "")
+            if not obligation_id:
+                obligation_id = "bcclose_" + sha256_json({
+                    "operation_id": str(operation_id),
+                    "selected_move_hash": str(checkpoint.get("selected_move_hash") or ""),
+                    "cohort_fingerprint": str(checkpoint.get("cohort_fingerprint") or ""),
+                })[:24]
+            if obligation_id not in existing:
+                rows.append({
+                    "schema_version": "v7.bounded-cohort-closure-obligation.v1",
+                    "object_type": "bounded_cohort_closure_obligation",
+                    "object_id": obligation_id,
+                    "created_at": now,
+                    "operation_id": str(operation_id),
+                    "packet_id": str(checkpoint.get("packet_id") or ""),
+                    "selected_move_hash": str(checkpoint.get("selected_move_hash") or ""),
+                    "cohort_fingerprint": str(checkpoint.get("cohort_fingerprint") or ""),
+                    "checkpoint_state": str(checkpoint.get("state") or "UNKNOWN"),
+                    "last_terminal_reason": str(checkpoint.get("terminal_reason") or ""),
+                    "subreceipt_count": len(checkpoint.get("subreceipts") or []),
+                    "raw_member_list_stored": False,
+                    "closure_state": "READY_FOR_EXISTING_OUTCOME_RECONCILIATION",
+                    "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+                    "reentry_condition": "NEXT_MATRIX_OR_AUTOSWITCH_REENTRY",
+                    "forward_apply_allowed": False,
+                    "packet_reuse_allowed": False,
+                    "runtime_mutation_performed": False,
+                    "routing_mutation_performed": False,
+                    "users_moved_by_reconciliation": 0,
+                })
+            desired = {
+                "closure_obligation_id": obligation_id,
+                "closure_obligation_state": "CONSUMED_BY_EXISTING_CLOSURE_OWNER",
+                "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+                "reentry_condition": "NEXT_MATRIX_OR_AUTOSWITCH_REENTRY",
+                "durable_successor_published": True,
+            }
+            if any(checkpoint.get(key) != value for key, value in desired.items()):
+                checkpoint.update(desired)
+                state_changed = True
+        if rows:
+            append_jsonl(closure_path, rows)
+        if state_changed:
+            self._write_l3_runtime_state(state)
+        return {
+            "schema_version": "v7.bounded-cohort-closure-obligation-reconciliation.v1",
+            "status": "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN" if transactions else "NO_BOUNDED_COHORT_CHECKPOINT",
+            "checkpoint_count": len(transactions),
+            "closure_obligations_published": len(rows),
+            "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes" if transactions else "",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
 
     def _passive_incident_projection_key(self, source_incident_id: str) -> str:
         """Return the deterministic key inside the existing L3 incident owner.
@@ -15021,8 +15227,14 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
         }
     planner = AutoswitchPlanner(args)
+    bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
     execution_outcome_reconciliation = planner.reconcile_service_failure_execution_outcomes()
     plan = planner.plan()
+    prepared_class_decisions = build_prepared_class_decision_projection(plan)
+    prepared_freshness = validate_prepared_class_decision_projection(
+        prepared_class_decisions,
+        prepared_class_decisions.get("invalidators") or {},
+    )
     result = planner.materialize_service_failure_automation_advisory(plan)
     return {
         "schema_version": "v7.service-failure-automation-entrypoint.v1",
@@ -15031,7 +15243,10 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "mode": "INCIDENT_ADVISORY_AND_SHADOW_ONLY",
         "consumer": "tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
         "result": result,
+        "prepared_class_decisions": prepared_class_decisions,
+        "prepared_class_decision_freshness": prepared_freshness,
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
+        "bounded_closure_reconciliation": bounded_closure_reconciliation,
         "forbidden_effects": {
             "runtime_apply": False,
             "routing_mutation": False,

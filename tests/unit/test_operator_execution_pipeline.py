@@ -14,6 +14,54 @@ ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
 class OperatorExecutionPipelineTest(unittest.TestCase):
+    def test_exact_client_probe_and_recovery_clock_require_real_client_context(self):
+        receipt = {
+            "receipt_id": "probe_unit",
+            "probe_owner": "existing-client-probe-owner",
+            "user": "10.7.0.3",
+            "exact_certification_identity_context": True,
+            "routing_table_or_fwmark_bound": True,
+            "observed_target_egress_fingerprint": "target_fp",
+            "payload_response_verified": True,
+            "payload_fingerprint": "payload_fp",
+            "management_default_route_used": False,
+            "fresh_socket": True,
+            "fresh_dns_resolution": True,
+            "kernel_counter_only": False,
+            "timeout_ms": 1000,
+            "retry_count": 1,
+            "observation_cadence_ms": 100,
+            "clock_source": "time.monotonic_ns",
+            "first_failed_observation_monotonic_ns": 1_000_000_000,
+            "confirmed_hard_failure_monotonic_ns": 1_200_000_000,
+            "first_successful_client_traffic_monotonic_ns": 1_900_000_000,
+        }
+        probe = pipeline.exact_client_network_context_traffic_probe_contract(
+            receipt,
+            expected_user="10.7.0.3",
+            expected_target_fingerprint="target_fp",
+        )
+        self.assertEqual(probe["status"], "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_PROVEN")
+        clock = pipeline.client_recovery_clock_contract(receipt)
+        self.assertEqual(clock["failure_detection_clock_start"], "FIRST_FAILED_OBSERVATION")
+        self.assertEqual(clock["detection_latency_ms"], 200.0)
+        self.assertEqual(clock["first_failure_evidence_to_client_recovery_latency_ms"], 900.0)
+
+    def test_host_or_counter_only_probe_cannot_claim_client_recovery(self):
+        probe = pipeline.exact_client_network_context_traffic_probe_contract(
+            {
+                "user": "10.7.0.3",
+                "observed_target_egress_fingerprint": "target_fp",
+                "management_default_route_used": True,
+                "kernel_counter_only": True,
+            },
+            expected_user="10.7.0.3",
+            expected_target_fingerprint="target_fp",
+        )
+        self.assertEqual(probe["status"], "PROBE_INVALID")
+        self.assertIn("exact_certification_identity_context", probe["blockers"])
+        self.assertIn("kernel_counter_only_forbidden", probe["blockers"])
+
     def test_constant_time_ledger_consumes_nested_timing_without_fabricating_unknowns(self):
         result = pipeline.execution_performance_foundation(
             performance_timeline={

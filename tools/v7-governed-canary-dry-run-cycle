@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 from collections import deque
 import copy
-import gzip
 import ipaddress
 import json
 import os
@@ -503,37 +502,44 @@ def read_jsonl_family(path: Path, limit: int = 5000) -> list[dict[str, Any]]:
     """Read bounded JSONL without materializing an unbounded periodic journal."""
     rows: deque[dict[str, Any]] = deque(maxlen=max(1, int(limit)))
     for item in jsonl_family_paths(path):
-        try:
-            opener = gzip.open if item.suffix == ".gz" else open
-            with opener(item, "rt", encoding="utf-8", errors="replace") as handle:
-                for line in handle:
-                    if not line.strip():
-                        continue
-                    try:
-                        parsed = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    if not isinstance(parsed, dict):
-                        continue
-                    # Legacy Matrix lifecycle rows could contain a complete
-                    # recursively embedded child response.  They are never an
-                    # execution authority; retain an honest compact receipt so
-                    # old journal growth cannot exhaust the live consumer.
-                    if item.name.startswith("service-matrix-refresh-") and len(line) > 65536:
-                        parsed = {
-                            "schema_version": "v7.legacy-service-matrix-refresh-projection.v1",
-                            "updated": parsed.get("updated"),
-                            "status": parsed.get("status", "OK"),
-                            "total": parsed.get("total"),
-                            "ok_count": parsed.get("ok_count"),
-                            "next_output": parsed.get("next_output", ""),
-                            "capture_only": True,
-                            "candidate_or_execution_forbidden": True,
-                            "source_file": item.name,
-                        }
-                    rows.append(parsed)
-        except OSError:
-            continue
+        # Reuse the canonical bounded-tail reader.  A deque limit applied
+        # after scanning an entire multi-gigabyte JSONL family bounded memory,
+        # but not I/O or latency, and made one governed reset repeatedly parse
+        # already-consumed history.  Tail bytes are deliberately proportional
+        # to the existing record budget and capped; rotations remain ordered
+        # through jsonl_family_paths and the final deque preserves semantics.
+        tail_rows = intelligence_workers.read_jsonl_tail(
+            item,
+            limit=max(1, int(limit)),
+            max_bytes=max(
+                intelligence_workers.MAX_HISTORY_BYTES,
+                min(8_000_000, max(1, int(limit)) * 4096),
+            ),
+        )
+        for parsed in tail_rows:
+            if not isinstance(parsed, dict):
+                continue
+            # Legacy Matrix lifecycle rows could contain a complete recursively
+            # embedded child response. Keep the established compact projection
+            # after the bounded read instead of restoring the raw payload.
+            if (
+                item.name.startswith("service-matrix-refresh-")
+                and len(json.dumps(parsed, ensure_ascii=True)) > 65536
+            ):
+                parsed = {
+                    "schema_version": (
+                        "v7.legacy-service-matrix-refresh-projection.v1"
+                    ),
+                    "updated": parsed.get("updated"),
+                    "status": parsed.get("status", "OK"),
+                    "total": parsed.get("total"),
+                    "ok_count": parsed.get("ok_count"),
+                    "next_output": parsed.get("next_output", ""),
+                    "capture_only": True,
+                    "candidate_or_execution_forbidden": True,
+                    "source_file": item.name,
+                }
+            rows.append(parsed)
     return list(rows)
 
 
@@ -779,6 +785,12 @@ def run_l3_production_validation_plan(
         str(snapshot_root),
         "--restore-barrier-file",
         str(restore_barrier_file),
+        # This planner performs no mutation.  Waiting tens of seconds behind a
+        # concurrent Matrix writer cannot make its snapshot fresher; fail
+        # closed quickly and let the existing timer re-enter after the owner
+        # releases the lock.
+        "--service-matrix-lock-timeout-sec",
+        "5",
     ]
     if source:
         command.extend(["--source-egress", source])
@@ -5653,23 +5665,7 @@ def _execute_governed_transaction_with_guards_inner(
     runtime_state = read_json(state_dir / "v7-state.json", {})
     records = decision_records(state_dir, event_dir, audit_dir)
     events = event_rows(event_dir, args.max_events)
-    surface = operator_decision_surface.build_operator_decision_surface(
-        snapshot_root=snapshot_root,
-        users=users,
-        egress=egress,
-        runtime_state=runtime_state,
-        decision_records=records,
-    )
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
-    inventory = autonomy_trust_acceleration.build_acceleration_inventory(
-        snapshot_root=snapshot_root,
-        decision_surface=surface,
-        shadow_history=shadow_history,
-        decision_records=records,
-        event_rows=events,
-    )
-    surface["knowledge_quality_read_model"] = inventory.get("knowledge_quality_read_model", {})
-    surface["decision_outcome_learning"] = inventory.get("decision_outcome_learning", {})
     availability_reset_snapshot_refresh: dict[str, Any] = {}
     if availability_first_reset:
         # A serialized cohort reset changes route-backed risk/blast/overview
@@ -5692,28 +5688,31 @@ def _execute_governed_transaction_with_guards_inner(
                 "availability_first_baseline_snapshot_refresh_failed",
                 snapshot_refresh=availability_reset_snapshot_refresh,
             )
-        surface = operator_decision_surface.build_operator_decision_surface(
-            snapshot_root=snapshot_root,
-            users=users,
-            egress=egress,
-            runtime_state=runtime_state,
-            decision_records=records,
-        )
-        inventory = autonomy_trust_acceleration.build_acceleration_inventory(
-            snapshot_root=snapshot_root,
-            decision_surface=surface,
-            shadow_history=shadow_history,
-            decision_records=records,
-            event_rows=events,
-        )
-        surface["knowledge_quality_read_model"] = inventory.get(
-            "knowledge_quality_read_model",
-            {},
-        )
-        surface["decision_outcome_learning"] = inventory.get(
-            "decision_outcome_learning",
-            {},
-        )
+    # Build the decision and Learning read models once, after the reset-only
+    # snapshot refresh when one was required.  The previous pre/post refresh
+    # duplicate construction had no consumer and doubled history work.
+    surface = operator_decision_surface.build_operator_decision_surface(
+        snapshot_root=snapshot_root,
+        users=users,
+        egress=egress,
+        runtime_state=runtime_state,
+        decision_records=records,
+    )
+    inventory = autonomy_trust_acceleration.build_acceleration_inventory(
+        snapshot_root=snapshot_root,
+        decision_surface=surface,
+        shadow_history=shadow_history,
+        decision_records=records,
+        event_rows=events,
+    )
+    surface["knowledge_quality_read_model"] = inventory.get(
+        "knowledge_quality_read_model",
+        {},
+    )
+    surface["decision_outcome_learning"] = inventory.get(
+        "decision_outcome_learning",
+        {},
+    )
     topology_policy_binding: dict[str, Any] = {}
     if topology_mode:
         topology_policy_binding = copy.deepcopy(

@@ -2478,7 +2478,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 module.operator_decision_surface,
                 "build_operator_decision_surface",
                 return_value={"users_by_ip": {}, "batch_preview": {}},
-            ), mock.patch.object(
+            ) as build_surface, mock.patch.object(
                 module.autonomy_trust_acceleration,
                 "build_acceleration_inventory",
                 return_value={},
@@ -2508,6 +2508,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual(result["stop_reason"], "packet_not_ready")
         snapshot_refresh.assert_called_once()
+        build_surface.assert_called_once()
         self.assertEqual(
             captured_surface["controlled_execution_gate_profile"],
             "CONTROLLED_CERTIFICATION_TOPOLOGY",
@@ -4458,6 +4459,37 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertNotIn("--pretty", captured["command"])
         source_index = captured["command"].index("--source-egress")
         self.assertEqual(captured["command"][source_index + 1], "wireguard-1779454504-c43409")
+        lock_index = captured["command"].index(
+            "--service-matrix-lock-timeout-sec"
+        )
+        self.assertEqual(captured["command"][lock_index + 1], "5")
+
+    def test_jsonl_family_uses_bounded_tail_and_preserves_rotation_order(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            current = Path(tmp) / "execution-events.jsonl"
+            rotated = Path(tmp) / "execution-events.jsonl.1"
+            rotated.write_text(
+                "".join(
+                    json.dumps({"sequence": value}) + "\n"
+                    for value in (1, 2)
+                ),
+                encoding="utf-8",
+            )
+            current.write_text(
+                "".join(
+                    json.dumps({"sequence": value}) + "\n"
+                    for value in (3, 4)
+                ),
+                encoding="utf-8",
+            )
+
+            rows = module.read_jsonl_family(current, limit=3)
+
+        self.assertEqual(
+            [row["sequence"] for row in rows],
+            [2, 3, 4],
+        )
 
     def test_l3_validation_target_alone_does_not_activate_old_campaign_contract(self):
         module = load_cli_module()

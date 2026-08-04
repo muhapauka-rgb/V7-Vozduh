@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.64`
+Version: `4.65`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -128,6 +128,15 @@ per-primitive semantic disposition. A conditional existing-owner Foundation
 Mission is admitted only for proven extension/replacement residuals. CT-M0F and
 CT-M1 can never both be READY, and no new route owner, registry, queue,
 watcher, Planner, Runtime, truth source or Authority system is introduced.
+
+V4.65 binds every constant-time Mission to a mandatory projection of the
+existing Time/execution performance foundation. Functional completion without
+old/new critical-path evidence, hidden-operation counters and an exact next
+latency residual is incomplete. It also requires an evidence-derived legacy
+exception SLO, continuously refreshed prepared decisions through existing
+generation owners, a fresh-Matrix-receipt hot-path guard and machine rejection
+of incident-time hidden O(N) work. No performance store, daemon, owner or
+parallel truth source is created.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -10534,7 +10543,7 @@ Maturity change remain absent. Exact next action remains
 Status: `APPROVED_CAPABILITY_PLAN_NOT_LIVE_FRONTIER`.
 
 Capability-plan owner:
-`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.1.
+`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.2.
 
 Live activation and sequencing owner:
 `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
@@ -10570,6 +10579,12 @@ M0 classifies each existing primitive exactly once as `REUSE_VALID`,
 - `ROUTING_CLASS_SEMANTIC_IDENTITY_CONTRACT_PROVEN`;
 - `LEGACY_EXCEPTION_SCOPE_DEFINED`;
 - `DEFERRED_CLOSURE_DURABLE_SUCCESSOR_CONTRACT_DEFINED`;
+- `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER` baseline projection;
+- `LEGACY_EXCEPTION_PATH_BASELINE_AND_REQUIRED_SLO_PROVEN`;
+- `PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN` or its
+  exact CT-M0F residual;
+- `FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN` or its exact residual;
+- `CUTOVER_HIDDEN_O_N_GUARD_PROVEN` or its exact instrumentation residual;
 - an explicit forbidden-duplicate-owner list;
 - one exact Foundation residual, if needed, and one CT-M1 dependency state.
 
@@ -10612,6 +10627,11 @@ For every CT stage OMP must persist or derive from existing owners:
 | `production_caller` | actual caller identity or exact not-yet-executed reason |
 | `failure_terminal` | exact fail-closed terminal for the edge |
 | `closure_seed_identity` | PREPARED durable successor seed or exact not-applicable reason |
+| `performance_ledger_identity` | existing Time-owner projection consumed for this stage |
+| `old_new_critical_path` | prior/current blocking path and removed/remaining work |
+| `operation_counters` | scans, rewrites, bytes, audits, probes, processes, locks and per-member objects |
+| `sample_contract` | monotonic bounds, cold/warm, count and valid percentiles |
+| `next_latency_residual` | exact remaining timing gap and consumer |
 | `producer_owner` | owner that actually emitted the output |
 | `output_identity` | immutable output ID/fingerprint or exact N/A reason |
 | `consumer_owner` | existing owner required to use the output |
@@ -10639,6 +10659,12 @@ ready_successor_count > 1
 mass_compatible_incident == TRUE AND selected_path == LEGACY_PER_USER
 kernel_commit_visible == TRUE AND durable_closure_obligation == EMPTY
 prepared_decision_used == TRUE AND invalidation_check == EMPTY
+stage_consumed == TRUE AND performance_ledger_identity == EMPTY
+unknown_time_reported_as_zero == TRUE
+latency_regression == TRUE AND exact_latency_residual == EMPTY
+fresh_compatible_matrix_receipt == TRUE AND full_pre_cutover_verification == TRUE
+incident_time_full_member_scan_or_hash == TRUE
+class_cutover_per_member_packet_or_lease_count > 0
 ```
 
 Any invalid state is `BROKEN_CAUSAL_LINEAGE` and must be routed through the
@@ -10683,6 +10709,39 @@ Mass compatible incidents must select the class path. Per-user execution is
 legal only for the exact legacy exception scope proven by M0. The invariant is
 `LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`; later production
 proof is `LEGACY_EXCEPTION_FALLBACK_SELECTION_PRODUCTION_CONSUMED`.
+
+### 46.3B Performance ledger and continuous preparation contract
+
+`CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER` is a projection of the existing
+Time/execution performance foundation. It is not an append-only store or a new
+owner. Each CT stage projects old/new critical paths, removed/remaining
+blocking work, N/K complexity, all named latency intervals, 10/10,000 member
+measurements, monotonic sample metadata, hidden-operation counters, unknown
+time and one next latency residual. The existing OMP consumer must acknowledge
+the projection before stage completion.
+
+The legacy exception path has a separately measured, evidence-derived
+`LEGACY_EXCEPTION_PATH_REQUIRED_SLO`; current long latency must be decomposed
+into required safety work and removable/unknown delay. A safe fallback is not
+accepted as operationally complete merely because it eventually terminates.
+
+Existing Matrix/topology/capacity/policy/membership generation producers must
+refresh prepared decisions before failure and deliver freshness acknowledgement
+to the existing consumer. A failure event may perform only bounded generation
+validation; it may not invoke the full Planner as an undeclared hot-path step.
+
+A fresh compatible Matrix receipt with no invalidator forbids full service
+verification before cutover. Incident-time full membership serialization,
+hashing, registry scans/rewrites, per-member audit/verification and per-member
+Candidate/Packet/lease construction are forbidden and machine-counted.
+
+Required terminals are:
+
+- `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER_CONSUMED` for every stage;
+- `LEGACY_EXCEPTION_PATH_BASELINE_AND_REQUIRED_SLO_PROVEN`;
+- `PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN`;
+- `FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN`;
+- `CUTOVER_HIDDEN_O_N_GUARD_PROVEN`.
 
 ### 46.4 Incident and Product Evolution integration
 
@@ -10732,6 +10791,10 @@ owner-internal `REPLACE` residual. If CT-M0F is READY, CT-M1 is
 FORMED_DEPENDENCY_BLOCKED; otherwise CT-M1 may be READY. Exactly one executable
 successor is permitted. CT-M1..CT-M9 are capability stages and may be skipped,
 reduced or merged only through current owner-backed evidence.
+
+Valid functional evidence may be reused, but a stage cannot be compressed past
+an absent performance-ledger projection, unclassified unknown time or an
+undeclared regression.
 
 After each stage OMP must:
 
@@ -10793,6 +10856,14 @@ OMP may emit
 - every required M0 disposition, cost, hot-path, invalidation, class-identity,
   legacy-scope and durable-closure output is consumed;
 - CT-M0F is completed or owner-backed as not required;
+- every executed/compressed stage has a consumed existing-Time-owner
+  performance-ledger projection;
+- legacy exception fallback has an evidence-derived bounded SLO;
+- prepared decisions are continuously produced and freshness-consumed before
+  a failure;
+- compatible fresh Matrix evidence keeps full verification off the hot path;
+- hidden O(N) counters remain zero/bounded on class cutover and 10 versus
+  10,000 timing/operation-count invariance is consumed;
 - the selected data-plane primitive is real and owner-correct;
 - kernel and canonical generations reconcile across crashes;
 - migration/fallback, exceptions, capacity and multi-target semantics close;

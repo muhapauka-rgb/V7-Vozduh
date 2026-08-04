@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.1`
+Version: `4.2`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -3672,6 +3672,75 @@ reconciliation or unsupported legacy membership. The machine invariant is:
 
 `LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`.
 
+### V4.2 performance ledger and hot-path regression law
+
+Every CT Mission must update
+`CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER`, a projection of the existing
+`execution_performance_foundation` and canonical Time owner. It is not a new
+store, registry, log owner or truth source. The existing OMP consumer must
+consume each projection before the Mission may close.
+
+Every stage row contains:
+
+- old and new critical path, removed and remaining blocking work;
+- `O(1)`/`O(K)`/`O(N)` classification and the exact cause;
+- detection, prepared-decision validation, Packet/lease, canonical CAS,
+  kernel commit, visibility, fast verification, new-flow recovery, closure
+  activation, deferred verification, rollback and forward-recovery latency;
+- measured 10-member and 10,000-member time, difference and cause, or exact
+  not-yet-measurable reason;
+- dependence on N and K;
+- bytes/records scanned, registry rows rewritten, synchronous audit records,
+  member probes, Candidates/Packets/leases, process count, lock count and
+  network probes;
+- monotonic start/end boundaries, cold/warm classification, sample count,
+  p50/p95/p99 where statistically valid, CPU/load/substrate fingerprint;
+- operation/class/bucket/generation identity;
+- unknown time and the next exact latency residual.
+
+Wall-clock timestamps preserve lineage; elapsed SLO measurement uses the
+existing monotonic Time contract. Unknown time is `UNKNOWN`, never zero.
+Improvement in one interval cannot hide an undeclared regression in another:
+`LATENCY_REGRESSION_WITHOUT_EXACT_RESIDUAL_FORBIDDEN`.
+
+The legacy exception path receives its own measured contract. CT-M0 must split
+the current baseline, including the observed approximately 141-second path,
+into necessary safety checks, duplicated work, waits, probes, locks and unknown
+time. It then emits `LEGACY_EXCEPTION_PATH_REQUIRED_SLO`; the value is derived
+from evidence, not selected in advance. Safe but operationally unusable
+latency remains an engineering residual. Required M0 terminal:
+`LEGACY_EXCEPTION_PATH_BASELINE_AND_REQUIRED_SLO_PROVEN`.
+
+Prepared decisions must exist before a failure. Existing Matrix, topology,
+capacity, policy and membership generation owners drive selective refresh:
+
+```text
+owner generation change
+-> selective prepared-decision invalidation
+-> refreshed prepared decision
+-> freshness consumer acknowledgement
+-> READY_FOR_HOT_VALIDATION
+```
+
+No new daemon is permitted. A missing or stale prepared decision fails the
+class fast path with an exact reason; it must not silently place the full
+Planner on the incident critical path. Required terminal:
+`PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN`.
+
+Full service verification is forbidden before cutover when a fresh compatible
+Matrix receipt exists and no declared invalidator fired. Full or bounded
+revalidation is legal only for an exact stale receipt, fingerprint mismatch,
+changed target, service set, DNS/routing/config generation or contradictory
+evidence, and must follow the existing safety owner. Required terminal:
+`FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN`.
+
+The class cutover hot path must not serialize or hash the full member list,
+scan the registry, rewrite registry rows, generate per-member audit records,
+verify every member synchronously or create per-member Candidate, Packet or
+lease objects. Membership fingerprint and snapshot generation are prepared
+before the incident; cutover performs only bounded validation. Instrumented
+counters enforce: `CUTOVER_HIDDEN_O_N_GUARD_PROVEN`.
+
 ### Mission CT-M0 — current owner, data-plane and O(N) audit
 
 Mission ID:
@@ -3704,6 +3773,12 @@ Required discovery:
 19. Legacy/class selection law and exact legacy exception scope.
 20. Semantic routing-class identity dimensions proven by current data.
 21. Disposition of every existing primitive without duplicate ownership.
+22. Existing Time/execution performance projection owner and baseline ledger.
+23. Legacy exception-path latency decomposition and evidence-derived SLO.
+24. Existing event producers and freshness consumer for continuously prepared
+    decisions.
+25. Matrix receipt reuse guard and exact invalidation-only revalidation path.
+26. Instrumented hidden-O(N) operation counters and regression thresholds.
 
 Every primitive receives exactly one disposition:
 
@@ -3735,6 +3810,12 @@ Output: one machine-readable M0 contract containing all of:
 - `ROUTING_CLASS_SEMANTIC_IDENTITY_CONTRACT_PROVEN`;
 - `LEGACY_EXCEPTION_SCOPE_DEFINED`;
 - `DEFERRED_CLOSURE_DURABLE_SUCCESSOR_CONTRACT_DEFINED`;
+- `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER` baseline projection;
+- `LEGACY_EXCEPTION_PATH_BASELINE_AND_REQUIRED_SLO_PROVEN`;
+- `PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN` or the
+  exact existing-owner Foundation residual required to prove it;
+- `FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN` or its exact residual;
+- `CUTOVER_HIDDEN_O_N_GUARD_PROVEN` or its exact instrumentation residual;
 - the explicit list of forbidden duplicate owners;
 - the exact conditional Foundation residual, if any;
 - the exact CT-M1 identity and dependency state;
@@ -3771,8 +3852,11 @@ verdicts.
 
 The Mission closes only the exact missing existing-owner links required for
 class operation, the prepared-decision invalidation contract, closure seed and
-legacy selection law. It may not create a route owner, registry, queue,
-watcher, Planner, Runtime, Authority system or parallel truth source.
+legacy selection law. It also closes only proven residuals for the performance
+ledger projection, legacy fallback SLO, continuous prepared-decision producer,
+Matrix receipt guard and hidden-O(N) instrumentation. It may not create a route
+owner, registry, queue, watcher, Planner, Runtime, Authority system or parallel
+truth source.
 
 Producer: exact existing owners named by the M0 disposition matrix.
 Output: repaired/reused fast primitives plus certified legacy exception
@@ -3781,6 +3865,9 @@ Consumer: focused non-test owner callers -> BDP/OMP residual recomputation.
 Terminal:
 `REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED`.
 Successor: CT-M1 becomes `READY` only after this terminal is consumed.
+
+Every CT-M0F result must include a consumed performance-ledger delta. Passing
+functional tests without old/new critical-path evidence is incomplete.
 
 ### Mission CT-M1 — Polygon kernel primitive and generation protocol
 
@@ -3978,7 +4065,7 @@ owned.
 Terminal:
 `CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
 
-### V4.1 dynamic Mission compression
+### V4.2 dynamic Mission compression
 
 CT-M0 is mandatory. CT-M0F is conditional on the exact M0 disposition matrix.
 CT-M1 through CT-M9 are capability stages, not mandatory empty containers.
@@ -3995,12 +4082,15 @@ output OMP must:
 6. publish and consume the smallest safe successor;
 7. stop only at a legal terminal with exact re-entry.
 
+Dynamic compression may reuse valid functional evidence, but it may not skip a
+missing stage performance-ledger projection or hide a latency regression.
+
 An unavailable kernel/privileged substrate cannot stop independent logical,
 identity, migration, projection, replay or model work. It is
 `POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
 `REAL_WORLD_LIMIT` while independent safe work exists.
 
-### V4.1 production-effect boundary
+### V4.2 production-effect boundary
 
 | Mission | Production routing/user effect |
 | --- | --- |
@@ -4021,12 +4111,22 @@ Authority expansion, Packet execution, restore-barrier write, routing
 mutation, user movement, rollback/forward-recovery apply, ordinary-user
 certification use and Production Maturity change.
 
-### V4.1 Program completion contract
+### V4.2 Program completion contract
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
 
 - current data-plane feasibility and O(N)/O(K)/O(1) model proven;
+- the existing Time owner has consumed a performance-ledger row for every
+  executed or compressed CT stage;
+- old/new critical paths, 10/10,000 comparison, hidden-operation counters and
+  next latency residual are explicit;
+- legacy exception fallback has an evidence-derived bounded SLO;
+- prepared decisions are continuously produced and freshness-consumed before
+  incidents without a new daemon;
+- fresh compatible Matrix receipts prevent full pre-cutover verification;
+- no hidden incident-time member serialization, hashing, scanning, rewrite,
+  per-member audit/verification or per-member Packet lifecycle remains;
 - hot-path producer-consumer graph and hidden blocking work proven;
 - prepared-decision invalidation contract consumed;
 - semantic routing-class identity and legacy exception scope proven;

@@ -28,7 +28,7 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `EXTERNAL_OWNER_REQUIRED` |
+| `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `CONSTANT_TIME_COHORT_FAILOVER_CT_M0F_FOUNDATION` |
 | `CURRENT_SAFE_NEXT_ACTION` | `BIND AN OWNER-BACKED EXACT CERTIFICATION-IDENTITY CLIENT PAYLOAD PROBE TO THE DEPLOYED CT-M0F CONSUMER, THEN ADMIT DISTINCT CT-M0F-V GENERATIONS THROUGH THE EXISTING CONTROLLED-PRODUCTION OWNER; DO NOT SUBSTITUTE HOST/MATRIX/COUNTER EVIDENCE` |
 | `CURRENT_SCOPE_CLASS` | `PRODUCT_EVOLUTION_ENGINEERING` |
@@ -47,8 +47,8 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
 | `PROGRAM_TERMINAL_STATE` | `NONE_CT_M0F_READY_CT_M1_DEPENDENCY_BLOCKED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `EXACT_CERTIFICATION_IDENTITY_CLIENT_PROBE_OWNER_OR_ACCESS_AND_EXISTING_CONTROLLED_PRODUCTION_ADMISSION` |
+| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_TYPE` | `NONE; exact client-probe producer/access remains a CT-M0F-V dependency-local boundary, not a global program stop` |
 | `TRANSACTION_TERMINAL_CLASS` | `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
@@ -688,7 +688,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | ordinary Matrix -> one-user governed performance benchmark -> Outcome/Replay/Learning -> baseline reset -> Time receipt -> Stage-48 readiness-only projection -> separate existing-owner admission |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; bind owner-backed exact certification-identity payload probe, then admit distinct CT-M0F-V generations; preserve CAP-U07 natural-evidence WIP |
+| `smallest_existing_next_action` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; provide/bind owner-backed exact certification-identity payload probe, then admit distinct CT-M0F-V generations; no host/Matrix/counter substitution; preserve CAP-U07 natural-evidence WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -756,7 +756,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z`; `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` | Stage 25 remains immutable; CT-M0F-E prepared/freshness, probe-consumer and deferred-closure contracts are deployed; exact client probe producer and valid controlled samples remain open | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` | existing Matrix, autoswitch, Time, L3, closure, controlled-production, CPS and OMP owners | `EXTERNAL_OWNER_REQUIRED` | bind exact certification-identity payload probe and independently admit CT-M0F-V generations; do not repeat Stage 25/benchmark or manufacture samples |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z`; `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` | Stage 25 remains immutable; CT-M0F-E prepared/freshness, probe-consumer and deferred-closure contracts are deployed; exact client probe producer and valid controlled samples remain open | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` | existing Matrix, autoswitch, Time, L3, closure, controlled-production, CPS and OMP owners | `NONE` | bind exact certification-identity payload probe and independently admit CT-M0F-V generations; do not repeat Stage 25/benchmark or manufacture samples |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

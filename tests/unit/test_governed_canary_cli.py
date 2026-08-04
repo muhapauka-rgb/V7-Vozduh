@@ -45,6 +45,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "admin_core.operator_execution_pipeline.execution_performance_foundation",
         )
         self.assertIn("apply_duration_ms", timing["available_metrics"])
+        ledger = timing["constant_time_failover_performance_ledger"]
+        self.assertEqual(
+            ledger["schema_version"],
+            "v7.constant-time-failover-performance-ledger.v1",
+        )
+        self.assertTrue(ledger["clock_valid"])
+        self.assertEqual(ledger["n_dependency"], "O(N)_LEGACY_TRANSACTION")
         self.assertLess(len(json.dumps(timing)), 5000)
 
     def test_governed_execution_timing_rejects_non_monotonic_sequence(self):

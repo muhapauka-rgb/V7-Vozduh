@@ -19909,6 +19909,48 @@ def main() -> int:
             }
         ),
     }
+    selected_moves = [
+        row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)
+    ]
+    applied_results = [
+        row
+        for row in ((plan.get("apply_result") or {}).get("results") or [])
+        if isinstance(row, dict)
+    ]
+    timeline["hot_path_work_counters"] = {
+        # The existing planner loads these rows before selection.  This is an
+        # exact count for that load and only a lower bound for the complete
+        # process because legacy helpers may perform further scoped reads.
+        "member_rows_scanned": len(planner.users),
+        "member_rows_scanned_measurement_kind": "OBSERVED_PLANNER_LOAD_LOWER_BOUND",
+        # One result corresponds to one legacy per-member mutation attempt.
+        # Rows rewritten inside v7-user-switch remain unknown until that
+        # existing owner exposes the exact counter.
+        "process_count": int(timeline["process"]["subprocess_count_lower_bound"]),
+        "process_count_measurement_kind": "OBSERVED_LOWER_BOUND",
+        "network_probe_count": sum(
+            1
+            for row in timeline["spans"]
+            if row.get("stage") in {
+                "required_service_verification",
+                "exact_client_network_context_traffic_probe",
+            }
+        ),
+        "network_probe_count_measurement_kind": "OBSERVED_SPAN_COUNT",
+        "per_member_artifacts": len(selected_moves),
+        "per_member_artifacts_measurement_kind": "SELECTED_MOVE_ROWS_LOWER_BOUND",
+        "legacy_member_mutation_attempts": len(applied_results),
+        "lock_count": sum(
+            1 for row in timeline["spans"] if "lock" in str(row.get("stage") or "")
+        ),
+        "lock_count_measurement_kind": "OBSERVED_SPAN_COUNT",
+        "n_dependency": "O(N)_LEGACY_PLANNER_AND_PER_MEMBER_WRITER",
+        "k_dependency": "NOT_YET_CLASS_PATH",
+        "unknown_fields": [
+            "registry_rows_rewritten",
+            "serialized_member_bytes",
+        ],
+    }
     timeline["total_ms"] = round((time.monotonic_ns() - planner_init_started_ns) / 1_000_000.0, 3)
     plan["performance_timeline"] = timeline
     output = plan

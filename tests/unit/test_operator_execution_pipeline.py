@@ -14,6 +14,41 @@ ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
 class OperatorExecutionPipelineTest(unittest.TestCase):
+    def test_constant_time_ledger_consumes_nested_timing_without_fabricating_unknowns(self):
+        result = pipeline.execution_performance_foundation(
+            performance_timeline={
+                "schema_version": "v7.governed-transaction-nested-timing.v1",
+                "clock_source": "time.monotonic_ns",
+                "spans": [
+                    {"stage": "planner", "duration_ms": 12.5},
+                    {"stage": "packet_and_lease", "duration_ms": 3.0},
+                    {"stage": "route_visibility_verification", "duration_ms": 4.0},
+                ],
+                "hot_path_work_counters": {
+                    "member_rows_scanned": 10,
+                    "member_rows_scanned_measurement_kind": "OBSERVED_EXACT",
+                    "process_count": 2,
+                    "n_dependency": "O(N)_LEGACY_TRANSACTION",
+                    "k_dependency": "NOT_YET_CLASS_PATH",
+                },
+            }
+        )
+
+        ledger = result["constant_time_failover_performance_ledger"]
+        self.assertEqual(
+            ledger["schema_version"],
+            "v7.constant-time-failover-performance-ledger.v1",
+        )
+        self.assertTrue(ledger["clock_valid"])
+        self.assertEqual(
+            ledger["intervals"]["prepared_validation_ms"]["value_ms"], 12.5
+        )
+        self.assertEqual(
+            ledger["hot_path_work_counters"]["member_rows_scanned"]["value"], 10
+        )
+        self.assertIn("registry_rows_rewritten", ledger["unknown_counter_fields"])
+        self.assertFalse(ledger["unknown_values_fabricated"])
+
     def recommendation_row(self):
         return {
             "user": "10.7.0.3",

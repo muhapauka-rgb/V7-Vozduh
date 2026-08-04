@@ -2711,6 +2711,19 @@ def governed_execution_timing_projection(
                     "duration_ms": span_by_stage["feedback_and_learning"],
                 },
             ],
+            performance_timeline={
+                "schema_version": "v7.governed-transaction-nested-timing.v1",
+                "clock_source": "time.monotonic_ns",
+                "spans": spans,
+                "hot_path_work_counters": {
+                    "member_rows_scanned": users,
+                    "member_rows_scanned_measurement_kind": "AFFECTED_USERS_LOWER_BOUND",
+                    "per_member_artifacts": users,
+                    "per_member_artifacts_measurement_kind": "AFFECTED_USERS_LOWER_BOUND",
+                    "n_dependency": "O(N)_LEGACY_TRANSACTION",
+                    "k_dependency": "NOT_YET_CLASS_PATH",
+                },
+            },
         )
     )
     requested_metrics = existing_owner_analysis.get("requested_metrics") or {}
@@ -2748,6 +2761,9 @@ def governed_execution_timing_projection(
         "analysis_schema_version": str(existing_owner_analysis.get("schema_version") or ""),
         "available_metrics": list(existing_owner_analysis.get("available_metrics") or []),
         "missing_metrics": list(existing_owner_analysis.get("missing_metrics") or []),
+        "constant_time_failover_performance_ledger": existing_owner_analysis.get(
+            "constant_time_failover_performance_ledger"
+        ) or {},
         "slow_paths": slow_metrics[:3],
         "durable_owner": "existing governed transaction receipt",
         "bounded_rows_per_transaction": len(spans),

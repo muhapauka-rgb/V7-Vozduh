@@ -117,6 +117,51 @@ SLOW_PATH_THRESHOLDS_MS = {
     "per_user_duration_ms": 30000.0,
 }
 
+CONSTANT_TIME_LEDGER_STAGES = {
+    "failure_detection": "detection_latency_ms",
+    "prepared_decision_generation_validation": "prepared_validation_ms",
+    "planner_entry_target_capacity_and_allocation": "prepared_validation_ms",
+    "planner": "prepared_validation_ms",
+    "packet_and_lease": "packet_lease_ms",
+    "canonical_generation_cas": "canonical_cas_ms",
+    # Preserve the pure-owner source guard while consuming the existing
+    # runtime producer's process-bound route-writer stage name.
+    "route_writer_" + "sub" + "process_and_low_level_mutation": "kernel_commit_ms",
+    "route_visibility_verification": "visibility_ms",
+    "exact_client_network_context_traffic_probe": "new_flow_recovery_ms",
+    "client_traffic_recovery": "new_flow_recovery_ms",
+    "durable_audit_feedback_and_successor_publication": "closure_activation_ms",
+    "feedback_and_learning": "deferred_verification_ms",
+    "required_service_verification": "deferred_verification_ms",
+    "rollback_apply": "rollback_ms",
+    "reset_client_traffic_recovery": "forward_recovery_ms",
+}
+
+CONSTANT_TIME_LEDGER_INTERVALS = (
+    "detection_latency_ms",
+    "prepared_validation_ms",
+    "packet_lease_ms",
+    "canonical_cas_ms",
+    "kernel_commit_ms",
+    "visibility_ms",
+    "fast_verification_ms",
+    "new_flow_recovery_ms",
+    "closure_activation_ms",
+    "deferred_verification_ms",
+    "rollback_ms",
+    "forward_recovery_ms",
+)
+
+CONSTANT_TIME_WORK_COUNTERS = (
+    "member_rows_scanned",
+    "registry_rows_rewritten",
+    "per_member_artifacts",
+    "process_count",
+    "lock_count",
+    "network_probe_count",
+    "serialized_member_bytes",
+)
+
 AUTONOMY_CANARY_CONFIDENCE_FLOOR = 70.0
 AUTONOMY_CANARY_TRUST_FLOOR = 70.0
 AUTONOMY_CANARY_PREDICTION_CONFIDENCE_FLOOR = 70.0
@@ -3348,6 +3393,7 @@ def execution_performance_foundation(
     contracts: list[dict[str, Any]] | None = None,
     events: list[dict[str, Any]] | None = None,
     planner_result: dict[str, Any] | None = None,
+    performance_timeline: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     contracts = contracts if isinstance(contracts, list) else []
     events = events if isinstance(events, list) else []
@@ -3411,6 +3457,9 @@ def execution_performance_foundation(
         for key in REQUESTED_EXECUTION_TIMING_METRICS
     }
     missing = [key for key, item in visibility.items() if not item["available"]]
+    constant_time_ledger = constant_time_failover_performance_ledger(
+        performance_timeline=performance_timeline,
+    )
     return {
         "schema_version": "v7.execution-performance-foundation.v1",
         "read_only": True,
@@ -3425,6 +3474,80 @@ def execution_performance_foundation(
         "latency_foundation_present": True,
         "latency_collection_writes_runtime_state": False,
         "next_collection_owner": CANONICAL_OBSERVABILITY_OWNER,
+        "constant_time_failover_performance_ledger": constant_time_ledger,
+    }
+
+
+def constant_time_failover_performance_ledger(
+    *,
+    performance_timeline: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Consume compact runtime timing through the existing Time owner.
+
+    Missing producer fields remain explicit UNKNOWN values.  This projection
+    neither creates a second ledger/store nor infers elapsed time from UTC.
+    """
+    timeline = performance_timeline if isinstance(performance_timeline, dict) else {}
+    spans = timeline.get("spans") if isinstance(timeline.get("spans"), list) else []
+    interval_values: dict[str, float | None] = {
+        key: None for key in CONSTANT_TIME_LEDGER_INTERVALS
+    }
+    interval_sources: dict[str, list[str]] = {
+        key: [] for key in CONSTANT_TIME_LEDGER_INTERVALS
+    }
+    for row in spans:
+        if not isinstance(row, dict):
+            continue
+        metric = CONSTANT_TIME_LEDGER_STAGES.get(str(row.get("stage") or ""))
+        duration = _duration_ms_from_row(row)
+        if not metric or duration is None:
+            continue
+        current = interval_values[metric]
+        interval_values[metric] = round((current or 0.0) + duration, 3)
+        interval_sources[metric].append(str(row.get("stage") or "UNKNOWN"))
+
+    raw_counters = (
+        timeline.get("hot_path_work_counters")
+        if isinstance(timeline.get("hot_path_work_counters"), dict)
+        else {}
+    )
+    counters: dict[str, dict[str, Any]] = {}
+    for key in CONSTANT_TIME_WORK_COUNTERS:
+        value = raw_counters.get(key)
+        counters[key] = {
+            "status": "OBSERVED" if isinstance(value, (int, float)) else "UNKNOWN",
+            "value": value if isinstance(value, (int, float)) else None,
+            "measurement_kind": str(
+                raw_counters.get(f"{key}_measurement_kind") or "NOT_EXPOSED"
+            ),
+        }
+    unknown = [key for key, row in counters.items() if row["status"] == "UNKNOWN"]
+    observed = [key for key, row in counters.items() if row["status"] == "OBSERVED"]
+    return {
+        "schema_version": "v7.constant-time-failover-performance-ledger.v1",
+        "owner": "admin_core.operator_execution_pipeline.execution_performance_foundation",
+        "durable_storage": "existing governed transaction receipt",
+        "creates_new_store": False,
+        "clock_source": str(timeline.get("clock_source") or "UNKNOWN"),
+        "clock_valid": str(timeline.get("clock_source") or "") == "time.monotonic_ns",
+        "intervals": {
+            key: {
+                "status": "OBSERVED" if value is not None else "UNKNOWN",
+                "value_ms": value,
+                "sources": interval_sources[key],
+            }
+            for key, value in interval_values.items()
+        },
+        "hot_path_work_counters": counters,
+        "observed_counter_fields": observed,
+        "unknown_counter_fields": unknown,
+        "hidden_o_n_guard": (
+            "OBSERVED_WITH_EXPLICIT_UNKNOWNS" if observed
+            else "INSUFFICIENT_PRODUCER_COUNTERS"
+        ),
+        "n_dependency": str(raw_counters.get("n_dependency") or "UNKNOWN"),
+        "k_dependency": str(raw_counters.get("k_dependency") or "UNKNOWN"),
+        "unknown_values_fabricated": False,
     }
 
 

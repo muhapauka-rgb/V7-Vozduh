@@ -204,6 +204,20 @@ verification и recovery/reset являются текущей измеренн�
 - baseline reset: verified;
 - ordinary user protection: PASS.
 
+Canonical closure verification after CPS/OMP binding:
+
+- `tools/v7-truth-check --all --json`: `PASS`, `FULLY_ALIGNED`, blockers `0`;
+- `tools/v7-convergence-status --json`: `PASS`, `ALIGNED`, deploy-delta
+  mismatches `0`;
+- local, GitHub and production commit identities: identical;
+- runtime access: `READY`, runtime truth: `KNOWN`;
+- final safe deploy is provenance-only because every approved runtime hash
+  already matches; service restart and production action are not required.
+
+The exact report-containing commit hash is intentionally owned by the final
+safe-deploy runtime fingerprint rather than embedded into this report: a file
+cannot contain its own immutable Git commit identity without changing it.
+
 Receipt подтверждает `one_governed_transaction_fastest_safe_path_proven=true`
 и `time_optimization_loop_consumed=true`. То есть nested timing producer был
 потреблён существующим `execution_performance_foundation`, прошёл production

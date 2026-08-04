@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MATRIX_TOOL = ROOT / "tools" / "v7-service-matrix-test"
 AUTOSWITCH_TOOL = ROOT / "tools" / "v7-users-autoswitch"
 REFRESH_TOOL = ROOT / "tools" / "v7-service-matrix-refresh-all"
+CYCLE_TOOL = ROOT / "tools" / "v7-governed-canary-dry-run-cycle"
 ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
@@ -30,6 +31,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         cls.matrix = load_module("v7_service_matrix_episode", MATRIX_TOOL)
         cls.autoswitch = load_module("v7_users_autoswitch_episode", AUTOSWITCH_TOOL)
         cls.refresh = load_module("v7_service_matrix_refresh_episode", REFRESH_TOOL)
+        cls.cycle = load_module("v7_governed_cycle_episode", CYCLE_TOOL)
 
     def test_exact_service_subset_reuses_existing_parallel_probe_owner(self):
         selected = self.matrix.exact_services_to_run(
@@ -1920,6 +1922,31 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertFalse(matches[0]["campaign_stage_credit"])
         self.assertFalse(matches[0]["stage_48_executed"])
+
+    def test_reset_timing_projection_is_shared_by_recovery_and_normal_paths(self):
+        timing = {
+            "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+            "analysis_schema_version": (
+                "v7.execution-performance-foundation.v1"
+            ),
+        }
+        rows = self.cycle.reset_execution_timing_rows([{
+            "fresh_packet_id": "pkt_reset",
+            "operation_id": "op_reset",
+            "execution_timing": timing,
+        }])
+
+        self.assertEqual(rows, [{
+            "packet_id": "pkt_reset",
+            "operation_id": "op_reset",
+            "timing": timing,
+        }])
+        self.assertEqual(
+            self.cycle.reset_execution_timing_rows([{
+                "fresh_packet_id": "pkt_without_time",
+            }]),
+            [],
+        )
 
     def test_performance_receipt_marks_stage_48_ready_without_execution(self):
         diagnostic = {

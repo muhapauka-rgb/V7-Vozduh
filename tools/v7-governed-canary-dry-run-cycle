@@ -2579,6 +2579,29 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     return receipt
 
 
+def reset_execution_timing_rows(
+    reset_transactions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Project reset Time spans identically for normal and recovery paths.
+
+    A forward transaction may reach its verified terminal in one Matrix
+    generation while its fail-closed baseline reset is consumed by the next
+    ordinary generation.  The Time consumer must receive that successful
+    reset's existing monotonic timing without inventing a second benchmark or
+    replaying the forward effect.
+    """
+    return [
+        {
+            "packet_id": str(row.get("fresh_packet_id") or ""),
+            "operation_id": str(row.get("operation_id") or ""),
+            "timing": row.get("execution_timing"),
+        }
+        for row in reset_transactions
+        if isinstance(row, dict)
+        and isinstance(row.get("execution_timing"), dict)
+    ]
+
+
 def governed_execution_timing_projection(
     *,
     transaction_started_ns: int,
@@ -9453,6 +9476,9 @@ def execute_availability_first_standing_stage(
             ),
             "partial_apply_recovery": partial,
             "reset_transaction": compact_transaction_result(reset),
+            "reset_execution_timings": reset_execution_timing_rows([
+                compact_transaction_result(reset),
+            ]),
             "baseline_reset_verified": reset_complete,
             "baseline_reset_reconciliation": reset_truth,
             "allocation_immutable": recovered_stage_complete,
@@ -10346,16 +10372,9 @@ def execute_availability_first_standing_stage(
         "learning_consumed": learning_consumed,
         "baseline_reset_verified": reset_ok,
         "reset_transactions": reset_transactions,
-        "reset_execution_timings": [
-            {
-                "packet_id": str(row.get("fresh_packet_id") or ""),
-                "operation_id": str(row.get("operation_id") or ""),
-                "timing": row.get("execution_timing"),
-            }
-            for row in reset_transactions
-            if isinstance(row, dict)
-            and isinstance(row.get("execution_timing"), dict)
-        ],
+        "reset_execution_timings": reset_execution_timing_rows(
+            reset_transactions
+        ),
         "baseline_reset_reconciliations": reset_reconciliations,
         "ordinary_assignment_before": ordinary_before,
         "ordinary_assignment_after_apply": ordinary_after_apply,

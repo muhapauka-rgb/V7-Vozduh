@@ -5454,6 +5454,38 @@ def _execute_governed_transaction_with_guards_inner(
     required_a4_candidate_keys: set[tuple[str, str]] | None = None,
     blocked_transaction_identities: set[tuple[str, str, str, str]] | None = None,
 ) -> dict[str, Any]:
+    transaction_started_ns = time.monotonic_ns()
+    second_level_timeline: list[dict[str, Any]] = []
+
+    def record_second_level(
+        stage: str,
+        started_ns: int,
+        *,
+        owner: str,
+        parent: str,
+        status: str = "PASS",
+    ) -> None:
+        second_level_timeline.append({
+            "stage": stage,
+            "parent": parent,
+            "owner": owner,
+            "clock_source": "time.monotonic_ns",
+            "duration_ms": round(
+                max(0, time.monotonic_ns() - started_ns) / 1_000_000.0,
+                3,
+            ),
+            "status": status,
+            "blocking_reason": "",
+            "critical_path": True,
+        })
+
+    overhead_started_ns = time.monotonic_ns()
+    for _ in range(64):
+        time.monotonic_ns()
+    timing_measurement_overhead_ms = round(
+        (time.monotonic_ns() - overhead_started_ns) / 1_000_000.0,
+        6,
+    )
     topology_mode = bool(
         getattr(args, "execute_controlled_topology_standing_transaction", False)
     )
@@ -5844,6 +5876,14 @@ def _execute_governed_transaction_with_guards_inner(
     if cycle.get("stop_reason") != "AUTHORITY_BOUNDARY" or packet_preview.get("status") != "PACKET_PREVIEW_READY":
         return transaction_stop("packet_not_ready", cycle=cycle, planner_observe=planner_observe)
 
+    planner_completed_ns = time.monotonic_ns()
+    record_second_level(
+        "predecessor_reconciliation_planner_and_selection",
+        transaction_started_ns,
+        owner="existing governed planning and controlled-selection owners",
+        parent="planner",
+    )
+
     preview_identity = operator_execution.preview_packet_identity(packet_preview)
     delegated_admission = {}
     approved_identity = {}
@@ -6041,6 +6081,13 @@ def _execute_governed_transaction_with_guards_inner(
     lease_create_result = operator_execution.write_execution_lease(lease_file, lease)
     if not lease_create_result.get("ok"):
         return transaction_stop("execution_lease_not_created", cycle=cycle, execution_lease_create_result=lease_create_result)
+    packet_completed_ns = time.monotonic_ns()
+    record_second_level(
+        "packet_materialization_validation_and_lease_persistence",
+        planner_completed_ns,
+        owner="existing Packet and execution lease owners",
+        parent="packet_and_lease",
+    )
 
     restore_barrier_file = Path(args.restore_barrier_file) if args.restore_barrier_file else state_dir / "autoswitch-restore-barrier.json"
     audit_store = audit_dir / "operator-execution-audit.jsonl"
@@ -6053,6 +6100,18 @@ def _execute_governed_transaction_with_guards_inner(
         restore_barrier_file=restore_barrier_file,
         lifecycle_store=lifecycle_store,
         execution_lease_id=str(lease.get("lease_id") or ""),
+    )
+    clearance_completed_ns = time.monotonic_ns()
+    record_second_level(
+        "restore_barrier_clearance",
+        packet_completed_ns,
+        owner="existing restore-barrier owner",
+        parent="restore_barrier",
+        status=(
+            "PASS"
+            if clearance_result.get("execution_allowed_now")
+            else "STOP_SAFE"
+        ),
     )
     if not clearance_result.get("execution_allowed_now"):
         terminal = operator_execution.finish_execution_lease(
@@ -6094,6 +6153,7 @@ def _execute_governed_transaction_with_guards_inner(
         engineering_authority,
         availability_first_reset=availability_first_reset,
     )
+    apply_started_ns = time.monotonic_ns()
     apply_run = run_autoswitch_apply(
         state_dir=state_dir,
         event_dir=event_dir,
@@ -6125,6 +6185,14 @@ def _execute_governed_transaction_with_guards_inner(
             packet_id=str(packet_identity.get("packet_id") or ""),
             operation_id=str(packet_identity.get("operation_id") or ""),
         )
+    apply_completed_ns = time.monotonic_ns()
+    record_second_level(
+        "apply_route_visibility_and_verification",
+        apply_started_ns,
+        owner="existing autoswitch apply and verification owners",
+        parent="apply_and_verification",
+        status="PASS" if apply_run.get("ok") else "STOP_SAFE",
+    )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     operation = dict(apply_payload.get("operation") or {})
     operation["apply_result"] = apply_payload.get("apply_result") if isinstance(apply_payload.get("apply_result"), dict) else {}
@@ -6160,6 +6228,53 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         service_failure_causal_binding=(packet.get("service_failure_causal_binding") if isinstance(packet.get("service_failure_causal_binding"), dict) else None),
     )
+    feedback_completed_ns = time.monotonic_ns()
+    record_second_level(
+        "feedback_outcome_replay_and_learning",
+        apply_completed_ns,
+        owner="existing feedback, Outcome, Replay and Learning owners",
+        parent="feedback_and_learning",
+        status=(
+            "PASS"
+            if feedback_materialization.get("materialized")
+            else "STOP_SAFE"
+        ),
+    )
+    execution_timing = governed_execution_timing_projection(
+        transaction_started_ns=transaction_started_ns,
+        planner_completed_ns=planner_completed_ns,
+        packet_completed_ns=packet_completed_ns,
+        clearance_completed_ns=clearance_completed_ns,
+        apply_completed_ns=apply_completed_ns,
+        feedback_completed_ns=feedback_completed_ns,
+        affected_users=1,
+    )
+    execution_timing["nested_timeline"] = (
+        apply_payload.get("performance_timeline")
+        if isinstance(apply_payload.get("performance_timeline"), dict)
+        else {}
+    )
+    execution_timing["planner_nested_timeline"] = (
+        (planner_observe.get("payload") or {}).get("performance_timeline")
+        if isinstance(planner_observe.get("payload"), dict)
+        and isinstance(
+            (planner_observe.get("payload") or {}).get(
+                "performance_timeline"
+            ),
+            dict,
+        )
+        else {}
+    )
+    execution_timing["second_level_timeline"] = {
+        "schema_version": "v7.governed-second-level-timing.v1",
+        "clock_source": "time.monotonic_ns",
+        "mission_id": "FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1",
+        "packet_id": str(packet_identity.get("packet_id") or ""),
+        "lease_id": str(lease.get("lease_id") or ""),
+        "operation_id": str(packet_identity.get("operation_id") or ""),
+        "measurement_overhead_ms": timing_measurement_overhead_ms,
+        "spans": second_level_timeline,
+    }
     apply_stop_reason = ""
     apply_stop_detail = ""
     if not apply_result.get("applied"):
@@ -6256,6 +6371,7 @@ def _execute_governed_transaction_with_guards_inner(
         "clearance_result": clearance_result,
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
+        "execution_timing": execution_timing,
     }
 
 

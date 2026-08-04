@@ -6810,6 +6810,25 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["a4_goal_directed_selection"]["selected_candidate"]["target"], "awg3")
         self.assertFalse(result["runtime_automation_enabled"])
         self.assertFalse(result["authority_expanded"])
+        self.assertEqual(
+            result["execution_timing"]["status"],
+            "MONOTONIC_BREAKDOWN_CONSUMED",
+        )
+        self.assertEqual(
+            [
+                row["stage"]
+                for row in result["execution_timing"][
+                    "second_level_timeline"
+                ]["spans"]
+            ],
+            [
+                "predecessor_reconciliation_planner_and_selection",
+                "packet_materialization_validation_and_lease_persistence",
+                "restore_barrier_clearance",
+                "apply_route_visibility_and_verification",
+                "feedback_outcome_replay_and_learning",
+            ],
+        )
 
     def test_governed_transaction_stops_before_apply_for_duplicate_candidate(self):
         module = load_cli_module()

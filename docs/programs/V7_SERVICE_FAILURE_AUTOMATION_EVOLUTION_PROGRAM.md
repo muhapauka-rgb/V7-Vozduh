@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `3.2`
+Version: `4.0`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -3345,3 +3345,570 @@ Receipt semantics remain readiness only. `stage_48_executed=false`,
 `campaign_stage_credit=false`, no Natural L8 credit, Authority expansion or
 Production Maturity change exists. The exact next boundary remains
 `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`.
+
+## V4.0 constant-time cohort failover execution plan
+
+Status: `APPROVED_EXECUTION_PLAN`.
+Activation state owner: `CPS`.
+OMP integration owner: `V7.OMP.FINAL.PRODUCTION_PROGRAM`.
+
+This section defines the approved capability stages for making service-failure
+recovery independent of user count. It does not activate a Mission, grant
+Authority, change Runtime, migrate users, write policy, create a Packet or
+execute Stage 48. CPS remains the sole live frontier owner.
+
+The target architecture extends existing route, registry, Matrix, Planner,
+Candidate, Packet, lease, execution, verification, rollback, Outcome, Replay,
+Learning, Polygon, OMP and CPS owners. It must not create a second route owner,
+user registry, Planner, Runtime, event bus, watcher, queue, scheduler, evidence
+store, Authority owner or truth source.
+
+### V4.0 primary engineering intent
+
+Replace the current user-linear governed mutation model:
+
+```text
+N users
+-> N route intents
+-> repeated validation / mutation / reset work
+```
+
+with a class/bucket generation model:
+
+```text
+user membership generation
++ semantic routing class
++ bounded exception overlay
+-> class/bucket to egress generation
+-> one bounded kernel commit per affected bucket
+```
+
+The required complexity invariant is:
+
+`CUTOVER_COMPLEXITY_INDEPENDENT_OF_USER_COUNT_AND_BOUNDED_BY_CERTIFIED_BUCKET_AND_TARGET_COUNT`.
+
+The Program must prove the invariant. It must not assume that the current
+Linux data plane can express it.
+
+### V4.0 current measured reason for admission
+
+The immutable production baseline is `227.573707 s`. Second-level
+revalidation receipt `perfclose_6e6c4fa62f834a8d4b88da24` proves a successful
+forward-and-reset critical path of `141.353447 s`, but the current low-level
+writer still consumes one user identity, takes a shared lock, validates one
+execution control, writes one route and rewrites the user registry. Current
+availability-first cleanup iterates reset transactions per moved user. Further
+small optimization of this model cannot establish 10,000-user recovery.
+
+This evidence admits architecture/reality reconciliation. It does not prove a
+specific nftables, fwmark, route-table, namespace, peer-routing or other kernel
+solution.
+
+### V4.0 non-negotiable closure law
+
+No Mission, function, adapter, projection, kernel primitive, migration step,
+verification step or report is complete merely because code or output exists.
+Every stage must close this exact chain:
+
+```text
+owner-backed trigger
+-> producer invoked
+-> output produced
+-> output durably reachable
+-> named existing consumer invoked
+-> consumer acknowledges exact generation
+-> consumer behavior changes or exact STOP_SAFE is produced
+-> verification consumes observed behavior
+-> next output is produced
+-> atomic CPS projection
+-> OMP residual recomputation
+-> durable exact successor or legal terminal
+```
+
+The following states are invalid:
+
+```text
+output exists AND consumer is empty
+consumer acknowledged AND next output is empty
+non-terminal stage AND successor is empty
+open migration generation AND re-entry condition is empty
+kernel generation differs from canonical generation AND recovery owner is empty
+active routing class AND verification/rollback consumer is empty
+```
+
+Any such state is `BROKEN_CAUSAL_LINEAGE`, not `COMPLETE`, `NO_WORK`,
+`REAL_WORLD_LIMIT` or `PROGRAM_TERMINAL`.
+
+Reports are historical evidence only. Tests, commit, deploy and read models are
+intermediate outputs until their named non-test consumers have acted.
+
+### V4.0 routing-class semantic identity
+
+A routing class is not merely all users currently on one source. Its identity
+must be derived through existing owners from every material compatibility
+dimension:
+
+- policy and service-routing profile;
+- current source and allowed targets;
+- country/geography restrictions;
+- DNS, mark, table, tunnel, MTU, NAT and conntrack semantics;
+- rollback or forward-recovery class;
+- Authority tier and blast contract;
+- target/path/config/Matrix fingerprints;
+- membership and exception generations.
+
+The eligible cohort formula is immutable for one execution generation:
+
+```text
+source-compatible members
+- operator-pinned users
+- incompatible path/profile identities
+- capacity exclusions
+- active-transaction subjects
+- contradictory or stale identities
+- explicit exception overlay
+= exact eligible routing-class cohort
+```
+
+The class default may be overridden only by an exact existing-owner exception
+record. A shared source alone never authorizes shared movement.
+
+### V4.0 truth and storage model
+
+The existing user registry remains the canonical membership owner, but an
+emergency class cutover must not rewrite every user row. Canonical state is:
+
+```text
+user -> routing_class_id / membership_generation
+routing_class -> desired_egress / class_generation
+exception overlay -> exact user override / exception_generation
+effective route = membership + class generation + exception overlay
+```
+
+The existing owner may publish a compact current projection containing class
+ID, count, membership fingerprint, immutable snapshot pointer, exception
+fingerprint, demand envelope, source binding, target allocation and rollback /
+forward-recovery bindings. Fast-path execution must not scan all users.
+
+One cohort Packet must not duplicate 10,000 user objects. It binds the exact
+membership snapshot pointer and fingerprint, count, bucket allocation,
+exceptions fingerprint, capacity reservation, policy/Authority envelope,
+verification contract and recovery generation. Exact replay must remain
+possible through the existing membership owner; a hash with no recoverable
+snapshot is insufficient.
+
+### V4.0 atomic commit protocol
+
+`atomic` means one observable kernel generation per bounded bucket, no mixed
+old/new generation inside that bucket, and deterministic crash recovery. It
+does not claim that filesystem and kernel writes share one transaction.
+
+The required protocol is:
+
+```text
+PREPARED durable intent
+-> canonical generation compare-and-swap
+-> bounded kernel transaction
+-> observed kernel generation / effective path
+-> COMMITTED receipt
+-> verification
+-> Outcome / Replay / Learning
+```
+
+Crash reconciliation must classify:
+
+- crash before CAS: cancel or supersede PREPARED intent;
+- crash after CAS but before kernel commit: complete or revert from current
+  canonical and kernel truth;
+- crash after kernel commit but before receipt: observe kernel state and close
+  the same idempotent operation;
+- unknown or mixed state: `STOP_SAFE_KERNEL_CANONICAL_RECONCILIATION_REQUIRED`;
+- duplicate invocation: consume the original terminal without a second apply.
+
+Required terminal:
+`KERNEL_AND_CANONICAL_GENERATION_COMMIT_PROTOCOL_PROVEN`.
+
+### V4.0 capacity and multi-target law
+
+Capacity is reserved before cutover using demand, not only user count:
+
+`reserved_capacity >= eligible_cohort_demand + certified_safety_reserve`.
+
+For multiple targets, complexity is O(K), where K is a bounded certified
+bucket/target count independent of N users. The existing Planner must produce
+deterministic partitioned classes or buckets, target allocation, spillover and
+exception decisions before the incident fast path. No event-time global
+reallocation or user scan is allowed.
+
+One all-user target switch is legal only when one target can safely own the
+entire eligible cohort. Otherwise the execution uses a bounded number of
+precomputed buckets and trips the existing circuit breaker before expanding to
+another bucket after a failed verification.
+
+### V4.0 verification and session law
+
+The cutover path may reuse heavy service evidence only when the existing Matrix
+receipt has matching path/config/egress/service-set fingerprints, freshness,
+target-health, invalidation and capacity semantics.
+
+Synchronous verification includes:
+
+- live policy/Authority/generation match;
+- current target and reservation match;
+- kernel generation and route visibility;
+- lightweight binding/counter evidence;
+- circuit-breaker readiness.
+
+Path-level service verification, cohort reconciliation, exception discovery,
+Outcome, Replay and Learning may continue after cutover through their existing
+consumers. Deferred does not mean optional: failure must produce recovery or
+containment and a legal terminal.
+
+Separate measured SLO domains are mandatory:
+
+- failure detection latency;
+- decision/admission latency;
+- kernel generation commit latency;
+- new-flow recovery latency;
+- existing-flow/conntrack recovery latency;
+- application-visible recovery latency;
+- asynchronous evidence closure latency.
+
+Conntrack mutation is forbidden until the existing owner proves whether
+sessions survive egress changes and whether exact class-scoped invalidation is
+safe. New-flow recovery must not be reported as existing-flow or application
+recovery.
+
+Rollback has two distinct forms:
+
+- generation rollback to a still-eligible previous source;
+- forward recovery to another precomputed target when the source is dead,
+  invalid, uncredentialed, capacity-unsafe or policy-ineligible.
+
+Direct rollback to a failed source is forbidden.
+
+### V4.0 measured SLO law
+
+Initial subsecond values are `TARGET_SLO_HYPOTHESIS`, not certification truth.
+M0 and Polygon establish the measured lower bound and owner-backed SLO.
+
+The primary invariant is independence from N. Absolute targets are admitted
+only after measurement. The initial engineering hypotheses are:
+
+- prepared decision/admission: sub-100 ms;
+- bounded class/bucket kernel commit: sub-250 ms;
+- route visibility: sub-100 ms;
+- new-flow recovery: sub-second where tunnel/NAT semantics permit;
+- heavy service and evidence closure: outside the cutover critical path.
+
+p50/p95/p99 must not be fabricated from insufficient samples.
+
+### Mission CT-M0 — current owner, data-plane and O(N) audit
+
+Mission ID:
+`V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1`.
+
+Execution class: `DISCOVERY_COMPLETION`, read-only.
+
+Required discovery:
+
+1. Exact current forward and reset process/lock/read/write/mutation graph.
+2. O(N), O(K) and O(1) operations and measured cost.
+3. Existing `ip rule`, tables, fwmark, nftables, map/set, namespace, peer and
+   policy-routing primitives actually present on production and Polygon.
+4. Whether current data plane can express class-to-egress indirection.
+5. Existing route/registry owner extension point; no second owner.
+6. Canonical membership and compact projection feasibility.
+7. Semantic class and exception formula.
+8. Single-target and multi-target deterministic partitioning.
+9. Capacity demand/reservation owner and safety reserve.
+10. Kernel/canonical generation and crash reconciliation feasibility.
+11. Existing-flow, NAT and conntrack behavior.
+12. Existing hard-failure event producer, event generation, consumer,
+    duplicate/stale suppression, anti-flap and watchdog route.
+13. Matrix receipt reuse/freshness/invalidation rules.
+14. Coexistence, migration, fallback and rollback plan.
+15. Available logical and privileged Polygon substrate.
+
+Legal verdicts:
+
+- `REUSE_EXISTING_INDIRECTION_PRIMITIVE`;
+- `EXTEND_EXISTING_ROUTE_OWNER`;
+- `CURRENT_DATAPLANE_REQUIRES_BOUNDED_MIGRATION`;
+- exact owner-backed safety/substrate blocker with all independent work
+  consumed.
+
+Producer: existing route/registry/Matrix/Planner/Runtime read-only owners.
+Output: one machine-readable feasibility and cost contract plus exact smallest
+implementation residual.
+Consumer: BDP Reality Gate -> OMP Candidate Admission.
+Expected next output: exactly one admitted CT-M1 implementation Mission or an
+exact legal terminal with durable re-entry.
+
+M0 cannot complete at an Engineering Report. Required terminal:
+`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`.
+
+### Mission CT-M1 — Polygon kernel primitive and generation protocol
+
+Reuse or extend only the existing route owner. Prove in isolated Polygon:
+
+```text
+membership generation
+-> class/bucket generation CAS
+-> kernel commit
+-> visibility
+-> new-flow verification
+-> generation rollback / forward recovery
+```
+
+Test 10 and 10,000 logical members against the same bounded bucket count, then
+use the highest honest available kernel substrate. Measure N-independence,
+kernel cost, memory, audit volume and crash points. Missing privileged
+substrate preserves a specific kernel criterion but cannot block independent
+logical, identity, migration or recovery work.
+
+Producer: existing route owner extension plus existing Polygon executor.
+Output: isolated primitive receipt and exact residuals.
+Consumer: Polygon result consumer -> BDP/OMP mismatch or CT-M2 admission.
+Terminal:
+`CONSTANT_TIME_CLASS_BUCKET_KERNEL_PRIMITIVE_AND_CRASH_PROTOCOL_POLYGON_CONSUMED`.
+
+### Mission CT-M2 — canonical membership, exceptions and compact projection
+
+Extend the existing registry/read-model owner so membership, class generation,
+exceptions, demand and immutable snapshot lineage are explicit without event-
+time full scans or mass route rewrites.
+
+Prove duplicate suppression, snapshot replay, exception priority, pinned users,
+contradictory identities, active transactions, class reclassification and
+compact audit retention at 10,000 members.
+
+Producer: existing registry and routing-class projection owner.
+Output: generation-bound membership/exception projection.
+Consumer: existing Planner, Packet and migration owners.
+Terminal:
+`ROUTING_CLASS_MEMBERSHIP_EXCEPTION_AND_COMPACT_PROJECTION_CONSUMED`.
+
+### Mission CT-M3 — shadow parity and bounded migration
+
+One-time migration is allowed to be O(N); incident cutover is not. Migration
+must be incremental and independently reversible:
+
+```text
+legacy per-user route
+-> shadow class effective-route projection
+-> parity verification
+-> bounded migration batch
+-> kernel/canonical verification
+-> next batch or rollback
+```
+
+Legacy and class models may coexist only with one explicit authoritative
+runtime generation and deterministic precedence. Mixed truth is forbidden.
+The old path remains fallback until the migrated scope passes parity,
+restart/crash, rollback and no-regression verification.
+
+Producer: existing migration-capable route/registry owner.
+Output: verified migrated membership generation and exception set.
+Consumer: existing Runtime/verification owner -> OMP residual recomputation.
+Terminal:
+`BOUNDED_ROUTING_CLASS_MIGRATION_AND_LEGACY_FALLBACK_PARITY_CONSUMED`.
+
+### Mission CT-M4 — cohort Packet, lease and fast apply
+
+Extend the existing Candidate/Packet/lease/governed execution owners so one
+fresh Packet binds one immutable class/bucket operation rather than repeating
+one full lifecycle per member.
+
+Live source, target, policy, Authority, capacity, freshness, anti-flap,
+restore/forward-recovery and verification gates remain mandatory. One Packet
+must never become permission for another generation, class, target or bucket.
+
+Producer: existing Planner/Candidate/Packet/lease owners.
+Output: exact class/bucket execution intent.
+Consumer: existing governed route owner.
+Terminal:
+`ONE_CLASS_BUCKET_ONE_PACKET_ONE_LEASE_FAST_APPLY_CONSUMED`.
+
+### Mission CT-M5 — event-driven fast path and verification split
+
+Discover and reuse the current hard-failure producer. Repair only a missing
+producer-consumer binding. Do not introduce an event bus, watcher or daemon.
+
+Required chain:
+
+```text
+hard-failure generation
+-> existing event owner
+-> duplicate/stale/anti-flap arbitration
+-> prepared class/bucket decision
+-> fresh governed admission
+-> kernel commit
+-> fast verification
+-> durable deferred verification successor
+```
+
+Timer remains watchdog. It is not the primary cutover wake.
+
+Producer: existing failure/Matrix/Sentinel event owner.
+Output: exact fast-path trigger and operation generation.
+Consumer: existing governed executor, verification and successor owners.
+Terminal:
+`HARD_FAILURE_EVENT_TO_FAST_CUTOVER_AND_DEFERRED_VERIFICATION_CHAIN_CONSUMED`.
+
+### Mission CT-M6 — constant-time recovery and causal closure
+
+Prove both generation rollback and forward recovery, including dead source,
+target failure, partial bucket expansion, service verification failure,
+duplicate invocation, restart and terminal loss.
+
+Every operation must close through Outcome, Replay, Learning, compact cohort
+receipt, exception reconciliation, CPS and OMP. Deferred evidence may outlive
+cutover but may not be abandoned.
+
+Producer: existing verification/recovery owner.
+Output: verified success, rollback, forward recovery or containment terminal.
+Consumer: Outcome/Replay/Learning -> CPS/OMP.
+Terminal:
+`CONSTANT_TIME_RECOVERY_AND_FULL_CAUSAL_CLOSURE_CONSUMED`.
+
+### Mission CT-M7 — 10,000-member Polygon scale certification
+
+Polygon coverage must include:
+
+- 10 versus 10,000 members with equal certified bucket count;
+- one and multiple targets;
+- capacity exhaustion and spillover;
+- pinned and incompatible exceptions;
+- stale/mismatched membership and Matrix generations;
+- simultaneous incidents, event storms, duplicates and anti-flap;
+- crash before CAS, after CAS, after kernel commit and before receipt;
+- kernel partial/mixed-state detection;
+- target failure, rollback and forward recovery;
+- process restart and deterministic replay;
+- audit/storage/memory growth;
+- new-flow and, where safely supported, existing-flow behavior.
+
+Logical simulation alone cannot close kernel scale. Real kernel substrate alone
+cannot close semantic membership and recovery. Both evidence classes remain
+explicit.
+
+Certification is residual-based. Identical effects are not ceremonially
+repeated at 1/2/5/10/25/48/100/500/1000. A scale point exists only when it
+closes a new memory, membership, audit, capacity, exception, kernel, recovery
+or blast residual.
+
+Producer: existing Polygon and component owners.
+Output: scale/latency/behavior receipt with measured SLO.
+Consumer: OMP certification and Product Evolution Frontier.
+Terminal:
+`TEN_THOUSAND_MEMBER_N_INDEPENDENT_FAILOVER_POLYGON_CERTIFIED`.
+
+### Mission CT-M8 — bounded controlled-production certification
+
+Production starts only after CT-M7 and an exact existing-owner admission.
+Use certification identities/classes only. Ordinary users must never be moved
+solely to manufacture evidence.
+
+Controlled production validates only residual blast classes: one bucket,
+multiple buckets, multiple targets, exception handling, rollback and forward
+recovery. It must not replay every numeric scale already proven by Polygon.
+
+Producer: existing Controlled Production Certification Program.
+Output: owner-backed Outcome Passports and measured recovery SLO.
+Consumer: existing calibration, Learning, Production Maturity evidence and
+Authority recommendation owners.
+Terminal:
+`CONSTANT_TIME_COHORT_FAILOVER_CONTROLLED_PRODUCTION_EVIDENCE_RECONCILED`.
+
+### Mission CT-M9 — Authority and Runtime recommendation
+
+Existing Authority owner independently returns one of:
+
+- `RECOMMEND_CERTIFIED_CLASS_BUCKET_SCOPE`;
+- `RECOMMEND_NARROW_SCOPE`;
+- `HOLD_GOVERNED_ONLY`;
+- `FREEZE`;
+- `DEMOTE`;
+- `INSUFFICIENT_EVIDENCE`.
+
+Engineering, Polygon, CPS and OMP cannot grant Authority. Approval, if any,
+must name exact class identities, bucket/target ceiling, demand/capacity
+reserve, concurrency, expiry, verification, recovery, exception and circuit-
+breaker contracts. Self-expansion is forbidden.
+
+Producer: existing evidence/calibration owner.
+Output: immutable eligibility set and recommendation.
+Consumer: independent Authority owner; Runtime enablement remains separately
+owned.
+Terminal:
+`CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
+
+### V4.0 dynamic Mission compression
+
+CT-M0 is mandatory. CT-M1 through CT-M9 are capability stages, not mandatory
+empty containers. After each consumed output OMP must:
+
+1. re-read CPS and current owners;
+2. recompute remaining criteria;
+3. mark already consumed stages `MISSION_NOT_REQUIRED_ALREADY_CONSUMED`;
+4. reduce partially closed stages to exact residual producer-consumer links;
+5. merge stages only when owner, evidence class, isolation, verification,
+   recovery and terminal semantics remain explicit;
+6. publish and consume the smallest safe successor;
+7. stop only at a legal terminal with exact re-entry.
+
+An unavailable kernel/privileged substrate cannot stop independent logical,
+identity, migration, projection, replay or model work. It is
+`POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
+`REAL_WORLD_LIMIT` while independent safe work exists.
+
+### V4.0 production-effect boundary
+
+| Mission | Production routing/user effect |
+| --- | --- |
+| CT-M0 | forbidden; read-only |
+| CT-M1 | forbidden; isolated Polygon only |
+| CT-M2 | forbidden; projection/shadow only |
+| CT-M3 | only separately admitted bounded migration; otherwise shadow |
+| CT-M4 | no production apply until existing Authority and Runtime gates pass |
+| CT-M5 | production action only through the already approved exact class contract |
+| CT-M6 | rollback/forward recovery only for the exact admitted operation |
+| CT-M7 | forbidden; Polygon only |
+| CT-M8 | bounded certification-only production through existing owner |
+| CT-M9 | recommendation only; no Authority or Runtime mutation |
+
+Forbidden without the exact current owner-backed contract remain policy write,
+Authority expansion, Packet execution, restore-barrier write, routing
+mutation, user movement, rollback/forward-recovery apply, ordinary-user
+certification use and Production Maturity change.
+
+### V4.0 Program completion contract
+
+This capability plan reaches its program terminal only when all current
+criteria are owner-backed and consumed:
+
+- current data-plane feasibility and O(N)/O(K)/O(1) model proven;
+- existing-owner class/bucket primitive selected and implemented;
+- kernel/canonical crash protocol consumed;
+- canonical membership, exceptions and immutable snapshot replay consumed;
+- migration and fallback parity consumed;
+- one Packet/lease class operation consumed;
+- event-to-fast-path consumer production-proven;
+- fast and deferred verification both close;
+- rollback and forward recovery close;
+- 10,000-member logical and kernel Polygon criteria close;
+- controlled-production residuals are reconciled or exact Authority/
+  real-world boundaries remain;
+- Authority/Runtime recommendation is independently decided;
+- no open stage lacks `next_required_consumer` or `reentry_condition`;
+- CPS, OMP and Runtime projections agree;
+- local, GitHub and production identity align after any deploy;
+- every safe residual has one durable automatic successor.
+
+Only then may OMP emit:
+
+`CONSTANT_TIME_COHORT_FAILOVER_CAPABILITY_FULL_CAUSAL_LOOP_CONSUMED`.
+
+This terminal does not itself mean full production Authority, all-user
+movement, Natural L8 sufficiency or Production Maturity increase.

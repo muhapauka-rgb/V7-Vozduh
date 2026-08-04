@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.62`
+Version: `4.63`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -104,6 +104,21 @@ producer may select an already-existing empty eligible source candidate and
 register one fresh exact independently decidable request. No new source,
 owner, registry, Runtime, Planner, campaign engine or Authority system is
 created.
+
+V4.63 integrates the approved constant-time cohort failover capability stages
+into the existing Service Failure Automation Evolution Program and standard
+OMP lifecycle. It replaces user-count-linear recovery as the long-term target
+with a measured class/bucket generation invariant whose cutover complexity is
+independent of user count and bounded only by certified bucket/target count.
+The first stage is a mandatory read-only reality/data-plane/O(N) audit; no
+kernel primitive, route owner, membership model, migration, SLO or Authority is
+assumed before that audit is consumed. Every later stage must close producer,
+output, consumer, behavior, verification, next output, CPS projection,
+residual and successor links. Polygon engineering, bounded migration,
+controlled production and Authority recommendation remain distinct evidence
+and effect classes. This creates no new Program, Planner, Runtime, registry,
+event bus, watcher, queue, scheduler, evidence store, Authority owner or truth
+source, and it does not change the current CPS frontier by documentation alone.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 
@@ -10504,3 +10519,218 @@ terminal is `STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED`.
 Stage 48, Stage credit, Natural L8 credit, Authority expansion and Production
 Maturity change remain absent. Exact next action remains
 `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION`.
+
+## 46. Constant-Time Cohort Failover OMP Integration
+
+Status: `APPROVED_CAPABILITY_PLAN_NOT_LIVE_FRONTIER`.
+
+Capability-plan owner:
+`docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md`, V4.0.
+
+Live activation and sequencing owner:
+`docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
+
+This section integrates the constant-time capability stages into existing OMP
+admission, execution, completion, Product Evolution Frontier and automatic
+successor semantics. It has no scheduling or execution Authority. The current
+CPS frontier remains authoritative until CPS admits CT-M0.
+
+### 46.1 Admission identity
+
+The first admissible Mission is:
+
+`V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1`.
+
+It is `DISCOVERY_COMPLETION`, read-only and mandatory. It must use
+Discover -> Reuse -> Extend -> Implement and first prove semantic presence, not
+only matching names. A current component is reused only when its owner,
+inputs, outputs, invariants, consumer, effect class, validity conditions and
+re-entry semantics match the required capability.
+
+M0 may produce exactly one of:
+
+- `REUSE_EXISTING_INDIRECTION_PRIMITIVE`;
+- `EXTEND_EXISTING_ROUTE_OWNER`;
+- `CURRENT_DATAPLANE_REQUIRES_BOUNDED_MIGRATION`;
+- an exact owner-backed safety/substrate boundary with every independent safe
+  criterion consumed.
+
+The result must enter the existing BDP Reality Gate and OMP Candidate
+Admission. A report without that consumption is
+`DISCOVERY_OUTPUT_NOT_CONSUMED`.
+
+### 46.2 Capability-stage dependency map
+
+| Stage | Required producer | Required output | Required existing consumer | Completion evidence | Exact successor |
+| --- | --- | --- | --- | --- | --- |
+| CT-M0 | route, registry, Matrix, Planner and Runtime read-only owners | feasibility/O(N)-cost/minimal residual contract | BDP Reality Gate -> OMP Candidate Admission | consumer acknowledges one exact implementation frontier | CT-M1 or legal re-entry terminal |
+| CT-M1 | existing route owner extension + Polygon | kernel/class/bucket generation and crash receipt | Polygon result consumer -> BDP/OMP | 10 vs 10,000 N-independence and kernel/logical criteria consumed | CT-M2 or exact substrate residual |
+| CT-M2 | existing registry/projection owner | membership, exception, demand and snapshot generation | Planner, Packet and migration owners | exact snapshot replay and compact projection behavior change | CT-M3 |
+| CT-M3 | existing route/registry migration owner | bounded migrated scope with legacy parity/fallback | Runtime verification -> OMP | non-test migration consumer or exact no-effect shadow residual | CT-M4 |
+| CT-M4 | Planner/Candidate/Packet/lease owners | one class/bucket execution intent | governed route owner | fresh exact Packet/lease consumed without per-member lifecycle duplication | CT-M5 |
+| CT-M5 | existing hard-failure/Matrix/Sentinel event owner | generation-bound fast-path trigger | governed executor -> verification successor | real event delivery, consumer ack, kernel commit and deferred successor | CT-M6 |
+| CT-M6 | verification/recovery owner | success, generation rollback, forward recovery or containment | Outcome/Replay/Learning -> CPS/OMP | full causal closure and next Product Evolution output | CT-M7 |
+| CT-M7 | existing Polygon/component owners | measured 10,000-member logical+kernel scale receipt | OMP certification | residual-based coverage and owner-backed SLO consumed | CT-M8 or exact engineering boundary |
+| CT-M8 | Controlled Production Certification Program | bounded real Outcome Passports | calibration/Learning/Production Maturity evidence owners | exact production evidence cells reconciled | CT-M9 |
+| CT-M9 | evidence/calibration owner | immutable eligibility set and Authority recommendation | independent Authority owner; separate Runtime owner | recommendation consumed without implicit Authority | capability terminal or exact scoped boundary |
+
+No stage may select itself as consumer. No Engineering Report, dashboard,
+preview, status or recommendation is a legal final consumer.
+
+### 46.3 Closed-chain invariant
+
+For every CT stage OMP must persist or derive from existing owners:
+
+| Field | Required value |
+| --- | --- |
+| `engineering_intent_id` | original constant-time service-protection intent |
+| `mission_id` | exact admitted CT Mission |
+| `source_generation` | current canonical dependency identity |
+| `producer_owner` | owner that actually emitted the output |
+| `output_identity` | immutable output ID/fingerprint or exact N/A reason |
+| `consumer_owner` | existing owner required to use the output |
+| `consumer_ack` | durable proof of consumption |
+| `behavior_change` | observed changed behavior or exact STOP_SAFE |
+| `verification_identity` | owner-backed proof of expected state |
+| `next_output_identity` | downstream output or legal terminal |
+| `next_required_consumer` | exactly one current consumer |
+| `reentry_condition` | non-empty for every non-terminal/boundary state |
+| `cps_generation` | atomic live projection generation |
+| `residual_fingerprint` | exact remaining criteria after consumption |
+| `successor_identity` | one durable safe successor or legal terminal |
+
+Machine-checkable invalid states:
+
+```text
+output_identity != EMPTY AND consumer_owner == EMPTY
+consumer_ack == TRUE AND behavior_change == EMPTY
+stage_terminal == FALSE AND next_output_identity == EMPTY
+stage_terminal == FALSE AND next_required_consumer == EMPTY
+stage_terminal == FALSE AND reentry_condition == EMPTY
+kernel_generation != canonical_generation AND recovery_owner == EMPTY
+safe_residual_exists == TRUE AND successor_identity == EMPTY
+```
+
+Any invalid state is `BROKEN_CAUSAL_LINEAGE` and must be routed through the
+existing producer-consumer repair path. It cannot be hidden by a report,
+deploy, test pass, `NO_WORK`, `REAL_WORLD_LIMIT` or `PROGRAM_TERMINAL`.
+
+### 46.4 Incident and Product Evolution integration
+
+Constant-time engineering is a Product Evolution Frontier and must not erase
+or block a live Incident Frontier.
+
+```text
+INCIDENT_FRONTIER
+  -> current safe protection / STOP_SAFE / recovery through existing policy
+
+PRODUCT_EVOLUTION_FRONTIER
+  -> CT-M0..CT-M9 capability development through BDP/OMP/Polygon
+```
+
+The legacy per-user path remains the certified fallback until a migrated
+class/bucket scope is independently verified and admitted. A live incident
+uses only the Runtime capability and Authority valid for its current
+generation. The existence of CT engineering never permits an unfinished
+primitive, shadow projection or Polygon result to act on users.
+
+After every Incident or Product Evolution output, OMP recomputes both
+frontiers. An action-class-local Authority or real-world boundary cannot stop
+independent read-only/Polygon engineering. Engineering work cannot bypass an
+Incident safety boundary.
+
+### 46.5 Evidence separation
+
+| Evidence | May prove | Must not prove |
+| --- | --- | --- |
+| M0 discovery | feasibility, existing owner, exact gap | implementation or production behavior |
+| logical Polygon | membership/partition/replay semantics | kernel atomicity or production outcome |
+| kernel Polygon | primitive latency/crash behavior | production Authority or user outcome |
+| shadow migration | parity and predicted effective route | actual production protection |
+| controlled migration | bounded migration behavior | all-user failover Authority |
+| controlled production | exact admitted outcome/SLO cells | Natural L8 or unrelated action classes |
+| natural production | passive representative behavior when provenance qualifies | manufactured certification evidence |
+| Authority recommendation | eligibility decision input | granted Authority or Runtime enablement |
+
+Evidence cannot cross-credit another class, scope, generation, target family,
+session semantics or effect class without an explicit existing-owner validity
+contract.
+
+### 46.6 Dynamic compression and no-repeat law
+
+CT-M0 is mandatory. CT-M1..CT-M9 are capability stages and may be skipped,
+reduced or merged only through current owner-backed evidence.
+
+After each stage OMP must:
+
+1. consume the output;
+2. selectively invalidate only declared dependent criteria;
+3. mark valid criteria `RESULT_REUSED_VALID`;
+4. mark fully consumed future stages
+   `MISSION_NOT_REQUIRED_ALREADY_CONSUMED`;
+5. reduce partial stages to exact residual links;
+6. reject repeated numeric scale points without a new residual;
+7. publish the smallest safe successor atomically through CPS;
+8. deliver it once to the existing consumer.
+
+The 1/2/5/10/25/48/100/500/1000 ladder is not mandatory for a semantically
+identical O(1)/O(K) primitive. A scale point is executed only for a distinct
+memory, membership, audit, capacity, exception, kernel, recovery, session or
+blast-radius criterion.
+
+### 46.7 Substrate degradation and progress law
+
+Absence of namespaces, root, nftables, privileged networking or another kernel
+substrate must be proven precisely. OMP then continues every independent
+logical, identity, migration, projection, replay, storage and recovery-model
+criterion at the highest honest fidelity.
+
+A missing kernel criterion is `POLYGON_SUBSTRATE_LIMIT`. It becomes a program
+stop only when no independent safe criterion or producer-consumer repair can
+continue. It is never Natural L8 and never production evidence.
+
+### 46.8 Safe automatic continuation
+
+Once CPS admits a CT Mission, every safe successor uses the existing OMP
+event-driven continuation and watchdog fallback. A successful intermediate
+step is the trigger for its named consumer, not an operator-return point.
+
+Automatic continuation must stop at an exact independent boundary:
+
+- `ENGINEERING_AUTHORITY`;
+- `OPERATIONAL_AUTHORITY`;
+- production migration/apply not already admitted;
+- restore-barrier or recovery mutation not already admitted;
+- Authority expansion;
+- Production Maturity change;
+- external owner/access requirement;
+- irreducible safety boundary;
+- exact missing privileged substrate after all independent work closes.
+
+At a boundary, OMP completes read-only preparation, publishes one exact
+existing-owner request and preserves a durable re-entry condition. It must not
+convert the boundary into passive waiting or repeatedly recreate expiring
+requests without new owner-backed reality.
+
+### 46.9 Completion and terminal
+
+OMP may emit
+`CONSTANT_TIME_COHORT_FAILOVER_CAPABILITY_FULL_CAUSAL_LOOP_CONSUMED` only when:
+
+- all CT stages are consumed, compressed or legally residualized;
+- the selected data-plane primitive is real and owner-correct;
+- kernel and canonical generations reconcile across crashes;
+- migration/fallback, exceptions, capacity and multi-target semantics close;
+- event producer -> fast-path consumer is production-proven;
+- cutover, verification, rollback/forward recovery and evidence closure close;
+- logical and kernel 10,000-member Polygon criteria are consumed;
+- controlled-production residuals and SLOs are reconciled where admitted;
+- the independent Authority/Runtime recommendation is decided;
+- every open state has one next consumer and re-entry condition;
+- CPS/OMP/Runtime projections agree;
+- truth/convergence and local/GitHub/production identity pass after deploy;
+- no safe residual lacks a durable successor.
+
+This terminal does not itself grant all-user Runtime Authority, permit a
+production action, prove Natural L8 sufficiency or increase Production
+Maturity.

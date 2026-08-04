@@ -2422,13 +2422,13 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         )
         if result.get(key) not in (None, "", [], {})
     }
-    prepared = value.get("prepared_class_decisions")
+    prepared = result.get("prepared_class_decisions") or value.get("prepared_class_decisions")
     if isinstance(prepared, dict) and prepared:
         compact_result["prepared_class_decisions"] = prepared
-    prepared_freshness = value.get("prepared_class_decision_freshness")
+    prepared_freshness = result.get("prepared_class_decision_freshness") or value.get("prepared_class_decision_freshness")
     if isinstance(prepared_freshness, dict) and prepared_freshness:
         compact_result["prepared_class_decision_freshness"] = prepared_freshness
-    bounded_closure = value.get("bounded_closure_reconciliation")
+    bounded_closure = result.get("bounded_closure_reconciliation") or value.get("bounded_closure_reconciliation")
     if isinstance(bounded_closure, dict) and bounded_closure:
         compact_result["bounded_closure_reconciliation"] = bounded_closure
     for key in (

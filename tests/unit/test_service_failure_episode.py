@@ -2610,6 +2610,34 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("nested", serialized)
         self.assertTrue(projection["candidate_or_execution_forbidden"])
 
+    def test_refresh_projection_consumes_nested_prepared_and_closure_receipts(self):
+        projection = self.refresh.compact_refresh_projection({
+            "service_failure_automation_advisory": {
+                "status": "PASS",
+                "ok": True,
+                "consumer_result": {
+                    "status": "PASS",
+                    "prepared_class_decisions": {
+                        "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                        "class_count": 2,
+                        "classes": [{"class_id": "pcd_a"}, {"class_id": "pcd_b"}],
+                    },
+                    "prepared_class_decision_freshness": {
+                        "status": "PREPARED_CLASS_DECISION_FRESH",
+                        "world_model_rebuilt": False,
+                    },
+                    "bounded_closure_reconciliation": {
+                        "status": "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN",
+                        "closure_obligations_published": 1,
+                    },
+                },
+            },
+        })
+        receipt = projection["service_failure_automation_advisory"]["consumer_result"]
+        self.assertEqual(receipt["prepared_class_decisions"]["class_count"], 2)
+        self.assertEqual(receipt["prepared_class_decision_freshness"]["status"], "PREPARED_CLASS_DECISION_FRESH")
+        self.assertEqual(receipt["bounded_closure_reconciliation"]["status"], "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN")
+
     def test_compact_matrix_receipt_retains_nested_outcome_pointer_without_payload(self):
         projection = self.refresh.compact_refresh_projection({
             "bounded_delegated_service_failure_action": {

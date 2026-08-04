@@ -1,0 +1,180 @@
+{
+  "schema_version": "v7.constant-time-cohort-failover.m0-contract.v1",
+  "mission_id": "V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1",
+  "run_nonce": "V7_CT_M0_20260804T110004Z",
+  "captured_at": "2026-08-04T11:00:04Z",
+  "execution_class": "DISCOVERY_COMPLETION",
+  "read_only": true,
+  "source_commit": "fde91feb49705d71b7e66bbe514ceda914e55ce8",
+  "source_cps_generation": "cpsgen_SFA_PERFCLOSE_6E6C4FA62F83_STAGE48_REVALIDATED",
+  "production_effects": {
+    "runtime_apply": false,
+    "routing_mutation": false,
+    "user_movement": false,
+    "packet_or_lease_creation": false,
+    "restore_barrier_write": false,
+    "rollback_apply": false,
+    "authority_change": false,
+    "production_maturity_change": false,
+    "stage_48_execution": false
+  },
+  "admission": {
+    "program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+    "program_version": "4.2",
+    "omp_version": "4.65",
+    "product_evolution_mission_admitted": true,
+    "incident_frontier_preserved": "CURRENT_SOURCE_SCOPE_EMPTY",
+    "natural_l8_lane_preserved": "WAITING_QUALIFYING_NATURAL_PRODUCTION_EVIDENCE",
+    "stage_48_preserved": "OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED"
+  },
+  "production_dataplane_observation": {
+    "user_registry_rows": 125,
+    "unique_user_tables": 125,
+    "unique_current_egress": 5,
+    "max_users_on_one_egress": 49,
+    "ipv4_rules_total": 130,
+    "ipv4_rules_with_source_selector": 130,
+    "fwmark_rules": 1,
+    "unique_lookup_tables": 128,
+    "default_route_table_rows": 126,
+    "enabled_egress_rows": 7,
+    "network_namespaces": 0,
+    "nft_map_count": 0,
+    "nft_set_count": 3,
+    "conntrack_tool_present": false,
+    "current_model": "ONE_SOURCE_RULE_AND_ONE_ROUTING_TABLE_PER_USER",
+    "observation_effect": "READ_ONLY"
+  },
+  "REUSABLE_PRIMITIVE_DISPOSITION_MATRIX": [
+    {"primitive": "hard_failure_event_and_matrix_generation", "owner": "existing Matrix/Sentinel event owners", "disposition": "REUSE_VALID", "delta": "none"},
+    {"primitive": "fresh_exact_path_matrix_receipt", "owner": "tools/v7-users-autoswitch._reuse_or_verify_emergency_required_services", "disposition": "REUSE_VALID", "delta": "none"},
+    {"primitive": "comprehensive_per_user_planner", "owner": "tools/v7-users-autoswitch", "disposition": "LEGACY_EXCEPTION_PATH_ONLY", "delta": "retain for explicit exceptions and reconciliation"},
+    {"primitive": "continuous_prepared_class_decision", "owner": "existing Matrix/topology/capacity event owners plus tools/v7-users-autoswitch", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "generation-bound pre-incident decision projection and freshness consumer"},
+    {"primitive": "bounded_hot_validator", "owner": "tools/v7-users-autoswitch execution-control owner", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "validate only declared class generations and fingerprints"},
+    {"primitive": "semantic_route_class", "owner": "tools/v7-users-autoswitch", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "replace service-label-only grouping with generation-bound compatibility identity"},
+    {"primitive": "capacity_and_target_allocation", "owner": "existing Planner/capacity owner", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "class demand, reservation generation and safety reserve"},
+    {"primitive": "candidate_packet_lease", "owner": "existing Candidate/Packet/lease owners", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "one compact class intent without per-member artifacts"},
+    {"primitive": "per_user_route_writer", "owner": "tools/runtime-support/v7-user-switch", "disposition": "LEGACY_EXCEPTION_PATH_ONLY", "delta": "mass-compatible incident selection forbidden"},
+    {"primitive": "canonical_route_owner", "owner": "existing route/registry owner", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "class-to-egress generation commit and recovery receipt"},
+    {"primitive": "users_registry", "owner": "existing users.registry owner", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "immutable membership/exception generation and compact projection"},
+    {"primitive": "lightweight_route_visibility", "owner": "tools/v7-users-autoswitch._verify_routes_for_apply", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "aggregate class visibility receipt"},
+    {"primitive": "full_service_verification", "owner": "tools/v7-service-matrix-test", "disposition": "NOT_REQUIRED_FOR_FAST_PATH", "delta": "defer when exact fresh receipt exists; run only on declared invalidation"},
+    {"primitive": "bounded_cohort_checkpoint_and_circuit_breaker", "owner": "tools/v7-users-autoswitch", "disposition": "REUSE_VALID", "delta": "consume from class operation without per-member hot-path records"},
+    {"primitive": "rollback_and_reset_safety", "owner": "existing route/reset owner", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "generation rollback and forward recovery for class commit"},
+    {"primitive": "outcome_replay_learning", "owner": "existing Outcome/Replay/Learning owners", "disposition": "NOT_REQUIRED_FOR_FAST_PATH", "delta": "durable deferred closure consumer"},
+    {"primitive": "execution_performance_foundation", "owner": "admin_core.operator_execution_pipeline.execution_performance_foundation", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "constant-time ledger fields and hidden-O(N) counters"},
+    {"primitive": "polygon_scale_substrate", "owner": "existing Permanent Polygon/future-scale owners", "disposition": "REUSE_VALID", "delta": "add CT prototype scenario only through existing owner"},
+    {"primitive": "audit_and_feedback", "owner": "existing execution audit/feedback owners", "disposition": "EXTEND_FOR_CLASS_OPERATION", "delta": "one compact class receipt plus deferred exception detail"}
+  ],
+  "CURRENT_O_N_AND_O_1_COST_MODEL_PROVEN": {
+    "verdict": "PROVEN",
+    "legacy_forward_reset_seconds": 141.353447,
+    "planner_seconds": 17.307274,
+    "packet_lease_seconds": 0.235222,
+    "restore_barrier_seconds": 0.259674,
+    "apply_verification_seconds": 40.809895,
+    "reset_seconds": 82.591859,
+    "hot_path_current_complexity": "O(N)",
+    "target_cutover_complexity": "O(1)_SINGLE_CLASS_OR_O(K)_BOUNDED_PARTITIONS",
+    "proven_linear_causes": [
+      "selected_moves per-member loop",
+      "one v7-user-switch subprocess per member",
+      "one routing-table mutation per member",
+      "full users.registry rewrite per member",
+      "per-member route visibility and service verification",
+      "per-member audit and checkpoint materialization"
+    ],
+    "unknown_exact_counters": ["files_opened", "fsync_count"],
+    "unknown_values_fabricated": false
+  },
+  "KERNEL_CLASS_INDIRECTION_FEASIBILITY_DECIDED": {
+    "verdict": "KERNEL_CLASS_INDIRECTION_FEASIBILITY_PROVEN",
+    "current_implementation_present": false,
+    "feasible_existing_owner_extension": true,
+    "candidate_primitives": ["fwmark plus bounded routing tables", "nftables map/set plus policy routing generation"],
+    "required_polygon_proofs": ["atomic generation commit", "crash reconciliation", "generation rollback", "new-flow visibility", "existing-flow NAT and conntrack behavior"],
+    "existing_flow_verdict": "POLYGON_KERNEL_PROOF_REQUIRED_NO_PRODUCTION_CLAIM"
+  },
+  "CONSTANT_TIME_HOT_PATH_PRODUCER_CONSUMER_GRAPH_PROVEN": {
+    "verdict": "PROVEN_WITH_CT_M0F_EXTENSION",
+    "edges": [
+      {"from": "failure_signal", "to": "prepared_decision", "class": "O(1)", "state": "MISSING_CONTINUOUS_PRODUCER_CONSUMER_BINDING"},
+      {"from": "prepared_decision", "to": "hot_validation", "class": "O(1)", "state": "MISSING_DECLARED_GENERATION_CONTRACT"},
+      {"from": "hot_validation", "to": "class_packet_and_lease", "class": "O(K)", "state": "EXISTING_OWNER_EXTENSION_REQUIRED"},
+      {"from": "class_packet_and_lease", "to": "generation_commit", "class": "O(1)_OR_O(K)", "state": "EXISTING_ROUTE_OWNER_EXTENSION_REQUIRED"},
+      {"from": "generation_commit", "to": "kernel_visibility", "class": "O(1)_OR_O(K)", "state": "POLYGON_PROOF_REQUIRED"},
+      {"from": "kernel_visibility", "to": "fast_verification", "class": "O(K)", "state": "AGGREGATE_RECEIPT_EXTENSION_REQUIRED"},
+      {"from": "fast_verification", "to": "durable_closure_obligation", "class": "O(1)", "state": "EXISTING_OWNER_BINDING_REQUIRED"},
+      {"from": "durable_closure_obligation", "to": "outcome_replay_learning", "class": "DEFERRED_O(N)", "state": "REUSE_EXISTING_CONSUMERS"}
+    ]
+  },
+  "PREPARED_DECISION_INVALIDATION_CONTRACT_PROVEN": {
+    "verdict": "CONTRACT_PROVEN_IMPLEMENTATION_RESIDUAL",
+    "invalidators": ["target_health_generation", "matrix_path_fingerprint", "capacity_reservation_generation", "policy_authority_generation", "membership_generation", "exception_generation", "source_incident_generation", "anti_flap_generation", "target_correlation_domain", "active_operation_generation", "rollback_target_generation"],
+    "hot_validator_rule": "COMPARE_ONLY_DECLARED_GENERATIONS_AND_PRECOMPUTED_FINGERPRINTS",
+    "world_model_rebuild_on_hot_path": "FORBIDDEN"
+  },
+  "ROUTING_CLASS_SEMANTIC_IDENTITY_CONTRACT_PROVEN": {
+    "verdict": "CONTRACT_PROVEN_IMPLEMENTATION_RESIDUAL",
+    "dimensions": ["source_channel_profile", "service_routing_compatibility", "policy_set", "eligible_target_set", "capacity_bucket", "path_fingerprint", "correlation_domain", "exception_boundary"],
+    "forbidden_equivalence": "SAME_SOURCE_CHANNEL_ALONE_IS_NOT_A_ROUTING_CLASS",
+    "membership_fingerprint_timing": "PRECOMPUTED_BEFORE_INCIDENT"
+  },
+  "LEGACY_EXCEPTION_SCOPE_DEFINED": {
+    "selection_rule": "LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN",
+    "allowed_reasons": ["pinned_user", "incompatible_fingerprint", "membership_migration", "partial_class_failure", "contradictory_identity", "exception_overlay", "reconciliation", "unsupported_legacy_membership"],
+    "baseline_seconds": 141.353447,
+    "required_slo": "CT_M0F_MUST_ATTRIBUTE_AND_REDUCE_AVOIDABLE_COST_WITHOUT_WEAKENING_SAFETY; NO_UNEVIDENCED_NUMERIC_CEILING"
+  },
+  "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_CONTRACT_DEFINED": {
+    "chain": ["cutover_terminal", "durable_closure_obligation", "existing_independent_consumer", "service_verification", "exception_reconciliation", "Outcome", "Replay", "Learning", "bounded_terminal"],
+    "crash_rule": "RECOVER_OBLIGATION_FROM_CANONICAL_GENERATION_AND_KERNEL_TRUTH_IF_PUBLICATION_INTERRUPTED",
+    "new_store_required": false
+  },
+  "CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER": {
+    "owner": "admin_core.operator_execution_pipeline.execution_performance_foundation",
+    "baseline_receipt": "perfclose_6e6c4fa62f834a8d4b88da24",
+    "baseline_total_forward_reset_ms": 141353.447,
+    "present_schema": "v7.execution-performance-foundation.v1",
+    "status": "EXTEND_FOR_CLASS_OPERATION",
+    "required_delta": ["detection", "prepared_validation", "packet_lease", "canonical_cas", "kernel_commit", "visibility", "fast_verification", "new_flow_recovery", "closure_activation", "deferred_verification", "rollback", "forward_recovery", "N_dependency", "K_dependency", "bytes_scanned", "rows_rewritten", "process_count", "lock_count", "network_probes", "unknown_time", "10_vs_10000_delta"]
+  },
+  "PREPARED_DECISION_CONTINUOUS_PRODUCER_AND_FRESHNESS_CONSUMER_PROVEN": {
+    "verdict": "CT_M0F_RESIDUAL_REQUIRED",
+    "reuse_producers": ["Matrix generation", "topology update", "capacity update", "policy update", "membership generation"],
+    "missing_link": "ONE_DURABLE_GENERATION_BOUND_PREPARED_CLASS_DECISION_AND_FRESHNESS_CONSUMER"
+  },
+  "FRESH_MATRIX_RECEIPT_HOT_PATH_REUSE_GUARD_PROVEN": {
+    "verdict": "REUSE_VALID_WITH_ASSERTION_RESIDUAL",
+    "existing_behavior": "fresh path/service-set/identity receipt avoids full refresh",
+    "allowed_invalidations": ["missing_path_evidence", "path_fingerprint_changed", "service_set_changed", "service_not_fresh", "service_not_healthy", "identity_generation_changed"],
+    "ct_m0f_delta": "machine guard and counter forbidding full service verification before cutover when receipt is fresh"
+  },
+  "CUTOVER_HIDDEN_O_N_GUARD_PROVEN": {
+    "verdict": "CT_M0F_INSTRUMENTATION_RESIDUAL_REQUIRED",
+    "forbidden_hot_operations": ["full_member_list_serialization", "full_member_list_hashing", "registry_scan", "registry_row_rewrite", "per_member_audit", "per_member_sync_verification", "per_member_candidate_packet_or_lease"],
+    "required_counters": ["member_rows_scanned", "member_rows_written", "per_member_artifacts", "subprocess_count", "lock_count", "network_probe_count", "serialized_member_bytes"]
+  },
+  "forbidden_duplicate_owners": ["new_route_owner", "new_registry", "new_truth_source", "new_planner", "new_runtime", "new_queue", "new_watcher", "new_scheduler", "new_authority_owner", "new_time_store", "new_outcome_store"],
+  "foundation_residual": {
+    "mission_id": "V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1",
+    "state": "READY",
+    "scope": ["continuous prepared decision binding", "semantic class and membership generations", "bounded hot validator", "compact class Packet/lease", "class generation commit/recovery", "aggregate fast verification", "durable closure seed", "legacy/class selection", "performance ledger and hidden-O(N) guards"],
+    "production_effects_permitted": false
+  },
+  "ct_m1": {
+    "mission_id": "V7_CONSTANT_TIME_COHORT_FAILOVER_CLASS_BUCKET_KERNEL_PRIMITIVE_AND_CRASH_PROTOCOL_POLYGON_V1",
+    "state": "FORMED_DEPENDENCY_BLOCKED",
+    "blocked_by": "V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1"
+  },
+  "bdp_omp_consumption": {
+    "reality_gate_disposition": "PASS_EXISTING_OWNER_EXTENSION_ONLY",
+    "live_capability_graph_evaluation": "NOT_EVALUATED_PROGRAM_FRONTIER_PREEMPTS_CAPABILITY_GRAPH",
+    "candidate_admission": "OMP_PROGRAM_FRONTIER_ADMITTED_CT_M0F_READY",
+    "duplicate_owner_gate": "PASS",
+    "consumer": "OMP_PRODUCT_EVOLUTION_FRONTIER",
+    "exactly_one_ready_successor": true
+  },
+  "terminal": "CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED",
+  "successor": "V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1"
+}

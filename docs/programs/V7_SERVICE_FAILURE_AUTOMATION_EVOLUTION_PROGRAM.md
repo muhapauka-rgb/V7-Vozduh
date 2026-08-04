@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.4`
+Version: `4.5`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -9,7 +9,7 @@ Activation state owner: `CPS`
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
 
-## V4.4 current-client and class-path recovery SLO ladder
+## V4.5 exact client recovery measurement contract
 
 CT-M0 is a consumed read-only audit. Its `141.353447 s` baseline is the full
 successful forward-plus-reset lifecycle and must not be presented as measured
@@ -48,6 +48,60 @@ probe; route visibility alone is insufficient. The closure clock continues
 independently. Reset has its own `RESET_CLIENT_TRAFFIC_RECOVERY_LATENCY` and
 must not be folded into the forward recovery metric.
 
+The route-bound probe is valid only under
+`EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_PROVEN`. It must:
+
+- execute in the exact certification identity network context and consume the
+  same routing table, source binding, fwmark/policy and exception precedence
+  that govern that identity;
+- open a fresh connection and never reuse a cached socket;
+- avoid the management/default route unless that route is itself the exact
+  expected user route under test;
+- prove the expected target egress fingerprint through the existing route and
+  target-identity owners;
+- validate an application payload and response, not merely DNS, TCP connect,
+  TLS setup, route visibility or kernel counters;
+- use a fresh DNS result or an explicitly still-valid DNS generation and
+  record which contract was used;
+- carry bounded timeout, retry count and probe cadence; every retry and failed
+  attempt remains part of elapsed client recovery time;
+- emit `PROBE_INVALID` rather than PASS when exact client context, target
+  egress, payload response, freshness or timing cannot be proven.
+
+Failure and recovery timing uses three owner-backed boundaries:
+
+```text
+FIRST_FAILED_OBSERVATION_AT
+HARD_FAILURE_CONFIRMED_AT
+CLIENT_TRAFFIC_RECOVERED_AT
+```
+
+`FIRST_FAILED_OBSERVATION_AT` is the first failed observation subsequently
+bound to the same confirmed hard-failure generation. An isolated observation
+that never becomes that generation is noise and grants no failure sample.
+Threshold crossing owns `HARD_FAILURE_CONFIRMED_AT`; it is not allowed to erase
+the preceding detection interval.
+
+The existing Time owner derives:
+
+```text
+FAILURE_DETECTION_LATENCY
+= HARD_FAILURE_CONFIRMED_AT - FIRST_FAILED_OBSERVATION_AT
+
+POST_CONFIRMATION_RECOVERY_LATENCY
+= CLIENT_TRAFFIC_RECOVERED_AT - HARD_FAILURE_CONFIRMED_AT
+
+FIRST_FAILURE_EVIDENCE_TO_CLIENT_RECOVERY_LATENCY
+= CLIENT_TRAFFIC_RECOVERED_AT - FIRST_FAILED_OBSERVATION_AT
+```
+
+The last metric is the primary user-facing end-to-end recovery SLO. Every
+sample records `clock_domain_id`, `clock_uncertainty_ms`, `probe_cadence_ms`
+and measurement resolution. Monotonic timestamps from different clock domains
+must not be subtracted without an owner-backed mapping and uncertainty bound.
+If cadence or clock uncertainty could change a gate verdict, the result is
+`MEASUREMENT_UNCERTAINTY_STOP_SAFE`, never PASS.
+
 CT-M0F-V must compare the immutable `141.353447 s` full-lifecycle baseline with
 the post-deploy lifecycle and publish, at minimum:
 
@@ -83,6 +137,7 @@ The required legacy operational gate is:
 ```text
 at least five valid controlled certification-only samples
 AND at least one cold and two warm samples
+AND the remaining two samples may independently be cold or warm
 AND samples span at least two current owner-backed generations
 AND FAILURE_DETECTION_LATENCY p95 <= 2,000 ms
 AND DECISION_PLUS_ROUTE_COMMIT_LATENCY p95 <= 500 ms
@@ -97,6 +152,14 @@ the current-client latency part of CT-M0F. A p99 claim requires at least 100
 owner-backed observations; production actions must never be manufactured only
 to fill a percentile. Until then p99 is `INSUFFICIENT_SAMPLE_COUNT`, never
 zero or inferred from p95.
+
+Every controlled sample must arise from a distinct independently admitted
+validation generation required by the current unresolved SLO residual. One
+sample cannot occupy multiple sample positions. Once an exact property is
+proven, an identical generation must not be repeated without an owner-backed
+invalidation or a genuinely different required cold/warm, source/target/path,
+failure or recovery condition. Production movement must never be performed
+only to increase sample count or improve a percentile.
 
 The future prepared class/bucket path has a separate mandatory target:
 
@@ -128,6 +191,9 @@ silently weakened.
 Required CT-M0F terminals are all mandatory:
 
 - `CURRENT_SINGLE_USER_CLIENT_RECOVERY_LATENCY_MEASURED`;
+- `EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_PROVEN`;
+- `FIRST_FAILURE_EVIDENCE_TO_CLIENT_RECOVERY_CLOCK_PROVEN`;
+- `MEASUREMENT_CADENCE_AND_CLOCK_UNCERTAINTY_PROVEN`;
 - `CURRENT_SINGLE_USER_CRITICAL_PATH_SUBSTANTIALLY_REDUCED`;
 - `LEGACY_OPERATIONAL_RECOVERY_SLO_CONSUMED`;
 - `HEAVY_CLOSURE_REMOVED_FROM_CLIENT_RECOVERY_PATH`;
@@ -3801,7 +3867,7 @@ reconciliation or unsupported legacy membership. The machine invariant is:
 
 `LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`.
 
-### V4.4 performance ledger and hot-path regression law
+### V4.5 performance ledger and hot-path regression law
 
 Every CT Mission must update
 `CONSTANT_TIME_FAILOVER_PERFORMANCE_LEDGER`, a projection of the existing
@@ -3824,6 +3890,8 @@ Every stage row contains:
   network probes;
 - monotonic start/end boundaries, cold/warm classification, sample count,
   p50/p95/p99 where statistically valid, CPU/load/substrate fingerprint;
+- first-failed-observation, confirmed-failure and recovered-client boundaries,
+  clock domain/uncertainty, probe cadence/resolution and probe validity;
 - operation/class/bucket/generation identity;
 - unknown time and the next exact latency residual.
 
@@ -3995,8 +4063,9 @@ owners. It cannot create or execute a production Packet.
 
 Internal phase `CT-M0F-V_CONTROLLED_VALIDATION` must then use the existing
 Controlled Production Certification Program for exactly the current legacy
-single-user path and the V4.4 ordered SLO ladder. Its evidence proves only
-current-path latency and fallback operability. It cannot certify class/bucket
+single-user path and the V4.5 ordered SLO and measurement contract. Its
+evidence proves only current-path latency and fallback operability. It cannot
+certify class/bucket
 indirection, satisfy CT-M8, manufacture Natural L8, expand Runtime scope or
 advance Authority/Production Maturity.
 
@@ -4012,7 +4081,7 @@ Successor: CT-M1 becomes `READY` only after this terminal is consumed.
 
 Every CT-M0F result must include a consumed performance-ledger delta. Passing
 functional tests without old/new critical-path evidence is incomplete.
-CT-M0F cannot reach its terminal until every V4.4 current-client terminal is
+CT-M0F cannot reach its terminal until every V4.5 current-client terminal is
 consumed. CT-M1 remains `FORMED_DEPENDENCY_BLOCKED` while either E or V is
 incomplete.
 
@@ -4118,7 +4187,7 @@ hard-failure generation
 
 Timer remains watchdog. It is not the primary cutover wake.
 
-The measured hot path must enforce the V4.4 class-path engineering budgets:
+The measured hot path must enforce the V4.5 class-path engineering budgets:
 failure detection p95 <= `2,000 ms`, prepared-decision validation plus kernel
 commit p95 <= `250 ms`, route visibility p95 <= `100 ms`, and zero hidden full
 Planner or O(N) member work. CT-M5 evidence does not by itself claim
@@ -4230,7 +4299,7 @@ owned.
 Terminal:
 `CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
 
-### V4.4 dynamic Mission compression
+### V4.5 dynamic Mission compression
 
 CT-M0 is mandatory. CT-M0F is conditional on the exact M0 disposition matrix.
 CT-M1 through CT-M9 are capability stages, not mandatory empty containers.
@@ -4255,7 +4324,7 @@ identity, migration, projection, replay or model work. It is
 `POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
 `REAL_WORLD_LIMIT` while independent safe work exists.
 
-### V4.4 production-effect boundary
+### V4.5 production-effect boundary
 
 | Mission | Production routing/user effect |
 | --- | --- |
@@ -4277,7 +4346,7 @@ Authority expansion, Packet execution, restore-barrier write, routing
 mutation, user movement, rollback/forward-recovery apply, ordinary-user
 certification use and Production Maturity change.
 
-### V4.4 Program completion contract
+### V4.5 Program completion contract
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
@@ -4285,7 +4354,7 @@ criteria are owner-backed and consumed:
 - current data-plane feasibility and O(N)/O(K)/O(1) model proven;
 - current single-user client traffic recovery and reset traffic recovery are
   measured independently from full durable closure;
-- the CT-M0F post-deploy controlled legacy benchmark consumes both the V4.4
+- the CT-M0F post-deploy controlled legacy benchmark consumes both the V4.5
   transitional ceiling and operational `<3,000 ms` gate, or CT-M0F remains
   open at the exact owner-backed latency residual;
 - heavy verification, Outcome/Replay/Learning and reset closure do not retain
@@ -4320,7 +4389,7 @@ criteria are owner-backed and consumed:
 - controlled-production residuals are reconciled or exact Authority/
   real-world boundaries remain;
 - the prepared class/bucket path proves `<1,000 ms` p95 route-bound client
-  recovery in CT-M8; any p99 claim follows the V4.4 sample-count law;
+  recovery in CT-M8; any p99 claim follows the V4.5 sample-count law;
 - Authority/Runtime recommendation is independently decided;
 - no open stage lacks `next_required_consumer` or `reentry_condition`;
 - CPS, OMP and Runtime projections agree;

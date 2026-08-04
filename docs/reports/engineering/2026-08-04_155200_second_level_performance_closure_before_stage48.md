@@ -1,4 +1,5 @@
 Mission ID: `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1`
+Run Nonce: `V7_PERFCLOSE_20260804T084448+0000`
 
 # Engineering Report: second-level performance closure перед Stage 48
 

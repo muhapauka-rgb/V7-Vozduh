@@ -54,7 +54,7 @@ RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 PERFORMANCE_REVALIDATION_GENERATION = (
-    "stage48-second-level-critical-path-v2"
+    "stage48-second-level-critical-path-v3"
 )
 
 

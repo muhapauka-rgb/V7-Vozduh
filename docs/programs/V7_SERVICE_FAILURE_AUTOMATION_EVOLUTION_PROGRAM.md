@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.0`
+Version: `4.1`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -3603,6 +3603,75 @@ only after measurement. The initial engineering hypotheses are:
 
 p50/p95/p99 must not be fabricated from insufficient samples.
 
+### V4.1 M0 hot-path, invalidation and foundation refinement
+
+V4.1 narrows the first execution step. It does not assume that users sharing
+one source already form one routing class, does not preselect a kernel
+primitive and does not create a Foundation Mission ceremonially. CT-M0 must
+first prove the current producer-consumer reality and classify every reusable
+primitive by semantics, not by name.
+
+The required hot-path dependency graph is:
+
+```text
+failure signal
+-> prepared decision
+-> hot validation
+-> cohort Packet
+-> cohort lease
+-> generation commit
+-> kernel visibility
+-> fast verification
+-> deferred closure
+```
+
+For every edge CT-M0 records the actual producer, consumer, schema, freshness,
+invalidation conditions, blocking/deferred class, `O(1)`/`O(K)`/`O(N)` cost,
+production caller and exact failure terminal. Serialization, hashing, audit
+materialization and membership-list handling count as hot-path work when they
+block the next edge; hidden `O(N)` work is forbidden.
+
+Prepared decisions are caches, not truth. Their exact invalidators include at
+least target-health generation, Matrix/path fingerprint, capacity/reservation,
+policy/Authority generation, cohort membership, exclusions, source-incident
+generation, anti-flap state, target correlation domain, active operation and
+rollback-target availability. The hot validator compares these bounded
+generations and fingerprints; it must not rebuild the whole World Model.
+
+Class identity is an M0 output, not an input assumption. M0 determines whether
+a class is defined by source channel, channel profile/path fingerprint, policy
+set, target-eligibility set, capacity bucket, service-routing compatibility
+and exception boundary. Users on one source may belong to different classes.
+
+Deferred closure is durable and crash-recoverable. The `PREPARED` intent must
+already carry a closure seed containing operation/generation identity,
+expected kernel transition, verification contract, exception reconciliation,
+Outcome/Replay/Learning consumers and recovery law:
+
+```text
+PREPARED + closure seed
+-> generation CAS
+-> kernel commit
+-> COMMITTED
+-> durable closure obligation activation
+-> independent existing consumer
+-> service verification
+-> exception reconciliation
+-> Outcome / Replay / Learning
+-> bounded terminal
+```
+
+A crash before apply closes the seed as `NOT_APPLIED`. A crash after kernel
+commit reactivates exactly one closure obligation from canonical generation
+and kernel truth. Duplicate recovery must not create a second obligation.
+
+Mass compatible incidents select the class path. The legacy per-user path is
+allowed only for pinned users, incompatible fingerprints, membership
+migration, partial class failure, contradictory identity, exception overlays,
+reconciliation or unsupported legacy membership. The machine invariant is:
+
+`LEGACY_PER_USER_PATH_FOR_MASS_COMPATIBLE_INCIDENT_FORBIDDEN`.
+
 ### Mission CT-M0 — current owner, data-plane and O(N) audit
 
 Mission ID:
@@ -3629,24 +3698,89 @@ Required discovery:
 13. Matrix receipt reuse/freshness/invalidation rules.
 14. Coexistence, migration, fallback and rollback plan.
 15. Available logical and privileged Polygon substrate.
+16. The complete hot-path dependency graph and every blocking/deferred edge.
+17. Prepared-decision invalidation generations and bounded hot-validator law.
+18. Durable closure seed, activation and crash-recovery ownership.
+19. Legacy/class selection law and exact legacy exception scope.
+20. Semantic routing-class identity dimensions proven by current data.
+21. Disposition of every existing primitive without duplicate ownership.
 
-Legal verdicts:
+Every primitive receives exactly one disposition:
 
-- `REUSE_EXISTING_INDIRECTION_PRIMITIVE`;
-- `EXTEND_EXISTING_ROUTE_OWNER`;
-- `CURRENT_DATAPLANE_REQUIRES_BOUNDED_MIGRATION`;
-- exact owner-backed safety/substrate blocker with all independent work
-  consumed.
+- `REUSE_VALID` — record and do not modify;
+- `EXTEND_FOR_CLASS_OPERATION` — include only the missing semantic delta in
+  the conditional Foundation Mission;
+- `REPLACE_INTERNAL_PRIMITIVE_WITHIN_EXISTING_OWNER` — replace only inside the
+  canonical owner with migration/rollback proof;
+- `LEGACY_EXCEPTION_PATH_ONLY` — certify its exact exception scope and exclude
+  it from the mass hot path;
+- `NOT_REQUIRED_FOR_FAST_PATH` — bind it to deferred closure or leave it
+  outside the critical path;
+- `BLOCKS_CONSTANT_TIME_MODEL` — publish the exact mandatory architecture
+  residual and continue every independent criterion.
+
+Positive kernel feasibility is emitted as
+`KERNEL_CLASS_INDIRECTION_FEASIBILITY_PROVEN`. A non-positive result must name
+the exact `REUSE`, `EXTEND`, `MIGRATION` or `BLOCKS_CONSTANT_TIME_MODEL`
+verdict; feasibility must never be implied by plan text.
 
 Producer: existing route/registry/Matrix/Planner/Runtime read-only owners.
-Output: one machine-readable feasibility and cost contract plus exact smallest
-implementation residual.
+Output: one machine-readable M0 contract containing all of:
+
+- `REUSABLE_PRIMITIVE_DISPOSITION_MATRIX`;
+- `CURRENT_O_N_AND_O_1_COST_MODEL_PROVEN`;
+- `KERNEL_CLASS_INDIRECTION_FEASIBILITY_DECIDED`;
+- `CONSTANT_TIME_HOT_PATH_PRODUCER_CONSUMER_GRAPH_PROVEN`;
+- `PREPARED_DECISION_INVALIDATION_CONTRACT_PROVEN`;
+- `ROUTING_CLASS_SEMANTIC_IDENTITY_CONTRACT_PROVEN`;
+- `LEGACY_EXCEPTION_SCOPE_DEFINED`;
+- `DEFERRED_CLOSURE_DURABLE_SUCCESSOR_CONTRACT_DEFINED`;
+- the explicit list of forbidden duplicate owners;
+- the exact conditional Foundation residual, if any;
+- the exact CT-M1 identity and dependency state;
+- exactly one executable successor.
+
 Consumer: BDP Reality Gate -> OMP Candidate Admission.
-Expected next output: exactly one admitted CT-M1 implementation Mission or an
-exact legal terminal with durable re-entry.
+Expected next output is machine-exclusive:
+
+- when any `EXTEND_FOR_CLASS_OPERATION` or
+  `REPLACE_INTERNAL_PRIMITIVE_WITHIN_EXISTING_OWNER` residual exists, admit
+  CT-M0F as `READY` and form CT-M1 as `FORMED_DEPENDENCY_BLOCKED`;
+- when no Foundation residual exists, admit CT-M1 as `READY`;
+- when a constant-time blocker remains, publish that exact residual with
+  durable re-entry while continuing independent safe criteria.
+
+CT-M0F and CT-M1 must never both be `READY`.
 
 M0 cannot complete at an Engineering Report. Required terminal:
-`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`.
+`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`,
+with every required M0 subterminal above consumed.
+
+### Conditional Mission CT-M0F — reusable fast primitives closure
+
+Mission ID:
+`V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`.
+
+This Mission exists only when CT-M0 proves an `EXTEND` or owner-internal
+`REPLACE` residual. It reuses current Planner preparation/fallback, failure
+validation, Packet/lease, Matrix, lightweight verification, route/reset safety,
+Outcome/Replay/Learning and Time owners where semantically valid. The current
+per-user writer and sequential reset remain legacy exception paths unless M0
+proves otherwise. These are hypotheses for M0 classification, not advance
+verdicts.
+
+The Mission closes only the exact missing existing-owner links required for
+class operation, the prepared-decision invalidation contract, closure seed and
+legacy selection law. It may not create a route owner, registry, queue,
+watcher, Planner, Runtime, Authority system or parallel truth source.
+
+Producer: exact existing owners named by the M0 disposition matrix.
+Output: repaired/reused fast primitives plus certified legacy exception
+selection contract.
+Consumer: focused non-test owner callers -> BDP/OMP residual recomputation.
+Terminal:
+`REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED`.
+Successor: CT-M1 becomes `READY` only after this terminal is consumed.
 
 ### Mission CT-M1 — Polygon kernel primitive and generation protocol
 
@@ -3844,10 +3978,13 @@ owned.
 Terminal:
 `CONSTANT_TIME_COHORT_FAILOVER_AUTHORITY_AND_RUNTIME_RECOMMENDATION_DECIDED`.
 
-### V4.0 dynamic Mission compression
+### V4.1 dynamic Mission compression
 
-CT-M0 is mandatory. CT-M1 through CT-M9 are capability stages, not mandatory
-empty containers. After each consumed output OMP must:
+CT-M0 is mandatory. CT-M0F is conditional on the exact M0 disposition matrix.
+CT-M1 through CT-M9 are capability stages, not mandatory empty containers.
+Exactly one stage may be `READY`; a downstream stage may be formed as
+`FORMED_DEPENDENCY_BLOCKED` but cannot execute early. After each consumed
+output OMP must:
 
 1. re-read CPS and current owners;
 2. recompute remaining criteria;
@@ -3863,11 +4000,12 @@ identity, migration, projection, replay or model work. It is
 `POLYGON_SUBSTRATE_LIMIT` for the exact criterion, never global
 `REAL_WORLD_LIMIT` while independent safe work exists.
 
-### V4.0 production-effect boundary
+### V4.1 production-effect boundary
 
 | Mission | Production routing/user effect |
 | --- | --- |
 | CT-M0 | forbidden; read-only |
+| CT-M0F | forbidden; engineering/Polygon and non-test owner callers only |
 | CT-M1 | forbidden; isolated Polygon only |
 | CT-M2 | forbidden; projection/shadow only |
 | CT-M3 | only separately admitted bounded migration; otherwise shadow |
@@ -3883,16 +4021,24 @@ Authority expansion, Packet execution, restore-barrier write, routing
 mutation, user movement, rollback/forward-recovery apply, ordinary-user
 certification use and Production Maturity change.
 
-### V4.0 Program completion contract
+### V4.1 Program completion contract
 
 This capability plan reaches its program terminal only when all current
 criteria are owner-backed and consumed:
 
 - current data-plane feasibility and O(N)/O(K)/O(1) model proven;
+- hot-path producer-consumer graph and hidden blocking work proven;
+- prepared-decision invalidation contract consumed;
+- semantic routing-class identity and legacy exception scope proven;
+- durable closure seed/successor crash contract and runtime behavior proven;
+- every primitive disposition consumed without duplicate owners;
+- conditional Foundation Mission completed or proven unnecessary;
 - existing-owner class/bucket primitive selected and implemented;
 - kernel/canonical crash protocol consumed;
 - canonical membership, exceptions and immutable snapshot replay consumed;
 - migration and fallback parity consumed;
+- mass compatible incidents select the class path and legacy fallback is
+  production-certified only for explicit exceptions;
 - one Packet/lease class operation consumed;
 - event-to-fast-path consumer production-proven;
 - fast and deferred verification both close;

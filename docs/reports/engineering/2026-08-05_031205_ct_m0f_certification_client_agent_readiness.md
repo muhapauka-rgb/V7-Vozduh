@@ -26,11 +26,11 @@ route-bound evidence. Первый cold sample не запускался и не
 
 ## Реализация и проверка
 
-- commit: `a1ddc9f3d21fdb04222afa3e28ce5d85181d9ee9`;
+- implementation commit: `9793f9508127e8f36c28e3a45e67c811b2506ac5`;
 - GitHub branch: `Updatesystem`, совпадает с local;
 - focused tests: `53 PASS`;
 - safe-deploy manifest: `PASS`, allowlist `PASS`, blockers `0`;
-- deploy: `deploy-z8-14-Updatesystem-a1ddc9f-20260805T100649`;
+- deploy: `deploy-z8-14-Updatesystem-9793f95-20260806T005442`;
 - post-deploy delta после apply: `deployment_required=false`;
 - production caller: compact scalar projection consumed;
 - policy status: `ACTIVE`, max users per action `48`, concurrency `1`, expiry

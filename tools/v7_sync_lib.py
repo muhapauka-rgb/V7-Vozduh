@@ -23576,6 +23576,20 @@ APPROVED_DEPLOY_FILES = [
         "remote_path": "/usr/local/bin/v7-client-speed-api",
         "mode": "0755",
         "service": "v7-client-speed-api.service",
+        "post_deploy_check": {
+            "argv": [
+                "--exact-client-probe-context",
+                "/opt/v7/egress/state/nonexistent-ct-m0f-probe-context.json",
+                "--json",
+            ],
+            "expected_returncode": 2,
+            "expected_json": {
+                "status": "PROBE_INVALID",
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "user_movement": 0,
+            },
+        },
     },
     {
         "name": "v7-operator-execution-packet",
@@ -24737,6 +24751,8 @@ def safe_deploy_plan(
             "service": item["service"],
             "replace": replacement_required,
         }
+        if isinstance(item.get("post_deploy_check"), dict):
+            file_payload["post_deploy_check"] = item["post_deploy_check"]
         if replacement_required:
             file_payload["content_b64"] = base64.b64encode(Path(item["local_abs_path"]).read_bytes()).decode("ascii")
         payload["files"].append(file_payload)
@@ -24754,7 +24770,7 @@ def safe_deploy_plan(
         "for f in /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-audit-log /usr/local/bin/v7-admin-api; do "
         "if test -e \"$f\"; then cp -p \"$f\" \"$backup_root/$(basename \"$f\").pre-sync\"; fi; done\n"
         "python3 - <<'PY'\n"
-        "import base64, json, os, pathlib, shutil\n"
+        "import base64, json, os, pathlib, shutil, subprocess\n"
         f"payload=json.loads(base64.b64decode('{payload_b64}').decode('utf-8'))\n"
         f"backup_root=pathlib.Path('{planned_remote_paths['backup_root']}')\n"
         "for item in payload['files']:\n"
@@ -24772,6 +24788,23 @@ def safe_deploy_plan(
         "pathlib.Path('/opt/v7/deploy-manifest.json').write_text(json.dumps(payload['deploy_manifest'], indent=2, ensure_ascii=False)+'\\n')\n"
         "pathlib.Path('/opt/v7/runtime-linkage.json').write_text(json.dumps(payload['runtime_linkage'], indent=2, ensure_ascii=False)+'\\n')\n"
         "pathlib.Path('/opt/v7/runtime-fingerprint.json').write_text(json.dumps(payload['runtime_fingerprint'], indent=2, ensure_ascii=False)+'\\n')\n"
+        "post_deploy_checks=[]\n"
+        "for item in payload['files']:\n"
+        "    check=item.get('post_deploy_check')\n"
+        "    if not isinstance(check, dict):\n"
+        "        continue\n"
+        "    command=[item['remote_path'], *list(check.get('argv') or [])]\n"
+        "    proc=subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30, check=False)\n"
+        "    try:\n"
+        "        result=json.loads(proc.stdout or '{}')\n"
+        "    except json.JSONDecodeError:\n"
+        "        result={}\n"
+        "    expected_json=check.get('expected_json') if isinstance(check.get('expected_json'), dict) else {}\n"
+        "    passed=proc.returncode == int(check.get('expected_returncode', 0)) and all(result.get(k) == v for k, v in expected_json.items())\n"
+        "    post_deploy_checks.append({'name':item['name'],'returncode':proc.returncode,'status':result.get('status','UNPARSEABLE'),'passed':passed})\n"
+        "    if not passed:\n"
+        "        raise SystemExit('post_deploy_check_failed:' + item['name'])\n"
+        "payload['release_manifest']['post_deploy_checks']=post_deploy_checks\n"
         f"pathlib.Path('{planned_remote_paths['release_manifest']}').write_text(json.dumps(payload['release_manifest'], indent=2, ensure_ascii=False)+'\\n')\n"
         "PY\n"
         f"{daemon_reload_block}"

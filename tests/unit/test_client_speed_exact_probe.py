@@ -1,5 +1,7 @@
 import importlib.machinery
 import importlib.util
+import json
+import subprocess
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -137,13 +139,25 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "context.json"
-            import json
-
             path.write_text(json.dumps(context), encoding="utf-8")
             with mock.patch.object(client_speed, "execute_fresh_exact_probe_request") as execute:
                 receipt = client_speed.run_exact_probe_context(path)
             execute.assert_not_called()
         self.assertEqual(receipt["status"], "PROBE_INVALID")
+
+    def test_cli_propagates_fail_closed_exit_code(self):
+        proc = subprocess.run(
+            [str(TOOL), "--exact-client-probe-context", "/definitely/missing/context.json", "--json"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=5,
+        )
+        result = json.loads(proc.stdout)
+        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(result["status"], "PROBE_INVALID")
+        self.assertFalse(result["runtime_mutation_performed"])
 
 
 if __name__ == "__main__":

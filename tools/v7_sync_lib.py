@@ -23571,6 +23571,13 @@ APPROVED_DEPLOY_FILES = [
         "service": "v7-admin-api.service",
     },
     {
+        "name": "v7-client-speed-api",
+        "local_path": "tools/v7-client-speed-api",
+        "remote_path": "/usr/local/bin/v7-client-speed-api",
+        "mode": "0755",
+        "service": "v7-client-speed-api.service",
+    },
+    {
         "name": "v7-operator-execution-packet",
         "local_path": "tools/v7-operator-execution-packet",
         "remote_path": "/usr/local/bin/v7-operator-execution-packet",
@@ -23859,6 +23866,7 @@ RUNTIME_ENTRYPOINTS = (
     "tools/v7-service-matrix-test",
     "tools/v7-egress-quality-compact",
     "tools/v7-telegram-sentinel",
+    "tools/v7-client-speed-api",
     "admin/v7-admin-api",
     "tools/v7-operator-execution-packet",
     "tools/v7-governed-canary-dry-run-cycle",
@@ -24185,6 +24193,7 @@ def build_runtime_fingerprint(*, branch: str, commit: str, deploy_id: str) -> di
             "v7-users-autoswitch.service",
             "v7-users-autoswitch.timer",
             "v7-admin-api.service",
+            "v7-client-speed-api.service",
             *SNAPSHOT_SYSTEMD_UNITS,
         ],
         "snapshot_subsystem": {

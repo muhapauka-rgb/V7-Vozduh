@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 import html
+import argparse
+import hashlib
+import ipaddress
 import json
 import os
 import re
 import socket
+import ssl
 import subprocess
+import sys
 import time
 import secrets
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 
 HOST = os.environ.get("V7_CLIENT_SPEED_HOST", "10.0.0.1")
@@ -27,10 +32,40 @@ ONLINE_TTL = int(os.environ.get("V7_CLIENT_ONLINE_TTL", "45"))
 VPN_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{0,64}$")
 SAFE_INGRESS = {"vless", "wireguard", "amneziawg", "unknown"}
+EXACT_PROBE_CONTEXT_SCHEMA = "v7.exact-client-probe-execution-context.v1"
+EXACT_PROBE_RECEIPT_SCHEMA = "v7.exact-client-network-context-traffic-probe-receipt.v1"
 
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+
+def sha256_text(value):
+    return hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()
+
+
+def exact_probe_context_hash(context):
+    canonical = dict(context if isinstance(context, dict) else {})
+    canonical.pop("context_hash", None)
+    return hashlib.sha256(
+        json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def current_clock_domain_id():
+    boot_id = read_text("/proc/sys/kernel/random/boot_id", "").strip()
+    try:
+        netns_inode = os.stat("/proc/self/ns/net").st_ino
+    except OSError:
+        netns_inode = 0
+    return f"linux-boot:{boot_id or 'unknown'}:netns:{netns_inode}"
+
+
+def current_netns_inode():
+    try:
+        return int(os.stat("/proc/self/ns/net").st_ino)
+    except OSError:
+        return 0
 
 
 def read_text(path, default=""):
@@ -115,6 +150,423 @@ def safe_float(value, default=0.0):
         return float(value)
     except Exception:
         return default
+
+
+def safe_int(value, default=0):
+    try:
+        if isinstance(value, str):
+            return int(value, 0)
+        return int(value)
+    except Exception:
+        return default
+
+
+def parse_iso(value):
+    text = str(value or "").strip().replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(text)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def exact_probe_context_errors(context):
+    context = context if isinstance(context, dict) else {}
+    errors = []
+    if context.get("schema_version") != EXACT_PROBE_CONTEXT_SCHEMA:
+        errors.append("context_schema_invalid")
+    required_text = (
+        "contract_id",
+        "validation_generation_id",
+        "issuing_owner",
+        "active_program",
+        "incident_id",
+        "incident_generation",
+        "user",
+        "source",
+        "target",
+        "source_address",
+        "interface",
+        "routing_table",
+        "expected_egress_ip",
+        "expected_target_egress_fingerprint",
+        "target_url",
+        "clock_domain_id",
+        "context_hash",
+    )
+    for key in required_text:
+        if not str(context.get(key) or "").strip():
+            errors.append(f"{key}_missing")
+    if context.get("certification_identity") is not True:
+        errors.append("certification_identity_required")
+    if str(context.get("context_hash") or "") != exact_probe_context_hash(context):
+        errors.append("context_hash_mismatch")
+    if str(context.get("sample_kind") or "") not in {"cold", "warm"}:
+        errors.append("sample_kind_invalid")
+    if not re.fullmatch(
+        r"[0-9a-f]{64}",
+        str(context.get("expected_target_egress_fingerprint") or ""),
+    ):
+        errors.append("expected_target_egress_fingerprint_invalid")
+    if safe_int(context.get("network_namespace_inode"), 0) <= 0:
+        errors.append("network_namespace_inode_missing")
+    if safe_int(context.get("fwmark"), 0) <= 0:
+        errors.append("fwmark_missing")
+    first = safe_int(context.get("first_failed_observation_monotonic_ns"), 0)
+    confirmed = safe_int(context.get("confirmed_hard_failure_monotonic_ns"), 0)
+    if first <= 0 or confirmed < first:
+        errors.append("failure_clock_boundaries_invalid")
+    if safe_int(context.get("timeout_ms"), 0) <= 0:
+        errors.append("timeout_contract_missing")
+    if safe_int(context.get("retry_count"), -1) < 0:
+        errors.append("retry_contract_missing")
+    if safe_int(context.get("observation_cadence_ms"), 0) <= 0:
+        errors.append("observation_cadence_missing")
+    if safe_float(context.get("clock_uncertainty_ms"), -1.0) < 0:
+        errors.append("clock_uncertainty_missing")
+    try:
+        if parse_iso(context.get("expires_at")) <= datetime.now(timezone.utc):
+            errors.append("context_expired")
+    except Exception:
+        errors.append("context_expiry_invalid")
+    target = urlparse(str(context.get("target_url") or ""))
+    if target.scheme != "https" or not target.hostname:
+        errors.append("https_target_required")
+    expected_ip = str(context.get("expected_egress_ip") or "").strip()
+    try:
+        expected_ip_value = ipaddress.ip_address(expected_ip)
+    except ValueError:
+        expected_ip_value = None
+    if expected_ip_value is None or not expected_ip_value.is_global:
+        errors.append("expected_egress_ip_invalid")
+    return sorted(set(errors))
+
+
+def route_lookup_for_exact_probe(destination_ip, context):
+    command = [
+        "ip",
+        "-j",
+        "route",
+        "get",
+        str(destination_ip),
+        "from",
+        str(context.get("source_address") or ""),
+        "mark",
+        str(context.get("fwmark") or "0"),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=max(1, min(safe_int(context.get("timeout_ms"), 1000) // 1000 + 1, 10)),
+            check=False,
+        )
+        rows = json.loads(proc.stdout or "[]") if proc.returncode == 0 else []
+    except Exception as exc:
+        return {
+            "ok": False,
+            "command": command,
+            "error": f"{type(exc).__name__}:{exc}"[:240],
+        }
+    row = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else {}
+    return {
+        "ok": bool(row),
+        "command": command,
+        "dev": str(row.get("dev") or ""),
+        "table": str(row.get("table") or "main"),
+        "prefsrc": str(row.get("prefsrc") or row.get("src") or ""),
+        "gateway": str(row.get("gateway") or ""),
+        "raw": row,
+    }
+
+
+def _cache_busted_url(url, nonce):
+    parsed = urlparse(url)
+    query = list(parse_qsl(parsed.query, keep_blank_values=True))
+    query.extend((("v7ProbeNonce", nonce), ("v7ProbeTimeNs", str(time.time_ns()))))
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def execute_fresh_exact_probe_request(context):
+    parsed = urlparse(str(context.get("target_url") or ""))
+    host = str(parsed.hostname or "")
+    port = int(parsed.port or 443)
+    timeout_seconds = max(0.05, safe_int(context.get("timeout_ms"), 1000) / 1000.0)
+    retry_count = max(0, safe_int(context.get("retry_count"), 0))
+    cadence_seconds = max(0.001, safe_int(context.get("observation_cadence_ms"), 100) / 1000.0)
+    attempts = []
+    for attempt_index in range(retry_count + 1):
+        started_ns = time.monotonic_ns()
+        nonce = secrets.token_hex(16)
+        sock = None
+        tls_sock = None
+        try:
+            resolved = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+            if not resolved:
+                raise OSError("dns_resolution_empty")
+            destination_ip = str(resolved[0][4][0])
+            if not ipaddress.ip_address(destination_ip).is_global:
+                raise OSError("non_public_probe_destination_forbidden")
+            route = route_lookup_for_exact_probe(destination_ip, context)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(timeout_seconds)
+            interface = str(context.get("interface") or "")
+            sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_BINDTODEVICE", 25), interface.encode("utf-8") + b"\0")
+            sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_MARK", 36), safe_int(context.get("fwmark"), 0))
+            sock.bind((str(context.get("source_address") or ""), 0))
+            sock.connect((destination_ip, port))
+            tls_sock = ssl.create_default_context().wrap_socket(sock, server_hostname=host)
+            request_url = _cache_busted_url(str(context.get("target_url") or ""), nonce)
+            request_target = urlparse(request_url).path or "/"
+            if urlparse(request_url).query:
+                request_target += "?" + urlparse(request_url).query
+            request = (
+                f"GET {request_target} HTTP/1.1\r\n"
+                f"Host: {host}\r\n"
+                "Accept: text/plain\r\n"
+                "Cache-Control: no-cache, no-store\r\n"
+                "Pragma: no-cache\r\n"
+                "Connection: close\r\n\r\n"
+            ).encode("ascii")
+            tls_sock.sendall(request)
+            chunks = []
+            total = 0
+            while total < 65536:
+                chunk = tls_sock.recv(min(8192, 65536 - total))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                total += len(chunk)
+            raw = b"".join(chunks)
+            header, separator, body = raw.partition(b"\r\n\r\n")
+            status_line = header.split(b"\r\n", 1)[0].decode("ascii", errors="replace")
+            response_text = body.decode("utf-8", errors="replace").strip()
+            expected_ip = str(context.get("expected_egress_ip") or "").strip()
+            payload_ok = bool(separator and " 200 " in status_line and response_text == expected_ip)
+            finished_ns = time.monotonic_ns()
+            attempt = {
+                "attempt": attempt_index + 1,
+                "started_monotonic_ns": started_ns,
+                "finished_monotonic_ns": finished_ns,
+                "duration_ms": round((finished_ns - started_ns) / 1_000_000.0, 3),
+                "dns_addresses": sorted({str(row[4][0]) for row in resolved}),
+                "destination_ip": destination_ip,
+                "route": route,
+                "fresh_dns_resolution": True,
+                "fresh_socket": True,
+                "source_bind_applied": True,
+                "interface_bind_applied": True,
+                "so_mark_applied": True,
+                "status_line": status_line,
+                "payload_response_verified": payload_ok,
+                "payload_fingerprint": hashlib.sha256(body).hexdigest(),
+                "response_matches_expected_egress_ip": response_text == expected_ip,
+            }
+            attempts.append(attempt)
+            if payload_ok:
+                return attempt, attempts
+        except Exception as exc:
+            finished_ns = time.monotonic_ns()
+            attempts.append({
+                "attempt": attempt_index + 1,
+                "started_monotonic_ns": started_ns,
+                "finished_monotonic_ns": finished_ns,
+                "duration_ms": round((finished_ns - started_ns) / 1_000_000.0, 3),
+                "error": f"{type(exc).__name__}:{exc}"[:240],
+                "fresh_socket": sock is not None,
+                "payload_response_verified": False,
+            })
+        finally:
+            for handle in (tls_sock, sock):
+                try:
+                    if handle is not None:
+                        handle.close()
+                except OSError:
+                    pass
+        if attempt_index < retry_count:
+            time.sleep(cadence_seconds)
+    return {}, attempts
+
+
+def build_exact_probe_receipt(context, successful_attempt, attempts):
+    context = context if isinstance(context, dict) else {}
+    attempt = successful_attempt if isinstance(successful_attempt, dict) else {}
+    route = attempt.get("route") if isinstance(attempt.get("route"), dict) else {}
+    actual_netns = current_netns_inode()
+    actual_clock = current_clock_domain_id()
+    expected_table = str(context.get("routing_table") or "")
+    route_table = str(route.get("table") or "")
+    table_matches = route_table == expected_table or (
+        expected_table == "main" and route_table in {"", "main", "254"}
+    )
+    source_matches = str(route.get("prefsrc") or "") in {
+        "",
+        str(context.get("source_address") or ""),
+    }
+    interface_matches = str(route.get("dev") or "") == str(context.get("interface") or "")
+    exact_identity = all((
+        context.get("certification_identity") is True,
+        actual_netns == safe_int(context.get("network_namespace_inode"), 0),
+        actual_clock == str(context.get("clock_domain_id") or ""),
+        attempt.get("source_bind_applied") is True,
+        attempt.get("interface_bind_applied") is True,
+        source_matches,
+        interface_matches,
+    ))
+    route_bound = all((
+        route.get("ok") is True,
+        table_matches,
+        interface_matches,
+        attempt.get("so_mark_applied") is True,
+    ))
+    expected_target_fingerprint = str(context.get("expected_target_egress_fingerprint") or "")
+    observed_target_fingerprint = (
+        expected_target_fingerprint
+        if attempt.get("response_matches_expected_egress_ip") is True
+        else ""
+    )
+    recovered_ns = safe_int(attempt.get("finished_monotonic_ns"), 0)
+    receipt_seed = {
+        "contract_id": context.get("contract_id"),
+        "validation_generation_id": context.get("validation_generation_id"),
+        "incident_generation": context.get("incident_generation"),
+        "user": context.get("user"),
+    }
+    receipt = {
+        "schema_version": EXACT_PROBE_RECEIPT_SCHEMA,
+        "receipt_id": "ctprobe_" + sha256_text(json.dumps(receipt_seed, sort_keys=True))[:24],
+        "probe_owner": "existing tools/v7-client-speed-api exact-probe mode",
+        "contract_id": str(context.get("contract_id") or ""),
+        "context_hash": str(context.get("context_hash") or ""),
+        "validation_generation_id": str(context.get("validation_generation_id") or ""),
+        "sample_kind": str(context.get("sample_kind") or ""),
+        "issuing_owner": str(context.get("issuing_owner") or ""),
+        "active_program": str(context.get("active_program") or ""),
+        "incident_id": str(context.get("incident_id") or ""),
+        "incident_generation": str(context.get("incident_generation") or ""),
+        "user": str(context.get("user") or ""),
+        "source": str(context.get("source") or ""),
+        "target": str(context.get("target") or ""),
+        "exact_certification_identity_context": exact_identity,
+        "routing_table_or_fwmark_bound": route_bound,
+        "network_namespace_inode": actual_netns,
+        "source_address": str(context.get("source_address") or ""),
+        "interface": str(context.get("interface") or ""),
+        "fwmark": safe_int(context.get("fwmark"), 0),
+        "routing_table": route_table,
+        "observed_target_egress_fingerprint": observed_target_fingerprint,
+        "payload_response_verified": attempt.get("payload_response_verified") is True,
+        "payload_fingerprint": str(attempt.get("payload_fingerprint") or ""),
+        "management_default_route_used": not (route_bound and exact_identity),
+        "fresh_socket": attempt.get("fresh_socket") is True,
+        "fresh_dns_resolution": attempt.get("fresh_dns_resolution") is True,
+        "kernel_counter_only": False,
+        "timeout_ms": safe_int(context.get("timeout_ms"), 0),
+        "retry_count": safe_int(context.get("retry_count"), -1),
+        "observation_cadence_ms": safe_int(context.get("observation_cadence_ms"), 0),
+        "clock_source": "time.monotonic_ns",
+        "clock_domain_id": actual_clock,
+        "clock_uncertainty_ms": safe_float(context.get("clock_uncertainty_ms"), 0.0),
+        "first_failed_observation_monotonic_ns": safe_int(context.get("first_failed_observation_monotonic_ns"), 0),
+        "confirmed_hard_failure_monotonic_ns": safe_int(context.get("confirmed_hard_failure_monotonic_ns"), 0),
+        "first_successful_client_traffic_monotonic_ns": recovered_ns,
+        "attempt_count": len(attempts if isinstance(attempts, list) else []),
+        "attempts": attempts if isinstance(attempts, list) else [],
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "user_movement": 0,
+    }
+    blockers = []
+    if not exact_identity:
+        blockers.append("exact_certification_identity_context_not_proven")
+    if not route_bound:
+        blockers.append("routing_table_or_fwmark_binding_not_proven")
+    if not observed_target_fingerprint:
+        blockers.append("target_egress_fingerprint_not_proven")
+    if receipt["payload_response_verified"] is not True:
+        blockers.append("payload_response_not_verified")
+    if recovered_ns < receipt["confirmed_hard_failure_monotonic_ns"]:
+        blockers.append("recovery_clock_order_invalid")
+    receipt["status"] = (
+        "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_RECEIPT_READY"
+        if not blockers else "PROBE_INVALID"
+    )
+    receipt["blockers"] = sorted(set(blockers))
+    return receipt
+
+
+def consume_exact_probe_receipt(receipt, context):
+    repo_root = str(Path(__file__).resolve().parents[1])
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+    try:
+        from admin_core import operator_execution_pipeline
+
+        probe = operator_execution_pipeline.exact_client_network_context_traffic_probe_contract(
+            receipt,
+            expected_user=str(context.get("user") or ""),
+            expected_target_fingerprint=str(
+                context.get("expected_target_egress_fingerprint") or ""
+            ),
+        )
+        clock = operator_execution_pipeline.client_recovery_clock_contract(receipt)
+    except Exception as exc:
+        return {
+            "status": "TIME_OWNER_CONSUMER_UNAVAILABLE",
+            "ok": False,
+            "error": f"{type(exc).__name__}:{exc}"[:240],
+            "owner": "admin_core.operator_execution_pipeline",
+        }
+    ok = probe.get("ok") is True and clock.get("ok") is True
+    return {
+        "status": (
+            "EXACT_CLIENT_PROBE_AND_RECOVERY_CLOCK_CONSUMED"
+            if ok else "EXACT_CLIENT_PROBE_OR_RECOVERY_CLOCK_REJECTED"
+        ),
+        "ok": ok,
+        "owner": "admin_core.operator_execution_pipeline",
+        "probe_contract": probe,
+        "recovery_clock": clock,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "user_movement": 0,
+    }
+
+
+def run_exact_probe_context(path):
+    try:
+        context = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "schema_version": EXACT_PROBE_RECEIPT_SCHEMA,
+            "status": "PROBE_INVALID",
+            "blockers": [f"context_read_failed:{type(exc).__name__}"],
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "user_movement": 0,
+        }
+    errors = exact_probe_context_errors(context)
+    if errors:
+        return {
+            "schema_version": EXACT_PROBE_RECEIPT_SCHEMA,
+            "status": "PROBE_INVALID",
+            "blockers": errors,
+            "contract_id": str(context.get("contract_id") or ""),
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "user_movement": 0,
+        }
+    successful, attempts = execute_fresh_exact_probe_request(context)
+    receipt = build_exact_probe_receipt(context, successful, attempts)
+    receipt["time_owner_consumption"] = consume_exact_probe_receipt(receipt, context)
+    if receipt["time_owner_consumption"].get("ok") is not True:
+        receipt["status"] = "PROBE_INVALID"
+        receipt["blockers"] = sorted(set(
+            list(receipt.get("blockers") or [])
+            + ["time_owner_consumer_rejected"]
+        ))
+    return receipt
 
 
 def normalize_ingress(value):
@@ -519,9 +971,21 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="V7 client telemetry and exact client-context probe owner")
+    parser.add_argument(
+        "--exact-client-probe-context",
+        help="run one read-only exact probe from an existing owner-backed context JSON",
+    )
+    parser.add_argument("--json", action="store_true", help="emit JSON for CLI probe mode")
+    args = parser.parse_args()
+    if args.exact_client_probe_context:
+        result = run_exact_probe_context(args.exact_client_probe_context)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
+        return 0 if result.get("status") != "PROBE_INVALID" else 2
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"V7 client speed API listening on http://{HOST}:{PORT}", flush=True)
     httpd.serve_forever()
+    return 0
 
 
 if __name__ == "__main__":

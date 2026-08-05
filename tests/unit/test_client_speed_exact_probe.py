@@ -159,6 +159,58 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertEqual(result["status"], "PROBE_INVALID")
         self.assertFalse(result["runtime_mutation_performed"])
 
+    def test_readiness_reuses_online_certification_agent_without_disclosing_identity(self):
+        now = int(client_speed.time.time())
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            users = root / "users.registry"
+            egress = root / "egress.registry"
+            agents = root / "client-agents.json"
+            users.write_text(
+                "ip=10.7.0.16 current=awg3 table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            egress.write_text(
+                "id=awg3 enabled=1 interface=awg3 expected_ip=194.124.210.244\n",
+                encoding="utf-8",
+            )
+            agents.write_text(json.dumps({"agents": {"10.7.0.16": {
+                "last_seen": "2026-08-05T00:00:00+00:00",
+                "online_until": now + 30,
+            }}}), encoding="utf-8")
+            with mock.patch.object(client_speed, "USERS_REG", users), mock.patch.object(
+                client_speed, "EGRESS_REG", egress
+            ), mock.patch.object(client_speed, "AGENTS", agents):
+                result = client_speed.exact_client_probe_readiness()
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["eligible_context_count"], 1)
+        self.assertNotIn("10.7.0.16", json.dumps(result))
+        self.assertFalse(result["command_enqueued"])
+        self.assertFalse(result["network_probe_executed"])
+
+    def test_readiness_names_exact_missing_agent_without_effects(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            users = root / "users.registry"
+            egress = root / "egress.registry"
+            agents = root / "client-agents.json"
+            users.write_text(
+                "ip=10.7.0.16 current=awg3 table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            egress.write_text(
+                "id=awg3 enabled=1 interface=awg3 expected_ip=194.124.210.244\n",
+                encoding="utf-8",
+            )
+            agents.write_text(json.dumps({"agents": {}}), encoding="utf-8")
+            with mock.patch.object(client_speed, "USERS_REG", users), mock.patch.object(
+                client_speed, "EGRESS_REG", egress
+            ), mock.patch.object(client_speed, "AGENTS", agents):
+                result = client_speed.exact_client_probe_readiness()
+        self.assertFalse(result["ok"])
+        self.assertIn("online_exact_certification_client_agent_missing", result["blockers"])
+        self.assertEqual(result["user_movement"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

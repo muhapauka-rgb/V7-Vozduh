@@ -107,6 +107,89 @@ def parse_egress_registry():
     return rows
 
 
+def exact_client_probe_readiness():
+    """Project whether an existing certification client can own CT-M0F-V.
+
+    This is deliberately a compact read model over the existing users,
+    egress and client-agent owners.  It does not enqueue a command, disclose
+    the selected identity, create a context, or perform a network operation.
+    """
+    users = parse_registry()
+    agents_root = read_json_file(AGENTS, {"agents": {}})
+    agents = (
+        agents_root.get("agents")
+        if isinstance(agents_root, dict)
+        and isinstance(agents_root.get("agents"), dict)
+        else {}
+    )
+    egresses = {row.get("id"): row for row in parse_egress_registry()}
+    now = int(time.time())
+    eligible = []
+    for ip, row in sorted(users.items()):
+        agent = agents.get(ip) if isinstance(agents.get(ip), dict) else {}
+        current = str(row.get("current") or "")
+        egress = egresses.get(current) if isinstance(egresses.get(current), dict) else {}
+        expected_ip = str(egress.get("expected_ip") or "")
+        try:
+            expected_ip_ok = bool(ipaddress.ip_address(expected_ip).is_global)
+        except ValueError:
+            expected_ip_ok = False
+        if not all((
+            str(row.get("enabled", "1")) == "1",
+            str(row.get("certification_user", "")).lower() in {"1", "true", "yes"},
+            int(agent.get("online_until") or 0) >= now,
+            current,
+            str(row.get("table") or "").isdigit(),
+            str(egress.get("interface") or ""),
+            expected_ip_ok,
+        )):
+            continue
+        eligible.append({
+            "identity_fingerprint": sha256_text(ip),
+            "current_egress": current,
+            "routing_table_fingerprint": sha256_text(row.get("table")),
+            "target_interface_fingerprint": sha256_text(egress.get("interface")),
+            "expected_egress_fingerprint": sha256_text(expected_ip),
+            "agent_last_seen": str(agent.get("last_seen") or ""),
+            "online_until": int(agent.get("online_until") or 0),
+        })
+    selected = eligible[0] if eligible else {}
+    blockers = []
+    if not users:
+        blockers.append("users_registry_unavailable")
+    if not any(
+        str(row.get("certification_user", "")).lower() in {"1", "true", "yes"}
+        and str(row.get("enabled", "1")) == "1"
+        for row in users.values()
+    ):
+        blockers.append("enabled_certification_identity_missing")
+    if not eligible:
+        blockers.append("online_exact_certification_client_agent_missing")
+    return {
+        "schema_version": "v7.exact-client-probe-readiness.v1",
+        "status": (
+            "EXACT_CERTIFICATION_CLIENT_CONTEXT_READY"
+            if selected else "STOP_SAFE_EXACT_CERTIFICATION_CLIENT_CONTEXT_REQUIRED"
+        ),
+        "ok": bool(selected),
+        "owner": "existing tools/v7-client-speed-api client-agent owner",
+        "eligible_context_count": len(eligible),
+        "selected_context": selected,
+        "identity_disclosed": False,
+        "command_enqueued": False,
+        "network_probe_executed": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "user_movement": 0,
+        "blockers": sorted(set(blockers)),
+        "next_required_consumer": (
+            "existing Controlled Production owner issues one short-lived exact probe command/context"
+            if selected
+            else "existing Controlled Production owner provisions or activates one dedicated certification client agent"
+        ),
+    }
+
+
 def egress_options_html():
     rows = parse_egress_registry()
     return "\n".join(
@@ -976,12 +1059,21 @@ def main():
         "--exact-client-probe-context",
         help="run one read-only exact probe from an existing owner-backed context JSON",
     )
+    parser.add_argument(
+        "--exact-client-probe-readiness",
+        action="store_true",
+        help="emit a compact read-only CT-M0F-V certification-client readiness projection",
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON for CLI probe mode")
     args = parser.parse_args()
     if args.exact_client_probe_context:
         result = run_exact_probe_context(args.exact_client_probe_context)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
         return 0 if result.get("status") != "PROBE_INVALID" else 2
+    if args.exact_client_probe_readiness:
+        result = exact_client_probe_readiness()
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
+        return 0 if result.get("ok") else 2
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"V7 client speed API listening on http://{HOST}:{PORT}", flush=True)
     httpd.serve_forever()

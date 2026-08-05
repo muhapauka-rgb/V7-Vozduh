@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-04T18:03:48+00:00
+State captured: 2026-08-05T02:05:55+00:00
 Latest terminal Mission: `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1`
 Latest terminal Mission state: `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: CT-M0F-E continuous prepared-decision producer/freshness consumer, exact client-probe consumer contract, first-failure clock, and crash-safe deferred closure successor are production-deployed at commit 8712d47f; exact client-context probe production and independently admitted CT-M0F-V samples remain owner-backed residuals.
+Source: CT-M0F-E continuous prepared-decision/freshness, crash-safe deferred closure, exact client-probe producer and Time consumer are production-deployed at commit 20ca164a; the deploy owner consumed the fail-closed production entrypoint. One exact controlled-production context/access and the distinct CT-M0F-V samples remain owner-backed residuals.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-04T18:03:48+00:00`
+Captured: `2026-08-05T02:05:55+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -30,10 +30,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `CONSTANT_TIME_COHORT_FAILOVER_CT_M0F_FOUNDATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `BIND AN OWNER-BACKED EXACT CERTIFICATION-IDENTITY CLIENT PAYLOAD PROBE TO THE DEPLOYED CT-M0F CONSUMER, THEN ADMIT DISTINCT CT-M0F-V GENERATIONS THROUGH THE EXISTING CONTROLLED-PRODUCTION OWNER; DO NOT SUBSTITUTE HOST/MATRIX/COUNTER EVIDENCE` |
+| `CURRENT_SAFE_NEXT_ACTION` | `THROUGH THE EXISTING CONTROLLED-PRODUCTION OWNER, ISSUE ONE HASHED SHORT-LIVED CT-M0F-V CONTEXT FOR A DEDICATED CERTIFICATION IDENTITY IN ITS EXACT NAMESPACE/SOURCE/INTERFACE/FWMARK/TABLE, THEN RUN ONE DISTINCT REQUIRED COLD GENERATION THROUGH THE DEPLOYED PROBE PRODUCER; DO NOT USE AN ORDINARY USER OR SUBSTITUTE HOST/MATRIX/COUNTER EVIDENCE` |
 | `CURRENT_SCOPE_CLASS` | `PRODUCT_EVOLUTION_ENGINEERING` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z` |
-| `CURRENT_TRANSITION_ID` | `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CT_M0F_E_EXACT_PROBE_PRODUCER_20260805T020555Z` |
+| `CURRENT_TRANSITION_ID` | `CT_M0F_E_EXACT_CLIENT_PROBE_PRODUCER_AND_DEPLOY_CALLER_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` |
 | `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` |
@@ -55,7 +55,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `81` |
-| `CONTINUATION_STOP_REASON` | `CT_M0F_E_SAFE_ENGINEERING_DEPLOYED; EXACT_CLIENT_CONTEXT_PROBE_PRODUCER_AND_DISTINCT_CONTROLLED_SAMPLES_REQUIRE_EXISTING_EXTERNAL_OWNER_INPUT` |
+| `CONTINUATION_STOP_REASON` | `CT_M0F_E_SAFE_ENGINEERING_AND_FAIL_CLOSED_PRODUCTION_CALLER_CONSUMED; EXACT OWNER_BACKED CT_M0F_V CONTEXT_ACCESS_AND DISTINCT CONTROLLED SAMPLES REQUIRE EXISTING CONTROLLED_PRODUCTION OWNER ADMISSION` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
@@ -581,12 +581,12 @@ This section is the single live volatile current-state surface. Older production
 | `CONSTANT_TIME_COHORT_FAILOVER_CONTRACT` | docs/reports/engineering/evidence/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_contract.json |
 | `CONSTANT_TIME_COHORT_FAILOVER_CT_M1_STATE` | FORMED_DEPENDENCY_BLOCKED |
 | `CONSTANT_TIME_COHORT_FAILOVER_NEXT_MISSION` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1 |
-| `CONSTANT_TIME_COHORT_FAILOVER_STATUS` | CT-M0_CONSUMED; CT-M0F-E_SAFE_ENGINEERING_DEPLOYED_PROBE_PRODUCER_EXTERNAL_RESIDUAL; CT-M0F-V_FORMED_DEPENDENCY_BLOCKED; CT-M1_FORMED_DEPENDENCY_BLOCKED |
+| `CONSTANT_TIME_COHORT_FAILOVER_STATUS` | CT-M0_CONSUMED; CT-M0F-E_SAFE_ENGINEERING_DEPLOYED_EXACT_PROBE_PRODUCER_AND_CALLER_CONSUMED; CT-M0F-V_FORMED_DEPENDENCY_BLOCKED; CT-M1_FORMED_DEPENDENCY_BLOCKED |
 | `CONSTANT_TIME_COHORT_FAILOVER_TERMINAL` | CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED |
 | `CLIENT_TRAFFIC_RECOVERY_LATENCY` | NOT_YET_MEASURED |
 | `CONSTANT_TIME_CT_M0F_CONTRACT_VERSION` | V4.5 |
-| `CONSTANT_TIME_CT_M0F_INTERNAL_PHASE` | CT-M0F-E_ENGINEERING_IN_PROGRESS |
-| `CONSTANT_TIME_CT_M0F_VALIDATION_STATE` | FORMED_DEPENDENCY_BLOCKED_ON_EXACT_CLIENT_PROBE_PRODUCER_AND_DISTINCT_EXISTING_OWNER_ADMISSIONS |
+| `CONSTANT_TIME_CT_M0F_INTERNAL_PHASE` | CT-M0F-E_ENGINEERING_COMPLETE_CT-M0F-V_DEPENDENCY_BOUND |
+| `CONSTANT_TIME_CT_M0F_VALIDATION_STATE` | FORMED_DEPENDENCY_BLOCKED_ON_EXACT_OWNER_BACKED_CLIENT_CONTEXT_ACCESS_AND_DISTINCT_EXISTING_OWNER_ADMISSIONS |
 | `CT_M0F_NUMERIC_GATE` | ORDERED_LADDER_ACTIVE; 10S TRANSITIONAL DOES_NOT_CLOSE; 3S LEGACY CLOSES_CT-M0F_LATENCY; 1S CLASS_REQUIRES_CT-M8_PRODUCTION_PROOF |
 | `CT_M0F_PRODUCTION_EFFECT_BOUNDARY` | E=NONE; V=ONE_CERTIFICATION_IDENTITY_ONLY_THROUGH_EXISTING_OWNER_CONTRACT; NO_CT-M8_CLASS_L8_OR_MATURITY_CREDIT |
 | `CT_M0F_AUTHORITY_BOUNDARY` | NO NEW AUTHORITY FOR E; V REQUIRES EXACT EXISTING-OWNER CONTROLLED-PRODUCTION ADMISSION |
@@ -604,14 +604,16 @@ This section is the single live volatile current-state surface. Older production
 | `CT_MEASUREMENT_VALIDITY_CONTRACT` | RECORD_CLOCK_DOMAIN_UNCERTAINTY_PROBE_CADENCE_RESOLUTION_TIMEOUT_RETRIES; VERDICT_SENSITIVE_UNCERTAINTY=STOP_SAFE |
 | `CT_RECOVERY_CLOCK_CONTRACT` | FIRST_FAILED_OBSERVATION_BOUND_TO_CONFIRMED_GENERATION -> HARD_FAILURE_CONFIRMED -> CLIENT_TRAFFIC_RECOVERED; DETECTION_INTERVAL_INCLUDED |
 | `FIRST_FAILURE_EVIDENCE_TO_CLIENT_RECOVERY_LATENCY` | NOT_YET_MEASURED_PRIMARY_USER_SLO |
-| `CONSTANT_TIME_CT_M0F_E_LAST_TERMINAL` | CT_M0F_E_PRODUCTION_CALLER_CONSUMED_NO_COMPATIBLE_PREPARED_CLASS_AND_DEFERRED_CLOSURE_PROVEN |
-| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXACT_CERTIFICATION_IDENTITY_CLIENT_PAYLOAD_PROBE_PRODUCER_OR_ACCESS_REQUIRED; THEN COMPATIBLE PREPARED CLASS AND CT-M0F-V DISTINCT CONTROLLED GENERATIONS |
+| `CONSTANT_TIME_CT_M0F_E_LAST_TERMINAL` | CT_M0F_E_EXACT_CLIENT_PROBE_PRODUCER_DEPLOYED_AND_FAIL_CLOSED_PRODUCTION_CALLER_CONSUMED |
+| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXACT OWNER_BACKED CERTIFICATION_IDENTITY NETWORK CONTEXT ACCESS REQUIRED; THEN ONE DISTINCT COLD CT-M0F-V GENERATION, COMPATIBLE PREPARED CLASS AND REMAINING DISTINCT CONTROLLED SAMPLES |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_REPORT` | docs/reports/engineering/2026-08-05_002250_ct_m0f_constant_time_performance_ledger_owner_binding.md |
 | `CT_M0F_PREPARED_AND_CLOSURE_REPORT` | docs/reports/engineering/2026-08-05_010348_ct_m0f_prepared_probe_and_deferred_closure.md |
-| `CT_M0F_DEPLOYED_COMMIT` | 2d30b5623a7083e16a743c01855fd9c64935c7e4 |
+| `CT_M0F_DEPLOYED_COMMIT` | 20ca164a1d5e0c8d0df0cb221549bde899516126 |
+| `CT_M0F_EXACT_PROBE_DEPLOY_ID` | deploy-z8-14-Updatesystem-20ca164-20260805T090442 |
 | `CT_M0F_PREPARED_DECISION_STATUS` | PRODUCTION_CALLER_CONSUMED; NO_COMPATIBLE_PREPARED_CLASS; FRESHNESS CONSUMER RETURNED MISSING WITHOUT WORLD MODEL REBUILD; COMPATIBLE CONTROLLED GENERATION REQUIRED FOR USABLE-PROJECTION PROOF |
 | `CT_M0F_DEFERRED_CLOSURE_STATUS` | DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN; EXISTING L3/CLOSURE/OUTCOME OWNERS; NO DUPLICATE FORWARD APPLY |
-| `CT_M0F_EXACT_CLIENT_PROBE_STATUS` | CONSUMER_CONTRACT_DEPLOYED; PRODUCTION_PRODUCER_NOT_FOUND; HOST_MATRIX_ROUTE_LOOKUP_AND_KERNEL_COUNTER SHORTCUTS REJECTED |
+| `CT_M0F_EXACT_CLIENT_PROBE_STATUS` | EXISTING_CLIENT_TELEMETRY_OWNER_EXTENDED; NATIVE PRODUCER_AND_TIME_CONSUMER_DEPLOYED; FAIL_CLOSED PRODUCTION CALLER CONSUMED; VALID EXACT CONTEXT SAMPLE NOT YET ADMITTED; HOST_MATRIX_ROUTE_LOOKUP_BROWSER_AND_KERNEL_COUNTER SHORTCUTS REJECTED |
+| `CT_M0F_EXACT_CLIENT_PROBE_REPORT` | docs/reports/engineering/2026-08-05_020555_ct_m0f_exact_probe_producer_and_deploy_caller.md |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_SCHEMA` | v7.constant-time-failover-performance-ledger.v1 |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_STATUS` | EXISTING_TIME_OWNER_BOUND_TO_RUNTIME_NESTED_SPANS_AND_HIDDEN_O_N_COUNTERS |
 
@@ -638,8 +640,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z` |
-| `CURRENT_TRANSITION_ID` | `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_V7_CT_M0F_E_EXACT_PROBE_PRODUCER_20260805T020555Z` |
+| `CURRENT_TRANSITION_ID` | `CT_M0F_E_EXACT_CLIENT_PROBE_PRODUCER_AND_DEPLOY_CALLER_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -660,7 +662,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | Second-level performance receipt `perfclose_6e6c4fa62f834a8d4b88da24` and baseline `perfclose_1f91af0c6253c6fe75e028c5` are consumed and non-repeatable. Stage 48 remains not executed until a separate existing-owner admission is consumed. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; provide/bind owner-backed exact certification-identity payload probe, then admit distinct CT-M0F-V generations; no host/Matrix/counter substitution` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; existing Controlled Production owner issues one exact hashed certification-identity probe context and admits the first distinct cold CT-M0F-V generation; no ordinary user or host/Matrix/counter substitution` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -669,8 +671,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z` |
-| `current_transition_id` | `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` |
+| `current_state_generation` | `cpsgen_V7_CT_M0F_E_EXACT_PROBE_PRODUCER_20260805T020555Z` |
+| `current_transition_id` | `CT_M0F_E_EXACT_CLIENT_PROBE_PRODUCER_AND_DEPLOY_CALLER_V1` |
 | `smallest_existing_next_action_id` | `WAITING_INPUT:STAGE_48_EXISTING_OWNER_ADMISSION` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -688,7 +690,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | ordinary Matrix -> one-user governed performance benchmark -> Outcome/Replay/Learning -> baseline reset -> Time receipt -> Stage-48 readiness-only projection -> separate existing-owner admission |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; provide/bind owner-backed exact certification-identity payload probe, then admit distinct CT-M0F-V generations; no host/Matrix/counter substitution; preserve CAP-U07 natural-evidence WIP |
+| `smallest_existing_next_action` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1; existing Controlled Production owner issues one exact hashed certification-identity probe context and admits the first distinct cold CT-M0F-V generation; no ordinary user or host/Matrix/counter substitution; preserve CAP-U07 natural-evidence WIP |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -756,7 +758,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_CT_M0F_E_PREPARED_CLOSURE_20260804T180348Z`; `CT_M0F_E_PREPARED_DECISION_PROBE_CONTRACT_AND_DEFERRED_CLOSURE_V1` | Stage 25 remains immutable; CT-M0F-E prepared/freshness, probe-consumer and deferred-closure contracts are deployed; exact client probe producer and valid controlled samples remain open | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` | existing Matrix, autoswitch, Time, L3, closure, controlled-production, CPS and OMP owners | `NONE` | bind exact certification-identity payload probe and independently admit CT-M0F-V generations; do not repeat Stage 25/benchmark or manufacture samples |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_V7_CT_M0F_E_EXACT_PROBE_PRODUCER_20260805T020555Z`; `CT_M0F_E_EXACT_CLIENT_PROBE_PRODUCER_AND_DEPLOY_CALLER_V1` | Stage 25 remains immutable; CT-M0F-E prepared/freshness, probe producer/consumer, deploy caller and deferred closure are production-consumed; valid exact-context CT-M0F-V samples remain open | `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1` | existing Matrix, autoswitch, client telemetry, Time, L3, closure, controlled-production, CPS and OMP owners | `NONE` | issue one exact hashed certification-identity context and admit the first distinct cold CT-M0F-V generation; do not repeat Stage 25/benchmark or manufacture samples |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

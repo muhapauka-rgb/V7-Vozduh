@@ -127,6 +127,14 @@ def exact_client_probe_readiness():
     eligible = []
     for ip, row in sorted(users.items()):
         agent = agents.get(ip) if isinstance(agents.get(ip), dict) else {}
+        capabilities = {
+            str(item)
+            for item in (
+                agent.get("capabilities")
+                if isinstance(agent.get("capabilities"), list)
+                else []
+            )
+        }
         current = str(row.get("current") or "")
         egress = egresses.get(current) if isinstance(egresses.get(current), dict) else {}
         expected_ip = str(egress.get("expected_ip") or "")
@@ -138,6 +146,7 @@ def exact_client_probe_readiness():
             str(row.get("enabled", "1")) == "1",
             str(row.get("certification_user", "")).lower() in {"1", "true", "yes"},
             int(agent.get("online_until") or 0) >= now,
+            "exact_client_network_context_traffic_probe_v1" in capabilities,
             current,
             str(row.get("table") or "").isdigit(),
             str(egress.get("interface") or ""),
@@ -164,7 +173,7 @@ def exact_client_probe_readiness():
     ):
         blockers.append("enabled_certification_identity_missing")
     if not eligible:
-        blockers.append("online_exact_certification_client_agent_missing")
+        blockers.append("online_capable_exact_certification_client_agent_missing")
     return {
         "schema_version": "v7.exact-client-probe-readiness.v1",
         "status": (

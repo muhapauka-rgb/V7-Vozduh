@@ -17,7 +17,7 @@ Production non-test caller установил точный текущий residu
 status=STOP_SAFE_EXACT_CERTIFICATION_CLIENT_CONTEXT_REQUIRED
 enabled certification identities=present
 eligible online exact certification client contexts=0
-blocker=online_exact_certification_client_agent_missing
+blocker=online_capable_exact_certification_client_agent_missing
 ```
 
 Следовательно, server-side probe, host route lookup, Matrix, browser без exact
@@ -64,6 +64,9 @@ existing Controlled Production + client-agent owners
 -> existing Time consumer
 -> performance ledger / residual recomputation
 ```
+
+Обычная online browser-session без явно заявленной и проверенной capability
+`exact_client_network_context_traffic_probe_v1` не считается готовым agent.
 
 Это не global program terminal и не основание повторять Stage 25 или уже
 доказанные performance/certification cycles.

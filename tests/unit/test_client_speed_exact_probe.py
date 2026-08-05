@@ -177,6 +177,7 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             agents.write_text(json.dumps({"agents": {"10.7.0.16": {
                 "last_seen": "2026-08-05T00:00:00+00:00",
                 "online_until": now + 30,
+                "capabilities": ["exact_client_network_context_traffic_probe_v1"],
             }}}), encoding="utf-8")
             with mock.patch.object(client_speed, "USERS_REG", users), mock.patch.object(
                 client_speed, "EGRESS_REG", egress
@@ -208,7 +209,7 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             ), mock.patch.object(client_speed, "AGENTS", agents):
                 result = client_speed.exact_client_probe_readiness()
         self.assertFalse(result["ok"])
-        self.assertIn("online_exact_certification_client_agent_missing", result["blockers"])
+        self.assertIn("online_capable_exact_certification_client_agent_missing", result["blockers"])
         self.assertEqual(result["user_movement"], 0)
 
 

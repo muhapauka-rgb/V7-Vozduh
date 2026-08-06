@@ -14998,6 +14998,12 @@ class AutoswitchPlanner:
         if not bool_value(getattr(self.args, "ct_m0f_kernel_cutover_validation", False)):
             return {"status": "NOT_REQUESTED", "ok": False}
         lineage = {
+            "authority_request_id": str(
+                getattr(self.args, "ct_m0f_controlled_validation_request_id", "") or ""
+            ),
+            "authority_request_hash": str(
+                getattr(self.args, "ct_m0f_controlled_validation_request_hash", "") or ""
+            ),
             "incident_id": str(
                 (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_id"))
                 or move.get("source_incident_id")
@@ -15025,6 +15031,19 @@ class AutoswitchPlanner:
             "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
         }
         blockers = [f"{key}_missing" for key, value in lineage.items() if not value]
+        consumption = operator_execution.validate_ct_m0f_controlled_validation_consumption(
+            request_id=lineage["authority_request_id"],
+            request_hash=lineage["authority_request_hash"],
+            validation_generation_id=lineage["validation_generation_id"],
+            packet_id=lineage["packet_id"],
+            operation_id=lineage["operation_id"],
+            lease_id=lineage["lease_id"],
+            user=lineage["user"],
+            source=lineage["source"],
+            target=lineage["target"],
+            audit_store=Path(self.args.action_class_audit_store),
+        )
+        blockers.extend(consumption.get("errors") or [])
         user = next((row for row in self.users if row.ip == lineage["user"]), None)
         target = self.egress.get(lineage["target"])
         if user is None or str((user.raw or {}).get("certification_user") or "").lower() not in {"1", "true", "yes"}:
@@ -15261,6 +15280,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--service-matrix-lock-timeout-sec", type=int, default=DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS)
     parser.add_argument("--ct-m0f-kernel-cutover-validation", action="store_true", help="After a governed certification-only apply, consume exact route plus target-payload evidence without claiming remote recovery.")
     parser.add_argument("--ct-m0f-validation-generation-id", default="")
+    parser.add_argument("--ct-m0f-controlled-validation-request-id", default="")
+    parser.add_argument("--ct-m0f-controlled-validation-request-hash", default="")
     parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",

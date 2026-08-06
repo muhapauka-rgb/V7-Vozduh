@@ -138,10 +138,13 @@ CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE = (
 CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE = (
     "ct_m0f_controlled_validation_authority_decision"
 )
+CT_M0F_CONTROLLED_VALIDATION_CONSUMPTION_RECORD_TYPE = (
+    "ct_m0f_controlled_validation_admission_consumed"
+)
 CT_M0F_CONTROLLED_VALIDATION_APPROVAL = (
     "APPROVE_CT_M0F_CONTROLLED_VALIDATION_ONCE"
 )
-CT_M0F_CONTROLLED_VALIDATION_REQUEST_TTL_SECONDS = 15 * 60
+CT_M0F_CONTROLLED_VALIDATION_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE = (
     "controlled_certification_substrate_effect"
 )
@@ -1494,6 +1497,198 @@ def record_ct_m0f_controlled_validation_authority_decision(
         "users_moved": 0,
         "authority_self_expansion": False,
         "production_maturity_change": False,
+    }
+
+
+def ct_m0f_controlled_validation_authority_binding_from_audit(
+    request_id,
+    request_hash,
+    validation_generation_id,
+    *,
+    audit_store=None,
+    now=None,
+):
+    """Read-only proof that one exact independent decision currently admits the generation."""
+    now = now or utc_now()
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    request = ct_m0f_controlled_validation_request_from_audit(
+        request_id, request_hash, audit_store=audit_store, now=now,
+    )
+    records = read_audit_records(audit_store)
+    decisions = [
+        row for row in records
+        if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE
+        and str(row.get("authority_request_id") or "") == str(request_id or "")
+        and str(row.get("authority_request_hash") or "") == str(request_hash or "")
+    ]
+    errors = []
+    if len(decisions) != 1:
+        errors.append("ct_m0f_validation_decision_missing_or_duplicate")
+    else:
+        decision = decisions[0]
+        if decision.get("decision") != CT_M0F_CONTROLLED_VALIDATION_APPROVAL:
+            errors.append("ct_m0f_validation_not_approved")
+        if str(decision.get("validation_generation_id") or "") != str(validation_generation_id or ""):
+            errors.append("ct_m0f_validation_decision_generation_mismatch")
+    if str(request.get("validation_generation_id") or "") != str(validation_generation_id or ""):
+        errors.append("ct_m0f_validation_request_generation_mismatch")
+    consumed = [
+        row for row in records
+        if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_CONSUMPTION_RECORD_TYPE
+        and str(row.get("authority_request_id") or "") == str(request_id or "")
+    ]
+    if consumed:
+        errors.append("ct_m0f_validation_admission_already_consumed")
+    return {
+        "ok": not errors,
+        "status": "ADMITTED_READY_FOR_FRESH_ARTIFACTS" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+        "request": copy.deepcopy(request),
+        "decision": copy.deepcopy(decisions[0]) if len(decisions) == 1 else {},
+        "request_id": str(request_id or ""),
+        "request_hash": str(request_hash or ""),
+        "validation_generation_id": str(validation_generation_id or ""),
+        "admission_consumed": bool(consumed),
+    }
+
+
+def consume_ct_m0f_controlled_validation_admission(
+    *,
+    request_id,
+    request_hash,
+    validation_generation_id,
+    packet_id,
+    operation_id,
+    lease_id,
+    user,
+    source,
+    target,
+    audit_store=None,
+    consumer_id="tools/v7-governed-canary-dry-run-cycle",
+    now=None,
+):
+    """Atomically consume the exact one-use admission after fresh artifacts exist."""
+    now = now or utc_now()
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    required = {
+        "request_id": str(request_id or ""),
+        "request_hash": str(request_hash or ""),
+        "validation_generation_id": str(validation_generation_id or ""),
+        "packet_id": str(packet_id or ""),
+        "operation_id": str(operation_id or ""),
+        "lease_id": str(lease_id or ""),
+        "user": str(user or ""),
+        "source": str(source or ""),
+        "target": str(target or ""),
+    }
+    missing = [f"ct_m0f_validation_{key}_missing" for key, value in required.items() if not value]
+    if missing:
+        return {"ok": False, "status": "STOP_SAFE", "errors": missing, "audit_write": False}
+    with current_action_class_contract_policy_lock(audit_store):
+        binding = ct_m0f_controlled_validation_authority_binding_from_audit(
+            request_id,
+            request_hash,
+            validation_generation_id,
+            audit_store=audit_store,
+            now=now,
+        )
+        errors = list(binding.get("errors") or [])
+        request = binding.get("request") if isinstance(binding.get("request"), dict) else {}
+        scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+        if str(scope.get("source_id") or "") != required["source"]:
+            errors.append("ct_m0f_validation_source_mismatch")
+        if int(scope.get("max_users") or 0) != 1 or int(scope.get("max_concurrent_transactions") or 0) != 1:
+            errors.append("ct_m0f_validation_scope_changed")
+        if errors:
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": sorted(set(errors)),
+                "audit_write": False,
+                "runtime_apply": False,
+                "users_moved": 0,
+            }
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-controlled-validation-admission-consumption.v1",
+            "record_type": CT_M0F_CONTROLLED_VALIDATION_CONSUMPTION_RECORD_TYPE,
+            "consumption_id": stable_id("ctm0fconsume", required),
+            "authority_request_id": required["request_id"],
+            "authority_request_hash": required["request_hash"],
+            "validation_generation_id": required["validation_generation_id"],
+            "packet_id": required["packet_id"],
+            "operation_id": required["operation_id"],
+            "lease_id": required["lease_id"],
+            "user": required["user"],
+            "source": required["source"],
+            "target": required["target"],
+            "consumer": str(consumer_id or "tools/v7-governed-canary-dry-run-cycle"),
+            "consumed_at": now.isoformat(),
+            "one_use_consumed": True,
+        })
+    return {
+        "ok": True,
+        "status": "CONSUMED_EXACT_ONCE",
+        "consumption_id": record["consumption_id"],
+        "request_id": required["request_id"],
+        "request_hash": required["request_hash"],
+        "validation_generation_id": required["validation_generation_id"],
+        "packet_id": required["packet_id"],
+        "operation_id": required["operation_id"],
+        "lease_id": required["lease_id"],
+        "audit_write": True,
+        "policy_write": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "authority_expansion": False,
+        "production_maturity_change": False,
+    }
+
+
+def validate_ct_m0f_controlled_validation_consumption(
+    *,
+    request_id,
+    request_hash,
+    validation_generation_id,
+    packet_id,
+    operation_id,
+    lease_id,
+    user,
+    source,
+    target,
+    audit_store=None,
+):
+    """Read-only proof that the exact one-use admission was consumed for this apply."""
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    expected = {
+        "authority_request_id": str(request_id or ""),
+        "authority_request_hash": str(request_hash or ""),
+        "validation_generation_id": str(validation_generation_id or ""),
+        "packet_id": str(packet_id or ""),
+        "operation_id": str(operation_id or ""),
+        "lease_id": str(lease_id or ""),
+        "user": str(user or ""),
+        "source": str(source or ""),
+        "target": str(target or ""),
+    }
+    missing = [f"ct_m0f_validation_{key}_missing" for key, value in expected.items() if not value]
+    records = read_audit_records(audit_store)
+    matches = [
+        row for row in records
+        if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_CONSUMPTION_RECORD_TYPE
+        and all(str(row.get(key) or "") == value for key, value in expected.items())
+    ]
+    errors = list(missing)
+    if len(matches) != 1:
+        errors.append("ct_m0f_validation_consumption_missing_or_duplicate")
+    return {
+        "ok": not errors,
+        "status": "EXACT_CONSUMPTION_PROVEN" if not errors else "STOP_SAFE",
+        "errors": sorted(set(errors)),
+        "consumption": copy.deepcopy(matches[0]) if len(matches) == 1 else {},
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
     }
 
 

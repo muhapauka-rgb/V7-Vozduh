@@ -3699,7 +3699,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         expired = operator_execution.validate_ct_m0f_controlled_validation_authority_request(
             request,
             decision="DECLINE",
-            now=now + timedelta(minutes=16),
+            now=now + timedelta(hours=25),
         )
         broadened = copy.deepcopy(request)
         broadened["scope"]["max_users"] = 2
@@ -3715,6 +3715,55 @@ class OperatorExecutionPacketTest(unittest.TestCase):
 
         self.assertIn("ct_m0f_validation_request_expired", expired["errors"])
         self.assertIn("ct_m0f_validation_blast_radius_invalid", broadened_validation["errors"])
+
+    def test_ct_m0f_approved_admission_is_consumed_once_and_lineage_is_proven(self):
+        now = datetime(2026, 8, 6, 3, 0, tzinfo=timezone.utc)
+        request = operator_execution.build_ct_m0f_controlled_validation_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="vless",
+            current_pool_status={
+                "total_enabled_certification_users": 1,
+                "max_enabled_certification_users_on_one_active_source": 1,
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="a" * 64,
+            now=now,
+        )
+        lineage = dict(
+            request_id=request["request_id"],
+            request_hash=request["request_hash"],
+            validation_generation_id=request["validation_generation_id"],
+            packet_id="packet-exact",
+            operation_id="operation-exact",
+            lease_id="lease-exact",
+            user="10.7.0.18",
+            source="vless",
+            target="awg0",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-audit.jsonl"
+            operator_execution.register_ct_m0f_controlled_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            operator_execution.record_ct_m0f_controlled_validation_authority_decision(
+                request_id=request["request_id"], request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_CONTROLLED_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test", audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            first = operator_execution.consume_ct_m0f_controlled_validation_admission(
+                **lineage, audit_store=audit, now=now + timedelta(seconds=3),
+            )
+            proof = operator_execution.validate_ct_m0f_controlled_validation_consumption(
+                **lineage, audit_store=audit,
+            )
+            duplicate = operator_execution.consume_ct_m0f_controlled_validation_admission(
+                **lineage, audit_store=audit, now=now + timedelta(seconds=4),
+            )
+        self.assertTrue(first["ok"])
+        self.assertTrue(proof["ok"])
+        self.assertFalse(duplicate["ok"])
+        self.assertIn("ct_m0f_validation_admission_already_consumed", duplicate["errors"])
 
 
 if __name__ == "__main__":

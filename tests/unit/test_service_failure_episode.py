@@ -152,18 +152,16 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 )
 
         self.assertTrue(result["ok"])
-        self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
-        self.assertIn("--ct-m0f-standing-source-selection", calls[0])
-        self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[1])
-        self.assertIn("--execute-l3-production-validation", calls[2])
-        self.assertEqual(calls[2][calls[2].index("--approved-source") + 1], "vless")
         self.assertEqual(
-            calls[2][calls[2].index("--ct-m0f-standing-validation-user") + 1],
-            "10.7.0.18",
+            result["status"],
+            "CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED",
         )
+        self.assertEqual(len(calls), 1)
+        self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[0])
+        self.assertNotIn("--ct-m0f-standing-source-selection", calls[0])
         self.assertEqual(
-            calls[2][calls[2].index("--ct-m0f-standing-validation-target") + 1],
-            "awg0",
+            result["durable_successor"],
+            "NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE",
         )
 
     def test_ct_m0f_standing_matrix_prepares_condition_then_waits_for_fresh_generation(self):

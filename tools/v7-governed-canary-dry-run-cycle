@@ -11548,7 +11548,9 @@ def reset_ct_m0f_standing_validation_sample(
         "recovery_mode": recovery_mode,
         "source_recovery_proven": source_recovery_proven,
         "controlled_source_reset": controlled_source_reset,
-        "runtime_mutation_performed": bool(reset_transaction),
+        "runtime_mutation_performed": bool(
+            reset_transaction or controlled_source_reset
+        ),
         "users_moved": 1 if reset_transaction else 0,
         "ordinary_user_delta": 0,
         "authority_expanded": False,

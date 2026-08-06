@@ -1258,6 +1258,113 @@ def run_ct_m0f_standing_validation_campaign(
             parsed = {}
         return proc.returncode, parsed if isinstance(parsed, dict) else {}, (proc.stdout or "")[-2000:]
 
+    def close_active_sample(
+        active: list[dict[str, Any]],
+    ) -> Optional[dict[str, Any]]:
+        if len(active) > 1:
+            return {
+                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                "status": "STOP_SAFE_DUPLICATE_ACTIVE_SAMPLE_RESERVATIONS",
+                "ok": False,
+                "steps": steps,
+                "active_reservation_ids": [
+                    str(row.get("reservation_id") or "") for row in active
+                ],
+                "runtime_mutation_performed": any(
+                    bool(row.get("runtime_mutation_performed")) for row in steps
+                ),
+                "users_moved": 0,
+            }
+        if not active:
+            return None
+        reservation_id = str(active[0].get("reservation_id") or "")
+        reset_command = [
+            executor,
+            "--reset-ct-m0f-standing-validation-sample",
+            "--ct-m0f-standing-validation-reservation-id", reservation_id,
+            "--state-dir", str(state_dir),
+            "--event-dir", str(event_dir),
+            "--policy-file", str(policy_file),
+            "--audit-dir", str(audit_store.parent),
+            "--operator-execution-audit-store", str(audit_store),
+            "--pretty",
+        ]
+        rc, reset, output = invoke(
+            reset_command, max(60, min(timeout_sec, 900))
+        )
+        steps.append({
+            "kind": "RESET_AND_SAMPLE_CLOSURE",
+            "reservation_id": reservation_id,
+            "returncode": rc,
+            "result": reset,
+            "output_tail": "" if reset else output,
+            "runtime_mutation_performed": bool(
+                reset.get("runtime_mutation_performed")
+            ),
+        })
+        if rc != 0 or str(reset.get("final_verdict") or "") not in {
+            "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
+            "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+            "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID",
+        }:
+            return {
+                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                "status": "STOP_SAFE_SAMPLE_RESET_OR_CLOSURE_FAILED",
+                "ok": False,
+                "steps": steps,
+                "runtime_mutation_performed": any(
+                    bool(row.get("runtime_mutation_performed")) for row in steps
+                ),
+                "users_moved": 0,
+            }
+        budget = reset.get("budget") if isinstance(reset.get("budget"), dict) else {}
+        if budget.get("campaign_complete"):
+            return {
+                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                "status": "CT_M0F_OPERATIONAL_SLO_CONSUMED",
+                "ok": True,
+                "steps": steps,
+                "budget": budget,
+                "action_completed": True,
+                "runtime_mutation_performed": any(
+                    bool(row.get("runtime_mutation_performed")) for row in steps
+                ),
+                "users_moved": 0,
+            }
+        if (
+            budget.get("attempt_budget_exhausted")
+            or budget.get("valid_sample_budget_exhausted")
+        ):
+            return {
+                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                "status": "CT_M0F_VALIDATION_ATTEMPT_BUDGET_EXHAUSTED_ENGINEERING_RESIDUAL_REQUIRED",
+                "ok": True,
+                "steps": steps,
+                "budget": budget,
+                "action_completed": True,
+                "runtime_mutation_performed": any(
+                    bool(row.get("runtime_mutation_performed")) for row in steps
+                ),
+                "users_moved": 0,
+            }
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED",
+            "ok": True,
+            "steps": steps,
+            "budget": budget,
+            "action_completed": True,
+            "runtime_mutation_performed": any(
+                bool(row.get("runtime_mutation_performed")) for row in steps
+            ),
+            "users_moved": 0,
+            "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE",
+        }
+
+    active_result = close_active_sample(active_reservations())
+    if active_result is not None:
+        return active_result
+
     source_command = [
         planner,
         "--ct-m0f-standing-source-selection",
@@ -1360,89 +1467,9 @@ def run_ct_m0f_standing_validation_campaign(
         }
 
     for _ in range(max(1, int(max_successive_samples))):
-        active = active_reservations()
-        if len(active) > 1:
-            return {
-                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
-                "status": "STOP_SAFE_DUPLICATE_ACTIVE_SAMPLE_RESERVATIONS",
-                "ok": False,
-                "steps": steps,
-                "active_reservation_ids": [
-                    str(row.get("reservation_id") or "") for row in active
-                ],
-                "runtime_mutation_performed": any(
-                    bool(row.get("runtime_mutation_performed")) for row in steps
-                ),
-                "users_moved": 0,
-            }
-        if active:
-            reservation_id = str(active[0].get("reservation_id") or "")
-            reset_command = [
-                executor,
-                "--reset-ct-m0f-standing-validation-sample",
-                "--ct-m0f-standing-validation-reservation-id", reservation_id,
-                "--state-dir", str(state_dir),
-                "--event-dir", str(event_dir),
-                "--policy-file", str(policy_file),
-                "--audit-dir", str(audit_store.parent),
-                "--operator-execution-audit-store", str(audit_store),
-                "--pretty",
-            ]
-            rc, reset, output = invoke(
-                reset_command, max(60, min(timeout_sec, 900))
-            )
-            reset_step = {
-                "kind": "RESET_AND_SAMPLE_CLOSURE",
-                "reservation_id": reservation_id,
-                "returncode": rc,
-                "result": reset,
-                "output_tail": "" if reset else output,
-                "runtime_mutation_performed": bool(
-                    reset.get("runtime_mutation_performed")
-                ),
-            }
-            steps.append(reset_step)
-            if rc != 0 or str(reset.get("final_verdict") or "") not in {
-                "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
-                "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
-                "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID",
-            }:
-                return {
-                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
-                    "status": "STOP_SAFE_SAMPLE_RESET_OR_CLOSURE_FAILED",
-                    "ok": False,
-                    "steps": steps,
-                    "runtime_mutation_performed": any(
-                        bool(row.get("runtime_mutation_performed")) for row in steps
-                    ),
-                    "users_moved": 0,
-                }
-            budget = reset.get("budget") if isinstance(reset.get("budget"), dict) else {}
-            if budget.get("campaign_complete"):
-                return {
-                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
-                    "status": "CT_M0F_OPERATIONAL_SLO_CONSUMED",
-                    "ok": True,
-                    "steps": steps,
-                    "budget": budget,
-                    "action_completed": True,
-                    "runtime_mutation_performed": True,
-                    "users_moved": 0,
-                }
-            if budget.get("attempt_budget_exhausted") or budget.get("valid_sample_budget_exhausted"):
-                return {
-                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
-                    "status": "CT_M0F_VALIDATION_ATTEMPT_BUDGET_EXHAUSTED_ENGINEERING_RESIDUAL_REQUIRED",
-                    "ok": True,
-                    "steps": steps,
-                    "budget": budget,
-                    "action_completed": True,
-                    "runtime_mutation_performed": any(
-                        bool(row.get("runtime_mutation_performed")) for row in steps
-                    ),
-                    "users_moved": 0,
-                }
-            continue
+        active_result = close_active_sample(active_reservations())
+        if active_result is not None:
+            return active_result
 
         execute_command = [
             executor,

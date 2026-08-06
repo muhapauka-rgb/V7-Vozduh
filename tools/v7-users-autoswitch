@@ -14997,13 +14997,16 @@ class AutoswitchPlanner:
         """
         if not bool_value(getattr(self.args, "ct_m0f_kernel_cutover_validation", False)):
             return {"status": "NOT_REQUESTED", "ok": False}
+        standing_contract_id = str(
+            getattr(self.args, "ct_m0f_standing_validation_contract_id", "") or ""
+        )
+        standing_contract_hash = str(
+            getattr(self.args, "ct_m0f_standing_validation_contract_hash", "") or ""
+        )
+        implementation_fingerprint = str(
+            getattr(self.args, "ct_m0f_implementation_fingerprint", "") or ""
+        )
         lineage = {
-            "authority_request_id": str(
-                getattr(self.args, "ct_m0f_controlled_validation_request_id", "") or ""
-            ),
-            "authority_request_hash": str(
-                getattr(self.args, "ct_m0f_controlled_validation_request_hash", "") or ""
-            ),
             "incident_id": str(
                 (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_id"))
                 or move.get("source_incident_id")
@@ -15030,18 +15033,49 @@ class AutoswitchPlanner:
             "lease_id": str(getattr(self.args, "approved_execution_lease_id", "") or ""),
             "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
         }
+        if standing_contract_id:
+            lineage.update({
+                "standing_contract_id": standing_contract_id,
+                "standing_contract_hash": standing_contract_hash,
+                "implementation_fingerprint": implementation_fingerprint,
+            })
+        else:
+            lineage.update({
+                "authority_request_id": str(
+                    getattr(self.args, "ct_m0f_controlled_validation_request_id", "") or ""
+                ),
+                "authority_request_hash": str(
+                    getattr(self.args, "ct_m0f_controlled_validation_request_hash", "") or ""
+                ),
+            })
         blockers = [f"{key}_missing" for key, value in lineage.items() if not value]
-        consumption = operator_execution.validate_ct_m0f_controlled_validation_consumption(
-            request_id=lineage["authority_request_id"],
-            request_hash=lineage["authority_request_hash"],
-            validation_generation_id=lineage["validation_generation_id"],
-            packet_id=lineage["packet_id"],
-            operation_id=lineage["operation_id"],
-            lease_id=lineage["lease_id"],
-            user=lineage["user"],
-            source=lineage["source"],
-            target=lineage["target"],
-            audit_store=Path(self.args.action_class_audit_store),
+        consumption = (
+            operator_execution.validate_ct_m0f_standing_validation_sample_reservation(
+                contract_id=standing_contract_id,
+                contract_hash=standing_contract_hash,
+                implementation_fingerprint=implementation_fingerprint,
+                validation_generation_id=lineage["validation_generation_id"],
+                packet_id=lineage["packet_id"],
+                operation_id=lineage["operation_id"],
+                lease_id=lineage["lease_id"],
+                user=lineage["user"],
+                source=lineage["source"],
+                target=lineage["target"],
+                audit_store=Path(self.args.action_class_audit_store),
+            )
+            if standing_contract_id
+            else operator_execution.validate_ct_m0f_controlled_validation_consumption(
+                request_id=lineage["authority_request_id"],
+                request_hash=lineage["authority_request_hash"],
+                validation_generation_id=lineage["validation_generation_id"],
+                packet_id=lineage["packet_id"],
+                operation_id=lineage["operation_id"],
+                lease_id=lineage["lease_id"],
+                user=lineage["user"],
+                source=lineage["source"],
+                target=lineage["target"],
+                audit_store=Path(self.args.action_class_audit_store),
+            )
         )
         blockers.extend(consumption.get("errors") or [])
         user = next((row for row in self.users if row.ip == lineage["user"]), None)
@@ -15282,6 +15316,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-validation-generation-id", default="")
     parser.add_argument("--ct-m0f-controlled-validation-request-id", default="")
     parser.add_argument("--ct-m0f-controlled-validation-request-hash", default="")
+    parser.add_argument("--ct-m0f-standing-validation-contract-id", default="")
+    parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
+    parser.add_argument("--ct-m0f-implementation-fingerprint", default="")
     parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",

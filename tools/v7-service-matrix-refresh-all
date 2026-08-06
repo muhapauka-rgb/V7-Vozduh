@@ -1181,6 +1181,238 @@ def run_bounded_delegated_service_failure_action(
     }
 
 
+def run_ct_m0f_standing_validation_campaign(
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+    timeout_sec: int = 600,
+    max_successive_samples: int = 8,
+) -> dict[str, Any]:
+    """Consume the bounded CT-M0F standing policy through existing owners.
+
+    Matrix remains only the wake/consumer.  Candidate, Packet, lease, cutover,
+    reset and evidence are produced by their existing governed owners.
+    """
+    policy_root = read_json(policy_file, {})
+    contract = (
+        policy_root.get(
+            operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}
+        )
+        if isinstance(policy_root, dict)
+        else {}
+    )
+    records = operator_execution.read_audit_records(audit_store)
+    validation = operator_execution.validate_ct_m0f_standing_validation_policy(
+        contract, audit_records=records,
+    )
+    if not validation.get("ok"):
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "INACTIVE_NO_VALID_STANDING_CT_M0F_POLICY",
+            "ok": True,
+            "blockers": validation.get("errors") or [],
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    contract_id = str(contract.get("contract_id") or "")
+    contract_hash = str(contract.get("contract_hash") or "")
+    steps: list[dict[str, Any]] = []
+
+    def active_reservations() -> list[dict[str, Any]]:
+        current = operator_execution.read_audit_records(audit_store)
+        terminal_ids = {
+            str(row.get("reservation_id") or "")
+            for row in current
+            if row.get("record_type")
+            == operator_execution.CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE
+        }
+        return [
+            row for row in current
+            if row.get("record_type")
+            == operator_execution.CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+            and str(row.get("contract_id") or "") == contract_id
+            and str(row.get("reservation_id") or "") not in terminal_ids
+        ]
+
+    def invoke(command: list[str], timeout: int) -> tuple[int, dict[str, Any], str]:
+        try:
+            proc = subprocess.run(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=timeout,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return 2, {}, f"{type(exc).__name__}:{exc}"
+        try:
+            parsed = json.loads(proc.stdout or "{}")
+        except json.JSONDecodeError:
+            parsed = {}
+        return proc.returncode, parsed if isinstance(parsed, dict) else {}, (proc.stdout or "")[-2000:]
+
+    for _ in range(max(1, int(max_successive_samples))):
+        active = active_reservations()
+        if len(active) > 1:
+            return {
+                "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                "status": "STOP_SAFE_DUPLICATE_ACTIVE_SAMPLE_RESERVATIONS",
+                "ok": False,
+                "steps": steps,
+                "active_reservation_ids": [
+                    str(row.get("reservation_id") or "") for row in active
+                ],
+                "runtime_mutation_performed": any(
+                    bool(row.get("runtime_mutation_performed")) for row in steps
+                ),
+                "users_moved": 0,
+            }
+        if active:
+            reservation_id = str(active[0].get("reservation_id") or "")
+            reset_command = [
+                executor,
+                "--reset-ct-m0f-standing-validation-sample",
+                "--ct-m0f-standing-validation-reservation-id", reservation_id,
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(policy_file),
+                "--audit-dir", str(audit_store.parent),
+                "--operator-execution-audit-store", str(audit_store),
+                "--pretty",
+            ]
+            rc, reset, output = invoke(
+                reset_command, max(60, min(timeout_sec, 900))
+            )
+            reset_step = {
+                "kind": "RESET_AND_SAMPLE_CLOSURE",
+                "reservation_id": reservation_id,
+                "returncode": rc,
+                "result": reset,
+                "output_tail": "" if reset else output,
+                "runtime_mutation_performed": bool(
+                    reset.get("runtime_mutation_performed")
+                ),
+            }
+            steps.append(reset_step)
+            if rc != 0 or str(reset.get("final_verdict") or "") not in {
+                "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
+                "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+                "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID",
+            }:
+                return {
+                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                    "status": "STOP_SAFE_SAMPLE_RESET_OR_CLOSURE_FAILED",
+                    "ok": False,
+                    "steps": steps,
+                    "runtime_mutation_performed": any(
+                        bool(row.get("runtime_mutation_performed")) for row in steps
+                    ),
+                    "users_moved": 0,
+                }
+            budget = reset.get("budget") if isinstance(reset.get("budget"), dict) else {}
+            if budget.get("campaign_complete"):
+                return {
+                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                    "status": "CT_M0F_OPERATIONAL_SLO_CONSUMED",
+                    "ok": True,
+                    "steps": steps,
+                    "budget": budget,
+                    "action_completed": True,
+                    "runtime_mutation_performed": True,
+                    "users_moved": 0,
+                }
+            if budget.get("attempt_budget_exhausted") or budget.get("valid_sample_budget_exhausted"):
+                return {
+                    "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+                    "status": "CT_M0F_VALIDATION_ATTEMPT_BUDGET_EXHAUSTED_ENGINEERING_RESIDUAL_REQUIRED",
+                    "ok": True,
+                    "steps": steps,
+                    "budget": budget,
+                    "action_completed": True,
+                    "runtime_mutation_performed": any(
+                        bool(row.get("runtime_mutation_performed")) for row in steps
+                    ),
+                    "users_moved": 0,
+                }
+            continue
+
+        execute_command = [
+            executor,
+            "--execute-l3-production-validation",
+            "--confirm-l3-production-validation",
+            "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED",
+            "--ct-m0f-kernel-cutover-validation",
+            "--ct-m0f-standing-validation",
+            "--ct-m0f-standing-validation-contract-id", contract_id,
+            "--ct-m0f-standing-validation-contract-hash", contract_hash,
+            "--state-dir", str(state_dir),
+            "--event-dir", str(event_dir),
+            "--policy-file", str(policy_file),
+            "--audit-dir", str(audit_store.parent),
+            "--operator-execution-audit-store", str(audit_store),
+            "--max-users", "1",
+            "--pretty",
+        ]
+        rc, result, output = invoke(
+            execute_command, max(120, min(timeout_sec, 900))
+        )
+        reservation = (
+            (result.get("ct_m0f_admission_consumption") or {}).get("reservation")
+            if isinstance(result.get("ct_m0f_admission_consumption"), dict)
+            else {}
+        )
+        steps.append({
+            "kind": "FRESH_SAMPLE_EXECUTION",
+            "returncode": rc,
+            "reservation_id": str((reservation or {}).get("reservation_id") or ""),
+            "final_verdict": str(result.get("final_verdict") or ""),
+            "stop_reason": str(result.get("stop_reason") or ""),
+            "result": result,
+            "output_tail": "" if result else output,
+            "runtime_mutation_performed": bool(
+                result.get("runtime_mutation_performed")
+            ),
+        })
+        # A reserved sample must always flow through the durable reset/closure
+        # successor, even if the child returned STOP_SAFE after its write.
+        if reservation:
+            continue
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_NO_SAMPLE_ADMITTED",
+            "ok": bool(
+                rc in {0, 2}
+                and not result.get("runtime_mutation_performed")
+                and int(result.get("users_moved") or 0) == 0
+            ),
+            "blockers": [
+                str(result.get("stop_reason") or result.get("final_verdict") or "sample_not_admitted")
+            ],
+            "steps": steps,
+            "action_completed": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    return {
+        "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+        "status": "CT_M0F_BOUNDED_SUCCESSOR_LIMIT_REACHED",
+        "ok": True,
+        "steps": steps,
+        "action_completed": bool(steps),
+        "runtime_mutation_performed": any(
+            bool(row.get("runtime_mutation_performed")) for row in steps
+        ),
+        "users_moved": 0,
+    }
+
+
 def service_failure_obligation_from_advisory(
     advisory_result: Any,
 ) -> dict[str, Any]:
@@ -2799,6 +3031,7 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "bounded_delegated_service_failure_action",
         "availability_first_standing_policy_action",
         "controlled_topology_standing_policy_action",
+        "ct_m0f_standing_validation_campaign",
     ):
         if key in payload:
             projection[key] = _consumer_projection(payload.get(key))
@@ -3304,10 +3537,33 @@ def main() -> int:
             availability_action = payload[
                 "availability_first_standing_policy_action"
             ]
+        if not (
+            bounded_action.get("action_completed")
+            or availability_action.get("action_completed")
+            or topology_action.get("action_completed")
+        ):
+            payload[
+                "ct_m0f_standing_validation_campaign"
+            ] = run_ct_m0f_standing_validation_campaign(
+                str(args.governed_executor),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 900,
+            )
+        ct_m0f_action = (
+            payload.get("ct_m0f_standing_validation_campaign")
+            if isinstance(
+                payload.get("ct_m0f_standing_validation_campaign"), dict
+            )
+            else {}
+        )
         any_action_completed = bool(
             bounded_action.get("action_completed")
             or availability_action.get("action_completed")
             or topology_action.get("action_completed")
+            or ct_m0f_action.get("action_completed")
         )
         if any_action_completed:
             # The first passive/L3 pass precedes the bounded action.  Its

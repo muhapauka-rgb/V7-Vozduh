@@ -3007,6 +3007,9 @@ def run_autoswitch_apply(
     ct_m0f_sample_kind: str = "warm",
     ct_m0f_validation_request_id: str = "",
     ct_m0f_validation_request_hash: str = "",
+    ct_m0f_standing_validation_contract_id: str = "",
+    ct_m0f_standing_validation_contract_hash: str = "",
+    ct_m0f_implementation_fingerprint: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3081,6 +3084,15 @@ def run_autoswitch_apply(
             "--ct-m0f-controlled-validation-request-hash",
             ct_m0f_validation_request_hash,
         ])
+        if ct_m0f_standing_validation_contract_id:
+            command.extend([
+                "--ct-m0f-standing-validation-contract-id",
+                ct_m0f_standing_validation_contract_id,
+                "--ct-m0f-standing-validation-contract-hash",
+                ct_m0f_standing_validation_contract_hash,
+                "--ct-m0f-implementation-fingerprint",
+                ct_m0f_implementation_fingerprint,
+            ])
     child_env = dict(os.environ)
     child_env["V7_PARENT_LAUNCH_MONOTONIC_NS"] = str(process_started_ns)
     try:
@@ -4682,7 +4694,14 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     ct_m0f_validation_requested = bool(
         getattr(args, "ct_m0f_kernel_cutover_validation", False)
     )
+    ct_m0f_standing_requested = bool(
+        getattr(args, "ct_m0f_standing_validation", False)
+    )
+    if ct_m0f_standing_requested:
+        ct_m0f_validation_requested = True
     ct_m0f_admission_binding: dict[str, Any] = {}
+    ct_m0f_standing_binding: dict[str, Any] = {}
+    ct_m0f_implementation_fingerprint = ""
     if ct_m0f_validation_requested:
         ct_m0f_request_id = str(
             getattr(args, "ct_m0f_controlled_validation_request_id", "") or ""
@@ -4695,40 +4714,106 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         )
         if requested_max_users != 1:
             return transaction_stop("ct_m0f_validation_max_users_must_be_one")
-        try:
-            ct_m0f_admission_binding = (
-                operator_execution
-                .ct_m0f_controlled_validation_authority_binding_from_audit(
-                    ct_m0f_request_id,
-                    ct_m0f_request_hash,
-                    ct_m0f_generation_id,
-                    audit_store=audit_dir / "operator-execution-audit.jsonl",
+        if ct_m0f_standing_requested:
+            policy_root = read_json(Path(args.policy_file), {})
+            contract = (
+                policy_root.get(
+                    operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY,
+                    {},
+                )
+                if isinstance(policy_root, dict)
+                else {}
+            )
+            ct_m0f_standing_binding = (
+                operator_execution.validate_ct_m0f_standing_validation_policy(
+                    contract,
+                    audit_records=operator_execution.read_audit_records(
+                        audit_dir / "operator-execution-audit.jsonl"
+                    ),
                 )
             )
-        except Exception as exc:
-            return transaction_stop(
-                "ct_m0f_validation_authority_binding_unavailable",
-                error=str(exc),
+            if not ct_m0f_standing_binding.get("ok"):
+                return transaction_stop(
+                    "ct_m0f_standing_validation_policy_denied",
+                    blockers=ct_m0f_standing_binding.get("errors") or [],
+                )
+            requested_contract_id = str(
+                getattr(args, "ct_m0f_standing_validation_contract_id", "") or ""
             )
-        request = (
-            ct_m0f_admission_binding.get("request")
-            if isinstance(ct_m0f_admission_binding.get("request"), dict)
-            else {}
-        )
-        scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
-        binding_errors = list(ct_m0f_admission_binding.get("errors") or [])
-        if str(scope.get("sample_kind") or "") != str(
-            getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
-        ):
-            binding_errors.append("ct_m0f_validation_sample_kind_mismatch")
-        if str(scope.get("source_id") or "") != str(args.approved_source or ""):
-            binding_errors.append("ct_m0f_validation_requested_source_mismatch")
-        if binding_errors:
-            return transaction_stop(
-                "ct_m0f_validation_authority_binding_denied",
-                blockers=sorted(set(binding_errors)),
-                ct_m0f_admission_binding=ct_m0f_admission_binding,
+            requested_contract_hash = str(
+                getattr(args, "ct_m0f_standing_validation_contract_hash", "") or ""
             )
+            if requested_contract_id and requested_contract_id != str(contract.get("contract_id") or ""):
+                return transaction_stop("ct_m0f_standing_contract_id_mismatch")
+            if requested_contract_hash and requested_contract_hash != str(contract.get("contract_hash") or ""):
+                return transaction_stop("ct_m0f_standing_contract_hash_mismatch")
+            ct_m0f_implementation_fingerprint = operator_execution.sha256_json({
+                "operator_execution": operator_execution.sha256_file(
+                    Path(operator_execution.__file__)
+                ),
+                "governed_cycle": operator_execution.sha256_file(Path(__file__)),
+                "autoswitch": operator_execution.sha256_file(
+                    planner_observe_executable()
+                ),
+            })
+            budget = operator_execution.ct_m0f_standing_validation_budget_status(
+                contract,
+                ct_m0f_implementation_fingerprint,
+                audit_records=operator_execution.read_audit_records(
+                    audit_dir / "operator-execution-audit.jsonl"
+                ),
+            )
+            if budget.get("campaign_complete"):
+                return transaction_stop(
+                    "ct_m0f_standing_campaign_complete",
+                    ct_m0f_budget=budget,
+                )
+            if budget.get("attempt_budget_exhausted") or budget.get("valid_sample_budget_exhausted"):
+                return transaction_stop(
+                    "ct_m0f_standing_validation_budget_exhausted",
+                    ct_m0f_budget=budget,
+                )
+            if budget.get("active_reservations"):
+                return transaction_stop(
+                    "ct_m0f_standing_active_operation_reconciliation_required",
+                    ct_m0f_budget=budget,
+                )
+            args.ct_m0f_sample_kind = str(budget.get("next_sample_kind") or "warm")
+        else:
+            try:
+                ct_m0f_admission_binding = (
+                    operator_execution
+                    .ct_m0f_controlled_validation_authority_binding_from_audit(
+                        ct_m0f_request_id,
+                        ct_m0f_request_hash,
+                        ct_m0f_generation_id,
+                        audit_store=audit_dir / "operator-execution-audit.jsonl",
+                    )
+                )
+            except Exception as exc:
+                return transaction_stop(
+                    "ct_m0f_validation_authority_binding_unavailable",
+                    error=str(exc),
+                )
+            request = (
+                ct_m0f_admission_binding.get("request")
+                if isinstance(ct_m0f_admission_binding.get("request"), dict)
+                else {}
+            )
+            scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+            binding_errors = list(ct_m0f_admission_binding.get("errors") or [])
+            if str(scope.get("sample_kind") or "") != str(
+                getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
+            ):
+                binding_errors.append("ct_m0f_validation_sample_kind_mismatch")
+            if str(scope.get("source_id") or "") != str(args.approved_source or ""):
+                binding_errors.append("ct_m0f_validation_requested_source_mismatch")
+            if binding_errors:
+                return transaction_stop(
+                    "ct_m0f_validation_authority_binding_denied",
+                    blockers=sorted(set(binding_errors)),
+                    ct_m0f_admission_binding=ct_m0f_admission_binding,
+                )
     availability_mode = bool(
         getattr(args, "execute_availability_first_standing_stage", False)
         or getattr(args, "_availability_first_stage_request", None)
@@ -5163,26 +5248,114 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 },
             )
             return transaction_stop("ct_m0f_exact_certification_identity_required")
-        ct_m0f_admission_consumption = (
-            operator_execution.consume_ct_m0f_controlled_validation_admission(
-                request_id=str(
-                    getattr(args, "ct_m0f_controlled_validation_request_id", "") or ""
+        if ct_m0f_standing_requested:
+            egress_rows = read_registry(state_dir / "egress.registry")
+            source_row = next(
+                (
+                    row for row in egress_rows
+                    if str(row.get("id") or "") == source
                 ),
-                request_hash=str(
-                    getattr(args, "ct_m0f_controlled_validation_request_hash", "") or ""
-                ),
-                validation_generation_id=str(
-                    getattr(args, "ct_m0f_validation_generation_id", "") or ""
-                ),
-                packet_id=str(packet_identity.get("packet_id") or ""),
-                operation_id=str(packet_identity.get("operation_id") or ""),
-                lease_id=str(lease.get("lease_id") or ""),
-                user=user,
-                source=source,
-                target=target,
-                audit_store=audit_dir / "operator-execution-audit.jsonl",
+                {},
             )
-        )
+            target_row = next(
+                (
+                    row for row in egress_rows
+                    if str(row.get("id") or "") == target
+                ),
+                {},
+            )
+            source_occupants = [
+                row for row in read_registry(state_dir / "users.registry")
+                if str(row.get("current") or "") == source
+                and str(row.get("enabled") or "1").lower()
+                in {"1", "true", "yes"}
+            ]
+            source_scope_blockers = []
+            if str(
+                source_row.get("controlled_certification_source") or ""
+            ).lower() not in {"1", "true", "yes"}:
+                source_scope_blockers.append(
+                    "ct_m0f_standing_source_not_isolated_controlled_certification_source"
+                )
+            if any(
+                str(row.get("certification_user") or "").lower()
+                not in {"1", "true", "yes"}
+                for row in source_occupants
+            ):
+                source_scope_blockers.append(
+                    "ct_m0f_standing_source_contains_ordinary_identity"
+                )
+            if not target_row or str(target_row.get("enabled") or "1").lower() not in {
+                "1", "true", "yes",
+            }:
+                source_scope_blockers.append(
+                    "ct_m0f_standing_target_missing_or_disabled"
+                )
+            if source_scope_blockers:
+                operator_execution.finish_execution_lease(
+                    lease_file,
+                    status="OPERATOR_CANCELLED",
+                    reason="ct_m0f_standing_source_target_envelope_denied",
+                    operation={
+                        "terminal_state": "STOP_SAFE",
+                        "terminal_reason": "ct_m0f_standing_source_target_envelope_denied",
+                        "apply_result": {"applied": False, "results": []},
+                    },
+                )
+                return transaction_stop(
+                    "ct_m0f_standing_source_target_envelope_denied",
+                    blockers=source_scope_blockers,
+                )
+            contract = ct_m0f_standing_binding.get("contract") or {}
+            generation_id = "ctm0fgen_" + operator_execution.sha256_json({
+                "contract_id": contract.get("contract_id"),
+                "implementation_fingerprint": ct_m0f_implementation_fingerprint,
+                "packet_id": packet_identity.get("packet_id"),
+                "operation_id": packet_identity.get("operation_id"),
+                "lease_id": lease.get("lease_id"),
+            })[:24]
+            args.ct_m0f_validation_generation_id = generation_id
+            args.ct_m0f_standing_validation_contract_id = str(
+                contract.get("contract_id") or ""
+            )
+            args.ct_m0f_standing_validation_contract_hash = str(
+                contract.get("contract_hash") or ""
+            )
+            ct_m0f_admission_consumption = (
+                operator_execution.reserve_ct_m0f_standing_validation_sample(
+                    Path(args.policy_file),
+                    implementation_fingerprint=ct_m0f_implementation_fingerprint,
+                    validation_generation_id=generation_id,
+                    packet_id=str(packet_identity.get("packet_id") or ""),
+                    operation_id=str(packet_identity.get("operation_id") or ""),
+                    lease_id=str(lease.get("lease_id") or ""),
+                    user=user,
+                    source=source,
+                    target=target,
+                    audit_store=audit_dir / "operator-execution-audit.jsonl",
+                )
+            )
+        else:
+            ct_m0f_admission_consumption = (
+                operator_execution.consume_ct_m0f_controlled_validation_admission(
+                    request_id=str(
+                        getattr(args, "ct_m0f_controlled_validation_request_id", "") or ""
+                    ),
+                    request_hash=str(
+                        getattr(args, "ct_m0f_controlled_validation_request_hash", "") or ""
+                    ),
+                    validation_generation_id=str(
+                        getattr(args, "ct_m0f_validation_generation_id", "") or ""
+                    ),
+                    packet_id=str(packet_identity.get("packet_id") or ""),
+                    operation_id=str(packet_identity.get("operation_id") or ""),
+                    lease_id=str(lease.get("lease_id") or ""),
+                    user=user,
+                    source=source,
+                    target=target,
+                    audit_store=audit_dir / "operator-execution-audit.jsonl",
+                )
+            )
         if not ct_m0f_admission_consumption.get("ok"):
             operator_execution.finish_execution_lease(
                 lease_file,
@@ -5323,6 +5496,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_validation_request_hash=str(
             getattr(args, "ct_m0f_controlled_validation_request_hash", "") or ""
         ),
+        ct_m0f_standing_validation_contract_id=str(
+            getattr(args, "ct_m0f_standing_validation_contract_id", "") or ""
+        ),
+        ct_m0f_standing_validation_contract_hash=str(
+            getattr(args, "ct_m0f_standing_validation_contract_hash", "") or ""
+        ),
+        ct_m0f_implementation_fingerprint=ct_m0f_implementation_fingerprint,
     )
     apply_completed_ns = time.monotonic_ns()
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
@@ -5464,6 +5644,32 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         if isinstance(row, dict)
     )
     rollback_attempted = any(bool(row.get("rollback_attempted")) for row in results if isinstance(row, dict))
+    ct_m0f_cutover_evidence = next(
+        (
+            row.get("ct_m0f_kernel_cutover_evidence")
+            for row in results
+            if isinstance(row, dict)
+            and isinstance(row.get("ct_m0f_kernel_cutover_evidence"), dict)
+        ),
+        {},
+    )
+    ct_m0f_forward_evidence_record: dict[str, Any] = {}
+    if ct_m0f_standing_requested and (
+        ct_m0f_cutover_evidence.get("status")
+        == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+    ):
+        reservation = (
+            ct_m0f_admission_consumption.get("reservation")
+            if isinstance(ct_m0f_admission_consumption.get("reservation"), dict)
+            else {}
+        )
+        ct_m0f_forward_evidence_record = (
+            operator_execution.record_ct_m0f_standing_validation_forward_evidence(
+                reservation_id=str(reservation.get("reservation_id") or ""),
+                sample_evidence=ct_m0f_cutover_evidence,
+                audit_store=audit_dir / "operator-execution-audit.jsonl",
+            )
+        )
     controlled_evidence = controlled_certification_evidence_scope(state_dir, user=user, source=source)
     feedback_materialization = (
         materialize_governed_transaction_feedback(
@@ -5584,6 +5790,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "autoswitch_apply": apply_run,
         "lease_terminalization": lease_terminalization,
         "execution_timing": execution_timing,
+        "ct_m0f_standing_validation": bool(ct_m0f_standing_requested),
+        "ct_m0f_implementation_fingerprint": ct_m0f_implementation_fingerprint,
+        "ct_m0f_admission_consumption": ct_m0f_admission_consumption,
+        "ct_m0f_cutover_evidence": ct_m0f_cutover_evidence,
+        "ct_m0f_forward_evidence_record": ct_m0f_forward_evidence_record,
     }
 
 
@@ -10803,6 +11014,201 @@ def cleanup_controlled_certification_condition(
     }
 
 
+def reset_ct_m0f_standing_validation_sample(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Close one standing-policy sample through the existing cleanup owner."""
+    audit_store = audit_dir / "operator-execution-audit.jsonl"
+    sample = operator_execution.ct_m0f_standing_validation_sample_from_audit(
+        str(args.ct_m0f_standing_validation_reservation_id or ""),
+        audit_store=audit_store,
+    )
+    if not sample.get("ok"):
+        return transaction_stop(
+            "ct_m0f_standing_sample_lineage_invalid",
+            blockers=sample.get("errors") or [],
+        )
+    if sample.get("terminal"):
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-reset.v1",
+            "final_verdict": "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
+            "sample": sample,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    reservation = sample["reservation"]
+    policy_root = read_json(Path(args.policy_file), {})
+    contract = (
+        policy_root.get(
+            operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}
+        )
+        if isinstance(policy_root, dict)
+        else {}
+    )
+    validation = operator_execution.validate_ct_m0f_standing_validation_policy(
+        contract,
+        audit_records=operator_execution.read_audit_records(audit_store),
+    )
+    blockers = list(validation.get("errors") or [])
+    if str(contract.get("contract_id") or "") != str(
+        reservation.get("contract_id") or ""
+    ):
+        blockers.append("ct_m0f_standing_reset_contract_id_mismatch")
+    if str(contract.get("contract_hash") or "") != str(
+        reservation.get("contract_hash") or ""
+    ):
+        blockers.append("ct_m0f_standing_reset_contract_hash_mismatch")
+    users = read_registry(state_dir / "users.registry")
+    user_row = next(
+        (
+            row for row in users
+            if str(row.get("ip") or "") == str(reservation.get("user") or "")
+        ),
+        {},
+    )
+    current = str(user_row.get("current") or "")
+    source = str(reservation.get("source") or "")
+    target = str(reservation.get("target") or "")
+    if current not in {source, target}:
+        blockers.append("ct_m0f_standing_reset_current_route_outside_lineage")
+    if blockers:
+        return transaction_stop(
+            "ct_m0f_standing_sample_reset_not_admitted",
+            blockers=sorted(set(blockers)),
+            current_egress=current,
+            reservation=reservation,
+        )
+
+    reset_transaction: dict[str, Any] = {}
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    matrix_row = (
+        (matrix.get("items") or {}).get(source) or {}
+        if isinstance(matrix, dict)
+        else {}
+    )
+    services = (
+        matrix_row.get("services")
+        if isinstance(matrix_row.get("services"), dict)
+        else {}
+    )
+    source_hard_failed = any(
+        str((row or {}).get("status") or "").upper()
+        in {"FAIL", "DOWN", "NOT_STARTED"}
+        or str((row or {}).get("status") or "").upper().startswith(
+            "TELEGRAM_DOWN_"
+        )
+        for row in services.values()
+        if isinstance(row, dict)
+    )
+    source_recovery_proven = bool(
+        services
+        and not source_hard_failed
+        and any(
+            bool_value((row or {}).get("ok"))
+            for row in services.values()
+            if isinstance(row, dict)
+        )
+    )
+    recovery_mode = (
+        "BASELINE_ALREADY_RESTORED"
+        if current == source
+        else "BASELINE_RESET"
+        if source_recovery_proven
+        else "FORWARD_RECOVERY_ON_VERIFIED_TARGET"
+    )
+    if current == target and source_recovery_proven:
+        transaction_args = copy.copy(args)
+        transaction_args._certification_cleanup_request = {
+            "user": str(reservation.get("user") or ""),
+            "source": target,
+            "target": source,
+            "campaign_reset": True,
+            "controlled_source": source,
+            "ct_m0f_standing_reservation_id": str(
+                reservation.get("reservation_id") or ""
+            ),
+        }
+        transaction_args.skip_planner_observe = True
+        transaction_args.execute_bounded_delegated_transaction = False
+        transaction_args.execute_l3_production_validation = False
+        transaction_args.ct_m0f_kernel_cutover_validation = False
+        transaction_args.ct_m0f_standing_validation = False
+        transaction_args.engineering_authority_request_file = ""
+        reset_transaction = execute_governed_transaction_with_guards(
+            transaction_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        reset_ok = bool(
+            reset_transaction.get("final_verdict")
+            == "GOVERNED_TRANSACTION_COMPLETED"
+            and reset_transaction.get("verification_result") == "PASS"
+        )
+        if not reset_ok:
+            return transaction_stop(
+                "ct_m0f_standing_sample_reset_failed",
+                reservation=reservation,
+                reset_transaction=reset_transaction,
+            )
+
+    forward = sample.get("forward_evidence") or {}
+    evidence = (
+        forward.get("sample_evidence")
+        if isinstance(forward.get("sample_evidence"), dict)
+        else {}
+    )
+    sample_valid = bool(
+        evidence.get("status")
+        == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+    )
+    terminal = operator_execution.record_ct_m0f_standing_validation_sample_terminal(
+        reservation_id=str(reservation.get("reservation_id") or ""),
+        sample_valid=sample_valid,
+        sample_evidence=evidence,
+        terminal_reason=(
+            "verified_cutover_and_"
+            + recovery_mode.lower()
+            + "_complete"
+            if sample_valid
+            else "sample_forward_evidence_missing_or_invalid_after_safe_reconciliation"
+        ),
+        audit_store=audit_store,
+    )
+    budget = operator_execution.ct_m0f_standing_validation_budget_status(
+        contract,
+        str(reservation.get("implementation_fingerprint") or ""),
+        audit_records=operator_execution.read_audit_records(audit_store),
+    )
+    return {
+        "schema_version": "v7.ct-m0f-standing-validation-reset.v1",
+        "final_verdict": (
+            "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED"
+            if sample_valid
+            else "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID"
+        ),
+        "reservation": reservation,
+        "reset_transaction": reset_transaction,
+        "sample_terminal": terminal,
+        "budget": budget,
+        "recovery_mode": recovery_mode,
+        "source_recovery_proven": source_recovery_proven,
+        "runtime_mutation_performed": bool(reset_transaction),
+        "users_moved": 1 if reset_transaction else 0,
+        "ordinary_user_delta": 0,
+        "authority_expanded": False,
+        "production_maturity_change": False,
+    }
+
+
 def reset_approved_controlled_certification_campaign_stage(
     args: argparse.Namespace,
     *,
@@ -11262,6 +11668,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-validation-generation-id", default="")
     parser.add_argument("--ct-m0f-controlled-validation-request-id", default="")
     parser.add_argument("--ct-m0f-controlled-validation-request-hash", default="")
+    parser.add_argument("--ct-m0f-standing-validation", action="store_true")
+    parser.add_argument("--ct-m0f-standing-validation-contract-id", default="")
+    parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
+    parser.add_argument(
+        "--reset-ct-m0f-standing-validation-sample",
+        action="store_true",
+        help=(
+            "Reconcile and reset one exact standing-policy sample through "
+            "the existing controlled cleanup owner."
+        ),
+    )
+    parser.add_argument(
+        "--ct-m0f-standing-validation-reservation-id", default=""
+    )
     parser.add_argument(
         "--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm"
     )
@@ -11475,6 +11895,26 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "CONTROLLED_CERTIFICATION_CLEANUP_COMPLETE" else 2
+    if args.reset_ct_m0f_standing_validation_sample:
+        result = reset_ct_m0f_standing_validation_sample(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(
+            result,
+            ensure_ascii=False,
+            indent=2 if args.pretty else None,
+            sort_keys=True,
+        ))
+        return 0 if result.get("final_verdict") in {
+            "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
+            "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+            "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID",
+        } else 2
     if args.materialize_due_delayed_observations:
         if args.confirm_delayed_observations != "MATERIALIZE_VERIFIED_DELAYED_OBSERVATIONS_APPROVED":
             result = {

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -40,6 +41,106 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(selected, ["telegram", "google"])
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
+
+    def test_ct_m0f_standing_matrix_consumer_resets_then_reenters(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit" / "operator-execution-audit.jsonl"
+            policy = root / "policy.json"
+            state.mkdir(parents=True)
+            events.mkdir(parents=True)
+            audit.parent.mkdir(parents=True)
+            policy.write_text("{}\n", encoding="utf-8")
+            request = self.refresh.operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=self.refresh.operator_execution.sha256_file(policy),
+                now=now,
+            )
+            self.refresh.operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            activated = self.refresh.operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=self.refresh.operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            reservation = self.refresh.operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy,
+                implementation_fingerprint="f" * 64,
+                validation_generation_id="ctm0fgen_one",
+                packet_id="packet-one",
+                operation_id="operation-one",
+                lease_id="lease-one",
+                user="10.7.0.18",
+                source="vless",
+                target="awg0",
+                audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )["reservation"]
+            evidence = {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                "sample_kind": "cold",
+                "validation_generation_id": "ctm0fgen_one",
+                "metrics": {"control_plane_and_kernel_path_cutover_latency_ms": 100.0},
+            }
+            self.refresh.operator_execution.record_ct_m0f_standing_validation_forward_evidence(
+                reservation_id=reservation["reservation_id"],
+                sample_evidence=evidence,
+                audit_store=audit,
+                now=now + timedelta(seconds=4),
+            )
+            calls = []
+
+            def fake_run(command, **_kwargs):
+                calls.append(command)
+                if "--reset-ct-m0f-standing-validation-sample" in command:
+                    self.refresh.operator_execution.record_ct_m0f_standing_validation_sample_terminal(
+                        reservation_id=reservation["reservation_id"],
+                        sample_valid=True,
+                        sample_evidence=evidence,
+                        terminal_reason="verified_cutover_and_baseline_reset_complete",
+                        audit_store=audit,
+                        now=now + timedelta(seconds=5),
+                    )
+                    budget = self.refresh.operator_execution.ct_m0f_standing_validation_budget_status(
+                        activated["contract"],
+                        "f" * 64,
+                        audit_records=self.refresh.operator_execution.read_audit_records(audit),
+                    )
+                    payload = {
+                        "final_verdict": "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+                        "budget": budget,
+                        "runtime_mutation_performed": True,
+                    }
+                    return self.refresh.subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload))
+                payload = {
+                    "final_verdict": "STOP_SAFE",
+                    "stop_reason": "no_current_controlled_sample_candidate",
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                }
+                return self.refresh.subprocess.CompletedProcess(command, 2, stdout=json.dumps(payload))
+
+            with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+                result = self.refresh.run_ct_m0f_standing_validation_campaign(
+                    "governed-executor",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=policy,
+                    audit_store=audit,
+                    max_successive_samples=2,
+                )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
+        self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[0])
+        self.assertIn("--execute-l3-production-validation", calls[1])
 
     def test_prepared_class_decision_is_compact_and_generation_bound(self):
         plan = {

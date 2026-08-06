@@ -3765,6 +3765,149 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertFalse(duplicate["ok"])
         self.assertIn("ct_m0f_validation_admission_already_consumed", duplicate["errors"])
 
+    def test_ct_m0f_standing_policy_activation_and_sample_exact_once(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy),
+                now=now,
+            )
+            registered = operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            activated = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            reactivated = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )
+            contract = activated["contract"]
+            lineage = dict(
+                implementation_fingerprint="f" * 64,
+                validation_generation_id="ctm0fgen_one",
+                packet_id="packet-one",
+                operation_id="operation-one",
+                lease_id="lease-one",
+                user="10.7.0.18",
+                source="vless",
+                target="awg0",
+            )
+            first = operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy, **lineage, audit_store=audit, now=now + timedelta(seconds=4),
+            )
+            duplicate = operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy, **lineage, audit_store=audit, now=now + timedelta(seconds=5),
+            )
+            concurrent = operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy,
+                **{**lineage, "validation_generation_id": "ctm0fgen_two", "packet_id": "packet-two", "operation_id": "operation-two", "lease_id": "lease-two"},
+                audit_store=audit,
+                now=now + timedelta(seconds=6),
+            )
+            reservation_id = first["reservation"]["reservation_id"]
+            evidence = {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                "sample_kind": "cold",
+                "validation_generation_id": "ctm0fgen_one",
+                "metrics": {"control_plane_and_kernel_path_cutover_latency_ms": 100.0},
+            }
+            forward = operator_execution.record_ct_m0f_standing_validation_forward_evidence(
+                reservation_id=reservation_id,
+                sample_evidence=evidence,
+                audit_store=audit,
+                now=now + timedelta(seconds=7),
+            )
+            terminal = operator_execution.record_ct_m0f_standing_validation_sample_terminal(
+                reservation_id=reservation_id,
+                sample_valid=True,
+                sample_evidence=evidence,
+                terminal_reason="verified_cutover_and_baseline_reset_complete",
+                audit_store=audit,
+                now=now + timedelta(seconds=8),
+            )
+            budget = operator_execution.ct_m0f_standing_validation_budget_status(
+                contract,
+                "f" * 64,
+                audit_records=operator_execution.read_audit_records(audit),
+            )
+
+        self.assertEqual(registered["status"], "REGISTERED")
+        self.assertFalse(activated["runtime_apply"])
+        self.assertEqual(activated["users_moved"], 0)
+        self.assertEqual(reactivated["status"], "ALREADY_ACTIVATED_EXACT")
+        self.assertTrue(first["ok"])
+        self.assertEqual(duplicate["status"], "ALREADY_RESERVED_EXACT")
+        self.assertFalse(concurrent["ok"])
+        self.assertIn("ct_m0f_standing_active_operation_exists", concurrent["errors"])
+        self.assertEqual(forward["status"], "RECORDED")
+        self.assertEqual(terminal["status"], "RECORDED")
+        self.assertEqual(budget["valid_samples"], 1)
+        self.assertEqual(budget["cold_valid_samples"], 1)
+        self.assertEqual(budget["next_sample_kind"], "warm")
+
+    def test_ct_m0f_standing_request_and_contract_expiry_fail_closed(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+            policy_generation_hash="a" * 64,
+            now=now,
+        )
+        request_validation = operator_execution.validate_ct_m0f_standing_validation_authority_request(
+            request,
+            decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+            now=now + timedelta(hours=25),
+        )
+        self.assertIn("ct_m0f_standing_request_expired", request_validation["errors"])
+
+    def test_ct_m0f_standing_decline_is_audited_without_policy_activation(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy),
+                now=now,
+            )
+            operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            result = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            policy_root = json.loads(policy.read_text(encoding="utf-8"))
+        self.assertEqual(
+            result["status"],
+            "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_DECLINED",
+        )
+        self.assertFalse(result["policy_write"])
+        self.assertNotIn(
+            operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY,
+            policy_root,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

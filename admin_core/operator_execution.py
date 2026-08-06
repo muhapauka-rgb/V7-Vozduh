@@ -145,6 +145,33 @@ CT_M0F_CONTROLLED_VALIDATION_APPROVAL = (
     "APPROVE_CT_M0F_CONTROLLED_VALIDATION_ONCE"
 )
 CT_M0F_CONTROLLED_VALIDATION_REQUEST_TTL_SECONDS = 24 * 60 * 60
+CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA = (
+    "v7.ct-m0f-standing-validation-authority-request.v1"
+)
+CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA = (
+    "v7.ct-m0f-standing-validation-policy.v1"
+)
+CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE = (
+    "ct_m0f_standing_validation_policy_request_emitted"
+)
+CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE = (
+    "ct_m0f_standing_validation_policy_authority_decision"
+)
+CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE = (
+    "ct_m0f_standing_validation_sample_reserved"
+)
+CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE = (
+    "ct_m0f_standing_validation_sample_terminal"
+)
+CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE = (
+    "ct_m0f_standing_validation_forward_evidence"
+)
+CT_M0F_STANDING_VALIDATION_APPROVAL = (
+    "APPROVE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"
+)
+CT_M0F_STANDING_VALIDATION_REQUEST_TTL_SECONDS = 24 * 60 * 60
+CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS = 30 * 24 * 60 * 60
+CT_M0F_STANDING_VALIDATION_POLICY_KEY = "ct_m0f_standing_validation_policy"
 CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE = (
     "controlled_certification_substrate_effect"
 )
@@ -1690,6 +1717,657 @@ def validate_ct_m0f_controlled_validation_consumption(
         "routing_mutation": False,
         "users_moved": 0,
     }
+
+
+def ct_m0f_standing_validation_envelope():
+    """Immutable semantic Authority envelope for the bounded CT-M0F campaign."""
+    return {
+        "profile": "CT_M0F_BOUNDED_MULTI_GENERATION_USER_PATH_CUTOVER_VALIDATION",
+        "classification": "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
+        "program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "mission": "V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1",
+        "purpose": "USER_PATH_CUTOVER_LATENCY_VALIDATION",
+        "evidence_class": "CONTROLLED_CERTIFICATION_ONLY",
+        "action_class": "BOUNDED_CT_M0F_USER_PATH_CUTOVER_VALIDATION",
+        "subject_selection": {
+            "certification_identities_only": True,
+            "ordinary_identities_forbidden": True,
+            "hard_coded_identity_forbidden": True,
+            "owner": "existing controlled-production owner",
+        },
+        "execution_bounds": {
+            "max_users_per_transaction": 1,
+            "max_concurrent_transactions": 1,
+            "max_active_operations": 1,
+            "source_target_distinct": True,
+            "source_target_selection": (
+                "FRESH_EXISTING_OWNER_ELIGIBLE_ISOLATED_SOURCE_AND_SAFE_DISTINCT_TARGET"
+            ),
+        },
+        "campaign_budget": {
+            "max_valid_samples_per_implementation_fingerprint": 5,
+            "max_invalid_or_safety_stopped_attempts_per_implementation_fingerprint": 3,
+            "min_cold_valid_samples": 1,
+            "min_warm_valid_samples": 2,
+            "min_owner_backed_generations": 2,
+            "stop_when_slo_proven": True,
+            "identical_sample_after_residual_proven_forbidden": True,
+        },
+        "fresh_artifact_law": {
+            "validation_generation": "FRESH_ONE_USE",
+            "candidate": "FRESH_ONE_USE",
+            "packet": "FRESH_ONE_USE",
+            "lease": "FRESH_ONE_USE",
+            "restore_barrier": "FRESH_OPERATION_BOUND",
+            "source_target_snapshots": "FRESH_OR_GENERATION_VALID",
+        },
+        "verification_recovery": {
+            "assignment_and_kernel_path": "REQUIRED",
+            "target_egress_payload": "REQUIRED",
+            "rollback_or_certified_no_rollback": "REQUIRED",
+            "reset_or_forward_recovery": "REQUIRED",
+            "deferred_closure": "REQUIRED",
+            "outcome_replay_learning_time_consumption": "REQUIRED",
+            "final_safe_mode": "OPEN",
+        },
+        "implementation_fingerprint_law": {
+            "semantic_envelope_change_requires_new_decision": True,
+            "implementation_only_change_requires_new_decision": False,
+            "implementation_change_invalidates_prepared_artifacts": True,
+            "per_fingerprint_sample_ledger_resets": True,
+        },
+        "lifecycle": {
+            "revoke_supported": True,
+            "freeze_supported": True,
+            "kill_supported": True,
+            "silent_renewal": False,
+            "self_expansion": False,
+        },
+        "forbidden_effects_and_credit": [
+            "ordinary_user_movement",
+            "ordinary_user_reclassification",
+            "stage_25_credit",
+            "stage_48_credit",
+            "ct_m8_credit",
+            "natural_l8_credit",
+            "authority_expansion",
+            "runtime_scope_expansion",
+            "production_maturity_change",
+            "concurrency_increase",
+            "new_failure_or_action_class",
+            "external_resource_or_credential_mutation",
+            "shared_target_fault_injection",
+        ],
+    }
+
+
+def ct_m0f_standing_validation_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def ct_m0f_standing_validation_contract_hash(contract):
+    canonical = copy.deepcopy(contract if isinstance(contract, dict) else {})
+    canonical.pop("contract_id", None)
+    canonical.pop("contract_hash", None)
+    return sha256_json(canonical)
+
+
+def build_ct_m0f_standing_validation_authority_request(
+    *, policy_generation_hash, now=None,
+):
+    now = now or utc_now()
+    request = {
+        "schema_version": CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (
+            now + timedelta(seconds=CT_M0F_STANDING_VALIDATION_REQUEST_TTL_SECONDS)
+        ).isoformat(),
+        "decision_set": [CT_M0F_STANDING_VALIDATION_APPROVAL, "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"],
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "policy_generation_hash": str(policy_generation_hash or ""),
+        "contract_ttl_seconds": CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS,
+        "envelope": ct_m0f_standing_validation_envelope(),
+        "future_identity_binding": "SELECTION_LAW_ONLY_NO_USER_TARGET_PACKET_OR_LEASE",
+    }
+    request_hash = ct_m0f_standing_validation_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"ctm0fsdpauth_r1_{request_hash[:24]}"
+    return request
+
+
+def validate_ct_m0f_standing_validation_authority_request(
+    request, *, decision="DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
+    expected_request_id="", expected_request_hash="", now=None,
+):
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    if request.get("schema_version") != CT_M0F_STANDING_VALIDATION_REQUEST_SCHEMA:
+        errors.append("ct_m0f_standing_request_schema_invalid")
+    if ct_m0f_standing_validation_request_hash(request) != request_hash:
+        errors.append("ct_m0f_standing_request_hash_mismatch")
+    if request_id != f"ctm0fsdpauth_r1_{request_hash[:24]}":
+        errors.append("ct_m0f_standing_request_identity_mismatch")
+    if expected_request_id and request_id != str(expected_request_id):
+        errors.append("ct_m0f_standing_expected_request_mismatch")
+    if expected_request_hash and request_hash != str(expected_request_hash):
+        errors.append("ct_m0f_standing_expected_hash_mismatch")
+    if request.get("status") != "AWAITING_INDEPENDENT_AUTHORITY_DECISION":
+        errors.append("ct_m0f_standing_request_not_pending")
+    if decision not in set(request.get("decision_set") or []):
+        errors.append("ct_m0f_standing_decision_not_exact")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("ct_m0f_standing_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("ct_m0f_standing_created_at_invalid")
+    except PacketError:
+        errors.append("ct_m0f_standing_timestamps_invalid")
+    if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("ct_m0f_standing_owner_invalid")
+    if len(str(request.get("policy_generation_hash") or "")) != 64:
+        errors.append("ct_m0f_standing_policy_generation_missing")
+    if int(request.get("contract_ttl_seconds") or 0) != CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS:
+        errors.append("ct_m0f_standing_contract_ttl_invalid")
+    if request.get("envelope") != ct_m0f_standing_validation_envelope():
+        errors.append("ct_m0f_standing_envelope_invalid")
+    if request.get("future_identity_binding") != "SELECTION_LAW_ONLY_NO_USER_TARGET_PACKET_OR_LEASE":
+        errors.append("ct_m0f_standing_future_identity_binding_invalid")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision": decision,
+    }
+
+
+def register_ct_m0f_standing_validation_authority_request(
+    request, *, audit_store=None, producer_id="tools/v7-operator-execution-packet", now=None,
+):
+    now = now or utc_now()
+    validation = validate_ct_m0f_standing_validation_authority_request(request, now=now)
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["ct_m0f_standing_request_invalid"]))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        active_pending = []
+        decided = {
+            str(row.get("authority_request_id") or "") for row in records
+            if row.get("record_type") == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+        }
+        for row in records:
+            if row.get("record_type") != CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE:
+                continue
+            prior = row.get("request") if isinstance(row.get("request"), dict) else {}
+            prior_id = str(prior.get("request_id") or "")
+            if prior_id == request["request_id"]:
+                if prior == request and str(row.get("authority_request_hash") or "") == request["request_hash"]:
+                    return {"status": "ALREADY_REGISTERED_EXACT", "request_id": request["request_id"], "request_hash": request["request_hash"], "audit_write": False}
+                raise PacketError("ct_m0f_standing_request_identity_conflict")
+            if prior_id in decided:
+                continue
+            try:
+                if parse_ts(prior.get("expires_at")) > now:
+                    active_pending.append(prior_id)
+            except PacketError:
+                pass
+        if active_pending:
+            raise PacketError("ct_m0f_standing_active_pending_request_exists")
+        append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-authority-audit.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE,
+            "authority_request_id": request["request_id"],
+            "authority_request_hash": request["request_hash"],
+            "request": copy.deepcopy(request),
+            "producer": str(producer_id or "tools/v7-operator-execution-packet"),
+            "created_at": now.isoformat(),
+        })
+    return {"status": "REGISTERED", "request_id": request["request_id"], "request_hash": request["request_hash"], "audit_write": True}
+
+
+def ct_m0f_standing_validation_request_from_audit(
+    request_id, request_hash, *, audit_store=None, now=None,
+):
+    now = now or utc_now()
+    records = read_audit_records(Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE))
+    matches = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE and str(row.get("authority_request_id") or "") == str(request_id or "")]
+    if len(matches) != 1:
+        raise PacketError("ct_m0f_standing_request_missing_or_duplicate")
+    request = matches[0].get("request") if isinstance(matches[0].get("request"), dict) else {}
+    validation = validate_ct_m0f_standing_validation_authority_request(
+        request, expected_request_id=request_id, expected_request_hash=request_hash, now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["ct_m0f_standing_request_invalid"]))
+    return request
+
+
+def issue_ct_m0f_standing_validation_policy_from_audit(
+    policy_path, *, request_id, request_hash, decision, actor_id,
+    audit_store=None, now=None,
+):
+    allowed_decisions = {
+        CT_M0F_STANDING_VALIDATION_APPROVAL,
+        "DECLINE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY",
+    }
+    if decision not in allowed_decisions:
+        raise PacketError("ct_m0f_standing_decision_not_exact")
+    if not str(actor_id or "").strip():
+        raise PacketError("ct_m0f_standing_actor_missing")
+    now = now or utc_now()
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(policy_path):
+        records = read_audit_records(audit_store)
+        matching_decisions = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+            and str(row.get("authority_request_id") or "")
+            == str(request_id or "")
+        ]
+        if len(matching_decisions) > 1:
+            raise PacketError("ct_m0f_standing_decision_duplicate")
+        policy_root = read_json(policy_path)
+        policy_root = policy_root if isinstance(policy_root, dict) else {}
+        current_contract = policy_root.get(CT_M0F_STANDING_VALIDATION_POLICY_KEY)
+        if isinstance(current_contract, dict) and current_contract.get("status") == "ACTIVE":
+            current_decision = (
+                current_contract.get("authority_decision")
+                if isinstance(current_contract.get("authority_decision"), dict)
+                else {}
+            )
+            current_validation = validate_ct_m0f_standing_validation_policy(
+                current_contract, audit_records=records, now=now,
+            )
+            if (
+                current_validation.get("ok")
+                and str(current_decision.get("request_id") or "")
+                == str(request_id or "")
+                and str(current_decision.get("request_hash") or "")
+                == str(request_hash or "")
+                and current_decision.get("decision") == decision
+            ):
+                return {
+                    "status": "ALREADY_ACTIVATED_EXACT",
+                    "contract": copy.deepcopy(current_contract),
+                    "decision_id": current_decision.get("decision_id"),
+                    "policy_write": False,
+                    "candidate_created": False,
+                    "packet_created": False,
+                    "lease_created": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                    "production_maturity_change": False,
+                }
+            try:
+                current_expires_at = parse_ts(current_contract.get("expires_at"))
+            except PacketError as exc:
+                raise PacketError("ct_m0f_standing_existing_contract_invalid") from exc
+            if current_expires_at > now:
+                raise PacketError("ct_m0f_standing_active_contract_exists")
+        request = ct_m0f_standing_validation_request_from_audit(
+            request_id, request_hash, audit_store=audit_store, now=now,
+        )
+        if request.get("policy_generation_hash") != sha256_file(policy_path):
+            raise PacketError("ct_m0f_standing_policy_generation_changed")
+        decision_id = stable_id("ctm0fsdpdec", {"request_id": request_id, "request_hash": request_hash, "decision": decision, "actor_id": str(actor_id)})
+        if matching_decisions:
+            existing = matching_decisions[0]
+            if not (
+                existing.get("decision_id") == decision_id
+                and existing.get("authority_request_hash") == request_hash
+                and existing.get("decision") == decision
+                and str((existing.get("actor_provenance") or {}).get("actor_id") or "")
+                == str(actor_id)
+            ):
+                raise PacketError("ct_m0f_standing_decision_conflict")
+            decision_record = existing
+        else:
+            decision_record = append_record(audit_store, {
+                "schema_version": "v7.ct-m0f-standing-validation-authority-decision.v1",
+                "record_type": CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE,
+                "decision_id": decision_id,
+                "authority_request_id": request_id,
+                "authority_request_hash": request_hash,
+                "decision": decision,
+                "actor_provenance": {"actor_id": str(actor_id), "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER, "recorded_at": now.isoformat()},
+                "created_at": now.isoformat(),
+            })
+        if decision != CT_M0F_STANDING_VALIDATION_APPROVAL:
+            return {
+                "status": "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_DECLINED",
+                "decision_id": decision_id,
+                "policy_write": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "users_moved": 0,
+                "production_maturity_change": False,
+            }
+        decided_at = parse_ts(
+            (decision_record.get("actor_provenance") or {}).get("recorded_at")
+            or decision_record.get("created_at")
+        )
+        contract = {
+            "schema_version": CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA,
+            "status": "ACTIVE",
+            "issued_at": decided_at.isoformat(),
+            "expires_at": (decided_at + timedelta(seconds=CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS)).isoformat(),
+            "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+            "envelope": copy.deepcopy(request["envelope"]),
+            "authority_decision": {"decision": decision, "decision_id": decision_id, "request_id": request_id, "request_hash": request_hash, "actor_id": str(actor_id), "decided_at": decided_at.isoformat()},
+            "lifecycle": {"enabled": True, "frozen": False, "revoked": False, "killed": False, "renewal": "EXPLICIT_NEW_DECISION_ONLY"},
+        }
+        contract_hash = ct_m0f_standing_validation_contract_hash(contract)
+        contract["contract_hash"] = contract_hash
+        contract["contract_id"] = f"ctm0fsdpc_{contract_hash[:24]}"
+        policy_root[CT_M0F_STANDING_VALIDATION_POLICY_KEY] = contract
+        write_json_atomic(policy_path, policy_root)
+    return {
+        "status": "STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_ACTIVATED",
+        "contract": contract,
+        "decision_id": decision_id,
+        "policy_write": True,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "production_maturity_change": False,
+    }
+
+
+def validate_ct_m0f_standing_validation_policy(
+    contract, *, audit_records=None, now=None,
+):
+    now = now or utc_now()
+    contract = contract if isinstance(contract, dict) else {}
+    errors = []
+    contract_hash = str(contract.get("contract_hash") or "")
+    if contract.get("schema_version") != CT_M0F_STANDING_VALIDATION_CONTRACT_SCHEMA:
+        errors.append("ct_m0f_standing_contract_schema_invalid")
+    if ct_m0f_standing_validation_contract_hash(contract) != contract_hash:
+        errors.append("ct_m0f_standing_contract_hash_invalid")
+    if str(contract.get("contract_id") or "") != f"ctm0fsdpc_{contract_hash[:24]}":
+        errors.append("ct_m0f_standing_contract_identity_invalid")
+    if contract.get("status") != "ACTIVE":
+        errors.append("ct_m0f_standing_contract_not_active")
+    try:
+        if parse_ts(contract.get("expires_at")) <= now:
+            errors.append("ct_m0f_standing_contract_expired")
+    except PacketError:
+        errors.append("ct_m0f_standing_contract_expiry_invalid")
+    if contract.get("issuing_owner") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("ct_m0f_standing_contract_owner_invalid")
+    if contract.get("envelope") != ct_m0f_standing_validation_envelope():
+        errors.append("ct_m0f_standing_contract_envelope_invalid")
+    lifecycle = contract.get("lifecycle") if isinstance(contract.get("lifecycle"), dict) else {}
+    if lifecycle.get("enabled") is not True or any(lifecycle.get(key) is True for key in ("frozen", "revoked", "killed")):
+        errors.append("ct_m0f_standing_contract_lifecycle_blocks_execution")
+    decision = contract.get("authority_decision") if isinstance(contract.get("authority_decision"), dict) else {}
+    if decision.get("decision") != CT_M0F_STANDING_VALIDATION_APPROVAL or not decision.get("request_id") or not decision.get("request_hash") or not decision.get("actor_id"):
+        errors.append("ct_m0f_standing_contract_authority_provenance_invalid")
+    if audit_records is not None:
+        matches = [row for row in audit_records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE and row.get("decision_id") == decision.get("decision_id") and row.get("authority_request_id") == decision.get("request_id") and row.get("authority_request_hash") == decision.get("request_hash") and row.get("decision") == decision.get("decision")]
+        if len(matches) != 1:
+            errors.append("ct_m0f_standing_authority_audit_missing_or_duplicate")
+    return {"ok": not errors, "status": "ACTIVE" if not errors else "STOP_SAFE", "errors": sorted(set(errors)), "contract": copy.deepcopy(contract)}
+
+
+def ct_m0f_standing_validation_budget_status(
+    contract, implementation_fingerprint, *, audit_records,
+):
+    contract_id = str((contract or {}).get("contract_id") or "")
+    fingerprint = str(implementation_fingerprint or "")
+    reservations = [row for row in audit_records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and row.get("contract_id") == contract_id and row.get("implementation_fingerprint") == fingerprint]
+    terminals = [row for row in audit_records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE and row.get("contract_id") == contract_id and row.get("implementation_fingerprint") == fingerprint]
+    terminal_by_reservation = {str(row.get("reservation_id") or ""): row for row in terminals}
+    valid = [row for row in terminals if row.get("sample_valid") is True]
+    invalid = [row for row in terminals if row.get("sample_valid") is not True]
+    cold = [row for row in valid if row.get("sample_kind") == "cold"]
+    warm = [row for row in valid if row.get("sample_kind") == "warm"]
+    generations = {str(row.get("validation_generation_id") or "") for row in valid if str(row.get("validation_generation_id") or "")}
+    active = [row for row in reservations if str(row.get("reservation_id") or "") not in terminal_by_reservation]
+    from admin_core import operator_execution_pipeline
+    gate = operator_execution_pipeline.controlled_kernel_cutover_gate([
+        row.get("sample_evidence")
+        for row in valid
+        if isinstance(row.get("sample_evidence"), dict)
+    ])
+    slo_proven = bool(gate.get("ok"))
+    complete = bool(len(valid) >= 5 and len(cold) >= 1 and len(warm) >= 2 and len(generations) >= 2 and slo_proven)
+    next_kind = "NONE" if complete else "cold" if not cold else "warm"
+    return {
+        "contract_id": contract_id,
+        "implementation_fingerprint": fingerprint,
+        "valid_samples": len(valid),
+        "invalid_or_safety_stopped_attempts": len(invalid),
+        "cold_valid_samples": len(cold),
+        "warm_valid_samples": len(warm),
+        "owner_backed_generation_count": len(generations),
+        "active_reservations": len(active),
+        "active_reservation": copy.deepcopy(active[0]) if len(active) == 1 else {},
+        "slo_proven": slo_proven,
+        "slo_gate": gate,
+        "campaign_complete": complete,
+        "next_sample_kind": next_kind,
+        "attempt_budget_exhausted": len(invalid) >= 3,
+        "valid_sample_budget_exhausted": len(valid) >= 5 and not complete,
+    }
+
+
+def reserve_ct_m0f_standing_validation_sample(
+    policy_path, *, implementation_fingerprint, validation_generation_id,
+    packet_id, operation_id, lease_id, user, source, target,
+    audit_store=None, now=None,
+):
+    now = now or utc_now()
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    required = {"implementation_fingerprint": str(implementation_fingerprint or ""), "validation_generation_id": str(validation_generation_id or ""), "packet_id": str(packet_id or ""), "operation_id": str(operation_id or ""), "lease_id": str(lease_id or ""), "user": str(user or ""), "source": str(source or ""), "target": str(target or "")}
+    missing = [f"ct_m0f_standing_{key}_missing" for key, value in required.items() if not value]
+    if missing or required["source"] == required["target"]:
+        return {"ok": False, "status": "STOP_SAFE", "errors": sorted(set(missing + (["ct_m0f_standing_source_target_collision"] if required["source"] == required["target"] else []))), "audit_write": False}
+    with current_action_class_contract_policy_lock(policy_path):
+        policy_root = read_json(policy_path)
+        contract = (policy_root or {}).get(CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}) if isinstance(policy_root, dict) else {}
+        records = read_audit_records(audit_store)
+        validation = validate_ct_m0f_standing_validation_policy(contract, audit_records=records, now=now)
+        if not validation.get("ok"):
+            return {"ok": False, "status": "STOP_SAFE", "errors": validation.get("errors") or [], "audit_write": False}
+        budget = ct_m0f_standing_validation_budget_status(contract, required["implementation_fingerprint"], audit_records=records)
+        exact = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and row.get("contract_id") == contract.get("contract_id") and row.get("validation_generation_id") == required["validation_generation_id"]]
+        if exact:
+            if len(exact) == 1 and all(str(exact[0].get(key) or "") == value for key, value in required.items()):
+                return {"ok": True, "status": "ALREADY_RESERVED_EXACT", "reservation": copy.deepcopy(exact[0]), "budget": budget, "audit_write": False}
+            return {"ok": False, "status": "STOP_SAFE", "errors": ["ct_m0f_standing_generation_reservation_conflict"], "audit_write": False}
+        errors = []
+        if budget["campaign_complete"]:
+            errors.append("ct_m0f_standing_campaign_complete")
+        if budget["active_reservations"]:
+            errors.append("ct_m0f_standing_active_operation_exists")
+        if budget["attempt_budget_exhausted"]:
+            errors.append("ct_m0f_standing_attempt_budget_exhausted")
+        if budget["valid_sample_budget_exhausted"]:
+            errors.append("ct_m0f_standing_valid_sample_budget_exhausted")
+        if errors:
+            return {"ok": False, "status": "STOP_SAFE", "errors": errors, "budget": budget, "audit_write": False}
+        reservation_id = stable_id("ctm0fsample", {**required, "contract_id": contract["contract_id"]})
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-sample-reservation.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+            "reservation_id": reservation_id,
+            "contract_id": contract["contract_id"],
+            "contract_hash": contract["contract_hash"],
+            "sample_kind": budget["next_sample_kind"],
+            **required,
+            "status": "RESERVED",
+            "created_at": now.isoformat(),
+        })
+    return {"ok": True, "status": "AUTO_ADMITTED_BY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY", "reservation": record, "budget": budget, "audit_write": True}
+
+
+def validate_ct_m0f_standing_validation_sample_reservation(
+    *, contract_id, contract_hash, implementation_fingerprint,
+    validation_generation_id, packet_id, operation_id, lease_id, user, source, target,
+    audit_store=None,
+):
+    expected = {"contract_id": str(contract_id or ""), "contract_hash": str(contract_hash or ""), "implementation_fingerprint": str(implementation_fingerprint or ""), "validation_generation_id": str(validation_generation_id or ""), "packet_id": str(packet_id or ""), "operation_id": str(operation_id or ""), "lease_id": str(lease_id or ""), "user": str(user or ""), "source": str(source or ""), "target": str(target or "")}
+    records = read_audit_records(Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE))
+    matches = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and all(str(row.get(key) or "") == value for key, value in expected.items())]
+    errors = [f"ct_m0f_standing_{key}_missing" for key, value in expected.items() if not value]
+    if len(matches) != 1:
+        errors.append("ct_m0f_standing_sample_reservation_missing_or_duplicate")
+    return {"ok": not errors, "status": "EXACT_RESERVATION_PROVEN" if not errors else "STOP_SAFE", "errors": sorted(set(errors)), "reservation": copy.deepcopy(matches[0]) if len(matches) == 1 else {}}
+
+
+def ct_m0f_standing_validation_sample_from_audit(
+    reservation_id, *, audit_store=None,
+):
+    """Return one exact standing sample lineage and its durable progress."""
+    records = read_audit_records(
+        Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    )
+    reservations = [
+        row for row in records
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+        and row.get("reservation_id") == str(reservation_id or "")
+    ]
+    forwards = [
+        row for row in records
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE
+        and row.get("reservation_id") == str(reservation_id or "")
+    ]
+    terminals = [
+        row for row in records
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE
+        and row.get("reservation_id") == str(reservation_id or "")
+    ]
+    errors = []
+    if len(reservations) != 1:
+        errors.append("ct_m0f_standing_sample_reservation_missing_or_duplicate")
+    if len(forwards) > 1:
+        errors.append("ct_m0f_standing_forward_evidence_duplicate")
+    if len(terminals) > 1:
+        errors.append("ct_m0f_standing_sample_terminal_duplicate")
+    return {
+        "ok": not errors,
+        "status": "EXACT_SAMPLE_LINEAGE_PROVEN" if not errors else "STOP_SAFE",
+        "errors": errors,
+        "reservation": copy.deepcopy(reservations[0]) if len(reservations) == 1 else {},
+        "forward_evidence": copy.deepcopy(forwards[0]) if len(forwards) == 1 else {},
+        "terminal": copy.deepcopy(terminals[0]) if len(terminals) == 1 else {},
+    }
+
+
+def record_ct_m0f_standing_validation_forward_evidence(
+    *, reservation_id, sample_evidence, audit_store=None, now=None,
+):
+    """Durably bind verified cutover evidence before reset/closure begins."""
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    evidence = sample_evidence if isinstance(sample_evidence, dict) else {}
+    if evidence.get("status") != "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS":
+        raise PacketError("ct_m0f_standing_forward_evidence_not_valid")
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        reservations = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+            and row.get("reservation_id") == str(reservation_id or "")
+        ]
+        if len(reservations) != 1:
+            raise PacketError(
+                "ct_m0f_standing_sample_reservation_missing_or_duplicate"
+            )
+        existing = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE
+            and row.get("reservation_id") == str(reservation_id or "")
+        ]
+        if existing:
+            if len(existing) == 1 and existing[0].get("sample_evidence") == evidence:
+                return {
+                    "status": "ALREADY_RECORDED_EXACT",
+                    "record": copy.deepcopy(existing[0]),
+                    "audit_write": False,
+                }
+            raise PacketError("ct_m0f_standing_forward_evidence_conflict")
+        reservation = reservations[0]
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-forward-evidence.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
+            "forward_evidence_id": stable_id("ctm0ffwd", {
+                "reservation_id": reservation_id,
+                "sample_evidence": evidence,
+            }),
+            "reservation_id": reservation["reservation_id"],
+            "contract_id": reservation["contract_id"],
+            "implementation_fingerprint": reservation[
+                "implementation_fingerprint"
+            ],
+            "validation_generation_id": reservation[
+                "validation_generation_id"
+            ],
+            "sample_kind": reservation["sample_kind"],
+            "sample_evidence": copy.deepcopy(evidence),
+            "created_at": now.isoformat(),
+        })
+    return {"status": "RECORDED", "record": record, "audit_write": True}
+
+
+def record_ct_m0f_standing_validation_sample_terminal(
+    *, reservation_id, sample_valid, sample_evidence=None, terminal_reason="",
+    audit_store=None, now=None,
+):
+    now = now or utc_now()
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        reservations = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and row.get("reservation_id") == str(reservation_id or "")]
+        if len(reservations) != 1:
+            raise PacketError("ct_m0f_standing_sample_reservation_missing_or_duplicate")
+        existing = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE and row.get("reservation_id") == str(reservation_id or "")]
+        if existing:
+            if len(existing) == 1 and existing[0].get("sample_valid") == bool(sample_valid) and existing[0].get("sample_evidence") == (sample_evidence if isinstance(sample_evidence, dict) else {}) and str(existing[0].get("terminal_reason") or "") == str(terminal_reason or ""):
+                return {"status": "ALREADY_RECORDED_EXACT", "record": copy.deepcopy(existing[0]), "audit_write": False}
+            raise PacketError("ct_m0f_standing_sample_terminal_conflict")
+        reservation = reservations[0]
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-sample-terminal.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
+            "terminal_id": stable_id("ctm0fsampleterm", {"reservation_id": reservation_id, "sample_valid": bool(sample_valid), "sample_evidence": sample_evidence if isinstance(sample_evidence, dict) else {}, "terminal_reason": str(terminal_reason or "")}),
+            "reservation_id": reservation["reservation_id"],
+            "contract_id": reservation["contract_id"],
+            "implementation_fingerprint": reservation["implementation_fingerprint"],
+            "validation_generation_id": reservation["validation_generation_id"],
+            "sample_kind": reservation["sample_kind"],
+            "sample_valid": bool(sample_valid),
+            "sample_evidence": copy.deepcopy(sample_evidence) if isinstance(sample_evidence, dict) else {},
+            "terminal_reason": str(terminal_reason or ""),
+            "created_at": now.isoformat(),
+        })
+    return {"status": "RECORDED", "record": record, "audit_write": True}
 
 
 def build_controlled_certification_substrate_authority_request(
@@ -7504,6 +8182,23 @@ def main(argv=None):
     )
     parser.add_argument("--ct-m0f-controlled-validation-request-hash", default="")
     parser.add_argument(
+        "--prepare-ct-m0f-standing-validation-policy-request",
+        action="store_true",
+        help=(
+            "Build and register one bounded multi-generation CT-M0F standing "
+            "validation request without activating policy or producing effects."
+        ),
+    )
+    parser.add_argument(
+        "--issue-ct-m0f-standing-validation-policy-from-audit-request-id",
+        default="",
+        help=(
+            "Existing Authority owner only: activate one exact independently "
+            "approved CT-M0F standing validation request."
+        ),
+    )
+    parser.add_argument("--ct-m0f-standing-validation-request-hash", default="")
+    parser.add_argument(
         "--controlled-certification-substrate-admitted-subscope",
         action="append",
         default=[],
@@ -7560,6 +8255,85 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.prepare_ct_m0f_standing_validation_policy_request:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.record_ct_m0f_controlled_validation_decision_from_audit_request_id
+                or args.issue_ct_m0f_standing_validation_policy_from_audit_request_id
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+            ):
+                raise PacketError("ct_m0f_standing_prepare_mode_must_not_mix_other_modes")
+            policy_path = Path(args.action_class_policy_file)
+            audit_store = (
+                str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                else args.audit_store
+            )
+            policy_root = read_json(policy_path)
+            existing_contract = (
+                policy_root.get(CT_M0F_STANDING_VALIDATION_POLICY_KEY, {})
+                if isinstance(policy_root, dict) else {}
+            )
+            existing_validation = validate_ct_m0f_standing_validation_policy(
+                existing_contract,
+                audit_records=read_audit_records(Path(audit_store)),
+            )
+            if existing_validation.get("ok"):
+                result = {
+                    "status": "VALID_ACTIVE_STANDING_CT_M0F_POLICY_REUSED",
+                    "contract_id": existing_contract.get("contract_id"),
+                    "contract_hash": existing_contract.get("contract_hash"),
+                    "request_created": False,
+                    "policy_write": False,
+                    "runtime_apply": False,
+                    "users_moved": 0,
+                }
+            else:
+                request = build_ct_m0f_standing_validation_authority_request(
+                    policy_generation_hash=sha256_file(policy_path),
+                )
+                registration = register_ct_m0f_standing_validation_authority_request(
+                    request, audit_store=audit_store,
+                )
+                result = {
+                    "status": "ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED",
+                    "request": request,
+                    "registration": registration,
+                    "policy_write": False,
+                    "candidate_created": False,
+                    "packet_created": False,
+                    "lease_created": False,
+                    "runtime_apply": False,
+                    "routing_mutation": False,
+                    "users_moved": 0,
+                    "production_maturity_change": False,
+                }
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
+        if args.issue_ct_m0f_standing_validation_policy_from_audit_request_id:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.prepare_ct_m0f_standing_validation_policy_request
+                or args.record_ct_m0f_controlled_validation_decision_from_audit_request_id
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+            ):
+                raise PacketError("ct_m0f_standing_issue_mode_must_not_mix_other_modes")
+            result = issue_ct_m0f_standing_validation_policy_from_audit(
+                args.action_class_policy_file,
+                request_id=args.issue_ct_m0f_standing_validation_policy_from_audit_request_id,
+                request_hash=args.ct_m0f_standing_validation_request_hash,
+                decision=args.authority_decision,
+                actor_id=args.authority_actor_id,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.record_ct_m0f_controlled_validation_decision_from_audit_request_id:
             if (
                 args.packet or args.generate_from_plan or args.generate_from_preview

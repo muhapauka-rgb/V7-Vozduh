@@ -6223,7 +6223,12 @@ def _execute_governed_transaction_with_guards_inner(
             user=str(exact_request.get("user") or ""),
             source=str(exact_request.get("target") or exact_request.get("source") or ""),
             certification_identity_mode=(
-                "REGISTRY_MARKED" if topology_mode else "HISTORICAL_POOL"
+                "REGISTRY_MARKED"
+                if topology_mode
+                else str(
+                    exact_request.get("certification_identity_mode")
+                    or "HISTORICAL_POOL"
+                )
             ),
             allow_same_campaign_occupants=topology_mode,
         )
@@ -6623,6 +6628,15 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         ct_m0f_sample_kind=str(
             getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
+        ),
+        ct_m0f_standing_validation_contract_id=str(
+            getattr(args, "ct_m0f_standing_validation_contract_id", "") or ""
+        ),
+        ct_m0f_standing_validation_contract_hash=str(
+            getattr(args, "ct_m0f_standing_validation_contract_hash", "") or ""
+        ),
+        ct_m0f_implementation_fingerprint=str(
+            getattr(args, "ct_m0f_implementation_fingerprint", "") or ""
         ),
         ct_m0f_standing_reset_reservation_id=(
             str(cleanup_request.get("ct_m0f_standing_reservation_id") or "")
@@ -10993,6 +11007,10 @@ def prepare_controlled_certification_condition(
     transaction_args._certification_setup_request = {
         "user": str(args.certification_user or ""),
         "source": str(args.certification_source or ""),
+        "certification_identity_mode": str(
+            getattr(args, "certification_identity_mode", "HISTORICAL_POOL")
+            or "HISTORICAL_POOL"
+        ),
     }
     transaction_args.skip_planner_observe = True
     transaction_args.execute_bounded_delegated_transaction = False
@@ -11009,10 +11027,20 @@ def prepare_controlled_certification_condition(
             **transaction_stop("controlled_certification_setup_transaction_failed"),
             "setup_transaction": transaction,
         }
+    user_row = next(
+        (
+            row for row in read_registry(state_dir / "users.registry")
+            if str(row.get("ip") or "") == str(args.certification_user or "")
+        ),
+        {},
+    )
+    certification_group = str(
+        user_row.get("certification_group") or "polygon-l7-canary"
+    )
     marker_command = [
         "v7-egress-set-state", str(args.certification_source), "certification-scope",
         "--certification-users", str(args.certification_user),
-        "--certification-group", "polygon-l7-canary", "--apply",
+        "--certification-group", certification_group, "--apply",
     ]
     marker = subprocess.run(marker_command, text=True, capture_output=True, timeout=180, check=False)
     route = scoped_user_route_check(state_dir, str(args.certification_user))
@@ -11027,12 +11055,190 @@ def prepare_controlled_certification_condition(
         "route_verification": route,
         "certification_user": str(args.certification_user),
         "controlled_source": str(args.certification_source),
+        "certification_group": certification_group,
         "evidence_class": "ENGINEERING_SETUP_NOT_L7_EVIDENCE",
         "ordinary_customer_used": False,
         "users_moved": 1,
         "runtime_mutation_performed": True,
         "authority_expanded_beyond_exact_setup": False,
         "daemon_or_timer_enabled": False,
+    }
+
+
+def prepare_ct_m0f_standing_controlled_condition(
+    args: argparse.Namespace,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    snapshot_root: Path,
+    audit_dir: Path,
+    lease_file: Path,
+) -> dict[str, Any]:
+    """Prepare one exact failure generation through existing bounded owners."""
+    audit_store = audit_dir / "operator-execution-audit.jsonl"
+    policy_root = read_json(Path(args.policy_file), {})
+    contract = (
+        policy_root.get(
+            operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}
+        )
+        if isinstance(policy_root, dict)
+        else {}
+    )
+    validation = operator_execution.validate_ct_m0f_standing_validation_policy(
+        contract,
+        audit_records=operator_execution.read_audit_records(audit_store),
+    )
+    blockers = list(validation.get("errors") or [])
+    if str(args.ct_m0f_standing_validation_contract_id or "") != str(
+        contract.get("contract_id") or ""
+    ):
+        blockers.append("ct_m0f_condition_contract_id_mismatch")
+    if str(args.ct_m0f_standing_validation_contract_hash or "") != str(
+        contract.get("contract_hash") or ""
+    ):
+        blockers.append("ct_m0f_condition_contract_hash_mismatch")
+    selection_command = [
+        str(planner_observe_executable()),
+        "--ct-m0f-standing-source-selection",
+        "--state-dir", str(state_dir),
+        "--policy-file", str(args.policy_file),
+        "--action-class-audit-store", str(audit_store),
+    ]
+    selection_proc = subprocess.run(
+        selection_command,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=180,
+        check=False,
+    )
+    try:
+        selection = json.loads(selection_proc.stdout or "{}")
+    except json.JSONDecodeError:
+        selection = {}
+    expected = {
+        "user": str(args.ct_m0f_standing_validation_user or ""),
+        "source": str(args.approved_source or ""),
+        "target": str(args.ct_m0f_standing_validation_target or ""),
+        "fingerprint": str(args.ct_m0f_standing_sample_binding_fingerprint or ""),
+    }
+    if selection_proc.returncode != 0 or selection.get("ok") is not True:
+        blockers.append("ct_m0f_condition_fresh_selection_unavailable")
+    if str(selection.get("selection_mode") or "") != "PREPARE_CONTROLLED_FAILURE_CONDITION":
+        blockers.append("ct_m0f_condition_preparation_mode_not_current")
+    for field, selection_field in (
+        ("user", "selected_user"),
+        ("source", "selected_source_id"),
+        ("target", "selected_target_id"),
+        ("fingerprint", "sample_binding_fingerprint"),
+    ):
+        if expected[field] != str(selection.get(selection_field) or ""):
+            blockers.append(f"ct_m0f_condition_{field}_binding_changed")
+    if blockers:
+        return transaction_stop(
+            "ct_m0f_standing_controlled_condition_not_admitted",
+            blockers=sorted(set(blockers)),
+            selection=selection,
+        )
+
+    setup_args = copy.copy(args)
+    setup_args.confirm_controlled_certification_condition = (
+        "PREPARE_CONTROLLED_CERTIFICATION_CONDITION_APPROVED"
+    )
+    setup_args.certification_user = expected["user"]
+    setup_args.certification_source = expected["source"]
+    setup_args.certification_identity_mode = "REGISTRY_MARKED"
+    setup = prepare_controlled_certification_condition(
+        setup_args,
+        state_dir=state_dir,
+        event_dir=event_dir,
+        snapshot_root=snapshot_root,
+        audit_dir=audit_dir,
+        lease_file=lease_file,
+    )
+    if setup.get("final_verdict") != "CONTROLLED_CERTIFICATION_CONDITION_PREPARED":
+        return transaction_stop(
+            "ct_m0f_standing_controlled_condition_setup_failed",
+            setup=setup,
+        )
+    condition = subprocess.run(
+        [
+            str(getattr(args, "egress_state_owner", "v7-egress-set-state")),
+            expected["source"], "maintenance",
+            "--controlled-certification", "--apply",
+        ],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=240,
+        check=False,
+    )
+    if condition.returncode != 0:
+        cleanup_args = copy.copy(args)
+        cleanup_args._certification_cleanup_request = {
+            "user": expected["user"],
+            "source": expected["source"],
+            "target": expected["target"],
+        }
+        cleanup_args.skip_planner_observe = True
+        cleanup_args.execute_bounded_delegated_transaction = False
+        cleanup_args.execute_l3_production_validation = False
+        cleanup_args.ct_m0f_kernel_cutover_validation = False
+        cleanup_args.ct_m0f_standing_validation = False
+        recovery = execute_governed_transaction_with_guards(
+            cleanup_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        return transaction_stop(
+            "ct_m0f_standing_controlled_condition_activation_failed",
+            setup=setup,
+            condition_returncode=condition.returncode,
+            condition_output=(condition.stdout or "")[-2000:],
+            recovery=recovery,
+        )
+    record = operator_execution.append_record(
+        audit_store,
+        {
+            "schema_version": "v7.ct-m0f-standing-controlled-condition.v1",
+            "record_type": "ct_m0f_standing_controlled_condition_prepared",
+            "created_at": now_iso(),
+            "contract_id": str(contract.get("contract_id") or ""),
+            "contract_hash": str(contract.get("contract_hash") or ""),
+            "user": expected["user"],
+            "source": expected["source"],
+            "baseline_target": expected["target"],
+            "sample_binding_fingerprint": expected["fingerprint"],
+            "condition_owner": "v7-egress-set-state",
+            "next_required_consumer": "ordinary fresh Matrix generation",
+            "runtime_mutation_performed": True,
+            "routing_mutation_performed": True,
+            "users_moved": 1,
+            "ordinary_user_delta": 0,
+            "authority_expanded": False,
+            "production_maturity_change": False,
+            "natural_l8_credit": False,
+        },
+    )
+    return {
+        "schema_version": "v7.ct-m0f-standing-controlled-condition-preparation.v1",
+        "final_verdict": "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+        "selection": selection,
+        "setup": setup,
+        "condition_returncode": condition.returncode,
+        "condition_output": (condition.stdout or "")[-2000:],
+        "condition_record": record,
+        "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE",
+        "runtime_mutation_performed": True,
+        "routing_mutation_performed": True,
+        "users_moved": 1,
+        "ordinary_user_delta": 0,
+        "authority_expanded": False,
+        "production_maturity_change": False,
+        "natural_l8_credit": False,
     }
 
 
@@ -11193,11 +11399,59 @@ def reset_ct_m0f_standing_validation_sample(
             if isinstance(row, dict)
         )
     )
+    controlled_source_reset: dict[str, Any] = {}
+    source_row = next(
+        (
+            row for row in read_registry(state_dir / "egress.registry")
+            if str(row.get("id") or "") == source
+        ),
+        {},
+    )
+    source_occupants = [
+        row for row in users
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == source
+    ]
+    source_is_exact_isolated_execution_owner = bool(
+        bool_value(source_row.get("controlled_certification_source"))
+        and str(source_row.get("role") or "").upper() == "EXECUTION_ONLY"
+        and str(source_row.get("reservation_owner") or "")
+        == "operator_execution_governance"
+        and not source_occupants
+    )
+    if (
+        current == target
+        and source_hard_failed
+        and source_is_exact_isolated_execution_owner
+    ):
+        reset_proc = subprocess.run(
+            ["v7-egress-set-state", source, "enabled", "--apply"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=240,
+            check=False,
+        )
+        controlled_source_reset = {
+            "owner": "v7-egress-set-state",
+            "returncode": reset_proc.returncode,
+            "output": (reset_proc.stdout or "")[-2000:],
+            "source": source,
+            "users_on_source": 0,
+        }
+        if reset_proc.returncode != 0:
+            return transaction_stop(
+                "ct_m0f_standing_controlled_source_reset_failed",
+                reservation=reservation,
+                controlled_source_reset=controlled_source_reset,
+            )
     recovery_mode = (
         "BASELINE_ALREADY_RESTORED"
         if current == source
         else "BASELINE_RESET"
         if source_recovery_proven
+        else "FORWARD_RECOVERY_AND_CONTROLLED_SOURCE_RESET"
+        if controlled_source_reset
         else "FORWARD_RECOVERY_ON_VERIFIED_TARGET"
     )
     if current == target and source_recovery_proven:
@@ -11284,6 +11538,7 @@ def reset_ct_m0f_standing_validation_sample(
         "budget": budget,
         "recovery_mode": recovery_mode,
         "source_recovery_proven": source_recovery_proven,
+        "controlled_source_reset": controlled_source_reset,
         "runtime_mutation_performed": bool(reset_transaction),
         "users_moved": 1 if reset_transaction else 0,
         "ordinary_user_delta": 0,
@@ -11768,6 +12023,10 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--prepare-ct-m0f-standing-controlled-condition",
+        action="store_true",
+    )
+    parser.add_argument(
         "--ct-m0f-standing-validation-reservation-id", default=""
     )
     parser.add_argument(
@@ -11849,6 +12108,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--confirm-controlled-certification-condition", default="")
     parser.add_argument("--certification-user", default="")
     parser.add_argument("--certification-source", default="")
+    parser.add_argument(
+        "--certification-identity-mode", default="HISTORICAL_POOL"
+    )
     parser.add_argument("--cleanup-controlled-certification-condition", action="store_true")
     parser.add_argument("--confirm-controlled-certification-cleanup", default="")
     parser.add_argument("--verify-controlled-certification-preflight", action="store_true")
@@ -11961,6 +12223,17 @@ def main(argv=None) -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
         return 0 if result.get("final_verdict") == "CONTROLLED_CERTIFICATION_PREFLIGHT_READY" else 2
+    if args.prepare_ct_m0f_standing_controlled_condition:
+        result = prepare_ct_m0f_standing_controlled_condition(
+            args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=True))
+        return 0 if result.get("final_verdict") == "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED" else 2
     if args.prepare_controlled_certification_condition:
         result = prepare_controlled_certification_condition(
             args,

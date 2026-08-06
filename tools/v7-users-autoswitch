@@ -20574,91 +20574,145 @@ def ct_m0f_standing_source_selection_only(
     certification identity before the standing envelope can validate it.
     """
     pool = controlled_certification_pool_status(Path(args.state_dir))
-    eligible = [
+    state_dir = Path(args.state_dir)
+    users = parse_registry(state_dir / "users.registry")
+    egress_rows = parse_registry(state_dir / "egress.registry")
+    projections = [
         row
         for row in (pool.get("active_source_projections") or [])
         if (
             isinstance(row, dict)
             and str(row.get("source_id") or "")
             and bool(row.get("source_isolated_for_controlled_failure"))
-            and int(row.get("enabled_certification_users_on_source") or 0) > 0
-            and int(row.get("group_aligned_certification_users_on_source") or 0) > 0
             and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
+        )
+    ]
+    failed_ready = [
+        row for row in projections
+        if (
+            int(row.get("enabled_certification_users_on_source") or 0) == 1
+            and not bool((row.get("baseline_health") or {}).get("ok"))
+        )
+    ]
+    failed_ready.sort(key=lambda row: str(row.get("source_id") or ""))
+    preparation_sources = []
+    for row in projections:
+        source_id = str(row.get("source_id") or "")
+        registry = next(
+            (
+                item for item in egress_rows
+                if str(item.get("id") or "") == source_id
+            ),
+            {},
+        )
+        if (
+            int(row.get("enabled_certification_users_on_source") or 0) == 0
+            and bool((row.get("baseline_health") or {}).get("ok"))
+            and str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
+            and str(registry.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and bool_value(registry.get("execution_reserved"))
+        ):
+            preparation_sources.append(row)
+    preparation_sources.sort(key=lambda row: str(row.get("source_id") or ""))
+    healthy_baselines = [
+        row for row in projections
+        if (
+            int(row.get("enabled_certification_users_on_source") or 0) > 0
+            and int(row.get("group_aligned_certification_users_on_source") or 0) > 0
             and bool((row.get("baseline_health") or {}).get("ok"))
         )
     ]
-    eligible.sort(
+    healthy_baselines.sort(
         key=lambda row: (
             -int(row.get("group_aligned_certification_users_on_source") or 0),
             -int(row.get("enabled_certification_users_on_source") or 0),
             str(row.get("source_id") or ""),
         )
     )
-    selected = eligible[0] if eligible else {}
+    selection_mode = (
+        "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        if failed_ready
+        else "PREPARE_CONTROLLED_FAILURE_CONDITION"
+        if preparation_sources and healthy_baselines
+        else "STOP_SAFE"
+    )
+    selected = (
+        failed_ready[0]
+        if failed_ready
+        else preparation_sources[0]
+        if preparation_sources and healthy_baselines
+        else {}
+    )
     selected_source = str(selected.get("source_id") or "")
-    selected_group = str(selected.get("certification_group") or "")
-    eligible_users = sorted(
-        str(row.get("ip") or "")
-        for row in parse_registry(Path(args.state_dir) / "users.registry")
-        if (
-            selected_source
+    source_users = sorted(
+        (
+            row for row in users
+            if selected_source
             and str(row.get("current") or "") == selected_source
             and bool_value(row.get("enabled", "1"))
             and bool_value(row.get("certification_user"))
-            and (
-                not selected_group
-                or str(row.get("certification_group") or "") == selected_group
-            )
             and str(row.get("ip") or "")
-        )
-    )
-    target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
-    selected_target = str(
-        (target_diagnostic.get("selection") or {}).get("selected_target_id")
-        or ""
-    )
-    target_row = next(
-        (
-            row
-            for row in (target_diagnostic.get("targets") or [])
-            if isinstance(row, dict)
-            and str(row.get("target_id") or "") == selected_target
         ),
-        {},
+        key=lambda row: str(row.get("ip") or ""),
     )
+    if selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER":
+        selected_user_row = source_users[0] if source_users else {}
+        selected_target_projection = healthy_baselines[0] if healthy_baselines else {}
+    else:
+        baseline = healthy_baselines[0] if healthy_baselines else {}
+        baseline_id = str(baseline.get("source_id") or "")
+        baseline_group = str(baseline.get("certification_group") or "")
+        baseline_users = sorted(
+            (
+                row for row in users
+                if str(row.get("current") or "") == baseline_id
+                and bool_value(row.get("enabled", "1"))
+                and bool_value(row.get("certification_user"))
+                and (
+                    not baseline_group
+                    or str(row.get("certification_group") or "")
+                    == baseline_group
+                )
+            ),
+            key=lambda row: str(row.get("ip") or ""),
+        )
+        selected_user_row = baseline_users[0] if baseline_users else {}
+        selected_target_projection = baseline
+    selected_user = str(selected_user_row.get("ip") or "")
+    selected_target = str(selected_target_projection.get("source_id") or "")
     controlled_target_admitted = bool(
-        target_row.get("controlled_rebind_eligible") is True
-        and target_row.get("controlled_only_contract") is True
-        and str(target_row.get("role") or "") == "EXECUTION_ONLY"
-        and str(target_row.get("reservation_owner") or "")
-        == "operator_execution_governance"
-        and target_row.get("shared_target_technically_eligible") is True
-        and target_row.get("current_stage_feasible") is True
-        and target_row.get("verification_supported") is True
-        and target_row.get("rollback_containment_supported") is True
-        and bool((target_row.get("health") or {}).get("ok"))
+        selected_target
+        and selected_target != selected_source
+        and bool(
+            (selected_target_projection.get("baseline_health") or {}).get("ok")
+        )
+        and bool(
+            selected_target_projection.get(
+                "source_isolated_for_controlled_failure"
+            )
+        )
         and int(
-            (target_row.get("capacity") or {}).get(
-                "target_safe_additional_capacity"
+            selected_target_projection.get(
+                "enabled_non_certification_users_on_source"
             )
             or 0
         )
-        >= 1
+        == 0
     )
     blockers = []
     if not selected_source:
         blockers.append(
             "no_healthy_isolated_controlled_source_with_group_aligned_certification_identity"
         )
-    if not eligible_users:
-        blockers.append("no_exact_group_aligned_certification_identity_on_source")
+    if not selected_user:
+        blockers.append("no_exact_certification_identity_for_controlled_condition")
     if (
         not selected_target
         or selected_target == selected_source
         or not controlled_target_admitted
     ):
         blockers.append("no_distinct_controlled_contract_admitted_target")
-    selected_user = eligible_users[0] if eligible_users else ""
     sample_binding = {
         "user": selected_user,
         "source": selected_source,
@@ -20669,32 +20723,37 @@ def ct_m0f_standing_source_selection_only(
             )
             or ""
         ),
-        "target_semantic_fingerprint": str(
-            target_row.get("semantic_fingerprint") or ""
+        "selection_mode": selection_mode,
+        "target_observation_fingerprint": str(
+            (selected_target_projection.get("baseline_health") or {}).get(
+                "observation_fingerprint"
+            )
+            or ""
         ),
     }
     projection = {
         "schema_version": "v7.ct-m0f-standing-source-selection.v1",
         "status": (
-            "CT_M0F_STANDING_CONTROLLED_SOURCE_SELECTED"
-            if selected_source and not blockers
+            "CT_M0F_STANDING_CONTROLLED_FAILURE_READY"
+            if selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+            and not blockers
+            else "CT_M0F_STANDING_CONTROLLED_FAILURE_PREPARATION_READY"
+            if selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION"
+            and not blockers
             else "STOP_SAFE_CT_M0F_STANDING_CONTROLLED_SOURCE_REQUIRED"
         ),
         "ok": not blockers,
         "owner": "existing users.registry + egress.registry controlled-certification pool owner",
+        "selection_mode": selection_mode,
         "selected_source_id": selected_source,
         "selected_user": selected_user,
         "selected_target_id": selected_target,
         "selected_target_admission": {
             "controlled_contract_admitted": controlled_target_admitted,
-            "ordinary_full_live_admission": bool(
-                target_row.get("full_live_admission")
-            ),
-            "ordinary_planner_eligible": bool(
-                target_row.get("ordinary_planner_eligible")
-            ),
+            "ordinary_full_live_admission": False,
+            "ordinary_planner_eligible": False,
             "admission_law": (
-                "EXACT_EXECUTION_ONLY_CONTROLLED_CONTRACT"
+                "EXACT_CONTROLLED_BASELINE_RECOVERY_TARGET"
                 if controlled_target_admitted
                 else "NOT_ADMITTED"
             ),
@@ -20722,8 +20781,8 @@ def ct_m0f_standing_source_selection_only(
             if selected_source
             else ""
         ),
-        "eligible_source_count": len(eligible),
-        "eligible_identity_count": len(eligible_users),
+        "eligible_source_count": len(failed_ready) + len(preparation_sources),
+        "eligible_identity_count": 1 if selected_user else 0,
         "blockers": blockers,
         "raw_identity_list_stored": False,
         "forbidden_effects": {

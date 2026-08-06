@@ -101,8 +101,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 calls.append(command)
                 if "--ct-m0f-standing-source-selection" in command:
                     payload = {
-                        "status": "CT_M0F_STANDING_CONTROLLED_SOURCE_SELECTED",
+                        "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_READY",
                         "ok": True,
+                        "selection_mode": "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
                         "selected_source_id": "vless",
                         "selected_user": "10.7.0.18",
                         "selected_target_id": "awg0",
@@ -165,6 +166,77 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "awg0",
         )
 
+    def test_ct_m0f_standing_matrix_prepares_condition_then_waits_for_fresh_generation(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit" / "operator-execution-audit.jsonl"
+            policy = root / "policy.json"
+            state.mkdir(parents=True)
+            events.mkdir(parents=True)
+            audit.parent.mkdir(parents=True)
+            policy.write_text("{}\n", encoding="utf-8")
+            request = self.refresh.operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=self.refresh.operator_execution.sha256_file(policy),
+                now=now,
+            )
+            self.refresh.operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            self.refresh.operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=self.refresh.operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            calls = []
+
+            def fake_run(command, **_kwargs):
+                calls.append(command)
+                if "--ct-m0f-standing-source-selection" in command:
+                    payload = {
+                        "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_PREPARATION_READY",
+                        "ok": True,
+                        "selection_mode": "PREPARE_CONTROLLED_FAILURE_CONDITION",
+                        "selected_source_id": "exec-source",
+                        "selected_user": "10.7.0.18",
+                        "selected_target_id": "vless",
+                        "sample_binding_fingerprint": "b" * 64,
+                    }
+                else:
+                    payload = {
+                        "final_verdict": "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+                        "runtime_mutation_performed": True,
+                        "users_moved": 1,
+                    }
+                return self.refresh.subprocess.CompletedProcess(
+                    command, 0, stdout=json.dumps(payload)
+                )
+
+            with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+                result = self.refresh.run_ct_m0f_standing_validation_campaign(
+                    "governed-executor",
+                    "existing-planner",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=policy,
+                    audit_store=audit,
+                )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["status"],
+            "CT_M0F_CONTROLLED_CONDITION_PREPARED_WAITING_FRESH_MATRIX_GENERATION",
+        )
+        self.assertIn("--prepare-ct-m0f-standing-controlled-condition", calls[1])
+        self.assertNotIn("--execute-l3-production-validation", calls[1])
+        self.assertEqual(result["durable_successor"], "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE")
+
     def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
         pool = {
             "active_source_projections": [
@@ -176,6 +248,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "enabled_non_certification_users_on_source": 0,
                     "source_isolated_for_controlled_failure": True,
                     "baseline_health": {"ok": False},
+                },
+                {
+                    "source_id": "exec-source",
+                    "certification_group": "g1",
+                    "enabled_certification_users_on_source": 0,
+                    "group_aligned_certification_users_on_source": 0,
+                    "enabled_non_certification_users_on_source": 0,
+                    "source_isolated_for_controlled_failure": True,
+                    "baseline_health": {
+                        "ok": True,
+                        "observation_fingerprint": "exec-health",
+                    },
                 },
                 {
                     "source_id": "vless",
@@ -208,13 +292,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         ), mock.patch.object(
             self.autoswitch,
             "parse_registry",
-            return_value=[{
+            side_effect=lambda path: ([{
                 "ip": "10.7.0.18",
                 "current": "vless",
                 "enabled": "1",
                 "certification_user": "1",
                 "certification_group": "g1",
-            }],
+            }] if str(path).endswith("users.registry") else [{
+                "id": "exec-source",
+                "role": "EXECUTION_ONLY",
+                "reservation_owner": "operator_execution_governance",
+                "execution_reserved": "1",
+            }]),
         ), mock.patch.object(
             self.autoswitch,
             "controlled_campaign_target_selection_diagnostic",
@@ -241,9 +330,13 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
 
         self.assertTrue(result["ok"])
-        self.assertEqual(result["selected_source_id"], "vless")
+        self.assertEqual(
+            result["selection_mode"],
+            "PREPARE_CONTROLLED_FAILURE_CONDITION",
+        )
+        self.assertEqual(result["selected_source_id"], "exec-source")
         self.assertEqual(result["selected_user"], "10.7.0.18")
-        self.assertEqual(result["selected_target_id"], "awg0")
+        self.assertEqual(result["selected_target_id"], "vless")
         self.assertTrue(
             result["selected_target_admission"]["controlled_contract_admitted"]
         )
@@ -257,12 +350,20 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
     def test_ct_m0f_standing_source_selection_rejects_ordinary_only_target(self):
         pool = {
             "active_source_projections": [{
-                "source_id": "vless",
+                "source_id": "failed",
                 "certification_group": "g1",
                 "enabled_certification_users_on_source": 1,
                 "group_aligned_certification_users_on_source": 1,
                 "enabled_non_certification_users_on_source": 0,
                 "source_isolated_for_controlled_failure": True,
+                "baseline_health": {"ok": False},
+            }, {
+                "source_id": "ordinary",
+                "certification_group": "",
+                "enabled_certification_users_on_source": 0,
+                "group_aligned_certification_users_on_source": 0,
+                "enabled_non_certification_users_on_source": 1,
+                "source_isolated_for_controlled_failure": False,
                 "baseline_health": {"ok": True},
             }]
         }
@@ -276,7 +377,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "parse_registry",
             return_value=[{
                 "ip": "10.7.0.18",
-                "current": "vless",
+                "current": "failed",
                 "enabled": "1",
                 "certification_user": "1",
                 "certification_group": "g1",

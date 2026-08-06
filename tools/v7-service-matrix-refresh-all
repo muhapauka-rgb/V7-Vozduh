@@ -1269,6 +1269,7 @@ def run_ct_m0f_standing_validation_campaign(
     selected_source = str(source_selection.get("selected_source_id") or "")
     selected_user = str(source_selection.get("selected_user") or "")
     selected_target = str(source_selection.get("selected_target_id") or "")
+    selection_mode = str(source_selection.get("selection_mode") or "")
     sample_binding_fingerprint = str(
         source_selection.get("sample_binding_fingerprint") or ""
     )
@@ -1292,6 +1293,67 @@ def run_ct_m0f_standing_validation_campaign(
             "blockers": list(source_selection.get("blockers") or [
                 "ct_m0f_standing_controlled_source_selection_unavailable"
             ]),
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    if selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION":
+        prepare_command = [
+            executor,
+            "--prepare-ct-m0f-standing-controlled-condition",
+            "--ct-m0f-standing-validation-contract-id", contract_id,
+            "--ct-m0f-standing-validation-contract-hash", contract_hash,
+            "--state-dir", str(state_dir),
+            "--event-dir", str(event_dir),
+            "--policy-file", str(policy_file),
+            "--audit-dir", str(audit_store.parent),
+            "--operator-execution-audit-store", str(audit_store),
+            "--approved-source", selected_source,
+            "--ct-m0f-standing-validation-user", selected_user,
+            "--ct-m0f-standing-validation-target", selected_target,
+            "--ct-m0f-standing-sample-binding-fingerprint",
+            sample_binding_fingerprint,
+            "--max-users", "1",
+            "--pretty",
+        ]
+        rc, prepared, output = invoke(
+            prepare_command, max(120, min(timeout_sec, 900))
+        )
+        passed = bool(
+            rc == 0
+            and prepared.get("final_verdict")
+            == "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED"
+        )
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": (
+                "CT_M0F_CONTROLLED_CONDITION_PREPARED_WAITING_FRESH_MATRIX_GENERATION"
+                if passed
+                else "STOP_SAFE_CONTROLLED_CONDITION_PREPARATION_FAILED"
+            ),
+            "ok": passed,
+            "source_selection": source_selection,
+            "preparation": prepared,
+            "output_tail": "" if prepared else output,
+            "action_attempted": True,
+            "runtime_mutation_performed": bool(
+                prepared.get("runtime_mutation_performed")
+            ),
+            "users_moved": int(prepared.get("users_moved") or 0),
+            "durable_successor": (
+                "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE"
+                if passed
+                else "EXACT_EXISTING_OWNER_RECONCILIATION_REQUIRED"
+            ),
+        }
+
+    if selection_mode != "EXECUTE_CONTROLLED_FAILURE_CUTOVER":
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_CONTROLLED_FAILURE_NOT_READY",
+            "ok": True,
+            "source_selection": source_selection,
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,

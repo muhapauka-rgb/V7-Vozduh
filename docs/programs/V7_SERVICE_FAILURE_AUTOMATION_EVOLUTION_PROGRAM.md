@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.8`
+Version: `4.9`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,34 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V4.9 bounded standing CT-M0F validation campaign
+
+V4.9 supersedes only the per-generation approval semantics of V4.7/V4.8; the
+historical one-generation request and its zero-consumption decision remain
+immutable and non-reusable. The existing `admin_core.operator_execution`
+standing-policy/audit owner now issues one independently decidable
+`CT_M0F_BOUNDED_MULTI_GENERATION_USER_PATH_CUTOVER_VALIDATION` envelope. The
+active contract lasts 30 days, permits at most one certification identity and
+one concurrent operation, and bounds each implementation fingerprint to five
+valid and three invalid/safety-stopped attempts.
+
+Matrix is the existing wake/consumer. Each admitted sample still requires a
+fresh validation generation, Candidate, Packet, lease, snapshots and live
+gates. Verified forward evidence is durably appended before the existing
+cleanup owner performs baseline reset or records verified forward recovery;
+only then does the Time budget consume the sample and choose the next cold or
+warm residual. Restart first reconciles an active reservation, duplicate
+Matrix delivery cannot apply twice, implementation-only changes invalidate
+prepared artifacts but do not request new Authority, and successful SLO or
+budget/safety terminal stops further sampling.
+
+The envelope rejects ordinary identities, non-isolated controlled sources,
+shared-target failure injection, Stage 25/48 or CT-M8 credit, Natural L8,
+Authority expansion, Runtime scope expansion and Production Maturity change.
+Request publication and contract activation themselves create no Candidate,
+Packet, lease, restore barrier, route or user effect. A new independent
+decision is required only when this semantic Authority envelope expands.
 
 ## V4.8 exact approval consumption and practical expiry
 

@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.71`
+Version: `4.72`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -14,11 +14,24 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
+Latest consumed report: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.72 removes the invalid per-generation human approval loop from CT-M0F by
+extending only the existing operator-execution standing-policy/audit owner.
+One independent request decides an immutable certification-only envelope with
+`max_users=1`, concurrency one, at most five valid and three invalid attempts
+per implementation fingerprint. After approval, every necessary sample still
+uses a fresh validation generation, Candidate, Packet and lease, while Matrix
+automatically consumes reservation -> cutover evidence -> reset or forward
+recovery -> terminal -> Time residual. Duplicate/concurrent consumers,
+ordinary identities, non-isolated sources, stale contracts and exhausted
+budgets fail closed. Deployment and request publication perform no routing or
+Authority effect; CPS currently waits only for the exact one standing-policy
+decision and never reuses the expired one-generation approval.
 
 V4.71 closes the CT-M0F approval-to-runtime consumer gap without adding an
 owner or execution path. Exact approval is now independently validated and

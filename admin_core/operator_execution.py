@@ -1933,6 +1933,42 @@ def register_ct_m0f_standing_validation_authority_request(
     return {"status": "REGISTERED", "request_id": request["request_id"], "request_hash": request["request_hash"], "audit_write": True}
 
 
+def pending_ct_m0f_standing_validation_authority_request(
+    *, policy_generation_hash, audit_store=None, now=None,
+):
+    """Reuse one equivalent undecided request instead of creating churn."""
+    now = now or utc_now()
+    records = read_audit_records(
+        Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    )
+    decided = {
+        str(row.get("authority_request_id") or "")
+        for row in records
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+    }
+    matches = []
+    for row in records:
+        if row.get("record_type") != CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE:
+            continue
+        request = row.get("request") if isinstance(row.get("request"), dict) else {}
+        if str(request.get("request_id") or "") in decided:
+            continue
+        validation = validate_ct_m0f_standing_validation_authority_request(
+            request, now=now,
+        )
+        if not validation.get("ok"):
+            continue
+        if str(request.get("policy_generation_hash") or "") != str(
+            policy_generation_hash or ""
+        ):
+            continue
+        matches.append(request)
+    if len(matches) > 1:
+        raise PacketError("ct_m0f_standing_pending_request_duplicate")
+    return copy.deepcopy(matches[0]) if len(matches) == 1 else {}
+
+
 def ct_m0f_standing_validation_request_from_audit(
     request_id, request_hash, *, audit_store=None, now=None,
 ):
@@ -8290,12 +8326,25 @@ def main(argv=None):
                     "users_moved": 0,
                 }
             else:
-                request = build_ct_m0f_standing_validation_authority_request(
-                    policy_generation_hash=sha256_file(policy_path),
+                policy_generation_hash = sha256_file(policy_path)
+                request = pending_ct_m0f_standing_validation_authority_request(
+                    policy_generation_hash=policy_generation_hash,
+                    audit_store=audit_store,
                 )
-                registration = register_ct_m0f_standing_validation_authority_request(
-                    request, audit_store=audit_store,
-                )
+                if request:
+                    registration = {
+                        "status": "ALREADY_REGISTERED_EQUIVALENT",
+                        "request_id": request.get("request_id"),
+                        "request_hash": request.get("request_hash"),
+                        "audit_write": False,
+                    }
+                else:
+                    request = build_ct_m0f_standing_validation_authority_request(
+                        policy_generation_hash=policy_generation_hash,
+                    )
+                    registration = register_ct_m0f_standing_validation_authority_request(
+                        request, audit_store=audit_store,
+                    )
                 result = {
                     "status": "ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED",
                     "request": request,

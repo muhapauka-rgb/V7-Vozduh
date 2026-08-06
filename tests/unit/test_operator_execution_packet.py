@@ -3779,6 +3779,11 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             registered = operator_execution.register_ct_m0f_standing_validation_authority_request(
                 request, audit_store=audit, now=now + timedelta(seconds=1),
             )
+            pending = operator_execution.pending_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy),
+                audit_store=audit,
+                now=now + timedelta(seconds=1),
+            )
             activated = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
                 policy,
                 request_id=request["request_id"],
@@ -3848,6 +3853,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             )
 
         self.assertEqual(registered["status"], "REGISTERED")
+        self.assertEqual(pending["request_id"], request["request_id"])
         self.assertFalse(activated["runtime_apply"])
         self.assertEqual(activated["users_moved"], 0)
         self.assertEqual(reactivated["status"], "ALREADY_ACTIVATED_EXACT")

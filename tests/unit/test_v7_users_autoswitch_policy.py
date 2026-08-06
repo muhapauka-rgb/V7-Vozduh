@@ -4552,6 +4552,85 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         ordinary_evidence.assert_not_called()
 
+    def test_ct_m0f_standing_reset_does_not_require_failed_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                current_egress="1",
+                emergency_failover_autonomy={"enabled": True},
+            )
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--emergency-failover-autonomy",
+                        "--mode", "guarded",
+                        "--apply",
+                        "--user", "10.0.0.2",
+                        "--source-egress", "1",
+                        "--target-egress", "vless",
+                        "--ct-m0f-standing-reset-reservation-id",
+                        "ctm0fsample_test",
+                    ],
+                )
+            )
+            move = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+                "move_type": "failover",
+                "execution_mode": "emergency_failover",
+                "operation_id": "ct-reset-operation",
+                "selected_move_hash": "ct-reset-hash",
+            }
+            plan = {
+                "summary": {"execution_mode": "emergency_failover"},
+                "operation": {
+                    "operation_id": "ct-reset-operation",
+                    "selected_move_hash": "ct-reset-hash",
+                },
+                "selected_moves": [move],
+                "safety": {
+                    "emergency_failover_autonomy": {
+                        "enabled": True,
+                        "ok": False,
+                    },
+                    "l3_wake": {"accepted": False},
+                    "l3_incident": {"incident_state": "RECOVERED"},
+                    "restore_barrier": {
+                        "clearance_max_selected_moves": 1,
+                        "approved_plan_lock_validation": {
+                            "ok": True,
+                            "selected_move_count": 1,
+                        },
+                    },
+                },
+            }
+            with mock.patch.object(
+                planner,
+                "_exact_availability_first_controlled_scope",
+                return_value={"ok": False, "reasons": ["not_applicable"]},
+            ), mock.patch.object(
+                planner,
+                "_exact_ct_m0f_standing_reset_scope",
+                return_value={
+                    "ok": True,
+                    "reservation_id": "ctm0fsample_test",
+                    "natural_production_credit": False,
+                },
+            ), mock.patch.object(
+                planner,
+                "_emergency_failover_move_evidence",
+            ) as ordinary_evidence:
+                eligibility = planner._l3_execution_eligibility(plan)
+
+        self.assertTrue(eligibility["ok"], eligibility)
+        self.assertEqual(eligibility["decision"], "EXECUTE")
+        self.assertEqual(eligibility["blockers"], [])
+        self.assertTrue(eligibility["ct_m0f_standing_reset_scope"]["ok"])
+        ordinary_evidence.assert_not_called()
+
     def test_l3_execution_stops_safe_when_target_lost_before_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -3020,6 +3020,7 @@ def run_autoswitch_apply(
     ct_m0f_standing_validation_contract_id: str = "",
     ct_m0f_standing_validation_contract_hash: str = "",
     ct_m0f_implementation_fingerprint: str = "",
+    ct_m0f_standing_reset_reservation_id: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3103,6 +3104,11 @@ def run_autoswitch_apply(
                 "--ct-m0f-implementation-fingerprint",
                 ct_m0f_implementation_fingerprint,
             ])
+    if ct_m0f_standing_reset_reservation_id:
+        command.extend([
+            "--ct-m0f-standing-reset-reservation-id",
+            ct_m0f_standing_reset_reservation_id,
+        ])
     child_env = dict(os.environ)
     child_env["V7_PARENT_LAUNCH_MONOTONIC_NS"] = str(process_started_ns)
     try:
@@ -6617,6 +6623,11 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         ct_m0f_sample_kind=str(
             getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
+        ),
+        ct_m0f_standing_reset_reservation_id=(
+            str(cleanup_request.get("ct_m0f_standing_reservation_id") or "")
+            if ct_m0f_standing_reset
+            else ""
         ),
         **apply_options,
     )

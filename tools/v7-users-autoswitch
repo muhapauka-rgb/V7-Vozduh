@@ -2886,6 +2886,103 @@ class AutoswitchPlanner:
             "new_owner_created": False,
         }
 
+    def _exact_ct_m0f_standing_reset_scope(
+        self,
+        selected_moves: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Validate the recovery half of one already reserved CT-M0F sample."""
+        reservation_id = str(
+            getattr(self.args, "ct_m0f_standing_reset_reservation_id", "")
+            or ""
+        )
+        base = {
+            "schema_version": "v7.ct-m0f-standing-reset-scope.v1",
+            "ok": False,
+            "reservation_id": reservation_id,
+            "event_provenance": "CONTROLLED_CERTIFICATION",
+            "natural_production_credit": False,
+            "ordinary_user_effect": "FORBIDDEN",
+            "authority_expanded": False,
+            "new_owner_created": False,
+        }
+        if not reservation_id:
+            return {**base, "reasons": ["ct_m0f_standing_reset_binding_missing"]}
+        audit_store = Path(getattr(
+            self.args,
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
+        sample = operator_execution.ct_m0f_standing_validation_sample_from_audit(
+            reservation_id,
+            audit_store=audit_store,
+        )
+        contract = (
+            (self.policy or {}).get(
+                operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY,
+                {},
+            )
+            if isinstance(self.policy, dict)
+            else {}
+        )
+        contract_validation = (
+            operator_execution.validate_ct_m0f_standing_validation_policy(
+                contract,
+                audit_records=operator_execution.read_audit_records(audit_store),
+            )
+        )
+        reasons = list(contract_validation.get("errors") or [])
+        if not sample.get("ok"):
+            reasons.extend(sample.get("errors") or ["ct_m0f_sample_lineage_invalid"])
+        if sample.get("terminal"):
+            reasons.append("ct_m0f_sample_already_terminal")
+        reservation = (
+            sample.get("reservation")
+            if isinstance(sample.get("reservation"), dict)
+            else {}
+        )
+        moves = [row for row in selected_moves if isinstance(row, dict)]
+        if len(moves) != 1:
+            reasons.append("ct_m0f_reset_requires_exactly_one_move")
+        move = moves[0] if len(moves) == 1 else {}
+        expected = {
+            "user_ip": str(reservation.get("user") or ""),
+            "current_egress": str(reservation.get("target") or ""),
+            "recommended_egress": str(reservation.get("source") or ""),
+        }
+        for field, value in expected.items():
+            if not value or str(move.get(field) or "") != value:
+                reasons.append(f"ct_m0f_reset_{field}_mismatch")
+        if str(reservation.get("contract_id") or "") != str(
+            contract.get("contract_id") or ""
+        ):
+            reasons.append("ct_m0f_reset_contract_id_mismatch")
+        if str(reservation.get("contract_hash") or "") != str(
+            contract.get("contract_hash") or ""
+        ):
+            reasons.append("ct_m0f_reset_contract_hash_mismatch")
+        user = next(
+            (
+                row for row in parse_registry(self.state_dir / "users.registry")
+                if str(row.get("ip") or "") == expected["user_ip"]
+            ),
+            {},
+        )
+        if str(user.get("current") or "") != expected["current_egress"]:
+            reasons.append("ct_m0f_reset_current_route_changed")
+        if str(user.get("certification_user") or "").lower() not in {
+            "1", "true", "yes",
+        }:
+            reasons.append("ct_m0f_reset_certification_identity_required")
+        return {
+            **base,
+            "ok": not reasons,
+            "reasons": sorted(set(reasons)),
+            "user": expected["user_ip"],
+            "source": expected["current_egress"],
+            "target": expected["recommended_egress"],
+            "contract_id": str(contract.get("contract_id") or ""),
+        }
+
     def _activate_controlled_verifier_contention(self, move: dict[str, Any], operation_id: str) -> dict[str, Any]:
         scope = self._exact_controlled_verifier_scope([move])
         source = str(move.get("current_egress") or "")
@@ -10271,6 +10368,7 @@ class AutoswitchPlanner:
         availability_first_scope = (
             self._exact_availability_first_controlled_scope(selected)
         )
+        ct_m0f_reset_scope = self._exact_ct_m0f_standing_reset_scope(selected)
         incident_source_continuity = self._l3_active_incident_source_context()
         incident_source = str(incident_source_continuity.get("incident_source") or "")
         if (
@@ -10278,6 +10376,7 @@ class AutoswitchPlanner:
             and locked_sources != [incident_source]
             and not controlled_verifier_scope.get("ok")
             and not availability_first_scope.get("ok")
+            and not ct_m0f_reset_scope.get("ok")
         ):
             reasons.append("approved_plan_lock_incident_source_mismatch")
         committed_identity = self._committed_apply_identity_validation(
@@ -10868,6 +10967,7 @@ class AutoswitchPlanner:
         availability_first_scope = (
             self._exact_availability_first_controlled_scope(selected)
         )
+        ct_m0f_reset_scope = self._exact_ct_m0f_standing_reset_scope(selected)
         wake = safety.get("l3_wake") if isinstance(safety.get("l3_wake"), dict) else {}
         incident = safety.get("l3_incident") if isinstance(safety.get("l3_incident"), dict) else {}
         selected_hash = str(operation.get("selected_move_hash") or "")
@@ -10886,6 +10986,10 @@ class AutoswitchPlanner:
         availability_first_authorized = bool_value(
             availability_first_scope.get("ok")
         )
+        ct_m0f_reset_authorized = bool_value(ct_m0f_reset_scope.get("ok"))
+        controlled_recovery_authorized = bool(
+            availability_first_authorized or ct_m0f_reset_authorized
+        )
         max_allowed_selected = clearance_max_selected_moves if approved_batch_scope else 1
         live_users = {user.ip: user for user in self._load_users()}
         live_egress = self._load_egress()
@@ -10895,13 +10999,13 @@ class AutoswitchPlanner:
         if (
             not bool_value(gate.get("ok"))
             and not approved_validation_scope
-            and not availability_first_authorized
+            and not controlled_recovery_authorized
         ):
             blockers.append("l3_authority_gate_not_authorized")
         if (
             wake
             and not bool_value(wake.get("accepted"))
-            and not availability_first_authorized
+            and not controlled_recovery_authorized
         ):
             blockers.append("l3_wake_not_accepted")
         if (
@@ -10909,7 +11013,7 @@ class AutoswitchPlanner:
             and str(incident.get("incident_state") or "")
             != "READY_FOR_EXECUTION"
             and not approved_validation_scope
-            and not availability_first_authorized
+            and not controlled_recovery_authorized
         ):
             blockers.append("l3_incident_not_ready")
         if len(selected) < 1:
@@ -10951,7 +11055,7 @@ class AutoswitchPlanner:
                 move_blockers.append("target_not_eligible_before_apply")
             if current_id and target_id and current_id == target_id:
                 move_blockers.append("source_target_same_before_apply")
-            if availability_first_scope.get("ok"):
+            if controlled_recovery_authorized:
                 live_evidence = {
                     "schema_version": (
                         "v7.availability-first-live-execution-evidence.v1"
@@ -10963,6 +11067,8 @@ class AutoswitchPlanner:
                     "source_failure_required": False,
                     "authority_source": (
                         "ACTIVE_STANDING_AVAILABILITY_FIRST_POLICY"
+                        if availability_first_authorized
+                        else "ACTIVE_STANDING_CT_M0F_VALIDATION_POLICY"
                     ),
                 }
             else:
@@ -11002,6 +11108,7 @@ class AutoswitchPlanner:
             "availability_first_controlled_scope": (
                 availability_first_scope
             ),
+            "ct_m0f_standing_reset_scope": ct_m0f_reset_scope,
             "packet_identity_preserved": True,
             "lease_identity_preserved": True,
             "new_execution_path_created": False,
@@ -15319,6 +15426,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation-contract-id", default="")
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
     parser.add_argument("--ct-m0f-implementation-fingerprint", default="")
+    parser.add_argument("--ct-m0f-standing-reset-reservation-id", default="")
     parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",

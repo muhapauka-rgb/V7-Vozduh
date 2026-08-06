@@ -14,6 +14,69 @@ ADMIN_API = ROOT / "admin" / "v7-admin-api"
 
 
 class OperatorExecutionPipelineTest(unittest.TestCase):
+    def kernel_cutover_receipt(self):
+        lineage = {
+            "incident_id": "sfinc_unit",
+            "incident_generation": "incgen_unit",
+            "validation_generation_id": "valgen_1",
+            "user": "10.7.0.3",
+            "source": "vless",
+            "target": "awg3",
+            "candidate_id": "candidate_unit",
+            "packet_id": "packet_unit",
+            "lease_id": "lease_unit",
+            "operation_id": "operation_unit",
+        }
+        return {
+            **lineage,
+            "certification_identity": True,
+            "ordinary_user_delta": 0,
+            "sample_kind": "warm",
+            "clock_source": "time.monotonic_ns",
+            "first_failed_observation_monotonic_ns": 1_000_000_000,
+            "confirmed_hard_failure_monotonic_ns": 1_100_000_000,
+            "user_target_decision_bound_monotonic_ns": 1_200_000_000,
+            "apply_admitted_monotonic_ns": 1_300_000_000,
+            "canonical_user_assignment_committed_monotonic_ns": 1_400_000_000,
+            "kernel_route_mutation_completed_monotonic_ns": 1_500_000_000,
+            "exact_user_kernel_path_visible_monotonic_ns": 1_600_000_000,
+            "target_egress_payload_pass_monotonic_ns": 1_700_000_000,
+            "control_plane_and_kernel_path_cutover_pass_monotonic_ns": 1_700_000_000,
+            "decision_binding": {**lineage, "status": "USER_TARGET_DECISION_BOUND"},
+            "assignment_proof": {
+                **lineage,
+                "status": "CANONICAL_USER_ASSIGNMENT_COMMITTED",
+                "stale_writer_rejected": True,
+                "previous_egress": "vless",
+                "new_egress": "awg3",
+            },
+            "kernel_path_proof": {
+                **lineage,
+                "status": "EXACT_USER_ASSIGNMENT_AND_KERNEL_PATH_TRANSITION_PROVEN",
+                "source_ip": "10.7.0.3",
+                "policy_rule_fingerprint": "rule_fp",
+                "routing_table": "1003",
+                "target_interface": "awg3",
+                "route_generation": "routegen_unit",
+                "old_effective_binding_absent": True,
+            },
+            "target_payload_proof": {
+                **lineage,
+                "status": "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN",
+                "scope": "TARGET_EGRESS_PATH_ONLY",
+                "fresh_socket": True,
+                "fresh_dns_resolution": True,
+                "payload_response_verified": True,
+                "management_default_route_used": False,
+                "target_interface_bound": True,
+                "target_fingerprint_verified": True,
+                "kernel_counter_only": False,
+                "exact_user_source_fwmark_table_traversed": False,
+                "timeout_ms": 1000,
+                "retry_count": 1,
+            },
+        }
+
     def test_exact_client_probe_and_recovery_clock_require_real_client_context(self):
         receipt = {
             "receipt_id": "probe_unit",
@@ -61,6 +124,71 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(probe["status"], "PROBE_INVALID")
         self.assertIn("exact_certification_identity_context", probe["blockers"])
         self.assertIn("kernel_counter_only_forbidden", probe["blockers"])
+
+    def test_composed_kernel_cutover_is_proven_without_remote_recovery_overclaim(self):
+        result = pipeline.control_plane_kernel_path_cutover_contract(
+            self.kernel_cutover_receipt()
+        )
+        self.assertEqual(result["status"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS")
+        self.assertEqual(result["claim_class"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER")
+        self.assertFalse(result["exact_user_payload_path_proven"])
+        self.assertEqual(
+            result["remote_client_application_recovery_latency"],
+            "NOT_MEASURED_NO_CLIENT_AGENT",
+        )
+        self.assertEqual(
+            result["metrics"]["control_plane_and_kernel_path_cutover_latency_ms"],
+            600.0,
+        )
+
+    def test_disconnected_or_overclaimed_cutover_is_rejected(self):
+        receipt = self.kernel_cutover_receipt()
+        receipt["target_payload_proof"]["operation_id"] = "other_operation"
+        receipt["remote_client_recovery_claimed"] = True
+        receipt["exact_user_payload_claimed"] = True
+        result = pipeline.control_plane_kernel_path_cutover_contract(receipt)
+        self.assertEqual(result["status"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID")
+        self.assertIn("payload_operation_id_mismatch", result["blockers"])
+        self.assertIn("remote_client_recovery_claim_forbidden", result["blockers"])
+        self.assertIn(
+            "exact_user_payload_claim_forbidden_without_exact_traversal",
+            result["blockers"],
+        )
+
+    def test_kernel_cutover_gate_uses_bounded_nearest_rank_and_two_generations(self):
+        samples = []
+        for index, duration_ms in enumerate((900, 1000, 1100, 1200, 1300)):
+            receipt = self.kernel_cutover_receipt()
+            receipt["sample_kind"] = "cold" if index == 0 else "warm"
+            receipt["validation_generation_id"] = "valgen_1" if index < 3 else "valgen_2"
+            for owner in (
+                "decision_binding",
+                "assignment_proof",
+                "kernel_path_proof",
+                "target_payload_proof",
+            ):
+                receipt[owner]["validation_generation_id"] = receipt["validation_generation_id"]
+            receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"] = (
+                receipt["confirmed_hard_failure_monotonic_ns"]
+                + duration_ms * 1_000_000
+            )
+            receipt["target_egress_payload_pass_monotonic_ns"] = (
+                receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"]
+            )
+            samples.append(
+                {
+                    **pipeline.control_plane_kernel_path_cutover_contract(receipt),
+                    "sample_kind": receipt["sample_kind"],
+                    "validation_generation_id": receipt["validation_generation_id"],
+                }
+            )
+        gate = pipeline.controlled_kernel_cutover_gate(samples)
+        self.assertEqual(gate["status"], "LEGACY_KERNEL_CUTOVER_OPERATIONAL_SLO_CONSUMED")
+        self.assertEqual(gate["p95_method"], "NEAREST_RANK")
+        self.assertEqual(
+            gate["distributions"]["control_plane_and_kernel_path_cutover_latency_ms"]["controlled_gate_p95_nearest_rank_ms"],
+            1300.0,
+        )
 
     def test_constant_time_ledger_consumes_nested_timing_without_fabricating_unknowns(self):
         result = pipeline.execution_performance_foundation(

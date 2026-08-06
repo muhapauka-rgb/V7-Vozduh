@@ -73,6 +73,36 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             "payload_fingerprint": "payload_fp_unit",
         }
 
+    def target_payload_context(self):
+        context = {
+            "schema_version": client_speed.TARGET_EGRESS_PAYLOAD_CONTEXT_SCHEMA,
+            "contract_id": "cttarget_contract_unit",
+            "validation_generation_id": "cttarget_generation_unit",
+            "sample_kind": "warm",
+            "issuing_owner": "existing-controlled-production-owner",
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "incident_id": "sfinc_unit",
+            "incident_generation": "gen_unit",
+            "user": "10.7.0.3",
+            "source": "vless",
+            "target": "awg3",
+            "candidate_id": "candidate_unit",
+            "packet_id": "packet_unit",
+            "lease_id": "lease_unit",
+            "operation_id": "operation_unit",
+            "certification_identity": True,
+            "source_address": "10.8.0.2",
+            "interface": "awg3",
+            "expected_egress_ip": "8.8.8.8",
+            "expected_target_egress_fingerprint": "b" * 64,
+            "target_url": "https://probe.example/ip",
+            "timeout_ms": 1000,
+            "retry_count": 1,
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+        }
+        context["context_hash"] = client_speed.exact_probe_context_hash(context)
+        return context
+
     def test_matching_namespace_route_and_payload_produce_ready_receipt(self):
         context = self.context()
         attempt = self.successful_attempt()
@@ -211,6 +241,41 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertIn("online_capable_exact_certification_client_agent_missing", result["blockers"])
         self.assertEqual(result["user_movement"], 0)
+
+    def test_target_payload_mode_reuses_payload_primitive_without_user_recovery_claim(self):
+        context = self.target_payload_context()
+        attempt = self.successful_attempt()
+        attempt["route"] = {
+            "ok": True,
+            "dev": "awg3",
+            "table": "main",
+            "prefsrc": "10.8.0.2",
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "target-context.json"
+            path.write_text(json.dumps(context), encoding="utf-8")
+            with mock.patch.object(
+                client_speed,
+                "execute_fresh_exact_probe_request",
+                return_value=(attempt, [attempt]),
+            ) as execute:
+                receipt = client_speed.run_target_egress_payload_context(path)
+        execute.assert_called_once()
+        self.assertEqual(
+            receipt["status"],
+            "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN",
+        )
+        self.assertEqual(receipt["scope"], "TARGET_EGRESS_PATH_ONLY")
+        self.assertFalse(receipt["exact_user_source_fwmark_table_traversed"])
+        self.assertFalse(receipt["remote_client_recovery_claimed"])
+        self.assertEqual(receipt["user_movement"], 0)
+
+    def test_target_payload_context_requires_full_operation_lineage(self):
+        context = self.target_payload_context()
+        context.pop("lease_id")
+        context["context_hash"] = client_speed.exact_probe_context_hash(context)
+        errors = client_speed.target_egress_payload_context_errors(context)
+        self.assertIn("lease_id_missing", errors)
 
 
 if __name__ == "__main__":

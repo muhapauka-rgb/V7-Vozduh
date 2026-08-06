@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.5`
+Version: `4.6`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,158 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V4.6 current-stage cutover object and deferred remote recovery gate
+
+V4.6 corrects the current CT-M0F measurement object without weakening the
+V4.5 remote-device evidence contract. Production reality consumed by CT-M0
+proves that the current legacy dataplane is owned by server-side per-user
+assignment, source-policy rule and routing-table state. An online capable
+remote certification client agent is not currently implemented or available.
+Therefore remote-device recovery is a future production-validation criterion,
+not a prerequisite for current kernel/class engineering.
+
+CT-M0F remains one Mission with two distinct acceptance surfaces:
+
+```text
+CT_M0F_KERNEL_CUTOVER_ENGINEERING_CONSUMED
+-> may unlock CT-M1 engineering only
+
+FUTURE_REMOTE_CLIENT_AGENT_END_TO_END_RECOVERY_VALIDATION
+-> remains required before any remote-device recovery, application recovery,
+   existing-flow survival, production class certification, Authority expansion
+   or Production Maturity claim
+```
+
+The current object is:
+
+```text
+CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_LATENCY
+= HARD_FAILURE_CONFIRMED
+  -> exact decision/Packet/lease/operation binding
+  -> canonical certification-identity assignment commit
+  -> exact source-policy table kernel visibility
+  -> selected target egress fresh payload readiness
+  -> cross-owner agreement
+```
+
+This current metric may prove that V7 changed the exact identity's canonical
+assignment and effective Linux path and that the selected target independently
+carried a fresh application payload. It must not be named or reported as
+remote-client, application-visible or existing-flow recovery. It may be named
+`USER_PATH_CUTOVER` only when the payload itself is proven to have traversed
+the exact identity source address plus its fwmark/table/policy context. When
+the payload is bound only to the selected target interface, the mandatory
+terminal is the narrower
+`CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS`.
+
+The prior V4.5 remote metrics and terminals remain visible under:
+
+```text
+REMOTE_CLIENT_APPLICATION_RECOVERY_LATENCY=NOT_MEASURED_NO_CLIENT_AGENT
+EXISTING_FLOW_RECOVERY_LATENCY=NOT_MEASURED
+REMOTE_DEVICE_RECOVERY=DEFERRED_TO_FUTURE_CLIENT_AGENT_CAPABILITY
+```
+
+They do not block CT-M1 engineering, but they continue to block every stronger
+production/end-user claim named above. They are not PASS, removed evidence or
+an Authority/Maturity waiver.
+
+### Current cutover monotonic contract
+
+The existing Time owner consumes one clock domain with these boundaries:
+
+```text
+FIRST_FAILED_OBSERVATION
+HARD_FAILURE_CONFIRMED
+USER_TARGET_DECISION_BOUND
+APPLY_ADMITTED
+CANONICAL_USER_ASSIGNMENT_COMMITTED
+KERNEL_ROUTE_MUTATION_COMPLETED
+EXACT_USER_KERNEL_PATH_VISIBLE
+TARGET_EGRESS_PAYLOAD_PASS
+CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS
+DEFERRED_CLOSURE_ACTIVATED
+DEFERRED_CLOSURE_COMPLETE
+RESET_APPLY_ADMITTED
+RESET_CANONICAL_ASSIGNMENT_COMMITTED
+RESET_EXACT_USER_KERNEL_PATH_VISIBLE
+RESET_TARGET_EGRESS_PAYLOAD_PASS
+RESET_CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS
+RESET_DEFERRED_CLOSURE_COMPLETE
+```
+
+Unknown intervals are `UNKNOWN`, never zero. Wall clock preserves lineage
+only; elapsed SLO uses `time.monotonic_ns()`. Assignment, route, payload,
+operation, Packet, lease, incident and validation generations must agree or
+the result is `USER_PATH_CUTOVER_CROSS_OWNER_MISMATCH`.
+
+The current operational total gate is authoritative:
+
+```text
+CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_LATENCY CONTROLLED_GATE_P95 <= 3000 ms
+AND no valid sample > 5000 ms
+```
+
+Substage ceilings are diagnostic and may overlap; they must never be added as
+independent serial allowances that exceed the total. The ledger must expose at
+least decision, admission, assignment CAS, route mutation, visibility and
+target-payload intervals, and `UNKNOWN` or unexplained time blocks the gate.
+The controlled five-sample p95 uses nearest-rank and is explicitly a bounded
+engineering gate, not a statistically representative production percentile.
+A p99 claim still requires at least 100 owner-backed observations.
+
+### Current proof composition and probe reuse
+
+The existing assignment/route owner must prove the exact certification
+identity, old/new egress, registry and assignment generation, source-policy
+rule, routing table, fwmark or explicit none, expected interface, tested
+destination and absence of the old effective binding. The existing payload
+logic may be reused only as a separately versioned
+`target-egress-payload-readiness` receipt bound to the same target/path and
+operation generation. Two disconnected receipts never become an exact
+identity payload claim merely by sharing a target name.
+
+Fresh compatible Matrix evidence remains reusable. With no declared
+invalidation, full Matrix verification before the current cutover terminal is
+forbidden; mandatory Outcome/Replay/Learning, temporal verification, reset and
+reporting continue through the crash-safe deferred closure successor.
+
+### Authority, Polygon and admission boundaries
+
+An active standing movement policy does not authorize deliberate source
+degradation, certification-substrate mutation or controlled-condition
+creation. Each such effect requires its exact current existing-owner admission;
+expired or broader campaign approvals are non-reusable. No ordinary user may
+be used.
+
+When no qualifying current failure generation exists, the existing Permanent
+Polygon may select the exact missing controlled latency cell and prepare a
+safe L7 opportunity. Only the real bounded Controlled Production transaction
+creates current cutover evidence; Polygon output itself grants no L7/L8,
+production, Authority or Maturity credit. Natural L8 is never manufactured.
+
+CT-M0F current engineering completes only after at least five distinct valid
+certification-only samples spanning two owner-backed generations, including
+one cold and two warm samples, consume the current total gate, reset cutover,
+deferred closure, hidden-O(N) guard, performance ledger and before/after
+contract. Production movement is never performed solely to fill a percentile.
+
+Required current engineering terminal:
+
+```text
+CT_M0F_KERNEL_CUTOVER_ENGINEERING_CONSUMED
+AND REUSABLE_FAST_PATH_PRIMITIVES_PROVEN_AND_LEGACY_EXCEPTION_FALLBACK_CERTIFIED
+-> CT-M1=READY_ENGINEERING_ONLY
+```
+
+Required future production residual:
+
+```text
+FUTURE_REMOTE_CLIENT_AGENT_END_TO_END_RECOVERY_VALIDATION
+-> exact remote route-bound payload and recovery clocks
+-> production/end-user claim eligibility only after its own owner consumption
+```
 
 ## V4.5 exact client recovery measurement contract
 

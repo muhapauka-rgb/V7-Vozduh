@@ -114,6 +114,15 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def monotonic_clock_domain_id() -> str:
+    """Name the reboot-scoped monotonic clock shared by V7 processes."""
+    try:
+        boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(encoding="utf-8").strip()
+    except OSError:
+        boot_id = "unknown"
+    return f"linux-boot:{boot_id or 'unknown'}"
+
+
 def read_json(path: Path, default: Any) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -535,6 +544,8 @@ def service_failure_episode(
     egress_id: str,
     service_id: str,
     observed_at: str,
+    observed_monotonic_ns: int = 0,
+    monotonic_clock_domain: str = "",
     identity_generation: str = "",
 ) -> dict[str, Any]:
     """Attach durable, source-bound failure continuity to an existing row.
@@ -559,6 +570,8 @@ def service_failure_episode(
     methodology = "HTTP_LIMITED" if str(result.get("status") or "").upper() == "HTTP_LIMITED" else ""
     result.update({
         "observed_at": observed_at,
+        "observation_monotonic_ns": int(observed_monotonic_ns or 0),
+        "monotonic_clock_domain": str(monotonic_clock_domain or ""),
         "probe_provenance": "SERVICE_PROBE_OBSERVED",
         "evidence_class": "PROBE_OBSERVATION",
         "probe_classification": methodology or ("FAILURE" if failure else "HEALTHY"),
@@ -584,6 +597,18 @@ def service_failure_episode(
             "failure_family": failure_family,
             "egress_identity_generation": identity_generation,
             "recovery_samples": 0,
+            "first_failed_observation_monotonic_ns": (
+                int(previous.get("first_failed_observation_monotonic_ns") or 0)
+                if continuous
+                and str(previous.get("monotonic_clock_domain") or "") == str(monotonic_clock_domain or "")
+                else int(observed_monotonic_ns or 0)
+            ),
+            "confirmed_hard_failure_monotonic_ns": (
+                int(previous.get("confirmed_hard_failure_monotonic_ns") or 0)
+                if continuous
+                and str(previous.get("monotonic_clock_domain") or "") == str(monotonic_clock_domain or "")
+                else 0
+            ),
         })
         if continuous:
             for key in (
@@ -622,6 +647,8 @@ def service_failure_episode(
         "egress_identity_generation": identity_generation,
         "source_incident_id": str(previous.get("source_incident_id") or ""),
         "recovery_samples": max(0, int(previous.get("recovery_samples") or 0)) + 1 if recovering else 0,
+        "first_failed_observation_monotonic_ns": 0,
+        "confirmed_hard_failure_monotonic_ns": 0,
     })
     return result
 
@@ -936,6 +963,8 @@ def update_matrix(
         row = items.setdefault(egress_id, {})
         services = row.setdefault("services", {})
         observed_at = now_iso()
+        observation_monotonic_ns = time.monotonic_ns()
+        observation_clock_domain = monotonic_clock_domain_id()
         scope_snapshot = source_scope_snapshot(
             state_dir or matrix_file.parent,
             egress_id,
@@ -954,6 +983,8 @@ def update_matrix(
                 egress_id=egress_id,
                 service_id=service_id,
                 observed_at=str(observed.get("tested_at") or observed_at) if isinstance(observed, dict) else observed_at,
+                observed_monotonic_ns=observation_monotonic_ns,
+                monotonic_clock_domain=observation_clock_domain,
                 identity_generation=str(identity.get("egress_identity_generation") or ""),
             )
             merged.update(identity)
@@ -1063,6 +1094,7 @@ def update_matrix(
                 merged["failure_event_id"] = event_id
                 merged["failure_event_emitted_at"] = observed_at
                 merged["source_incident_id"] = source_incident_id
+                merged["confirmed_hard_failure_monotonic_ns"] = observation_monotonic_ns
                 fresh_failure_event_emitted = True
                 events.append({
                     "schema_version": "v7.service-failure-event.v3",
@@ -1085,6 +1117,9 @@ def update_matrix(
                     "failure_samples": int(merged.get("failure_samples") or 0),
                     "bad_for_seconds": to_float(merged.get("bad_for_seconds")),
                     "observed_at": observed_at,
+                    "monotonic_clock_domain": observation_clock_domain,
+                    "first_failed_observation_monotonic_ns": int(merged.get("first_failed_observation_monotonic_ns") or 0),
+                    "confirmed_hard_failure_monotonic_ns": observation_monotonic_ns,
                     "source_files": [str(matrix_file)],
                     "source_hashes": {
                         "service_row": hashlib.sha256(json.dumps(merged, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
@@ -1148,6 +1183,15 @@ def update_matrix(
                 "source_scope": scope_snapshot,
                 **identity,
                 "observed_at": max(str(row.get("last_failure_at") or observed_at) for _, row in revalidation_rows),
+                "monotonic_clock_domain": observation_clock_domain,
+                "first_failed_observation_monotonic_ns": min(
+                    (int(row.get("first_failed_observation_monotonic_ns") or 0) for _, row in revalidation_rows if int(row.get("first_failed_observation_monotonic_ns") or 0) > 0),
+                    default=0,
+                ),
+                "confirmed_hard_failure_monotonic_ns": max(
+                    (int(row.get("confirmed_hard_failure_monotonic_ns") or 0) for _, row in revalidation_rows),
+                    default=0,
+                ),
                 "source_files": [str(matrix_file)],
                 "source_hashes": {
                     "correlated_matrix_observation": hashlib.sha256(

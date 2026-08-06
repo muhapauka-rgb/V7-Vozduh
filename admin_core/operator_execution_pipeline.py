@@ -128,6 +128,8 @@ CONSTANT_TIME_LEDGER_STAGES = {
     # runtime producer's process-bound route-writer stage name.
     "route_writer_" + "sub" + "process_and_low_level_mutation": "kernel_commit_ms",
     "route_visibility_verification": "visibility_ms",
+    "target_egress_payload_readiness": "target_payload_ready_ms",
+    "control_plane_and_kernel_path_cutover": "kernel_cutover_total_ms",
     "exact_client_network_context_traffic_probe": "new_flow_recovery_ms",
     "client_traffic_recovery": "new_flow_recovery_ms",
     "durable_audit_feedback_and_successor_publication": "closure_activation_ms",
@@ -144,6 +146,8 @@ CONSTANT_TIME_LEDGER_INTERVALS = (
     "canonical_cas_ms",
     "kernel_commit_ms",
     "visibility_ms",
+    "target_payload_ready_ms",
+    "kernel_cutover_total_ms",
     "fast_verification_ms",
     "new_flow_recovery_ms",
     "closure_activation_ms",
@@ -3604,6 +3608,269 @@ def exact_client_network_context_traffic_probe_contract(
     }
 
 
+CUTOVER_EVENT_FIELDS = (
+    "first_failed_observation_monotonic_ns",
+    "confirmed_hard_failure_monotonic_ns",
+    "user_target_decision_bound_monotonic_ns",
+    "apply_admitted_monotonic_ns",
+    "canonical_user_assignment_committed_monotonic_ns",
+    "kernel_route_mutation_completed_monotonic_ns",
+    "exact_user_kernel_path_visible_monotonic_ns",
+    "target_egress_payload_pass_monotonic_ns",
+    "control_plane_and_kernel_path_cutover_pass_monotonic_ns",
+)
+
+
+def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[str, Any]:
+    """Consume a composed server-side cutover receipt without overclaiming.
+
+    The assignment/route owner proves the exact identity binding.  A separate
+    target-egress payload owner proves that the selected tunnel can carry a
+    fresh payload.  Combining those owner-backed facts is useful engineering
+    evidence, but it is deliberately *not* remote-device recovery evidence and
+    is not an exact-user payload probe unless the packet actually traversed the
+    user's source/fwmark/table context.
+    """
+    receipt = receipt if isinstance(receipt, dict) else {}
+    decision = receipt.get("decision_binding") if isinstance(receipt.get("decision_binding"), dict) else {}
+    assignment = receipt.get("assignment_proof") if isinstance(receipt.get("assignment_proof"), dict) else {}
+    kernel = receipt.get("kernel_path_proof") if isinstance(receipt.get("kernel_path_proof"), dict) else {}
+    payload = receipt.get("target_payload_proof") if isinstance(receipt.get("target_payload_proof"), dict) else {}
+    lineage_fields = (
+        "incident_id",
+        "incident_generation",
+        "validation_generation_id",
+        "user",
+        "source",
+        "target",
+        "candidate_id",
+        "packet_id",
+        "lease_id",
+        "operation_id",
+    )
+    blockers: list[str] = []
+    for field in lineage_fields:
+        expected = str(receipt.get(field) or "")
+        if not expected:
+            blockers.append(f"{field}_missing")
+            continue
+        for owner_name, owner_row in (
+            ("decision", decision),
+            ("assignment", assignment),
+            ("kernel", kernel),
+            ("payload", payload),
+        ):
+            if str(owner_row.get(field) or "") != expected:
+                blockers.append(f"{owner_name}_{field}_mismatch")
+
+    certification_identity = receipt.get("certification_identity") is True
+    if not certification_identity:
+        blockers.append("certification_identity_required")
+    if _as_int(receipt.get("ordinary_user_delta"), -1) != 0:
+        blockers.append("ordinary_user_delta_must_be_zero")
+    if decision.get("status") != "USER_TARGET_DECISION_BOUND":
+        blockers.append("user_target_decision_not_bound")
+    if assignment.get("status") != "CANONICAL_USER_ASSIGNMENT_COMMITTED":
+        blockers.append("canonical_assignment_not_committed")
+    if assignment.get("stale_writer_rejected") is not True:
+        blockers.append("stale_writer_rejection_not_proven")
+    if str(assignment.get("previous_egress") or "") != str(receipt.get("source") or ""):
+        blockers.append("assignment_previous_egress_mismatch")
+    if str(assignment.get("new_egress") or "") != str(receipt.get("target") or ""):
+        blockers.append("assignment_new_egress_mismatch")
+
+    if kernel.get("status") != "EXACT_USER_ASSIGNMENT_AND_KERNEL_PATH_TRANSITION_PROVEN":
+        blockers.append("exact_user_kernel_path_not_proven")
+    for field in ("source_ip", "policy_rule_fingerprint", "routing_table", "target_interface", "route_generation"):
+        if not str(kernel.get(field) or ""):
+            blockers.append(f"kernel_{field}_missing")
+    if kernel.get("old_effective_binding_absent") is not True:
+        blockers.append("old_effective_binding_still_present_or_unknown")
+
+    if payload.get("status") != "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN":
+        blockers.append("target_egress_payload_not_proven")
+    required_payload = {
+        "fresh_socket": payload.get("fresh_socket") is True,
+        "fresh_dns_or_declared_no_dns": (
+            payload.get("fresh_dns_resolution") is True
+            or str(payload.get("dns_mode") or "") == "DECLARED_NO_DNS"
+        ),
+        "payload_response_verified": payload.get("payload_response_verified") is True,
+        "management_default_route_forbidden": payload.get("management_default_route_used") is False,
+        "target_interface_bound": payload.get("target_interface_bound") is True,
+        "target_fingerprint_verified": payload.get("target_fingerprint_verified") is True,
+        "kernel_counter_only_forbidden": payload.get("kernel_counter_only") is False,
+    }
+    blockers.extend(name for name, passed in required_payload.items() if not passed)
+    if str(payload.get("scope") or "") != "TARGET_EGRESS_PATH_ONLY":
+        blockers.append("payload_scope_must_be_target_egress_path_only")
+    if _as_int(payload.get("timeout_ms"), 0) <= 0:
+        blockers.append("payload_timeout_contract_missing")
+    if _as_int(payload.get("retry_count"), -1) < 0:
+        blockers.append("payload_retry_contract_missing")
+
+    clock_source = str(receipt.get("clock_source") or "")
+    if clock_source != "time.monotonic_ns":
+        blockers.append("single_monotonic_clock_domain_required")
+    events = {field: _as_int(receipt.get(field), 0) for field in CUTOVER_EVENT_FIELDS}
+    if any(value <= 0 for value in events.values()):
+        blockers.append("all_cutover_events_required")
+    elif list(events.values()) != sorted(events.values()):
+        blockers.append("ordered_cutover_events_required")
+
+    def interval(start: str, end: str) -> float | None:
+        if blockers or events[start] <= 0 or events[end] < events[start]:
+            return None
+        return round((events[end] - events[start]) / 1_000_000.0, 3)
+
+    metrics = {
+        "failure_detection_latency_ms": interval(CUTOVER_EVENT_FIELDS[0], CUTOVER_EVENT_FIELDS[1]),
+        "failure_to_decision_latency_ms": interval(CUTOVER_EVENT_FIELDS[1], CUTOVER_EVENT_FIELDS[2]),
+        "decision_to_apply_admission_latency_ms": interval(CUTOVER_EVENT_FIELDS[2], CUTOVER_EVENT_FIELDS[3]),
+        "canonical_assignment_commit_latency_ms": interval(CUTOVER_EVENT_FIELDS[3], CUTOVER_EVENT_FIELDS[4]),
+        "kernel_route_mutation_latency_ms": interval(CUTOVER_EVENT_FIELDS[4], CUTOVER_EVENT_FIELDS[5]),
+        "kernel_path_visibility_latency_ms": interval(CUTOVER_EVENT_FIELDS[5], CUTOVER_EVENT_FIELDS[6]),
+        "target_egress_payload_ready_latency_ms": interval(CUTOVER_EVENT_FIELDS[6], CUTOVER_EVENT_FIELDS[7]),
+        "control_plane_and_kernel_path_cutover_latency_ms": interval(CUTOVER_EVENT_FIELDS[1], CUTOVER_EVENT_FIELDS[8]),
+        "failure_evidence_to_kernel_cutover_latency_ms": interval(CUTOVER_EVENT_FIELDS[0], CUTOVER_EVENT_FIELDS[8]),
+    }
+    exact_user_payload = payload.get("exact_user_source_fwmark_table_traversed") is True
+    if receipt.get("exact_user_payload_claimed") is True and not exact_user_payload:
+        blockers.append("exact_user_payload_claim_forbidden_without_exact_traversal")
+    if receipt.get("remote_client_recovery_claimed") is True:
+        blockers.append("remote_client_recovery_claim_forbidden")
+    if blockers:
+        metrics = {key: None for key in metrics}
+    ok = not blockers
+    return {
+        "schema_version": "v7.control-plane-kernel-path-cutover-contract.v1",
+        "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS" if ok else "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+        "ok": ok,
+        "claim_class": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER",
+        "exact_user_assignment_and_kernel_path_transition_proven": ok,
+        "target_egress_route_bound_payload_probe_proven": ok,
+        "exact_user_payload_path_proven": bool(ok and exact_user_payload),
+        "remote_client_application_recovery_latency": "NOT_MEASURED_NO_CLIENT_AGENT",
+        "existing_flow_recovery_latency": "NOT_MEASURED",
+        "remote_device_recovery": "DEFERRED_TO_FUTURE_CLIENT_AGENT_CAPABILITY",
+        "clock_source": clock_source,
+        "events": events,
+        "metrics": metrics,
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed_by_consumer": False,
+        "routing_mutation_performed_by_consumer": False,
+        "user_movement_by_consumer": 0,
+    }
+
+
+def controlled_kernel_cutover_gate(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    """Evaluate the bounded CT-M0F engineering gate with nearest-rank p95.
+
+    Five samples are a deliberately small controlled engineering gate, not a
+    statistically representative production percentile.  The total cutover
+    ceiling is authoritative; substage ceilings remain diagnostic because
+    overlapping intervals must not be summed into a second total.
+    """
+    samples = samples if isinstance(samples, list) else []
+    valid = [
+        row for row in samples
+        if isinstance(row, dict)
+        and row.get("status") == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+        and isinstance(row.get("metrics"), dict)
+    ]
+
+    def nearest_rank(values: list[float], percentile: int = 95) -> float | None:
+        if not values:
+            return None
+        ordered = sorted(values)
+        rank = max(1, (percentile * len(ordered) + 99) // 100)
+        return round(float(ordered[rank - 1]), 3)
+
+    metric_names = (
+        "failure_detection_latency_ms",
+        "failure_to_decision_latency_ms",
+        "decision_to_apply_admission_latency_ms",
+        "canonical_assignment_commit_latency_ms",
+        "kernel_route_mutation_latency_ms",
+        "kernel_path_visibility_latency_ms",
+        "target_egress_payload_ready_latency_ms",
+        "control_plane_and_kernel_path_cutover_latency_ms",
+    )
+    distributions: dict[str, dict[str, Any]] = {}
+    for name in metric_names:
+        values = [
+            float(row["metrics"][name])
+            for row in valid
+            if isinstance(row["metrics"].get(name), (int, float))
+        ]
+        distributions[name] = {
+            "sample_count": len(values),
+            "controlled_gate_p95_nearest_rank_ms": nearest_rank(values),
+            "max_ms": round(max(values), 3) if values else None,
+        }
+    kinds = [str(row.get("sample_kind") or "") for row in valid]
+    generations = {
+        str(row.get("validation_generation_id") or "")
+        for row in valid
+        if str(row.get("validation_generation_id") or "")
+    }
+    total = distributions["control_plane_and_kernel_path_cutover_latency_ms"]
+    operational_ready = all((
+        len(valid) >= 5,
+        kinds.count("cold") >= 1,
+        kinds.count("warm") >= 2,
+        len(generations) >= 2,
+        total["controlled_gate_p95_nearest_rank_ms"] is not None,
+        float(total["controlled_gate_p95_nearest_rank_ms"] or 0.0) <= 3000.0,
+        total["max_ms"] is not None,
+        float(total["max_ms"] or 0.0) <= 5000.0,
+    ))
+    transitional_ready = all((
+        len(valid) >= 3,
+        kinds.count("cold") >= 1,
+        kinds.count("warm") >= 2,
+        total["controlled_gate_p95_nearest_rank_ms"] is not None,
+        float(total["controlled_gate_p95_nearest_rank_ms"] or 0.0) <= 10000.0,
+        total["max_ms"] is not None,
+        float(total["max_ms"] or 0.0) <= 15000.0,
+    ))
+    blockers: list[str] = []
+    if len(valid) < 5:
+        blockers.append("five_valid_samples_required")
+    if kinds.count("cold") < 1:
+        blockers.append("one_cold_sample_required")
+    if kinds.count("warm") < 2:
+        blockers.append("two_warm_samples_required")
+    if len(generations) < 2:
+        blockers.append("two_owner_backed_generations_required")
+    if total["controlled_gate_p95_nearest_rank_ms"] is None:
+        blockers.append("cutover_latency_unknown")
+    elif float(total["controlled_gate_p95_nearest_rank_ms"]) > 3000.0:
+        blockers.append("authoritative_cutover_p95_above_3000ms")
+    if total["max_ms"] is not None and float(total["max_ms"]) > 5000.0:
+        blockers.append("authoritative_cutover_max_above_5000ms")
+    return {
+        "schema_version": "v7.controlled-kernel-cutover-gate.v1",
+        "status": (
+            "LEGACY_KERNEL_CUTOVER_OPERATIONAL_SLO_CONSUMED"
+            if operational_ready
+            else "TRANSITIONAL_KERNEL_CUTOVER_GATE_PASS"
+            if transitional_ready
+            else "KERNEL_CUTOVER_GATE_INSUFFICIENT_OR_FAILED"
+        ),
+        "ok": operational_ready,
+        "gate_kind": "BOUNDED_CONTROLLED_ENGINEERING_GATE_NOT_STATISTICAL_PERCENTILE",
+        "p95_method": "NEAREST_RANK",
+        "valid_sample_count": len(valid),
+        "cold_sample_count": kinds.count("cold"),
+        "warm_sample_count": kinds.count("warm"),
+        "owner_backed_generation_count": len(generations),
+        "distributions": distributions,
+        "total_cutover_ceiling_authoritative": True,
+        "substage_ceilings_diagnostic_only": True,
+        "p99": "INSUFFICIENT_SAMPLE_COUNT" if len(valid) < 100 else "NOT_COMPUTED_BY_BOUNDED_GATE",
+        "blockers": sorted(set(blockers)),
+    }
 def client_recovery_clock_contract(receipt: dict[str, Any]) -> dict[str, Any]:
     """Derive detection and end-to-end recovery from one clock domain."""
     receipt = receipt if isinstance(receipt, dict) else {}

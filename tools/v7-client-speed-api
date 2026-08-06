@@ -34,6 +34,8 @@ SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{0,64}$")
 SAFE_INGRESS = {"vless", "wireguard", "amneziawg", "unknown"}
 EXACT_PROBE_CONTEXT_SCHEMA = "v7.exact-client-probe-execution-context.v1"
 EXACT_PROBE_RECEIPT_SCHEMA = "v7.exact-client-network-context-traffic-probe-receipt.v1"
+TARGET_EGRESS_PAYLOAD_CONTEXT_SCHEMA = "v7.target-egress-payload-probe-context.v1"
+TARGET_EGRESS_PAYLOAD_RECEIPT_SCHEMA = "v7.target-egress-payload-probe-receipt.v1"
 
 
 def now_iso():
@@ -330,6 +332,70 @@ def exact_probe_context_errors(context):
         expected_ip_value = None
     if expected_ip_value is None or not expected_ip_value.is_global:
         errors.append("expected_egress_ip_invalid")
+    return sorted(set(errors))
+
+
+def target_egress_payload_context_errors(context):
+    """Validate a target-only payload context from an existing owner.
+
+    This mode deliberately cannot claim exact-user or remote-device recovery.
+    It reuses the existing TLS/HTTP and egress-IP validation primitive only to
+    prove that the separately selected target tunnel can carry fresh payload.
+    """
+    context = context if isinstance(context, dict) else {}
+    errors = []
+    if context.get("schema_version") != TARGET_EGRESS_PAYLOAD_CONTEXT_SCHEMA:
+        errors.append("context_schema_invalid")
+    for key in (
+        "contract_id",
+        "validation_generation_id",
+        "issuing_owner",
+        "active_program",
+        "incident_id",
+        "incident_generation",
+        "user",
+        "source",
+        "target",
+        "candidate_id",
+        "packet_id",
+        "lease_id",
+        "operation_id",
+        "source_address",
+        "interface",
+        "expected_egress_ip",
+        "expected_target_egress_fingerprint",
+        "target_url",
+        "context_hash",
+    ):
+        if not str(context.get(key) or "").strip():
+            errors.append(f"{key}_missing")
+    if context.get("certification_identity") is not True:
+        errors.append("certification_identity_required")
+    if str(context.get("context_hash") or "") != exact_probe_context_hash(context):
+        errors.append("context_hash_mismatch")
+    if str(context.get("sample_kind") or "") not in {"cold", "warm"}:
+        errors.append("sample_kind_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(context.get("expected_target_egress_fingerprint") or "")):
+        errors.append("expected_target_egress_fingerprint_invalid")
+    if safe_int(context.get("timeout_ms"), 0) <= 0:
+        errors.append("timeout_contract_missing")
+    if safe_int(context.get("retry_count"), -1) < 0:
+        errors.append("retry_contract_missing")
+    try:
+        if parse_iso(context.get("expires_at")) <= datetime.now(timezone.utc):
+            errors.append("context_expired")
+    except Exception:
+        errors.append("context_expiry_invalid")
+    target_url = urlparse(str(context.get("target_url") or ""))
+    if target_url.scheme != "https" or not target_url.hostname:
+        errors.append("https_target_required")
+    try:
+        if not ipaddress.ip_address(str(context.get("expected_egress_ip") or "")).is_global:
+            errors.append("expected_egress_ip_invalid")
+        if not ipaddress.ip_address(str(context.get("source_address") or "")):
+            errors.append("source_address_invalid")
+    except ValueError:
+        errors.append("address_invalid")
     return sorted(set(errors))
 
 
@@ -659,6 +725,127 @@ def run_exact_probe_context(path):
             + ["time_owner_consumer_rejected"]
         ))
     return receipt
+
+
+def build_target_egress_payload_receipt(context, successful_attempt, attempts):
+    """Build target-only payload evidence; never promote it to user recovery."""
+    context = context if isinstance(context, dict) else {}
+    attempt = successful_attempt if isinstance(successful_attempt, dict) else {}
+    route = attempt.get("route") if isinstance(attempt.get("route"), dict) else {}
+    expected_fingerprint = str(context.get("expected_target_egress_fingerprint") or "")
+    interface_bound = all((
+        attempt.get("interface_bind_applied") is True,
+        str(route.get("dev") or "") == str(context.get("interface") or ""),
+    ))
+    target_fingerprint_verified = (
+        attempt.get("response_matches_expected_egress_ip") is True
+        and bool(expected_fingerprint)
+    )
+    receipt_seed = {
+        key: context.get(key)
+        for key in (
+            "contract_id",
+            "validation_generation_id",
+            "incident_generation",
+            "operation_id",
+            "target",
+        )
+    }
+    receipt = {
+        "schema_version": TARGET_EGRESS_PAYLOAD_RECEIPT_SCHEMA,
+        "receipt_id": "cttarget_" + sha256_text(json.dumps(receipt_seed, sort_keys=True))[:24],
+        "scope": "TARGET_EGRESS_PATH_ONLY",
+        "probe_owner": "existing tools/v7-client-speed-api target-egress payload mode",
+        **{
+            key: str(context.get(key) or "")
+            for key in (
+                "contract_id",
+                "validation_generation_id",
+                "issuing_owner",
+                "active_program",
+                "incident_id",
+                "incident_generation",
+                "user",
+                "source",
+                "target",
+                "candidate_id",
+                "packet_id",
+                "lease_id",
+                "operation_id",
+            )
+        },
+        "sample_kind": str(context.get("sample_kind") or ""),
+        "certification_identity": context.get("certification_identity") is True,
+        "target_interface": str(context.get("interface") or ""),
+        "target_interface_bound": interface_bound,
+        "observed_target_egress_fingerprint": expected_fingerprint if target_fingerprint_verified else "",
+        "target_fingerprint_verified": target_fingerprint_verified,
+        "payload_response_verified": attempt.get("payload_response_verified") is True,
+        "payload_fingerprint": str(attempt.get("payload_fingerprint") or ""),
+        "fresh_socket": attempt.get("fresh_socket") is True,
+        "fresh_dns_resolution": attempt.get("fresh_dns_resolution") is True,
+        "management_default_route_used": not interface_bound,
+        "kernel_counter_only": False,
+        "exact_user_source_fwmark_table_traversed": False,
+        "timeout_ms": safe_int(context.get("timeout_ms"), 0),
+        "retry_count": safe_int(context.get("retry_count"), -1),
+        "clock_source": "time.monotonic_ns",
+        "started_monotonic_ns": safe_int(attempt.get("started_monotonic_ns"), 0),
+        "target_egress_payload_pass_monotonic_ns": safe_int(attempt.get("finished_monotonic_ns"), 0),
+        "attempt_count": len(attempts if isinstance(attempts, list) else []),
+        "attempts": attempts if isinstance(attempts, list) else [],
+        "remote_client_recovery_claimed": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "user_movement": 0,
+    }
+    blockers = []
+    if not interface_bound:
+        blockers.append("target_interface_binding_not_proven")
+    if not target_fingerprint_verified:
+        blockers.append("target_egress_fingerprint_not_proven")
+    if receipt["payload_response_verified"] is not True:
+        blockers.append("payload_response_not_verified")
+    if not receipt["payload_fingerprint"]:
+        blockers.append("payload_fingerprint_missing")
+    receipt["status"] = (
+        "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN"
+        if not blockers else "PROBE_INVALID"
+    )
+    receipt["blockers"] = sorted(set(blockers))
+    return receipt
+
+
+def run_target_egress_payload_context(path):
+    try:
+        context = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {
+            "schema_version": TARGET_EGRESS_PAYLOAD_RECEIPT_SCHEMA,
+            "status": "PROBE_INVALID",
+            "blockers": [f"context_read_failed:{type(exc).__name__}"],
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "user_movement": 0,
+        }
+    errors = target_egress_payload_context_errors(context)
+    if errors:
+        return {
+            "schema_version": TARGET_EGRESS_PAYLOAD_RECEIPT_SCHEMA,
+            "status": "PROBE_INVALID",
+            "blockers": errors,
+            "contract_id": str(context.get("contract_id") or ""),
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "user_movement": 0,
+        }
+    # Reuse the already deployed fresh DNS/socket, TLS payload and egress-IP
+    # verifier.  SO_MARK=0 is explicit here: this is target-interface evidence,
+    # not a claim that the certification user's policy table carried payload.
+    probe_context = dict(context)
+    probe_context["fwmark"] = 0
+    successful, attempts = execute_fresh_exact_probe_request(probe_context)
+    return build_target_egress_payload_receipt(context, successful, attempts)
 
 
 def normalize_ingress(value):
@@ -1073,6 +1260,13 @@ def main():
         action="store_true",
         help="emit a compact read-only CT-M0F-V certification-client readiness projection",
     )
+    parser.add_argument(
+        "--target-egress-payload-context",
+        help=(
+            "run one read-only target-egress payload probe from an existing "
+            "owner-backed operation context; never claims exact-user or remote recovery"
+        ),
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON for CLI probe mode")
     args = parser.parse_args()
     if args.exact_client_probe_context:
@@ -1083,6 +1277,10 @@ def main():
         result = exact_client_probe_readiness()
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
         return 0 if result.get("ok") else 2
+    if args.target_egress_payload_context:
+        result = run_target_egress_payload_context(args.target_egress_payload_context)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
+        return 0 if result.get("status") != "PROBE_INVALID" else 2
     httpd = ThreadingHTTPServer((HOST, PORT), Handler)
     print(f"V7 client speed API listening on http://{HOST}:{PORT}", flush=True)
     httpd.serve_forever()

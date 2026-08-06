@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.68`
+Version: `4.69`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -172,6 +172,22 @@ change PASS/FAIL stops safely. The five-sample legacy gate explicitly permits
 the two residual samples to be cold or warm, requires distinct independently
 admitted generations, and forbids repeated production effects after the exact
 property is proven.
+
+V4.69 separates current server-controlled control-plane/kernel cutover
+engineering from future remote-device recovery validation without weakening
+either evidence class. CT-M0F may unlock CT-M1 engineering only after exact
+certification-identity assignment, policy-table kernel visibility, separately
+bound target payload readiness, reset, deferred closure, hidden-O(N) and a
+five-sample nearest-rank controlled gate are consumed. A target-interface
+payload plus route lookup cannot be reported as remote-client traffic or as an
+exact identity payload unless the payload itself traverses the exact
+source/fwmark/table policy. Remote-device/application/existing-flow recovery
+remains `NOT_MEASURED` and blocks production class certification, Authority
+expansion and Production Maturity, but not independent CT-M1 engineering.
+Standing movement policy never implies controlled-degradation/substrate
+admission; Polygon may prepare a controlled L7 opportunity, while only the real
+existing-owner transaction creates evidence. This adds no Program, Mission,
+owner, store, queue, watcher, Runtime, Planner or Authority system.
 
 V4.27 connects the standard `Continue OMP` trigger to a bounded single-invocation engineering loop inside the same OMP/Polygon owners. One invocation reads fresh CPS, evaluates ordinary work first, selectively invalidates dependency-bound coverage, executes real-code scenarios, validates and consumes results, updates the frontier atomically, routes an eligible mismatch through existing BDP/Candidate/admission owners, reruns the target and affected subset, and stops only at an exact bounded or legal terminal. It adds no scheduler, daemon, queue, Runtime, Planner, repair engine, Candidate owner or background reentry claim.
 

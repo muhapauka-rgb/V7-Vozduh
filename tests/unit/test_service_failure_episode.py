@@ -198,10 +198,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertTrue(row["failure_episode_id"].startswith("sfep_"))
             self.assertEqual(row["probe_provenance"], "SERVICE_PROBE_OBSERVED")
             self.assertEqual(row["evidence_class"], "PROBE_OBSERVATION")
+            self.assertTrue(str(row["monotonic_clock_domain"]).startswith("linux-boot:"))
+            self.assertGreater(row["first_failed_observation_monotonic_ns"], 0)
+            self.assertGreaterEqual(
+                row["confirmed_hard_failure_monotonic_ns"],
+                row["first_failed_observation_monotonic_ns"],
+            )
             events = [json.loads(line) for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_provenance"], "EXTERNAL_UNATTRIBUTED")
             self.assertFalse(events[0]["natural_production_credit"])
+            self.assertEqual(
+                events[0]["monotonic_clock_domain"], row["monotonic_clock_domain"]
+            )
 
             recovery = {"ok": True, "status": "OK", "tested_at": "2026-07-25T08:03:00+00:00"}
             self.matrix.update_matrix(matrix_file, "vless", "tun0", {"youtube": recovery}, 1, event_dir=event_dir)

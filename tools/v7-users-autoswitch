@@ -2472,6 +2472,8 @@ class AutoswitchPlanner:
             "parent": parent,
             "owner": owner,
             "clock_source": "time.monotonic_ns",
+            "started_monotonic_ns": int(started_ns),
+            "completed_monotonic_ns": int(completed_ns),
             "duration_ms": round(max(0, completed_ns - started_ns) / 1_000_000.0, 3),
             "status": status,
             "critical_path": bool(critical_path),

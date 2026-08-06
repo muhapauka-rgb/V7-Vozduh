@@ -11419,9 +11419,14 @@ def reset_ct_m0f_standing_validation_sample(
         == "operator_execution_governance"
         and not source_occupants
     )
+    controlled_condition_active = bool(
+        not bool_value(source_row.get("enabled", "1"))
+        or str(source_row.get("state") or "").lower()
+        in {"disabled", "maintenance"}
+    )
     if (
         current == target
-        and source_hard_failed
+        and (source_hard_failed or controlled_condition_active)
         and source_is_exact_isolated_execution_owner
     ):
         reset_proc = subprocess.run(
@@ -11448,13 +11453,17 @@ def reset_ct_m0f_standing_validation_sample(
     recovery_mode = (
         "BASELINE_ALREADY_RESTORED"
         if current == source
-        else "BASELINE_RESET"
-        if source_recovery_proven
         else "FORWARD_RECOVERY_AND_CONTROLLED_SOURCE_RESET"
         if controlled_source_reset
+        else "BASELINE_RESET"
+        if source_recovery_proven
         else "FORWARD_RECOVERY_ON_VERIFIED_TARGET"
     )
-    if current == target and source_recovery_proven:
+    if (
+        current == target
+        and source_recovery_proven
+        and not controlled_condition_active
+    ):
         transaction_args = copy.copy(args)
         transaction_args._certification_cleanup_request = {
             "user": str(reservation.get("user") or ""),

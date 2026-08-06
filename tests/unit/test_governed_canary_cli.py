@@ -1801,6 +1801,114 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "ctm0fsample_test",
         )
 
+    def test_ct_m0f_reset_restores_owner_disabled_source_without_return_move(self):
+        module = load_cli_module()
+        reservation = {
+            "reservation_id": "ctm0fsample_controlled",
+            "contract_id": "ctm0fsdpc_test",
+            "contract_hash": "h" * 64,
+            "user": "10.7.0.107",
+            "source": "execution-source",
+            "target": "vless",
+            "implementation_fingerprint": "i" * 64,
+        }
+        args = argparse.Namespace(
+            ct_m0f_standing_validation_reservation_id=(
+                "ctm0fsample_controlled"
+            ),
+            policy_file="/unused/policy.json",
+        )
+        with mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_sample_from_audit",
+            return_value={
+                "ok": True,
+                "terminal": None,
+                "reservation": reservation,
+                "forward_evidence": {
+                    "sample_evidence": {
+                        "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                    },
+                },
+            },
+        ), mock.patch.object(
+            module,
+            "read_json",
+            side_effect=lambda path, default=None: (
+                {module.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": reservation["contract_id"],
+                    "contract_hash": reservation["contract_hash"],
+                }}
+                if str(path).endswith("policy.json")
+                else {"items": {"execution-source": {"services": {
+                    "google": {"status": "OK", "ok": True},
+                }}}}
+            ),
+        ), mock.patch.object(
+            module.operator_execution,
+            "validate_ct_m0f_standing_validation_policy",
+            return_value={"ok": True, "errors": []},
+        ), mock.patch.object(
+            module.operator_execution,
+            "read_audit_records",
+            return_value=[],
+        ), mock.patch.object(
+            module,
+            "read_registry",
+            side_effect=lambda path: (
+                [{"ip": "10.7.0.107", "current": "vless", "enabled": "1"}]
+                if str(path).endswith("users.registry")
+                else [{
+                    "id": "execution-source",
+                    "enabled": "0",
+                    "role": "EXECUTION_ONLY",
+                    "controlled_certification_source": "1",
+                    "reservation_owner": "operator_execution_governance",
+                }]
+            ),
+        ), mock.patch.object(
+            module.subprocess,
+            "run",
+            return_value=mock.Mock(returncode=0, stdout="restored"),
+        ) as run_mock, mock.patch.object(
+            module,
+            "execute_governed_transaction_with_guards",
+        ) as execute_mock, mock.patch.object(
+            module.operator_execution,
+            "record_ct_m0f_standing_validation_sample_terminal",
+            return_value={"ok": True},
+        ), mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_budget_status",
+            return_value={"campaign_complete": False},
+        ):
+            result = module.reset_ct_m0f_standing_validation_sample(
+                args,
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/snapshots"),
+                audit_dir=Path("/audit"),
+                lease_file=Path("/lease.json"),
+            )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+        )
+        self.assertEqual(
+            result["recovery_mode"],
+            "FORWARD_RECOVERY_AND_CONTROLLED_SOURCE_RESET",
+        )
+        run_mock.assert_called_once_with(
+            ["v7-egress-set-state", "execution-source", "enabled", "--apply"],
+            text=True,
+            stdout=module.subprocess.PIPE,
+            stderr=module.subprocess.STDOUT,
+            timeout=240,
+            check=False,
+        )
+        execute_mock.assert_not_called()
+
     def test_compact_failed_transaction_preserves_exact_stop_reason(self):
         module = load_cli_module()
 

@@ -1267,10 +1267,18 @@ def run_ct_m0f_standing_validation_campaign(
     ]
     source_rc, source_selection, source_output = invoke(source_command, 180)
     selected_source = str(source_selection.get("selected_source_id") or "")
+    selected_user = str(source_selection.get("selected_user") or "")
+    selected_target = str(source_selection.get("selected_target_id") or "")
+    sample_binding_fingerprint = str(
+        source_selection.get("sample_binding_fingerprint") or ""
+    )
     if (
         source_rc not in {0, 2}
         or source_selection.get("ok") is not True
         or not selected_source
+        or not selected_user
+        or not selected_target
+        or len(sample_binding_fingerprint) != 64
     ):
         return {
             "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
@@ -1389,6 +1397,10 @@ def run_ct_m0f_standing_validation_campaign(
             "--audit-dir", str(audit_store.parent),
             "--operator-execution-audit-store", str(audit_store),
             "--approved-source", selected_source,
+            "--ct-m0f-standing-validation-user", selected_user,
+            "--ct-m0f-standing-validation-target", selected_target,
+            "--ct-m0f-standing-sample-binding-fingerprint",
+            sample_binding_fingerprint,
             "--max-users", "1",
             "--pretty",
         ]

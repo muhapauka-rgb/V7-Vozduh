@@ -4907,6 +4907,53 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
     planner_binding_started_ns = time.monotonic_ns()
     availability_selection_binding: dict[str, Any] = {}
+    ct_m0f_standing_selection_binding: dict[str, Any] = {}
+    if ct_m0f_standing_requested:
+        ct_m0f_standing_selection_binding = (
+            bind_availability_first_controlled_selection(
+                plan,
+                expected_users=[
+                    str(
+                        getattr(
+                            args, "ct_m0f_standing_validation_user", ""
+                        )
+                        or ""
+                    )
+                ],
+                source=str(args.approved_source or ""),
+                target=str(
+                    getattr(
+                        args, "ct_m0f_standing_validation_target", ""
+                    )
+                    or ""
+                ),
+                allocation_fingerprint=str(
+                    getattr(
+                        args,
+                        "ct_m0f_standing_sample_binding_fingerprint",
+                        "",
+                    )
+                    or ""
+                ),
+                performance_benchmark=True,
+            )
+        )
+        if ct_m0f_standing_selection_binding.get("ok") is not True:
+            return transaction_stop(
+                "ct_m0f_standing_controlled_selection_binding_blocked",
+                ct_m0f_standing_selection_binding=(
+                    ct_m0f_standing_selection_binding
+                ),
+                l3_plan_run=l3_plan_run,
+            )
+        plan = (
+            ct_m0f_standing_selection_binding.get("plan")
+            if isinstance(
+                ct_m0f_standing_selection_binding.get("plan"), dict
+            )
+            else {}
+        )
+        l3_plan_run["payload"] = plan
     if availability_mode:
         availability_selection_binding = (
             bind_availability_first_controlled_selection(
@@ -4990,6 +5037,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             authorized_l3_budget=authorized_budget,
             availability_selection_binding=(
                 availability_selection_binding
+            ),
+            ct_m0f_standing_selection_binding=(
+                ct_m0f_standing_selection_binding
             ),
         )
 
@@ -11671,6 +11721,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation", action="store_true")
     parser.add_argument("--ct-m0f-standing-validation-contract-id", default="")
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
+    parser.add_argument("--ct-m0f-standing-validation-user", default="")
+    parser.add_argument("--ct-m0f-standing-validation-target", default="")
+    parser.add_argument(
+        "--ct-m0f-standing-sample-binding-fingerprint", default=""
+    )
     parser.add_argument(
         "--reset-ct-m0f-standing-validation-sample",
         action="store_true",

@@ -104,6 +104,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                         "status": "CT_M0F_STANDING_CONTROLLED_SOURCE_SELECTED",
                         "ok": True,
                         "selected_source_id": "vless",
+                        "selected_user": "10.7.0.18",
+                        "selected_target_id": "awg0",
+                        "sample_binding_fingerprint": "b" * 64,
                     }
                     return self.refresh.subprocess.CompletedProcess(
                         command, 0, stdout=json.dumps(payload)
@@ -153,6 +156,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[1])
         self.assertIn("--execute-l3-production-validation", calls[2])
         self.assertEqual(calls[2][calls[2].index("--approved-source") + 1], "vless")
+        self.assertEqual(
+            calls[2][calls[2].index("--ct-m0f-standing-validation-user") + 1],
+            "10.7.0.18",
+        )
+        self.assertEqual(
+            calls[2][calls[2].index("--ct-m0f-standing-validation-target") + 1],
+            "awg0",
+        )
 
     def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
         pool = {
@@ -194,11 +205,35 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.autoswitch,
             "controlled_certification_pool_status",
             return_value=pool,
+        ), mock.patch.object(
+            self.autoswitch,
+            "parse_registry",
+            return_value=[{
+                "ip": "10.7.0.18",
+                "current": "vless",
+                "enabled": "1",
+                "certification_user": "1",
+                "certification_group": "g1",
+            }],
+        ), mock.patch.object(
+            self.autoswitch,
+            "controlled_campaign_target_selection_diagnostic",
+            return_value={
+                "selection": {"selected_target_id": "awg0"},
+                "targets": [{
+                    "target_id": "awg0",
+                    "full_live_admission": True,
+                    "semantic_fingerprint": "target-fingerprint",
+                }],
+            },
         ):
             result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
 
         self.assertTrue(result["ok"])
         self.assertEqual(result["selected_source_id"], "vless")
+        self.assertEqual(result["selected_user"], "10.7.0.18")
+        self.assertEqual(result["selected_target_id"], "awg0")
+        self.assertEqual(len(result["sample_binding_fingerprint"]), 64)
         self.assertEqual(result["eligible_source_count"], 1)
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
 

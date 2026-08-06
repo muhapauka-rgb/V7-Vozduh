@@ -237,6 +237,79 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("--execute-l3-production-validation", calls[1])
         self.assertEqual(result["durable_successor"], "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE")
 
+    def test_ct_m0f_condition_effect_publishes_durable_audit_successor(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit_dir = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit_dir.mkdir()
+            policy = root / "policy.json"
+            contract = {
+                "contract_id": "contract",
+                "contract_hash": "a" * 64,
+            }
+            policy.write_text(json.dumps({
+                self.cycle.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: contract,
+            }), encoding="utf-8")
+            args = SimpleNamespace(
+                policy_file=str(policy),
+                ct_m0f_standing_validation_contract_id="contract",
+                ct_m0f_standing_validation_contract_hash="a" * 64,
+                ct_m0f_standing_validation_user="10.7.0.18",
+                ct_m0f_standing_validation_target="vless",
+                ct_m0f_standing_sample_binding_fingerprint="b" * 64,
+                approved_source="exec-source",
+                egress_state_owner="v7-egress-set-state",
+            )
+            selection = {
+                "ok": True,
+                "selection_mode": "PREPARE_CONTROLLED_FAILURE_CONDITION",
+                "selected_user": "10.7.0.18",
+                "selected_source_id": "exec-source",
+                "selected_target_id": "vless",
+                "sample_binding_fingerprint": "b" * 64,
+            }
+
+            def fake_run(command, **_kwargs):
+                payload = json.dumps(selection) if "--ct-m0f-standing-source-selection" in command else "condition applied"
+                return self.cycle.subprocess.CompletedProcess(command, 0, stdout=payload)
+
+            with mock.patch.object(
+                self.cycle.operator_execution,
+                "validate_ct_m0f_standing_validation_policy",
+                return_value={"ok": True, "errors": []},
+            ), mock.patch.object(
+                self.cycle,
+                "prepare_controlled_certification_condition",
+                return_value={"final_verdict": "CONTROLLED_CERTIFICATION_CONDITION_PREPARED"},
+            ), mock.patch.object(
+                self.cycle.subprocess,
+                "run",
+                side_effect=fake_run,
+            ):
+                result = self.cycle.prepare_ct_m0f_standing_controlled_condition(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit_dir,
+                    lease_file=state / "lease.json",
+                )
+
+            records = self.cycle.operator_execution.read_audit_records(
+                audit_dir / "operator-execution-audit.jsonl"
+            )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+        )
+        self.assertEqual(records[-1]["record_type"], "ct_m0f_standing_controlled_condition_prepared")
+        self.assertEqual(records[-1]["next_required_consumer"], "ordinary fresh Matrix generation")
+
     def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
         pool = {
             "active_source_projections": [

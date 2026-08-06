@@ -11205,7 +11205,7 @@ def prepare_ct_m0f_standing_controlled_condition(
         {
             "schema_version": "v7.ct-m0f-standing-controlled-condition.v1",
             "record_type": "ct_m0f_standing_controlled_condition_prepared",
-            "created_at": now_iso(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "contract_id": str(contract.get("contract_id") or ""),
             "contract_hash": str(contract.get("contract_hash") or ""),
             "user": expected["user"],

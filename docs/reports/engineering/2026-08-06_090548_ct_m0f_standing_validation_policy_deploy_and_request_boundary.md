@@ -34,8 +34,11 @@ Runtime scope и Production Maturity credit запрещены.
 
 - affected tests: `368 PASS`;
 - implementation commit: `5da55208b5183640b4923baa1f70e9d9b5b7f413`;
-- final deployed runtime/reconciliation commit:
+- deployed runtime-binary and request-reconciliation commit:
   `92527496bea295cccbded03dde03d2f456ab3acc`;
+- canonical pointer correction is committed separately and its exact current
+  local/GitHub/production identity is owned by `v7-truth-check` and the
+  runtime-linkage snapshot, avoiding a self-referential report commit;
 - GitHub `Updatesystem`: совпадает с local;
 - deploy: только через `tools/v7-safe-deploy`;
 - manifest: `PASS`, blockers `[]`;

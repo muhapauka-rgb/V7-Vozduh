@@ -20642,8 +20642,6 @@ def ct_m0f_standing_source_selection_only(
         baseline_health = controlled_certification_source_health_status(
             state_dir, source_id,
         )
-        if bool(baseline_health.get("ok")):
-            continue
         source_group = str(registry.get("certification_group") or "")
         group_aligned = [
             row for row in certification_users
@@ -20658,6 +20656,10 @@ def ct_m0f_standing_source_selection_only(
             "enabled_non_certification_users_on_source": 0,
             "source_isolated_for_controlled_failure": True,
             "baseline_health": baseline_health,
+            "controlled_condition_active": True,
+            "controlled_condition_owner_state": str(
+                registry.get("state") or "disabled"
+            ),
             "projection_origin": (
                 "current_disabled_execution_contract_registry_plus_matrix"
             ),
@@ -20666,7 +20668,10 @@ def ct_m0f_standing_source_selection_only(
         row for row in projections
         if (
             int(row.get("enabled_certification_users_on_source") or 0) == 1
-            and not bool((row.get("baseline_health") or {}).get("ok"))
+            and (
+                bool(row.get("controlled_condition_active"))
+                or not bool((row.get("baseline_health") or {}).get("ok"))
+            )
         )
     ]
     failed_ready.sort(key=lambda row: str(row.get("source_id") or ""))

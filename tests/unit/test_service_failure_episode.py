@@ -538,9 +538,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.autoswitch,
             "controlled_certification_source_health_status",
             return_value={
-                "ok": False,
-                "status": "STOP_SAFE_BASELINE_UNHEALTHY",
-                "observation_fingerprint": "failed-health",
+                "ok": True,
+                "status": "PASS_HEALTHY_BASELINE",
+                "observation_fingerprint": "interface-still-reachable",
             },
         ):
             result = self.autoswitch.ct_m0f_standing_source_selection_only(args)

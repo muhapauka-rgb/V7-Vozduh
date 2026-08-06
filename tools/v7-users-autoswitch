@@ -15140,6 +15140,43 @@ class AutoswitchPlanner:
             "lease_id": str(getattr(self.args, "approved_execution_lease_id", "") or ""),
             "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
         }
+        controlled_condition: dict[str, Any] = {}
+        if standing_contract_id and not lineage["incident_id"]:
+            condition_records = operator_execution.read_audit_records(
+                Path(self.args.action_class_audit_store)
+            )
+            controlled_condition = next(
+                (
+                    row for row in reversed(condition_records)
+                    if row.get("record_type")
+                    == "ct_m0f_standing_controlled_condition_prepared"
+                    and str(row.get("contract_id") or "")
+                    == standing_contract_id
+                    and str(row.get("contract_hash") or "")
+                    == standing_contract_hash
+                    and str(row.get("user") or "") == lineage["user"]
+                    and str(row.get("source") or "") == lineage["source"]
+                    and str(row.get("baseline_target") or "")
+                    == lineage["target"]
+                    and str(row.get("record_hash") or "")
+                ),
+                {},
+            )
+            if controlled_condition:
+                condition_hash = str(
+                    controlled_condition.get("record_hash") or ""
+                )
+                lineage["incident_id"] = (
+                    "ctm0finc_"
+                    + sha256_json({
+                        "condition_record_hash": condition_hash,
+                        "contract_id": standing_contract_id,
+                        "user": lineage["user"],
+                        "source": lineage["source"],
+                        "target": lineage["target"],
+                    })[:24]
+                )
+                lineage["incident_generation"] = condition_hash
         if standing_contract_id:
             lineage.update({
                 "standing_contract_id": standing_contract_id,
@@ -15191,7 +15228,23 @@ class AutoswitchPlanner:
             blockers.append("exact_certification_identity_required")
         if target is None or not target.interface:
             blockers.append("target_interface_missing")
-        expected_ip = str(((target.raw if target else {}) or {}).get("expected_ip") or "")
+        target_raw = (target.raw if target else {}) or {}
+        target_registry = (
+            target_raw.get("registry")
+            if isinstance(target_raw.get("registry"), dict)
+            else {}
+        )
+        target_meta = (
+            target_raw.get("meta")
+            if isinstance(target_raw.get("meta"), dict)
+            else {}
+        )
+        expected_ip = str(
+            target_registry.get("expected_ip")
+            or target_meta.get("expected_ip")
+            or target_raw.get("expected_ip")
+            or ""
+        )
         if not expected_ip:
             blockers.append("target_expected_egress_ip_missing")
         if int(result_row.get("verify_rc", 1)) != 0:
@@ -15281,11 +15334,17 @@ class AutoswitchPlanner:
         incident = ((plan.get("safety") or {}).get("l3_incident") or {})
         first_failed_ns = to_int(
             incident.get("first_failed_observation_monotonic_ns")
-            or move.get("first_failed_observation_monotonic_ns"), 0,
+            or move.get("first_failed_observation_monotonic_ns")
+            or controlled_condition.get(
+                "first_failed_observation_monotonic_ns"
+            ), 0,
         )
         confirmed_ns = to_int(
             incident.get("confirmed_hard_failure_monotonic_ns")
-            or move.get("confirmed_hard_failure_monotonic_ns"), 0,
+            or move.get("confirmed_hard_failure_monotonic_ns")
+            or controlled_condition.get(
+                "confirmed_hard_failure_monotonic_ns"
+            ), 0,
         )
         decision_ns = to_int(
             (span_by_stage.get("planner_entry_target_capacity_and_allocation") or {}).get("completed_monotonic_ns"), 0,

@@ -307,6 +307,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertEqual(records[-1]["record_type"], "ct_m0f_standing_controlled_condition_prepared")
         self.assertEqual(records[-1]["next_required_consumer"], "ordinary fresh Matrix generation")
+        self.assertGreater(
+            int(records[-1]["first_failed_observation_monotonic_ns"]),
+            0,
+        )
+        self.assertEqual(
+            records[-1]["first_failed_observation_monotonic_ns"],
+            records[-1]["confirmed_hard_failure_monotonic_ns"],
+        )
 
     def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
         pool = {

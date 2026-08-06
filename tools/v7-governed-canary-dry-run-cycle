@@ -11200,6 +11200,7 @@ def prepare_ct_m0f_standing_controlled_condition(
             condition_output=(condition.stdout or "")[-2000:],
             recovery=recovery,
         )
+    condition_confirmed_monotonic_ns = time.monotonic_ns()
     record = operator_execution.append_record(
         audit_store,
         {
@@ -11213,6 +11214,13 @@ def prepare_ct_m0f_standing_controlled_condition(
             "baseline_target": expected["target"],
             "sample_binding_fingerprint": expected["fingerprint"],
             "condition_owner": "v7-egress-set-state",
+            "first_failed_observation_monotonic_ns": (
+                condition_confirmed_monotonic_ns
+            ),
+            "confirmed_hard_failure_monotonic_ns": (
+                condition_confirmed_monotonic_ns
+            ),
+            "clock_source": "time.monotonic_ns",
             "next_required_consumer": "ordinary fresh Matrix generation",
             "runtime_mutation_performed": True,
             "routing_mutation_performed": True,

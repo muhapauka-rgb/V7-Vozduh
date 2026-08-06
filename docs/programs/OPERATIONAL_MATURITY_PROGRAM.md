@@ -7995,7 +7995,7 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_ADMISSION_REQUIRED`
+Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_DECISION_REQUIRED`
 Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
 Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=48; locations={"awg3":1,"vless":47}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
@@ -8983,7 +8983,7 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_ADMISSION_REQUIRED`
+Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_DECISION_REQUIRED`
 Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
 Current terminal report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`

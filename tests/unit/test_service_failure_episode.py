@@ -222,7 +222,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "selection": {"selected_target_id": "awg0"},
                 "targets": [{
                     "target_id": "awg0",
-                    "full_live_admission": True,
+                    "full_live_admission": False,
+                    "controlled_rebind_eligible": True,
+                    "controlled_only_contract": True,
+                    "ordinary_planner_eligible": False,
+                    "shared_target_technically_eligible": True,
+                    "current_stage_feasible": True,
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "role": "EXECUTION_ONLY",
+                    "reservation_owner": "operator_execution_governance",
+                    "health": {"ok": True},
+                    "capacity": {"target_safe_additional_capacity": 1},
                     "semantic_fingerprint": "target-fingerprint",
                 }],
             },
@@ -233,9 +244,67 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["selected_source_id"], "vless")
         self.assertEqual(result["selected_user"], "10.7.0.18")
         self.assertEqual(result["selected_target_id"], "awg0")
+        self.assertTrue(
+            result["selected_target_admission"]["controlled_contract_admitted"]
+        )
+        self.assertFalse(
+            result["selected_target_admission"]["ordinary_full_live_admission"]
+        )
         self.assertEqual(len(result["sample_binding_fingerprint"]), 64)
         self.assertEqual(result["eligible_source_count"], 1)
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
+
+    def test_ct_m0f_standing_source_selection_rejects_ordinary_only_target(self):
+        pool = {
+            "active_source_projections": [{
+                "source_id": "vless",
+                "certification_group": "g1",
+                "enabled_certification_users_on_source": 1,
+                "group_aligned_certification_users_on_source": 1,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {"ok": True},
+            }]
+        }
+        args = SimpleNamespace(state_dir="/unused")
+        with mock.patch.object(
+            self.autoswitch,
+            "controlled_certification_pool_status",
+            return_value=pool,
+        ), mock.patch.object(
+            self.autoswitch,
+            "parse_registry",
+            return_value=[{
+                "ip": "10.7.0.18",
+                "current": "vless",
+                "enabled": "1",
+                "certification_user": "1",
+                "certification_group": "g1",
+            }],
+        ), mock.patch.object(
+            self.autoswitch,
+            "controlled_campaign_target_selection_diagnostic",
+            return_value={
+                "selection": {"selected_target_id": "ordinary"},
+                "targets": [{
+                    "target_id": "ordinary",
+                    "full_live_admission": True,
+                    "ordinary_planner_eligible": True,
+                    "health": {"ok": True},
+                    "capacity": {"target_safe_additional_capacity": 10},
+                }],
+            },
+        ):
+            result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertFalse(result["ok"])
+        self.assertIn(
+            "no_distinct_controlled_contract_admitted_target",
+            result["blockers"],
+        )
+        self.assertFalse(
+            result["selected_target_admission"]["controlled_contract_admitted"]
+        )
 
     def test_prepared_class_decision_is_compact_and_generation_bound(self):
         plan = {

@@ -20518,6 +20518,25 @@ def ct_m0f_standing_source_selection_only(
         ),
         {},
     )
+    controlled_target_admitted = bool(
+        target_row.get("controlled_rebind_eligible") is True
+        and target_row.get("controlled_only_contract") is True
+        and str(target_row.get("role") or "") == "EXECUTION_ONLY"
+        and str(target_row.get("reservation_owner") or "")
+        == "operator_execution_governance"
+        and target_row.get("shared_target_technically_eligible") is True
+        and target_row.get("current_stage_feasible") is True
+        and target_row.get("verification_supported") is True
+        and target_row.get("rollback_containment_supported") is True
+        and bool((target_row.get("health") or {}).get("ok"))
+        and int(
+            (target_row.get("capacity") or {}).get(
+                "target_safe_additional_capacity"
+            )
+            or 0
+        )
+        >= 1
+    )
     blockers = []
     if not selected_source:
         blockers.append(
@@ -20528,9 +20547,9 @@ def ct_m0f_standing_source_selection_only(
     if (
         not selected_target
         or selected_target == selected_source
-        or target_row.get("full_live_admission") is not True
+        or not controlled_target_admitted
     ):
-        blockers.append("no_distinct_full_live_admission_target")
+        blockers.append("no_distinct_controlled_contract_admitted_target")
     selected_user = eligible_users[0] if eligible_users else ""
     sample_binding = {
         "user": selected_user,
@@ -20558,6 +20577,20 @@ def ct_m0f_standing_source_selection_only(
         "selected_source_id": selected_source,
         "selected_user": selected_user,
         "selected_target_id": selected_target,
+        "selected_target_admission": {
+            "controlled_contract_admitted": controlled_target_admitted,
+            "ordinary_full_live_admission": bool(
+                target_row.get("full_live_admission")
+            ),
+            "ordinary_planner_eligible": bool(
+                target_row.get("ordinary_planner_eligible")
+            ),
+            "admission_law": (
+                "EXACT_EXECUTION_ONLY_CONTROLLED_CONTRACT"
+                if controlled_target_admitted
+                else "NOT_ADMITTED"
+            ),
+        },
         "sample_binding_fingerprint": (
             sha256_json(sample_binding) if not blockers else ""
         ),

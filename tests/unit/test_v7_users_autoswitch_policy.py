@@ -1465,6 +1465,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             planner = self.tool.AutoswitchPlanner(self.args_for(root))
 
             def fake_run(cmd, **kwargs):
+                if cmd[:3] == ["ip", "rule", "show"]:
+                    return subprocess.CompletedProcess(
+                        cmd, 0, stdout="100: from 10.0.0.2 lookup 100\n"
+                    )
                 if cmd[:4] == ["ip", "route", "show", "table"]:
                     return subprocess.CompletedProcess(cmd, 0, stdout="default dev tun0 scope link\n")
                 if cmd[:4] == ["ip", "route", "get", "8.8.8.8"]:
@@ -1482,7 +1486,38 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("REGISTRY_EGRESS=1", result.stdout)
         self.assertIn("ASSIGN_EGRESS=vless", result.stdout)
         self.assertIn("EXPECTED_EGRESS=vless", result.stdout)
+        self.assertIn("policy rule selects table 100", result.stdout)
         self.assertIn("V7_SCOPED_USER_ROUTE_CHECK=OK", result.stdout)
+
+    def test_ct_m0f_cutover_consumer_fails_before_probe_without_full_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="1")
+            args = self.args_for(root)
+            args.ct_m0f_kernel_cutover_validation = True
+            args.ct_m0f_validation_generation_id = ""
+            args.ct_m0f_sample_kind = "warm"
+            args.approved_packet_id = ""
+            args.approved_execution_lease_id = ""
+            args.approved_operation_id = ""
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+            }
+            with mock.patch.object(self.tool.subprocess, "run") as run:
+                result = planner._ct_m0f_kernel_cutover_evidence(
+                    {"operation": {}, "safety": {}},
+                    move,
+                    {"verify_rc": 0, "service_verify_rc": 0},
+                )
+            run.assert_not_called()
+        self.assertEqual(
+            result["status"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID"
+        )
+        self.assertIn("packet_id_missing", result["blockers"])
+        self.assertIn("lease_id_missing", result["blockers"])
 
     def write_intelligence_snapshots(self, root: Path, *, ctr_channels: Optional[list[dict]] = None) -> Path:
         snapshot_root = root / "state" / "intelligence"

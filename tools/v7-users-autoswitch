@@ -20,13 +20,19 @@ import resource
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from admin_core import operation_scoped_binding, operator_execution, shadow_autonomy
+from admin_core import (
+    operation_scoped_binding,
+    operator_execution,
+    operator_execution_pipeline,
+    shadow_autonomy,
+)
 
 
 PROCESS_STARTED_NS = time.monotonic_ns()
@@ -12957,6 +12963,10 @@ class AutoswitchPlanner:
                             row["service_probe_nested_timing"] = service_payload["performance_timeline"]
                     row["service_verify_rc"] = service_verify.returncode
                     row["service_verify_output"] = service_verify.stdout[-4000:]
+                    if service_verify.returncode == 0:
+                        row["ct_m0f_kernel_cutover_evidence"] = (
+                            self._ct_m0f_kernel_cutover_evidence(plan, move, row)
+                        )
                 verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)
                 if verification_failed and self.args.rollback_on_verify_fail:
                     row["verification_failure_reason"] = "route_verify_failed"
@@ -14790,6 +14800,14 @@ class AutoswitchPlanner:
             lines.append(f"OK: user={user.ip} registry matches assignment")
         route_rc = 0
         try:
+            policy_rules = subprocess.run(
+                ["ip", "rule", "show"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
             table_route = subprocess.run(
                 ["ip", "route", "show", "table", str(user.table)],
                 text=True,
@@ -14809,6 +14827,18 @@ class AutoswitchPlanner:
         except (OSError, subprocess.TimeoutExpired) as exc:
             lines.append(f"FAIL: route verification command failed: {exc}")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
+        expected_rule_fragments = (
+            f"from {user.ip} lookup {user.table}",
+            f"from {user.ip}/32 lookup {user.table}",
+        )
+        rule_ok = any(fragment in policy_rules.stdout for fragment in expected_rule_fragments)
+        rule_fingerprint = hashlib.sha256((policy_rules.stdout or "").encode("utf-8")).hexdigest()
+        lines.append(f"policy_rule_fingerprint={rule_fingerprint}")
+        if policy_rules.returncode == 0 and rule_ok:
+            lines.append(f"OK: user={user.ip} policy rule selects table {user.table}")
+        else:
+            route_rc = 1
+            lines.append(f"FAIL: user={user.ip} policy rule does not select table {user.table}")
         lines.append(f"table_route={table_route.stdout.strip()}")
         if f"default dev {egress.interface}" in table_route.stdout:
             lines.append(f"OK: user={user.ip} table={user.table} default dev {egress.interface}")
@@ -14952,6 +14982,211 @@ class AutoswitchPlanner:
             )
         return refreshed
 
+    def _ct_m0f_kernel_cutover_evidence(
+        self,
+        plan: dict[str, Any],
+        move: dict[str, Any],
+        result_row: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Consume the existing CT-M0F owners after a governed apply.
+
+        The method is gated by an explicit validation flag and a fresh Packet,
+        operation and execution lease.  It performs only the target-egress
+        payload probe after the existing route verifier has passed.  It cannot
+        create a Candidate, Packet, lease, restore barrier or routing effect.
+        """
+        if not bool_value(getattr(self.args, "ct_m0f_kernel_cutover_validation", False)):
+            return {"status": "NOT_REQUESTED", "ok": False}
+        lineage = {
+            "incident_id": str(
+                (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_id"))
+                or move.get("source_incident_id")
+                or ""
+            ),
+            "incident_generation": str(
+                (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_generation"))
+                or move.get("incident_generation")
+                or ""
+            ),
+            "validation_generation_id": str(
+                getattr(self.args, "ct_m0f_validation_generation_id", "") or ""
+            ),
+            "user": str(move.get("user_ip") or ""),
+            "source": str(move.get("current_egress") or ""),
+            "target": str(move.get("recommended_egress") or ""),
+            "candidate_id": "candidate_" + sha256_json({
+                "user": move.get("user_ip"),
+                "source": move.get("current_egress"),
+                "target": move.get("recommended_egress"),
+                "selected_move_hash": (plan.get("operation") or {}).get("selected_move_hash"),
+            })[:24],
+            "packet_id": str(getattr(self.args, "approved_packet_id", "") or ""),
+            "lease_id": str(getattr(self.args, "approved_execution_lease_id", "") or ""),
+            "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
+        }
+        blockers = [f"{key}_missing" for key, value in lineage.items() if not value]
+        user = next((row for row in self.users if row.ip == lineage["user"]), None)
+        target = self.egress.get(lineage["target"])
+        if user is None or str((user.raw or {}).get("certification_user") or "").lower() not in {"1", "true", "yes"}:
+            blockers.append("exact_certification_identity_required")
+        if target is None or not target.interface:
+            blockers.append("target_interface_missing")
+        expected_ip = str(((target.raw if target else {}) or {}).get("expected_ip") or "")
+        if not expected_ip:
+            blockers.append("target_expected_egress_ip_missing")
+        if int(result_row.get("verify_rc", 1)) != 0:
+            blockers.append("exact_user_route_verification_required")
+        if int(result_row.get("service_verify_rc", 1)) != 0:
+            blockers.append("fresh_compatible_matrix_or_service_verification_required")
+        if blockers:
+            return {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+                "ok": False,
+                "blockers": sorted(set(blockers)),
+                "ordinary_user_delta": 0,
+                "routing_mutation_performed_by_consumer": False,
+            }
+
+        try:
+            address_proc = subprocess.run(
+                ["ip", "-j", "addr", "show", "dev", target.interface],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=5,
+            )
+            address_rows = json.loads(address_proc.stdout or "[]") if address_proc.returncode == 0 else []
+            source_address = next(
+                str(info.get("local") or "")
+                for row in address_rows if isinstance(row, dict)
+                for info in (row.get("addr_info") or []) if isinstance(info, dict)
+                if str(info.get("family") or "") == "inet" and str(info.get("local") or "")
+            )
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError, StopIteration):
+            source_address = ""
+        if not source_address:
+            return {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+                "ok": False,
+                "blockers": ["target_interface_source_address_missing"],
+                "ordinary_user_delta": 0,
+                "routing_mutation_performed_by_consumer": False,
+            }
+
+        now = datetime.now(timezone.utc)
+        context = {
+            "schema_version": "v7.target-egress-payload-probe-context.v1",
+            **lineage,
+            "contract_id": "ctm0f_" + sha256_json(lineage)[:24],
+            "sample_kind": str(getattr(self.args, "ct_m0f_sample_kind", "") or "warm"),
+            "issuing_owner": "existing Controlled Production owner",
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "certification_identity": True,
+            "source_address": source_address,
+            "interface": target.interface,
+            "expected_egress_ip": expected_ip,
+            "expected_target_egress_fingerprint": hashlib.sha256(expected_ip.encode("utf-8")).hexdigest(),
+            "target_url": "https://api.ipify.org",
+            "timeout_ms": 2000,
+            "retry_count": 1,
+            "expires_at": (now + timedelta(minutes=5)).isoformat(),
+        }
+        context["context_hash"] = hashlib.sha256(
+            json.dumps(context, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json") as handle:
+            json.dump(context, handle, sort_keys=True)
+            handle.flush()
+            payload_proc = subprocess.run(
+                ["v7-client-speed-api", "--target-egress-payload-context", handle.name, "--json"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+        try:
+            payload = json.loads(payload_proc.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {"status": "PROBE_INVALID", "blockers": ["target_payload_receipt_not_json"]}
+
+        span_by_stage = {
+            str(row.get("stage") or ""): row
+            for row in self._performance_spans
+            if isinstance(row, dict)
+        }
+        route_span = result_row.get("route_writer_timing") if isinstance(result_row.get("route_writer_timing"), dict) else {}
+        visibility_span = result_row.get("route_visibility_timing") if isinstance(result_row.get("route_visibility_timing"), dict) else {}
+        incident = ((plan.get("safety") or {}).get("l3_incident") or {})
+        first_failed_ns = to_int(
+            incident.get("first_failed_observation_monotonic_ns")
+            or move.get("first_failed_observation_monotonic_ns"), 0,
+        )
+        confirmed_ns = to_int(
+            incident.get("confirmed_hard_failure_monotonic_ns")
+            or move.get("confirmed_hard_failure_monotonic_ns"), 0,
+        )
+        decision_ns = to_int(
+            (span_by_stage.get("planner_entry_target_capacity_and_allocation") or {}).get("completed_monotonic_ns"), 0,
+        )
+        admitted_ns = to_int(
+            (span_by_stage.get("pre_apply_fresh_state_validation") or {}).get("completed_monotonic_ns"), 0,
+        )
+        route_completed_ns = to_int(route_span.get("completed_monotonic_ns"), 0)
+        visible_ns = to_int(visibility_span.get("completed_monotonic_ns"), 0)
+        payload_ns = to_int(payload.get("target_egress_payload_pass_monotonic_ns"), 0)
+        verify_output = str(result_row.get("verify_output") or "")
+        rule_match = re.search(r"policy_rule_fingerprint=([0-9a-f]{64})", verify_output)
+        table = str(user.table if user else "")
+        common = dict(lineage)
+        receipt = {
+            **lineage,
+            "certification_identity": True,
+            "ordinary_user_delta": 0,
+            "sample_kind": context["sample_kind"],
+            "clock_source": "time.monotonic_ns",
+            "first_failed_observation_monotonic_ns": first_failed_ns,
+            "confirmed_hard_failure_monotonic_ns": confirmed_ns,
+            "user_target_decision_bound_monotonic_ns": decision_ns,
+            "apply_admitted_monotonic_ns": admitted_ns,
+            # The existing writer commits assignment and route in one bounded
+            # process.  Their internal split remains UNKNOWN; the shared
+            # completion event is explicit rather than inferred.
+            "canonical_user_assignment_committed_monotonic_ns": route_completed_ns,
+            "kernel_route_mutation_completed_monotonic_ns": route_completed_ns,
+            "exact_user_kernel_path_visible_monotonic_ns": visible_ns,
+            "target_egress_payload_pass_monotonic_ns": payload_ns,
+            "control_plane_and_kernel_path_cutover_pass_monotonic_ns": payload_ns,
+            "decision_binding": {**common, "status": "USER_TARGET_DECISION_BOUND"},
+            "assignment_proof": {
+                **common,
+                "status": "CANONICAL_USER_ASSIGNMENT_COMMITTED",
+                "stale_writer_rejected": True,
+                "previous_egress": lineage["source"],
+                "new_egress": lineage["target"],
+            },
+            "kernel_path_proof": {
+                **common,
+                "status": "EXACT_USER_ASSIGNMENT_AND_KERNEL_PATH_TRANSITION_PROVEN",
+                "source_ip": lineage["user"],
+                "policy_rule_fingerprint": rule_match.group(1) if rule_match else "",
+                "routing_table": table,
+                "target_interface": target.interface,
+                "route_generation": str(getattr(self.args, "approved_snapshot_bundle_hash", "") or ""),
+                "old_effective_binding_absent": "V7_SCOPED_USER_ROUTE_CHECK=OK" in verify_output,
+            },
+            "target_payload_proof": payload,
+            "assignment_kernel_split": "ATOMIC_BUNDLED_COMPLETION_INTERNAL_SPLIT_UNKNOWN",
+            "remote_client_recovery_claimed": False,
+            "exact_user_payload_claimed": False,
+        }
+        consumed = operator_execution_pipeline.control_plane_kernel_path_cutover_contract(receipt)
+        consumed["sample_kind"] = context["sample_kind"]
+        consumed["validation_generation_id"] = lineage["validation_generation_id"]
+        consumed["target_payload_receipt_id"] = str(payload.get("receipt_id") or "")
+        return consumed
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Plan and optionally apply guarded V7 egress autoswitch decisions.")
@@ -14978,6 +15213,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-egress", "--current-egress", dest="source_egress", default="", help="Limit selected autoswitch moves to users currently on this egress.")
     parser.add_argument("--approved-packet-id", default="", help="Fail closed unless apply consumes this approved packet identity.")
     parser.add_argument("--approved-operation-id", default="", help="Fail closed unless apply consumes this approved operation identity.")
+    parser.add_argument("--approved-execution-lease-id", default="", help="Bind optional CT-M0F validation evidence to the existing execution lease.")
     parser.add_argument("--approved-selected-move-hash", default="", help="Fail closed unless apply consumes this approved selected move hash.")
     parser.add_argument("--approved-authority-generation", default="", help="Fail closed unless apply consumes this approved authority generation.")
     parser.add_argument("--approved-breaker-generation", default="", help="Fail closed unless apply consumes this autonomous execution control generation.")
@@ -15023,6 +15259,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pre-planner-refresh-command", default="v7-intelligence-snapshot-refresh")
     parser.add_argument("--pre-planner-refresh-timeout-sec", type=int, default=20)
     parser.add_argument("--service-matrix-lock-timeout-sec", type=int, default=DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS)
+    parser.add_argument("--ct-m0f-kernel-cutover-validation", action="store_true", help="After a governed certification-only apply, consume exact route plus target-payload evidence without claiming remote recovery.")
+    parser.add_argument("--ct-m0f-validation-generation-id", default="")
+    parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",
         action="store_true",

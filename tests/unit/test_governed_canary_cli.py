@@ -4671,6 +4671,50 @@ class GovernedCanaryCliTest(unittest.TestCase):
             captured["command"],
         )
 
+    def test_autoswitch_apply_binds_ct_m0f_validation_to_existing_lease(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        original_run = module.subprocess.run
+        try:
+            module.subprocess.run = fake_run
+            module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                user="10.7.0.100",
+                source="vless",
+                target="awg3",
+                packet_id="packet_exact",
+                operation_id="operation_exact",
+                execution_lease_id="lease_exact",
+                ct_m0f_kernel_cutover_validation=True,
+                ct_m0f_validation_generation_id="ctm0f_generation_exact",
+                ct_m0f_sample_kind="cold",
+            )
+        finally:
+            module.subprocess.run = original_run
+
+        command = captured["command"]
+        self.assertIn("--approved-execution-lease-id", command)
+        self.assertEqual(command[command.index("--approved-execution-lease-id") + 1], "lease_exact")
+        self.assertIn("--ct-m0f-kernel-cutover-validation", command)
+        self.assertEqual(
+            command[command.index("--ct-m0f-validation-generation-id") + 1],
+            "ctm0f_generation_exact",
+        )
+        self.assertEqual(command[command.index("--ct-m0f-sample-kind") + 1], "cold")
+
     def test_availability_first_binds_exact_controlled_identity_to_existing_plan(self):
         module = load_cli_module()
         plan = self.ready_l3_plan(moves=[])

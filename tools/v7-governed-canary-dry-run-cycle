@@ -2989,6 +2989,7 @@ def run_autoswitch_apply(
     max_users: int = 1,
     packet_id: str = "",
     operation_id: str = "",
+    execution_lease_id: str = "",
     selected_move_hash: str = "",
     authority_generation: str = "",
     breaker_generation: str = "",
@@ -3001,6 +3002,9 @@ def run_autoswitch_apply(
     campaign_request_id: str = "",
     campaign_request_hash: str = "",
     campaign_target: str = "",
+    ct_m0f_kernel_cutover_validation: bool = False,
+    ct_m0f_validation_generation_id: str = "",
+    ct_m0f_sample_kind: str = "warm",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3045,6 +3049,8 @@ def run_autoswitch_apply(
         command.extend(["--approved-packet-id", packet_id])
     if operation_id:
         command.extend(["--approved-operation-id", operation_id])
+    if execution_lease_id:
+        command.extend(["--approved-execution-lease-id", execution_lease_id])
     if selected_move_hash:
         command.extend(["--approved-selected-move-hash", selected_move_hash])
     if authority_generation:
@@ -3061,6 +3067,14 @@ def run_autoswitch_apply(
         command.insert(1, "--emergency-failover-autonomy")
     if controlled_verifier_contention:
         command.insert(1, "--controlled-verifier-contention")
+    if ct_m0f_kernel_cutover_validation:
+        command.extend([
+            "--ct-m0f-kernel-cutover-validation",
+            "--ct-m0f-validation-generation-id",
+            ct_m0f_validation_generation_id,
+            "--ct-m0f-sample-kind",
+            ct_m0f_sample_kind,
+        ])
     child_env = dict(os.environ)
     child_env["V7_PARENT_LAUNCH_MONOTONIC_NS"] = str(process_started_ns)
     try:
@@ -5144,6 +5158,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         max_users=requested_max_users,
         packet_id=str(packet_identity.get("packet_id") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
+        execution_lease_id=str(lease.get("lease_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
         breaker_generation=str(packet_identity.get("breaker_generation") or ""),
@@ -5177,6 +5192,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
         campaign_target=(
             "" if availability_mode else campaign_target
+        ),
+        ct_m0f_kernel_cutover_validation=bool(
+            getattr(args, "ct_m0f_kernel_cutover_validation", False)
+        ),
+        ct_m0f_validation_generation_id=str(
+            getattr(args, "ct_m0f_validation_generation_id", "") or ""
+        ),
+        ct_m0f_sample_kind=str(
+            getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
         ),
     )
     apply_completed_ns = time.monotonic_ns()
@@ -6179,12 +6203,22 @@ def _execute_governed_transaction_with_guards_inner(
         target=target,
         packet_id=str(packet_identity.get("packet_id") or ""),
         operation_id=str(packet_identity.get("operation_id") or ""),
+        execution_lease_id=str(lease.get("lease_id") or ""),
         selected_move_hash=str(packet_identity.get("selected_move_hash") or ""),
         authority_generation=str(packet_identity.get("authority_generation") or ""),
         breaker_generation=str(packet_identity.get("breaker_generation") or ""),
         source_bundle_hash=str(packet_identity.get("source_bundle_hash") or ""),
         snapshot_bundle_hash=str(packet_identity.get("snapshot_bundle_hash") or ""),
         execution_control_file=str(control_file),
+        ct_m0f_kernel_cutover_validation=bool(
+            getattr(args, "ct_m0f_kernel_cutover_validation", False)
+        ),
+        ct_m0f_validation_generation_id=str(
+            getattr(args, "ct_m0f_validation_generation_id", "") or ""
+        ),
+        ct_m0f_sample_kind=str(
+            getattr(args, "ct_m0f_sample_kind", "warm") or "warm"
+        ),
         **apply_options,
     )
     if topology_mode:
@@ -11093,6 +11127,18 @@ def build_parser() -> argparse.ArgumentParser:
             "Run one certification-only baseline/target/reset transaction "
             "through the standing policy without campaign-stage credit."
         ),
+    )
+    parser.add_argument(
+        "--ct-m0f-kernel-cutover-validation",
+        action="store_true",
+        help=(
+            "Bind one admitted certification-only transaction to the existing "
+            "kernel-cutover Time consumer; no remote recovery claim"
+        ),
+    )
+    parser.add_argument("--ct-m0f-validation-generation-id", default="")
+    parser.add_argument(
+        "--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm"
     )
     parser.add_argument(
         "--availability-first-stage",

@@ -1061,6 +1061,16 @@ def update_matrix(
                 or to_float(service_row.get("bad_for_seconds")) >= max(1, int(persistence_window_seconds or 180))
             )
         }
+        for merged in persistent_rows.values():
+            if int(merged.get("confirmed_hard_failure_monotonic_ns") or 0) <= 0:
+                # A pre-upgrade continuing incident has no reboot-scoped
+                # confirmation timestamp.  The first post-upgrade persistent
+                # observation is the honest new confirmation boundary; never
+                # infer it from historical UTC.
+                merged["confirmed_hard_failure_monotonic_ns"] = observation_monotonic_ns
+                merged["monotonic_clock_domain"] = observation_clock_domain
+                if int(merged.get("first_failed_observation_monotonic_ns") or 0) <= 0:
+                    merged["first_failed_observation_monotonic_ns"] = observation_monotonic_ns
         incident_started_at = min(
             (str(item.get("failure_started_at") or observed_at) for item in persistent_rows.values()),
             default=observed_at,

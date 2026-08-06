@@ -3734,6 +3734,8 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
         "control_plane_and_kernel_path_cutover_latency_ms": interval(CUTOVER_EVENT_FIELDS[1], CUTOVER_EVENT_FIELDS[8]),
         "failure_evidence_to_kernel_cutover_latency_ms": interval(CUTOVER_EVENT_FIELDS[0], CUTOVER_EVENT_FIELDS[8]),
     }
+    if receipt.get("assignment_kernel_split") == "ATOMIC_BUNDLED_COMPLETION_INTERNAL_SPLIT_UNKNOWN":
+        metrics["kernel_route_mutation_latency_ms"] = None
     exact_user_payload = payload.get("exact_user_source_fwmark_table_traversed") is True
     if receipt.get("exact_user_payload_claimed") is True and not exact_user_payload:
         blockers.append("exact_user_payload_claim_forbidden_without_exact_traversal")

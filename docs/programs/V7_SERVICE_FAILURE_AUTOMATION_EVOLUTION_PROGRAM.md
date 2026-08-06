@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.6`
+Version: `4.7`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,26 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V4.7 exact one-generation controlled validation admission
+
+V4.7 closes the producer gap between the CT-M0F engineering consumer and the
+existing independent Authority audit. The existing operator-execution owner
+may now emit one short-lived `CT_M0F_ONE_GENERATION_KERNEL_CUTOVER_VALIDATION`
+request bound to the active Program, current standing-policy contract/hash,
+current certification-pool/registry fingerprints, one source, one cold or
+warm generation, `max_users=1`, `max_concurrent_transactions=1`, fresh
+post-decision Candidate/Packet/lease and one-use semantics.
+
+This request is deliberately narrower than the existing Tier-48 substrate and
+progressive-campaign request. It cannot provision identities, advance campaign
+stages, select a target before the fresh Planner generation, create execution
+artifacts, degrade a source, apply routing, move a user, claim remote recovery,
+earn L7/L8 credit, expand Authority or change Production Maturity. The same
+append-only Authority audit owns request and exact-once decision provenance;
+no new owner, registry, queue, watcher, Planner, Runtime or Authority system is
+created. Approval, if independently supplied, only unlocks the existing fresh
+Matrix/governed validation consumer for that exact generation.
 
 ## V4.6 current-stage cutover object and deferred remote recovery gate
 

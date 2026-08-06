@@ -15340,6 +15340,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--prepare-ct-m0f-controlled-validation-authority-request",
+        action="store_true",
+        help=(
+            "Build and append one exact one-generation CT-M0F certification-only "
+            "Engineering Authority request through the existing operator audit. "
+            "Never creates Candidate/Packet/lease or performs routing effects."
+        ),
+    )
+    parser.add_argument(
+        "--ct-m0f-controlled-validation-sample-kind",
+        choices=("cold", "warm"),
+        default="cold",
+    )
+    parser.add_argument(
         "--controlled-verifier-contention",
         action="store_true",
         help="For an exact one-user certification contract, activate the existing matrix lifecycle only after forward route acknowledgement.",
@@ -20106,6 +20120,133 @@ def controlled_certification_substrate_authority_request_only(
     }
 
 
+def ct_m0f_controlled_validation_authority_request_only(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Prepare one narrow CT-M0F validation decision through existing owners."""
+    forbidden = [
+        name for name in (
+            "apply", "emergency_failover_autonomy", "controlled_verifier_contention",
+            "allow_pre_planner_refresh_with_apply",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    forbidden.extend(
+        name for name in (
+            "approved_packet_id", "approved_operation_id", "approved_execution_lease_id",
+            "approved_selected_move_hash", "generate_rollback_packet_from_result",
+            "rollback_packet", "promote_authority_to",
+        )
+        if str(getattr(args, name, "") or "").strip()
+    )
+    if str(getattr(args, "pre_planner_refresh", "off") or "off") != "off":
+        forbidden.append("pre_planner_refresh")
+    if forbidden:
+        return {
+            "schema_version": "v7.ct-m0f-controlled-validation-authority-entrypoint.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": [
+                f"ct_m0f_validation_request_forbids_{name}"
+                for name in sorted(set(forbidden))
+            ],
+        }
+
+    policy_root = read_json(Path(args.policy_file), {})
+    policy_root = policy_root if isinstance(policy_root, dict) else {}
+    contract = policy_root.get("delegated_autonomy_policy")
+    contract = contract if isinstance(contract, dict) else {}
+    audit_store = Path(args.action_class_audit_store)
+    validation = operator_execution.validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=operator_execution.read_live_execution_lineage_records(audit_store),
+    )
+    pool = controlled_certification_pool_status(Path(args.state_dir))
+    sources = [
+        row for row in (pool.get("active_source_projections") or [])
+        if isinstance(row, dict)
+        and str(row.get("source_id") or "")
+        and int(row.get("enabled_certification_users_on_source") or 0) > 0
+    ]
+    sources.sort(
+        key=lambda row: (
+            int(row.get("enabled_certification_users_on_source") or 0),
+            str(row.get("source_id") or ""),
+        ),
+        reverse=True,
+    )
+    source_id = str((sources[0] if sources else {}).get("source_id") or "")
+    blockers = []
+    if not validation.get("ok"):
+        blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
+    if int((validation.get("policy") or {}).get("max_users_per_action") or 0) < 1:
+        blockers.append("standing_policy_one_user_floor_required")
+    if not source_id:
+        blockers.append("certification_identity_source_required")
+    if blockers:
+        return {
+            "schema_version": "v7.ct-m0f-controlled-validation-authority-entrypoint.v1",
+            "status": "STOP_SAFE_PREDECESSOR_REQUIRED",
+            "ok": False,
+            "blockers": sorted(set(str(item) for item in blockers)),
+            "controlled_certification_pool": pool,
+            "forbidden_effects": {
+                "audit_write": False,
+                "policy_write": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_apply": False,
+                "routing_mutation": False,
+                "user_movement": 0,
+                "authority_expansion": False,
+                "production_maturity_change": False,
+            },
+        }
+    request = operator_execution.build_ct_m0f_controlled_validation_authority_request(
+        active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        source_id=source_id,
+        current_pool_status=pool,
+        current_policy_contract_id=str(contract.get("contract_id") or ""),
+        current_policy_contract_hash=str(contract.get("contract_hash") or ""),
+        sample_kind=str(
+            getattr(args, "ct_m0f_controlled_validation_sample_kind", "cold")
+            or "cold"
+        ),
+    )
+    registration = (
+        operator_execution.register_ct_m0f_controlled_validation_authority_request(
+            request,
+            audit_store=audit_store,
+            producer_id="tools/v7-users-autoswitch",
+        )
+    )
+    return {
+        "schema_version": "v7.ct-m0f-controlled-validation-authority-entrypoint.v1",
+        "status": "PASS",
+        "ok": True,
+        "authority_classification": "ENGINEERING_AUTHORITY",
+        "request": request,
+        "registration": registration,
+        "next_required_consumer": "existing independent Authority owner",
+        "reentry_condition": request["reentry_condition"],
+        "forbidden_effects": {
+            "audit_write": bool(registration.get("audit_write")),
+            "policy_write": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+            "natural_l8_credit": False,
+        },
+    }
+
+
 def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[str, Any]:
     """Close the STOP_SAFE -> policy-owner handoff on one coherent snapshot.
 
@@ -20266,6 +20407,10 @@ def main() -> int:
         return 0 if result.get("ok") else 2
     if args.prepare_controlled_certification_substrate_authority_request:
         result = controlled_certification_substrate_authority_request_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "PASS" else 2
+    if args.prepare_ct_m0f_controlled_validation_authority_request:
+        result = ct_m0f_controlled_validation_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     if args.standing_delegated_policy_status:

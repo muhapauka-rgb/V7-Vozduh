@@ -3616,6 +3616,106 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(refreshed["owner"], CANONICAL_CLEARANCE_OWNER)
         self.assertEqual(len(backups), 1)
 
+    def test_ct_m0f_one_generation_authority_request_and_exact_once_decision(self):
+        now = datetime(2026, 8, 6, 3, 0, tzinfo=timezone.utc)
+        pool = {
+            "total_enabled_certification_users": 41,
+            "max_enabled_certification_users_on_one_active_source": 41,
+            "fingerprint": "f" * 64,
+            "registry_hashes": {
+                "users_registry": "u" * 64,
+                "egress_registry": "e" * 64,
+            },
+        }
+        request = operator_execution.build_ct_m0f_controlled_validation_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="vless",
+            current_pool_status=pool,
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="a" * 64,
+            sample_kind="cold",
+            now=now,
+        )
+        validation = operator_execution.validate_ct_m0f_controlled_validation_authority_request(
+            request,
+            decision=operator_execution.CT_M0F_CONTROLLED_VALIDATION_APPROVAL,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertEqual(request["scope"]["max_users"], 1)
+        self.assertEqual(request["scope"]["max_concurrent_transactions"], 1)
+        self.assertFalse(request["scope"]["automatic_campaign_progression"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-audit.jsonl"
+            registered = operator_execution.register_ct_m0f_controlled_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            first = operator_execution.record_ct_m0f_controlled_validation_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_CONTROLLED_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            duplicate = operator_execution.record_ct_m0f_controlled_validation_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_CONTROLLED_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )
+            records = operator_execution.read_audit_records(audit)
+
+        self.assertEqual(registered["status"], "REGISTERED")
+        self.assertEqual(first["status"], "APPROVED")
+        self.assertEqual(duplicate["status"], "ALREADY_RECORDED_EXACT")
+        self.assertEqual(
+            len([
+                row for row in records
+                if row.get("record_type")
+                == operator_execution.CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE
+            ]),
+            1,
+        )
+        self.assertFalse(first["runtime_apply"])
+        self.assertEqual(first["users_moved"], 0)
+
+    def test_ct_m0f_expired_or_broadened_request_is_rejected(self):
+        now = datetime(2026, 8, 6, 3, 0, tzinfo=timezone.utc)
+        request = operator_execution.build_ct_m0f_controlled_validation_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="vless",
+            current_pool_status={
+                "total_enabled_certification_users": 1,
+                "max_enabled_certification_users_on_one_active_source": 1,
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="a" * 64,
+            now=now,
+        )
+        expired = operator_execution.validate_ct_m0f_controlled_validation_authority_request(
+            request,
+            decision="DECLINE",
+            now=now + timedelta(minutes=16),
+        )
+        broadened = copy.deepcopy(request)
+        broadened["scope"]["max_users"] = 2
+        broadened["request_hash"] = operator_execution.ct_m0f_controlled_validation_request_hash(
+            broadened
+        )
+        broadened["request_id"] = "ctm0fauth_r1_" + broadened["request_hash"][:24]
+        broadened_validation = operator_execution.validate_ct_m0f_controlled_validation_authority_request(
+            broadened,
+            decision="DECLINE",
+            now=now + timedelta(seconds=1),
+        )
+
+        self.assertIn("ct_m0f_validation_request_expired", expired["errors"])
+        self.assertIn("ct_m0f_validation_blast_radius_invalid", broadened_validation["errors"])
+
 
 if __name__ == "__main__":
     unittest.main()

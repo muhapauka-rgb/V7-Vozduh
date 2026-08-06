@@ -129,6 +129,19 @@ CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL = (
     "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
 )
+CT_M0F_CONTROLLED_VALIDATION_REQUEST_SCHEMA = (
+    "v7.ct-m0f-controlled-validation-engineering-authority-request.v1"
+)
+CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE = (
+    "ct_m0f_controlled_validation_authority_request_emitted"
+)
+CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE = (
+    "ct_m0f_controlled_validation_authority_decision"
+)
+CT_M0F_CONTROLLED_VALIDATION_APPROVAL = (
+    "APPROVE_CT_M0F_CONTROLLED_VALIDATION_ONCE"
+)
+CT_M0F_CONTROLLED_VALIDATION_REQUEST_TTL_SECONDS = 15 * 60
 CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE = (
     "controlled_certification_substrate_effect"
 )
@@ -1088,6 +1101,400 @@ def controlled_certification_substrate_semantic_fingerprint(request):
     ):
         canonical.pop(key, None)
     return sha256_json(canonical)
+
+
+def ct_m0f_controlled_validation_request_hash(request):
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    canonical.pop("request_id", None)
+    canonical.pop("request_hash", None)
+    return sha256_json(canonical)
+
+
+def ct_m0f_controlled_validation_semantic_fingerprint(request):
+    """Stable one-generation scope identity excluding request lifetime."""
+    canonical = copy.deepcopy(request if isinstance(request, dict) else {})
+    for key in ("request_id", "request_hash", "created_at", "expires_at"):
+        canonical.pop(key, None)
+    return sha256_json(canonical)
+
+
+def build_ct_m0f_controlled_validation_authority_request(
+    *,
+    active_program,
+    source_id,
+    current_pool_status,
+    current_policy_contract_id,
+    current_policy_contract_hash,
+    sample_kind="cold",
+    now=None,
+):
+    """Build one independently decidable CT-M0F validation generation.
+
+    This is an extension of the existing operator-execution Authority owner,
+    not a campaign or standing-policy request.  It grants no action by itself
+    and intentionally binds the target to the existing planner's fresh safe
+    selection because Candidate/Packet materialization occurs only after the
+    independent decision.
+    """
+    now = now or utc_now()
+    pool = current_pool_status if isinstance(current_pool_status, dict) else {}
+    registry_hashes = (
+        pool.get("registry_hashes")
+        if isinstance(pool.get("registry_hashes"), dict)
+        else {}
+    )
+    sample_kind = str(sample_kind or "cold").lower()
+    generation_seed = {
+        "active_program": str(active_program or ""),
+        "source_id": str(source_id or ""),
+        "sample_kind": sample_kind,
+        "pool_fingerprint": str(pool.get("fingerprint") or ""),
+        "policy_contract_id": str(current_policy_contract_id or ""),
+        "policy_contract_hash": str(current_policy_contract_hash or ""),
+        "created_at": now.isoformat(),
+    }
+    request = {
+        "schema_version": CT_M0F_CONTROLLED_VALIDATION_REQUEST_SCHEMA,
+        "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (
+            now + timedelta(seconds=CT_M0F_CONTROLLED_VALIDATION_REQUEST_TTL_SECONDS)
+        ).isoformat(),
+        "decision_set": [CT_M0F_CONTROLLED_VALIDATION_APPROVAL, "DECLINE"],
+        "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+        "active_program": str(active_program or ""),
+        "mission": "V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1",
+        "validation_generation_id": "ctm0fgen_" + sha256_json(generation_seed)[:24],
+        "scope": {
+            "profile": "CT_M0F_ONE_GENERATION_KERNEL_CUTOVER_VALIDATION",
+            "sample_kind": sample_kind,
+            "certification_only": True,
+            "ordinary_customer_involvement": False,
+            "source_id": str(source_id or ""),
+            "target_selection": "FRESH_EXISTING_PLANNER_SAFE_TARGET",
+            "max_users": 1,
+            "max_concurrent_transactions": 1,
+            "generation_use_limit": 1,
+            "candidate_packet_lease_before_decision": False,
+            "fresh_candidate_packet_lease_required_after_decision": True,
+            "automatic_campaign_progression": False,
+            "self_expansion_allowed": False,
+        },
+        "current_owner_backed_state": {
+            "total_enabled_certification_users": int(
+                pool.get("total_enabled_certification_users") or 0
+            ),
+            "max_enabled_certification_users_on_source": int(
+                pool.get("max_enabled_certification_users_on_one_active_source") or 0
+            ),
+            "pool_fingerprint": str(pool.get("fingerprint") or ""),
+            "users_registry_hash": str(registry_hashes.get("users_registry") or ""),
+            "egress_registry_hash": str(registry_hashes.get("egress_registry") or ""),
+            "active_policy_contract_id": str(current_policy_contract_id or ""),
+            "active_policy_contract_hash": str(current_policy_contract_hash or ""),
+        },
+        "verification_and_containment": {
+            "exact_policy_rule_table_route_required": True,
+            "target_egress_fresh_payload_required": True,
+            "rollback_or_certified_no_rollback_required": True,
+            "reset_and_deferred_closure_required": True,
+            "final_safe_mode": "OPEN",
+            "remote_client_recovery_claimed": False,
+        },
+        "one_use_law": {
+            "approval_use_limit": 1,
+            "implicit_renewal": False,
+            "retry_under_same_approval": False,
+            "candidate_packet_lease_reuse": False,
+        },
+        "forbidden_effects": [
+            "ordinary_customer_use",
+            "authority_self_expansion",
+            "production_maturity_change",
+            "natural_l8_claim",
+            "remote_client_recovery_claim",
+            "campaign_stage_credit",
+            "more_than_one_user",
+            "more_than_one_concurrent_transaction",
+        ],
+        "next_required_consumer": "existing independent Authority owner",
+        "reentry_condition": (
+            "exact decision for this request id/hash; on approval the existing "
+            "Matrix/governed consumer must revalidate pool, policy, source, target, "
+            "capacity and create fresh Candidate/Packet/lease"
+        ),
+    }
+    request_hash = ct_m0f_controlled_validation_request_hash(request)
+    request["request_hash"] = request_hash
+    request["request_id"] = f"ctm0fauth_r1_{request_hash[:24]}"
+    return request
+
+
+def validate_ct_m0f_controlled_validation_authority_request(
+    request,
+    *,
+    decision="DECLINE",
+    expected_request_id="",
+    expected_request_hash="",
+    now=None,
+):
+    now = now or utc_now()
+    request = request if isinstance(request, dict) else {}
+    errors = []
+    request_id = str(request.get("request_id") or "")
+    request_hash = str(request.get("request_hash") or "")
+    if request.get("schema_version") != CT_M0F_CONTROLLED_VALIDATION_REQUEST_SCHEMA:
+        errors.append("ct_m0f_validation_request_schema_invalid")
+    if ct_m0f_controlled_validation_request_hash(request) != request_hash:
+        errors.append("ct_m0f_validation_request_hash_mismatch")
+    if request_id != f"ctm0fauth_r1_{request_hash[:24]}":
+        errors.append("ct_m0f_validation_request_identity_mismatch")
+    if expected_request_id and request_id != str(expected_request_id):
+        errors.append("ct_m0f_validation_expected_request_mismatch")
+    if expected_request_hash and request_hash != str(expected_request_hash):
+        errors.append("ct_m0f_validation_expected_hash_mismatch")
+    if request.get("status") != "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION":
+        errors.append("ct_m0f_validation_request_not_pending")
+    if decision not in set(request.get("decision_set") or []):
+        errors.append("ct_m0f_validation_decision_not_allowed")
+    try:
+        if parse_ts(request.get("expires_at")) <= now:
+            errors.append("ct_m0f_validation_request_expired")
+        if parse_ts(request.get("created_at")) > now:
+            errors.append("ct_m0f_validation_created_at_invalid")
+    except PacketError:
+        errors.append("ct_m0f_validation_timestamps_invalid")
+    if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
+        errors.append("ct_m0f_validation_owner_invalid")
+    if request.get("active_program") != "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1":
+        errors.append("ct_m0f_validation_program_invalid")
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    if scope.get("profile") != "CT_M0F_ONE_GENERATION_KERNEL_CUTOVER_VALIDATION":
+        errors.append("ct_m0f_validation_profile_invalid")
+    if str(scope.get("sample_kind") or "") not in {"cold", "warm"}:
+        errors.append("ct_m0f_validation_sample_kind_invalid")
+    if not str(scope.get("source_id") or ""):
+        errors.append("ct_m0f_validation_source_missing")
+    if int(scope.get("max_users") or 0) != 1 or int(scope.get("max_concurrent_transactions") or 0) != 1:
+        errors.append("ct_m0f_validation_blast_radius_invalid")
+    if int(scope.get("generation_use_limit") or 0) != 1:
+        errors.append("ct_m0f_validation_use_limit_invalid")
+    if scope.get("certification_only") is not True or scope.get("ordinary_customer_involvement") is not False:
+        errors.append("ct_m0f_validation_identity_boundary_invalid")
+    if scope.get("automatic_campaign_progression") is not False or scope.get("self_expansion_allowed") is not False:
+        errors.append("ct_m0f_validation_expansion_boundary_invalid")
+    state = request.get("current_owner_backed_state") if isinstance(request.get("current_owner_backed_state"), dict) else {}
+    if int(state.get("max_enabled_certification_users_on_source") or 0) < 1:
+        errors.append("ct_m0f_validation_certification_identity_missing")
+    if not str(state.get("active_policy_contract_id") or "") or not str(state.get("active_policy_contract_hash") or ""):
+        errors.append("ct_m0f_validation_policy_binding_missing")
+    one_use = request.get("one_use_law") if isinstance(request.get("one_use_law"), dict) else {}
+    if int(one_use.get("approval_use_limit") or 0) != 1 or one_use.get("implicit_renewal") is not False or one_use.get("retry_under_same_approval") is not False:
+        errors.append("ct_m0f_validation_one_use_law_invalid")
+    if not str(request.get("validation_generation_id") or ""):
+        errors.append("ct_m0f_validation_generation_missing")
+    return {
+        "ok": not errors,
+        "errors": sorted(set(errors)),
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "validation_generation_id": str(request.get("validation_generation_id") or ""),
+        "decision": decision,
+        "expires_at": str(request.get("expires_at") or ""),
+    }
+
+
+def register_ct_m0f_controlled_validation_authority_request(
+    request,
+    *,
+    audit_store=None,
+    producer_id="tools/v7-users-autoswitch",
+    now=None,
+):
+    """Append one exact request through the existing Authority audit."""
+    now = now or utc_now()
+    validation = validate_ct_m0f_controlled_validation_authority_request(
+        request, decision="DECLINE", now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["ct_m0f_validation_request_invalid"]))
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        existing = [
+            row for row in records
+            if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE
+            and str(row.get("authority_request_id") or "") == request["request_id"]
+        ]
+        if existing:
+            if len(existing) == 1 and existing[0].get("request") == request:
+                return {
+                    "status": "ALREADY_REGISTERED_EXACT",
+                    "request_id": request["request_id"],
+                    "request_hash": request["request_hash"],
+                    "audit_write": False,
+                }
+            raise PacketError("ct_m0f_validation_request_audit_identity_conflict")
+        decided = {
+            str(row.get("authority_request_id") or "")
+            for row in records
+            if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE
+        }
+        semantic = ct_m0f_controlled_validation_semantic_fingerprint(request)
+        for row in records:
+            if row.get("record_type") != CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE:
+                continue
+            prior = row.get("request") if isinstance(row.get("request"), dict) else {}
+            prior_id = str(prior.get("request_id") or "")
+            if not prior_id or prior_id in decided:
+                continue
+            try:
+                active = parse_ts(prior.get("expires_at")) > now
+            except PacketError:
+                active = False
+            if active and ct_m0f_controlled_validation_semantic_fingerprint(prior) == semantic:
+                raise PacketError("ct_m0f_validation_active_semantic_request_exists")
+        append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-controlled-validation-authority-audit.v1",
+            "record_type": CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE,
+            "authority_request_id": request["request_id"],
+            "authority_request_hash": request["request_hash"],
+            "request": copy.deepcopy(request),
+            "producer": str(producer_id or "tools/v7-users-autoswitch"),
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "REGISTERED",
+        "request_id": request["request_id"],
+        "request_hash": request["request_hash"],
+        "audit_write": True,
+    }
+
+
+def ct_m0f_controlled_validation_request_from_audit(
+    request_id,
+    request_hash,
+    *,
+    audit_store=None,
+    now=None,
+):
+    now = now or utc_now()
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    matches = [
+        row for row in read_audit_records(audit_store)
+        if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE
+        and str(row.get("authority_request_id") or "") == str(request_id or "")
+    ]
+    if len(matches) != 1:
+        raise PacketError("ct_m0f_validation_request_audit_missing_or_duplicate")
+    if str(matches[0].get("authority_request_hash") or "") != str(request_hash or ""):
+        raise PacketError("ct_m0f_validation_request_audit_hash_mismatch")
+    request = matches[0].get("request") if isinstance(matches[0].get("request"), dict) else {}
+    validation = validate_ct_m0f_controlled_validation_authority_request(
+        request,
+        decision="DECLINE",
+        expected_request_id=request_id,
+        expected_request_hash=request_hash,
+        now=now,
+    )
+    if not validation.get("ok"):
+        raise PacketError(",".join(validation.get("errors") or ["ct_m0f_validation_request_invalid"]))
+    return request
+
+
+def record_ct_m0f_controlled_validation_authority_decision(
+    *,
+    request_id,
+    request_hash,
+    decision,
+    actor_id,
+    audit_store=None,
+    now=None,
+):
+    """Append one exact independent decision; never executes the generation."""
+    now = now or utc_now()
+    if decision not in {CT_M0F_CONTROLLED_VALIDATION_APPROVAL, "DECLINE"}:
+        raise PacketError("ct_m0f_validation_decision_not_exact")
+    if not str(actor_id or "").strip():
+        raise PacketError("ct_m0f_validation_authority_actor_missing")
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        existing = [
+            row for row in records
+            if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE
+            and str(row.get("authority_request_id") or "") == str(request_id or "")
+        ]
+        decision_id = stable_id("ctm0fdec", {
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "decision": decision,
+            "actor_id": str(actor_id),
+        })
+        if existing:
+            exact = [row for row in existing if row.get("decision_id") == decision_id]
+            if len(existing) == 1 and len(exact) == 1:
+                return {
+                    "status": "ALREADY_RECORDED_EXACT",
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                    "decision": decision,
+                    "decision_id": decision_id,
+                    "audit_write": False,
+                    "runtime_apply": False,
+                    "users_moved": 0,
+                }
+            raise PacketError("ct_m0f_validation_authority_decision_conflict")
+        request = ct_m0f_controlled_validation_request_from_audit(
+            request_id, request_hash, audit_store=audit_store, now=now,
+        )
+        validation = validate_ct_m0f_controlled_validation_authority_request(
+            request,
+            decision=decision,
+            expected_request_id=request_id,
+            expected_request_hash=request_hash,
+            now=now,
+        )
+        if not validation.get("ok"):
+            raise PacketError(",".join(validation.get("errors") or ["ct_m0f_validation_decision_invalid"]))
+        append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-controlled-validation-authority-decision.v1",
+            "record_type": CT_M0F_CONTROLLED_VALIDATION_DECISION_RECORD_TYPE,
+            "decision_id": decision_id,
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "validation_generation_id": request["validation_generation_id"],
+            "decision": decision,
+            "actor_provenance": {
+                "actor_id": str(actor_id),
+                "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+                "recorded_at": now.isoformat(),
+            },
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "APPROVED" if decision == CT_M0F_CONTROLLED_VALIDATION_APPROVAL else "DECLINED",
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision": decision,
+        "decision_id": decision_id,
+        "validation_generation_id": request["validation_generation_id"],
+        "next_required_consumer": (
+            "existing Matrix/governed CT-M0F validation consumer"
+            if decision == CT_M0F_CONTROLLED_VALIDATION_APPROVAL
+            else "existing CPS/OMP residual reconciliation owner"
+        ),
+        "audit_write": True,
+        "policy_write": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "authority_self_expansion": False,
+        "production_maturity_change": False,
+    }
 
 
 def build_controlled_certification_substrate_authority_request(
@@ -6892,6 +7299,16 @@ def main(argv=None):
         default="",
     )
     parser.add_argument(
+        "--record-ct-m0f-controlled-validation-decision-from-audit-request-id",
+        default="",
+        help=(
+            "Existing Authority owner only: append one exact APPROVE or DECLINE "
+            "decision for a single CT-M0F certification validation generation. "
+            "Never creates execution artifacts or performs routing effects."
+        ),
+    )
+    parser.add_argument("--ct-m0f-controlled-validation-request-hash", default="")
+    parser.add_argument(
         "--controlled-certification-substrate-admitted-subscope",
         action="append",
         default=[],
@@ -6948,6 +7365,34 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.record_ct_m0f_controlled_validation_decision_from_audit_request_id:
+            if (
+                args.packet or args.generate_from_plan or args.generate_from_preview
+                or args.prepare_standing_delegated_policy_request
+                or args.issue_standing_delegated_policy_from_audit_request_id
+                or args.record_controlled_certification_substrate_decision_from_audit_request_id
+                or args.replace_expired_controlled_certification_substrate_request_id
+                or args.record_controlled_source_topology_decision_from_audit_request_id
+            ):
+                raise PacketError(
+                    "ct_m0f_validation_decision_mode_must_not_mix_other_modes"
+                )
+            result = record_ct_m0f_controlled_validation_authority_decision(
+                request_id=(
+                    args.record_ct_m0f_controlled_validation_decision_from_audit_request_id
+                ),
+                request_hash=args.ct_m0f_controlled_validation_request_hash,
+                decision=args.authority_decision,
+                actor_id=args.authority_actor_id,
+                audit_store=(
+                    str(DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+                    if args.audit_store
+                    == "docs/track7/productization/e22-evidence/operator-execution-audit.jsonl"
+                    else args.audit_store
+                ),
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if (
             args
             .record_controlled_source_topology_decision_from_audit_request_id

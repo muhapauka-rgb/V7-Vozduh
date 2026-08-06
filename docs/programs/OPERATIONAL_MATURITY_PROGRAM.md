@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.69`
+Version: `4.70`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -19,6 +19,18 @@ Previous admitted continuation report: `docs/reports/engineering/2026-07-25_1125
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.70 closes the CT-M0F controlled-validation admission producer gap inside
+the existing operator-execution Authority audit. A one-generation request is
+separate from the broader Tier-48 campaign contract and binds the current
+standing policy, pool/registry generation, certification-only source,
+`max_users=1`, one concurrent transaction, sample kind, expiry and one-use
+law. Request publication has only an append-only audit effect. An independent
+exact decision is still required; approval cannot create Candidate/Packet/
+lease, select a stale target, perform controlled degradation or routing apply,
+claim remote recovery/L7/L8, expand Authority or change Production Maturity.
+The approved generation reenters only through the existing Matrix/governed
+consumer with fresh live gates and no duplicate owner or Runtime.
 
 V4.17 adds the OMP Self-Continuation Contract: a transaction terminal closes only its transaction, while the existing Codex OMP execution consumer must continue the same Engineering Control Loop until a proven program terminal requires external input. It creates no daemon, queue, scheduler, Runtime, Planner, owner, or parallel execution path.
 

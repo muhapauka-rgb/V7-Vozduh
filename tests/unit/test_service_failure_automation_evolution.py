@@ -4800,6 +4800,64 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         self.assertEqual(rejected["final_verdict"], "STOP_SAFE")
         self.assertIn("current_action_class_contract_request_schema_invalid", rejected["errors"])
 
+    def test_ct_m0f_validation_request_reuses_narrow_existing_authority_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            policy.write_text(json.dumps({
+                "delegated_autonomy_policy": {
+                    "contract_id": "sdpc_current",
+                    "contract_hash": "a" * 64,
+                },
+            }), encoding="utf-8")
+            audit = root / "audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(root),
+                "--policy-file", str(policy),
+                "--action-class-audit-store", str(audit),
+                "--prepare-ct-m0f-controlled-validation-authority-request",
+                "--ct-m0f-controlled-validation-sample-kind", "cold",
+            ])
+            request = {
+                "request_id": "ctm0fauth_r1_unit",
+                "request_hash": "hash",
+                "validation_generation_id": "ctm0fgen_unit",
+                "reentry_condition": "exact decision",
+            }
+            with mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": {"max_users_per_action": 1}},
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_pool_status",
+                return_value={
+                    "total_enabled_certification_users": 41,
+                    "max_enabled_certification_users_on_one_active_source": 41,
+                    "active_source_projections": [{
+                        "source_id": "vless",
+                        "enabled_certification_users_on_source": 41,
+                    }],
+                },
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "build_ct_m0f_controlled_validation_authority_request",
+                return_value=request,
+            ) as builder, mock.patch.object(
+                self.autoswitch.operator_execution,
+                "register_ct_m0f_controlled_validation_authority_request",
+                return_value={"status": "REGISTERED", "audit_write": True},
+            ):
+                result = self.autoswitch.ct_m0f_controlled_validation_authority_request_only(args)
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["authority_classification"], "ENGINEERING_AUTHORITY")
+        self.assertEqual(builder.call_args.kwargs["source_id"], "vless")
+        self.assertEqual(builder.call_args.kwargs["sample_kind"], "cold")
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+        self.assertFalse(result["forbidden_effects"]["candidate_created"])
+        self.assertFalse(result["forbidden_effects"]["authority_expansion"])
+
 
 if __name__ == "__main__":
     unittest.main()

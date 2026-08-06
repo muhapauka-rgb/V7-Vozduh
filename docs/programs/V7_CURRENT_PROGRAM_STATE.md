@@ -7,7 +7,7 @@ Latest terminal Mission: `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATA
 Latest terminal Mission state: `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: CT-M0F V4.9/OMP V4.72 replace the per-generation human approval loop with one bounded standing delegated validation envelope. Commit `5da55208` is pushed and safely deployed; the existing production owner emitted exactly one fresh request `ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06`. Request publication changed no policy, route, user, Packet, lease, Authority or Production Maturity. The historical one-generation request remains expired and non-reusable.
+Source: CT-M0F V4.9/OMP V4.72 replace the per-generation human approval loop with one bounded standing delegated validation envelope. Runtime commit `92527496` is pushed and safely deployed; the existing production owner emitted exactly one fresh request `ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06`, and a repeated non-test call returned that same pending request without another audit write. Request publication changed no policy, route, user, Packet, lease, Authority or Production Maturity. The historical one-generation request remains expired and non-reusable.
 
 ## 0. Authoritative Live Current State
 
@@ -608,7 +608,7 @@ This section is the single live volatile current-state surface. Older production
 | `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXISTING AUTHORITY/CONTROLLED-PRODUCTION OWNER ADMITS ONE EXACT CERTIFICATION-ONLY MATRIX GENERATION; THEN FRESH CANDIDATE/PACKET/LEASE, BOUNDED CUTOVER, TARGET-EGRESS PAYLOAD RECEIPT, RESET AND DEFERRED CLOSURE |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_REPORT` | docs/reports/engineering/2026-08-05_002250_ct_m0f_constant_time_performance_ledger_owner_binding.md |
 | `CT_M0F_PREPARED_AND_CLOSURE_REPORT` | docs/reports/engineering/2026-08-05_010348_ct_m0f_prepared_probe_and_deferred_closure.md |
-| `CT_M0F_DEPLOYED_COMMIT` | 5da55208b5183640b4923baa1f70e9d9b5b7f413 |
+| `CT_M0F_DEPLOYED_COMMIT` | 92527496bea295cccbded03dde03d2f456ab3acc |
 | `CT_M0F_EXACT_PROBE_DEPLOY_ID` | deploy-z8-14-Updatesystem-20ca164-20260805T090442 |
 | `CT_M0F_PREPARED_DECISION_STATUS` | PRODUCTION_CALLER_CONSUMED; NO_COMPATIBLE_PREPARED_CLASS; FRESHNESS CONSUMER RETURNED MISSING WITHOUT WORLD MODEL REBUILD; COMPATIBLE CONTROLLED GENERATION REQUIRED FOR USABLE-PROJECTION PROOF |
 | `CT_M0F_DEFERRED_CLOSURE_STATUS` | DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN; EXISTING L3/CLOSURE/OUTCOME OWNERS; NO DUPLICATE FORWARD APPLY |
@@ -629,7 +629,7 @@ This section is the single live volatile current-state surface. Older production
 | `CT_M0F_VALIDATION_REQUEST_EXPIRES_AT` | 2026-08-07T09:05:48.471187+00:00 |
 | `CT_M0F_VALIDATION_REQUEST_STATUS` | AWAITING_INDEPENDENT_AUTHORITY_DECISION |
 | `CT_M0F_HISTORICAL_ONE_GENERATION_REQUEST` | ctm0fauth_r1_cda5955e978cc52c22477670; APPROVED_BEFORE_EXPIRY_NOT_CONSUMED; EXPIRED_NON_REUSABLE |
-| `CT_M0F_APPROVAL_CONSUMER_STATUS` | PRODUCTION_DEPLOYED_COMMIT_5DA55208; ONE STANDING DECISION THEN ATOMIC PER-SAMPLE RESERVATION/FORWARD_EVIDENCE/RESET_OR_FORWARD_RECOVERY/TERMINAL; 368_AFFECTED_TESTS_PASS |
+| `CT_M0F_APPROVAL_CONSUMER_STATUS` | PRODUCTION_DEPLOYED_COMMIT_92527496; ONE STANDING DECISION THEN ATOMIC PER-SAMPLE RESERVATION/FORWARD_EVIDENCE/RESET_OR_FORWARD_RECOVERY/TERMINAL; REPEAT REQUEST CALLER RETURNS ALREADY_REGISTERED_EQUIVALENT WITH NO AUDIT WRITE; 368_AFFECTED_TESTS_PASS |
 | `CT_M0F_VALIDATION_REQUEST_REPORT` | docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_SCHEMA` | v7.constant-time-failover-performance-ledger.v1 |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_STATUS` | EXISTING_TIME_OWNER_BOUND_TO_RUNTIME_NESTED_SPANS_AND_HIDDEN_O_N_COUNTERS |

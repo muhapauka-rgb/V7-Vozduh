@@ -33,7 +33,9 @@ Runtime scope и Production Maturity credit запрещены.
 ## Проверка и deploy
 
 - affected tests: `368 PASS`;
-- code commit: `5da55208b5183640b4923baa1f70e9d9b5b7f413`;
+- implementation commit: `5da55208b5183640b4923baa1f70e9d9b5b7f413`;
+- final deployed runtime/reconciliation commit:
+  `92527496bea295cccbded03dde03d2f456ab3acc`;
 - GitHub `Updatesystem`: совпадает с local;
 - deploy: только через `tools/v7-safe-deploy`;
 - manifest: `PASS`, blockers `[]`;
@@ -42,6 +44,8 @@ Runtime scope и Production Maturity credit запрещены.
   `tools/v7-service-matrix-refresh-all`;
 - post-deploy delta: пуст;
 - production request producer: real non-test call, `REGISTERED`;
+- repeated production non-test caller: same request/hash/expiry,
+  `ALREADY_REGISTERED_EQUIVALENT`, `audit_write=false`;
 - deploy/request effects: Candidate `0`, Packet `0`, lease `0`, policy write
   `0`, Runtime apply `0`, routing mutation `0`, users moved `0`, Production
   Maturity change `0`.

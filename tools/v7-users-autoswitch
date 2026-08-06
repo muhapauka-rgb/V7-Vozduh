@@ -20587,6 +20587,81 @@ def ct_m0f_standing_source_selection_only(
             and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
         )
     ]
+    projected_source_ids = {
+        str(row.get("source_id") or "") for row in projections
+    }
+    # The controlled-condition owner deliberately disables the isolated
+    # EXECUTION_ONLY source.  Such a source is consequently absent from the
+    # pool's *active* projection, but that must not erase the already prepared
+    # failure lineage before the next ordinary Matrix consumer can act on it.
+    # Re-project only the exact existing-owner execution contract from current
+    # registries and current Matrix truth; this is not a second source owner.
+    for registry in egress_rows:
+        source_id = str(registry.get("id") or "")
+        if not source_id or source_id in projected_source_ids:
+            continue
+        source_users = [
+            row for row in users
+            if str(row.get("current") or "") == source_id
+            and bool_value(row.get("enabled", "1"))
+        ]
+        certification_users = [
+            row for row in source_users
+            if bool_value(row.get("certification_user"))
+        ]
+        non_certification_users = [
+            row for row in source_users
+            if not bool_value(row.get("certification_user"))
+        ]
+        deliberately_disabled = (
+            not bool_value(registry.get("enabled", "1"))
+            or str(registry.get("state") or "").lower()
+            in {"disabled", "maintenance"}
+        )
+        exact_execution_contract = (
+            bool_value(registry.get("controlled_certification_source"))
+            and str(registry.get("type") or "") == "interface"
+            and str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
+            and str(registry.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and bool_value(registry.get("execution_reserved"))
+            and bool_value(registry.get("canary_reserved"))
+            and not bool_value(registry.get("autoswitch_allowed"))
+            and not bool_value(registry.get("rebalance_allowed"))
+            and str(
+                registry.get("production_assignment_allowed") or ""
+            ).lower() in {"0", "false", "no"}
+        )
+        if not (
+            deliberately_disabled
+            and exact_execution_contract
+            and len(certification_users) == 1
+            and not non_certification_users
+        ):
+            continue
+        baseline_health = controlled_certification_source_health_status(
+            state_dir, source_id,
+        )
+        if bool(baseline_health.get("ok")):
+            continue
+        source_group = str(registry.get("certification_group") or "")
+        group_aligned = [
+            row for row in certification_users
+            if not source_group
+            or str(row.get("certification_group") or "") == source_group
+        ]
+        projections.append({
+            "source_id": source_id,
+            "certification_group": source_group,
+            "enabled_certification_users_on_source": 1,
+            "group_aligned_certification_users_on_source": len(group_aligned),
+            "enabled_non_certification_users_on_source": 0,
+            "source_isolated_for_controlled_failure": True,
+            "baseline_health": baseline_health,
+            "projection_origin": (
+                "current_disabled_execution_contract_registry_plus_matrix"
+            ),
+        })
     failed_ready = [
         row for row in projections
         if (

@@ -480,6 +480,85 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["selected_target_admission"]["controlled_contract_admitted"]
         )
 
+    def test_ct_m0f_selection_retains_disabled_prepared_failure_lineage(self):
+        pool = {
+            "active_source_projections": [{
+                "source_id": "vless",
+                "certification_group": "baseline-group",
+                "enabled_certification_users_on_source": 1,
+                "group_aligned_certification_users_on_source": 1,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {
+                    "ok": True,
+                    "observation_fingerprint": "baseline-health",
+                },
+            }],
+        }
+        users = [{
+            "ip": "10.7.0.107",
+            "current": "exec-source",
+            "enabled": "1",
+            "certification_user": "1",
+            "certification_group": "identity-group",
+        }, {
+            "ip": "10.7.0.108",
+            "current": "vless",
+            "enabled": "1",
+            "certification_user": "1",
+            "certification_group": "baseline-group",
+        }]
+        egress = [{
+            "id": "exec-source",
+            "enabled": "0",
+            "state": "maintenance",
+            "type": "interface",
+            "role": "EXECUTION_ONLY",
+            "controlled_certification_source": "1",
+            "reservation_owner": "operator_execution_governance",
+            "execution_reserved": "1",
+            "canary_reserved": "1",
+            "autoswitch_allowed": "0",
+            "rebalance_allowed": "0",
+            "production_assignment_allowed": "0",
+            "certification_group": "source-group",
+        }]
+        args = SimpleNamespace(state_dir="/unused")
+        with mock.patch.object(
+            self.autoswitch,
+            "controlled_certification_pool_status",
+            return_value=pool,
+        ), mock.patch.object(
+            self.autoswitch,
+            "parse_registry",
+            side_effect=lambda path: (
+                users if str(path).endswith("users.registry") else egress
+            ),
+        ), mock.patch.object(
+            self.autoswitch,
+            "controlled_certification_source_health_status",
+            return_value={
+                "ok": False,
+                "status": "STOP_SAFE_BASELINE_UNHEALTHY",
+                "observation_fingerprint": "failed-health",
+            },
+        ):
+            result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["selection_mode"],
+            "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
+        )
+        self.assertEqual(result["selected_source_id"], "exec-source")
+        self.assertEqual(result["selected_user"], "10.7.0.107")
+        self.assertEqual(result["selected_target_id"], "vless")
+        self.assertEqual(result["eligible_source_count"], 1)
+        self.assertNotIn(
+            "no_healthy_isolated_controlled_source_with_group_aligned_certification_identity",
+            result["blockers"],
+        )
+
     def test_prepared_class_decision_is_compact_and_generation_bound(self):
         plan = {
             "updated": "2026-08-05T01:00:00+00:00",

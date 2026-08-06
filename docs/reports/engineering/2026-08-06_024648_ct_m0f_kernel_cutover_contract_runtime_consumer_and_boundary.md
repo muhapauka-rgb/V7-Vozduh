@@ -46,8 +46,14 @@ Remote-device/application recovery сохранён как отдельный б
 - Production non-test consumers: deployed Time owner вернул
   `KERNEL_CUTOVER_GATE_INSUFFICIENT_OR_FAILED` для пустого набора без effects;
   governed production CLI экспонирует три CT-M0F validation bindings.
-- Truth после первого deploy: `PASS`, `FULLY_ALIGNED`; финальная проверка
-  выполняется после атомарной CPS-проекции этого отчёта.
+- После атомарной CPS/OMP-проекции final truth: `PASS`, blockers `0`,
+  `FULLY_ALIGNED`; convergence: `PASS`, `ALIGNED`.
+- Local/GitHub commit совпали на `36f2e2545267065755bab7cfdab0f7eadd994528`;
+  Runtime честно остаётся на deployable commit
+  `4e21b65856f4b62fcbd7bc0b4f9008845e4e1b6a`, а последующая разница
+  классифицирована как docs-only и не требует повторного deploy.
+- GitHub `V7 Polygon Design-Time Engineering`, run `31066428329`, завершён
+  `success`; forbidden-effects step также `success`.
 
 Полный монолитный unit-suite был остановлен как непропорционально долгий после
 обнаружения несвязанных ранних failures; целевой affected suite завершён

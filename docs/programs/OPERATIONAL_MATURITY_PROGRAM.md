@@ -3,7 +3,7 @@
 Status: `ACTIVE`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.70`
+Version: `4.71`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -19,6 +19,16 @@ Previous admitted continuation report: `docs/reports/engineering/2026-07-25_1125
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.71 closes the CT-M0F approval-to-runtime consumer gap without adding an
+owner or execution path. Exact approval is now independently validated and
+atomically consumed against the fresh Packet/lease lineage before effects;
+the existing autoswitch consumer proves the same consumption before accepting
+cutover evidence. Generic-path bypass, duplicate consumption, expiry and any
+lineage mismatch fail closed. The approval-request TTL is 24 hours to prevent
+review/deploy expiry churn while preserving exact one-use semantics. The first
+15-minute request was approved before expiry but was not consumed and is now
+historical/non-reusable; CPS owns the fresh-request boundary.
 
 V4.70 closes the CT-M0F controlled-validation admission producer gap inside
 the existing operator-execution Authority audit. A one-generation request is
@@ -7995,7 +8005,7 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_DECISION_REQUIRED`
+Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
 Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=48; locations={"awg3":1,"vless":47}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
@@ -8983,7 +8993,7 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY_CT_M0F_CONTROLLED_VALIDATION_DECISION_REQUIRED`
+Resolved current stop: `ENGINEERING_AUTHORITY`
 Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
 Current terminal report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`

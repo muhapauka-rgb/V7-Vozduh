@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.7`
+Version: `4.8`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,19 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V4.8 exact approval consumption and practical expiry
+
+V4.8 closes the producer-to-execution-consumer gap discovered after the first
+independent CT-M0F decision. The existing governed L3 owner now validates the
+exact approved request before artifacts, atomically consumes it only after a
+fresh Packet and lease exist, and passes the same request/generation/Packet/
+operation/lease/user/source/target lineage to the existing autoswitch Time
+consumer before any payload probe. Duplicate consumption, expiry, mismatch or
+use through the generic execution path is `STOP_SAFE` before production
+effects. The request decision window is 24 hours: still short-lived and
+one-use, but long enough for independent review and the existing deploy/reentry
+chain. An expired decided request is never renewed or rebound implicitly.
 
 ## V4.7 exact one-generation controlled validation admission
 

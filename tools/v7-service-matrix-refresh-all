@@ -1183,6 +1183,7 @@ def run_bounded_delegated_service_failure_action(
 
 def run_ct_m0f_standing_validation_campaign(
     executor: str,
+    planner: str,
     *,
     state_dir: Path,
     event_dir: Path,
@@ -1256,6 +1257,37 @@ def run_ct_m0f_standing_validation_campaign(
         except json.JSONDecodeError:
             parsed = {}
         return proc.returncode, parsed if isinstance(parsed, dict) else {}, (proc.stdout or "")[-2000:]
+
+    source_command = [
+        planner,
+        "--ct-m0f-standing-source-selection",
+        "--state-dir", str(state_dir),
+        "--policy-file", str(policy_file),
+        "--action-class-audit-store", str(audit_store),
+    ]
+    source_rc, source_selection, source_output = invoke(source_command, 180)
+    selected_source = str(source_selection.get("selected_source_id") or "")
+    if (
+        source_rc not in {0, 2}
+        or source_selection.get("ok") is not True
+        or not selected_source
+    ):
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_CONTROLLED_SOURCE_PREDECESSOR_REQUIRED",
+            "ok": bool(
+                source_rc in {0, 2}
+                and not source_selection.get("runtime_mutation_performed")
+            ),
+            "source_selection": source_selection,
+            "output_tail": "" if source_selection else source_output,
+            "blockers": list(source_selection.get("blockers") or [
+                "ct_m0f_standing_controlled_source_selection_unavailable"
+            ]),
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
 
     for _ in range(max(1, int(max_successive_samples))):
         active = active_reservations()
@@ -1356,6 +1388,7 @@ def run_ct_m0f_standing_validation_campaign(
             "--policy-file", str(policy_file),
             "--audit-dir", str(audit_store.parent),
             "--operator-execution-audit-store", str(audit_store),
+            "--approved-source", selected_source,
             "--max-users", "1",
             "--pretty",
         ]
@@ -3546,6 +3579,7 @@ def main() -> int:
                 "ct_m0f_standing_validation_campaign"
             ] = run_ct_m0f_standing_validation_campaign(
                 str(args.governed_executor),
+                str(args.passive_consumer),
                 state_dir=state_dir,
                 event_dir=Path(args.event_dir),
                 policy_file=Path(args.policy_file),

@@ -99,6 +99,15 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
             def fake_run(command, **_kwargs):
                 calls.append(command)
+                if "--ct-m0f-standing-source-selection" in command:
+                    payload = {
+                        "status": "CT_M0F_STANDING_CONTROLLED_SOURCE_SELECTED",
+                        "ok": True,
+                        "selected_source_id": "vless",
+                    }
+                    return self.refresh.subprocess.CompletedProcess(
+                        command, 0, stdout=json.dumps(payload)
+                    )
                 if "--reset-ct-m0f-standing-validation-sample" in command:
                     self.refresh.operator_execution.record_ct_m0f_standing_validation_sample_terminal(
                         reservation_id=reservation["reservation_id"],
@@ -130,6 +139,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
                 result = self.refresh.run_ct_m0f_standing_validation_campaign(
                     "governed-executor",
+                    "existing-planner",
                     state_dir=state,
                     event_dir=events,
                     policy_file=policy,
@@ -139,8 +149,58 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
         self.assertTrue(result["ok"])
         self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
-        self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[0])
-        self.assertIn("--execute-l3-production-validation", calls[1])
+        self.assertIn("--ct-m0f-standing-source-selection", calls[0])
+        self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[1])
+        self.assertIn("--execute-l3-production-validation", calls[2])
+        self.assertEqual(calls[2][calls[2].index("--approved-source") + 1], "vless")
+
+    def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
+        pool = {
+            "active_source_projections": [
+                {
+                    "source_id": "unhealthy",
+                    "certification_group": "g1",
+                    "enabled_certification_users_on_source": 50,
+                    "group_aligned_certification_users_on_source": 50,
+                    "enabled_non_certification_users_on_source": 0,
+                    "source_isolated_for_controlled_failure": True,
+                    "baseline_health": {"ok": False},
+                },
+                {
+                    "source_id": "vless",
+                    "certification_group": "g1",
+                    "enabled_certification_users_on_source": 41,
+                    "group_aligned_certification_users_on_source": 41,
+                    "enabled_non_certification_users_on_source": 0,
+                    "source_isolated_for_controlled_failure": True,
+                    "baseline_health": {
+                        "ok": True,
+                        "observation_fingerprint": "fresh-health",
+                    },
+                },
+                {
+                    "source_id": "mixed",
+                    "certification_group": "g1",
+                    "enabled_certification_users_on_source": 45,
+                    "group_aligned_certification_users_on_source": 45,
+                    "enabled_non_certification_users_on_source": 1,
+                    "source_isolated_for_controlled_failure": False,
+                    "baseline_health": {"ok": True},
+                },
+            ]
+        }
+        args = SimpleNamespace(state_dir="/unused")
+        with mock.patch.object(
+            self.autoswitch,
+            "controlled_certification_pool_status",
+            return_value=pool,
+        ):
+            result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["selected_source_id"], "vless")
+        self.assertEqual(result["eligible_source_count"], 1)
+        self.assertFalse(result["forbidden_effects"]["runtime_apply"])
 
     def test_prepared_class_decision_is_compact_and_generation_bound(self):
         plan = {

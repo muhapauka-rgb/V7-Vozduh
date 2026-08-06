@@ -15380,6 +15380,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--ct-m0f-standing-source-selection",
+        action="store_true",
+        help=(
+            "Emit the compact current controlled-source identity for the "
+            "existing CT-M0F standing-policy consumer. Read-only: no request, "
+            "Candidate, Packet, lease, assignment or routing effect."
+        ),
+    )
+    parser.add_argument(
         "--prepare-controlled-source-topology-authority-request",
         action="store_true",
         help=(
@@ -20447,10 +20456,99 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     }
 
 
+def ct_m0f_standing_source_selection_only(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Select one current source through the existing controlled-pool owner.
+
+    This is a compact projection, not another source registry or planner.  It
+    prevents the downstream governed planner from choosing an unrelated
+    certification identity before the standing envelope can validate it.
+    """
+    pool = controlled_certification_pool_status(Path(args.state_dir))
+    eligible = [
+        row
+        for row in (pool.get("active_source_projections") or [])
+        if (
+            isinstance(row, dict)
+            and str(row.get("source_id") or "")
+            and bool(row.get("source_isolated_for_controlled_failure"))
+            and int(row.get("enabled_certification_users_on_source") or 0) > 0
+            and int(row.get("group_aligned_certification_users_on_source") or 0) > 0
+            and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
+            and bool((row.get("baseline_health") or {}).get("ok"))
+        )
+    ]
+    eligible.sort(
+        key=lambda row: (
+            -int(row.get("group_aligned_certification_users_on_source") or 0),
+            -int(row.get("enabled_certification_users_on_source") or 0),
+            str(row.get("source_id") or ""),
+        )
+    )
+    selected = eligible[0] if eligible else {}
+    selected_source = str(selected.get("source_id") or "")
+    blockers = [] if selected_source else [
+        "no_healthy_isolated_controlled_source_with_group_aligned_certification_identity"
+    ]
+    projection = {
+        "schema_version": "v7.ct-m0f-standing-source-selection.v1",
+        "status": (
+            "CT_M0F_STANDING_CONTROLLED_SOURCE_SELECTED"
+            if selected_source
+            else "STOP_SAFE_CT_M0F_STANDING_CONTROLLED_SOURCE_REQUIRED"
+        ),
+        "ok": bool(selected_source),
+        "owner": "existing users.registry + egress.registry controlled-certification pool owner",
+        "selected_source_id": selected_source,
+        "selected_source_fingerprint": (
+            sha256_json({
+                "source_id": selected_source,
+                "certification_group": str(selected.get("certification_group") or ""),
+                "enabled_certification_users_on_source": int(
+                    selected.get("enabled_certification_users_on_source") or 0
+                ),
+                "group_aligned_certification_users_on_source": int(
+                    selected.get("group_aligned_certification_users_on_source") or 0
+                ),
+                "baseline_observation_fingerprint": str(
+                    (selected.get("baseline_health") or {}).get(
+                        "observation_fingerprint"
+                    )
+                    or ""
+                ),
+            })
+            if selected_source
+            else ""
+        ),
+        "eligible_source_count": len(eligible),
+        "blockers": blockers,
+        "raw_identity_list_stored": False,
+        "forbidden_effects": {
+            "audit_write": False,
+            "policy_write": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "user_movement": 0,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+    projection["fingerprint"] = sha256_json(projection)
+    return projection
+
+
 def main() -> int:
     main_entered_ns = time.monotonic_ns()
     usage_before = resource.getrusage(resource.RUSAGE_SELF)
     args = build_arg_parser().parse_args()
+    if args.ct_m0f_standing_source_selection:
+        result = ct_m0f_standing_source_selection_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.prepare_controlled_source_topology_authority_request:
         result = controlled_source_topology_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

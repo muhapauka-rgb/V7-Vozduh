@@ -1646,6 +1646,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
             {},
             availability_first_reset=True,
         )
+        ct_m0f_reset = module.controlled_engineering_apply_options(
+            {},
+            ct_m0f_standing_reset=True,
+        )
 
         self.assertFalse(inactive["emergency_failover_autonomy"])
         self.assertEqual(inactive["service_matrix_lock_timeout_sec"], 90)
@@ -1660,6 +1664,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(
             delegated_reset["controlled_verifier_contention"]
         )
+        self.assertTrue(ct_m0f_reset["emergency_failover_autonomy"])
+        self.assertEqual(ct_m0f_reset["service_matrix_lock_timeout_sec"], 5)
+        self.assertTrue(ct_m0f_reset["controlled_verifier_contention"])
         self.assertEqual(module.controlled_engineering_action_class({}), "USER_SWITCH")
         self.assertEqual(
             module.controlled_engineering_action_class({"request_id": "engauth_r1_test"}),
@@ -1669,6 +1676,13 @@ class GovernedCanaryCliTest(unittest.TestCase):
             module.controlled_engineering_action_class(
                 {},
                 availability_first_reset=True,
+            ),
+            "EMERGENCY_FAILOVER",
+        )
+        self.assertEqual(
+            module.controlled_engineering_action_class(
+                {},
+                ct_m0f_standing_reset=True,
             ),
             "EMERGENCY_FAILOVER",
         )
@@ -1687,6 +1701,105 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result, authority)
+
+    def test_ct_m0f_reset_preserves_standing_action_class_into_cleanup(self):
+        module = load_cli_module()
+        reservation = {
+            "reservation_id": "ctm0fsample_test",
+            "contract_id": "ctm0fsdpc_test",
+            "contract_hash": "h" * 64,
+            "user": "10.7.0.107",
+            "source": "vless",
+            "target": "execution-target",
+            "implementation_fingerprint": "i" * 64,
+        }
+        args = argparse.Namespace(
+            ct_m0f_standing_validation_reservation_id="ctm0fsample_test",
+            policy_file="/unused/policy.json",
+        )
+        captured = {}
+
+        def execute(transaction_args, **_kwargs):
+            captured["standing_reset"] = bool(
+                getattr(transaction_args, "_ct_m0f_standing_reset", False)
+            )
+            captured["request"] = dict(
+                getattr(transaction_args, "_certification_cleanup_request", {})
+            )
+            return {
+                "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                "verification_result": "PASS",
+            }
+
+        with mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_sample_from_audit",
+            return_value={
+                "ok": True,
+                "terminal": None,
+                "reservation": reservation,
+                "forward_evidence": {
+                    "sample_evidence": {
+                        "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                    },
+                },
+            },
+        ), mock.patch.object(
+            module,
+            "read_json",
+            side_effect=lambda path, default=None: (
+                {module.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": reservation["contract_id"],
+                    "contract_hash": reservation["contract_hash"],
+                }}
+                if str(path).endswith("policy.json")
+                else {"items": {"vless": {"services": {"google": {
+                    "status": "OK", "ok": True,
+                }}}}}
+            ),
+        ), mock.patch.object(
+            module.operator_execution,
+            "validate_ct_m0f_standing_validation_policy",
+            return_value={"ok": True, "errors": []},
+        ), mock.patch.object(
+            module.operator_execution,
+            "read_audit_records",
+            return_value=[],
+        ), mock.patch.object(
+            module,
+            "read_registry",
+            return_value=[{"ip": "10.7.0.107", "current": "execution-target"}],
+        ), mock.patch.object(
+            module,
+            "execute_governed_transaction_with_guards",
+            side_effect=execute,
+        ), mock.patch.object(
+            module.operator_execution,
+            "record_ct_m0f_standing_validation_sample_terminal",
+            return_value={"ok": True},
+        ), mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_budget_status",
+            return_value={"campaign_complete": False},
+        ):
+            result = module.reset_ct_m0f_standing_validation_sample(
+                args,
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/snapshots"),
+                audit_dir=Path("/audit"),
+                lease_file=Path("/lease.json"),
+            )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
+        )
+        self.assertTrue(captured["standing_reset"])
+        self.assertEqual(
+            captured["request"]["ct_m0f_standing_reservation_id"],
+            "ctm0fsample_test",
+        )
 
     def test_compact_failed_transaction_preserves_exact_stop_reason(self):
         module = load_cli_module()

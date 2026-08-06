@@ -2955,9 +2955,14 @@ def controlled_engineering_apply_options(
     engineering_authority: dict[str, Any],
     *,
     availability_first_reset: bool = False,
+    ct_m0f_standing_reset: bool = False,
 ) -> dict[str, Any]:
     """Activate the existing bounded verifier only for an exact R2 binding."""
-    active = bool(engineering_authority) or availability_first_reset
+    active = bool(
+        engineering_authority
+        or availability_first_reset
+        or ct_m0f_standing_reset
+    )
     return {
         "emergency_failover_autonomy": active,
         "service_matrix_lock_timeout_sec": 5 if active else 90,
@@ -2969,10 +2974,15 @@ def controlled_engineering_action_class(
     engineering_authority: dict[str, Any],
     *,
     availability_first_reset: bool = False,
+    ct_m0f_standing_reset: bool = False,
 ) -> str:
     return (
         "EMERGENCY_FAILOVER"
-        if engineering_authority or availability_first_reset
+        if (
+            engineering_authority
+            or availability_first_reset
+            or ct_m0f_standing_reset
+        )
         else "USER_SWITCH"
     )
 
@@ -5963,6 +5973,11 @@ def _execute_governed_transaction_with_guards_inner(
     setup_mode = isinstance(setup_request, dict) and bool(setup_request)
     cleanup_request = getattr(args, "_certification_cleanup_request", None)
     cleanup_mode = isinstance(cleanup_request, dict) and bool(cleanup_request)
+    ct_m0f_standing_reset = bool(
+        cleanup_mode
+        and getattr(args, "_ct_m0f_standing_reset", False)
+        and str(cleanup_request.get("ct_m0f_standing_reservation_id") or "")
+    )
     availability_first_reset = bool(
         cleanup_mode
         and bool_value(
@@ -6378,6 +6393,7 @@ def _execute_governed_transaction_with_guards_inner(
     runtime_action_class = controlled_engineering_action_class(
         engineering_authority,
         availability_first_reset=availability_first_reset,
+        ct_m0f_standing_reset=ct_m0f_standing_reset,
     )
     qualifying_service_failure_event = (
         delegated_admission.get("qualifying_service_failure_event")
@@ -6573,6 +6589,7 @@ def _execute_governed_transaction_with_guards_inner(
     apply_options = controlled_engineering_apply_options(
         engineering_authority,
         availability_first_reset=availability_first_reset,
+        ct_m0f_standing_reset=ct_m0f_standing_reset,
     )
     apply_started_ns = time.monotonic_ns()
     apply_run = run_autoswitch_apply(
@@ -11184,6 +11201,11 @@ def reset_ct_m0f_standing_validation_sample(
                 reservation.get("reservation_id") or ""
             ),
         }
+        # The reset is not a new discretionary USER_SWITCH.  It is the
+        # mandatory recovery half of the already validated standing CT-M0F
+        # sample contract.  Preserve that action class through the existing
+        # operation-scoped control and bounded verifier.
+        transaction_args._ct_m0f_standing_reset = True
         transaction_args.skip_planner_observe = True
         transaction_args.execute_bounded_delegated_transaction = False
         transaction_args.execute_l3_production_validation = False

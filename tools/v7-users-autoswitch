@@ -17635,7 +17635,11 @@ def controlled_source_topology_diagnostic(
             "forbidden_effects": forbidden_effects,
         }
 
-    target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    target_diagnostic = (
+        controlled_campaign_target_selection_diagnostic(args)
+        if getattr(args, "policy_file", "")
+        else {"targets": []}
+    )
     shared_target_projection = (
         target_diagnostic.get("shared_production_target_capacity_projection")
         if isinstance(
@@ -20225,7 +20229,11 @@ def controlled_certification_substrate_authority_request_only(
         candidates.sort(key=lambda row: str(row.get("source_id") or ""))
         source_candidate = candidates[0] if candidates else {}
     source_id = str(source_candidate.get("source_id") or "")
-    target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+    target_diagnostic = (
+        controlled_campaign_target_selection_diagnostic(args)
+        if getattr(args, "policy_file", "")
+        else {"targets": []}
+    )
     selected_target_id = str(
         (target_diagnostic.get("selection") or {}).get(
             "selected_target_id"
@@ -20774,6 +20782,99 @@ def ct_m0f_standing_source_selection_only(
             str(row.get("source_id") or ""),
         )
     )
+    # CT-M0F may consume a real failure on an isolated certification-only
+    # source.  The destination is not itself deliberately failed, so requiring
+    # it to be another isolated controlled source incorrectly discards an
+    # otherwise healthy existing Planner target.  Reuse the current target
+    # diagnostic and admit a *healthy* shared target only when the active
+    # availability-first standing policy already authorizes one
+    # certification-only assignment with zero ordinary-user delta.  This is a
+    # selection projection, not a new target owner or an execution grant.
+    policy_file_value = str(getattr(args, "policy_file", "") or "")
+    policy_file = Path(policy_file_value) if policy_file_value else None
+    policy_root = (
+        read_json(policy_file, {})
+        if policy_file is not None and policy_file.is_file()
+        else {}
+    )
+    policy_root = policy_root if isinstance(policy_root, dict) else {}
+    availability_contract = policy_root.get("delegated_autonomy_policy")
+    availability_contract = (
+        availability_contract if isinstance(availability_contract, dict) else {}
+    )
+    availability_validation = (
+        operator_execution.validate_standing_delegated_operational_policy(
+            availability_contract,
+            audit_records=operator_execution.read_live_execution_lineage_records(
+                Path(getattr(args, "action_class_audit_store", "") or "")
+            ),
+        )
+        if availability_contract
+        and getattr(args, "action_class_audit_store", "")
+        else {"ok": False, "policy": {}}
+    )
+    availability_policy = (
+        availability_validation.get("policy")
+        if isinstance(availability_validation.get("policy"), dict)
+        else {}
+    )
+    availability_scope = (
+        (availability_policy.get("action_class_scopes") or {}).get(
+            "bounded availability-first controlled failover"
+        )
+        if isinstance(availability_policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    shared_target_action_admitted = bool(
+        availability_validation.get("ok")
+        and "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET"
+        in set(availability_scope.get("allowed_actions") or [])
+        and bool(availability_scope.get("certification_identities_only"))
+        and int(availability_scope.get("max_users_per_transaction") or 0) >= 1
+        and int(availability_scope.get("max_concurrent_transactions") or 0)
+        >= 1
+        and availability_scope.get("ordinary_identity_delta") == 0
+        and availability_scope.get("ordinary_route_delta") == 0
+        and availability_scope.get("shared_target_fault_injection_allowed")
+        is False
+    )
+    target_diagnostic = (
+        controlled_campaign_target_selection_diagnostic(args)
+        if policy_file is not None
+        else {"targets": []}
+    )
+    shared_targets = []
+    for row in target_diagnostic.get("targets") or []:
+        if not isinstance(row, dict):
+            continue
+        target_id = str(row.get("target_id") or "")
+        availability = (
+            row.get("shared_target_availability")
+            if isinstance(row.get("shared_target_availability"), dict)
+            else {}
+        )
+        capacity = row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
+        if not (
+            target_id
+            and bool((row.get("health") or {}).get("ok"))
+            and bool(row.get("ordinary_planner_eligible"))
+            and bool(row.get("shared_target_technically_eligible"))
+            and str(availability.get("state") or "") == "HEALTHY"
+            and availability.get("policy_boundary") == "NONE"
+            and int(capacity.get("target_safe_additional_capacity") or 0) >= 1
+            and bool(row.get("verification_supported"))
+            and bool(row.get("rollback_containment_supported"))
+        ):
+            continue
+        shared_targets.append(row)
+    shared_targets.sort(
+        key=lambda row: (
+            -int(((row.get("capacity") or {}).get(
+                "target_safe_additional_capacity"
+            ) or 0)),
+            str(row.get("target_id") or ""),
+        )
+    )
     selection_mode = (
         "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
         if failed_ready
@@ -20825,7 +20926,7 @@ def ct_m0f_standing_source_selection_only(
         selected_target_projection = baseline
     selected_user = str(selected_user_row.get("ip") or "")
     selected_target = str(selected_target_projection.get("source_id") or "")
-    controlled_target_admitted = bool(
+    isolated_target_admitted = bool(
         selected_target
         and selected_target != selected_source
         and bool(
@@ -20843,6 +20944,25 @@ def ct_m0f_standing_source_selection_only(
             or 0
         )
         == 0
+    )
+    selected_shared_target = next(
+        (
+            row for row in shared_targets
+            if str(row.get("target_id") or "") != selected_source
+        ),
+        {},
+    )
+    shared_target_admitted = bool(
+        selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        and availability_policy
+        and shared_target_action_admitted
+        and selected_shared_target
+    )
+    if shared_target_admitted:
+        selected_target_projection = selected_shared_target
+        selected_target = str(selected_shared_target.get("target_id") or "")
+    controlled_target_admitted = bool(
+        isolated_target_admitted or shared_target_admitted
     )
     blockers = []
     if not selected_source:
@@ -20869,7 +20989,8 @@ def ct_m0f_standing_source_selection_only(
         ),
         "selection_mode": selection_mode,
         "target_observation_fingerprint": str(
-            (selected_target_projection.get("baseline_health") or {}).get(
+            (selected_target_projection.get("baseline_health") or
+             selected_target_projection.get("health") or {}).get(
                 "observation_fingerprint"
             )
             or ""
@@ -20894,13 +21015,24 @@ def ct_m0f_standing_source_selection_only(
         "selected_target_id": selected_target,
         "selected_target_admission": {
             "controlled_contract_admitted": controlled_target_admitted,
-            "ordinary_full_live_admission": False,
-            "ordinary_planner_eligible": False,
+            "ordinary_full_live_admission": bool(
+                selected_shared_target.get("ordinary_planner_eligible")
+                if shared_target_admitted else False
+            ),
+            "ordinary_planner_eligible": bool(
+                selected_shared_target.get("ordinary_planner_eligible")
+                if shared_target_admitted else False
+            ),
             "admission_law": (
                 "EXACT_CONTROLLED_BASELINE_RECOVERY_TARGET"
-                if controlled_target_admitted
+                if isolated_target_admitted
+                else "ACTIVE_AVAILABILITY_FIRST_SHARED_TARGET_ONE_USER"
+                if shared_target_admitted
                 else "NOT_ADMITTED"
             ),
+            "ordinary_user_delta": 0,
+            "shared_target_fault_injection": "FORBIDDEN",
+            "stage48_credit": False,
         },
         "sample_binding_fingerprint": (
             sha256_json(sample_binding) if not blockers else ""
@@ -20927,6 +21059,15 @@ def ct_m0f_standing_source_selection_only(
         ),
         "eligible_source_count": len(failed_ready) + len(preparation_sources),
         "eligible_identity_count": 1 if selected_user else 0,
+        "shared_target_policy_admission": {
+            "ok": shared_target_action_admitted,
+            "owner": "existing delegated_autonomy_policy availability-first action class",
+            "target_count": len(shared_targets),
+            "selection_law": (
+                "HEALTHY_EXISTING_PLANNER_TARGET_WITH_CAPACITY_AND_ZERO_"
+                "ORDINARY_DELTA"
+            ),
+        },
         "blockers": blockers,
         "raw_identity_list_stored": False,
         "forbidden_effects": {

@@ -486,6 +486,102 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["selected_target_admission"]["controlled_contract_admitted"]
         )
 
+    def test_ct_m0f_selection_reuses_healthy_shared_target_under_active_policy(self):
+        pool = {
+            "active_source_projections": [{
+                "source_id": "failed-cert-source",
+                "certification_group": "g1",
+                "enabled_certification_users_on_source": 1,
+                "group_aligned_certification_users_on_source": 1,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {"ok": False},
+            }]
+        }
+        availability_policy = {
+            "action_class_scopes": {
+                "bounded availability-first controlled failover": {
+                    "allowed_actions": [
+                        "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
+                    ],
+                    "certification_identities_only": True,
+                    "max_users_per_transaction": 48,
+                    "max_concurrent_transactions": 1,
+                    "ordinary_identity_delta": 0,
+                    "ordinary_route_delta": 0,
+                    "shared_target_fault_injection_allowed": False,
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "audit.jsonl"
+            policy.write_text(
+                json.dumps({"delegated_autonomy_policy": {"stub": True}}),
+                encoding="utf-8",
+            )
+            audit.write_text("", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir="/unused", policy_file=str(policy),
+                action_class_audit_store=str(audit),
+            )
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_pool_status",
+                return_value=pool,
+            ), mock.patch.object(
+                self.autoswitch,
+                "parse_registry",
+                side_effect=lambda path: ([{
+                    "ip": "10.7.0.18",
+                    "current": "failed-cert-source",
+                    "enabled": "1",
+                    "certification_user": "1",
+                    "certification_group": "g1",
+                }] if str(path).endswith("users.registry") else []),
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": availability_policy},
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_live_execution_lineage_records",
+                return_value=[],
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value={
+                    "targets": [{
+                        "target_id": "healthy-shared-target",
+                        "ordinary_planner_eligible": True,
+                        "shared_target_technically_eligible": True,
+                        "shared_target_availability": {
+                            "state": "HEALTHY", "policy_boundary": "NONE",
+                        },
+                        "health": {
+                            "ok": True,
+                            "observation_fingerprint": "target-health",
+                        },
+                        "capacity": {"target_safe_additional_capacity": 1},
+                        "verification_supported": True,
+                        "rollback_containment_supported": True,
+                    }],
+                },
+            ):
+                result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["selection_mode"], "EXECUTE_CONTROLLED_FAILURE_CUTOVER")
+        self.assertEqual(result["selected_source_id"], "failed-cert-source")
+        self.assertEqual(result["selected_target_id"], "healthy-shared-target")
+        self.assertEqual(
+            result["selected_target_admission"]["admission_law"],
+            "ACTIVE_AVAILABILITY_FIRST_SHARED_TARGET_ONE_USER",
+        )
+        self.assertEqual(result["selected_target_admission"]["ordinary_user_delta"], 0)
+        self.assertFalse(result["selected_target_admission"]["stage48_credit"])
+
     def test_ct_m0f_selection_retains_disabled_prepared_failure_lineage(self):
         pool = {
             "active_source_projections": [{

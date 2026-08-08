@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `5.0`
+Version: `5.1`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,47 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V5.1 CT-M0F existing-resource target-admission correction
+
+V5.1 records an owner-backed correction to the CT-M0F substrate law.  The
+earlier `STOP_SAFE_CT_M0F_STANDING_CONTROLLED_SOURCE_REQUIRED` snapshot is
+historical discovery, not proof that a new substrate or Stage-48 expansion is
+needed.  Before declaring an external boundary, the existing
+`v7-users-autoswitch` selector must dispose every source, certification
+identity and target through its current owners.
+
+For a single CT-M0F certification-only sample, source and target have
+different safety predicates.  The source must be isolated from ordinary users
+and genuinely failed or controlled as the active CT-M0F envelope permits.  A
+distinct target may instead be an existing healthy Planner-shared target when
+the existing delegated availability-first policy independently proves all of:
+
+- `certification_identities_only=true`, `max_users=1` and
+  `max_concurrent_transactions=1` for the admitted selection;
+- zero ordinary-identity and ordinary-route delta;
+- current health, capacity, verification and containment gates pass;
+- the target is distinct, has no conflicting reservation or active operation;
+- shared-target fault injection remains forbidden.
+
+This is an existing selector/target-admission repair only.  It does not create
+a target owner, provision an identity, widen Authority, grant Stage-48,
+CT-M8, L7/L8 or Maturity credit, or allow a shared target to be deliberately
+degraded.  Fresh Candidate, Packet, lease, live gates and ordinary
+Matrix-owned wake remain mandatory before any effect.
+
+The source selector must report the exact disposition rather than collapsing
+a lawful shared-target candidate into a physical-substrate absence.  A valid
+production selector result is `CT_M0F_STANDING_CONTROLLED_FAILURE_READY`; a
+source-side isolation failure, target-policy failure, reservation conflict or
+stale policy projection remains its own exact `STOP_SAFE` terminal.
+
+The active CT-M0F policy/audit record is authoritative for the contract's
+validity. CPS/OMP must consume that owner-backed status through the existing
+atomic reconciliation path; a historical request-ready field must never
+override an active audited contract. Until this consumer is deployed and
+proven, the correct terminal is `DEPLOY_REVIEW_REQUIRED_FOR_CT_M0F_SELECTOR_AND_CPS_RECONCILIATION`,
+not an external-substrate or Authority claim.
 
 ## V5.0 CT-M0F independent-lane execution and fresh-contract correction
 

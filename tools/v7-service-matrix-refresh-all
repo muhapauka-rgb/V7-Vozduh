@@ -3575,7 +3575,12 @@ def main() -> int:
             str(args.passive_consumer),
             state_dir=state_dir,
             event_dir=Path(args.event_dir),
-            timeout_sec=int(args.passive_consumer_timeout_sec) + 15,
+            # This owner performs bounded durable reconciliation.  Its result
+            # is never on the packet/apply hot path, but an occasional lock or
+            # current-scope reconciliation must not cut it off before the
+            # already durable current obligation can reach the existing OMP
+            # receipt consumer.
+            timeout_sec=max(90, int(args.passive_consumer_timeout_sec) + 15),
         )
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
@@ -3588,7 +3593,13 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "SKIPPED_EXPLICITLY", "ok": False, "reason": "explicit_skip",
         }
-    elif (payload.get("service_failure_automation_advisory") or {}).get("ok") is True:
+    elif (payload.get("passive_event_consumer") or {}).get("ok") is True:
+        # The OMP owner selects only an existing durable obligation and is
+        # exact-once.  It must still run when the advisory refresh timed out:
+        # a fresh, already-materialized actionable obligation otherwise has no
+        # receipt and the governed CT-M0F executor correctly fails closed.
+        # With no such obligation it returns NO_PENDING_OBLIGATION, so this
+        # cannot manufacture an execution path.
         payload["service_failure_omp_consumer"] = run_service_failure_omp_consumer(
             timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
         )

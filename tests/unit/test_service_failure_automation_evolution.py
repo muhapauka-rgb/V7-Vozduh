@@ -4259,6 +4259,46 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             second = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
             self.assertEqual(second["final_verdict"], "NO_PENDING_OBLIGATION")
 
+    def test_omp_frontier_prefers_live_accounted_scope_over_newer_zero_scope_terminal(self):
+        """A historical no-scope terminal cannot starve the current incident."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            live = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_live_vless",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "created_at": "2026-08-08T18:09:43+00:00",
+                "source_incident_id": "sfinc_live_vless",
+                "channel": "vless",
+                "current_source_scope": {
+                    "status": "ACCOUNTED",
+                    "affected_scope_count": 35,
+                    "unresolved_scope_count": 35,
+                },
+            }
+            newer_historical = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_historical_zero_scope",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "created_at": "2026-08-08T18:16:30+00:00",
+                "source_incident_id": "sfinc_historical",
+                "channel": "1",
+                "current_source_scope": {
+                    "status": "ACCOUNTED",
+                    "affected_scope_count": 0,
+                    "unresolved_scope_count": 0,
+                },
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in (live, newer_historical)) + "\n",
+                encoding="utf-8",
+            )
+
+            frontier = self.sync.service_failure_automation_frontier(state_dir=state_dir)
+
+        self.assertEqual(frontier["selected"]["automation_obligation_id"], "sfaob_live_vless")
+
     def test_m2_receipt_is_materialized_into_existing_passive_projection(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

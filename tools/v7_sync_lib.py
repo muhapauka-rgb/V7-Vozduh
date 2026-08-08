@@ -6695,7 +6695,28 @@ def service_failure_automation_frontier(
         and str(row.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
         and str(row.get("automation_obligation_id") or "") not in consumed
     ]
-    pending.sort(key=lambda row: str(row.get("created_at") or row.get("observed_at") or ""), reverse=True)
+    # A zero-scope historical STOP_SAFE may be appended after an actionable
+    # live incident.  Timestamp-only selection then starves the current
+    # incident: the OMP consumer records a harmless historical receipt while
+    # the actual fresh VLESS obligation remains without its required receipt.
+    # This stays within the existing closure owner: prefer an accounted
+    # unresolved scope, then use the original chronology only as a stable
+    # tie-breaker.  It neither creates nor mutates a Planner/Packet/lease.
+    def pending_priority(row: dict[str, Any]) -> tuple[int, int, str, str]:
+        scope = row.get("current_source_scope")
+        scope = scope if isinstance(scope, dict) else {}
+        unresolved = max(0, int(scope.get("unresolved_scope_count") or 0))
+        affected = max(0, int(scope.get("affected_scope_count") or 0))
+        accounted = str(scope.get("status") or "") == "ACCOUNTED"
+        actionable_scope = int(accounted and unresolved > 0)
+        return (
+            actionable_scope,
+            unresolved if actionable_scope else affected,
+            str(row.get("created_at") or row.get("observed_at") or ""),
+            str(row.get("automation_obligation_id") or ""),
+        )
+
+    pending.sort(key=pending_priority, reverse=True)
     selected = pending[0] if pending else {}
     return {
         "schema_version": "v7.service-failure-automation-frontier.v1",

@@ -4676,6 +4676,50 @@ def service_failure_obligation_execution_binding(
     }
 
 
+def effective_packet_service_failure_causal_binding(
+    args: argparse.Namespace,
+    delegated_admission: dict[str, Any],
+) -> dict[str, Any]:
+    """Preserve the already-validated Matrix binding into the Packet owner.
+
+    A CT-M0F Matrix caller validates its exact active obligation before a
+    Packet exists.  Availability-first admission intentionally has a
+    different shape and may not repeat that event below its own payload.
+    Dropping the validated binding here would permit a real route cutover but
+    make its Outcome unaccountable to the active incident.
+    """
+    explicit = getattr(args, "_service_failure_causal_binding", {})
+    if isinstance(explicit, dict) and explicit:
+        return copy.deepcopy(explicit)
+
+    qualifying = delegated_admission.get("qualifying_service_failure_event")
+    qualifying = qualifying if isinstance(qualifying, dict) else {}
+    if str(qualifying.get("event_type") or "") not in {
+        "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+    }:
+        return {}
+    source_event_id = str(qualifying.get("event_id") or "")
+    return {
+        "schema_version": "v7.service-failure-causal-binding.v1",
+        "source_incident_id": str(
+            qualifying.get("source_incident_id") or ""
+        ),
+        "source_event_id": source_event_id,
+        "source_event_ids": [source_event_id] if source_event_id else [],
+        "event_type": str(qualifying.get("event_type") or ""),
+        "event_provenance": str(qualifying.get("event_provenance") or ""),
+        "observation_generation": str(
+            qualifying.get("observation_generation") or ""
+        ),
+        "source_channel": str(qualifying.get("object") or ""),
+        "source_scope": (
+            dict(qualifying.get("source_scope") or {})
+            if isinstance(qualifying.get("source_scope"), dict)
+            else {}
+        ),
+    }
+
+
 def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     transaction_started_ns = time.monotonic_ns()
     second_level_timeline: list[dict[str, Any]] = []
@@ -6449,30 +6493,11 @@ def _execute_governed_transaction_with_guards_inner(
         availability_first_reset=availability_first_reset,
         ct_m0f_standing_reset=ct_m0f_standing_reset,
     )
-    qualifying_service_failure_event = (
-        delegated_admission.get("qualifying_service_failure_event")
-        if isinstance(delegated_admission.get("qualifying_service_failure_event"), dict) else {}
+    service_failure_causal_binding = (
+        effective_packet_service_failure_causal_binding(
+            args, delegated_admission
+        )
     )
-    service_failure_causal_binding: dict[str, Any] = {}
-    if str(qualifying_service_failure_event.get("event_type") or "") in {
-        "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
-    }:
-        source_event_id = str(qualifying_service_failure_event.get("event_id") or "")
-        service_failure_causal_binding = {
-            "schema_version": "v7.service-failure-causal-binding.v1",
-            "source_incident_id": str(qualifying_service_failure_event.get("source_incident_id") or ""),
-            "source_event_id": source_event_id,
-            "source_event_ids": [source_event_id] if source_event_id else [],
-            "event_type": str(qualifying_service_failure_event.get("event_type") or ""),
-            "event_provenance": str(qualifying_service_failure_event.get("event_provenance") or ""),
-            "observation_generation": str(qualifying_service_failure_event.get("observation_generation") or ""),
-            "source_channel": str(qualifying_service_failure_event.get("object") or ""),
-            "source_scope": (
-                dict(qualifying_service_failure_event.get("source_scope") or {})
-                if isinstance(qualifying_service_failure_event.get("source_scope"), dict)
-                else {}
-            ),
-        }
     source_hashes = packet_preview.get("source_hashes") if isinstance(packet_preview.get("source_hashes"), dict) else {}
     source_bundle_hash = operator_execution.sha256_json(source_hashes) if source_hashes else ""
     controlled_window = operator_execution.build_autonomous_execution_control_state(

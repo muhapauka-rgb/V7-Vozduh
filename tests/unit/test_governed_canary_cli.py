@@ -1702,6 +1702,32 @@ class GovernedCanaryCliTest(unittest.TestCase):
 
         self.assertEqual(result, authority)
 
+    def test_ct_m0f_packet_preserves_prevalidated_active_incident_binding(self):
+        module = load_cli_module()
+        binding = {
+            "schema_version": "v7.service-failure-causal-binding.v1",
+            "automation_obligation_id": "sfaob_live",
+            "source_incident_id": "sfinc_live",
+            "source_event_id": "sfevt_live",
+            "source_event_ids": ["sfevt_live"],
+            "event_type": "SERVICE_FAILURE_REVALIDATED",
+            "event_provenance": "NATURAL_PRODUCTION",
+            "observation_generation": "egid_live",
+            "source_channel": "vless",
+            "source_scope": {
+                "affected_scope_count": 1,
+                "affected_scope_fingerprint": "f" * 64,
+            },
+        }
+
+        result = module.effective_packet_service_failure_causal_binding(
+            argparse.Namespace(_service_failure_causal_binding=binding),
+            {"qualifying_service_failure_event": {}},
+        )
+
+        self.assertEqual(result, binding)
+        self.assertIsNot(result, binding)
+
     def test_ct_m0f_reset_preserves_standing_action_class_into_cleanup(self):
         module = load_cli_module()
         reservation = {

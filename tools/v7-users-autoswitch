@@ -2213,6 +2213,85 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
     }
 
 
+def ct_m0f_active_service_failure_binding_projection(
+    state_dir: Path,
+    source_id: str,
+) -> dict[str, Any]:
+    """Read the one current passive incident binding for a CT-M0F source.
+
+    This deliberately projects the existing L3 incident owner rather than
+    creating a second CT-M0F incident/obligation registry.  A real failed
+    source may be selected only with an accounted, current obligation.  A
+    deliberately controlled source continues to use its already separate
+    controlled-condition lineage.
+    """
+    state_path = Path(state_dir) / "l3-runtime-state.json"
+    if not state_path.exists():
+        return {
+            "status": "NOT_AVAILABLE",
+            "ok": False,
+            "requires_binding": False,
+            "read_only": True,
+        }
+    state = read_json(state_path, {})
+    incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    matches = [
+        record for record in incidents.values()
+        if isinstance(record, dict)
+        and str(record.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+        and str(record.get("incident_state") or "") != "INTENT_CLOSED"
+        and str(record.get("channel") or record.get("source_channel") or "") == str(source_id or "")
+    ]
+    if len(matches) != 1:
+        return {
+            "status": (
+                "NO_ACTIVE_SERVICE_FAILURE_BINDING"
+                if not matches else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
+            ),
+            "ok": False,
+            "requires_binding": bool(matches),
+            "read_only": True,
+        }
+    record = matches[0]
+    scope = record.get("current_source_scope") if isinstance(record.get("current_source_scope"), dict) else {}
+    lineage = record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}
+    obligation_id = str(record.get("obligation_id") or lineage.get("obligation_id") or "")
+    event_ids = [str(value) for value in (record.get("source_event_ids") or lineage.get("source_event_ids") or []) if str(value)]
+    blockers = []
+    for value, name in (
+        (str(record.get("incident_id") or ""), "incident_id_missing"),
+        (str(record.get("incident_generation") or record.get("generation") or ""), "incident_generation_missing"),
+        (obligation_id, "obligation_id_missing"),
+        (str(scope.get("affected_scope_fingerprint") or ""), "scope_fingerprint_missing"),
+    ):
+        if not value:
+            blockers.append(name)
+    if str(scope.get("status") or "") != "ACCOUNTED":
+        blockers.append("incident_scope_accounting_not_accounted")
+    if int(scope.get("affected_scope_count") or 0) <= 0:
+        blockers.append("incident_scope_empty")
+    if int(scope.get("unresolved_scope_count") or 0) <= 0:
+        blockers.append("incident_scope_unresolved_empty")
+    return {
+        "schema_version": "v7.ct-m0f-active-service-failure-binding.v1",
+        "status": "ACTIVE_SERVICE_FAILURE_BINDING_READY" if not blockers else "STOP_SAFE_ACTIVE_SERVICE_FAILURE_BINDING_INVALID",
+        "ok": not blockers,
+        "requires_binding": True,
+        "automation_obligation_id": obligation_id,
+        "source_incident_id": str(record.get("incident_id") or ""),
+        "source_incident_generation": str(record.get("incident_generation") or record.get("generation") or ""),
+        "source_event_id": event_ids[0] if event_ids else "",
+        "source_event_ids": event_ids,
+        "source_channel": str(source_id or ""),
+        "source_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
+        "source_scope_count": int(scope.get("affected_scope_count") or 0),
+        "observation_generation": str(record.get("observation_generation") or ""),
+        "blockers": sorted(set(blockers)),
+        "read_only": True,
+        "raw_identity_list_stored": False,
+    }
+
+
 @dataclass
 class User:
     ip: str
@@ -3902,6 +3981,7 @@ class AutoswitchPlanner:
         source_channel = str(existing.get("channel") or existing.get("source_channel") or "")
         baseline_count = to_int(existing_scope.get("affected_scope_count"), -1)
         baseline_fingerprint = str(existing_scope.get("affected_scope_fingerprint") or "")
+        baseline_event_id = str(existing_scope.get("baseline_event_id") or "")
         if not source_incident_id or not source_channel or baseline_count < 0 or not baseline_fingerprint:
             return {}
 
@@ -4003,6 +4083,27 @@ class AutoswitchPlanner:
                 not str(item.get("enabled") or "") or bool_value(item.get("enabled"))
             )
         }
+        live_certification_users = {
+            str(item.get("ip") or "")
+            for item in live_rows
+            if str(item.get("ip") or "") and bool_value(item.get("certification_user"))
+        }
+        # The reservation is the only lawful way to account for an earlier
+        # CT-M0F controlled certification move whose first implementation
+        # omitted the passive-incident binding.  It is an explicit exclusion,
+        # never a protected-user or evidence-credit rewrite.
+        audit_store = Path(getattr(
+            getattr(self, "args", argparse.Namespace()),
+            "action_class_audit_store",
+            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+        ))
+        ct_m0f_reservations = {
+            str(row.get("packet_id") or ""): row
+            for row in operator_execution.read_audit_records(audit_store)
+            if str(row.get("record_type") or "")
+            == operator_execution.CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+            and str(row.get("packet_id") or "")
+        }
         protected_users: set[str] = set()
         excluded_users: set[str] = set()
         protected_pointers: set[str] = set()
@@ -4010,13 +4111,53 @@ class AutoswitchPlanner:
         rejected_feedback_ids: set[str] = set()
         for feedback_row in execution_rows:
             binding = self._effective_service_failure_causal_binding(feedback_row)
-            if str(binding.get("source_incident_id") or "") != source_incident_id:
-                continue
             verification = feedback_row.get("verification_result")
             verification = verification if isinstance(verification, dict) else {}
             if str(feedback_row.get("terminal_outcome_classification") or "") != "SUCCESS" or verification.get("success") is not True:
                 continue
             feedback_id = str(feedback_row.get("feedback_id") or feedback_row.get("object_id") or "")
+            user = str(feedback_row.get("user") or "")
+            target = str(feedback_row.get("target_channel") or "")
+            current = str(live_current.get(user) or "")
+            packet_id = str(feedback_row.get("packet_id") or "")
+            reservation = ct_m0f_reservations.get(packet_id) or {}
+            # Backfill only the compact denominator for the one historical
+            # CT-M0F lineage.  All fields must match existing immutable audit
+            # evidence and current route truth; otherwise it remains ignored.
+            exact_ct_m0f_exclusion = bool(
+                not binding
+                and reservation
+                and user in live_certification_users
+                and str(feedback_row.get("source_channel") or source_channel) == source_channel
+                and str(reservation.get("user") or "") == user
+                and str(reservation.get("source") or "") == source_channel
+                and str(reservation.get("target") or "") == target
+                # Once Matrix has produced a current baseline event, an
+                # unbound historical CT-M0F outcome has no proof of cohort
+                # membership in that new denominator.  It remains durable
+                # history only; later correctly bound packets carry the exact
+                # event and can be counted by the normal path below.
+                and not baseline_event_id
+                and current == target
+            )
+            if exact_ct_m0f_exclusion:
+                excluded_users.add(user)
+                if feedback_id:
+                    excluded_pointers.add(feedback_id)
+                continue
+            if str(binding.get("source_incident_id") or "") != source_incident_id:
+                continue
+            binding_event_ids = {
+                str(value) for value in (
+                    binding.get("source_event_ids") or
+                    ([binding.get("source_event_id")]
+                     if binding.get("source_event_id") else [])
+                ) if str(value)
+            }
+            if baseline_event_id and baseline_event_id not in binding_event_ids:
+                if feedback_id:
+                    rejected_feedback_ids.add(feedback_id)
+                continue
             scope = binding.get("source_scope")
             scope = scope if isinstance(scope, dict) else {}
             scope_matches = (
@@ -4028,9 +4169,6 @@ class AutoswitchPlanner:
                 if feedback_id:
                     rejected_feedback_ids.add(feedback_id)
                 continue
-            user = str(feedback_row.get("user") or "")
-            target = str(feedback_row.get("target_channel") or "")
-            current = str(live_current.get(user) or "")
             if user and target and current == target:
                 protected_users.add(user)
                 if feedback_id:
@@ -15143,12 +15281,14 @@ class AutoswitchPlanner:
         )
         lineage = {
             "incident_id": str(
-                (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_id"))
+                getattr(self.args, "ct_m0f_source_incident_id", "")
+                or (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_id"))
                 or move.get("source_incident_id")
                 or ""
             ),
             "incident_generation": str(
-                (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_generation"))
+                getattr(self.args, "ct_m0f_source_incident_generation", "")
+                or (((plan.get("safety") or {}).get("l3_incident") or {}).get("incident_generation"))
                 or move.get("incident_generation")
                 or ""
             ),
@@ -15514,6 +15654,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
     parser.add_argument("--ct-m0f-implementation-fingerprint", default="")
     parser.add_argument("--ct-m0f-standing-reset-reservation-id", default="")
+    parser.add_argument("--ct-m0f-source-incident-id", default="")
+    parser.add_argument("--ct-m0f-source-incident-generation", default="")
     parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",
@@ -20931,6 +21073,16 @@ def ct_m0f_standing_source_selection_only(
         else {}
     )
     selected_source = str(selected.get("source_id") or "")
+    active_service_failure_binding = (
+        ct_m0f_active_service_failure_binding_projection(state_dir, selected_source)
+        if selected_source and not bool(selected.get("controlled_condition_active"))
+        else {
+            "status": "CONTROLLED_CONDITION_LINEAGE_APPLIES",
+            "ok": True,
+            "requires_binding": False,
+            "read_only": True,
+        }
+    )
     source_users = sorted(
         (
             row for row in users
@@ -21012,6 +21164,16 @@ def ct_m0f_standing_source_selection_only(
         )
     if not selected_user:
         blockers.append("no_exact_certification_identity_for_controlled_condition")
+    # A live passive failure must carry the exact incident/obligation lineage
+    # through Matrix and the governed executor.  Absence of the L3 state file
+    # is intentionally not a synthetic failure: it is covered by the existing
+    # controlled-condition path and remains non-executable as a real incident.
+    if (
+        selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        and active_service_failure_binding.get("requires_binding")
+        and not active_service_failure_binding.get("ok")
+    ):
+        blockers.append("ct_m0f_active_service_failure_causal_binding_required")
     if (
         not selected_target
         or selected_target == selected_source
@@ -21029,6 +21191,7 @@ def ct_m0f_standing_source_selection_only(
             or ""
         ),
         "selection_mode": selection_mode,
+        "active_service_failure_binding": active_service_failure_binding,
         "target_observation_fingerprint": str(
             (selected_target_projection.get("baseline_health") or
              selected_target_projection.get("health") or {}).get(
@@ -21054,6 +21217,7 @@ def ct_m0f_standing_source_selection_only(
         "selected_source_id": selected_source,
         "selected_user": selected_user,
         "selected_target_id": selected_target,
+        "active_service_failure_binding": active_service_failure_binding,
         "selected_target_admission": {
             "controlled_contract_admitted": controlled_target_admitted,
             "ordinary_full_live_admission": bool(

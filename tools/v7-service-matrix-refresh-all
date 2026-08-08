@@ -1377,6 +1377,11 @@ def run_ct_m0f_standing_validation_campaign(
     selected_user = str(source_selection.get("selected_user") or "")
     selected_target = str(source_selection.get("selected_target_id") or "")
     selection_mode = str(source_selection.get("selection_mode") or "")
+    active_service_failure_binding = (
+        source_selection.get("active_service_failure_binding")
+        if isinstance(source_selection.get("active_service_failure_binding"), dict)
+        else {}
+    )
     sample_binding_fingerprint = str(
         source_selection.get("sample_binding_fingerprint") or ""
     )
@@ -1466,6 +1471,20 @@ def run_ct_m0f_standing_validation_campaign(
             "users_moved": 0,
         }
 
+    if active_service_failure_binding.get("requires_binding") and not active_service_failure_binding.get("ok"):
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_ACTIVE_SERVICE_FAILURE_BINDING_REQUIRED",
+            "ok": True,
+            "source_selection": source_selection,
+            "blockers": list(active_service_failure_binding.get("blockers") or [
+                "ct_m0f_active_service_failure_causal_binding_required"
+            ]),
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+
     for _ in range(max(1, int(max_successive_samples))):
         active_result = close_active_sample(active_reservations())
         if active_result is not None:
@@ -1493,6 +1512,17 @@ def run_ct_m0f_standing_validation_campaign(
             "--max-users", "1",
             "--pretty",
         ]
+        if active_service_failure_binding.get("requires_binding"):
+            execute_command.extend([
+                "--expected-service-failure-obligation-id",
+                str(active_service_failure_binding.get("automation_obligation_id") or ""),
+                "--expected-service-failure-incident-id",
+                str(active_service_failure_binding.get("source_incident_id") or ""),
+                "--expected-service-failure-scope-fingerprint",
+                str(active_service_failure_binding.get("source_scope_fingerprint") or ""),
+                "--ct-m0f-source-incident-generation",
+                str(active_service_failure_binding.get("source_incident_generation") or ""),
+            ])
         rc, result, output = invoke(
             execute_command, max(120, min(timeout_sec, 900))
         )

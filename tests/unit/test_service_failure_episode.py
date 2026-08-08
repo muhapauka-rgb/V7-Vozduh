@@ -426,6 +426,37 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["eligible_source_count"], 1)
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
 
+    def test_ct_m0f_active_service_failure_binding_requires_accounted_live_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "passive_example": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_id": "sfinc_example",
+                        "incident_generation": "egid_example",
+                        "incident_state": "OPEN",
+                        "channel": "vless",
+                        "obligation_id": "sfaob_example",
+                        "source_event_ids": ["sfe_example"],
+                        "current_source_scope": {
+                            "status": "ACCOUNTED",
+                            "affected_scope_count": 39,
+                            "unresolved_scope_count": 38,
+                            "affected_scope_fingerprint": "a" * 64,
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            result = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state, "vless",
+            )
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["requires_binding"])
+        self.assertEqual(result["automation_obligation_id"], "sfaob_example")
+        self.assertEqual(result["source_incident_id"], "sfinc_example")
+        self.assertEqual(result["source_scope_fingerprint"], "a" * 64)
+
     def test_ct_m0f_standing_source_selection_rejects_ordinary_only_target(self):
         pool = {
             "active_source_projections": [{

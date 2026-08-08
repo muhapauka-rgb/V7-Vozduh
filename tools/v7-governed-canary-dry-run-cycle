@@ -3021,6 +3021,8 @@ def run_autoswitch_apply(
     ct_m0f_standing_validation_contract_hash: str = "",
     ct_m0f_implementation_fingerprint: str = "",
     ct_m0f_standing_reset_reservation_id: str = "",
+    ct_m0f_source_incident_id: str = "",
+    ct_m0f_source_incident_generation: str = "",
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3103,6 +3105,11 @@ def run_autoswitch_apply(
                 ct_m0f_standing_validation_contract_hash,
                 "--ct-m0f-implementation-fingerprint",
                 ct_m0f_implementation_fingerprint,
+            ])
+        if ct_m0f_source_incident_id or ct_m0f_source_incident_generation:
+            command.extend([
+                "--ct-m0f-source-incident-id", ct_m0f_source_incident_id,
+                "--ct-m0f-source-incident-generation", ct_m0f_source_incident_generation,
             ])
     if ct_m0f_standing_reset_reservation_id:
         command.extend([
@@ -4970,6 +4977,31 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             else {}
         )
         l3_plan_run["payload"] = plan
+        # A real passive service failure is selected by the Matrix owner with
+        # its exact current obligation.  Bind that existing lineage before the
+        # Packet exists; controlled-condition CT-M0F retains its separate
+        # audit-backed fallback and deliberately supplies no expected fields.
+        if any(str(getattr(args, name, "") or "") for name in (
+            "expected_service_failure_obligation_id",
+            "expected_service_failure_incident_id",
+            "expected_service_failure_scope_fingerprint",
+        )):
+            ct_m0f_causal_binding = service_failure_obligation_execution_binding(
+                args, state_dir=state_dir, event_dir=event_dir,
+            )
+            if not ct_m0f_causal_binding.get("ok"):
+                return transaction_stop(
+                    "ct_m0f_service_failure_causal_binding_invalid",
+                    ct_m0f_service_failure_causal_binding=ct_m0f_causal_binding,
+                    l3_plan_run=l3_plan_run,
+                )
+            args._service_failure_causal_binding = copy.deepcopy(ct_m0f_causal_binding)
+            args._ct_m0f_source_incident_id = str(
+                ct_m0f_causal_binding.get("source_incident_id") or ""
+            )
+            args._ct_m0f_source_incident_generation = str(
+                getattr(args, "ct_m0f_source_incident_generation", "") or ""
+            )
     if availability_mode:
         availability_selection_binding = (
             bind_availability_first_controlled_selection(
@@ -5569,6 +5601,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             getattr(args, "ct_m0f_standing_validation_contract_hash", "") or ""
         ),
         ct_m0f_implementation_fingerprint=ct_m0f_implementation_fingerprint,
+        ct_m0f_source_incident_id=str(
+            getattr(args, "_ct_m0f_source_incident_id", "") or ""
+        ),
+        ct_m0f_source_incident_generation=str(
+            getattr(args, "_ct_m0f_source_incident_generation", "") or ""
+        ),
     )
     apply_completed_ns = time.monotonic_ns()
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
@@ -5749,6 +5787,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             rollback_attempted=rollback_attempted,
             verification_passed=verification_passed,
             evidence_class="CONTROLLED_PRODUCTION",
+            service_failure_causal_binding=(
+                packet.get("service_failure_causal_binding")
+                if isinstance(packet.get("service_failure_causal_binding"), dict)
+                else None
+            ),
         )
         if controlled_evidence
         else {"materialized": False, "reason": "not_controlled_certification_scope"}
@@ -6642,6 +6685,12 @@ def _execute_governed_transaction_with_guards_inner(
             str(cleanup_request.get("ct_m0f_standing_reservation_id") or "")
             if ct_m0f_standing_reset
             else ""
+        ),
+        ct_m0f_source_incident_id=str(
+            getattr(args, "_ct_m0f_source_incident_id", "") or ""
+        ),
+        ct_m0f_source_incident_generation=str(
+            getattr(args, "_ct_m0f_source_incident_generation", "") or ""
         ),
         **apply_options,
     )
@@ -12030,6 +12079,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
     parser.add_argument("--ct-m0f-standing-validation-user", default="")
     parser.add_argument("--ct-m0f-standing-validation-target", default="")
+    parser.add_argument("--ct-m0f-source-incident-generation", default="")
     parser.add_argument(
         "--ct-m0f-standing-sample-binding-fingerprint", default=""
     )

@@ -4922,6 +4922,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 ct_m0f_kernel_cutover_validation=True,
                 ct_m0f_validation_generation_id="ctm0f_generation_exact",
                 ct_m0f_sample_kind="cold",
+                ct_m0f_source_incident_id="sfinc_exact",
+                ct_m0f_source_incident_generation="egid_exact",
             )
         finally:
             module.subprocess.run = original_run
@@ -4935,6 +4937,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "ctm0f_generation_exact",
         )
         self.assertEqual(command[command.index("--ct-m0f-sample-kind") + 1], "cold")
+        self.assertEqual(
+            command[command.index("--ct-m0f-source-incident-id") + 1],
+            "sfinc_exact",
+        )
+        self.assertEqual(
+            command[command.index("--ct-m0f-source-incident-generation") + 1],
+            "egid_exact",
+        )
 
     def test_availability_first_binds_exact_controlled_identity_to_existing_plan(self):
         module = load_cli_module()

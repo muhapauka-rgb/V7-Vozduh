@@ -971,6 +971,7 @@ def update_matrix(
             observed_at=observed_at,
         )
         events: list[dict[str, Any]] = []
+        recovery_events: list[dict[str, Any]] = []
         event_path = (event_dir or DEFAULT_EVENT_DIR) / "service-failure-events.jsonl"
         identity = dict(egress_identity or canonical_egress_identity(
             {}, egress_id=egress_id, iface=iface,
@@ -1027,7 +1028,7 @@ def update_matrix(
                         f"{merged['recovery_from_event_id']}|{merged.get('recovered_at')}"
                     ).encode("utf-8")
                 ).hexdigest()[:32]
-                events.append({
+                recovery_events.append({
                     "schema_version": "v7.service-recovery-event.v1",
                     "event_id": recovery_event_id,
                     "event_type": "SERVICE_RECOVERY_OBSERVED",
@@ -1061,6 +1062,12 @@ def update_matrix(
                 or to_float(service_row.get("bad_for_seconds")) >= max(1, int(persistence_window_seconds or 180))
             )
         }
+        # A source incident is open while *any* correlated service remains
+        # persistently failed.  Do not let one recovered component emit a
+        # source-level recovery event that closes the incident underneath the
+        # continuing-failure / CT-M0F consumer path.
+        if not persistent_rows:
+            events.extend(recovery_events)
         for merged in persistent_rows.values():
             if int(merged.get("confirmed_hard_failure_monotonic_ns") or 0) <= 0:
                 # A pre-upgrade continuing incident has no reboot-scoped

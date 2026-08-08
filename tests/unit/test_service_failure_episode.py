@@ -457,6 +457,20 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["source_incident_id"], "sfinc_example")
         self.assertEqual(result["source_scope_fingerprint"], "a" * 64)
 
+    def test_ct_m0f_missing_live_binding_fails_closed_when_l3_owner_exists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": {}}), encoding="utf-8"
+            )
+            result = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state, "vless",
+            )
+
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["requires_binding"])
+        self.assertEqual(result["status"], "NO_ACTIVE_SERVICE_FAILURE_BINDING")
+
     def test_ct_m0f_standing_source_selection_rejects_ordinary_only_target(self):
         pool = {
             "active_source_projections": [{
@@ -1456,6 +1470,38 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 {row["source_incident_id"] for row in recovery_events},
                 {failure_events[0]["source_incident_id"]},
             )
+
+    def test_component_recovery_does_not_close_correlated_open_source_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            matrix_file = Path(tmp) / "service-matrix.json"
+            event_dir = Path(tmp) / "events"
+            identity = {
+                "canonical_egress_id": "vless",
+                "egress_identity_generation": "egid_test",
+                "egress_identity_fingerprint": "fingerprint",
+            }
+            for minute in range(3):
+                self.matrix.update_matrix(
+                    matrix_file, "vless", "tun0", {
+                        "youtube": {"ok": False, "status": "FAIL", "tested_at": f"2026-07-25T08:0{minute}:00+00:00", "reason": "connection refused"},
+                        "google": {"ok": False, "status": "FAIL", "tested_at": f"2026-07-25T08:0{minute}:00+00:00", "reason": "connection refused"},
+                    }, 1, event_dir=event_dir, egress_identity=identity,
+                )
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {
+                    "youtube": {"ok": True, "status": "OK", "tested_at": "2026-07-25T08:03:00+00:00"},
+                    "google": {"ok": False, "status": "FAIL", "tested_at": "2026-07-25T08:03:00+00:00", "reason": "connection refused"},
+                }, 1, event_dir=event_dir, egress_identity=identity,
+            )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertFalse(any(
+            row["event_type"] == "SERVICE_RECOVERY_OBSERVED"
+            for row in events
+        ))
 
     def test_l3_consumer_rejects_transient_and_consumes_persistent_episode(self):
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

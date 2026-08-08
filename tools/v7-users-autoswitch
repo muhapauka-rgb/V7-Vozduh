@@ -2249,7 +2249,12 @@ def ct_m0f_active_service_failure_binding_projection(
                 if not matches else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
             ),
             "ok": False,
-            "requires_binding": bool(matches),
+            # The L3 projection exists, so a non-controlled failed source
+            # cannot be treated as an unbound CT-M0F exercise merely because
+            # its passive producer/consumer link failed to publish an open
+            # incident.  Fail closed and leave that exact upstream repair
+            # visible to OMP.
+            "requires_binding": True,
             "read_only": True,
         }
     record = matches[0]

@@ -20747,7 +20747,12 @@ def ct_m0f_standing_source_selection_only(
     failed_ready = [
         row for row in projections
         if (
-            int(row.get("enabled_certification_users_on_source") or 0) == 1
+            # A CT-M0F transaction selects exactly one fresh identity below;
+            # its isolated source may safely host a larger certification-only
+            # pool.  Requiring the pool itself to contain exactly one row
+            # incorrectly hides an otherwise lawful VLESS failure from the
+            # existing one-user standing-policy consumer.
+            int(row.get("enabled_certification_users_on_source") or 0) >= 1
             and (
                 bool(row.get("controlled_condition_active"))
                 or not bool((row.get("baseline_health") or {}).get("ok"))

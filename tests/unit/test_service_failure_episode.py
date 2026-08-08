@@ -324,8 +324,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "certification_group": "g1",
                     "enabled_certification_users_on_source": 50,
                     "group_aligned_certification_users_on_source": 50,
-                    "enabled_non_certification_users_on_source": 0,
-                    "source_isolated_for_controlled_failure": True,
+                    "enabled_non_certification_users_on_source": 1,
+                    "source_isolated_for_controlled_failure": False,
                     "baseline_health": {"ok": False},
                 },
                 {
@@ -491,8 +491,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "active_source_projections": [{
                 "source_id": "failed-cert-source",
                 "certification_group": "g1",
-                "enabled_certification_users_on_source": 1,
-                "group_aligned_certification_users_on_source": 1,
+                "enabled_certification_users_on_source": 40,
+                "group_aligned_certification_users_on_source": 40,
                 "enabled_non_certification_users_on_source": 0,
                 "source_isolated_for_controlled_failure": True,
                 "baseline_health": {"ok": False},
@@ -575,6 +575,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["selection_mode"], "EXECUTE_CONTROLLED_FAILURE_CUTOVER")
         self.assertEqual(result["selected_source_id"], "failed-cert-source")
         self.assertEqual(result["selected_target_id"], "healthy-shared-target")
+        self.assertEqual(result["eligible_source_count"], 1)
         self.assertEqual(
             result["selected_target_admission"]["admission_law"],
             "ACTIVE_AVAILABILITY_FIRST_SHARED_TARGET_ONE_USER",

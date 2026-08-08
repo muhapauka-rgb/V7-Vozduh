@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `4.9`
+Version: `5.0`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,78 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V5.0 CT-M0F independent-lane execution and fresh-contract correction
+
+V5.0 clarifies execution of the already admitted bounded CT-M0F validation
+campaign. It does not create a Program, Authority, Planner, Runtime, registry,
+watcher, queue, certification identity or production entitlement. CPS remains
+the only live-state owner; this document defines only the consumer contract.
+
+### Fresh contract and lane-separation law
+
+Before every ordinary Matrix-owned CT-M0F generation, the existing
+`admin_core.operator_execution` policy/audit owner must freshly prove the
+active contract ID/hash, expiry, revocation state, program binding and exact
+envelope. A historical approval, report or local cache is never sufficient.
+
+`CT_M0F_STANDING_CONTROLLED_FAILURE_READY` is independent of Stage-48 only
+when the existing owners prove no shared controlled source, target,
+certification identity, reservation, active operation or exclusion/lock.
+Otherwise the Matrix consumer must emit the exact shared-resource conflict and
+must not run the CT-M0F sample concurrently. Stage-48 may not be used as a
+generic wait label for an independently runnable CT-M0F sample.
+
+An implementation-only fingerprint may rebind under the active standing
+envelope only when the existing policy/audit owner proves that its immutable
+envelope, Authority scope, source/target-selection law, verification,
+containment, expiry and per-fingerprint budget still match. Any semantic
+change is `ENGINEERING_AUTHORITY_REQUIRED`; it is never silently converted to
+a standing-policy rebind.
+
+### Existing wake and controlled-condition law
+
+The existing Matrix/timer owner is the sole ordinary CT-M0F wake producer.
+Neither an operator nor Codex may invoke Matrix to manufacture a sample.
+The first-failure timestamp must retain its actual provenance. A controlled
+source condition may be used only if the active exact contract independently
+admits that condition; otherwise no client-recovery claim, sample or inferred
+zero timestamp may be written.
+
+When the current controlled-pool owner returns
+`STOP_SAFE_CT_M0F_STANDING_CONTROLLED_SOURCE_REQUIRED`, the status means the
+following exact predecessor is absent:
+
+```text
+healthy isolated controlled source
++ exact group-aligned enabled certification identity
++ distinct current controlled-contract-admitted target
+```
+
+It is a physical/owner-backed substrate boundary, not a Stage-48 blockage and
+not permission to substitute an ordinary production source, create an
+identity, mutate a source or dilute group alignment. The durable successor is
+the existing controlled-certification pool/Matrix source-change consumer. It
+must automatically re-evaluate on the next owner-backed topology, health,
+identity, reservation or policy generation; no Codex/operator continuation is
+required. If the required substrate remains absent, the terminal is
+`EXTERNAL_OWNER_OR_CONTROLLED_SUBSTRATE_REQUIRED`, with zero production
+effects.
+
+### CT-M0F repetition and deploy law
+
+One valid property is never re-run merely to accumulate samples. Each sample
+must arise from an independently admitted Matrix generation required by the
+active SLO residual; duplicate or no-progress generation delivery is consumed
+by the existing exact-once owner. Fresh candidate, Packet, lease, live source,
+target, capacity, cooldown, anti-flap, verification and containment checks
+remain mandatory for each admitted sample.
+
+Any implementation change follows the existing focused-test -> commit/push ->
+`tools/v7-safe-deploy` manifest -> production non-test caller/consumer ->
+affected replay/Learning -> truth/convergence route. A failed manifest or an
+independent production-deploy reviewer boundary is a deploy stop; it must not
+be bypassed through another command, a policy edit or a documentation claim.
 
 ## V4.9 bounded standing CT-M0F validation campaign
 

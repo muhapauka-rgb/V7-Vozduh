@@ -2440,6 +2440,7 @@ def build_controlled_certification_substrate_authority_request(
         else {}
     )
     reuse_existing_pool = current_on_source >= target_total
+    required_incremental_identities = max(0, target_total - current_on_source)
     registry_hashes = (
         pool.get("registry_hashes")
         if isinstance(pool.get("registry_hashes"), dict)
@@ -2459,7 +2460,7 @@ def build_controlled_certification_substrate_authority_request(
         "scope": {
             "target_total_certification_identities": target_total,
             "max_new_certification_identities": (
-                0 if reuse_existing_pool else target_total
+                0 if reuse_existing_pool else required_incremental_identities
             ),
             "identity_strategy": (
                 "REUSE_EXISTING_VALID_POOL"

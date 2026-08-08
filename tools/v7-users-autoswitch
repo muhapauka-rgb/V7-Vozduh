@@ -20253,7 +20253,19 @@ def controlled_certification_substrate_authority_request_only(
         if isinstance(row, dict)
         and str(row.get("source_id") or "") == selected_target_id
     ), {})
-    controlled_target_id = selected_target_id
+    # A selected shared Planner target is useful current inventory evidence,
+    # but it is not an EXECUTION_ONLY controlled target merely because it won
+    # a ranking.  Binding it as one made the existing Authority request
+    # invalid before it could express the actual substrate gap.  Preserve an
+    # exact controlled-target binding only when the controlled-pool owner has
+    # independently proved that contract; otherwise the future fresh Planner
+    # revalidation remains the target owner.
+    controlled_target_id = str(controlled_target.get("source_id") or "")
+    availability_first_admitted = bool(
+        validation.get("ok")
+        and str((validation.get("policy") or {}).get("policy_profile") or "")
+        == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+    )
     blockers = []
     if not validation.get("ok"):
         blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
@@ -20266,6 +20278,7 @@ def controlled_certification_substrate_authority_request_only(
     if (
         not bool((source_candidate.get("baseline_health") or {}).get("ok"))
         and not controlled_target_id
+        and not availability_first_admitted
     ):
         blockers.append(
             "failed_controlled_source_requires_healthy_exact_controlled_target"

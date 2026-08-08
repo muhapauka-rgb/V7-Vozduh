@@ -1910,6 +1910,82 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(captured["source_id"], "spare")
 
+    def test_substrate_request_keeps_shared_planner_target_unbound_until_fresh_stage_revalidation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            policy_file = root / "policy.json"
+            policy_file.write_text("{}", encoding="utf-8")
+            audit = root / "audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--policy-file", str(policy_file),
+                "--action-class-audit-store", str(audit),
+            ])
+            pool = {
+                "active_source_projections": [{
+                    "source_id": "failed-controlled",
+                    "source_isolated_for_controlled_failure": True,
+                    "enabled_certification_users_on_source": 40,
+                    "baseline_health": {"ok": False},
+                }],
+                "healthy_isolated_source_candidates": [],
+                "execution_only_controlled_target_candidates": [],
+            }
+            captured = {}
+
+            def build_request(**kwargs):
+                captured.update(kwargs)
+                return {
+                    "request_id": "cpsauth_r1_shared_target",
+                    "request_hash": "hash",
+                    "reentry_condition": "decision",
+                }
+
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_pool_status",
+                return_value=pool,
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value={
+                    "selection": {"selected_target_id": "shared-healthy"},
+                    "targets": [{"target_id": "shared-healthy"}],
+                    "inventory_fingerprint": "i" * 64,
+                },
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={
+                    "ok": True,
+                    "policy": {
+                        "max_users_per_action": 48,
+                        "policy_profile": (
+                            self.autoswitch.operator_execution
+                            .AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+                        ),
+                    },
+                },
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "build_controlled_certification_substrate_authority_request",
+                side_effect=build_request,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "register_controlled_certification_substrate_authority_request",
+                return_value={"status": "REGISTERED", "audit_write": True},
+            ):
+                result = (
+                    self.autoswitch
+                    .controlled_certification_substrate_authority_request_only(args)
+                )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(captured["source_id"], "failed-controlled")
+        self.assertEqual(captured["controlled_target_id"], "")
+
     def test_execution_only_target_is_separate_and_never_ordinary_eligible(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

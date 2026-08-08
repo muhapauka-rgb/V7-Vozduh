@@ -1082,6 +1082,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertTrue(validation["ok"], validation["errors"])
         self.assertEqual(request["scope"]["campaign_stages"], [5, 10, 25, 48])
         self.assertEqual(request["scope"]["target_total_certification_identities"], 48)
+        self.assertEqual(request["scope"]["max_new_certification_identities"], 45)
         self.assertFalse(request["scope"]["ordinary_customer_involvement"])
         self.assertTrue(request["subscope_law"]["no_implicit_cross_grant"])
         self.assertEqual(

@@ -147,6 +147,103 @@ def default_governed_executor_path() -> str:
     return str(local) if local.exists() else "v7-governed-canary-dry-run-cycle"
 
 
+def consume_auto_admitted_controlled_substrate(
+    executor: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+) -> dict[str, Any]:
+    """Use the active V3 standing grant for one exact pending substrate package.
+
+    The existing Authority owner does the hash/TTL/scope decision under its
+    policy lock.  Only after that append-only decision is present may the
+    existing substrate consumer perform its own fresh provisioning checks.
+    This function never invents a request, packet, lease or a user move.
+    """
+    decision = operator_execution.consume_controlled_certification_substrate_from_standing_policy(
+        policy_file,
+        audit_store=audit_store,
+    )
+    status = str(decision.get("status") or "")
+    request_id = str(decision.get("request_id") or "")
+    request_hash = str(decision.get("request_hash") or "")
+    result = {
+        "schema_version": "v7.controlled-substrate-standing-policy-matrix-consumer.v1",
+        "status": status,
+        "ok": status in {
+            "AUTO_CONSUMED_BY_EXISTING_STANDING_POLICY",
+            "ALREADY_CONSUMED_EXACT",
+        },
+        "authority_decision": decision,
+        "provisioning": {},
+        "forbidden_effects": {
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "user_movement": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+    if status not in {
+        "AUTO_CONSUMED_BY_EXISTING_STANDING_POLICY",
+        "ALREADY_CONSUMED_EXACT",
+    }:
+        return result
+    if not request_id or not request_hash:
+        result["status"] = "STOP_SAFE_AUTO_SUBSTRATE_DECISION_IDENTITY_MISSING"
+        result["ok"] = False
+        return result
+    command = [
+        executor,
+        "--provision-controlled-certification-substrate",
+        "--state-dir", str(state_dir),
+        "--event-dir", str(event_dir),
+        "--operator-execution-audit-store", str(audit_store),
+        "--controlled-certification-substrate-request-id", request_id,
+        "--controlled-certification-substrate-request-hash", request_hash,
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=2100,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        result.update({
+            "status": "STOP_SAFE_AUTO_SUBSTRATE_CONSUMER_UNAVAILABLE",
+            "ok": False,
+            "error": f"{type(exc).__name__}:{exc}",
+        })
+        return result
+    try:
+        provisioning = json.loads(proc.stdout or "")
+        provisioning = provisioning if isinstance(provisioning, dict) else {}
+    except json.JSONDecodeError:
+        provisioning = {}
+    result["provisioning"] = provisioning
+    result["status"] = str(
+        provisioning.get("final_verdict")
+        or "STOP_SAFE_AUTO_SUBSTRATE_CONSUMER_OUTPUT_INVALID"
+    )
+    result["ok"] = bool(proc.returncode == 0)
+    result["forbidden_effects"].update({
+        "identity_creation": int(provisioning.get("identity_creation") or 0),
+        "assignment_change": int(provisioning.get("assignment_change") or 0),
+        "runtime_apply": bool(provisioning.get("runtime_apply") or False),
+        "routing_mutation": bool(
+            provisioning.get("routing_mutation_performed") or False
+        ),
+    })
+    return result
+
+
 def controlled_certification_matrix_binding(
     *,
     audit_store: Path,
@@ -3567,6 +3664,15 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
         }
+    payload["controlled_substrate_standing_policy_consumer"] = (
+        consume_auto_admitted_controlled_substrate(
+            str(args.governed_executor),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            policy_file=Path(args.policy_file),
+            audit_store=Path(args.operator_execution_audit_store),
+        )
+    )
     if args.skip_bounded_delegated_service_failure_action:
         payload["bounded_delegated_service_failure_action"] = {
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",

@@ -2670,10 +2670,7 @@ class AutoswitchPlanner:
                 )
                 if str(value)
             )
-        if (
-            standing_scope.get("policy_profile")
-            != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
-        ):
+        if standing_scope.get("policy_profile") not in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES:
             reasons.append("availability_first_policy_profile_not_active")
         if (
             operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
@@ -16236,7 +16233,7 @@ def availability_first_standing_policy_semantic_coverage_gate(
         if isinstance(standing_validation.get("policy"), dict)
         else {}
     )
-    if policy.get("policy_profile") != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE:
+    if policy.get("policy_profile") not in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES:
         mismatches.append("policy_profile")
     if (
         operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
@@ -16429,7 +16426,7 @@ def controlled_campaign_target_selection_diagnostic(
     availability_authority_active = bool(
         standing_validation.get("ok")
         and standing_policy.get("policy_profile")
-        == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
         and operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
         in set(standing_policy.get("allowed_action_classes") or [])
     )
@@ -17684,10 +17681,8 @@ def controlled_source_topology_diagnostic(
     topology_policy_blockers = list(policy_validation.get("errors") or [])
     if (
         policy.get("policy_profile")
-        not in {
-            operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-            operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-        }
+        not in ({operator_execution.CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+                | operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
     ):
         topology_policy_blockers.append(
             "controlled_topology_standing_policy_profile_missing"
@@ -17767,10 +17762,7 @@ def controlled_source_topology_diagnostic(
     availability_policy_blockers = list(
         policy_validation.get("errors") or []
     )
-    if (
-        policy.get("policy_profile")
-        != operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
-    ):
+    if policy.get("policy_profile") not in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES:
         availability_policy_blockers.append(
             "availability_first_standing_policy_profile_missing"
         )
@@ -19870,7 +19862,7 @@ def standing_delegated_policy_status_only(args: argparse.Namespace) -> dict[str,
         if (
             validation.get("ok")
             and policy_scope.get("policy_profile")
-            == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+            in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
         )
         else {
             "schema_version": (
@@ -20264,7 +20256,7 @@ def controlled_certification_substrate_authority_request_only(
     availability_first_admitted = bool(
         validation.get("ok")
         and str((validation.get("policy") or {}).get("policy_profile") or "")
-        == operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        in operator_execution.AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
     )
     blockers = []
     if not validation.get("ok"):

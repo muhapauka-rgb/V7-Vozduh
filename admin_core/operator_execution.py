@@ -677,6 +677,16 @@ AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS = (
 AVAILABILITY_FIRST_STANDING_POLICY_PROFILE = (
     "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V2"
 )
+AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE = (
+    "SERVICE_FAILURE_WITH_CONTROLLED_CERTIFICATION_AVAILABILITY_FIRST_V3"
+)
+AVAILABILITY_FIRST_STANDING_POLICY_PROFILES = frozenset({
+    AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
+    AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE,
+})
+STANDING_DELEGATED_SUBSTRATE_CONSUMER_ACTOR = (
+    "existing-standing-delegated-policy-consumer"
+)
 AVAILABILITY_FIRST_ALLOWED_ACTIONS = (
     "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
     "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET_SET",
@@ -686,6 +696,9 @@ AVAILABILITY_FIRST_ALLOWED_ACTIONS = (
     "ROLLBACK_CERTIFICATION_SUBSET",
     "RESTORE_CONTROLLED_CERTIFICATION_BASELINE",
     "CONTINUE_PROGRESSIVE_CERTIFICATION_STAGE",
+)
+AVAILABILITY_FIRST_AUTO_SUBSTRATE_ALLOWED_ACTION = (
+    "CONSUME_EXACT_CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST"
 )
 AVAILABILITY_FIRST_LADDER = (1, 2, 5, 10, 25, 48)
 GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX_USERS = 48
@@ -896,10 +909,7 @@ def availability_first_campaign_stage_status(
         else {}
     )
     blockers = list(validation.get("errors") or [])
-    if (
-        policy.get("policy_profile")
-        != AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
-    ):
+    if policy.get("policy_profile") not in AVAILABILITY_FIRST_STANDING_POLICY_PROFILES:
         blockers.append("availability_first_policy_profile_not_active")
     if (
         AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
@@ -3025,6 +3035,218 @@ def record_controlled_certification_substrate_authority_decision(
     }
 
 
+def controlled_certification_substrate_standing_policy_coverage_gate(
+    *,
+    contract,
+    request,
+    audit_records=None,
+    now=None,
+):
+    """Prove that one pending substrate request fits the V3 standing scope.
+
+    This is intentionally narrower than a generic Authority decision.  It
+    accepts only the fixed certification-only Tier-48 substrate package whose
+    effects are already enumerated in the active V3 standing contract.  It
+    never creates identities, assignments, packets, leases or a runtime
+    action; its sole possible consumer is the existing append-only Authority
+    audit owner.
+    """
+    now = now or utc_now()
+    contract = contract if isinstance(contract, dict) else {}
+    request = request if isinstance(request, dict) else {}
+    validation = validate_standing_delegated_operational_policy(
+        contract,
+        audit_records=audit_records,
+        now=now,
+    )
+    policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
+    scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
+    availability_scope = (
+        (policy.get("action_class_scopes") or {}).get(
+            AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
+        )
+        if isinstance(policy.get("action_class_scopes"), dict)
+        else {}
+    )
+    auto_scope = (
+        availability_scope.get("auto_substrate_request_consumption")
+        if isinstance(availability_scope.get("auto_substrate_request_consumption"), dict)
+        else {}
+    )
+    mismatches: list[str] = []
+    if not validation.get("ok"):
+        mismatches.extend(
+            "standing_contract:" + str(error)
+            for error in (validation.get("errors") or [])
+        )
+    if policy.get("policy_profile") != AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE:
+        mismatches.append("policy_profile")
+    if AVAILABILITY_FIRST_AUTO_SUBSTRATE_ALLOWED_ACTION not in set(
+        availability_scope.get("allowed_actions") or []
+    ):
+        mismatches.append("allowed_actions")
+    request_validation = validate_controlled_certification_substrate_authority_request(
+        request,
+        decision=CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL,
+        expected_request_id=str(request.get("request_id") or ""),
+        expected_request_hash=str(request.get("request_hash") or ""),
+        now=now,
+    )
+    if not request_validation.get("ok"):
+        mismatches.extend(
+            "request:" + str(error)
+            for error in (request_validation.get("errors") or [])
+        )
+    expected = {
+        "request_schema": CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA,
+        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "decision": CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL,
+        "admitted_subscopes": list(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES),
+        "target_total_certification_identities": 48,
+        "certification_only": True,
+        "ordinary_customer_involvement": False,
+        "controlled_target_admission_class": "EXISTING_PLANNER_SAFE_TARGET",
+        "single_controlled_source_required": True,
+        "campaign_stages": [5, 10, 25, 48],
+        "max_concurrent_transactions": 1,
+        "automatic_stage_progression": True,
+        "self_expansion_allowed": False,
+        "consumer_actor": STANDING_DELEGATED_SUBSTRATE_CONSUMER_ACTOR,
+    }
+    for key, value in expected.items():
+        if auto_scope.get(key) != value:
+            mismatches.append("auto_scope:" + key)
+    if request.get("schema_version") != auto_scope.get("request_schema"):
+        mismatches.append("request_schema")
+    if request.get("active_program") != auto_scope.get("active_program"):
+        mismatches.append("active_program")
+    if set(scope.get("campaign_stages") or []) != set(auto_scope.get("campaign_stages") or []):
+        mismatches.append("campaign_stages")
+    if scope.get("certification_only") is not True:
+        mismatches.append("certification_only")
+    if scope.get("ordinary_customer_involvement") is not False:
+        mismatches.append("ordinary_customer_involvement")
+    if scope.get("single_controlled_source_required") is not True:
+        mismatches.append("single_controlled_source_required")
+    if scope.get("controlled_target_admission_class") != auto_scope.get("controlled_target_admission_class"):
+        mismatches.append("controlled_target_admission_class")
+    if str(scope.get("controlled_target_id") or ""):
+        mismatches.append("controlled_target_must_remain_unbound")
+    if as_int(scope.get("target_total_certification_identities"), 0) != as_int(
+        auto_scope.get("target_total_certification_identities"), 0
+    ):
+        mismatches.append("target_total_certification_identities")
+    max_new = as_int(scope.get("max_new_certification_identities"), -1)
+    if max_new < 0 or max_new > as_int(auto_scope.get("max_new_certification_identities"), 0):
+        mismatches.append("max_new_certification_identities")
+    if as_int(scope.get("max_concurrent_transactions"), 0) != 1:
+        mismatches.append("max_concurrent_transactions")
+    if scope.get("automatic_stage_progression") is not True:
+        mismatches.append("automatic_stage_progression")
+    if scope.get("self_expansion_allowed") is not False:
+        mismatches.append("self_expansion_allowed")
+    current = request.get("current_owner_backed_state") if isinstance(request.get("current_owner_backed_state"), dict) else {}
+    if str(current.get("active_policy_contract_id") or "") != str(contract.get("contract_id") or ""):
+        mismatches.append("active_policy_contract_id")
+    if str(current.get("active_policy_contract_hash") or "") != str(contract.get("contract_hash") or ""):
+        mismatches.append("active_policy_contract_hash")
+    if not str(scope.get("source_id") or ""):
+        mismatches.append("source_id")
+    covered = not mismatches
+    return {
+        "schema_version": "v7.controlled-certification-substrate-standing-policy-coverage.v1",
+        "status": (
+            "AUTO_ADMITTED_BY_EXISTING_STANDING_POLICY"
+            if covered else "ENGINEERING_AUTHORITY_REQUIRED"
+        ),
+        "ok": covered,
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "request_id": str(request.get("request_id") or ""),
+        "request_hash": str(request.get("request_hash") or ""),
+        "consumer_actor": STANDING_DELEGATED_SUBSTRATE_CONSUMER_ACTOR,
+        "matched_dimensions": list(expected) if covered else [],
+        "mismatched_dimensions": sorted(set(mismatches)),
+        "forbidden_effects": {
+            "policy_write": False,
+            "identity_creation": 0,
+            "assignment_change": 0,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "users_moved": 0,
+            "rollback_apply": False,
+            "authority_expansion": False,
+            "production_maturity_change": False,
+        },
+    }
+
+
+def consume_controlled_certification_substrate_from_standing_policy(
+    policy_path,
+    *,
+    audit_store=None,
+    now=None,
+):
+    """Consume exactly one matching pending request through the active V3 grant."""
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    now = now or utc_now()
+    with current_action_class_contract_policy_lock(policy_path):
+        root = read_json(policy_path)
+        contract = (
+            root.get("delegated_autonomy_policy")
+            if isinstance(root.get("delegated_autonomy_policy"), dict)
+            else {}
+        )
+        records = read_audit_records(audit_store)
+        status = controlled_certification_substrate_authority_status(records, now=now)
+        if status.get("status") == "APPROVED":
+            return {
+                "status": "ALREADY_CONSUMED_EXACT",
+                "request_id": str(status.get("request_id") or ""),
+                "request_hash": str(status.get("request_hash") or ""),
+                "decision_id": str(status.get("decision_id") or ""),
+                "audit_write": False,
+                "forbidden_effects": {
+                    "policy_write": False, "identity_creation": 0,
+                    "assignment_change": 0, "runtime_apply": False,
+                    "routing_mutation": False, "users_moved": 0,
+                },
+            }
+        request = status.get("request") if isinstance(status.get("request"), dict) else {}
+        coverage = controlled_certification_substrate_standing_policy_coverage_gate(
+            contract=contract, request=request, audit_records=records, now=now,
+        )
+        if not coverage.get("ok"):
+            return {
+                "status": str(coverage.get("status") or "ENGINEERING_AUTHORITY_REQUIRED"),
+                "request_id": str(status.get("request_id") or ""),
+                "request_hash": str(status.get("request_hash") or ""),
+                "coverage": coverage,
+                "audit_write": False,
+                "forbidden_effects": coverage.get("forbidden_effects") or {},
+            }
+        decision = record_controlled_certification_substrate_authority_decision(
+            request_id=str(request.get("request_id") or ""),
+            request_hash=str(request.get("request_hash") or ""),
+            decision=CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL,
+            actor_id=STANDING_DELEGATED_SUBSTRATE_CONSUMER_ACTOR,
+            admitted_subscopes=list(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES),
+            audit_store=audit_store,
+            now=now,
+        )
+    return {
+        **decision,
+        "status": "AUTO_CONSUMED_BY_EXISTING_STANDING_POLICY",
+        "coverage": coverage,
+        "standing_policy_contract_id": str(contract.get("contract_id") or ""),
+        "standing_policy_contract_hash": str(contract.get("contract_hash") or ""),
+    }
+
+
 def build_expiry_replacement_controlled_certification_substrate_request(
     request,
     *,
@@ -3905,6 +4127,7 @@ def standing_delegated_operational_policy_template(
     *,
     include_controlled_topology=False,
     include_availability_first=False,
+    include_auto_substrate=False,
 ):
     """Return the exact narrow scope consumed by the existing executor.
 
@@ -3940,11 +4163,15 @@ def standing_delegated_operational_policy_template(
             "policy_id": f"dap_service_failure_tier{max_users}",
             "policy_name": f"Bounded Service Failure Tier {max_users} Delegated Autonomy Policy",
         })
+    if include_auto_substrate:
+        include_availability_first = True
     if include_availability_first:
         include_controlled_topology = True
     if include_controlled_topology:
         policy.update({
             "policy_profile": (
+                AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE
+                if include_auto_substrate else
                 AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
                 if include_availability_first
                 else CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE
@@ -3995,7 +4222,11 @@ def standing_delegated_operational_policy_template(
                 **({
                     AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS: {
                         "allowed_actions": list(
-                            AVAILABILITY_FIRST_ALLOWED_ACTIONS
+                            (*AVAILABILITY_FIRST_ALLOWED_ACTIONS,
+                             *(
+                                 [AVAILABILITY_FIRST_AUTO_SUBSTRATE_ALLOWED_ACTION]
+                                 if include_auto_substrate else []
+                             ))
                         ),
                         "certification_identities_only": True,
                         "max_users_per_transaction": max_users,
@@ -4043,6 +4274,37 @@ def standing_delegated_operational_policy_template(
                             "INVALIDATE_ALLOCATION_CANDIDATE_PACKET_LEASE"
                         ),
                         "authority_self_expansion_allowed": False,
+                        **({
+                            "auto_substrate_request_consumption": {
+                                "request_schema": (
+                                    CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_SCHEMA
+                                ),
+                                "active_program": (
+                                    "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+                                ),
+                                "decision": (
+                                    CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL
+                                ),
+                                "admitted_subscopes": list(
+                                    CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES
+                                ),
+                                "target_total_certification_identities": 48,
+                                "max_new_certification_identities": 48,
+                                "certification_only": True,
+                                "ordinary_customer_involvement": False,
+                                "controlled_target_admission_class": (
+                                    "EXISTING_PLANNER_SAFE_TARGET"
+                                ),
+                                "single_controlled_source_required": True,
+                                "campaign_stages": [5, 10, 25, 48],
+                                "max_concurrent_transactions": 1,
+                                "automatic_stage_progression": True,
+                                "self_expansion_allowed": False,
+                                "consumer_actor": (
+                                    STANDING_DELEGATED_SUBSTRATE_CONSUMER_ACTOR
+                                ),
+                            },
+                        } if include_auto_substrate else {}),
                     },
                 } if include_availability_first else {}),
             },
@@ -4076,18 +4338,22 @@ def build_standing_delegated_policy_authority_request(
     max_users=1,
     include_controlled_topology=False,
     include_availability_first=False,
+    include_auto_substrate=False,
     now=None,
 ):
     """Build a short-lived request to activate the bounded standing policy."""
     from admin_core import autonomy_trust_acceleration
 
     now = now or utc_now()
+    if include_auto_substrate:
+        include_availability_first = True
     if include_availability_first:
         include_controlled_topology = True
     policy = standing_delegated_operational_policy_template(
         max_users=max_users,
         include_controlled_topology=include_controlled_topology,
         include_availability_first=include_availability_first,
+        include_auto_substrate=include_auto_substrate,
     )
     normalized_scope = autonomy_trust_acceleration.normalized_delegated_autonomy_scope(policy)
     request = {
@@ -4146,7 +4412,11 @@ def build_standing_delegated_policy_authority_request(
                         AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
                     ),
                     "allowed_actions": list(
-                        AVAILABILITY_FIRST_ALLOWED_ACTIONS
+                        (*AVAILABILITY_FIRST_ALLOWED_ACTIONS,
+                         *(
+                             [AVAILABILITY_FIRST_AUTO_SUBSTRATE_ALLOWED_ACTION]
+                             if include_auto_substrate else []
+                         ))
                     ),
                     "ladder": list(AVAILABILITY_FIRST_LADDER),
                     "stage_semantics": (
@@ -4167,6 +4437,9 @@ def build_standing_delegated_policy_authority_request(
                     "rollback_or_redistribution_required": True,
                     "baseline_reset_between_stages_required": True,
                     "self_expansion_allowed": False,
+                    "auto_substrate_request_consumption": bool(
+                        include_auto_substrate
+                    ),
                 },
             } if include_availability_first else {}),
         },
@@ -4233,22 +4506,25 @@ def validate_standing_delegated_policy_authority_request(
         errors.append("standing_delegated_policy_id_invalid")
     requested_policy = request.get("policy") if isinstance(request.get("policy"), dict) else {}
     requested_max_users = as_int(requested_policy.get("max_users_per_action"), 0)
+    include_auto_substrate = (
+        requested_policy.get("policy_profile")
+        == AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE
+    )
     include_availability_first = (
         requested_policy.get("policy_profile")
-        == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        in AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
     )
     include_controlled_topology = (
         requested_policy.get("policy_profile")
-        in {
-            CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-            AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-        }
+        in ({CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+            | AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
     )
     try:
         expected = standing_delegated_operational_policy_template(
             max_users=requested_max_users,
             include_controlled_topology=include_controlled_topology,
             include_availability_first=include_availability_first,
+            include_auto_substrate=include_auto_substrate,
         )
     except PacketError:
         expected = {}
@@ -4354,22 +4630,25 @@ def validate_standing_delegated_operational_policy(contract, *, now=None, audit_
         errors.append("standing_delegated_policy_contract_owner_invalid")
     policy = contract.get("policy") if isinstance(contract.get("policy"), dict) else {}
     requested_max_users = as_int(policy.get("max_users_per_action"), 0)
+    include_auto_substrate = (
+        policy.get("policy_profile")
+        == AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE
+    )
     include_availability_first = (
         policy.get("policy_profile")
-        == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+        in AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
     )
     include_controlled_topology = (
         policy.get("policy_profile")
-        in {
-            CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-            AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-        }
+        in ({CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+            | AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
     )
     try:
         expected = standing_delegated_operational_policy_template(
             max_users=requested_max_users,
             include_controlled_topology=include_controlled_topology,
             include_availability_first=include_availability_first,
+            include_auto_substrate=include_auto_substrate,
         )
     except PacketError:
         expected = {}
@@ -5084,10 +5363,8 @@ def issue_standing_delegated_policy_from_audit(
         superseded_topology_requests = []
         if (
             request["policy"].get("policy_profile")
-            in {
-                CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-                AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-            }
+            in ({CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+                | AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
         ):
             decided_topology_ids = {
                 str(record.get("authority_request_id") or "")
@@ -5555,10 +5832,8 @@ def validate_approvals(packet, errors, *, now=None):
         if topology_action:
             if (
                 normalized_scope.get("policy_profile")
-                not in {
-                    CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-                    AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-                }
+                not in ({CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+                    | AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
             ):
                 errors.append("delegated_topology_policy_profile_invalid")
             if as_int(authority.get("max_users_per_transaction"), 0) != 1:
@@ -5580,10 +5855,7 @@ def validate_approvals(packet, errors, *, now=None):
             if as_int(topology_scope.get("ordinary_route_delta"), -1) != 0:
                 errors.append("delegated_topology_ordinary_route_delta_invalid")
         elif availability_first_action:
-            if (
-                normalized_scope.get("policy_profile")
-                != AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
-            ):
+            if normalized_scope.get("policy_profile") not in AVAILABILITY_FIRST_STANDING_POLICY_PROFILES:
                 errors.append(
                     "delegated_availability_first_policy_profile_invalid"
                 )
@@ -5601,12 +5873,15 @@ def validate_approvals(packet, errors, *, now=None):
                 errors.append(
                     "delegated_availability_first_blast_radius_invalid"
                 )
+            expected_actions = list(AVAILABILITY_FIRST_ALLOWED_ACTIONS)
             if (
-                list(
-                    availability_first_scope.get("allowed_actions") or []
-                )
-                != list(AVAILABILITY_FIRST_ALLOWED_ACTIONS)
+                normalized_scope.get("policy_profile")
+                == AVAILABILITY_FIRST_AUTO_SUBSTRATE_STANDING_POLICY_PROFILE
             ):
+                expected_actions.append(
+                    AVAILABILITY_FIRST_AUTO_SUBSTRATE_ALLOWED_ACTION
+                )
+            if list(availability_first_scope.get("allowed_actions") or []) != expected_actions:
                 errors.append(
                     "delegated_availability_first_actions_invalid"
                 )
@@ -5703,14 +5978,12 @@ def validate_approvals(packet, errors, *, now=None):
             expected_action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(authorized_max_users, "")
             combined_profile = (
                 normalized_scope.get("policy_profile")
-                in {
-                    CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE,
-                    AVAILABILITY_FIRST_STANDING_POLICY_PROFILE,
-                }
+                in ({CONTROLLED_TOPOLOGY_STANDING_POLICY_PROFILE}
+                    | AVAILABILITY_FIRST_STANDING_POLICY_PROFILES)
             )
             availability_profile = (
                 normalized_scope.get("policy_profile")
-                == AVAILABILITY_FIRST_STANDING_POLICY_PROFILE
+                in AVAILABILITY_FIRST_STANDING_POLICY_PROFILES
             )
             expected_action_classes = (
                 [
@@ -8284,6 +8557,16 @@ def main(argv=None):
             "or performs a production effect."
         ),
     )
+    parser.add_argument(
+        "--standing-policy-include-auto-substrate",
+        action="store_true",
+        help=(
+            "Add only the exact Tier-48 certification-only substrate request "
+            "auto-consumer to an availability-first standing policy. The "
+            "consumer remains TTL/hash-bound and cannot create ordinary-user, "
+            "Packet, lease or routing effects by itself."
+        ),
+    )
     parser.add_argument("--action-class-policy-file", default="/etc/v7/policy.json")
     parser.add_argument("--authority-decision", default="")
     parser.add_argument("--authority-actor-id", default="", help="Required provenance identity for an APPROVE or DECLINE decision.")
@@ -8519,6 +8802,9 @@ def main(argv=None):
                 ),
                 include_availability_first=(
                     args.standing_policy_include_availability_first
+                ),
+                include_auto_substrate=(
+                    args.standing_policy_include_auto_substrate
                 ),
             )
             registration = register_standing_delegated_policy_request(

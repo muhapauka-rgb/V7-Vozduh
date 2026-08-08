@@ -57,15 +57,21 @@ producer-to-consumer gap; it has not been falsified with a documentation-only
 write. It must be consumed by the existing atomic CPS/OMP reconciliation owner
 in the same deployable repair set.
 
-The repository includes separately reviewed V3/Stage-48 runtime changes, so a
-combined safe-deploy apply is not allowed. No policy write, Matrix invocation,
-controlled condition, Candidate, Packet, lease, route/user mutation, rollback,
-Authority expansion, L7/L8/Stage-48 credit or Maturity change occurred.
+The repository includes separately reviewed V3/Stage-48 runtime changes. The
+actual `tools/v7-safe-deploy --apply` request was rejected before any write by
+the independent safety reviewer: its accumulated delta contains the previously
+rejected persistent V3 delegated-Authority/identity-provisioning expansion,
+not only this CT-M0F selector repair. This cannot be bypassed by a different
+deploy mechanism, a policy write or an indirect execution path. No policy
+write, Matrix invocation, controlled condition, Candidate, Packet, lease,
+route/user mutation, rollback, Authority expansion, L7/L8/Stage-48 credit or
+Maturity change occurred.
 
 ```text
-DEPLOY_REVIEW_REQUIRED_FOR_CT_M0F_SELECTOR_AND_CPS_RECONCILIATION
+INDEPENDENT_DEPLOY_SCOPE_APPROVAL_REQUIRED_FOR_CT_M0F_SELECTOR_AND_CPS_RECONCILIATION
 ```
 
-Re-entry: independent acceptance of a minimal `tools/v7-safe-deploy` manifest,
-then production caller/consumer verification. Only then may ordinary Matrix
-create the first fresh CT-M0F sample.
+Re-entry: explicit independent approval of the accumulated deploy scope, or a
+new materially smaller deployable package that excludes the V3 expansion.
+Only after a passing `tools/v7-safe-deploy` and production caller/consumer
+verification may ordinary Matrix create the first fresh CT-M0F sample.

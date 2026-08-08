@@ -2562,7 +2562,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             [],
         )
 
-    def test_performance_receipt_marks_stage_48_ready_without_execution(self):
+    def test_performance_receipt_enables_stage_48_inside_active_standing_contract(self):
         diagnostic = {
             "status": "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED",
             "availability_first_standing_policy_admission": {"ok": True},
@@ -2581,17 +2581,31 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 },
             },
         }
+        executor_result = {
+            "final_verdict": "AVAILABILITY_FIRST_STANDING_STAGE_COMPLETED",
+            "stage": 48,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
         with mock.patch.object(
             self.refresh.subprocess,
             "run",
-            return_value=mock.Mock(
-                returncode=0,
-                stdout=json.dumps(diagnostic),
-            ),
+            side_effect=[
+                mock.Mock(returncode=0, stdout=json.dumps(diagnostic)),
+                mock.Mock(returncode=0, stdout=json.dumps(executor_result)),
+            ],
         ) as run, mock.patch.object(
             self.refresh,
             "current_performance_closure_receipt",
             return_value={"receipt_id": "perfclose_unit"},
+        ), mock.patch.object(
+            self.refresh,
+            "record_availability_first_stage_consumption",
+            return_value={
+                "receipt_id": "afstage_unit",
+                "audit_write": True,
+                "duplicate_suppressed": False,
+            },
         ):
             result = (
                 self.refresh._run_availability_first_standing_policy_stage_once(
@@ -2606,14 +2620,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 )
             )
 
-        self.assertEqual(run.call_count, 1)
-        self.assertEqual(
-            result["status"],
-            "STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED",
-        )
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(result["status"], "ACTION_COMPLETED")
         self.assertTrue(result["stage_48_optimized_runtime_ready"])
-        self.assertFalse(result["stage_48_execution_permitted"])
-        self.assertFalse(result["action_attempted"])
+        self.assertTrue(result["stage_48_execution_permitted"])
+        self.assertTrue(result["action_attempted"])
         self.assertEqual(result["users_moved"], 0)
 
     def test_performance_projection_preserves_no_stage_credit_scope(self):

@@ -2220,30 +2220,19 @@ def _run_availability_first_standing_policy_stage_once(
     performance_benchmark = bool(
         stage == 48 and not performance_gate_receipt
     )
-    if stage == 48 and performance_gate_receipt:
-        return {
-            "schema_version": "v7.availability-first-matrix-consumer.v1",
-            "status": "STAGE_48_OPTIMIZED_RUNTIME_READY_NOT_EXECUTED",
-            "ok": True,
-            "started_at": started_at,
-            "completed_at": now_iso(),
-            "action_attempted": False,
-            "action_completed": False,
-            "runtime_mutation_performed": False,
-            "users_moved": 0,
-            "stage": stage,
-            "performance_benchmark": False,
-            "performance_gate_receipt_id": str(
-                performance_gate_receipt.get("receipt_id") or ""
-            ),
-            "stage_48_optimized_runtime_ready": True,
-            "stage_48_execution_permitted": False,
-            "campaign_stage_credit": False,
-            "durable_successor": (
-                "STAGE_48_EXISTING_OWNER_ADMISSION_REQUIRED"
-            ),
-            "blockers": ["stage_48_execution_not_admitted"],
-        }
+    # The immutable performance receipt is an existing-owner prerequisite for
+    # the Stage-48 action class.  It must not create a second, implicit
+    # Authority boundary after the current active standing contract has
+    # already admitted the exact action class, scope and serial envelope.
+    # ``ready`` above is deliberately the only admission path: it validates
+    # the live standing-policy contract, the fresh Planner projection and the
+    # bounded allocation before the executor can materialize anything.
+    #
+    # Previously this branch returned a durable-looking terminal without
+    # dispatching the already-approved stage.  That stranded the existing
+    # Matrix consumer in a self-created wait and contradicted an active
+    # max-48 contract.  The performance receipt now enables the ordinary
+    # existing executor path; it grants nothing and does not widen scope.
     command = [
         executor,
         (
@@ -2383,6 +2372,15 @@ def _run_availability_first_standing_policy_stage_once(
         "performance_benchmark": performance_benchmark,
         "performance_gate_receipt_id": str(
             performance_gate_receipt.get("receipt_id") or ""
+        ),
+        "stage_48_optimized_runtime_ready": bool(
+            stage == 48 and performance_gate_receipt
+        ),
+        "stage_48_execution_permitted": bool(
+            stage == 48
+            and performance_gate_receipt
+            and ready
+            and not performance_benchmark
         ),
         "completion_kind": (
             "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT"

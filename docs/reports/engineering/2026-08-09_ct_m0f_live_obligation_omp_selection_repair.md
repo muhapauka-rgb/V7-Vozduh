@@ -52,6 +52,27 @@ Governed executor в таком состоянии корректно fail-close
 - CT-M0F reset/re-entry contract;
 - governed canary CLI guards.
 
+## Второй выявленный residual и его закрытие
+
+Первый post-deploy ordinary Matrix caller подтвердил исправленный
+`passive -> advisory -> OMP receipt` путь. Затем CT-M0F честно остановился на
+`AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING`: несколько re-observation одного
+и того же VLESS failure generation оставались отдельными открытыми compact L3
+records.
+
+Это не несколько action opportunities. Добавлена read-only semantic
+coalescing rule existing L3 selector:
+
+- допустимо выбрать только самый свежий record, когда все contenders имеют
+  один `incident_generation` и один current scope fingerprint;
+- выбранный record обязан иметь exact `OMP_CONSUMED` receipt для своего
+  `obligation_id + source_incident_id`;
+- разные generation или scope остаются `AMBIGUOUS...` и fail-closed.
+
+Новые focused tests доказывают оба случая. Это не объединяет исторические
+records и не переписывает L3 history; правило существует только на границе
+текущего selector consumer.
+
 ## Границы безопасности
 
 Изменение не выдаёт Authority, не меняет policy, не создаёт Candidate/Packet/

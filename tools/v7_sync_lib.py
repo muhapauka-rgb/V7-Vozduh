@@ -6707,8 +6707,13 @@ def service_failure_automation_frontier(
         scope = scope if isinstance(scope, dict) else {}
         unresolved = max(0, int(scope.get("unresolved_scope_count") or 0))
         affected = max(0, int(scope.get("affected_scope_count") or 0))
-        accounted = str(scope.get("status") or "") == "ACCOUNTED"
-        actionable_scope = int(accounted and unresolved > 0)
+        # Obligations deliberately carry the compact count/fingerprint form of
+        # the L3 scope rather than duplicating its ``status`` field.  A
+        # positive unresolved denominator is therefore the owner-backed live
+        # discriminator here; requiring the omitted compatibility field would
+        # incorrectly let an older larger historical scope outrank the newest
+        # current obligation.
+        actionable_scope = int(unresolved > 0)
         return (
             actionable_scope,
             unresolved if actionable_scope else affected,

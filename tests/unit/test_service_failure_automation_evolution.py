@@ -4299,6 +4299,69 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
 
         self.assertEqual(frontier["selected"]["automation_obligation_id"], "sfaob_live_vless")
 
+    def test_ct_m0f_coalesces_reobserved_same_failure_only_after_exact_omp_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            old = {
+                "incident_id": "sfinc_old", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_same", "obligation_id": "sfaob_old",
+                "updated_at": "2026-08-08T18:09:43+00:00",
+                "current_source_scope": {"status": "ACCOUNTED", "affected_scope_count": 35,
+                    "unresolved_scope_count": 35, "affected_scope_fingerprint": "f" * 64},
+            }
+            current = {
+                "incident_id": "sfinc_current", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_same", "obligation_id": "sfaob_current",
+                "updated_at": "2026-08-08T18:24:33+00:00",
+                "current_source_scope": {"status": "ACCOUNTED", "affected_scope_count": 35,
+                    "unresolved_scope_count": 35, "affected_scope_fingerprint": "f" * 64},
+            }
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"old": old, "current": current},
+            }), encoding="utf-8")
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_current",
+                "source_incident_id": "sfinc_current",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(state_dir, "vless")
+
+        self.assertTrue(binding["ok"], binding)
+        self.assertEqual(binding["source_incident_id"], "sfinc_current")
+
+    def test_ct_m0f_keeps_different_live_scope_generations_ambiguous(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            records = {}
+            receipts = []
+            for suffix, generation, fingerprint in (("a", "egid_a", "a" * 64), ("b", "egid_b", "b" * 64)):
+                incident_id = f"sfinc_{suffix}"
+                obligation_id = f"sfaob_{suffix}"
+                records[suffix] = {
+                    "incident_id": incident_id, "incident_state": "OPEN",
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                    "incident_generation": generation, "obligation_id": obligation_id,
+                    "current_source_scope": {"status": "ACCOUNTED", "affected_scope_count": 1,
+                        "unresolved_scope_count": 1, "affected_scope_fingerprint": fingerprint},
+                }
+                receipts.append({"object_type": "service_failure_automation_omp_consumption",
+                    "closure_state": "OMP_CONSUMED", "automation_obligation_id": obligation_id,
+                    "source_incident_id": incident_id})
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": records}), encoding="utf-8")
+            (state_dir / "closure-records.jsonl").write_text("\n".join(json.dumps(row) for row in receipts) + "\n", encoding="utf-8")
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(state_dir, "vless")
+
+        self.assertFalse(binding["ok"])
+        self.assertEqual(binding["status"], "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING")
+
     def test_m2_receipt_is_materialized_into_existing_passive_projection(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

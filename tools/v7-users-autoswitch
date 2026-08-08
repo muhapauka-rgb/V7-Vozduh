@@ -2243,6 +2243,64 @@ def ct_m0f_active_service_failure_binding_projection(
         and str(record.get("channel") or record.get("source_channel") or "") == str(source_id or "")
     ]
     if len(matches) != 1:
+        # One persistent failure can legitimately be re-observed by successive
+        # Matrix generations.  Older compact L3 projections are immutable
+        # lineage, but must not turn the current failure into an indefinitely
+        # ambiguous CT-M0F source.  Reuse the existing closure/OMP owner to
+        # select the newest *consumed* projection only when every contender
+        # describes the same source generation and same current scope.  A
+        # different generation or scope remains fail-closed ambiguity.
+        closure_rows = read_jsonl(state_dir / "closure-records.jsonl")
+        consumed_pairs = {
+            (
+                str(row.get("automation_obligation_id") or ""),
+                str(row.get("source_incident_id") or ""),
+            )
+            for row in closure_rows
+            if str(row.get("object_type") or "")
+            == "service_failure_automation_omp_consumption"
+            and str(row.get("closure_state") or "") == "OMP_CONSUMED"
+        }
+        consumed_matches = [
+            record for record in matches
+            if (
+                str(record.get("obligation_id") or (
+                    record.get("causal_lineage") or {}
+                ).get("obligation_id") or ""),
+                str(record.get("incident_id") or ""),
+            ) in consumed_pairs
+        ]
+        def semantic_key(record: dict[str, Any]) -> tuple[str, str]:
+            current_scope = (
+                record.get("current_source_scope")
+                if isinstance(record.get("current_source_scope"), dict)
+                else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
+            )
+            return (
+                str(record.get("incident_generation") or record.get("generation") or ""),
+                str(current_scope.get("affected_scope_fingerprint") or ""),
+            )
+        semantic_groups = {semantic_key(record) for record in matches}
+        if len(semantic_groups) == 1 and consumed_matches:
+            matches = [max(
+                consumed_matches,
+                key=lambda record: (
+                    str(record.get("last_observed_at") or ""),
+                    str(record.get("updated_at") or ""),
+                    str(record.get("incident_id") or ""),
+                ),
+            )]
+        else:
+            return {
+                "status": (
+                    "NO_ACTIVE_SERVICE_FAILURE_BINDING"
+                    if not matches else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
+                ),
+                "ok": False,
+                "requires_binding": True,
+                "read_only": True,
+            }
+    if len(matches) != 1:
         return {
             "status": (
                 "NO_ACTIVE_SERVICE_FAILURE_BINDING"

@@ -90,3 +90,23 @@ still pass -> one bounded certification-only cutover -> Time lineage`.
 Если любой live gate изменился, ожидаемый терминал — exact `STOP_SAFE` с
 durable ordinary-timer re-entry, а не повторное использование старого Packet
 или sample.
+
+## Production result после двух deploy
+
+Первый последующий ordinary Matrix cycle доказал:
+
+`passive PASS -> advisory PASS -> exact-once OMP PASS -> CT-M0F`.
+
+CT-M0F не создал Packet и не выполнил movement. Его owner-backed terminal:
+`STOP_SAFE_CONTROLLED_SOURCE_PREDECESSOR_REQUIRED`, exact blocker
+`no_distinct_controlled_contract_admitted_target`.
+
+Read-only selector подтвердил, что causal binding теперь `READY`, но число
+targets, одновременно прошедших health, capacity, verification, rollback и
+zero-ordinary-delta admission, равно `0`. Это current live safety boundary,
+а не повод ослабить gate или использовать historical target.
+
+Следующий consumer: existing ordinary `v7-service-matrix-refresh.timer`.
+Re-entry condition: fresh Matrix generation показывает хотя бы один distinct
+existing-planner target, прошедший все live gates. До этого `users_moved=0`,
+valid CT-M0F sample count остаётся `0`, а CT-M1 не разблокирован.

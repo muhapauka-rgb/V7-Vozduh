@@ -42,6 +42,20 @@ execution lineage; generic production channel не является допуст
 Следовательно, блокер не может быть снят выбором «любого работающего канала»:
 это создало бы source/identity/policy effect за пределами active contract.
 
+## Отдельный найденный consumer gap
+
+Локальный CPS Section 0 ещё указывает на исторический pending request
+`ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06` и
+`ENGINEERING_AUTHORITY`, тогда как свежий production policy/audit owner
+подтверждает активный contract `ctm0fsdpc_208482a67dc4103e5f0ef7b6`.
+Это stale contract-projection gap между existing policy/audit producer и
+CPS/OMP consumer; он не отменяет substrate blocker, но не должен скрываться
+за ним. Его exact repair frontier: existing Matrix/policy-audit contract-state
+consumer -> atomic CPS/OMP projection `ACTIVE_CONTRACT +
+AUTO_REENTRY_ON_CONTROLLED_POOL_CHANGE`. До production deployment этого
+consumer repair нельзя выдавать CPS local documentation за production runtime
+consumption.
+
 ## Внесённое canonical уточнение
 
 `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md` обновлён до V5.0:

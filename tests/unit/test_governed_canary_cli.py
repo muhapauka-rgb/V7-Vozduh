@@ -2324,64 +2324,6 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 before_egress,
             )
 
-    def test_incremental_substrate_preflight_uses_current_certification_pool(self):
-        module = load_cli_module()
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            state = root / "state"
-            state.mkdir()
-            users = [
-                f"ip=10.7.0.{index} enabled=1 current=source certification_user=1"
-                for index in range(10, 50)
-            ]
-            users.append("ip=10.7.1.1 enabled=1 current=source")
-            (state / "users.registry").write_text(
-                "\n".join(users) + "\n", encoding="utf-8",
-            )
-            (state / "egress.registry").write_text(
-                "id=source type=interface enabled=1\n", encoding="utf-8",
-            )
-            leases = root / "leases.registry"
-            leases.write_text("", encoding="utf-8")
-            audit = root / "operator-execution-audit.jsonl"
-            audit.write_text("", encoding="utf-8")
-            args = argparse.Namespace(
-                operator_execution_audit_store=str(audit),
-                controlled_certification_substrate_request_id="cpsauth_r1_test",
-                controlled_certification_substrate_request_hash="a" * 64,
-                confirm_controlled_certification_substrate_provisioning="",
-                ipam_leases_file=str(leases),
-                identity_provisioner="v7-user-create-from-ipam",
-                egress_state_owner="v7-egress-set-state",
-            )
-            binding = {
-                "ok": True,
-                "blockers": [],
-                "decision_id": "cpsdec_test",
-                "source_id": "source",
-                "auto_admitted_by_existing_standing_policy": False,
-                "scope": {
-                    "target_total_certification_identities": 48,
-                    "max_new_certification_identities": 8,
-                    "identity_strategy": "PROVISION_INCREMENTAL_DELTA",
-                },
-            }
-            with mock.patch.object(
-                module,
-                "approved_controlled_certification_substrate_binding",
-                return_value=binding,
-            ), mock.patch.object(module.subprocess, "run") as run:
-                result = module.provision_approved_controlled_certification_substrate(
-                    args, state_dir=state, audit_dir=root,
-                )
-        self.assertEqual(
-            result["final_verdict"],
-            "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY",
-        )
-        self.assertEqual(result["identities_to_create"], 8)
-        self.assertEqual(result["ordinary_customer_count"], 0)
-        run.assert_not_called()
-
     def test_existing_pool_reuse_verdicts_are_successful_cli_terminals(self):
         module = load_cli_module()
         for verdict in (

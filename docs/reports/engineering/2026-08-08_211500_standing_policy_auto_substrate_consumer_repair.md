@@ -26,3 +26,7 @@
 ## Следующий безопасный шаг
 
 После production deploy existing Authority owner атомарно заменит V2 на exact V3 contract, опираясь на постоянное operator-delegation разрешение. Затем обычный Matrix cycle должен автоматически потребить текущий request и передать его existing provisioning owner. Любой mismatch, expiry или live preflight failure остаётся `STOP_SAFE` с automatic Matrix re-entry; повторное ручное подтверждение не требуется.
+
+## Production apply boundary
+
+`tools/v7-safe-deploy --json` подтвердил allowlist, отсутствие blockers и exact runtime delta. Однако production apply был отклонён независимым execution safety reviewer: V3 добавляет автоматическое consumption/provisioning certification identities и поэтому должен быть отдельно явно подтверждён как изменение persistent delegated Authority scope. До такого подтверждения не было deploy, policy write, audit decision, identity provisioning, routing mutation или user movement.

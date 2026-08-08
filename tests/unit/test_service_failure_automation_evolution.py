@@ -4191,6 +4191,51 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "raw_user_list_stored": False,
         }])
 
+    def test_causal_integrity_status_keeps_closed_legacy_anomaly_auditable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "closed-legacy": {
+                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                        "incident_id": "sfinc_closed",
+                        "incident_generation": "old-generation",
+                        "channel": "old-source",
+                        "incident_state": "INTENT_CLOSED",
+                        "last_execution_feedback_id": "execfb_old",
+                        "execution_feedback_ids": ["execfb_old"],
+                        "current_source_scope": {
+                            "status": "ACCOUNTED",
+                            "affected_scope_count": 1,
+                            "protected_scope_count": 1,
+                            "unresolved_scope_count": 0,
+                            "explicitly_excluded_or_recovered_scope_count": 0,
+                            "affected_scope_fingerprint": "old-scope",
+                        },
+                        "incident_cumulative_scope": {
+                            "current_source_scope_fingerprint": "different-old-scope",
+                            "entries": [],
+                            "lineage_pointers": [],
+                        },
+                    },
+                },
+            }), encoding="utf-8")
+            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
+        self.assertEqual(status["final_verdict"], "PASS", status)
+        self.assertEqual(status["invalid_states"], [])
+        self.assertEqual(status["historical_integrity_warnings"], [{
+            "incident_id": "sfinc_closed",
+            "incident_generation": "old-generation",
+            "source_channel": "old-source",
+            "warning_states": [
+                "CURRENT_SCOPE_REPLACES_CUMULATIVE_HISTORY",
+                "SUCCESSFUL_ATTEMPT_WITHOUT_SCOPE_UPDATE",
+            ],
+            "owner": "existing l3-runtime-state closed historical projection",
+            "blocks_live_execution": False,
+            "raw_user_list_stored": False,
+        }])
+
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

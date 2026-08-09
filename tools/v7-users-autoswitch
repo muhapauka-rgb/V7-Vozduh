@@ -2235,6 +2235,42 @@ def ct_m0f_active_service_failure_binding_projection(
         }
     state = read_json(state_path, {})
     incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    live_source_users = sorted({
+        str(row.get("ip") or "")
+        for row in parse_registry(Path(state_dir) / "users.registry")
+        if str(row.get("ip") or "")
+        and bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == str(source_id or "")
+    })
+    # This is an ephemeral comparison against the canonical route owner.  It
+    # deliberately persists only count plus fingerprint, just like the Matrix
+    # source-scope producer; it neither materializes nor stores a second
+    # membership registry.
+    live_source_scope = {
+        "source_channel": str(source_id or ""),
+        "affected_scope_count": len(live_source_users),
+        "affected_scope_fingerprint": sha256_json({
+            "source_channel": str(source_id or ""),
+            "users": live_source_users,
+        }),
+        "registry_available": (Path(state_dir) / "users.registry").exists(),
+        "raw_user_list_stored": False,
+    }
+    def current_accounted_scope(record: dict[str, Any]) -> dict[str, Any]:
+        scope = record.get("current_source_scope")
+        if isinstance(scope, dict):
+            return scope
+        legacy_scope = record.get("scope_accounting")
+        return legacy_scope if isinstance(legacy_scope, dict) else {}
+
+    def matches_live_source_scope(record: dict[str, Any]) -> bool:
+        scope = current_accounted_scope(record)
+        return (
+            to_int(scope.get("affected_scope_count"), -1)
+            == live_source_scope["affected_scope_count"]
+            and str(scope.get("affected_scope_fingerprint") or "")
+            == live_source_scope["affected_scope_fingerprint"]
+        )
     matches = [
         record for record in incidents.values()
         if isinstance(record, dict)
@@ -2242,6 +2278,14 @@ def ct_m0f_active_service_failure_binding_projection(
         and str(record.get("incident_state") or "") != "INTENT_CLOSED"
         and str(record.get("channel") or record.get("source_channel") or "") == str(source_id or "")
     ]
+    if len(matches) == 1 and live_source_scope["registry_available"] and not matches_live_source_scope(matches[0]):
+        return {
+            "status": "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING",
+            "ok": False,
+            "requires_binding": True,
+            "read_only": True,
+            "live_source_scope": live_source_scope,
+        }
     if len(matches) != 1:
         # One persistent failure can legitimately be re-observed by successive
         # Matrix generations.  Older compact L3 projections are immutable
@@ -2261,13 +2305,6 @@ def ct_m0f_active_service_failure_binding_projection(
             == "service_failure_automation_omp_consumption"
             and str(row.get("closure_state") or "") == "OMP_CONSUMED"
         }
-        def current_accounted_scope(record: dict[str, Any]) -> dict[str, Any]:
-            scope = record.get("current_source_scope")
-            if isinstance(scope, dict):
-                return scope
-            legacy_scope = record.get("scope_accounting")
-            return legacy_scope if isinstance(legacy_scope, dict) else {}
-
         # An immutable historical L3 row whose own scope accounting is broken
         # cannot compete with an ACCOUNTED current incident.  Treating that
         # row as a separate live source scope would permanently starve the
@@ -2317,7 +2354,30 @@ def ct_m0f_active_service_failure_binding_projection(
                 str(current_scope.get("affected_scope_fingerprint") or ""),
             )
         semantic_groups = {semantic_key(record) for record in valid_matches}
-        if len(semantic_groups) == 1 and consumed_matches:
+        live_scope_matches = [
+            record for record in consumed_matches
+            if matches_live_source_scope(record)
+        ]
+        if live_source_scope["registry_available"]:
+            # The live route owner is available, so no historical or compact
+            # projection may win merely by being newer.  There must be exactly
+            # one consumed binding for the current route membership.
+            if len(live_scope_matches) == 1:
+                matches = live_scope_matches
+            else:
+                return {
+                    "status": (
+                        "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING"
+                        if not live_scope_matches
+                        else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
+                    ),
+                    "ok": False,
+                    "requires_binding": True,
+                    "read_only": True,
+                    "invalid_historical_scope_rows_ignored": len(matches) - len(valid_matches),
+                    "live_source_scope": live_source_scope,
+                }
+        elif len(semantic_groups) == 1 and consumed_matches:
             matches = [max(
                 consumed_matches,
                 key=lambda record: (
@@ -2372,6 +2432,13 @@ def ct_m0f_active_service_failure_binding_projection(
         blockers.append("incident_scope_empty")
     if int(scope.get("unresolved_scope_count") or 0) <= 0:
         blockers.append("incident_scope_unresolved_empty")
+    if live_source_scope["registry_available"] and (
+        int(scope.get("affected_scope_count") or -1)
+        != live_source_scope["affected_scope_count"]
+        or str(scope.get("affected_scope_fingerprint") or "")
+        != live_source_scope["affected_scope_fingerprint"]
+    ):
+        blockers.append("current_live_route_scope_mismatch")
     return {
         "schema_version": "v7.ct-m0f-active-service-failure-binding.v1",
         "status": "ACTIVE_SERVICE_FAILURE_BINDING_READY" if not blockers else "STOP_SAFE_ACTIVE_SERVICE_FAILURE_BINDING_INVALID",
@@ -2385,6 +2452,7 @@ def ct_m0f_active_service_failure_binding_projection(
         "source_channel": str(source_id or ""),
         "source_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
         "source_scope_count": int(scope.get("affected_scope_count") or 0),
+        "live_source_scope": live_source_scope,
         "observation_generation": str(record.get("observation_generation") or ""),
         "blockers": sorted(set(blockers)),
         "read_only": True,

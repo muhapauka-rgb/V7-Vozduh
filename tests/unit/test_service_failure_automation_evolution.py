@@ -4641,6 +4641,105 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(binding["ok"])
         self.assertEqual(binding["status"], "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING")
 
+    def test_ct_m0f_selects_one_consumed_scope_matching_current_route_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            live_users = ["10.0.0.2", "10.0.0.3"]
+            live_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": live_users,
+            })
+            stale_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": ["10.0.0.2", "10.0.0.4"],
+            })
+            (state_dir / "users.registry").write_text(
+                "\n".join(
+                    f"ip={ip} current=vless enabled=1" for ip in live_users
+                ) + "\n",
+                encoding="utf-8",
+            )
+            records = {}
+            receipts = []
+            for suffix, fingerprint, observed_at in (
+                ("current", live_fingerprint, "2026-08-09T10:08:03+00:00"),
+                ("stale", stale_fingerprint, "2026-08-09T10:23:26+00:00"),
+            ):
+                incident_id = f"sfinc_{suffix}"
+                obligation_id = f"sfaob_{suffix}"
+                records[suffix] = {
+                    "incident_id": incident_id, "incident_state": "OPEN",
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                    "incident_generation": "egid_same", "obligation_id": obligation_id,
+                    "last_observed_at": observed_at,
+                    "current_source_scope": {
+                        "status": "ACCOUNTED", "affected_scope_count": 2,
+                        "unresolved_scope_count": 2,
+                        "affected_scope_fingerprint": fingerprint,
+                    },
+                }
+                receipts.append({
+                    "object_type": "service_failure_automation_omp_consumption",
+                    "closure_state": "OMP_CONSUMED",
+                    "automation_obligation_id": obligation_id,
+                    "source_incident_id": incident_id,
+                })
+            (state_dir / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": records}), encoding="utf-8"
+            )
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in receipts) + "\n",
+                encoding="utf-8",
+            )
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless"
+            )
+
+        self.assertTrue(binding["ok"], binding)
+        self.assertEqual(binding["source_incident_id"], "sfinc_current")
+        self.assertEqual(binding["live_source_scope"]["affected_scope_count"], 2)
+        self.assertFalse(binding["live_source_scope"]["raw_user_list_stored"])
+
+    def test_ct_m0f_rejects_single_consumed_scope_stale_against_current_route_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            stale_scope = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": ["10.0.0.3"],
+            })
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"stale": {
+                    "incident_id": "sfinc_stale", "incident_state": "OPEN",
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                    "incident_generation": "egid_same", "obligation_id": "sfaob_stale",
+                    "current_source_scope": {
+                        "status": "ACCOUNTED", "affected_scope_count": 1,
+                        "unresolved_scope_count": 1,
+                        "affected_scope_fingerprint": stale_scope,
+                    },
+                }},
+            }), encoding="utf-8")
+            (state_dir / "closure-records.jsonl").write_text(json.dumps({
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_stale",
+                "source_incident_id": "sfinc_stale",
+            }) + "\n", encoding="utf-8")
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless"
+            )
+
+        self.assertFalse(binding["ok"])
+        self.assertEqual(
+            binding["status"],
+            "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING",
+        )
+
     def test_ct_m0f_ignores_broken_historical_scope_when_current_scope_is_consumed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

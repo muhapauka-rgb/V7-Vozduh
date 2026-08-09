@@ -4392,6 +4392,69 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(status["final_verdict"], "PASS", status)
 
+    def test_recovery_receipt_closes_old_episode_after_new_service_failure(self):
+        """A later failure is a new episode, not a retroactive reopening."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {"services": {"spotify": {
+                    "status": "FAIL",
+                    "ok": False,
+                    "failure_started_at": "2026-01-01T02:00:00+00:00",
+                }}}},
+            }), encoding="utf-8")
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"old": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc_old_episode",
+                    "incident_generation": "egid_same",
+                    "channel": "vless",
+                    "services": ["spotify"],
+                    "incident_state": "OPEN",
+                    "last_observed_at": "2026-01-01T00:00:00+00:00",
+                    "current_source_scope": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "affected_scope_count": 2,
+                        "protected_scope_count": 0,
+                        "unresolved_scope_count": 1,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                    },
+                }},
+            }), encoding="utf-8")
+            (state_dir / "closure-records.jsonl").write_text(json.dumps({
+                "object_type": "passive_production_event",
+                "object_id": "sre_old_episode_recovered",
+                "channel": "vless",
+                "services": ["spotify"],
+                "egress_identity_generation": "egid_same",
+                "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                "created_at": "2026-01-01T01:00:00+00:00",
+            }) + "\n", encoding="utf-8")
+            planner = self.autoswitch.AutoswitchPlanner.__new__(
+                self.autoswitch.AutoswitchPlanner
+            )
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.args = argparse.Namespace(
+                state_dir=str(state_dir),
+                action_class_audit_store=str(state_dir / "audit.jsonl"),
+            )
+            result = planner.reconcile_service_failure_execution_outcomes()
+            state = json.loads(
+                (state_dir / "l3-runtime-state.json").read_text(encoding="utf-8")
+            )
+        record = state["incidents"]["old"]
+        self.assertEqual(result["recovery_terminal_reconciliation"]["changed"], 1)
+        self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+        self.assertEqual(
+            record["attempt_terminal"],
+            "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_SEPARATE",
+        )
+        self.assertEqual(
+            record["current_source_scope"]["current_matrix_relation"],
+            "SUBSEQUENT_FAILURE_EPOCH",
+        )
+
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

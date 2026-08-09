@@ -4454,7 +4454,12 @@ class AutoswitchPlanner:
         incidents = state.get("incidents")
         if not isinstance(incidents, dict):
             return {"changed": 0, "closed_incident_ids": []}
-        recovery_by_source: dict[str, dict[str, Any]] = {}
+        # Recovery is service-scoped.  Keeping only the last receipt for an
+        # entire channel made an older ``claude``/``youtube`` incident depend
+        # on whether an unrelated later ``spotify`` recovery happened to list
+        # that service.  Preserve the existing append-only receipts and choose
+        # the exact post-incident receipt for every service below.
+        recoveries_by_source: dict[str, list[dict[str, Any]]] = {}
         for row in read_jsonl(self.state_dir / "closure-records.jsonl"):
             if str(row.get("object_type") or "") != "passive_production_event":
                 continue
@@ -4464,15 +4469,18 @@ class AutoswitchPlanner:
             observed_at = str(row.get("observed_at") or row.get("created_at") or "")
             if not source or not observed_at:
                 continue
-            previous = recovery_by_source.get(source)
-            if not previous or parse_ts(observed_at) > parse_ts(
-                str(previous.get("observed_at") or previous.get("created_at") or "")
-            ):
-                recovery_by_source[source] = row
+            recoveries_by_source.setdefault(source, []).append(row)
+        for source, rows in recoveries_by_source.items():
+            recoveries_by_source[source] = sorted(
+                rows,
+                key=lambda item: parse_ts(
+                    str(item.get("recovered_at") or item.get("observed_at")
+                        or item.get("created_at") or "")
+                ),
+            )
 
         changed = 0
         closed_incident_ids: list[str] = []
-        health_cache: dict[str, dict[str, Any]] = {}
         matrix = read_json(self.state_dir / "service-matrix.json", {})
         matrix_items = (
             matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
@@ -4485,50 +4493,86 @@ class AutoswitchPlanner:
             if str(record.get("incident_state") or "") == "INTENT_CLOSED":
                 continue
             source = str(record.get("channel") or record.get("source_channel") or "")
-            recovery = recovery_by_source.get(source)
-            if not source or not recovery:
+            recoveries = recoveries_by_source.get(source) or []
+            if not source or not recoveries:
                 continue
             last_observed = str(record.get("last_observed_at") or record.get("opened_at") or "")
-            recovered_at = str(
-                recovery.get("recovered_at") or recovery.get("observed_at")
-                or recovery.get("created_at") or ""
-            )
-            if not recovered_at or (
-                last_observed and parse_ts(recovered_at) < parse_ts(last_observed)
-            ):
-                continue
             record_generation = str(record.get("incident_generation") or "")
-            recovery_generation = str(recovery.get("egress_identity_generation") or "")
-            if record_generation and recovery_generation and record_generation != recovery_generation:
-                continue
-            health = health_cache.setdefault(
-                source,
-                controlled_certification_source_health_status(self.state_dir, source),
-            )
-            if health.get("status") != "PASS_HEALTHY_BASELINE":
-                continue
             record_services = {
                 str(item) for item in (record.get("services") or []) if str(item)
             }
-            recovery_services = {
-                str(item) for item in (recovery.get("services") or []) if str(item)
-            }
+            if not record_services:
+                continue
+            # Every exact service must have a recovery receipt newer than this
+            # incident.  A recovery for another service is never a channel
+            # shortcut.  The receipt's identity generation must agree when
+            # both owners provide it.
+            matching_recoveries: dict[str, dict[str, Any]] = {}
+            for service_id in record_services:
+                candidates: list[dict[str, Any]] = []
+                for recovery in recoveries:
+                    recovered_at = str(
+                        recovery.get("recovered_at") or recovery.get("observed_at")
+                        or recovery.get("created_at") or ""
+                    )
+                    recovery_generation = str(
+                        recovery.get("egress_identity_generation") or ""
+                    )
+                    recovery_services = {
+                        str(item) for item in (recovery.get("services") or [])
+                        if str(item)
+                    }
+                    if (
+                        service_id not in recovery_services
+                        or not recovered_at
+                        or (last_observed and parse_ts(recovered_at) < parse_ts(last_observed))
+                        or (record_generation and recovery_generation
+                            and record_generation != recovery_generation)
+                    ):
+                        continue
+                    candidates.append(recovery)
+                if not candidates:
+                    break
+                matching_recoveries[service_id] = candidates[-1]
+            if set(matching_recoveries) != record_services:
+                continue
             source_row = matrix_items.get(source)
             source_services = (
                 source_row.get("services")
                 if isinstance(source_row, dict)
                 and isinstance(source_row.get("services"), dict) else {}
             )
-            # A channel-level healthy aggregate is not enough to close a
-            # service-specific incident. The current Matrix must prove every
-            # exact service from the old incident healthy, and a recovery
-            # receipt must overlap that service set when it records one.
-            if not record_services or (
-                recovery_services and not record_services.intersection(recovery_services)
-            ) or any(
-                not bool_value((source_services.get(service_id) or {}).get("ok"))
+            # A current failure cannot reopen a past episode retrospectively.
+            # It may coexist with the old recovery only when the Matrix proves
+            # that it began strictly after that exact recovery receipt.  If
+            # the service is currently healthy, the live Matrix remains the
+            # second independent confirmation.  Unknown/ambiguous current
+            # rows fail closed.
+            subsequent_failure_epoch = False
+            current_service_rows = {
+                service_id: source_services.get(service_id) or {}
                 for service_id in record_services
-            ):
+            }
+            if any(not isinstance(row, dict) for row in current_service_rows.values()):
+                continue
+            current_services_valid = True
+            for service_id, current_row in current_service_rows.items():
+                if bool_value(current_row.get("ok")):
+                    continue
+                recovery = matching_recoveries[service_id]
+                recovered_at = str(
+                    recovery.get("recovered_at") or recovery.get("observed_at")
+                    or recovery.get("created_at") or ""
+                )
+                failure_started_at = str(
+                    current_row.get("failure_started_at")
+                    or current_row.get("first_failed_at") or ""
+                )
+                if not failure_started_at or parse_ts(failure_started_at) <= parse_ts(recovered_at):
+                    current_services_valid = False
+                    break
+                subsequent_failure_epoch = True
+            if not current_services_valid:
                 continue
             scope = (
                 record.get("current_source_scope")
@@ -4540,8 +4584,16 @@ class AutoswitchPlanner:
             protected = min(
                 affected, max(0, to_int(scope.get("protected_scope_count"), 0))
             )
-            recovery_pointer = str(
-                recovery.get("object_id") or recovery.get("event_id") or ""
+            recovery_pointers = sorted({
+                str(recovery.get("object_id") or recovery.get("event_id") or "")
+                for recovery in matching_recoveries.values()
+                if str(recovery.get("object_id") or recovery.get("event_id") or "")
+            })
+            recovery_pointer = recovery_pointers[-1] if recovery_pointers else ""
+            recovered_at = max(
+                str(recovery.get("recovered_at") or recovery.get("observed_at")
+                    or recovery.get("created_at") or "")
+                for recovery in matching_recoveries.values()
             )
             terminal_scope = {
                 **scope,
@@ -4553,12 +4605,14 @@ class AutoswitchPlanner:
                 "explicitly_excluded_or_recovered_scope_count": affected - protected,
                 "accounted_scope_count": affected,
                 "scope_membership_law": (
-                    "RECOVERY_RECEIPT_PLUS_FRESH_MATRIX_TERMINAL_RECONCILIATION"
+                    "EXACT_SERVICE_RECOVERY_RECEIPT_PLUS_CURRENT_MATRIX_EPISODE_BOUNDARY"
                 ),
                 "terminal_scope_frozen": True,
                 "recovery_evidence_pointer": recovery_pointer,
-                "recovery_matrix_observation_fingerprint": str(
-                    health.get("observation_fingerprint") or ""
+                "recovery_evidence_pointers": recovery_pointers,
+                "current_matrix_relation": (
+                    "SUBSEQUENT_FAILURE_EPOCH" if subsequent_failure_epoch
+                    else "CURRENTLY_HEALTHY"
                 ),
                 "raw_user_list_stored": False,
             }
@@ -4568,16 +4622,19 @@ class AutoswitchPlanner:
             )
             lineage.update({
                 "recovery_evidence_pointer": recovery_pointer,
-                "recovery_matrix_observation_fingerprint": str(
-                    health.get("observation_fingerprint") or ""
-                ),
+                "recovery_evidence_pointers": recovery_pointers,
+                "current_matrix_relation": terminal_scope["current_matrix_relation"],
             })
             incidents[key] = {
                 **record,
                 "status": "CLOSED",
                 "incident_state": "INTENT_CLOSED",
                 "channel_incident_state": "RECOVERED",
-                "attempt_terminal": "RECOVERY_OBSERVED_NO_ACTION",
+                "attempt_terminal": (
+                    "RECOVERY_OBSERVED_NO_ACTION"
+                    if not subsequent_failure_epoch
+                    else "RECOVERY_OBSERVED_NEW_FAILURE_GENERATION_SEPARATE"
+                ),
                 "closed_at": recovered_at,
                 "next_required_consumer": "",
                 "reentry_condition": "new owner-backed failure generation",

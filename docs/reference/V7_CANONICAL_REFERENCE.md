@@ -49,6 +49,27 @@ Resolution order:
 4. SYSTEM_MAP wins for owner topology.
 5. Engineering Reports preserve evidence and history.
 
+## Autonomous Engineering Chain Integrity Rule
+
+The canonical Engineering Chain model is defined in
+`docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md`; this rule preserves
+five durable consequences for all future V7 work:
+
+1. An active required output must have one explicit existing consumer and
+   successor; a named consumer is not proof of consumption.
+2. An internal repair remains subordinate to its immutable parent goal and
+   must return to that parent after its own verification/deploy cycle.
+3. Historical evidence cannot satisfy, block or redirect live execution unless
+   the existing Knowledge Reuse Gate explicitly consumes it as current.
+4. Returning work to an operator is illegal while an executable internal
+   successor exists and no external, Authority or irreducible safety boundary
+   is proven.
+5. OMP orchestrates engineering continuation; Runtime owners retain
+   observation, selection, execution and operational `STOP_SAFE` ownership.
+
+These are interpretation laws, not a second CPS, scheduler, Runtime, Planner,
+Authority or repair queue.
+
 ## Engineering Truth Lifecycle Rule
 
 Every engineering truth consumed by OMP, Codex, BDP, Mission, Engineering Intelligence, dashboards, or future automation must have:

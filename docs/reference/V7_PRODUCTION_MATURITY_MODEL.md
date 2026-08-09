@@ -149,6 +149,15 @@ Engineering Report consumed
 
 If any link is missing, the maturity behavior chain remains incomplete and the Engineering Report must record the broken link.
 
+## Autonomous Continuation Non-Credit Rule
+
+Continuation receipts, repair deployments, re-entry callers and CT-M0F sample
+plumbing prove only the exact engineering/operational link they verify. They
+normally produce `NO_CHANGE` for Production Maturity unless the existing
+independent certification and maturity consumers accept a separately scoped
+real outcome. They never by themselves grant Authority, Runtime enablement,
+user movement scope or a maturity increase.
+
 ## Engineering Maturity Categories
 
 Engineering Maturity is the weighted total of completed knowledge categories:

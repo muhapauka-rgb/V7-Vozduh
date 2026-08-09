@@ -21,6 +21,9 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
+| `CAUSAL_CONTINUITY_CONTRACT` | `OMP §14.1A and Service Failure Program V5.2 apply to this active Service Failure/CT-M0F lineage; they do not supersede CURRENT_EXECUTION_FRONTIER or grant Runtime effects.` |
+| `CAUSAL_CONTINUITY_PARENT_GOAL` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN with the existing CT-M0F USER_PATH_CUTOVER SLO subgoal; every internal repair must return to the named parent consumer.` |
+| `CAUSAL_CONTINUITY_NEXT_PROOF` | `The existing Matrix owner produces the fresh generation; the existing OMP/Codex re-entry owner must prove real caller -> consumer -> next output, not merely a wake marker.` |
 | `ARCHITECTURE_STATE` | `STAGE_25_PRODUCTION_PROVEN_AND_LOCKED; MATRIX_EXACT_PATH_EVIDENCE_REUSE_AND_LIGHTWEIGHT_USER_ROUTE_BINDING_PRODUCTION_CONSUMED; SECOND_LEVEL_FULL_GOVERNED_FORWARD_RESET_TIME_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED_NOT_EXECUTED` |
 | `KNOWLEDGE_STATE` | `LOCKED_KNOWLEDGE` |
 | `ACTIVE_EXECUTION_OWNER` | `OMP + AEP + Codex Automation Platform existing boundary owner` |

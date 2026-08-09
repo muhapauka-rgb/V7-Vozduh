@@ -216,6 +216,27 @@ Producer
 If state does not change, the responsible owner must produce Transition Analysis and the next OMP action.
 No owner may use "no state change" as a terminal state without prerequisites and continuation.
 
+## Active Service Failure and CT-M0F Causal Continuity Ownership Map
+
+Status: `CANONICAL_OWNERSHIP_LOOKUP`.
+
+This is a stable owner topology only.  CPS owns the current generation and
+frontier; OMP owns continuation enforcement; no row introduces a second event
+bus, scheduler, planner, truth source or execution path.
+
+| Required edge | Existing producer | Existing consumer | Required downstream result | Must not be inferred from |
+| --- | --- | --- | --- | --- |
+| Fresh observation -> incident | Matrix/service-failure owners | incident and obligation owners | current generation-bound incident/obligation | historical incident/report text |
+| Obligation -> selection | OMP receipt + existing autoswitch selector | governed planner | exact source, identity and target or structured `STOP_SAFE` | a stale Candidate/Packet/lease |
+| Selection -> governed operation | planner -> Candidate -> Packet -> lease owners | governed executor | bounded operation or no-effect terminal | OMP or CPS directly executing Runtime |
+| Operation -> time/outcome | verifier, route-bound probe, feedback/learning owners | Time ledger, Outcome/Replay/Learning, CPS/OMP | measured result, closure and exact residual | route visibility or report-only success |
+| Engineering residual -> repair | OMP/BDP existing admission | affected implementation owner | verified repair -> production consumer where required | a new parallel Program |
+| Repair -> parent continuation | deploy/truth/convergence and affected consumer | existing parent OMP/Matrix re-entry owner | `RETURN_TO_PARENT_MISSION` and next fresh generation | a wake marker without a real caller/consumer output |
+
+For every non-terminal row, the current owner must expose an exact generation
+or fingerprint, next consumer and re-entry condition.  A missing edge is an
+OMP repair residual; it is not a Runtime permission or an Authority grant.
+
 | Module | Purpose | Main files | Truth source | Related reference section | Related reports | Last verified commit |
 | --- | --- | --- | --- | --- | --- | --- |
 | Product Specification | Highest-level product definition for V7. It defines what V7 is as a product: a production connectivity product that keeps users online by making routing invisible, learns from real outcomes, uses Action-Class Authority as the durable capability model, targets Delegated Autonomy Policy as the durable approval-boundary model, and owns Product Scale Model as the canonical product-level non-functional requirement for `10,000+` users, `100+` channels, millions of runtime decisions, and long-lived evidence history. Packets are fresh runtime execution artifacts, while the operator supervises policy boundaries, class authority, authority expansion, new classes, and exceptions. Architecture, OMP, Runtime, implementation, research, reports, and ADRs derive product meaning from it. | `docs/product/V7_PRODUCT_SPECIFICATION.md` | Certified project history, Canonical Reference, SYSTEM_MAP, Architecture, OMP, Decision Model, Runtime Model, Knowledge Quality Model, Autonomy Blueprint, ADRs, certified reports | Product Specification Rule; Product Scale Model | Product specification extracted from certified project history | documentation commit containing Product Specification 1.0 |

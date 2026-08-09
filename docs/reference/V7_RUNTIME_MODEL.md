@@ -1244,6 +1244,22 @@ Runtime must stop safely on:
 
 Stop is a valid runtime outcome. A stopped runtime must record the exact stop reason and must not silently retry.
 
+### Structured STOP_SAFE diagnostic contract
+
+Every Runtime `STOP_SAFE` must be emitted through its existing lifecycle,
+event or execution owner with: the failed predicate, expected and observed
+value, responsible owner, source generation/fingerprint, invalidation trigger,
+re-entry dependency and exact effect class.  This is a schema requirement on
+existing outputs, not a new diagnostics store or decision owner.
+
+`LEGITIMATE_OPERATIONAL_STOP_SAFE` means the current live world or active
+policy genuinely prevents action. `IMPLEMENTATION_DEFECT` means an existing
+valid input was lost, read stale, misbound, misclassified, not consumed, or its
+successor was unreachable. Runtime may select another existing lawful target
+or wait for the named invalidator in the first case. In the second it must
+preserve the diagnostic for OMP's existing producer-consumer repair route; it
+must not self-modify policy, Authority, Planner or routing.
+
 ## Restart Behavior
 
 Runtime survives restart by reconstructing lifecycle state from existing durable identifiers:

@@ -7833,6 +7833,64 @@ A verdict containing `CONTINUE_OMP_READY` is intermediate when `EXTERNAL_INPUT_R
 
 No-progress protection reuses Mission identity, anti-replay, Decision Reproducibility, Root Cause Engine, Intent Responsibility Resolution and Automation Gap Closure. The deterministic fingerprint is computed from stop, responsible owner, Current State, Expected State and next action. Repeated fingerprints trigger owner-backed root-cause work, never blind production mutation retry or an operator `Continue OMP` retry request.
 
+### 14.1A Autonomous Engineering Continuation and Chain Integrity
+
+This is a general strengthening of §14.1, not a new Program, scheduler,
+Runtime, Planner, queue, watcher, registry, Authority or truth source.  It
+applies to every active non-terminal OMP Mission through its existing owners.
+The canonical Engineering Chain entity model remains owned by
+`docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md`; this section defines
+only OMP continuation enforcement.
+
+Each parent Mission must preserve the immutable tuple
+`parent_program`, `parent_mission`, `parent_goal_id`,
+`parent_completion_contract` and `parent_next_required_evidence`.  A bounded
+repair may have its own implementation terminal, but that terminal is not
+parent completion.  After focused verification, any required safe deploy,
+production caller/consumer proof and selective revalidation, the repair owner
+must publish `RETURN_TO_PARENT_MISSION` to the already named parent consumer.
+
+For every active required edge OMP must prove, using existing owner-backed
+identities where they exist:
+
+```text
+producer emitted output
+  -> output is durably available
+  -> named consumer was called
+  -> consumer consumed the exact generation/fingerprint
+  -> behaviour or exact STOP_SAFE was produced
+  -> one next output and one next consumer were published
+```
+
+`report_created`, `test_passed`, `deploy_passed`, a named consumer, or a wake
+marker alone are not progress.  Progress requires consumed downstream output
+and either observed behaviour change or a structured owner-backed `STOP_SAFE`.
+For an event-driven re-entry, a request/receipt proves only delivery; the
+completion evidence must also identify the real caller, resumed consumer and
+the next produced output.
+
+The following are machine-invalid while the parent Mission is non-terminal and
+has no independent boundary:
+
+```text
+required_output exists AND next_required_consumer is empty
+safe successor exists AND successor owner is not armed/reachable
+same parent/residual/no-progress fingerprint repeats without new output
+side repair closes AND RETURN_TO_PARENT_MISSION is absent
+OMP_CONTINUATION_REQUIRED = TRUE
+  AND EXTERNAL_INPUT_REQUIRED = FALSE
+  AND PROGRAM_TERMINAL_CLASS = NONE
+  AND execution returns to operator
+```
+
+They classify respectively as `DANGLING_REQUIRED_OUTPUT`,
+`BROKEN_CONTINUATION_CHAIN`, `NO_PROGRESS_LOOP_DETECTED`,
+`PARENT_MISSION_RETURN_MISSING` and `PREMATURE_OMP_RETURN_TO_OPERATOR`.  OMP
+must route the smallest responsible existing producer-consumer repair,
+selectively revalidate only declared dependents, and resume the same parent
+Mission.  It must not hide the state behind `NO_WORK`, a report-only terminal,
+`REAL_WORLD_LIMIT` outside its exact scope, or a new parallel Program.
+
 ## 15. OMP Execution Contract For Codex
 
 Codex must not ask:

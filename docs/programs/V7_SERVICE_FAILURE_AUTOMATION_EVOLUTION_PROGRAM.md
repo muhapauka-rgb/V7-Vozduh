@@ -1,6 +1,6 @@
 # V7 Service Failure Automation Evolution Program
 
-Version: `5.1`
+Version: `5.2`
 
 Status: `APPROVED_EXECUTION_PLAN`
 
@@ -8,6 +8,62 @@ Activation state owner: `CPS`
 
 This file defines capability stages and completion contracts. It must not be
 used to infer live execution, wait, stop, Authority or Production Maturity.
+
+## V5.2 CT-M0F causal continuity and autonomous completion track
+
+V5.2 is an internal mandatory track of this existing Program.  It does not
+create a Mission, Program, Runtime actor, Planner, queue, watcher, registry,
+Authority, certification identity or production entitlement.  It reuses OMP
+§14.1/§14.1A for universal continuation enforcement and the existing CT-M0F
+contracts below for the current execution semantics.
+
+Its parent completion goal is the existing CT-M0F operational acceptance:
+
+```text
+valid USER_PATH_CUTOVER samples
+  -> Time owner consumes the measurement
+  -> exact latency residual, if any
+  -> smallest owner-backed repair
+  -> deploy and production consumer proof when required
+  -> automatic return to the same CT-M0F parent
+  -> next ordinary Matrix sample
+  -> >= 5 valid samples, p95 <= 3 s, max <= 5 s
+  -> CT-M0F COMPLETE_CONSUMED -> CT-M1 READY
+```
+
+The ordinary Matrix/timer remains the only producer of a fresh validation
+generation.  Neither Codex nor an operator may invoke it to manufacture a
+sample.  A current incident, fresh live gates and the active standing policy
+may drive the existing Runtime path; this track never creates Candidate,
+Packet, lease, restore-barrier, apply, routing mutation or user movement
+outside that exact existing-owner envelope.
+
+### Internal ordered gates
+
+| Gate | Exact purpose | Required owner-backed output -> consumer | Completion condition |
+| --- | --- | --- | --- |
+| `A_TRUTH_INTEGRITY` | Derive the minimum active working set from CPS Section 0 and the active CT-M0F/Service Failure frontier. | authoritative owner/generation/fingerprint classification -> existing CPS/OMP reconciliation | `ACTIVE_MISSION_TRUTH_GRAPH_CONSISTENT`; historical material outside the active graph is isolated, not silently ignored. |
+| `B_CHAIN_INTEGRITY` | Prove every active producer -> consumer edge through behaviour and successor. | edge receipt -> exact next owner | `ACTIVE_MISSION_PRODUCER_CONSUMER_GRAPH_CLOSED`; an absent consumer is a repair residual. |
+| `C_AUTONOMOUS_REENTRY` | Prove successor publication causes the existing OMP/Codex re-entry consumer to run. | trigger -> real caller -> exact consumer acknowledgement -> next output | `OMP_END_TO_END_AUTONOMOUS_MISSION_CONTINUATION_PROVEN`; a marker alone is insufficient. |
+| `D_SELF_REPAIR_RETURN` | Keep a consumer/implementation repair subordinate to CT-M0F. | repair verification/deploy evidence -> `RETURN_TO_PARENT_MISSION` | `PARENT_MISSION_AUTOMATIC_RETURN_AFTER_REPAIR_PROVEN`. |
+| `E_DEAD_END_GUARD` | Convert a repeated unchanged residual or unarmed successor into a repair, not a report loop. | no-progress/continuation diagnostic -> responsible existing owner | `NO_PROGRESS_AND_DANGLING_SUCCESSOR_GUARD_PROVEN`. |
+| `F_REAL_ACCEPTANCE` | Exercise the ordinary owner path end-to-end. | Matrix sample -> Time ledger -> residual or SLO evidence -> OMP | at least one complete measure -> repair/remeasure cycle, when a residual exists, occurs without an operator continuation. |
+| `G_SLO_COMPLETION` | Consume the existing CT-M0F sample and latency gate. | Time ledger/SLO result -> CPS/OMP successor | CT-M0F is `COMPLETE_CONSUMED` only at the existing five-sample, p95 and max thresholds; otherwise its exact residual remains active. |
+
+The track has two non-interchangeable terminals:
+
+- `V7_END_TO_END_AUTONOMOUS_ENGINEERING_CONTINUATION_CERTIFIED` proves the
+  continuation/repair path;
+- `LEGACY_USER_PATH_CUTOVER_OPERATIONAL_SLO_CONSUMED` proves the measured
+  CT-M0F performance objective.
+
+This track closes only when both are consumed by their existing CPS/OMP
+consumers.  Completion of the first cannot substitute for current user-path
+latency evidence; completion of the second cannot hide a manual continuation
+dependency.  Runtime operational `STOP_SAFE` remains valid when the live world
+blocks action, while stale reads, lost outputs, misbound generations, missing
+consumption or an unreachable successor are engineering defects and must
+return through the existing BDP -> OMP repair path.
 
 ## V5.1 CT-M0F existing-resource target-admission correction
 

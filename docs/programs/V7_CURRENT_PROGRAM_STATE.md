@@ -7,7 +7,7 @@ Latest terminal Mission: `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATA
 Latest terminal Mission state: `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: CT-M0F V4.9/OMP V4.72 replace the per-generation human approval loop with one bounded standing delegated validation envelope. Runtime commit `92527496` is pushed and safely deployed; the existing production owner emitted exactly one fresh request `ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06`, and a repeated non-test call returned that same pending request without another audit write. Request publication changed no policy, route, user, Packet, lease, Authority or Production Maturity. The historical one-generation request remains expired and non-reusable.
+Source: CT-M0F V4.9/OMP V4.72 replaces the per-generation human approval loop with one bounded standing delegated validation envelope. The existing production contract `ctm0fsdpc_208482a67dc4103e5f0ef7b6` is active through `2026-09-05T09:32:42Z`; repair commit `7284101a` is safely deployed and restores its canonical visibility through bounded rotated audit lineage. The ordinary Matrix consumer consumed that repair without an audit/Authority error and retained a current topology predecessor STOP_SAFE. No policy, route, user, Packet, lease, Authority or Production Maturity changed. The historical one-generation request remains expired and non-reusable.
 
 ## 0. Authoritative Live Current State
 
@@ -585,8 +585,8 @@ This section is the single live volatile current-state surface. Older production
 | `CONSTANT_TIME_COHORT_FAILOVER_TERMINAL` | CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED |
 | `CLIENT_TRAFFIC_RECOVERY_LATENCY` | NOT_MEASURED_FUTURE_REMOTE_CLIENT_APPLICATION_GATE |
 | `CONSTANT_TIME_CT_M0F_CONTRACT_VERSION` | V4.9 |
-| `CONSTANT_TIME_CT_M0F_INTERNAL_PHASE` | CT-M0F_KERNEL_CUTOVER_ENGINEERING_DEPLOYED_CONTROLLED_VALIDATION_ADMISSION_BOUNDARY |
-| `CONSTANT_TIME_CT_M0F_VALIDATION_STATE` | STANDING_MULTI_GENERATION_RUNTIME_DEPLOYED_FRESH_REQUEST_AWAITING_ONE_INDEPENDENT_DECISION |
+| `CONSTANT_TIME_CT_M0F_INTERNAL_PHASE` | CT-M0F_KERNEL_CUTOVER_ENGINEERING_DEPLOYED_ACTIVE_STANDING_VALIDATION_RECONCILED |
+| `CONSTANT_TIME_CT_M0F_VALIDATION_STATE` | ACTIVE_MULTI_GENERATION_STANDING_CONTRACT_VISIBLE_THROUGH_BOUNDED_ROTATED_AUDIT_LINEAGE; ordinary Matrix cycle 2026-08-09T07:48:04Z consumed the repaired consumer and returned the current topology predecessor STOP_SAFE; the ordinary timer remains the sole sample wake |
 | `CT_M0F_NUMERIC_GATE` | BOUNDED_FIVE_SAMPLE_NEAREST_RANK_ENGINEERING_GATE_FOR_CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER; NOT A STATISTICAL POPULATION PERCENTILE AND NOT REMOTE CLIENT RECOVERY |
 | `CT_M0F_PRODUCTION_EFFECT_BOUNDARY` | E=NONE; V=ONE_CERTIFICATION_IDENTITY_ONLY_THROUGH_EXISTING_OWNER_CONTRACT; NO_CT-M8_CLASS_L8_OR_MATURITY_CREDIT |
 | `CT_M0F_AUTHORITY_BOUNDARY` | ONE INDEPENDENT STANDING-POLICY DECISION; AFTER APPROVAL EACH SAMPLE IS AUTO-ADMITTED ONLY INSIDE THE IMMUTABLE CERTIFICATION-ONLY MAX_USERS_1 CONCURRENCY_1 ENVELOPE WITH FRESH CANDIDATE/PACKET/LEASE |
@@ -605,7 +605,7 @@ This section is the single live volatile current-state surface. Older production
 | `CT_RECOVERY_CLOCK_CONTRACT` | FIRST_FAILED_OBSERVATION_BOUND_TO_CONFIRMED_GENERATION -> HARD_FAILURE_CONFIRMED -> CLIENT_TRAFFIC_RECOVERED; DETECTION_INTERVAL_INCLUDED |
 | `FIRST_FAILURE_EVIDENCE_TO_CLIENT_RECOVERY_LATENCY` | NOT_YET_MEASURED_PRIMARY_USER_SLO |
 | `CONSTANT_TIME_CT_M0F_E_LAST_TERMINAL` | CT_M0F_KERNEL_CUTOVER_RUNTIME_CONSUMER_PRODUCTION_DEPLOYED_AND_NON_EFFECT_CALLER_CONSUMED |
-| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXISTING AUTHORITY/CONTROLLED-PRODUCTION OWNER ADMITS ONE EXACT CERTIFICATION-ONLY MATRIX GENERATION; THEN FRESH CANDIDATE/PACKET/LEASE, BOUNDED CUTOVER, TARGET-EGRESS PAYLOAD RECEIPT, RESET AND DEFERRED CLOSURE |
+| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXISTING ordinary Matrix -> active CT-M0F contract -> current isolated-source/identity/target selector -> fresh Candidate/Packet/lease only when all live gates pass; latest automatic consumer terminal is STOP_SAFE_CONTROLLED_SOURCE_PREDECESSOR_REQUIRED / ct_m0f_active_service_failure_causal_binding_required, so retain structured STOP_SAFE and automatic Matrix re-entry |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_REPORT` | docs/reports/engineering/2026-08-05_002250_ct_m0f_constant_time_performance_ledger_owner_binding.md |
 | `CT_M0F_PREPARED_AND_CLOSURE_REPORT` | docs/reports/engineering/2026-08-05_010348_ct_m0f_prepared_probe_and_deferred_closure.md |
 | `CT_M0F_DEPLOYED_COMMIT` | 92527496bea295cccbded03dde03d2f456ab3acc |
@@ -618,16 +618,18 @@ This section is the single live volatile current-state surface. Older production
 | `CT_M0F_CURRENT_METRIC` | CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_LATENCY |
 | `CT_M0F_CURRENT_CLAIM_CLASS` | CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER; NOT EXACT USER PAYLOAD; NOT REMOTE CLIENT/APPLICATION RECOVERY |
 | `CT_M0F_KERNEL_CUTOVER_CONSUMER_STATUS` | PRODUCTION_DEPLOYED_AND_NON_EFFECT_CALLER_CONSUMED |
-| `CT_M0F_CONTROLLED_VALIDATION_AUTHORITY_STATUS` | STANDING_REQUEST_REGISTERED; AWAITING_ONE_INDEPENDENT APPROVE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY OR DECLINE; NO ACTIVE CONTRACT; NO SAMPLE |
+| `CT_M0F_CONTROLLED_VALIDATION_AUTHORITY_STATUS` | ACTIVE_OWNER_BACKED_STANDING_CONTRACT; rotation-safe audit lineage consumer restored; contract active until 2026-09-05T09:32:42.689887+00:00; no new Authority required |
 | `CT_M0F_AVAILABLE_CERTIFICATION_IDENTITIES_ON_VLESS` | 41 |
 | `CT_M0F_VALID_SAMPLE_COUNT` | 0; NO SAMPLE MANUFACTURED |
+| `CT_M0F_LAST_ORDINARY_MATRIX_CONSUMER` | 2026-08-09T07:48:04Z; repaired consumer ran through ordinary v7-service-matrix-refresh.timer; no audit-missing/duplicate error, no action attempted, no runtime mutation, no user movement |
+| `CT_M0F_CURRENT_PREDECESSOR_TERMINAL` | STOP_SAFE_CONTROLLED_SOURCE_PREDECESSOR_REQUIRED; blocker ct_m0f_active_service_failure_causal_binding_required; read-only selector observes no eligible isolated source, exact group-aligned identity or distinct controlled-admitted target; no external-resource requirement is yet owner-proven |
 | `CT_M0F_REMOTE_CLIENT_RESIDUAL` | FUTURE PRODUCTION/END-USER VALIDATION GATE; NOT A CT-M1 ENGINEERING PREREQUISITE; NOT MEASURED |
 | `CT_M0F_KERNEL_CUTOVER_REPORT` | docs/reports/engineering/2026-08-06_024648_ct_m0f_kernel_cutover_contract_runtime_consumer_and_boundary.md |
 | `CT_M0F_VALIDATION_AUTHORITY_REQUEST_ID` | ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06 |
 | `CT_M0F_VALIDATION_AUTHORITY_REQUEST_HASH` | 0c4ee69155202936f0d8bb06e1dc3b609fc05c3b24f9082483fb14b044bb6438 |
-| `CT_M0F_VALIDATION_GENERATION_ID` | NONE_BEFORE_STANDING_CONTRACT_ACTIVATION |
+| `CT_M0F_VALIDATION_GENERATION_ID` | NONE_BEFORE_NEXT_ORDINARY_MATRIX_ADMITTED_GENERATION |
 | `CT_M0F_VALIDATION_REQUEST_EXPIRES_AT` | 2026-08-07T09:05:48.471187+00:00 |
-| `CT_M0F_VALIDATION_REQUEST_STATUS` | AWAITING_INDEPENDENT_AUTHORITY_DECISION |
+| `CT_M0F_VALIDATION_REQUEST_STATUS` | APPROVED_AND_ACTIVE_CONTRACT_REUSED; historical request/decision retained in bounded rotated audit lineage |
 | `CT_M0F_HISTORICAL_ONE_GENERATION_REQUEST` | ctm0fauth_r1_cda5955e978cc52c22477670; APPROVED_BEFORE_EXPIRY_NOT_CONSUMED; EXPIRED_NON_REUSABLE |
 | `CT_M0F_APPROVAL_CONSUMER_STATUS` | PRODUCTION_DEPLOYED_COMMIT_92527496; ONE STANDING DECISION THEN ATOMIC PER-SAMPLE RESERVATION/FORWARD_EVIDENCE/RESET_OR_FORWARD_RECOVERY/TERMINAL; REPEAT REQUEST CALLER RETURNS ALREADY_REGISTERED_EQUIVALENT WITH NO AUDIT WRITE; 368_AFFECTED_TESTS_PASS |
 | `CT_M0F_VALIDATION_REQUEST_REPORT` | docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md |
@@ -775,7 +777,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_285AF5FC6F4D_DRAIN`; `SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2` | Standing request/contract and automatic per-sample runtime chain are deployed; no active contract or sample exists | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` | existing Matrix, autoswitch, client telemetry, Time, L3, closure, controlled-production, Authority, CPS and OMP owners | `NONE` | one independent exact APPROVE/DECLINE; approval then automatically consumes only necessary fresh samples within max 5 valid / 3 invalid budget; do not self-grant, repeat Stage 25 or manufacture samples |
+| `1` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` program frontier; `cpsgen_SFA_SDPC_285AF5FC6F4D_DRAIN`; `SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2` | CT-M0F standing contract is active and rotation-safe consumer visibility is restored; 0 valid samples and 1 safety-stopped attempt; next sample requires only ordinary Matrix plus current live source/identity/target gates | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` | existing Matrix, autoswitch, client telemetry, Time, L3, closure, controlled-production, Authority, CPS and OMP owners | `NONE` | no additional Authority inside the active immutable CT envelope; automatically consume only a fresh Matrix-admitted sample within max 5 valid / 3 invalid budget; do not self-grant, repeat Stage 25 or manufacture samples |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

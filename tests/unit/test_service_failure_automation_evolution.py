@@ -4362,6 +4362,47 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(binding["ok"])
         self.assertEqual(binding["status"], "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING")
 
+    def test_ct_m0f_ignores_broken_historical_scope_when_current_scope_is_consumed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            current = {
+                "incident_id": "sfinc_current", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_same", "obligation_id": "sfaob_current",
+                "updated_at": "2026-08-09T07:49:42+00:00",
+                "current_source_scope": {"status": "ACCOUNTED", "affected_scope_count": 34,
+                    "unresolved_scope_count": 34, "affected_scope_fingerprint": "f" * 64},
+            }
+            broken_historical = {
+                "incident_id": "sfinc_broken", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_same", "obligation_id": "sfaob_broken",
+                "updated_at": "2026-08-09T06:49:42+00:00",
+                "current_source_scope": {"status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                    "affected_scope_count": 35, "unresolved_scope_count": 34,
+                    "affected_scope_fingerprint": "b" * 64},
+            }
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"current": current, "broken": broken_historical},
+            }), encoding="utf-8")
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_current",
+                "source_incident_id": "sfinc_current",
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(receipt) + "\n", encoding="utf-8"
+            )
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless"
+            )
+
+        self.assertTrue(binding["ok"], binding)
+        self.assertEqual(binding["source_incident_id"], "sfinc_current")
+
     def test_m2_receipt_is_materialized_into_existing_passive_projection(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

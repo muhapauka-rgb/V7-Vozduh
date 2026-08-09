@@ -2261,6 +2261,42 @@ def ct_m0f_active_service_failure_binding_projection(
             == "service_failure_automation_omp_consumption"
             and str(row.get("closure_state") or "") == "OMP_CONSUMED"
         }
+        def current_accounted_scope(record: dict[str, Any]) -> dict[str, Any]:
+            scope = record.get("current_source_scope")
+            if isinstance(scope, dict):
+                return scope
+            legacy_scope = record.get("scope_accounting")
+            return legacy_scope if isinstance(legacy_scope, dict) else {}
+
+        # An immutable historical L3 row whose own scope accounting is broken
+        # cannot compete with an ACCOUNTED current incident.  Treating that
+        # row as a separate live source scope would permanently starve the
+        # ordinary Matrix consumer even when it has a newer, consumed, exact
+        # projection for the same source generation.  This filters only rows
+        # that fail their own existing-owner scope law; two distinct valid
+        # generations or valid scope fingerprints still fail closed below.
+        valid_matches = [
+            record for record in matches
+            if (
+                str(current_accounted_scope(record).get("status") or "")
+                == "ACCOUNTED"
+                and int(
+                    current_accounted_scope(record).get(
+                        "affected_scope_count"
+                    ) or 0
+                ) > 0
+                and int(
+                    current_accounted_scope(record).get(
+                        "unresolved_scope_count"
+                    ) or 0
+                ) > 0
+                and str(
+                    current_accounted_scope(record).get(
+                        "affected_scope_fingerprint"
+                    ) or ""
+                )
+            )
+        ]
         consumed_matches = [
             record for record in matches
             if (
@@ -2270,17 +2306,17 @@ def ct_m0f_active_service_failure_binding_projection(
                 str(record.get("incident_id") or ""),
             ) in consumed_pairs
         ]
+        consumed_matches = [
+            record for record in consumed_matches if record in valid_matches
+        ]
+
         def semantic_key(record: dict[str, Any]) -> tuple[str, str]:
-            current_scope = (
-                record.get("current_source_scope")
-                if isinstance(record.get("current_source_scope"), dict)
-                else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
-            )
+            current_scope = current_accounted_scope(record)
             return (
                 str(record.get("incident_generation") or record.get("generation") or ""),
                 str(current_scope.get("affected_scope_fingerprint") or ""),
             )
-        semantic_groups = {semantic_key(record) for record in matches}
+        semantic_groups = {semantic_key(record) for record in valid_matches}
         if len(semantic_groups) == 1 and consumed_matches:
             matches = [max(
                 consumed_matches,
@@ -2294,11 +2330,12 @@ def ct_m0f_active_service_failure_binding_projection(
             return {
                 "status": (
                     "NO_ACTIVE_SERVICE_FAILURE_BINDING"
-                    if not matches else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
+                    if not valid_matches else "AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING"
                 ),
                 "ok": False,
                 "requires_binding": True,
                 "read_only": True,
+                "invalid_historical_scope_rows_ignored": len(matches) - len(valid_matches),
             }
     if len(matches) != 1:
         return {

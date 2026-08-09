@@ -91,6 +91,20 @@ active audit segment. Commit `d1a54d3a` перевёл все три CT validati
 не `EXTERNAL_RESOURCE_REQUIRED`, не новый Authority request и не Stage-48
 expansion.
 
+## Первый post-repair autonomous lifecycle terminal
+
+В `2026-08-09T08:18:37Z` штатный Matrix на уже deployed `d1a54d3a` сам
+передал exact bound input существующему governed executor: current VLESS
+incident/obligation, один certification user, source `vless`, target `awg0` и
+one-use freshness fingerprint. Его terminal:
+`CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED`.
+
+Это завершение already-existing controlled sample lifecycle, а не valid
+user-path cutover: `runtime_mutation_performed=true`, но `users_moved=0`; нового
+Candidate/Packet/lease и latency/SLO credit не заявлено. Durable successor
+`NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE` уже опубликован для
+следующего обычного Matrix timer. No-human-loop сохранён.
+
 ## Следующий owner и граница
 
 `ordinary v7-service-matrix-refresh.timer -> repaired CT-M0F Matrix consumer

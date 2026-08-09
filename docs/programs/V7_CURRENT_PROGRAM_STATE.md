@@ -605,7 +605,7 @@ This section is the single live volatile current-state surface. Older production
 | `CT_RECOVERY_CLOCK_CONTRACT` | FIRST_FAILED_OBSERVATION_BOUND_TO_CONFIRMED_GENERATION -> HARD_FAILURE_CONFIRMED -> CLIENT_TRAFFIC_RECOVERED; DETECTION_INTERVAL_INCLUDED |
 | `FIRST_FAILURE_EVIDENCE_TO_CLIENT_RECOVERY_LATENCY` | NOT_YET_MEASURED_PRIMARY_USER_SLO |
 | `CONSTANT_TIME_CT_M0F_E_LAST_TERMINAL` | CT_M0F_KERNEL_CUTOVER_RUNTIME_CONSUMER_PRODUCTION_DEPLOYED_AND_NON_EFFECT_CALLER_CONSUMED |
-| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | EXISTING ordinary Matrix -> active CT-M0F contract -> current ready selector `vless -> 10.7.0.114 -> awg0` -> fresh Candidate/Packet/lease only when all live gates remain current -> bounded cutover or exact STOP_SAFE -> Outcome/Replay/Learning; no manual Matrix call |
+| `CONSTANT_TIME_CT_M0F_E_NEXT_RESIDUAL` | `NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE`: existing ordinary Matrix -> active CT-M0F contract -> current ready selector -> fresh Candidate/Packet/lease only when all live gates remain current -> bounded cutover or exact STOP_SAFE -> Outcome/Replay/Learning; no manual Matrix call |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_REPORT` | docs/reports/engineering/2026-08-05_002250_ct_m0f_constant_time_performance_ledger_owner_binding.md |
 | `CT_M0F_PREPARED_AND_CLOSURE_REPORT` | docs/reports/engineering/2026-08-05_010348_ct_m0f_prepared_probe_and_deferred_closure.md |
 | `CT_M0F_DEPLOYED_COMMIT` | 92527496bea295cccbded03dde03d2f456ab3acc |
@@ -621,9 +621,9 @@ This section is the single live volatile current-state surface. Older production
 | `CT_M0F_KERNEL_CUTOVER_CONSUMER_STATUS` | PRODUCTION_DEPLOYED_AND_NON_EFFECT_CALLER_CONSUMED |
 | `CT_M0F_CONTROLLED_VALIDATION_AUTHORITY_STATUS` | ACTIVE_OWNER_BACKED_STANDING_CONTRACT; rotation-safe audit lineage consumer restored; contract active until 2026-09-05T09:32:42.689887+00:00; no new Authority required |
 | `CT_M0F_AVAILABLE_CERTIFICATION_IDENTITIES_ON_VLESS` | 41 |
-| `CT_M0F_VALID_SAMPLE_COUNT` | 0; NO SAMPLE MANUFACTURED |
-| `CT_M0F_LAST_ORDINARY_MATRIX_CONSUMER` | 2026-08-09T08:03:19Z; Matrix used pre-`d1a54d3a` executor and safely stopped on its stale active-file-only Authority reader; 0 effects; that terminal is superseded by deployed consumer repair |
-| `CT_M0F_CURRENT_PREDECESSOR_TERMINAL` | READY_FOR_NEXT_ORDINARY_MATRIX_CT_M0F_SAMPLE; production read-only selector proves `vless -> 10.7.0.114 -> awg0`, active incident `sfinc_74ce6760a73dff445728ecd1f1aacba1`, one eligible identity, current shared-target admission, 0 ordinary-user delta; next timer must revalidate freshness before artifacts |
+| `CT_M0F_VALID_SAMPLE_COUNT` | 0; no valid latency/user-path sample credited; the latest automatic cycle only completed existing controlled sample closure |
+| `CT_M0F_LAST_ORDINARY_MATRIX_CONSUMER` | 2026-08-09T08:18:37Z; post-`d1a54d3a` consumer completed `CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED`; runtime lifecycle mutation true, users moved 0, no user-path/SLO credit |
+| `CT_M0F_CURRENT_PREDECESSOR_TERMINAL` | NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE; existing ready selector and active incident remain bound; next timer must revalidate freshness before artifacts; no manual or operator wake |
 | `CT_M0F_REMOTE_CLIENT_RESIDUAL` | FUTURE PRODUCTION/END-USER VALIDATION GATE; NOT A CT-M1 ENGINEERING PREREQUISITE; NOT MEASURED |
 | `CT_M0F_KERNEL_CUTOVER_REPORT` | docs/reports/engineering/2026-08-06_024648_ct_m0f_kernel_cutover_contract_runtime_consumer_and_boundary.md |
 | `CT_M0F_VALIDATION_AUTHORITY_REQUEST_ID` | ctm0fsdpauth_r1_0c4ee69155202936f0d8bb06 |

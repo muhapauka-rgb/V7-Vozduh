@@ -1224,6 +1224,107 @@ def run_ct_m0f_standing_validation_campaign(
     contract_hash = str(contract.get("contract_hash") or "")
     steps: list[dict[str, Any]] = []
 
+    def compact_budget(value: Any) -> dict[str, Any]:
+        """Keep the admission budget observable without copying audit history."""
+        budget = value if isinstance(value, dict) else {}
+        return {
+            key: budget.get(key)
+            for key in (
+                "valid_samples", "invalid_or_safety_stopped_attempts",
+                "cold_valid_samples", "warm_valid_samples",
+                "owner_backed_generation_count", "active_reservations",
+                "next_sample_kind", "campaign_complete",
+                "attempt_budget_exhausted", "valid_sample_budget_exhausted",
+            )
+            if key in budget
+        }
+
+    def preparation_receipt(
+        phase: str,
+        *,
+        source_selection: Any = None,
+        execution: Any = None,
+        budget: Any = None,
+        reservation_id: str = "",
+        prior_reservation_id: str = "",
+        terminal: str = "",
+        blockers: Any = None,
+        next_consumer: str = "",
+    ) -> dict[str, Any]:
+        """Project the existing CT-M0F owners' exact admission predicates.
+
+        This is deliberately a compact Matrix lifecycle projection, not a
+        second audit/outcome store.  In particular, it makes a cleanup of an
+        older reservation distinguishable from preparation of a new sample.
+        """
+        selection = source_selection if isinstance(source_selection, dict) else {}
+        child = execution if isinstance(execution, dict) else {}
+        admission = child.get("ct_m0f_admission_consumption")
+        admission = admission if isinstance(admission, dict) else {}
+        reservation = admission.get("reservation")
+        reservation = reservation if isinstance(reservation, dict) else {}
+        live_reservation_id = str(reservation.get("reservation_id") or reservation_id or "")
+        child_budget = admission.get("budget")
+        effective_budget = child_budget if isinstance(child_budget, dict) else budget
+        selection_ok = bool(selection.get("ok") is True)
+        execute_started = bool(child) or phase == "FRESH_SAMPLE_EXECUTION"
+        packet_id = str(reservation.get("packet_id") or "")
+        lease_id = str(reservation.get("lease_id") or "")
+        operation_id = str(reservation.get("operation_id") or "")
+        evidence = child.get("ct_m0f_cutover_evidence")
+        evidence = evidence if isinstance(evidence, dict) else {}
+        return {
+            "schema_version": "v7.ct-m0f-sample-preparation-receipt.v1",
+            "phase": phase,
+            "contract_id": contract_id,
+            "source_selection": {
+                "state": "PASS" if selection_ok else "NOT_EVALUATED" if not selection else "STOP_SAFE",
+                "selection_mode": str(selection.get("selection_mode") or ""),
+                "source": str(selection.get("selected_source_id") or ""),
+                "user": str(selection.get("selected_user") or ""),
+                "target": str(selection.get("selected_target_id") or ""),
+                "binding_fingerprint": str(selection.get("sample_binding_fingerprint") or ""),
+            },
+            "predicates": {
+                "previous_sample_closure": {
+                    "state": "PASS" if prior_reservation_id else "NOT_REQUIRED",
+                    "reservation_id": prior_reservation_id,
+                },
+                "sample_budget_and_kind": {
+                    "state": "PASS" if effective_budget else "NOT_EMITTED_BY_EXECUTOR",
+                    "budget": compact_budget(effective_budget),
+                },
+                "fresh_candidate_admission": {
+                    "state": "PASS" if live_reservation_id else "NOT_YET_ADMITTED" if execute_started else "NOT_EVALUATED",
+                    "owner": "tools/v7-users-autoswitch Planner",
+                },
+                "fresh_packet": {
+                    "state": "PASS" if packet_id else "NOT_YET_MATERIALIZED" if execute_started else "NOT_EVALUATED",
+                    "packet_id": packet_id,
+                    "operation_id": operation_id,
+                },
+                "fresh_lease": {
+                    "state": "PASS" if lease_id else "NOT_YET_MATERIALIZED" if execute_started else "NOT_EVALUATED",
+                    "lease_id": lease_id,
+                },
+                "restore_barrier": {
+                    "state": "PASS" if child.get("restore_barrier_written_now") is True else "NOT_WRITTEN" if execute_started else "NOT_EVALUATED",
+                    "owner": "existing packet-bound restore-barrier owner",
+                },
+                "route_and_exact_client_payload": {
+                    "state": (
+                        "PASS" if evidence.get("status") == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+                        else "NOT_YET_PROVEN" if execute_started else "NOT_EVALUATED"
+                    ),
+                    "time_receipt_status": str(evidence.get("status") or ""),
+                },
+            },
+            "reservation_id": live_reservation_id,
+            "terminal": terminal,
+            "blockers": sorted({str(value) for value in (blockers or []) if str(value)}),
+            "next_required_consumer": next_consumer,
+        }
+
     def active_reservations() -> list[dict[str, Any]]:
         current = operator_execution.read_live_execution_lineage_records(
             audit_store
@@ -1269,6 +1370,11 @@ def run_ct_m0f_standing_validation_campaign(
                 "status": "STOP_SAFE_DUPLICATE_ACTIVE_SAMPLE_RESERVATIONS",
                 "ok": False,
                 "steps": steps,
+                "sample_preparation_receipt": preparation_receipt(
+                    "ACTIVE_RESERVATION_RECONCILIATION",
+                    blockers=["ct_m0f_duplicate_active_sample_reservations"],
+                    next_consumer="existing sample reset/closure owner",
+                ),
                 "active_reservation_ids": [
                     str(row.get("reservation_id") or "") for row in active
                 ],
@@ -1314,6 +1420,14 @@ def run_ct_m0f_standing_validation_campaign(
                 "status": "STOP_SAFE_SAMPLE_RESET_OR_CLOSURE_FAILED",
                 "ok": False,
                 "steps": steps,
+                "sample_preparation_receipt": preparation_receipt(
+                    "ACTIVE_SAMPLE_CLOSURE",
+                    budget=reset.get("budget"),
+                    prior_reservation_id=reservation_id,
+                    terminal=str(reset.get("final_verdict") or ""),
+                    blockers=["ct_m0f_sample_reset_or_closure_failed"],
+                    next_consumer="existing sample reset/closure owner",
+                ),
                 "runtime_mutation_performed": any(
                     bool(row.get("runtime_mutation_performed")) for row in steps
                 ),
@@ -1327,6 +1441,12 @@ def run_ct_m0f_standing_validation_campaign(
                 "ok": True,
                 "steps": steps,
                 "budget": budget,
+                "sample_preparation_receipt": preparation_receipt(
+                    "ACTIVE_SAMPLE_CLOSURE",
+                    budget=budget,
+                    prior_reservation_id=reservation_id,
+                    terminal="CT_M0F_OPERATIONAL_SLO_CONSUMED",
+                ),
                 "action_completed": True,
                 "runtime_mutation_performed": any(
                     bool(row.get("runtime_mutation_performed")) for row in steps
@@ -1343,6 +1463,14 @@ def run_ct_m0f_standing_validation_campaign(
                 "ok": True,
                 "steps": steps,
                 "budget": budget,
+                "sample_preparation_receipt": preparation_receipt(
+                    "ACTIVE_SAMPLE_CLOSURE",
+                    budget=budget,
+                    prior_reservation_id=reservation_id,
+                    terminal="CT_M0F_VALIDATION_ATTEMPT_BUDGET_EXHAUSTED_ENGINEERING_RESIDUAL_REQUIRED",
+                    blockers=["ct_m0f_validation_attempt_or_valid_sample_budget_exhausted"],
+                    next_consumer="OMP existing engineering frontier owner",
+                ),
                 "action_completed": True,
                 "runtime_mutation_performed": any(
                     bool(row.get("runtime_mutation_performed")) for row in steps
@@ -1355,6 +1483,13 @@ def run_ct_m0f_standing_validation_campaign(
             "ok": True,
             "steps": steps,
             "budget": budget,
+            "sample_preparation_receipt": preparation_receipt(
+                "ACTIVE_SAMPLE_CLOSURE",
+                budget=budget,
+                prior_reservation_id=reservation_id,
+                terminal="CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED",
+                next_consumer="next ordinary Matrix generation",
+            ),
             "action_completed": True,
             "runtime_mutation_performed": any(
                 bool(row.get("runtime_mutation_performed")) for row in steps
@@ -1407,6 +1542,14 @@ def run_ct_m0f_standing_validation_campaign(
             "blockers": list(source_selection.get("blockers") or [
                 "ct_m0f_standing_controlled_source_selection_unavailable"
             ]),
+            "sample_preparation_receipt": preparation_receipt(
+                "SOURCE_SELECTION",
+                source_selection=source_selection,
+                blockers=list(source_selection.get("blockers") or [
+                    "ct_m0f_standing_controlled_source_selection_unavailable"
+                ]),
+                next_consumer="existing source/target selection owner",
+            ),
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
@@ -1449,6 +1592,17 @@ def run_ct_m0f_standing_validation_campaign(
             "ok": passed,
             "source_selection": source_selection,
             "preparation": prepared,
+            "sample_preparation_receipt": preparation_receipt(
+                "CONTROLLED_CONDITION_PREPARATION",
+                source_selection=source_selection,
+                execution=prepared,
+                terminal=str(prepared.get("final_verdict") or ""),
+                blockers=[] if passed else [str(prepared.get("final_verdict") or "controlled_condition_preparation_failed")],
+                next_consumer=(
+                    "next ordinary Matrix generation"
+                    if passed else "existing controlled-condition owner"
+                ),
+            ),
             "output_tail": "" if prepared else output,
             "action_attempted": True,
             "runtime_mutation_performed": bool(
@@ -1468,6 +1622,12 @@ def run_ct_m0f_standing_validation_campaign(
             "status": "STOP_SAFE_CONTROLLED_FAILURE_NOT_READY",
             "ok": True,
             "source_selection": source_selection,
+            "sample_preparation_receipt": preparation_receipt(
+                "CONTROLLED_FAILURE_SELECTION",
+                source_selection=source_selection,
+                blockers=["ct_m0f_standing_controlled_failure_not_ready"],
+                next_consumer="existing source/target selection owner",
+            ),
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
@@ -1482,6 +1642,14 @@ def run_ct_m0f_standing_validation_campaign(
             "blockers": list(active_service_failure_binding.get("blockers") or [
                 "ct_m0f_active_service_failure_causal_binding_required"
             ]),
+            "sample_preparation_receipt": preparation_receipt(
+                "ACTIVE_SERVICE_FAILURE_BINDING",
+                source_selection=source_selection,
+                blockers=list(active_service_failure_binding.get("blockers") or [
+                    "ct_m0f_active_service_failure_causal_binding_required"
+                ]),
+                next_consumer="existing service-failure binding owner",
+            ),
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
@@ -1561,6 +1729,16 @@ def run_ct_m0f_standing_validation_campaign(
                 str(result.get("stop_reason") or result.get("final_verdict") or "sample_not_admitted")
             ],
             "steps": steps,
+            "sample_preparation_receipt": preparation_receipt(
+                "FRESH_SAMPLE_EXECUTION",
+                source_selection=source_selection,
+                execution=result,
+                terminal=str(result.get("final_verdict") or result.get("stop_reason") or ""),
+                blockers=[
+                    str(result.get("stop_reason") or result.get("final_verdict") or "sample_not_admitted")
+                ],
+                next_consumer="existing CT-M0F predicate repair/Matrix consumer",
+            ),
             "action_completed": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
@@ -1571,6 +1749,13 @@ def run_ct_m0f_standing_validation_campaign(
         "status": "CT_M0F_BOUNDED_SUCCESSOR_LIMIT_REACHED",
         "ok": True,
         "steps": steps,
+        "sample_preparation_receipt": preparation_receipt(
+            "BOUNDED_SUCCESSOR_LIMIT",
+            source_selection=source_selection,
+            terminal="CT_M0F_BOUNDED_SUCCESSOR_LIMIT_REACHED",
+            blockers=["ct_m0f_bounded_successor_limit_reached"],
+            next_consumer="next ordinary Matrix generation",
+        ),
         "action_completed": bool(steps),
         "runtime_mutation_performed": any(
             bool(row.get("runtime_mutation_performed")) for row in steps
@@ -2804,6 +2989,17 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     value = payload if isinstance(payload, dict) else {}
     result = value.get("consumer_result")
     result = result if isinstance(result, dict) else {}
+    # CT-M0F is a direct existing Matrix consumer rather than the generic
+    # wrapper used by the older campaign lanes.  Without this adaptation its
+    # durable Matrix receipt retained neither its terminal nor the exact
+    # predicate path that explains why a fresh sample was or was not admitted.
+    if (
+        not result
+        and str(value.get("schema_version") or "").startswith(
+            "v7.ct-m0f-standing-validation-matrix-consumer."
+        )
+    ):
+        result = value
     compact_result = {
         key: result.get(key)
         for key in (
@@ -2827,6 +3023,41 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     bounded_closure = result.get("bounded_closure_reconciliation") or value.get("bounded_closure_reconciliation")
     if isinstance(bounded_closure, dict) and bounded_closure:
         compact_result["bounded_closure_reconciliation"] = bounded_closure
+    sample_preparation = (
+        result.get("sample_preparation_receipt")
+        or value.get("sample_preparation_receipt")
+    )
+    if isinstance(sample_preparation, dict) and sample_preparation:
+        predicates = sample_preparation.get("predicates")
+        predicates = predicates if isinstance(predicates, dict) else {}
+        source_selection = sample_preparation.get("source_selection")
+        source_selection = (
+            source_selection if isinstance(source_selection, dict) else {}
+        )
+        compact_result["ct_m0f_sample_preparation"] = {
+            "schema_version": str(sample_preparation.get("schema_version") or ""),
+            "phase": str(sample_preparation.get("phase") or ""),
+            "contract_id": str(sample_preparation.get("contract_id") or ""),
+            "reservation_id": str(sample_preparation.get("reservation_id") or ""),
+            "terminal": str(sample_preparation.get("terminal") or ""),
+            "blockers": list(sample_preparation.get("blockers") or [])[:12],
+            "next_required_consumer": str(
+                sample_preparation.get("next_required_consumer") or ""
+            ),
+            "source_selection": {
+                key: source_selection.get(key)
+                for key in (
+                    "state", "selection_mode", "source", "user", "target",
+                    "binding_fingerprint",
+                )
+                if source_selection.get(key) not in (None, "", [], {})
+            },
+            "predicates": {
+                name: predicate
+                for name, predicate in predicates.items()
+                if isinstance(predicate, dict)
+            },
+        }
     for key in (
         "performance_benchmark",
         "campaign_stage_credit",

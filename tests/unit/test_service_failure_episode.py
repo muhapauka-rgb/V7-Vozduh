@@ -163,6 +163,15 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["durable_successor"],
             "NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE",
         )
+        receipt = result["sample_preparation_receipt"]
+        self.assertEqual(receipt["phase"], "ACTIVE_SAMPLE_CLOSURE")
+        self.assertEqual(
+            receipt["predicates"]["previous_sample_closure"]["state"], "PASS"
+        )
+        self.assertEqual(
+            receipt["predicates"]["fresh_candidate_admission"]["state"],
+            "NOT_EVALUATED",
+        )
 
     def test_ct_m0f_standing_matrix_prepares_condition_then_waits_for_fresh_generation(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
@@ -234,6 +243,88 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertIn("--prepare-ct-m0f-standing-controlled-condition", calls[1])
         self.assertNotIn("--execute-l3-production-validation", calls[1])
         self.assertEqual(result["durable_successor"], "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE")
+        self.assertEqual(
+            result["sample_preparation_receipt"]["next_required_consumer"],
+            "next ordinary Matrix generation",
+        )
+
+    def test_ct_m0f_no_sample_admission_retains_predicate_receipt_in_matrix_projection(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit" / "operator-execution-audit.jsonl"
+            policy = root / "policy.json"
+            state.mkdir(parents=True)
+            events.mkdir(parents=True)
+            audit.parent.mkdir(parents=True)
+            policy.write_text("{}\n", encoding="utf-8")
+            request = self.refresh.operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=self.refresh.operator_execution.sha256_file(policy),
+                now=now,
+            )
+            self.refresh.operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            self.refresh.operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=self.refresh.operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+
+            def fake_run(command, **_kwargs):
+                if "--ct-m0f-standing-source-selection" in command:
+                    payload = {
+                        "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_READY",
+                        "ok": True,
+                        "selection_mode": "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
+                        "selected_source_id": "vless",
+                        "selected_user": "10.7.0.18",
+                        "selected_target_id": "awg0",
+                        "sample_binding_fingerprint": "b" * 64,
+                    }
+                    return self.refresh.subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload))
+                payload = {
+                    "final_verdict": "STOP_SAFE",
+                    "stop_reason": "l3_production_validation_transition_blocked",
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                    "l3_plan_run": {"ok": False},
+                }
+                return self.refresh.subprocess.CompletedProcess(command, 2, stdout=json.dumps(payload))
+
+            with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+                result = self.refresh.run_ct_m0f_standing_validation_campaign(
+                    "governed-executor",
+                    "existing-planner",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=policy,
+                    audit_store=audit,
+                )
+            projection = self.refresh.compact_refresh_projection({
+                "ct_m0f_standing_validation_campaign": result,
+            })
+
+        self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
+        receipt = result["sample_preparation_receipt"]
+        self.assertEqual(receipt["phase"], "FRESH_SAMPLE_EXECUTION")
+        self.assertEqual(
+            receipt["predicates"]["fresh_candidate_admission"]["state"],
+            "NOT_YET_ADMITTED",
+        )
+        compact = projection["ct_m0f_standing_validation_campaign"]
+        self.assertEqual(compact["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
+        self.assertEqual(
+            compact["consumer_result"]["ct_m0f_sample_preparation"]["predicates"]
+            ["fresh_packet"]["state"],
+            "NOT_YET_MATERIALIZED",
+        )
 
     def test_ct_m0f_condition_effect_publishes_durable_audit_successor(self):
         with tempfile.TemporaryDirectory() as tmp:

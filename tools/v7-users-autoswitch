@@ -2360,10 +2360,25 @@ def ct_m0f_active_service_failure_binding_projection(
         ]
         if live_source_scope["registry_available"]:
             # The live route owner is available, so no historical or compact
-            # projection may win merely by being newer.  There must be exactly
-            # one consumed binding for the current route membership.
+            # projection may win merely by being newer.  One exact matching
+            # projection is accepted; repeated consumed observations of the
+            # *same* live source generation and scope are one continuing
+            # incident and may deterministically select their newest receipt.
+            # Different matching generations still remain ambiguous.
             if len(live_scope_matches) == 1:
                 matches = live_scope_matches
+            elif (
+                len(live_scope_matches) > 1
+                and len({semantic_key(record) for record in live_scope_matches}) == 1
+            ):
+                matches = [max(
+                    live_scope_matches,
+                    key=lambda record: (
+                        str(record.get("last_observed_at") or ""),
+                        str(record.get("updated_at") or ""),
+                        str(record.get("incident_id") or ""),
+                    ),
+                )]
             else:
                 return {
                     "status": (

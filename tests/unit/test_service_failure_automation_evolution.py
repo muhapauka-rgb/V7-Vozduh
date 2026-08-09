@@ -4740,6 +4740,57 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING",
         )
 
+    def test_ct_m0f_coalesces_repeated_current_scope_observations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": ["10.0.0.2"],
+            })
+            records = {}
+            receipts = []
+            for suffix, observed_at in (
+                ("older", "2026-08-09T10:08:03+00:00"),
+                ("newer", "2026-08-09T10:23:26+00:00"),
+            ):
+                incident_id = f"sfinc_{suffix}"
+                obligation_id = f"sfaob_{suffix}"
+                records[suffix] = {
+                    "incident_id": incident_id, "incident_state": "OPEN",
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                    "incident_generation": "egid_same", "obligation_id": obligation_id,
+                    "last_observed_at": observed_at,
+                    "current_source_scope": {
+                        "status": "ACCOUNTED", "affected_scope_count": 1,
+                        "unresolved_scope_count": 1,
+                        "affected_scope_fingerprint": fingerprint,
+                    },
+                }
+                receipts.append({
+                    "object_type": "service_failure_automation_omp_consumption",
+                    "closure_state": "OMP_CONSUMED",
+                    "automation_obligation_id": obligation_id,
+                    "source_incident_id": incident_id,
+                })
+            (state_dir / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": records}), encoding="utf-8"
+            )
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in receipts) + "\n",
+                encoding="utf-8",
+            )
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless"
+            )
+
+        self.assertTrue(binding["ok"], binding)
+        self.assertEqual(binding["source_incident_id"], "sfinc_newer")
+
     def test_ct_m0f_ignores_broken_historical_scope_when_current_scope_is_consumed(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

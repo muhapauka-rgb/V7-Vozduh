@@ -1205,7 +1205,7 @@ def run_ct_m0f_standing_validation_campaign(
         if isinstance(policy_root, dict)
         else {}
     )
-    records = operator_execution.read_audit_records(audit_store)
+    records = operator_execution.read_live_execution_lineage_records(audit_store)
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract, audit_records=records,
     )
@@ -1225,7 +1225,9 @@ def run_ct_m0f_standing_validation_campaign(
     steps: list[dict[str, Any]] = []
 
     def active_reservations() -> list[dict[str, Any]]:
-        current = operator_execution.read_audit_records(audit_store)
+        current = operator_execution.read_live_execution_lineage_records(
+            audit_store
+        )
         terminal_ids = {
             str(row.get("reservation_id") or "")
             for row in current

@@ -1350,7 +1350,7 @@ def register_ct_m0f_controlled_validation_authority_request(
         raise PacketError(",".join(validation.get("errors") or ["ct_m0f_validation_request_invalid"]))
     audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     with current_action_class_contract_policy_lock(audit_store):
-        records = read_audit_records(audit_store)
+        records = read_live_execution_lineage_records(audit_store)
         existing = [
             row for row in records
             if row.get("record_type") == CT_M0F_CONTROLLED_VALIDATION_REQUEST_RECORD_TYPE
@@ -1938,7 +1938,7 @@ def pending_ct_m0f_standing_validation_authority_request(
 ):
     """Reuse one equivalent undecided request instead of creating churn."""
     now = now or utc_now()
-    records = read_audit_records(
+    records = read_live_execution_lineage_records(
         Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     )
     decided = {
@@ -1973,7 +1973,12 @@ def ct_m0f_standing_validation_request_from_audit(
     request_id, request_hash, *, audit_store=None, now=None,
 ):
     now = now or utc_now()
-    records = read_audit_records(Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE))
+    # CT-M0F is a standing multi-generation contract.  Its exact request and
+    # decision remain authoritative after the append-only audit rotates; using
+    # only the active segment makes a still-valid policy disappear at rotation.
+    records = read_live_execution_lineage_records(
+        Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    )
     matches = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE and str(row.get("authority_request_id") or "") == str(request_id or "")]
     if len(matches) != 1:
         raise PacketError("ct_m0f_standing_request_missing_or_duplicate")
@@ -2002,7 +2007,7 @@ def issue_ct_m0f_standing_validation_policy_from_audit(
     policy_path = Path(policy_path)
     audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     with current_action_class_contract_policy_lock(policy_path):
-        records = read_audit_records(audit_store)
+        records = read_live_execution_lineage_records(audit_store)
         matching_decisions = [
             row for row in records
             if row.get("record_type")
@@ -2220,7 +2225,7 @@ def reserve_ct_m0f_standing_validation_sample(
     with current_action_class_contract_policy_lock(policy_path):
         policy_root = read_json(policy_path)
         contract = (policy_root or {}).get(CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}) if isinstance(policy_root, dict) else {}
-        records = read_audit_records(audit_store)
+        records = read_live_execution_lineage_records(audit_store)
         validation = validate_ct_m0f_standing_validation_policy(contract, audit_records=records, now=now)
         if not validation.get("ok"):
             return {"ok": False, "status": "STOP_SAFE", "errors": validation.get("errors") or [], "audit_write": False}
@@ -2262,7 +2267,9 @@ def validate_ct_m0f_standing_validation_sample_reservation(
     audit_store=None,
 ):
     expected = {"contract_id": str(contract_id or ""), "contract_hash": str(contract_hash or ""), "implementation_fingerprint": str(implementation_fingerprint or ""), "validation_generation_id": str(validation_generation_id or ""), "packet_id": str(packet_id or ""), "operation_id": str(operation_id or ""), "lease_id": str(lease_id or ""), "user": str(user or ""), "source": str(source or ""), "target": str(target or "")}
-    records = read_audit_records(Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE))
+    records = read_live_execution_lineage_records(
+        Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    )
     matches = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and all(str(row.get(key) or "") == value for key, value in expected.items())]
     errors = [f"ct_m0f_standing_{key}_missing" for key, value in expected.items() if not value]
     if len(matches) != 1:
@@ -2274,7 +2281,7 @@ def ct_m0f_standing_validation_sample_from_audit(
     reservation_id, *, audit_store=None,
 ):
     """Return one exact standing sample lineage and its durable progress."""
-    records = read_audit_records(
+    records = read_live_execution_lineage_records(
         Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     )
     reservations = [
@@ -2324,7 +2331,7 @@ def record_ct_m0f_standing_validation_forward_evidence(
     if evidence.get("status") != "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS":
         raise PacketError("ct_m0f_standing_forward_evidence_not_valid")
     with current_action_class_contract_policy_lock(audit_store):
-        records = read_audit_records(audit_store)
+        records = read_live_execution_lineage_records(audit_store)
         reservations = [
             row for row in records
             if row.get("record_type")
@@ -2379,7 +2386,7 @@ def record_ct_m0f_standing_validation_sample_terminal(
     now = now or utc_now()
     audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
     with current_action_class_contract_policy_lock(audit_store):
-        records = read_audit_records(audit_store)
+        records = read_live_execution_lineage_records(audit_store)
         reservations = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and row.get("reservation_id") == str(reservation_id or "")]
         if len(reservations) != 1:
             raise PacketError("ct_m0f_standing_sample_reservation_missing_or_duplicate")
@@ -7141,6 +7148,11 @@ def read_live_execution_lineage_records(
         CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE,
         CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE,
         CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
     }
     durable_effect_classes = {
         AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS,
@@ -8314,7 +8326,9 @@ def main(argv=None):
             )
             existing_validation = validate_ct_m0f_standing_validation_policy(
                 existing_contract,
-                audit_records=read_audit_records(Path(audit_store)),
+                audit_records=read_live_execution_lineage_records(
+                    Path(audit_store)
+                ),
             )
             if existing_validation.get("ok"):
                 result = {

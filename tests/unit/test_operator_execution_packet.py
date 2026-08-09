@@ -3881,6 +3881,55 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
         self.assertIn("ct_m0f_standing_request_expired", request_validation["errors"])
 
+    def test_ct_m0f_standing_contract_survives_bounded_audit_rotation(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-execution-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = (
+                operator_execution.build_ct_m0f_standing_validation_authority_request(
+                    policy_generation_hash=operator_execution.sha256_file(policy),
+                    now=now,
+                )
+            )
+            operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            activated = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            audit.rename(root / "operator-execution-audit.jsonl.1")
+            audit.write_text("", encoding="utf-8")
+            lineage = operator_execution.read_live_execution_lineage_records(audit)
+            validation = operator_execution.validate_ct_m0f_standing_validation_policy(
+                activated["contract"], audit_records=lineage,
+                now=now + timedelta(seconds=3),
+            )
+            reservation = operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy,
+                implementation_fingerprint="f" * 64,
+                validation_generation_id="ctm0fgen_rotation",
+                packet_id="packet-rotation",
+                operation_id="operation-rotation",
+                lease_id="lease-rotation",
+                user="certification-identity",
+                source="vless",
+                target="awg0",
+                audit_store=audit,
+                now=now + timedelta(seconds=4),
+            )
+
+        self.assertTrue(validation["ok"], validation["errors"])
+        self.assertTrue(reservation["ok"], reservation.get("errors"))
+
     def test_ct_m0f_standing_decline_is_audited_without_policy_activation(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

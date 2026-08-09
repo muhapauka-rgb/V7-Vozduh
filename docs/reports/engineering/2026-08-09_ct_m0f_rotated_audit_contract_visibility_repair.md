@@ -50,35 +50,46 @@ Production hashes совпали с source. Production non-test policy consumer 
 
 ## Раздельная topology truth
 
-Восстановление contract visibility не подменяет physical topology. Последний
-read-only topology owner пока не видит active isolated certification source,
-matching certification identity или admissible controlled target. Поэтому
-следующий обычный Matrix cycle обязан заново решить именно эти live predicates;
-он не имеет права создавать external-resource residual только из-за уже
-исправленного audit lookup.
+Восстановление contract visibility не подменяет physical topology. Первичный
+ручной read-only вызов с неканоническим пустым state-path был отвергнут как
+не-авторитетный и не использован для current truth. Канонический
+`/opt/v7/egress/state` owner подтверждает existing-resource triple:
+`vless -> 10.7.0.114 -> awg0`; source isolated для controlled condition,
+active incident и exact certification identity существуют, target healthy,
+capacity/verification/rollback supported, shared-target admission active и
+ordinary-user delta равен `0`.
 
-VLESS продолжает наблюдаться как degraded/WARN. Existing Planner способен
-строить preparation к compatible target, но это ещё не production permission:
-требуются current action recommendation, isolation, capacity, freshness,
-anti-flap, Candidate, Packet и lease.
+VLESS остаётся degraded/WARN. Это даёт нужное current failure lineage, но ещё
+не production permission: перед effect обычный Matrix обязан вновь проверить
+freshness, anti-flap, Candidate, Packet и lease.
 
 ## Доказательство автоматического re-entry
 
-После deploy штатный `v7-service-matrix-refresh.timer` сам запустил Matrix в
-`2026-08-09T07:48:04Z`; Matrix не запускался вручную. Исправленный CT-M0F
-consumer больше не выдал `ct_m0f_standing_authority_audit_missing_or_duplicate`.
-Его exact terminal: `STOP_SAFE_CONTROLLED_SOURCE_PREDECESSOR_REQUIRED`, blocker
-`ct_m0f_active_service_failure_causal_binding_required`.
+После deploy штатный `v7-service-matrix-refresh.timer` сам запускал Matrix;
+Matrix не запускался вручную. Первый post-repair cycle убрал
+`ct_m0f_standing_authority_audit_missing_or_duplicate`, но read-only canonical
+selector обнаружил другой producer-consumer defect: несколько immutable L3
+rows одной generation, включая `INCIDENT_SCOPE_ACCOUNTING_BROKEN`, создавали
+ложный `AMBIGUOUS_ACTIVE_SERVICE_FAILURE_BINDING`.
 
-Это отдельный, текущий physical predecessor, а не опровержение standing
-contract: действие не начиналось, Candidate/Packet/lease не создавались,
-policy не записывалась, runtime/routing не менялись, пользователей не
-перемещали. Read-only selector в том же состоянии видит `0` eligible controlled
-sources, `0` exact group-aligned certification identities и `0` distinct
-controlled-admitted targets. Следовательно, `EXTERNAL_RESOURCE_REQUIRED` пока
-не доказан: следующий тот же timer обязан заново проверить live topology и
-либо построить fresh eligible sample, либо сохранить этот structured STOP_SAFE
-с automatic re-entry.
+Commit `4ba510a5` оставляет fail-closed две разные valid scope/generation,
+но исключает только rows, нарушающие их собственный existing-owner scope law,
+и выбирает newest OMP-consumed matching current projection. Production caller
+после deploy вернул `CT_M0F_STANDING_CONTROLLED_FAILURE_READY` с incident
+`sfinc_74ce6760a73dff445728ecd1f1aacba1`.
+
+Следующий Matrix cycle в `2026-08-09T08:03:19Z` ещё безопасно остановился на
+`ct_m0f_standing_validation_policy_denied`: его downstream
+`v7-governed-canary-dry-run-cycle` оставался третьим consumer, читавшим лишь
+active audit segment. Commit `d1a54d3a` перевёл все три CT validation paths
+этого executor на тот же bounded rotated-audit reader; safe deploy прошёл.
+Ни один из этих cycles не создал Candidate/Packet/lease, не записал policy,
+не изменил runtime/routing и не переместил пользователей.
+
+Следующая штатная Matrix generation обязана revalidate готовый triple и либо
+создать fresh bounded sample, либо оставить новый exact live STOP_SAFE. Это
+не `EXTERNAL_RESOURCE_REQUIRED`, не новый Authority request и не Stage-48
+expansion.
 
 ## Следующий owner и граница
 

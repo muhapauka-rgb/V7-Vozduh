@@ -4070,7 +4070,11 @@ class AutoswitchPlanner:
 
         A packet outcome is not membership in a later source-scope generation.
         It can reduce that generation only when its immutable causal binding
-        carries the exact same count-plus-fingerprint snapshot.  This avoids
+        carries the exact same source, count and fingerprint snapshot.  A
+        channel failure can have several service-specific incident IDs over
+        one immutable source-scope cohort; an exact matching fingerprint is
+        therefore the membership boundary, while the incident ID remains the
+        producer identity of the individual service observation.  This avoids
         treating an old successful move as protection for users that were not
         in the current failed-source denominator.
         """
@@ -4245,8 +4249,6 @@ class AutoswitchPlanner:
                 if feedback_id:
                     excluded_pointers.add(feedback_id)
                 continue
-            if str(binding.get("source_incident_id") or "") != source_incident_id:
-                continue
             binding_event_ids = {
                 str(value) for value in (
                     binding.get("source_event_ids") or
@@ -4254,10 +4256,6 @@ class AutoswitchPlanner:
                      if binding.get("source_event_id") else [])
                 ) if str(value)
             }
-            if baseline_event_id and baseline_event_id not in binding_event_ids:
-                if feedback_id:
-                    rejected_feedback_ids.add(feedback_id)
-                continue
             scope = binding.get("source_scope")
             scope = scope if isinstance(scope, dict) else {}
             scope_matches = (
@@ -4265,6 +4263,24 @@ class AutoswitchPlanner:
                 and to_int(scope.get("affected_scope_count"), -1) == baseline_count
                 and str(scope.get("affected_scope_fingerprint") or "") == baseline_fingerprint
             )
+            direct_incident_binding = (
+                str(binding.get("source_incident_id") or "") == source_incident_id
+            )
+            direct_event_binding = (
+                not baseline_event_id or baseline_event_id in binding_event_ids
+            )
+            # Service observations can be distinct incidents while sharing
+            # one immutable channel-scope cohort.  Never use proximity or a
+            # route-only inference for that join: source/count/fingerprint
+            # must all match the current denominator, and the verified route
+            # below must still prove the moved member is on its packet target.
+            same_source_scope_cohort = scope_matches
+            if not direct_incident_binding and not same_source_scope_cohort:
+                continue
+            if direct_incident_binding and not direct_event_binding and not same_source_scope_cohort:
+                if feedback_id:
+                    rejected_feedback_ids.add(feedback_id)
+                continue
             if not scope_matches:
                 if feedback_id:
                     rejected_feedback_ids.add(feedback_id)
@@ -4362,15 +4378,22 @@ class AutoswitchPlanner:
             bound_incident = str(binding.get("source_incident_id") or "")
             # Retain an unbound historical move from the same failed source as
             # an explicit *missing-binding* fact, never as incident membership.
-            # A differently-bound event is retained only if an earlier compact
-            # projection already linked it; scanning all VLESS history into
-            # every active incident would violate bounded storage semantics.
+            # A differently-bound service event joins only when its immutable
+            # source-scope fingerprint is exactly the live denominator.  This
+            # captures one channel cohort represented by multiple services,
+            # without scanning unrelated VLESS history into every incident.
             same_source = str(row.get("source_channel") or "") == source_channel
+            scope = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
+            same_source_scope_cohort = (
+                str(scope.get("source_channel") or "") == source_channel
+                and to_int(scope.get("affected_scope_count"), -1) == baseline_count
+                and str(scope.get("affected_scope_fingerprint") or "") == baseline_fingerprint
+            )
             prior = existing.get("incident_cumulative_scope") if isinstance(existing.get("incident_cumulative_scope"), dict) else {}
             prior_entries = prior.get("entries") if isinstance(prior.get("entries"), list) else []
             prior_known = any(isinstance(item, dict) and str(item.get("feedback_id") or "") == feedback_id for item in prior_entries)
             if bound_incident and bound_incident != source_incident_id:
-                include = prior_known
+                include = prior_known or same_source_scope_cohort
             else:
                 include = bound_incident == source_incident_id or (not bound_incident and same_source)
             if not include:
@@ -4378,15 +4401,15 @@ class AutoswitchPlanner:
             user = str(row.get("user") or "")
             target = str(row.get("target_channel") or "")
             current = str(live_current.get(user) or "")
-            scope = binding.get("source_scope") if isinstance(binding.get("source_scope"), dict) else {}
             exact_current_member = (
-                bound_incident == source_incident_id
-                and str(scope.get("source_channel") or "") == source_channel
-                and to_int(scope.get("affected_scope_count"), -1) == baseline_count
-                and str(scope.get("affected_scope_fingerprint") or "") == baseline_fingerprint
+                same_source_scope_cohort
             )
             if bound_incident and bound_incident != source_incident_id:
-                classification = "OTHER_INCIDENT"
+                classification = (
+                    "SAME_SOURCE_SCOPE_COHORT_PROTECTED"
+                    if exact_current_member and target and current == target
+                    else "OTHER_INCIDENT"
+                )
             elif bound_incident != source_incident_id:
                 classification = "HISTORICAL_MOVED_INCIDENT_BINDING_MISSING"
             elif current == source_channel:
@@ -4414,6 +4437,7 @@ class AutoswitchPlanner:
                 "CURRENT_INCIDENT_PROTECTED", "HISTORICAL_PROTECTED_PRE_BASELINE",
                 "HISTORICAL_MOVED_INCIDENT_BINDING_MISSING", "RETURNED_TO_SOURCE",
                 "RECOVERED_OR_EXCLUDED", "OTHER_INCIDENT",
+                "SAME_SOURCE_SCOPE_COHORT_PROTECTED",
             )
         }
         return {

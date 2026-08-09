@@ -3376,6 +3376,58 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["incident_cumulative_scope"]["current_source_scope_fingerprint"], "newscope")
         self.assertEqual(record["incident_cumulative_scope"]["lineage_pointers"], ["execfb_old"])
 
+    def test_scope_reconciliation_joins_distinct_service_incidents_with_exact_same_cohort(self):
+        """One channel-scope cohort may legitimately have several service incident IDs."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_google_auth"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=awg3 enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id, "source_channel": "vless",
+                    "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "scope_accounting": {
+                        "baseline_event_id": "sfe_google_auth", "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "same-channel-cohort",
+                    },
+                },
+            }}), encoding="utf-8")
+            outcome = {
+                "schema_version": "v7.execution-outcome-record.v1", "feedback_id": "execfb_spotify",
+                "source_channel": "vless", "target_channel": "awg3", "user": "10.0.0.2",
+                "terminal_outcome_classification": "SUCCESS", "verification_result": {"success": True},
+                "service_failure_causal_binding": {
+                    "source_incident_id": "sfinc_spotify", "source_event_id": "sfe_spotify",
+                    "event_type": "SERVICE_FAILURE_OBSERVED", "source_channel": "vless",
+                    "source_scope": {"source_channel": "vless", "affected_scope_count": 2,
+                                     "affected_scope_fingerprint": "same-channel-cohort"},
+                },
+            }
+            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner.reconcile_service_failure_execution_outcomes()
+            record = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))["incidents"][incident_key]
+        self.assertEqual(record["scope_accounting"]["status"], "ACCOUNTED")
+        self.assertEqual(record["protected_scope_count"], 1)
+        self.assertEqual(record["unresolved_scope_count"], 1)
+        self.assertEqual(record["scope_accounting"]["protected_scope_lineage_pointers"], ["execfb_spotify"])
+        self.assertEqual(
+            record["incident_cumulative_scope"]["classification_counts"]["SAME_SOURCE_SCOPE_COHORT_PROTECTED"],
+            1,
+        )
+
     def test_closed_incident_scope_is_frozen_from_later_live_route_generations(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

@@ -4794,7 +4794,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             ct_m0f_standing_binding = (
                 operator_execution.validate_ct_m0f_standing_validation_policy(
                     contract,
-                    audit_records=operator_execution.read_audit_records(
+                    audit_records=operator_execution.read_live_execution_lineage_records(
                         audit_dir / "operator-execution-audit.jsonl"
                     ),
                 )
@@ -11160,7 +11160,7 @@ def prepare_ct_m0f_standing_controlled_condition(
     )
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract,
-        audit_records=operator_execution.read_audit_records(audit_store),
+        audit_records=operator_execution.read_live_execution_lineage_records(audit_store),
     )
     blockers = list(validation.get("errors") or [])
     if str(args.ct_m0f_standing_validation_contract_id or "") != str(
@@ -11419,7 +11419,7 @@ def reset_ct_m0f_standing_validation_sample(
     )
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract,
-        audit_records=operator_execution.read_audit_records(audit_store),
+        audit_records=operator_execution.read_live_execution_lineage_records(audit_store),
     )
     blockers = list(validation.get("errors") or [])
     if str(contract.get("contract_id") or "") != str(

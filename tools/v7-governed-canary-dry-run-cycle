@@ -5802,15 +5802,53 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         {},
     )
     ct_m0f_forward_evidence_record: dict[str, Any] = {}
-    if ct_m0f_standing_requested and (
-        ct_m0f_cutover_evidence.get("status")
-        == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
-    ):
+    if ct_m0f_standing_requested:
         reservation = (
             ct_m0f_admission_consumption.get("reservation")
             if isinstance(ct_m0f_admission_consumption.get("reservation"), dict)
             else {}
         )
+        if not ct_m0f_cutover_evidence:
+            # This is a diagnostic observation, not a synthetic successful
+            # sample.  The reservation already exists; retain the exact last
+            # responsible consumer evidence instead of silently spending a
+            # bounded attempt as "forward evidence missing".
+            diagnostic_blockers = [
+                "ct_m0f_cutover_evidence_not_emitted_by_route_apply_consumer"
+            ]
+            child_stop_reason = str(
+                downstream_proof_diagnostic.get("child_stop_reason") or ""
+            )
+            child_returncode = apply_run.get("returncode")
+            if child_stop_reason:
+                diagnostic_blockers.append(
+                    "child_stop_reason:" + child_stop_reason
+                )
+            if child_returncode not in {None, 0}:
+                diagnostic_blockers.append(
+                    "child_returncode:" + str(child_returncode)
+                )
+            ct_m0f_cutover_evidence = {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+                "ok": False,
+                "claim_class": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER",
+                "blockers": diagnostic_blockers,
+                "producer_consumer_diagnostic": {
+                    "route_apply_consumer": "tools/v7-users-autoswitch",
+                    "child_final_verdict": str(
+                        downstream_proof_diagnostic.get("child_final_verdict")
+                        or ""
+                    ),
+                    "child_stop_reason": child_stop_reason,
+                    "child_returncode": child_returncode,
+                    "child_timed_out": bool(
+                        downstream_proof_diagnostic.get("apply_timed_out")
+                    ),
+                },
+                "runtime_mutation_performed_by_consumer": False,
+                "routing_mutation_performed_by_consumer": False,
+                "user_movement_by_consumer": 0,
+            }
         ct_m0f_forward_evidence_record = (
             operator_execution.record_ct_m0f_standing_validation_forward_evidence(
                 reservation_id=str(reservation.get("reservation_id") or ""),

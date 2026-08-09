@@ -2322,14 +2322,31 @@ def ct_m0f_standing_validation_sample_from_audit(
 def record_ct_m0f_standing_validation_forward_evidence(
     *, reservation_id, sample_evidence, audit_store=None, now=None,
 ):
-    """Durably bind verified cutover evidence before reset/closure begins."""
+    """Bind one exact CT-M0F observation before reset/closure begins.
+
+    A valid observation is the only one that may earn a CT-M0F sample.  An
+    invalid observation is still durable diagnostic evidence: dropping it
+    turns an exhausted bounded campaign into an opaque retry loop.  Both use
+    the existing reservation/audit owner and remain one-record-per-reservation.
+    """
     now = now or utc_now()
     audit_store = Path(
         audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
     )
     evidence = sample_evidence if isinstance(sample_evidence, dict) else {}
-    if evidence.get("status") != "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS":
-        raise PacketError("ct_m0f_standing_forward_evidence_not_valid")
+    status = str(evidence.get("status") or "")
+    if status not in {
+        "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+        "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+    }:
+        raise PacketError("ct_m0f_standing_forward_evidence_status_invalid")
+    if (
+        status == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID"
+        and not [value for value in evidence.get("blockers", []) if str(value)]
+    ):
+        raise PacketError(
+            "ct_m0f_standing_invalid_evidence_blockers_required"
+        )
     with current_action_class_contract_policy_lock(audit_store):
         records = read_live_execution_lineage_records(audit_store)
         reservations = [
@@ -2373,10 +2390,23 @@ def record_ct_m0f_standing_validation_forward_evidence(
                 "validation_generation_id"
             ],
             "sample_kind": reservation["sample_kind"],
+            "evidence_classification": (
+                "VALID_FORWARD_EVIDENCE"
+                if status == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+                else "INVALID_DIAGNOSTIC_EVIDENCE"
+            ),
             "sample_evidence": copy.deepcopy(evidence),
             "created_at": now.isoformat(),
         })
-    return {"status": "RECORDED", "record": record, "audit_write": True}
+    return {
+        "status": (
+            "RECORDED"
+            if status == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+            else "RECORDED_INVALID_DIAGNOSTIC"
+        ),
+        "record": record,
+        "audit_write": True,
+    }
 
 
 def record_ct_m0f_standing_validation_sample_terminal(

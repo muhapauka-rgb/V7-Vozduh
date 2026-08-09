@@ -20,7 +20,7 @@ contracts below for the current execution semantics.
 Its parent completion goal is the existing CT-M0F operational acceptance:
 
 ```text
-valid USER_PATH_CUTOVER samples
+valid CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER samples
   -> Time owner consumes the measurement
   -> exact latency residual, if any
   -> smallest owner-backed repair
@@ -38,6 +38,13 @@ may drive the existing Runtime path; this track never creates Candidate,
 Packet, lease, restore-barrier, apply, routing mutation or user movement
 outside that exact existing-owner envelope.
 
+Every admitted CT-M0F reservation must persist one exact observation before
+reset and terminalization: either `VALID_FORWARD_EVIDENCE` or
+`INVALID_DIAGNOSTIC_EVIDENCE` with the last responsible predicate.  An invalid
+observation never earns sample credit, but it is not discarded as “evidence
+missing”; a bounded attempt budget may close only with a durable repair
+frontier for that predicate.
+
 ### Internal ordered gates
 
 | Gate | Exact purpose | Required owner-backed output -> consumer | Completion condition |
@@ -54,13 +61,13 @@ The track has two non-interchangeable terminals:
 
 - `V7_END_TO_END_AUTONOMOUS_ENGINEERING_CONTINUATION_CERTIFIED` proves the
   continuation/repair path;
-- `LEGACY_USER_PATH_CUTOVER_OPERATIONAL_SLO_CONSUMED` proves the measured
+- `LEGACY_OPERATIONAL_RECOVERY_SLO_CONSUMED` proves the measured current
   CT-M0F performance objective.
 
 This track closes only when both are consumed by their existing CPS/OMP
-consumers.  Completion of the first cannot substitute for current user-path
-latency evidence; completion of the second cannot hide a manual continuation
-dependency.  Runtime operational `STOP_SAFE` remains valid when the live world
+consumers.  Completion of the first cannot substitute for current
+control-plane/kernel-path latency evidence; completion of the second cannot
+hide a manual continuation dependency.  Runtime operational `STOP_SAFE` remains valid when the live world
 blocks action, while stale reads, lost outputs, misbound generations, missing
 consumption or an unreachable successor are engineering defects and must
 return through the existing BDP -> OMP repair path.

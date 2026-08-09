@@ -3868,6 +3868,97 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(budget["cold_valid_samples"], 1)
         self.assertEqual(budget["next_sample_kind"], "warm")
 
+    def test_ct_m0f_invalid_sample_diagnostic_is_durable_and_counts_once(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-execution-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy),
+                now=now,
+            )
+            operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            activated = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test",
+                audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )
+            reservation = operator_execution.reserve_ct_m0f_standing_validation_sample(
+                policy,
+                implementation_fingerprint="f" * 64,
+                validation_generation_id="ctm0fgen_invalid",
+                packet_id="packet-invalid",
+                operation_id="operation-invalid",
+                lease_id="lease-invalid",
+                user="10.7.0.18",
+                source="vless",
+                target="awg0",
+                audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )["reservation"]
+            evidence = {
+                "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+                "ok": False,
+                "blockers": [
+                    "ct_m0f_cutover_evidence_not_emitted_by_route_apply_consumer"
+                ],
+            }
+            recorded = operator_execution.record_ct_m0f_standing_validation_forward_evidence(
+                reservation_id=reservation["reservation_id"],
+                sample_evidence=evidence,
+                audit_store=audit,
+                now=now + timedelta(seconds=4),
+            )
+            lineage = operator_execution.ct_m0f_standing_validation_sample_from_audit(
+                reservation["reservation_id"], audit_store=audit,
+            )
+            terminal = operator_execution.record_ct_m0f_standing_validation_sample_terminal(
+                reservation_id=reservation["reservation_id"],
+                sample_valid=False,
+                sample_evidence=lineage["forward_evidence"]["sample_evidence"],
+                terminal_reason="route_apply_consumer_evidence_missing",
+                audit_store=audit,
+                now=now + timedelta(seconds=5),
+            )
+            budget = operator_execution.ct_m0f_standing_validation_budget_status(
+                activated["contract"],
+                "f" * 64,
+                audit_records=operator_execution.read_audit_records(audit),
+            )
+            with self.assertRaisesRegex(
+                PacketError,
+                "ct_m0f_standing_invalid_evidence_blockers_required",
+            ):
+                operator_execution.record_ct_m0f_standing_validation_forward_evidence(
+                    reservation_id="another-reservation",
+                    sample_evidence={
+                        "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID"
+                    },
+                    audit_store=audit,
+                    now=now + timedelta(seconds=6),
+                )
+
+        self.assertEqual(recorded["status"], "RECORDED_INVALID_DIAGNOSTIC")
+        self.assertEqual(
+            lineage["forward_evidence"]["evidence_classification"],
+            "INVALID_DIAGNOSTIC_EVIDENCE",
+        )
+        self.assertEqual(
+            lineage["forward_evidence"]["sample_evidence"]["blockers"],
+            ["ct_m0f_cutover_evidence_not_emitted_by_route_apply_consumer"],
+        )
+        self.assertEqual(terminal["status"], "RECORDED")
+        self.assertEqual(budget["invalid_or_safety_stopped_attempts"], 1)
+        self.assertEqual(budget["active_reservations"], 0)
+
     def test_ct_m0f_standing_request_and_contract_expiry_fail_closed(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         request = operator_execution.build_ct_m0f_standing_validation_authority_request(

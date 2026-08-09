@@ -3143,6 +3143,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "incident_key": incident_key, "incident_id": incident_id,
                     "source_incident_id": incident_id, "source_channel": "vless", "channel": "vless",
                     "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+                    "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
                     "scope_accounting": {
                         "status": "ACCOUNTED", "affected_scope_count": 3,
                         "affected_scope_fingerprint": "live-scope-fingerprint",
@@ -3395,6 +3397,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 incident_key: {
                     "incident_key": incident_key, "incident_id": incident_id, "source_channel": "vless",
                     "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+                    "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
                     "scope_accounting": {
                         "baseline_event_id": "sfe_google_auth", "affected_scope_count": 2,
                         "affected_scope_fingerprint": "same-channel-cohort",
@@ -3423,6 +3427,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(record["protected_scope_count"], 1)
         self.assertEqual(record["unresolved_scope_count"], 1)
         self.assertEqual(record["scope_accounting"]["protected_scope_lineage_pointers"], ["execfb_spotify"])
+        self.assertEqual(
+            record["next_required_consumer"],
+            "tools/v7-users-autoswitch.reconcile_service_failure_shadow_outcomes",
+        )
         self.assertEqual(
             record["incident_cumulative_scope"]["classification_counts"]["SAME_SOURCE_SCOPE_COHORT_PROTECTED"],
             1,

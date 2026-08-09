@@ -4866,6 +4866,21 @@ class AutoswitchPlanner:
                     "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
                     "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
                 })
+            elif (
+                str(record.get("next_required_consumer") or "")
+                == "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes"
+                and str(record.get("reentry_condition") or "")
+                == "reconcile exact source-scope fingerprint with current route truth before any further action"
+            ):
+                # Do not leave a repaired cohort subscribed to its old repair
+                # consumer.  The exact scope and current route now satisfy
+                # the accounting invariant, so hand the durable successor
+                # back to the existing outcome/shadow consumer; this remains
+                # a compact state projection and cannot enter execution.
+                desired_scope_fields.update({
+                    "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_shadow_outcomes",
+                    "reentry_condition": "existing shadow/outcome consumer consumes exact packet-bound feedback; remaining channel scope continues on fresh owner-backed observation",
+                })
             if any(record.get(key) != value for key, value in desired_scope_fields.items()):
                 incidents[incident_key] = {**record, **desired_scope_fields}
                 changed += 1

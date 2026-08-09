@@ -4329,6 +4329,69 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "raw_user_list_stored": False,
         }])
 
+    def test_recovery_receipt_closes_older_broken_open_intent_same_source_generation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            now = self.autoswitch.now_iso()
+            (state_dir / "service-matrix.json").write_text(json.dumps({
+                "updated": now,
+                "items": {"vless": {"services": {"google": {
+                    "status": "OK", "ok": True, "observed_at": now,
+                }}}},
+            }), encoding="utf-8")
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"old": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc_old",
+                    "incident_generation": "egid_same",
+                    "channel": "vless",
+                    "services": ["google"],
+                    "incident_state": "PARTIALLY_PROTECTED",
+                    "last_observed_at": "2026-01-01T00:00:00+00:00",
+                    "current_source_scope": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "affected_scope_count": 4,
+                        "protected_scope_count": 1,
+                        "unresolved_scope_count": 2,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                    },
+                    "next_required_consumer": "existing-consumer",
+                    "reentry_condition": "existing-reentry",
+                }},
+            }), encoding="utf-8")
+            (state_dir / "closure-records.jsonl").write_text(json.dumps({
+                "object_type": "passive_production_event",
+                "object_id": "sre_recovered",
+                "channel": "vless",
+                "services": ["google"],
+                "egress_identity_generation": "egid_same",
+                "terminal_outcome_classification": "RECOVERY_OBSERVED_NO_ACTION",
+                "observed_at": now,
+            }) + "\n", encoding="utf-8")
+            args = argparse.Namespace(
+                state_dir=str(state_dir),
+                action_class_audit_store=str(state_dir / "audit.jsonl"),
+            )
+            planner = self.autoswitch.AutoswitchPlanner.__new__(
+                self.autoswitch.AutoswitchPlanner
+            )
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.args = args
+            result = planner.reconcile_service_failure_execution_outcomes()
+            state = json.loads(
+                (state_dir / "l3-runtime-state.json").read_text(encoding="utf-8")
+            )
+            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
+        record = state["incidents"]["old"]
+        self.assertEqual(result["recovery_terminal_reconciliation"]["changed"], 1)
+        self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+        self.assertEqual(record["current_source_scope"]["unresolved_scope_count"], 0)
+        self.assertEqual(
+            record["current_source_scope"]["explicitly_excluded_or_recovered_scope_count"], 3,
+        )
+        self.assertEqual(status["final_verdict"], "PASS", status)
+
     def test_existing_closure_owner_is_consumed_once_by_omp(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

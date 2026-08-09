@@ -4431,6 +4431,186 @@ class AutoswitchPlanner:
             "raw_user_list_stored": False,
         }
 
+    def _reconcile_recovered_service_failure_intents(
+        self,
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Close only stale open intents proven recovered by existing owners.
+
+        The passive-event consumer historically keyed recovery strictly by the
+        original source-incident ID.  A channel can have several older compact
+        incident projections for the same source generation, though.  Leaving
+        those projections OPEN after a later owner-backed recovery makes their
+        incomplete historical scope accounting block an unrelated current CPS
+        reconciliation forever.
+
+        This is not a recovery inference and it is not an execution path.  A
+        record may be closed only when both existing owners agree: an immutable
+        passive recovery receipt is newer than the record and the current
+        Matrix still proves a fresh healthy baseline for the same source.  The
+        terminal retains the original counted scope as recovered/excluded;
+        it never credits a user movement or rewrites packet evidence.
+        """
+        incidents = state.get("incidents")
+        if not isinstance(incidents, dict):
+            return {"changed": 0, "closed_incident_ids": []}
+        recovery_by_source: dict[str, dict[str, Any]] = {}
+        for row in read_jsonl(self.state_dir / "closure-records.jsonl"):
+            if str(row.get("object_type") or "") != "passive_production_event":
+                continue
+            if str(row.get("terminal_outcome_classification") or "") != "RECOVERY_OBSERVED_NO_ACTION":
+                continue
+            source = str(row.get("channel") or "")
+            observed_at = str(row.get("observed_at") or row.get("created_at") or "")
+            if not source or not observed_at:
+                continue
+            previous = recovery_by_source.get(source)
+            if not previous or parse_ts(observed_at) > parse_ts(
+                str(previous.get("observed_at") or previous.get("created_at") or "")
+            ):
+                recovery_by_source[source] = row
+
+        changed = 0
+        closed_incident_ids: list[str] = []
+        health_cache: dict[str, dict[str, Any]] = {}
+        matrix = read_json(self.state_dir / "service-matrix.json", {})
+        matrix_items = (
+            matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
+        )
+        for key, record in list(incidents.items()):
+            if not isinstance(record, dict):
+                continue
+            if str(record.get("authority_object") or "") != "PASSIVE_SERVICE_FAILURE_CAPTURE":
+                continue
+            if str(record.get("incident_state") or "") == "INTENT_CLOSED":
+                continue
+            source = str(record.get("channel") or record.get("source_channel") or "")
+            recovery = recovery_by_source.get(source)
+            if not source or not recovery:
+                continue
+            last_observed = str(record.get("last_observed_at") or record.get("opened_at") or "")
+            recovered_at = str(
+                recovery.get("recovered_at") or recovery.get("observed_at")
+                or recovery.get("created_at") or ""
+            )
+            if not recovered_at or (
+                last_observed and parse_ts(recovered_at) < parse_ts(last_observed)
+            ):
+                continue
+            record_generation = str(record.get("incident_generation") or "")
+            recovery_generation = str(recovery.get("egress_identity_generation") or "")
+            if record_generation and recovery_generation and record_generation != recovery_generation:
+                continue
+            health = health_cache.setdefault(
+                source,
+                controlled_certification_source_health_status(self.state_dir, source),
+            )
+            if health.get("status") != "PASS_HEALTHY_BASELINE":
+                continue
+            record_services = {
+                str(item) for item in (record.get("services") or []) if str(item)
+            }
+            recovery_services = {
+                str(item) for item in (recovery.get("services") or []) if str(item)
+            }
+            source_row = matrix_items.get(source)
+            source_services = (
+                source_row.get("services")
+                if isinstance(source_row, dict)
+                and isinstance(source_row.get("services"), dict) else {}
+            )
+            # A channel-level healthy aggregate is not enough to close a
+            # service-specific incident. The current Matrix must prove every
+            # exact service from the old incident healthy, and a recovery
+            # receipt must overlap that service set when it records one.
+            if not record_services or (
+                recovery_services and not record_services.intersection(recovery_services)
+            ) or any(
+                not bool_value((source_services.get(service_id) or {}).get("ok"))
+                for service_id in record_services
+            ):
+                continue
+            scope = (
+                record.get("current_source_scope")
+                if isinstance(record.get("current_source_scope"), dict)
+                else record.get("scope_accounting")
+                if isinstance(record.get("scope_accounting"), dict) else {}
+            )
+            affected = max(0, to_int(scope.get("affected_scope_count"), 0))
+            protected = min(
+                affected, max(0, to_int(scope.get("protected_scope_count"), 0))
+            )
+            recovery_pointer = str(
+                recovery.get("object_id") or recovery.get("event_id") or ""
+            )
+            terminal_scope = {
+                **scope,
+                "schema_version": "v7.service-failure-incident-scope-accounting.v2",
+                "status": "ACCOUNTED",
+                "affected_scope_count": affected,
+                "protected_scope_count": protected,
+                "unresolved_scope_count": 0,
+                "explicitly_excluded_or_recovered_scope_count": affected - protected,
+                "accounted_scope_count": affected,
+                "scope_membership_law": (
+                    "RECOVERY_RECEIPT_PLUS_FRESH_MATRIX_TERMINAL_RECONCILIATION"
+                ),
+                "terminal_scope_frozen": True,
+                "recovery_evidence_pointer": recovery_pointer,
+                "recovery_matrix_observation_fingerprint": str(
+                    health.get("observation_fingerprint") or ""
+                ),
+                "raw_user_list_stored": False,
+            }
+            lineage = (
+                dict(record.get("causal_lineage") or {})
+                if isinstance(record.get("causal_lineage"), dict) else {}
+            )
+            lineage.update({
+                "recovery_evidence_pointer": recovery_pointer,
+                "recovery_matrix_observation_fingerprint": str(
+                    health.get("observation_fingerprint") or ""
+                ),
+            })
+            incidents[key] = {
+                **record,
+                "status": "CLOSED",
+                "incident_state": "INTENT_CLOSED",
+                "channel_incident_state": "RECOVERED",
+                "attempt_terminal": "RECOVERY_OBSERVED_NO_ACTION",
+                "closed_at": recovered_at,
+                "next_required_consumer": "",
+                "reentry_condition": "new owner-backed failure generation",
+                "current_source_scope": terminal_scope,
+                "scope_accounting": terminal_scope,
+                "affected_scope_count": affected,
+                "protected_scope_count": protected,
+                "unresolved_scope_count": 0,
+                "causal_lineage": lineage,
+                "causal_invariant": {
+                    "name": "INTENT_CLOSED_BY_RECOVERY_REQUIRES_FRESH_NEW_GENERATION",
+                    "valid": True,
+                },
+                "execution_performed": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+                "apply_executed": False,
+                "authority_expanded": False,
+                "production_maturity_changed": False,
+                "consumer": (
+                    "tools/v7-users-autoswitch."
+                    "_reconcile_recovered_service_failure_intents"
+                ),
+                "updated_at": now_iso(),
+            }
+            changed += 1
+            closed_incident_ids.append(str(record.get("incident_id") or ""))
+        return {
+            "changed": changed,
+            "closed_incident_ids": sorted(item for item in closed_incident_ids if item),
+        }
+
     def reconcile_service_failure_execution_outcomes(self) -> dict[str, Any]:
         """Consume exact packet-bound execution feedback into the same L3 incident state.
 
@@ -4608,6 +4788,10 @@ class AutoswitchPlanner:
             if any(record.get(key) != value for key, value in desired_scope_fields.items()):
                 incidents[incident_key] = {**record, **desired_scope_fields}
                 changed += 1
+        recovery_reconciliation = self._reconcile_recovered_service_failure_intents(
+            state,
+        )
+        changed += int(recovery_reconciliation.get("changed") or 0)
         if changed:
             state["incidents"] = incidents
             self._write_l3_runtime_state(state)
@@ -4617,6 +4801,7 @@ class AutoswitchPlanner:
             "consumed_records": consumed,
             "changed_records": changed,
             "rejected_records": sorted(set(rejected)),
+            "recovery_terminal_reconciliation": recovery_reconciliation,
             "final_verdict": "PASS" if not rejected else "STOP_SAFE",
             "forbidden_effects": {
                 "candidate_created": False, "packet_created": False, "lease_created": False,

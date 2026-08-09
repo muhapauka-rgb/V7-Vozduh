@@ -18945,6 +18945,13 @@ def controlled_source_topology_diagnostic(
         if full_campaign_target_rows else {}
     )
     selected_full_source_id = str(selected_full_source.get("source_id") or "")
+    # Availability-first standing policy may admit a healthy shared *target*,
+    # but it can never manufacture the independently required controlled
+    # source.  Without an existing isolated, group-aligned source there is no
+    # legal failure condition and therefore no CT-M0F sample to prepare.
+    # Keep this boundary in the existing topology projection rather than
+    # letting a target-only capability look like an executable campaign.
+    controlled_source_predecessor_ready = bool(selected_full_source_id)
     # The campaign request may carry an older source binding.  Reproject the
     # shared capacity against the actual source selected by this same topology
     # owner before any stage is called feasible.  A later collision check is
@@ -19527,6 +19534,7 @@ def controlled_source_topology_diagnostic(
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY"
             if (
                 availability_policy_admission.get("ok")
+                and controlled_source_predecessor_ready
                 and (
                     shared_target_capacity_available
                     or shared_availability_first_available
@@ -19635,10 +19643,20 @@ def controlled_source_topology_diagnostic(
     result = {
         "schema_version": "v7.controlled-source-topology-capability-map.v1",
         "status": (
+            "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONING_REQUIRED"
+            if (
+                not controlled_source_predecessor_ready
+                and availability_policy_admission.get("ok")
+                and (
+                    shared_target_capacity_available
+                    or shared_availability_first_available
+                )
+            ) else
             "CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED"
             if (
                 shared_availability_first_available
                 and availability_policy_admission.get("ok")
+                and controlled_source_predecessor_ready
             ) else
             "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
             if preflight_ready else
@@ -19867,11 +19885,22 @@ def controlled_source_topology_diagnostic(
             ],
         },
         "durable_successor": (
+            "SAFE_PREDECESSOR_REQUIRED:"
+            "EXISTING_CONTROLLED_SOURCE_RESERVATION_AND_CERTIFICATION_GROUP_OWNER"
+            if (
+                not controlled_source_predecessor_ready
+                and availability_policy_admission.get("ok")
+                and (
+                    shared_target_capacity_available
+                    or shared_availability_first_available
+                )
+            ) else
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_AVAILABILITY_FIRST_POLICY:"
             "EXISTING_MATRIX_PLANNER_CANDIDATE_PACKET_LEASE_CONSUMER"
             if (
                 shared_availability_first_available
                 and availability_policy_admission.get("ok")
+                and controlled_source_predecessor_ready
             ) else
             "AUTO_ADMITTED_BY_STANDING_DELEGATED_CONTROLLED_TOPOLOGY_POLICY:"
             "EXISTING_CANDIDATE_PACKET_LEASE_EXECUTION_CONSUMER"

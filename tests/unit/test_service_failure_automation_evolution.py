@@ -974,6 +974,99 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_availability_first_target_without_controlled_source_is_not_auto_admitted(self):
+        """A target-only topology cannot be misreported as a CT-M0F source."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.18 enabled=1 current=vless "
+                "certification_user=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            # No row is an isolated controlled-certification source.  ``awg3``
+            # is deliberately only a healthy target with one availability slot.
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 enabled=1 certification_group=t48\n"
+                "id=vless protocol=vless type=interface interface=tun0 enabled=1 certification_group=t48\n"
+                "id=awg3 protocol=amneziawg type=interface interface=awg3 enabled=1\n",
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            audit_path = root / "authority-audit.jsonl"
+            policy_path.write_text(json.dumps({"authority_budget": {}}, sort_keys=True), encoding="utf-8")
+            now = operator_execution.utc_now()
+            request = operator_execution.build_standing_delegated_policy_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy_path),
+                active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                max_users=48,
+                include_controlled_topology=True,
+                include_availability_first=True,
+                now=now,
+            )
+            operator_execution.register_standing_delegated_policy_request(
+                request, audit_store=audit_path, now=now,
+            )
+            operator_execution.issue_standing_delegated_policy_from_audit(
+                policy_path,
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_STANDING_DELEGATED_OPERATIONAL_POLICY",
+                audit_store=audit_path,
+                actor_id="unit-authority",
+                now=now,
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--policy-file", str(policy_path),
+                "--action-class-audit-store", str(audit_path),
+            ])
+            target_projection = {
+                "campaign": {"request_id": "historic", "request_hash": "a" * 64, "source_id": "source"},
+                "shared_production_target_capacity_projection": {"current_stage": 1},
+                "targets": [{
+                    "target_id": "awg3",
+                    "protocol": "amneziawg",
+                    "interface": "awg3",
+                    "correlation_domain": "amneziawg:awg3",
+                    "shared_target_technically_eligible": True,
+                    "shared_target_availability": {
+                        "state": "DEGRADED_USABLE",
+                        "policy_boundary": "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_CONTRACT_REQUIRED",
+                    },
+                    "health": {"ok": True},
+                    "quality": {"blockers": ["below_normal_floor"]},
+                    "capacity": {
+                        "ordinary_users": 0,
+                        "certification_users": 0,
+                        "current_assigned_users": 0,
+                        "free_capacity_after_reserve": 9,
+                        "planning_safe_additional_capacity": 1,
+                        "capacity_bounds": {"hard_capacity_remaining": {"value": 9}},
+                    },
+                    "verification_supported": True,
+                    "rollback_containment_supported": True,
+                    "owner_lineage": {},
+                    "semantic_fingerprint": "c" * 64,
+                }],
+            }
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value=target_projection,
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+
+        self.assertEqual(result["status"], "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONING_REQUIRED")
+        self.assertEqual(
+            result["durable_successor"],
+            "SAFE_PREDECESSOR_REQUIRED:EXISTING_CONTROLLED_SOURCE_RESERVATION_AND_CERTIFICATION_GROUP_OWNER",
+        )
+        self.assertFalse(result["production_preflight"]["mutation_performed"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_rebind_standing_policy_does_not_auto_admit_draft_provisioning(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

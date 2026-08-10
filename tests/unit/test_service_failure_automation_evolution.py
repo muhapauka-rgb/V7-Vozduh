@@ -4894,6 +4894,55 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(binding["live_source_scope"]["affected_scope_count"], 2)
         self.assertFalse(binding["live_source_scope"]["raw_user_list_stored"])
 
+    def test_ct_m0f_binds_next_packet_to_unresolved_live_subset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            remaining_user = "10.0.0.3"
+            remaining_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": [remaining_user],
+            })
+            original_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": ["10.0.0.2", remaining_user],
+            })
+            (state_dir / "users.registry").write_text(
+                f"ip={remaining_user} current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            incident = {
+                "incident_id": "sfinc_partial", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_partial", "obligation_id": "sfaob_partial",
+                "current_source_scope": {
+                    "status": "ACCOUNTED",
+                    "affected_scope_count": 2,
+                    "affected_scope_fingerprint": original_fingerprint,
+                    "protected_scope_count": 1,
+                    "unresolved_scope_count": 1,
+                    "unresolved_scope_fingerprint": remaining_fingerprint,
+                    "explicitly_excluded_or_recovered_scope_count": 0,
+                },
+            }
+            (state_dir / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": {"partial": incident}}),
+                encoding="utf-8",
+            )
+            (state_dir / "closure-records.jsonl").write_text(json.dumps({
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_partial",
+                "source_incident_id": "sfinc_partial",
+            }) + "\n", encoding="utf-8")
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless"
+            )
+
+        self.assertTrue(binding["ok"], binding)
+        self.assertEqual(binding["source_scope_count"], 1)
+        self.assertEqual(binding["source_scope_fingerprint"], remaining_fingerprint)
+        self.assertEqual(binding["incident_affected_scope_count"], 2)
+
     def test_ct_m0f_rejects_single_consumed_scope_stale_against_current_route_truth(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

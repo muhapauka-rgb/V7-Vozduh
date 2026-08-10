@@ -2334,12 +2334,45 @@ def ct_m0f_active_service_failure_binding_projection(
         legacy_scope = record.get("scope_accounting")
         return legacy_scope if isinstance(legacy_scope, dict) else {}
 
-    def matches_live_source_scope(record: dict[str, Any]) -> bool:
+    def current_actionable_scope(record: dict[str, Any]) -> dict[str, Any]:
+        """Return the still-live subset of an accounted incident.
+
+        ``affected`` is the immutable incident denominator.  Once a bounded
+        transaction protects one member it must remain in that denominator for
+        correct incident accounting, while the next CT-M0F Packet must bind to
+        the remaining users that are *currently* on the failed source.  The
+        unresolved count/fingerprint is the existing owner of that live
+        subset; this helper does not persist a membership list or derive a
+        new truth source.
+        """
         scope = current_accounted_scope(record)
+        affected_count = to_int(scope.get("affected_scope_count"), -1)
+        unresolved_count = to_int(scope.get("unresolved_scope_count"), -1)
+        unresolved_fingerprint = str(scope.get("unresolved_scope_fingerprint") or "")
+        if (
+            unresolved_count == affected_count
+            and not unresolved_fingerprint
+        ):
+            # Historical rows predate the explicit unresolved fingerprint;
+            # when no member has been protected the two scopes are identical.
+            unresolved_fingerprint = str(
+                scope.get("affected_scope_fingerprint") or ""
+            )
+        return {
+            "count": unresolved_count,
+            "fingerprint": unresolved_fingerprint,
+            "incident_affected_count": affected_count,
+            "incident_affected_fingerprint": str(
+                scope.get("affected_scope_fingerprint") or ""
+            ),
+        }
+
+    def matches_live_source_scope(record: dict[str, Any]) -> bool:
+        scope = current_actionable_scope(record)
         return (
-            to_int(scope.get("affected_scope_count"), -1)
+            int(scope.get("count") or -1)
             == live_source_scope["affected_scope_count"]
-            and str(scope.get("affected_scope_fingerprint") or "")
+            and str(scope.get("fingerprint") or "")
             == live_source_scope["affected_scope_fingerprint"]
         )
     matches = [
@@ -2388,21 +2421,8 @@ def ct_m0f_active_service_failure_binding_projection(
             if (
                 str(current_accounted_scope(record).get("status") or "")
                 == "ACCOUNTED"
-                and int(
-                    current_accounted_scope(record).get(
-                        "affected_scope_count"
-                    ) or 0
-                ) > 0
-                and int(
-                    current_accounted_scope(record).get(
-                        "unresolved_scope_count"
-                    ) or 0
-                ) > 0
-                and str(
-                    current_accounted_scope(record).get(
-                        "affected_scope_fingerprint"
-                    ) or ""
-                )
+                and int(current_actionable_scope(record).get("count") or 0) > 0
+                and str(current_actionable_scope(record).get("fingerprint") or "")
             )
         ]
         consumed_matches = [
@@ -2419,10 +2439,10 @@ def ct_m0f_active_service_failure_binding_projection(
         ]
 
         def semantic_key(record: dict[str, Any]) -> tuple[str, str]:
-            current_scope = current_accounted_scope(record)
+            current_scope = current_actionable_scope(record)
             return (
                 str(record.get("incident_generation") or record.get("generation") or ""),
-                str(current_scope.get("affected_scope_fingerprint") or ""),
+                str(current_scope.get("fingerprint") or ""),
             )
         semantic_groups = {semantic_key(record) for record in valid_matches}
         live_scope_matches = [
@@ -2500,6 +2520,7 @@ def ct_m0f_active_service_failure_binding_projection(
         }
     record = matches[0]
     scope = record.get("current_source_scope") if isinstance(record.get("current_source_scope"), dict) else {}
+    actionable_scope = current_actionable_scope(record)
     lineage = record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}
     obligation_id = str(record.get("obligation_id") or lineage.get("obligation_id") or "")
     event_ids = [str(value) for value in (record.get("source_event_ids") or lineage.get("source_event_ids") or []) if str(value)]
@@ -2508,20 +2529,20 @@ def ct_m0f_active_service_failure_binding_projection(
         (str(record.get("incident_id") or ""), "incident_id_missing"),
         (str(record.get("incident_generation") or record.get("generation") or ""), "incident_generation_missing"),
         (obligation_id, "obligation_id_missing"),
-        (str(scope.get("affected_scope_fingerprint") or ""), "scope_fingerprint_missing"),
+        (str(actionable_scope.get("fingerprint") or ""), "scope_fingerprint_missing"),
     ):
         if not value:
             blockers.append(name)
     if str(scope.get("status") or "") != "ACCOUNTED":
         blockers.append("incident_scope_accounting_not_accounted")
-    if int(scope.get("affected_scope_count") or 0) <= 0:
+    if int(actionable_scope.get("count") or 0) <= 0:
         blockers.append("incident_scope_empty")
     if int(scope.get("unresolved_scope_count") or 0) <= 0:
         blockers.append("incident_scope_unresolved_empty")
     if live_source_scope["registry_available"] and (
-        int(scope.get("affected_scope_count") or -1)
+        int(actionable_scope.get("count") or -1)
         != live_source_scope["affected_scope_count"]
-        or str(scope.get("affected_scope_fingerprint") or "")
+        or str(actionable_scope.get("fingerprint") or "")
         != live_source_scope["affected_scope_fingerprint"]
     ):
         blockers.append("current_live_route_scope_mismatch")
@@ -2536,8 +2557,14 @@ def ct_m0f_active_service_failure_binding_projection(
         "source_event_id": event_ids[0] if event_ids else "",
         "source_event_ids": event_ids,
         "source_channel": str(source_id or ""),
-        "source_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
-        "source_scope_count": int(scope.get("affected_scope_count") or 0),
+        "source_scope_fingerprint": str(actionable_scope.get("fingerprint") or ""),
+        "source_scope_count": int(actionable_scope.get("count") or 0),
+        "incident_affected_scope_count": int(
+            actionable_scope.get("incident_affected_count") or 0
+        ),
+        "incident_affected_scope_fingerprint": str(
+            actionable_scope.get("incident_affected_fingerprint") or ""
+        ),
         "live_source_scope": live_source_scope,
         "observation_generation": str(record.get("observation_generation") or ""),
         "blockers": sorted(set(blockers)),
@@ -14613,6 +14640,17 @@ class AutoswitchPlanner:
             0,
             to_int(current_source_scope.get("unresolved_scope_count"), current_affected_count),
         )
+        # The incident denominator remains immutable for accounting, whereas
+        # the next Packet may bind only to the still-unresolved members that
+        # remain on the failed source.  Reuse the existing unresolved compact
+        # projection.  Historical rows without that field are compatible only
+        # before their first successful bounded action, when the two scopes
+        # are mathematically identical.
+        actionable_source_fingerprint = str(
+            current_source_scope.get("unresolved_scope_fingerprint") or ""
+        )
+        if not actionable_source_fingerprint and unresolved_count == current_affected_count:
+            actionable_source_fingerprint = current_affected_fingerprint
         emergency_policy = getattr(self, "emergency_failover_policy", {})
         emergency_policy = emergency_policy if isinstance(emergency_policy, dict) else {}
         runtime_axes = (
@@ -14670,9 +14708,9 @@ class AutoswitchPlanner:
                 and str(binding.get("source_incident_id") or "")
                 == str(closure.get("source_incident_id") or "")
                 and str(binding.get("source_scope_fingerprint") or "")
-                == current_affected_fingerprint
+                == actionable_source_fingerprint
                 and int(binding.get("source_scope_count") or 0)
-                == current_affected_count
+                == unresolved_count
             )
             # M0F's advisory is the lawful producer of the first obligation.
             # The selector cannot already see an OMP-consumed binding before
@@ -14692,9 +14730,9 @@ class AutoswitchPlanner:
                 == {"ct_m0f_active_service_failure_causal_binding_required"}
                 and str(live_source_scope.get("source_channel") or "") == source
                 and str(live_source_scope.get("affected_scope_fingerprint") or "")
-                == current_affected_fingerprint
+                == actionable_source_fingerprint
                 and int(live_source_scope.get("affected_scope_count") or 0)
-                == current_affected_count
+                == unresolved_count
             )
             same_current_incident = selection_shape_matches and (
                 binding_matches_existing_obligation or prospective_binding_only

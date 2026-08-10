@@ -21592,6 +21592,7 @@ def ct_m0f_standing_source_selection_only(
         else {"targets": []}
     )
     shared_targets = []
+    controlled_contract_targets = []
     for row in target_diagnostic.get("targets") or []:
         if not isinstance(row, dict):
             continue
@@ -21602,7 +21603,7 @@ def ct_m0f_standing_source_selection_only(
             else {}
         )
         capacity = row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
-        if not (
+        if (
             target_id
             and bool((row.get("health") or {}).get("ok"))
             and bool(row.get("ordinary_planner_eligible"))
@@ -21613,13 +21614,50 @@ def ct_m0f_standing_source_selection_only(
             and bool(row.get("verification_supported"))
             and bool(row.get("rollback_containment_supported"))
         ):
-            continue
-        shared_targets.append(row)
+            shared_targets.append(row)
+        # An isolated EXECUTION_ONLY destination is not an ordinary Planner
+        # target by design.  It is nevertheless a lawful CT-M0F destination
+        # when the *existing* target owner has classified it as a controlled
+        # rebind target and the current standing action class admits one
+        # certification-only assignment.  Requiring ordinary-planner
+        # eligibility here created a circular predecessor: the target
+        # diagnostic admitted the target, while the CT-M0F consumer discarded
+        # it before Candidate/Packet preparation.  Preserve every live gate;
+        # this only consumes the already-owned controlled-target disposition.
+        controlled_contract_admissible = (
+            target_id
+            and bool(row.get("controlled_rebind_eligible"))
+            and bool(row.get("controlled_only_contract"))
+            and str(row.get("role") or "").upper() == "EXECUTION_ONLY"
+            and str(row.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and bool(row.get("shared_target_technically_eligible"))
+            and str(availability.get("state") or "") == "HEALTHY"
+            and availability.get("policy_boundary") == "NONE"
+            and bool((row.get("health") or {}).get("ok"))
+            and bool(row.get("current_stage_feasible"))
+            and int(capacity.get("target_safe_additional_capacity") or 0) >= 1
+            and bool(row.get("verification_supported"))
+            and bool(row.get("rollback_containment_supported"))
+        )
+        if controlled_contract_admissible:
+            controlled_contract_targets.append(row)
     shared_targets.sort(
         key=lambda row: (
             -int(((row.get("capacity") or {}).get(
                 "target_safe_additional_capacity"
             ) or 0)),
+            str(row.get("target_id") or ""),
+        )
+    )
+    diagnostic_selected_target = str(
+        (target_diagnostic.get("selection") or {}).get("selected_target_id")
+        or ""
+    )
+    controlled_contract_targets.sort(
+        key=lambda row: (
+            0 if str(row.get("target_id") or "") == diagnostic_selected_target else 1,
+            int(row.get("selected_target_rank") or 999999),
             str(row.get("target_id") or ""),
         )
     )
@@ -21710,17 +21748,37 @@ def ct_m0f_standing_source_selection_only(
         ),
         {},
     )
+    selected_controlled_contract_target = next(
+        (
+            row for row in controlled_contract_targets
+            if str(row.get("target_id") or "") != selected_source
+        ),
+        {},
+    )
     shared_target_admitted = bool(
         selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
         and availability_policy
         and shared_target_action_admitted
         and selected_shared_target
     )
-    if shared_target_admitted:
+    exact_controlled_contract_target_admitted = bool(
+        selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        and availability_policy
+        and shared_target_action_admitted
+        and selected_controlled_contract_target
+    )
+    if exact_controlled_contract_target_admitted:
+        selected_target_projection = selected_controlled_contract_target
+        selected_target = str(
+            selected_controlled_contract_target.get("target_id") or ""
+        )
+    elif shared_target_admitted:
         selected_target_projection = selected_shared_target
         selected_target = str(selected_shared_target.get("target_id") or "")
     controlled_target_admitted = bool(
-        isolated_target_admitted or shared_target_admitted
+        isolated_target_admitted
+        or exact_controlled_contract_target_admitted
+        or shared_target_admitted
     )
     blockers = []
     if not selected_source:
@@ -21796,6 +21854,8 @@ def ct_m0f_standing_source_selection_only(
             "admission_law": (
                 "EXACT_CONTROLLED_BASELINE_RECOVERY_TARGET"
                 if isolated_target_admitted
+                else "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER"
+                if exact_controlled_contract_target_admitted
                 else "ACTIVE_AVAILABILITY_FIRST_SHARED_TARGET_ONE_USER"
                 if shared_target_admitted
                 else "NOT_ADMITTED"
@@ -21832,10 +21892,10 @@ def ct_m0f_standing_source_selection_only(
         "shared_target_policy_admission": {
             "ok": shared_target_action_admitted,
             "owner": "existing delegated_autonomy_policy availability-first action class",
-            "target_count": len(shared_targets),
+            "target_count": len(shared_targets) + len(controlled_contract_targets),
             "selection_law": (
-                "HEALTHY_EXISTING_PLANNER_TARGET_WITH_CAPACITY_AND_ZERO_"
-                "ORDINARY_DELTA"
+                "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_OR_HEALTHY_"
+                "EXISTING_PLANNER_TARGET_WITH_CAPACITY_AND_ZERO_ORDINARY_DELTA"
             ),
         },
         "blockers": blockers,

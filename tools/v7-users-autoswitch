@@ -14464,10 +14464,27 @@ class AutoswitchPlanner:
                 if not candidate_scope and isinstance(row.get("source_scope"), dict):
                     candidate_scope = row.get("source_scope") or {}
                 candidate_scope_count = max(0, to_int(candidate_scope.get("affected_scope_count"), len(list(row.get("affected_users") or []))))
+                candidate_unresolved_count = max(
+                    0,
+                    to_int(
+                        candidate_scope.get(
+                            "unresolved_scope_count", candidate_scope_count
+                        ),
+                        candidate_scope_count,
+                    ),
+                )
+                candidate_intent_closed = (
+                    str(candidate_incident.get("incident_state") or "")
+                    == "INTENT_CLOSED"
+                )
                 candidates.append((
-                    int(candidate_scope_count > 0),
-                    candidate_scope_count,
+                    # Never let a larger historical/closed cohort outrank a
+                    # newer live passive generation.  A zero-scope current
+                    # observation still cannot starve an older *open* cohort,
+                    # because only unresolved live scope receives this rank.
+                    int(candidate_unresolved_count > 0 and not candidate_intent_closed),
                     str(row.get("observed_at") or row.get("created_at") or ""),
+                    candidate_scope_count,
                     obligation_id,
                     row,
                 ))
@@ -14480,7 +14497,7 @@ class AutoswitchPlanner:
                 "outcome_reconciliation": outcome_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
             }
-        _has_live_scope, _scope_count, _observed, obligation_id, closure = sorted(
+        _has_live_scope, _observed, _scope_count, obligation_id, closure = sorted(
             candidates,
             key=lambda row: (row[0], row[1], row[2], row[3]),
             reverse=True,
@@ -14567,9 +14584,8 @@ class AutoswitchPlanner:
                 if isinstance(selection.get("active_service_failure_binding"), dict)
                 else {}
             )
-            same_current_incident = (
-                selection.get("ok") is True
-                and str(selection.get("selection_mode") or "")
+            selection_shape_matches = (
+                str(selection.get("selection_mode") or "")
                 == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
                 and str(selection.get("selected_source_id") or "") == source
                 and bool(
@@ -14577,12 +14593,40 @@ class AutoswitchPlanner:
                         "controlled_contract_admitted"
                     )
                 )
+            )
+            binding_matches_existing_obligation = (
+                selection.get("ok") is True
                 and str(binding.get("source_incident_id") or "")
                 == str(closure.get("source_incident_id") or "")
                 and str(binding.get("source_scope_fingerprint") or "")
                 == current_affected_fingerprint
                 and int(binding.get("source_scope_count") or 0)
                 == current_affected_count
+            )
+            # M0F's advisory is the lawful producer of the first obligation.
+            # The selector cannot already see an OMP-consumed binding before
+            # that obligation exists.  Accept this one exact prospective link
+            # only when the selector proves every source/target gate and its
+            # sole missing predicate is the binding the advisory is about to
+            # materialize from the same immutable passive closure.  OMP and
+            # the executor still revalidate the now-durable binding later.
+            live_source_scope = (
+                binding.get("live_source_scope")
+                if isinstance(binding.get("live_source_scope"), dict)
+                else {}
+            )
+            prospective_binding_only = (
+                selection.get("ok") is not True
+                and set(selection.get("blockers") or [])
+                == {"ct_m0f_active_service_failure_causal_binding_required"}
+                and str(live_source_scope.get("source_channel") or "") == source
+                and str(live_source_scope.get("affected_scope_fingerprint") or "")
+                == current_affected_fingerprint
+                and int(live_source_scope.get("affected_scope_count") or 0)
+                == current_affected_count
+            )
+            same_current_incident = selection_shape_matches and (
+                binding_matches_existing_obligation or prospective_binding_only
             )
             if same_current_incident:
                 ct_m0f_controlled_selection = {
@@ -14598,10 +14642,19 @@ class AutoswitchPlanner:
                         ) or ""
                     ),
                     "source_incident_id": str(
-                        binding.get("source_incident_id") or ""
+                        binding.get("source_incident_id")
+                        or closure.get("source_incident_id")
+                        or ""
                     ),
                     "source_scope_fingerprint": str(
-                        binding.get("source_scope_fingerprint") or ""
+                        binding.get("source_scope_fingerprint")
+                        or live_source_scope.get("affected_scope_fingerprint")
+                        or ""
+                    ),
+                    "binding_mode": (
+                        "EXISTING_OMP_CONSUMED_BINDING"
+                        if binding_matches_existing_obligation
+                        else "PROSPECTIVE_PASSIVE_OBLIGATION_BINDING"
                     ),
                     "read_only": True,
                 }

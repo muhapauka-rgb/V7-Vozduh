@@ -3953,7 +3953,12 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 self.autoswitch,
                 "ct_m0f_standing_source_selection_only",
                 return_value={
-                    "ok": True,
+                    # The first obligation is being materialized.  The
+                    # selector cannot yet see an OMP-consumed binding, but it
+                    # may prove the exact target and current live source
+                    # scope.  The advisory must create that durable
+                    # prospective binding without creating a Packet or apply.
+                    "ok": False,
                     "selection_mode": "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
                     "selected_source_id": "source",
                     "selected_user": "10.7.0.18",
@@ -3964,10 +3969,17 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "admission_law": "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER",
                     },
                     "active_service_failure_binding": {
-                        "source_incident_id": incident_id,
-                        "source_scope_fingerprint": "controlled-scope",
-                        "source_scope_count": 1,
+                        "status": "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING",
+                        "requires_binding": True,
+                        "live_source_scope": {
+                            "source_channel": "source",
+                            "affected_scope_fingerprint": "controlled-scope",
+                            "affected_scope_count": 1,
+                        },
                     },
+                    "blockers": [
+                        "ct_m0f_active_service_failure_causal_binding_required",
+                    ],
                 },
             ):
                 result = planner.materialize_service_failure_automation_advisory({
@@ -3986,6 +3998,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         ]
         self.assertEqual(selection["target"], "execution-target")
         self.assertTrue(selection["read_only"])
+        self.assertEqual(
+            selection["binding_mode"],
+            "PROSPECTIVE_PASSIVE_OBLIGATION_BINDING",
+        )
         self.assertFalse(obligation["runtime_mutation_performed"])
         self.assertEqual(
             obligation["reconciliation"]["previous_stop_safe_classification"],

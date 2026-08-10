@@ -4388,7 +4388,31 @@ class AutoswitchPlanner:
         # explicitly excluded/recovered only with exact packet lineage.
         protected_users -= unresolved_users
         excluded_users -= unresolved_users | protected_users
-        accounted = len(protected_users) + len(unresolved_users) + len(excluded_users)
+        # The route owner can prove that an otherwise still-failing source has
+        # no current members.  This closes the *protection intent* without
+        # claiming that the channel recovered or that every historical member
+        # was packet-protected.  Leaving the old denominator OPEN would let a
+        # zero-scope historical incident compete with a later actionable
+        # incident on another source.
+        current_route_scope_empty = bool(
+            live_registry_available and not unresolved_users
+        )
+        if current_route_scope_empty:
+            # Keep the count separate and record one compact route-truth
+            # pointer; raw members remain with users.registry and are never
+            # copied into this projection.
+            excluded_users = set()
+            excluded_count = max(0, baseline_count - len(protected_users))
+            excluded_pointers.add(
+                "route-scope-empty:" + sha256_json({
+                    "source_channel": source_channel,
+                    "baseline_scope_fingerprint": baseline_fingerprint,
+                    "live_source_scope_count": 0,
+                })[:24]
+            )
+        else:
+            excluded_count = len(excluded_users)
+        accounted = len(protected_users) + len(unresolved_users) + excluded_count
         valid = live_registry_available and baseline_count == accounted
         return {
             "schema_version": "v7.service-failure-incident-scope-accounting.v2",
@@ -4403,14 +4427,22 @@ class AutoswitchPlanner:
             "unresolved_scope_count": len(unresolved_users),
             "unresolved_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(unresolved_users)}),
             "unresolved_scope_route_truth_owner": "state/users.registry",
-            "explicitly_excluded_or_recovered_scope_count": len(excluded_users),
-            "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(excluded_users)}),
+            "explicitly_excluded_or_recovered_scope_count": excluded_count,
+            "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({
+                "incident": source_incident_id,
+                "users": sorted(excluded_users) if not current_route_scope_empty else [],
+                "route_scope_empty": current_route_scope_empty,
+            }),
             "explicitly_excluded_or_recovered_lineage_pointers": sorted(excluded_pointers),
             "nonmember_or_stale_feedback_pointers": sorted(rejected_feedback_ids),
             "accounted_scope_count": accounted,
             "live_registry_available": live_registry_available,
             "raw_user_list_stored": False,
-            "scope_membership_law": "EXACT_SOURCE_SCOPE_FINGERPRINT_AND_CURRENT_ROUTE",
+            "scope_membership_law": (
+                "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY_PROTECTION_INTENT_CLOSURE"
+                if current_route_scope_empty
+                else "EXACT_SOURCE_SCOPE_FINGERPRINT_AND_CURRENT_ROUTE"
+            ),
         }
 
     def _reconcile_incident_cumulative_scope(
@@ -4948,6 +4980,46 @@ class AutoswitchPlanner:
                 desired_scope_fields.update({
                     "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
                     "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
+                })
+            elif (
+                str(record.get("authority_object") or "")
+                == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+                and str(record.get("incident_state") or "") != "INTENT_CLOSED"
+                and int(scope_accounting.get("unresolved_scope_count") or 0) == 0
+            ):
+                # Distinguish a channel recovery from an empty current source
+                # scope.  The former needs service recovery receipts; the
+                # latter is already terminal for user protection, but retains
+                # the channel incident as historical diagnostic evidence.
+                desired_scope_fields.update({
+                    "status": "CLOSED",
+                    "incident_state": "INTENT_CLOSED",
+                    "channel_incident_state": "OPEN_NO_ASSIGNED_USERS",
+                    "attempt_terminal": "CURRENT_SOURCE_SCOPE_EMPTY_NO_ACTION",
+                    "closed_at": now_iso(),
+                    "next_required_consumer": "",
+                    "reentry_condition": "new owner-backed source event with non-empty current route scope",
+                    "intent_closure_reason": "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY",
+                    "intent_closure_evidence_pointer": next(
+                        iter(scope_accounting.get(
+                            "explicitly_excluded_or_recovered_lineage_pointers"
+                        ) or ()),
+                        "",
+                    ),
+                    "cohort_protection_intent": {
+                        **(
+                            record.get("cohort_protection_intent")
+                            if isinstance(record.get("cohort_protection_intent"), dict)
+                            else {}
+                        ),
+                        "state": "INTENT_CLOSED",
+                        "intent_closure_reason": "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY",
+                    },
+                    "causal_invariant": {
+                        "name": "EMPTY_CURRENT_SCOPE_CLOSES_PROTECTION_INTENT_NOT_CHANNEL_INCIDENT",
+                        "valid": True,
+                    },
+                    "consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
                 })
             elif (
                 str(record.get("next_required_consumer") or "")

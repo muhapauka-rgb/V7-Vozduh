@@ -4452,6 +4452,72 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         )
         self.assertEqual(status["final_verdict"], "PASS", status)
 
+    def test_empty_current_route_scope_closes_protection_intent_not_channel_incident(self):
+        """A source with no current users cannot remain an actionable cohort."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=awg0 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"open": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc_empty_scope",
+                    "incident_generation": "egid_same",
+                    "channel": "source-a",
+                    "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN",
+                    "current_source_scope": {
+                        "status": "ACCOUNTED",
+                        "baseline_event_id": "sfe_source_a",
+                        "affected_scope_count": 3,
+                        "affected_scope_fingerprint": "a" * 64,
+                        "protected_scope_count": 0,
+                        "unresolved_scope_count": 3,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                    },
+                    "scope_accounting": {
+                        "status": "ACCOUNTED",
+                        "baseline_event_id": "sfe_source_a",
+                        "affected_scope_count": 3,
+                        "affected_scope_fingerprint": "a" * 64,
+                        "protected_scope_count": 0,
+                        "unresolved_scope_count": 3,
+                        "explicitly_excluded_or_recovered_scope_count": 0,
+                    },
+                    "next_required_consumer": "existing-consumer",
+                    "reentry_condition": "existing-reentry",
+                }},
+            }), encoding="utf-8")
+            planner = self.autoswitch.AutoswitchPlanner.__new__(
+                self.autoswitch.AutoswitchPlanner
+            )
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.args = argparse.Namespace(
+                state_dir=str(state_dir),
+                action_class_audit_store=str(state_dir / "audit.jsonl"),
+            )
+            result = planner.reconcile_service_failure_execution_outcomes()
+            state = json.loads(
+                (state_dir / "l3-runtime-state.json").read_text(encoding="utf-8")
+            )
+        record = state["incidents"]["open"]
+        scope = record["current_source_scope"]
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(record["incident_state"], "INTENT_CLOSED")
+        self.assertEqual(record["channel_incident_state"], "OPEN_NO_ASSIGNED_USERS")
+        self.assertEqual(record["attempt_terminal"], "CURRENT_SOURCE_SCOPE_EMPTY_NO_ACTION")
+        self.assertEqual(scope["unresolved_scope_count"], 0)
+        self.assertEqual(scope["explicitly_excluded_or_recovered_scope_count"], 3)
+        self.assertEqual(
+            scope["scope_membership_law"],
+            "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY_PROTECTION_INTENT_CLOSURE",
+        )
+        self.assertFalse(result["forbidden_effects"]["routing_mutation"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_recovery_receipt_closes_old_episode_after_new_service_failure(self):
         """A later failure is a new episode, not a retroactive reopening."""
         with tempfile.TemporaryDirectory() as tmp:

@@ -14426,11 +14426,16 @@ class AutoswitchPlanner:
         pre_obligation_state = self._load_l3_runtime_state()
         pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
         closures = read_jsonl(closure_path)
-        existing = {
-            str(row.get("automation_obligation_id") or "")
-            for row in closures
-            if str(row.get("object_type") or "") == "service_failure_automation_obligation"
-        }
+        # ``closure-records.jsonl`` is the existing append-only obligation
+        # owner.  Keep its latest projection for an id: a later current-scope
+        # reconciliation may legitimately supersede an earlier passive
+        # classification, but must never generate duplicate projections when
+        # its effective semantics are unchanged.
+        existing = {}
+        for row in closures:
+            if str(row.get("object_type") or "") != "service_failure_automation_obligation":
+                continue
+            existing[str(row.get("automation_obligation_id") or "")] = row
         passive = [
             row for row in closures
             if str(row.get("object_type") or "") == "passive_production_event"
@@ -14446,7 +14451,7 @@ class AutoswitchPlanner:
                 correct_terminals_skipped += 1
                 continue
             obligation_id = self._service_failure_automation_obligation_id(row)
-            if obligation_id and obligation_id not in existing:
+            if obligation_id:
                 candidate_incident_key = str(row.get("incident_key") or self._passive_incident_projection_key(
                     str(row.get("source_incident_id") or row.get("object_id") or "")
                 ))
@@ -14540,6 +14545,66 @@ class AutoswitchPlanner:
         standing_policy = self._standing_delegated_policy_status()
         standing_policy_active = bool(standing_policy.get("valid"))
         standing_expiry = str(standing_policy.get("expires_at") or "")
+        # The ordinary Planner deliberately excludes an isolated
+        # EXECUTION_ONLY destination from its general recommendation set.  A
+        # resulting NO_SAFE_TARGET is correct for ordinary traffic, but must
+        # not erase an already-admitted CT-M0F certification path.  Reuse the
+        # existing read-only CT-M0F selector only for the same incident and
+        # compact denominator.  It independently validates the standing
+        # policy, certification identity, target health/capacity, target
+        # contract, and zero ordinary-user delta.  This advisory remains
+        # non-executable: Candidate, Packet, lease and all live gates are
+        # still owned and revalidated downstream.
+        ct_m0f_controlled_selection: dict[str, Any] = {}
+        if (
+            standing_policy_active
+            and classification == "STOP_SAFE_NO_SAFE_TARGET"
+            and getattr(self, "args", None) is not None
+        ):
+            selection = ct_m0f_standing_source_selection_only(self.args)
+            binding = (
+                selection.get("active_service_failure_binding")
+                if isinstance(selection.get("active_service_failure_binding"), dict)
+                else {}
+            )
+            same_current_incident = (
+                selection.get("ok") is True
+                and str(selection.get("selection_mode") or "")
+                == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+                and str(selection.get("selected_source_id") or "") == source
+                and bool(
+                    (selection.get("selected_target_admission") or {}).get(
+                        "controlled_contract_admitted"
+                    )
+                )
+                and str(binding.get("source_incident_id") or "")
+                == str(closure.get("source_incident_id") or "")
+                and str(binding.get("source_scope_fingerprint") or "")
+                == current_affected_fingerprint
+                and int(binding.get("source_scope_count") or 0)
+                == current_affected_count
+            )
+            if same_current_incident:
+                ct_m0f_controlled_selection = {
+                    "source": str(selection.get("selected_source_id") or ""),
+                    "user": str(selection.get("selected_user") or ""),
+                    "target": str(selection.get("selected_target_id") or ""),
+                    "sample_binding_fingerprint": str(
+                        selection.get("sample_binding_fingerprint") or ""
+                    ),
+                    "admission_law": str(
+                        (selection.get("selected_target_admission") or {}).get(
+                            "admission_law"
+                        ) or ""
+                    ),
+                    "source_incident_id": str(
+                        binding.get("source_incident_id") or ""
+                    ),
+                    "source_scope_fingerprint": str(
+                        binding.get("source_scope_fingerprint") or ""
+                    ),
+                    "read_only": True,
+                }
         request_safe_scope = current_tier
         adaptive_cohort = build_service_failure_adaptive_cohort_contract(
             movable,
@@ -14573,12 +14638,19 @@ class AutoswitchPlanner:
             "users_moved": 0,
             "authority_expanded": False,
         }
-        if standing_policy_active and classification == "STOP_SAFE_AUTHORITY_REQUIRED":
+        if standing_policy_active and classification in {
+            "STOP_SAFE_AUTHORITY_REQUIRED",
+            "STOP_SAFE_NO_SAFE_TARGET",
+        } and (
+            classification == "STOP_SAFE_AUTHORITY_REQUIRED"
+            or ct_m0f_controlled_selection
+        ):
             classification = "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
             reason = (
-                "the exact standing delegated policy is active; the existing "
-                "bounded executor must wait for and revalidate a fresh matching "
-                "service-failure event before any action"
+                "the exact standing delegated policy and matching current "
+                "controlled-target selection are active; the existing bounded "
+                "executor must revalidate the fresh matching service-failure "
+                "event before any action"
             )
             product_frontier = "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION"
             action_boundary = {
@@ -14586,6 +14658,7 @@ class AutoswitchPlanner:
                 "status": "STANDING_DELEGATED_POLICY_ACTIVE_FRESH_EVENT_REVALIDATION_REQUIRED",
                 "blockers": [],
                 "standing_delegated_policy": standing_policy,
+                "ct_m0f_controlled_selection": ct_m0f_controlled_selection,
                 "next_required_objects": [
                     "fresh_matching_service_failure_event",
                     "fresh_candidate",
@@ -14671,6 +14744,73 @@ class AutoswitchPlanner:
             "authority_expanded": False,
             "production_maturity_changed": False,
         }
+        # A normal Matrix generation may see the same passive event again.
+        # Compare only durable decision semantics, rather than volatile
+        # timestamps or the complete policy diagnostic, so an unchanged
+        # observation remains exact-once.  Conversely, this lets the existing
+        # owner append one reconciled projection when an old ordinary-planner
+        # STOP_SAFE has become a lawful CT-M0F controlled path.
+        def obligation_semantic_projection(row: dict[str, Any]) -> dict[str, Any]:
+            boundary = row.get("action_class_execution_boundary")
+            boundary = boundary if isinstance(boundary, dict) else {}
+            return {
+                key: row.get(key)
+                for key in (
+                    "object_id", "automation_obligation_id", "closure_state",
+                    "source_incident_id", "incident_key", "situation_id",
+                    "decision_trace_id", "event_provenance", "evidence_class",
+                    "channel", "failure_families", "affected_users_count",
+                    "aggregate_impact_users", "current_source_scope",
+                    "bounded_recommendation_users",
+                    "current_certified_blast_radius_tier",
+                    "runtime_scope_context", "requested_blast_radius_tier",
+                    "smallest_necessary_cohort", "maximum_capacity_safe_cohort",
+                    "current_authority_safe_cohort", "effective_cohort",
+                    "effective_cohort_load", "effective_cohort_fingerprint",
+                    "target_capacity_snapshot", "stop_safe_classification",
+                    "classification_reason", "product_evolution_frontier",
+                    "incident_frontier", "authority_reconciliation",
+                    "shadow_allowed_action_status",
+                )
+            } | {
+                "action_boundary": {
+                    "status": str(boundary.get("status") or ""),
+                    "blockers": list(boundary.get("blockers") or []),
+                    "next_required_objects": list(boundary.get("next_required_objects") or []),
+                    "ct_m0f_controlled_selection": (
+                        boundary.get("ct_m0f_controlled_selection")
+                        if isinstance(boundary.get("ct_m0f_controlled_selection"), dict)
+                        else {}
+                    ),
+                },
+            }
+
+        previous_obligation = existing.get(obligation_id)
+        previous_semantics = (
+            obligation_semantic_projection(previous_obligation)
+            if isinstance(previous_obligation, dict) else {}
+        )
+        current_semantics = obligation_semantic_projection(obligation)
+        if previous_semantics == current_semantics:
+            return {
+                "schema_version": "v7.service-failure-automation-advisory.v1",
+                "active": False,
+                "reason": "current_obligation_semantics_already_materialized",
+                "obligation_id": obligation_id,
+                "outcome_reconciliation": outcome_reconciliation,
+                "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
+                "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
+            }
+        if isinstance(previous_obligation, dict):
+            obligation["reconciliation"] = {
+                "kind": "CURRENT_CONTROLLED_TARGET_ADMISSION_RECONCILIATION",
+                "supersedes_created_at": str(previous_obligation.get("created_at") or ""),
+                "previous_stop_safe_classification": str(
+                    previous_obligation.get("stop_safe_classification") or ""
+                ),
+                "previous_semantic_fingerprint": sha256_json(previous_semantics),
+                "current_semantic_fingerprint": sha256_json(current_semantics),
+            }
         shadow_rows = read_jsonl(shadow_path)
         shadow_ids = {str(row.get("decision_id") or "") for row in shadow_rows}
         shadow_record: dict[str, Any] = {}

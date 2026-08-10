@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from admin_core import operator_execution
@@ -3883,6 +3884,117 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertFalse(obligation["runtime_mutation_performed"])
             self.assertEqual(obligation["users_moved"], 0)
+
+    def test_active_standing_policy_reuses_matching_controlled_target_when_ordinary_planner_has_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_controlled_target"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 1,
+                "protected_scope_count": 0, "unresolved_scope_count": 1,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "controlled-scope",
+                "raw_user_list_stored": False,
+            }
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id,
+                    "source_incident_id": incident_id, "source_channel": "source",
+                    "channel": "source", "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN",
+                    "current_source_scope": scope, "scope_accounting": scope,
+                }},
+            }), encoding="utf-8")
+            closure = {
+                "object_type": "passive_production_event", "object_id": incident_id,
+                "source_incident_id": incident_id, "incident_key": incident_key,
+                "situation_id": "situation_controlled_target",
+                "decision_trace_id": "decision_controlled_target",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "channel": "source", "affected_users": [],
+            }
+            obligation_id = self.autoswitch.sha256_json({
+                "source_incident_id": incident_id,
+                "situation_id": "situation_controlled_target",
+                "decision_trace_id": "decision_controlled_target",
+                "terminal": "STOP_SAFE_NO_ACTION",
+                "provenance": "EXTERNAL_UNATTRIBUTED",
+            })[:24]
+            old_obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "object_id": "sfaob_" + obligation_id,
+                "automation_obligation_id": "sfaob_" + obligation_id,
+                "created_at": "2026-08-01T00:00:00+00:00",
+                "source_incident_id": incident_id,
+                "incident_key": incident_key,
+                "stop_safe_classification": "STOP_SAFE_NO_SAFE_TARGET",
+                "current_source_scope": scope,
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in (closure, old_obligation)) + "\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner.args = SimpleNamespace()
+            planner._standing_delegated_policy_status = lambda: {
+                "valid": True, "contract_id": "sdpc_test",
+                "expires_at": "2026-08-27T00:00:00+00:00",
+            }
+            with mock.patch.object(
+                self.autoswitch,
+                "ct_m0f_standing_source_selection_only",
+                return_value={
+                    "ok": True,
+                    "selection_mode": "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
+                    "selected_source_id": "source",
+                    "selected_user": "10.7.0.18",
+                    "selected_target_id": "execution-target",
+                    "sample_binding_fingerprint": "a" * 64,
+                    "selected_target_admission": {
+                        "controlled_contract_admitted": True,
+                        "admission_law": "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER",
+                    },
+                    "active_service_failure_binding": {
+                        "source_incident_id": incident_id,
+                        "source_scope_fingerprint": "controlled-scope",
+                        "source_scope_count": 1,
+                    },
+                },
+            ):
+                result = planner.materialize_service_failure_automation_advisory({
+                    "decisions": [],
+                })
+                unchanged = planner.materialize_service_failure_automation_advisory({
+                    "decisions": [],
+                })
+        obligation = result["obligation"]
+        self.assertEqual(
+            obligation["stop_safe_classification"],
+            "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+        )
+        selection = obligation["action_class_execution_boundary"][
+            "ct_m0f_controlled_selection"
+        ]
+        self.assertEqual(selection["target"], "execution-target")
+        self.assertTrue(selection["read_only"])
+        self.assertFalse(obligation["runtime_mutation_performed"])
+        self.assertEqual(
+            obligation["reconciliation"]["previous_stop_safe_classification"],
+            "STOP_SAFE_NO_SAFE_TARGET",
+        )
+        self.assertFalse(unchanged["active"])
+        self.assertEqual(
+            unchanged["reason"], "current_obligation_semantics_already_materialized",
+        )
 
     def test_policy_reconciliation_preserves_active_incident_drain_and_projects_tiers(self):
         with tempfile.TemporaryDirectory() as tmp:

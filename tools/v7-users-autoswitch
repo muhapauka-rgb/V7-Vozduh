@@ -21844,12 +21844,12 @@ def ct_m0f_standing_source_selection_only(
         "selected_target_admission": {
             "controlled_contract_admitted": controlled_target_admitted,
             "ordinary_full_live_admission": bool(
-                selected_shared_target.get("ordinary_planner_eligible")
-                if shared_target_admitted else False
+                selected_target_projection.get("ordinary_planner_eligible")
+                if controlled_target_admitted else False
             ),
             "ordinary_planner_eligible": bool(
-                selected_shared_target.get("ordinary_planner_eligible")
-                if shared_target_admitted else False
+                selected_target_projection.get("ordinary_planner_eligible")
+                if controlled_target_admitted else False
             ),
             "admission_law": (
                 "EXACT_CONTROLLED_BASELINE_RECOVERY_TARGET"

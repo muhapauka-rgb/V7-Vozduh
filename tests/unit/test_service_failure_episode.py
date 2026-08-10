@@ -815,6 +815,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(
             result["selected_target_admission"]["controlled_contract_admitted"]
         )
+        self.assertFalse(
+            result["selected_target_admission"]["ordinary_planner_eligible"]
+        )
         self.assertEqual(
             result["selected_target_admission"]["admission_law"],
             "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER",

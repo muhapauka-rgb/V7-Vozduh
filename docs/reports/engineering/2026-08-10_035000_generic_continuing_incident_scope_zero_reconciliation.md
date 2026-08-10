@@ -46,6 +46,8 @@ tests.unit.test_v7_users_autoswitch_policy
 
 ## Production acceptance и следующий successor
 
-До deploy production effect отсутствует: Candidate, Packet, lease, apply, routing mutation, rollback, Authority и Production Maturity равны `NONE`.
+Штатный `tools/v7-safe-deploy` применён для commit `fe65ff6a80ba089d4e288b3d562163e69571f753` (deploy `deploy-z8-14-Updatesystem-fe65ff6-20260810T090130`). SHA-256 production `/usr/local/bin/v7-users-autoswitch` совпал с локальным `a7d912e8be5e3f806e709cb20051997596e0420d3374e5c207e65954ea6c4a06`; `tools/v7-truth-check --all --json` вернул `PASS`, а `tools/v7-convergence-status --json` — `ALIGNED` / `FULLY_ALIGNED`. Runtime подтвердил активный штатный Matrix timer и существующего consumer `tools/v7-service-matrix-refresh-all` для `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`.
 
-Следующий безопасный шаг: `tools/v7-safe-deploy` preflight для этого exact manifest, затем deploy и production non-test caller. Следующий обычный Matrix cycle должен consume existing reconciliation owner. При persistent failure с non-empty current scope он обязан продолжить тот же source-bound lifecycle; при empty scope терминал останется `CURRENT_SOURCE_SCOPE_EMPTY_NO_ACTION`; при recovery будет owner-backed recovery terminal. Во всех случаях CT-M0F возвращается к следующему lawful sample/residual без ручного Matrix запуска.
+Deploy не создавал production effect: Candidate, Packet, lease, apply, routing mutation, rollback, Authority и Production Maturity равны `NONE`.
+
+Следующий owner — обычный Matrix cycle, а не оператор и не Codex. При persistent failure с non-empty current scope он обязан продолжить тот же source-bound lifecycle; при empty scope терминал останется `CURRENT_SOURCE_SCOPE_EMPTY_NO_ACTION`; при recovery будет owner-backed recovery terminal. Во всех случаях CT-M0F возвращается к следующему lawful sample/residual без ручного Matrix запуска.

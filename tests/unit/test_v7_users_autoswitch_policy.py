@@ -1632,6 +1632,36 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(result["incident_id"].startswith("ctm0finc_"))
         self.assertEqual(result["incident_generation"], condition["record_hash"])
 
+    def test_ct_m0f_target_identity_reuses_single_declared_tunnel_endpoint(self):
+        target = self.tool.Egress(
+            id="controlled-target",
+            interface="v7execwg0",
+            raw={
+                "registry": {
+                    "protocol": "amneziawg",
+                    "config": "/etc/amnezia/v7execwg0.conf",
+                }
+            },
+        )
+        with mock.patch.object(
+            self.tool.Path,
+            "read_text",
+            return_value="[Peer]\nEndpoint = 8.8.8.8:34403\n",
+        ):
+            expected_ip, source = self.tool.declared_target_egress_ip(target)
+
+        self.assertEqual(expected_ip, "8.8.8.8")
+        self.assertEqual(source, "tunnel_endpoint_expected_ip")
+
+        non_tunnel = self.tool.Egress(
+            id="proxy-target",
+            raw={"registry": {"protocol": "vless", "config": "/etc/amnezia/x.conf"}},
+        )
+        self.assertEqual(
+            self.tool.declared_target_egress_ip(non_tunnel),
+            ("", "no_declared_target_egress_identity"),
+        )
+
     def write_intelligence_snapshots(self, root: Path, *, ctr_channels: Optional[list[dict]] = None) -> Path:
         snapshot_root = root / "state" / "intelligence"
         snapshot_root.mkdir(parents=True, exist_ok=True)

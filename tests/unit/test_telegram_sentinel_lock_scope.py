@@ -9,6 +9,7 @@ import unittest
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
+from types import SimpleNamespace
 from typing import List, Optional, Tuple
 from unittest import mock
 
@@ -88,17 +89,28 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             state_dir = root / "state"
             self.write_registry(state_dir)
             lock_path = state_dir / "service-matrix.lock"
+            probe_mutex = threading.Lock()
 
             def probe_asserts_lock_free(iface: str, timeout: float) -> dict:
-                fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    fcntl.flock(fd, fcntl.LOCK_UN)
-                finally:
-                    os.close(fd)
+                # Two egress probes run concurrently; serialize this assertion
+                # so a sibling probe cannot be mistaken for the Matrix writer.
+                with probe_mutex:
+                    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+                    try:
+                        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        fcntl.flock(fd, fcntl.LOCK_UN)
+                    finally:
+                        os.close(fd)
                 return self.ok_probe(iface, timeout)
 
-            with mock.patch.object(self.sentinel, "check_telegram", side_effect=probe_asserts_lock_free):
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", side_effect=probe_asserts_lock_free),
+                mock.patch.object(
+                    self.sentinel,
+                    "publish_fast_signal_to_canonical_matrix",
+                    return_value={"status": "NO_CONFIRMED_HARD_FAILURE", "ok": True},
+                ),
+            ):
                 rc, payload = self.run_main(root)
 
             self.assertEqual(rc, 0, payload)
@@ -270,6 +282,109 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             self.assertTrue(telegram["ok"])
             self.assertEqual(telegram["status"], "OK")
             self.assertEqual(telegram["kind"], "telegram_tcp_sentinel")
+
+    def test_confirmed_fast_failure_uses_canonical_matrix_event_owner(self):
+        """A fast signal is a producer bridge, never a second failover owner."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            self.write_registry(state_dir)
+            calls: list[dict] = []
+
+            def canonical_update(*args, **kwargs):
+                channel = str(args[1])
+                calls.append({"channel": channel, "args": args, "kwargs": kwargs})
+                return ({
+                    "items": {
+                        channel: {
+                            "services": {
+                                "telegram": {
+                                    "failure_episode_id": f"sfep_{channel}",
+                                    "failure_event_id": f"sfe_{channel}",
+                                    "source_incident_id": f"sfinc_{channel}",
+                                    "failure_state": "OBSERVED_NEW",
+                                    "confirmed_hard_failure_monotonic_ns": 42,
+                                }
+                            }
+                        }
+                    }
+                }, {"inherited": True})
+
+            owner = SimpleNamespace(
+                update_matrix=canonical_update,
+                canonical_egress_identity=lambda *_args, **_kwargs: {
+                    "egress_identity_generation": "egid_unit",
+                },
+                egress_row=lambda *_args, **_kwargs: {"id": "unit"},
+            )
+            down = {
+                "sample_ok": False,
+                "status": "NOT_STARTED",
+                "score": 0,
+                "ratio": 0.0,
+                "critical_ok": False,
+                "ok_count": 0,
+                "total": 5,
+                "reason": "unit hard failure",
+                "samples": [],
+                "first_byte_sec": "",
+                "total_sec": 0.001,
+            }
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", return_value=down),
+                mock.patch.object(self.sentinel, "service_matrix_owner", return_value=owner),
+            ):
+                rc, payload = self.run_main(root)
+
+            self.assertEqual(rc, 0, payload)
+            bridge = payload["fast_signal_bridge"]
+            self.assertEqual(
+                bridge["status"],
+                "CONFIRMED_FAILURE_PUBLISHED_TO_EXISTING_MATRIX_OWNER",
+            )
+            self.assertEqual(sorted(row["channel"] for row in calls), ["awg0", "vless"])
+            for call in calls:
+                self.assertEqual(call["args"][3]["telegram"]["status"], "DOWN")
+                self.assertEqual(call["kwargs"]["persistence_samples"], 1)
+                self.assertEqual(call["kwargs"]["persistence_window_seconds"], 14)
+            self.assertEqual(bridge["events_created"], 2)
+            self.assertFalse(bridge["runtime_mutation_performed"])
+            self.assertFalse(bridge["routing_mutation_performed"])
+            self.assertEqual(bridge["users_moved"], 0)
+
+    def test_fast_signal_does_not_call_canonical_owner_without_confirmed_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            self.write_registry(state_dir)
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", side_effect=self.ok_probe),
+                mock.patch.object(self.sentinel, "service_matrix_owner") as owner,
+            ):
+                rc, payload = self.run_main(root)
+            self.assertEqual(rc, 0, payload)
+            self.assertEqual(payload["fast_signal_bridge"]["status"], "NO_CONFIRMED_HARD_FAILURE")
+            owner.assert_not_called()
+
+    def test_fast_signal_preserves_threshold_crossing_into_canonical_episode(self):
+        item = {
+            "blocked": True,
+            "matrix_status": "TELEGRAM_DOWN_14S",
+            "bad_since": "2026-08-12T10:00:00+00:00",
+            "checked_at": "2026-08-12T10:00:14+00:00",
+            "bad_for_seconds": 14.0,
+            "threshold_seconds": 14,
+            "critical_ok": False,
+            "ok_count": 0,
+            "total": 5,
+            "reason": "unit threshold crossed",
+            "samples": [],
+        }
+        result = self.sentinel.fast_signal_result(item)
+        self.assertEqual(result["status"], "TELEGRAM_DOWN_14S")
+        self.assertEqual(result["failure_started_at"], item["bad_since"])
+        self.assertEqual(result["bad_for_seconds"], 14.0)
+        self.assertEqual(result["failure_samples"], 1)
 
 
 if __name__ == "__main__":

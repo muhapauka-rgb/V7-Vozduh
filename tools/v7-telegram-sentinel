@@ -13,11 +13,15 @@ import argparse
 import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import fcntl
+import hashlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 import re
 import socket
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -75,6 +79,69 @@ def write_json_atomic(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+_SERVICE_MATRIX_OWNER: Any = None
+
+
+def sha256_json(payload: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def service_matrix_owner() -> Any:
+    """Load the existing canonical Matrix writer, never a parallel event owner."""
+    global _SERVICE_MATRIX_OWNER
+    if _SERVICE_MATRIX_OWNER is not None:
+        return _SERVICE_MATRIX_OWNER
+    candidates = (
+        Path(__file__).with_name("v7-service-matrix-test"),
+        Path("/usr/local/bin/v7-service-matrix-test"),
+    )
+    tool = next((path for path in candidates if path.exists()), None)
+    if tool is None:
+        raise FileNotFoundError("existing_service_matrix_owner_missing")
+    # ``v7-service-matrix-test`` is an executable script rather than an import
+    # package.  Its shared admin_core imports resolve from the repository root
+    # in source and from /opt/v7 after safe deployment.
+    root = tool.parent.parent
+    root_text = str(root)
+    inserted_root = False
+    if root_text not in sys.path:
+        sys.path.insert(0, root_text)
+        inserted_root = True
+    loader = importlib.machinery.SourceFileLoader(
+        "v7_service_matrix_fast_signal_bridge", str(tool)
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("existing_service_matrix_owner_unloadable")
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        if inserted_root:
+            try:
+                sys.path.remove(root_text)
+            except ValueError:
+                pass
+    _SERVICE_MATRIX_OWNER = module
+    return module
+
+
+@contextlib.contextmanager
+def inherited_matrix_writer_lock(owner: Any, matrix_file: Path):
+    """Tell the canonical owner that this sentinel already holds its lock."""
+    prior = os.environ.get("V7_SERVICE_MATRIX_LOCK_HELD")
+    os.environ["V7_SERVICE_MATRIX_LOCK_HELD"] = "1"
+    try:
+        yield
+    finally:
+        if prior is None:
+            os.environ.pop("V7_SERVICE_MATRIX_LOCK_HELD", None)
+        else:
+            os.environ["V7_SERVICE_MATRIX_LOCK_HELD"] = prior
 
 
 @contextlib.contextmanager
@@ -344,6 +411,17 @@ def merge_matrix_item(matrix: dict[str, Any], egress_id: str, iface: str, item: 
         "error": "" if item.get("matrix_ok") else item.get("reason", ""),
         "samples": item.get("samples", []),
     }
+    # Preserve the sentinel's threshold crossing for the canonical Matrix
+    # episode owner.  The subsequent bridge may then use the known failed-since
+    # time instead of restarting persistence at the hand-off boundary.
+    if bool(item.get("blocked")):
+        services["telegram"].update({
+            "failure_started_at": str(item.get("bad_since") or item.get("checked_at") or now_iso()),
+            "last_failure_at": str(item.get("checked_at") or now_iso()),
+            "failure_samples": max(1, int(item.get("failure_samples") or 1)),
+            "consecutive_failures": max(1, int(item.get("failure_samples") or 1)),
+            "bad_for_seconds": float(item.get("bad_for_seconds") or 0.0),
+        })
     total = len(services)
     ok_count = sum(1 for service in services.values() if bool(service.get("ok")))
     row.update({
@@ -358,6 +436,175 @@ def merge_matrix_item(matrix: dict[str, Any], egress_id: str, iface: str, item: 
     })
     row["route_class_fitness"] = route_class_fitness(row)
     matrix["updated"] = now_iso()
+
+
+def fast_signal_result(item: dict[str, Any]) -> dict[str, Any]:
+    """Translate the existing sentinel result into the canonical service shape.
+
+    The sentinel does not decide that an outage is actionable.  It only hands
+    its bounded Telegram observation to ``v7-service-matrix-test.update_matrix``
+    so failure episodes, source scope, persistence, recovery and event identity
+    retain their one existing owner.
+    """
+    blocked = bool(item.get("blocked"))
+    status = str(item.get("matrix_status") or item.get("status") or "UNKNOWN")
+    failure_status = status if blocked and status.startswith("TELEGRAM_DOWN_") else (
+        "DOWN" if blocked else (
+        "DEGRADED" if status in {"DEGRADED", "DOWN_GRACE", "GRACE"} else "OK"
+        )
+    )
+    reason = str(item.get("reason") or "")
+    return {
+        "label": "Telegram",
+        "kind": "telegram_tcp_sentinel",
+        "interface": str(item.get("interface") or ""),
+        "ok": not blocked,
+        "status": failure_status,
+        "severity": "FAIL" if blocked else ("WARN" if failure_status == "DEGRADED" else "OK"),
+        "score": int(item.get("score") or 0),
+        "ratio": item.get("ratio", 0),
+        "first_byte_sec": item.get("first_byte_sec", ""),
+        "total_sec": item.get("total_sec", ""),
+        "tested_at": str(item.get("checked_at") or now_iso()),
+        "ok_count": int(item.get("ok_count") or 0),
+        "total": int(item.get("total") or 0),
+        "required_ok_count": 1 if bool(item.get("critical_ok")) else 0,
+        "required_total": 1,
+        "failed_count": max(0, int(item.get("total") or 0) - int(item.get("ok_count") or 0)),
+        "required_failed_count": 0 if bool(item.get("critical_ok")) else 1,
+        "reason": reason,
+        "error": "" if not blocked else reason,
+        "samples": list(item.get("samples") or []),
+        "fast_signal_owner": "tools/v7-telegram-sentinel",
+        "fast_signal_persistence_seconds": int(item.get("threshold_seconds") or 0),
+        "failure_started_at": str(item.get("bad_since") or ""),
+        "last_failure_at": str(item.get("checked_at") or ""),
+        "failure_samples": max(1, int(item.get("failure_samples") or 1)) if blocked else 0,
+        "consecutive_failures": max(1, int(item.get("failure_samples") or 1)) if blocked else 0,
+        "bad_for_seconds": float(item.get("bad_for_seconds") or 0.0),
+    }
+
+
+def publish_fast_signal_to_canonical_matrix(
+    *,
+    state_dir: Path,
+    matrix_file: Path,
+    event_dir: Path,
+    items: dict[str, Any],
+    persistence_window_seconds: int,
+    lock_timeout_sec: int,
+) -> dict[str, Any]:
+    """Publish only confirmed fast observations through the existing Matrix owner.
+
+    No Candidate, Packet, lease, Planner, Runtime action or new durable store is
+    created here.  This turns the pre-existing 4-second Telegram sentinel into
+    a low-latency *producer* for the same source-bound failure events used by
+    the ordinary Matrix -> governed failover chain.
+    """
+    confirmed = [
+        item for item in items.values()
+        if isinstance(item, dict) and bool(item.get("blocked"))
+    ]
+    if not confirmed:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-bridge.v1",
+            "status": "NO_CONFIRMED_HARD_FAILURE",
+            "ok": True,
+            "published_channels": [],
+            "events_created": 0,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    try:
+        owner = service_matrix_owner()
+    except Exception as exc:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-bridge.v1",
+            "status": "STOP_SAFE_EXISTING_MATRIX_OWNER_UNAVAILABLE",
+            "ok": False,
+            "blockers": [f"{type(exc).__name__}:{exc}"],
+            "published_channels": [],
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    published: list[dict[str, Any]] = []
+    try:
+        # The sentinel already owns the writer lock at this point.  Reusing the
+        # Matrix writer under that lock preserves a single atomic producer
+        # transaction instead of creating a second event stream.
+        with inherited_matrix_writer_lock(owner, matrix_file):
+            for item in sorted(confirmed, key=lambda row: str(row.get("egress") or "")):
+                channel = str(item.get("egress") or "")
+                if not channel:
+                    continue
+                matrix, _lock = owner.update_matrix(
+                    matrix_file,
+                    channel,
+                    str(item.get("interface") or channel),
+                    {"telegram": fast_signal_result(item)},
+                    max(1, int(lock_timeout_sec)),
+                    event_dir=event_dir,
+                    persistence_samples=1,
+                    persistence_window_seconds=max(1, int(persistence_window_seconds)),
+                    egress_identity=owner.canonical_egress_identity(
+                        owner.egress_row(state_dir, channel),
+                        egress_id=channel,
+                        iface=str(item.get("interface") or channel),
+                    ),
+                    state_dir=state_dir,
+                )
+                service = (
+                    ((matrix.get("items") or {}).get(channel) or {}).get("services")
+                    or {}
+                ).get("telegram") or {}
+                published.append({
+                    "channel": channel,
+                    "failure_episode_id": str(service.get("failure_episode_id") or ""),
+                    "failure_event_id": str(service.get("failure_event_id") or ""),
+                    "source_incident_id": str(service.get("source_incident_id") or ""),
+                    "failure_state": str(service.get("failure_state") or ""),
+                    "confirmed_hard_failure_monotonic_ns": int(
+                        service.get("confirmed_hard_failure_monotonic_ns") or 0
+                    ),
+                })
+    except (OSError, TimeoutError, ValueError) as exc:
+        return {
+            "schema_version": "v7.fast-signal-canonical-matrix-bridge.v1",
+            "status": "STOP_SAFE_CANONICAL_MATRIX_PUBLISH_FAILED",
+            "ok": False,
+            "blockers": [f"{type(exc).__name__}:{exc}"],
+            "published_channels": published,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    return {
+        "schema_version": "v7.fast-signal-canonical-matrix-bridge.v1",
+        "status": "CONFIRMED_FAILURE_PUBLISHED_TO_EXISTING_MATRIX_OWNER",
+        "ok": True,
+        "producer": "tools/v7-telegram-sentinel",
+        "canonical_event_owner": "tools/v7-service-matrix-test.update_matrix",
+        "next_consumer": "existing v7-users-autoswitch / governed L3 consumer",
+        "published_channels": published,
+        "events_created": sum(1 for row in published if row.get("failure_event_id")),
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
 
 
 def update_matrix_items(matrix_file: Path, items: dict[str, Any]) -> dict[str, Any]:
@@ -514,6 +761,14 @@ def main() -> int:
     try:
         with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
             update_matrix_items(matrix_file, items)
+            fast_signal_bridge = publish_fast_signal_to_canonical_matrix(
+                state_dir=state_dir,
+                matrix_file=matrix_file,
+                event_dir=event_dir,
+                items=items,
+                persistence_window_seconds=int(args.threshold_seconds),
+                lock_timeout_sec=int(args.lock_timeout_sec),
+            )
     except TimeoutError as exc:
         print(json.dumps({
             "schema_version": 1,
@@ -527,6 +782,16 @@ def main() -> int:
             "checked_egress": len(items),
             "users_moved": False,
             "autoswitch": {"started": False, "reason": "service_matrix_lock_timeout"},
+            "fast_signal_bridge": {
+                "status": "STOP_SAFE_SERVICE_MATRIX_LOCK_TIMEOUT",
+                "ok": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            },
         }, ensure_ascii=False, indent=2 if args.pretty else None))
         return 75
 
@@ -553,6 +818,7 @@ def main() -> int:
         "healthy_egress": sorted(item.get("egress") for item in healthy_items),
         "last_autoswitch_at": last_autoswitch_at,
         "autoswitch": autoswitch,
+        "fast_signal_bridge": fast_signal_bridge,
         "service_matrix_lock": lock_info,
         "items": items,
     }

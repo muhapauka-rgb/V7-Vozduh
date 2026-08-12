@@ -2287,6 +2287,8 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
 def ct_m0f_active_service_failure_binding_projection(
     state_dir: Path,
     source_id: str,
+    *,
+    event_dir: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Read the one current passive incident binding for a CT-M0F source.
 
@@ -2546,6 +2548,50 @@ def ct_m0f_active_service_failure_binding_projection(
         != live_source_scope["affected_scope_fingerprint"]
     ):
         blockers.append("current_live_route_scope_mismatch")
+    # A current route scope is necessary but not sufficient for a production
+    # cutover.  The governed executor independently requires a recent
+    # capture-only Matrix event for the same incident and scope.  Check the
+    # exact same existing event owner here when the normal Matrix caller
+    # supplies it, so an expired incident cannot create a Candidate/Packet
+    # attempt only to be rejected downstream.  Direct projection callers that
+    # do not own an event directory retain their read-only scope semantics.
+    fresh_event_id = ""
+    fresh_event_status = "NOT_EVALUATED"
+    if event_dir is not None:
+        fresh_event_status = "MISSING"
+        now = datetime.now(timezone.utc)
+        for event in reversed(read_jsonl(Path(event_dir) / "service-failure-events.jsonl")):
+            if str(event.get("event_type") or "") not in {
+                "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+            }:
+                continue
+            if str(event.get("source_incident_id") or "") != str(record.get("incident_id") or ""):
+                continue
+            if str(event.get("channel") or event.get("object") or "") != str(source_id or ""):
+                continue
+            if not bool(event.get("capture_only")) or str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED":
+                continue
+            event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
+            if (
+                int(event_scope.get("affected_scope_count") or 0)
+                != int(actionable_scope.get("count") or 0)
+                or str(event_scope.get("affected_scope_fingerprint") or "")
+                != str(actionable_scope.get("fingerprint") or "")
+            ):
+                continue
+            timestamp = str(event.get("observed_at") or event.get("timestamp") or "")
+            try:
+                observed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                if observed.tzinfo is None:
+                    observed = observed.replace(tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= (now - observed.astimezone(timezone.utc)).total_seconds() <= 1800:
+                fresh_event_id = str(event.get("event_id") or "")
+                fresh_event_status = "READY"
+                break
+        if fresh_event_status != "READY":
+            blockers.append("fresh_matching_service_failure_event_missing")
     return {
         "schema_version": "v7.ct-m0f-active-service-failure-binding.v1",
         "status": "ACTIVE_SERVICE_FAILURE_BINDING_READY" if not blockers else "STOP_SAFE_ACTIVE_SERVICE_FAILURE_BINDING_INVALID",
@@ -2556,6 +2602,8 @@ def ct_m0f_active_service_failure_binding_projection(
         "source_incident_generation": str(record.get("incident_generation") or record.get("generation") or ""),
         "source_event_id": event_ids[0] if event_ids else "",
         "source_event_ids": event_ids,
+        "fresh_event_id": fresh_event_id,
+        "fresh_event_status": fresh_event_status,
         "source_channel": str(source_id or ""),
         "source_scope_fingerprint": str(actionable_scope.get("fingerprint") or ""),
         "source_scope_count": int(actionable_scope.get("count") or 0),
@@ -21986,7 +22034,11 @@ def ct_m0f_standing_source_selection_only(
     )
     selected_source = str(selected.get("source_id") or "")
     active_service_failure_binding = (
-        ct_m0f_active_service_failure_binding_projection(state_dir, selected_source)
+        ct_m0f_active_service_failure_binding_projection(
+            state_dir,
+            selected_source,
+            event_dir=Path(args.event_dir),
+        )
         if selected_source and not bool(selected.get("controlled_condition_active"))
         else {
             "status": "CONTROLLED_CONDITION_LINEAGE_APPLIES",

@@ -5019,6 +5019,64 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "NO_CURRENT_ROUTE_MATCHING_ACTIVE_SERVICE_FAILURE_BINDING",
         )
 
+    def test_ct_m0f_rejects_expired_event_before_governed_execution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            user = "10.0.0.2"
+            fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": [user],
+            })
+            (state_dir / "users.registry").write_text(
+                f"ip={user} current=vless enabled=1\n", encoding="utf-8"
+            )
+            incident = {
+                "incident_id": "sfinc_expired", "incident_state": "OPEN",
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "channel": "vless",
+                "incident_generation": "egid_same", "obligation_id": "sfaob_expired",
+                "current_source_scope": {
+                    "status": "ACCOUNTED", "affected_scope_count": 1,
+                    "affected_scope_fingerprint": fingerprint,
+                    "unresolved_scope_count": 1,
+                    "unresolved_scope_fingerprint": fingerprint,
+                },
+            }
+            (state_dir / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": {"expired": incident}}), encoding="utf-8"
+            )
+            (state_dir / "closure-records.jsonl").write_text(json.dumps({
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": "sfaob_expired",
+                "source_incident_id": "sfinc_expired",
+            }) + "\n", encoding="utf-8")
+            (event_dir / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "sfe_expired",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "channel": "vless",
+                "source_incident_id": "sfinc_expired",
+                "observed_at": "2020-01-01T00:00:00+00:00",
+                "source_scope": {
+                    "affected_scope_count": 1,
+                    "affected_scope_fingerprint": fingerprint,
+                },
+            }) + "\n", encoding="utf-8")
+
+            binding = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                state_dir, "vless", event_dir=event_dir,
+            )
+
+        self.assertFalse(binding["ok"])
+        self.assertEqual(binding["fresh_event_status"], "MISSING")
+        self.assertIn(
+            "fresh_matching_service_failure_event_missing", binding["blockers"],
+        )
+
     def test_ct_m0f_coalesces_repeated_current_scope_observations(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

@@ -73,6 +73,43 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
                 [],
             )
 
+    def test_event_only_scope_uses_current_failure_and_current_assignment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.0.0.2 current=failed enabled=true\n"
+                "ip=10.0.0.3 current=healthy enabled=true\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "failed": {"services": {"telegram": {"ok": False, "failure_state": "OBSERVED_CONTINUING"}}},
+                "healthy": {"services": {"telegram": {"ok": True, "failure_state": "HEALTHY"}}},
+            }}), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(
+                json.dumps({
+                    "event_id": "current", "event_type": "SERVICE_FAILURE_OBSERVED",
+                    "channel": "failed", "source_incident_id": "incident-current",
+                    "source_scope": {"affected_scope_count": 50, "affected_scope_fingerprint": "old"},
+                }) + "\n" + json.dumps({
+                    "event_id": "stale", "event_type": "SERVICE_FAILURE_OBSERVED",
+                    "channel": "healthy", "source_incident_id": "incident-stale",
+                    "source_scope": {"affected_scope_count": 20, "affected_scope_fingerprint": "stale"},
+                }) + "\n",
+                encoding="utf-8",
+            )
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertTrue(result["active"])
+        self.assertEqual(result["active_sources"], [{
+            "channel": "failed", "source_incident_id": "incident-current",
+            "affected_scope_count": 1, "source_scope_fingerprint": "old",
+            "event_id": "current", "source_currently_failed": True,
+        }])
+
 
 if __name__ == "__main__":
     unittest.main()

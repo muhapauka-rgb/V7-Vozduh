@@ -449,6 +449,74 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
             self.assertEqual(handoff["wake_owner"], "v7-service-matrix-refresh.timer")
             self.assertFalse(handoff["apply_timer_required"])
 
+    def test_fast_failure_wakes_only_existing_planner_for_new_nonzero_scope(self):
+        event = {
+            "event_id": "sfe_actionable", "event_type": "SERVICE_FAILURE_OBSERVED",
+            "channel": "source", "source_incident_id": "sfinc_source",
+            "affected_scope_count": 1,
+        }
+        with mock.patch.object(self.sentinel.subprocess, "run") as run:
+            run.return_value = SimpleNamespace(returncode=0, stdout="started")
+            result = self.sentinel.wake_existing_matrix_consumer([event])
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["requested"])
+        self.assertEqual(result["command"], ["systemctl", "start", "--no-block", "v7-autoswitch-planner.service"])
+        self.assertFalse(result["routing_mutation_performed"])
+        self.assertEqual(result["users_moved"], 0)
+        run.assert_called_once()
+
+    def test_fast_failure_does_not_wake_for_revalidation_or_zero_scope(self):
+        with mock.patch.object(self.sentinel.subprocess, "run") as run:
+            result = self.sentinel.wake_existing_matrix_consumer([{
+                "event_id": "sfrev_existing", "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "affected_scope_count": 10,
+            }, {
+                "event_id": "sfe_empty", "event_type": "SERVICE_FAILURE_OBSERVED",
+                "affected_scope_count": 0,
+            }])
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["requested"])
+        run.assert_not_called()
+
+    def test_continuing_fast_failure_preserves_one_canonical_episode(self):
+        """A four-second observation must revalidate, not restart an outage."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            self.write_registry(state_dir)
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=true\n", encoding="utf-8"
+            )
+            down = {
+                "sample_ok": False, "status": "NOT_STARTED", "score": 0,
+                "ratio": 0.0, "critical_ok": False, "ok_count": 0,
+                "total": 5, "reason": "unit hard failure", "samples": [],
+                "first_byte_sec": "", "total_sec": 0.001,
+            }
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", return_value=down),
+                mock.patch.object(self.sentinel, "wake_existing_matrix_consumer") as wake,
+            ):
+                wake.return_value = {"ok": True, "requested": False}
+                first_rc, first = self.run_main(root, extra_args=["--egress", "vless"])
+                second_rc, second = self.run_main(root, extra_args=["--egress", "vless"])
+            events = [
+                json.loads(line)
+                for line in (root / "events" / "service-failure-events.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+                if line.strip()
+            ]
+
+        self.assertEqual(first_rc, 0, first)
+        self.assertEqual(second_rc, 0, second)
+        observed = [row for row in events if row.get("event_type") == "SERVICE_FAILURE_OBSERVED"]
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(
+            second["fast_signal_bridge"]["new_event_ids"],
+            [row["event_id"] for row in events if row.get("event_type") == "SERVICE_FAILURE_REVALIDATED"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

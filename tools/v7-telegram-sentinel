@@ -159,6 +159,88 @@ def canonical_service_event_ids(event_dir: Path, *, channel: str = "") -> set[st
     return ids
 
 
+def canonical_service_events(event_dir: Path, event_ids: set[str]) -> list[dict[str, Any]]:
+    """Return bounded metadata for fresh events from the canonical owner."""
+    if not event_ids:
+        return []
+    path = event_dir / "service-failure-events.jsonl"
+    rows: list[dict[str, Any]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]
+    except OSError:
+        return rows
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict) or str(row.get("event_id") or "") not in event_ids:
+            continue
+        scope = row.get("source_scope") if isinstance(row.get("source_scope"), dict) else {}
+        rows.append({
+            "event_id": str(row.get("event_id") or ""),
+            "event_type": str(row.get("event_type") or ""),
+            "channel": str(row.get("channel") or ""),
+            "source_incident_id": str(row.get("source_incident_id") or ""),
+            "affected_scope_count": max(0, int(scope.get("affected_scope_count") or 0)),
+        })
+    return sorted(rows, key=lambda row: (row["event_id"], row["channel"]))
+
+
+def wake_existing_matrix_consumer(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Wake the deployed planner only for a new actionable canonical event.
+
+    ``v7-autoswitch-planner.service`` is the existing periodic consumer.  A
+    systemd start job only advances that owner; it creates neither a new timer
+    nor an independent executor.  Revalidations and zero-scope sources remain
+    on the normal periodic path to avoid wake storms.
+    """
+    actionable = [
+        row for row in events
+        if row.get("event_type") == "SERVICE_FAILURE_OBSERVED"
+        and int(row.get("affected_scope_count") or 0) > 0
+    ]
+    if not actionable:
+        return {
+            "status": "NOT_REQUIRED_NO_NEW_ACTIONABLE_SOURCE_SCOPE",
+            "ok": True,
+            "requested": False,
+            "events": events,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    command = ["systemctl", "start", "--no-block", "v7-autoswitch-planner.service"]
+    try:
+        proc = subprocess.run(
+            command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            check=False, timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "status": "STOP_SAFE_EXISTING_CONSUMER_WAKE_FAILED",
+            "ok": False,
+            "requested": True,
+            "events": actionable,
+            "error": f"{type(exc).__name__}:{exc}",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    return {
+        "status": "EXISTING_PLANNER_CONSUMER_WAKE_REQUESTED" if proc.returncode == 0 else "STOP_SAFE_EXISTING_CONSUMER_WAKE_FAILED",
+        "ok": proc.returncode == 0,
+        "requested": True,
+        "events": actionable,
+        "command": command,
+        "returncode": proc.returncode,
+        "output_tail": (proc.stdout or "")[-1000:],
+        "runtime_mutation_performed": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 @contextlib.contextmanager
 def inherited_matrix_writer_lock(owner: Any, matrix_file: Path):
     """Tell the canonical owner that this sentinel already holds its lock."""
@@ -415,6 +497,7 @@ def merge_matrix_item(matrix: dict[str, Any], egress_id: str, iface: str, item: 
         return
     row = matrix.setdefault("items", {}).setdefault(egress_id, {})
     services = row.setdefault("services", {})
+    previous = services.get("telegram") if isinstance(services.get("telegram"), dict) else {}
     services["telegram"] = {
         "label": "Telegram",
         "kind": "telegram_tcp_sentinel",
@@ -451,6 +534,22 @@ def merge_matrix_item(matrix: dict[str, Any], egress_id: str, iface: str, item: 
             "consecutive_failures": max(1, int(item.get("failure_samples") or 1)),
             "bad_for_seconds": float(item.get("bad_for_seconds") or 0.0),
         })
+        # ``v7-service-matrix-test.update_matrix`` owns the episode and its
+        # event identity.  The sentinel is only a fast observation producer;
+        # replacing its intermediate service row must never erase the
+        # canonical episode fields before that owner reads them.  Otherwise a
+        # continuous failure is falsely reborn every four seconds and can
+        # cause a wake storm instead of one exact incident lifecycle.
+        for key in (
+            "failure_episode_id", "failure_event_emitted_episode_id",
+            "failure_event_id", "failure_event_emitted_at",
+            "source_incident_id", "failure_family",
+            "egress_identity_generation", "observed_at",
+            "first_failed_observation_monotonic_ns",
+            "confirmed_hard_failure_monotonic_ns", "monotonic_clock_domain",
+        ):
+            if previous.get(key) not in (None, ""):
+                services["telegram"][key] = previous[key]
     total = len(services)
     ok_count = sum(1 for service in services.values() if bool(service.get("ok")))
     row.update({
@@ -640,6 +739,15 @@ def publish_fast_signal_to_canonical_matrix(
             for event_id in (row.get("new_event_ids") or [])
             if isinstance(event_id, str) and event_id
         }),
+        "new_events": canonical_service_events(
+            event_dir,
+            {
+                event_id
+                for row in published
+                for event_id in (row.get("new_event_ids") or [])
+                if isinstance(event_id, str) and event_id
+            },
+        ),
         "events_created": sum(len(row.get("new_event_ids") or []) for row in published),
         "candidate_created": False,
         "packet_created": False,
@@ -862,6 +970,16 @@ def main() -> int:
         "last_autoswitch_at": last_autoswitch_at,
         "autoswitch": autoswitch,
         "fast_signal_bridge": fast_signal_bridge,
+        "existing_consumer_wake": wake_existing_matrix_consumer(
+            list(fast_signal_bridge.get("new_events") or [])
+        ) if fast_signal_bridge.get("ok") else {
+            "status": "NOT_REQUESTED_CANONICAL_EVENT_PUBLISH_NOT_READY",
+            "ok": False,
+            "requested": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        },
         "existing_consumer_handoff": {
             "schema_version": "v7.fast-signal-existing-consumer-handoff.v1",
             "status": (

@@ -159,6 +159,12 @@ class V7SyncToolsTest(unittest.TestCase):
         ).read_text(encoding="utf-8"))
         self.assertNotIn("/usr/local/bin/v7-users-autoswitch --apply", service)
 
+    def test_existing_planner_consumes_canonical_events_before_snapshot_refresh(self):
+        service = (ROOT / "systemd/drafts/v7-autoswitch-planner.service").read_text(encoding="utf-8")
+        self.assertIn("v7-service-matrix-refresh-all --consume-existing-service-failure-events-only", service)
+        self.assertIn("v7-users-autoswitch --pre-planner-refresh=write", service)
+        self.assertNotIn("v7-users-autoswitch --apply", service)
+
     def test_deploy_manifest_contains_runtime_fingerprint(self):
         manifest = self.lib.build_deploy_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")
         self.assertEqual(manifest["allowlist_validation"]["final_verdict"], "PASS")

@@ -3470,6 +3470,7 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "status": payload.get("status", "OK"),
         "results": results,
         "passive_failure_capture": payload.get("passive_failure_capture") or {},
+        "current_failed_source_scope": payload.get("current_failed_source_scope") or {},
         "omp_product_frontiers": list(payload.get("omp_product_frontiers") or ()),
         "omp_product_frontier_owner": payload.get("omp_product_frontier_owner", ""),
         "next_output": payload.get("next_output", ""),
@@ -3505,6 +3506,100 @@ def append_event(event_dir: Path, payload: dict[str, Any]) -> None:
             fh.write(json.dumps(compact_refresh_projection(payload), ensure_ascii=False, sort_keys=True) + "\n")
     except OSError:
         pass
+
+
+def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, Any]:
+    """Read the latest canonical source denominators for the fast consumer.
+
+    This is deliberately a compact projection of the existing Matrix event
+    log, not a second incident store.  The 30-second planner consumer must not
+    run the complete advisory/action chain for a failed source which currently
+    has no users to protect.  A later ordinary Matrix generation remains the
+    owner of any fresh revalidation.
+    """
+    path = event_dir / "service-failure-events.jsonl"
+    latest_by_incident: dict[tuple[str, str], dict[str, Any]] = {}
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]
+    except OSError:
+        lines = []
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("event_type") or "") not in {
+            "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+        }:
+            continue
+        channel = str(row.get("channel") or "")
+        if channel:
+            incident_id = str(row.get("source_incident_id") or "")
+            # A long-lived source can have an older current hard failure and
+            # a newer stale/recovered episode.  Keep the event identity with
+            # the current Matrix row's source-incident id rather than letting
+            # a later unrelated event silently replace it by channel.
+            latest_by_incident[(channel, incident_id)] = row
+    try:
+        user_rows = [
+            parse_kv_line(line)
+            for line in (state_dir / "users.registry").read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    except OSError:
+        user_rows = []
+    current_users = {
+        str(row.get("current") or "")
+        for row in user_rows
+        if bool_value(row.get("enabled"), default=True) and str(row.get("current") or "")
+    }
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    matrix_items = matrix.get("items") if isinstance(matrix, dict) and isinstance(matrix.get("items"), dict) else {}
+    active = []
+    for (channel, _incident_id), row in sorted(latest_by_incident.items()):
+        scope = row.get("source_scope") if isinstance(row.get("source_scope"), dict) else {}
+        current_count = sum(
+            1
+            for user in user_rows
+            if bool_value(user.get("enabled"), default=True)
+            and str(user.get("current") or "") == channel
+        )
+        source_row = matrix_items.get(channel) if isinstance(matrix_items.get(channel), dict) else {}
+        services = source_row.get("services") if isinstance(source_row.get("services"), dict) else {}
+        source_currently_failed = any(
+            isinstance(service, dict)
+            and (
+                str(service.get("failure_state") or "").startswith("OBSERVED")
+                or service.get("ok") is False
+            )
+            for service in services.values()
+        )
+        count = max(0, current_count)
+        if count:
+            active.append({
+                "channel": channel,
+                "source_incident_id": str(row.get("source_incident_id") or ""),
+                "affected_scope_count": count,
+                "source_scope_fingerprint": str(scope.get("affected_scope_fingerprint") or ""),
+                "event_id": str(row.get("event_id") or ""),
+                "source_currently_failed": source_currently_failed,
+            })
+    active = [row for row in active if row["source_currently_failed"]]
+    return {
+        "owner": "tools/v7-service-matrix-test.update_matrix",
+        "active": bool(active),
+        "active_sources": active,
+        "latest_source_count": len(latest_by_incident),
+        "current_assigned_sources": sorted(current_users),
+        "decision": (
+            "PROCEED_EXISTING_SERVICE_FAILURE_LIFECYCLE"
+            if active else "NO_ACTION_CURRENT_FAILED_SOURCE_SCOPE_EMPTY"
+        ),
+    }
 
 
 def sha256_json(payload: Any) -> str:
@@ -3730,6 +3825,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-service-failure-omp-consumer", action="store_true")
     parser.add_argument("--skip-bounded-delegated-service-failure-action", action="store_true")
     parser.add_argument(
+        "--consume-existing-service-failure-events-only",
+        action="store_true",
+        help=(
+            "Consume only already-canonical service-failure events through the "
+            "existing Matrix/OMP/governed chain; never run new network probes."
+        ),
+    )
+    parser.add_argument(
         "--skip-passive-consumer",
         action="store_true",
         help="Diagnostic/test-only escape hatch; production lifecycle should keep the existing passive consumer connected.",
@@ -3757,16 +3860,17 @@ def main() -> int:
     args = build_parser().parse_args()
     started = time.time()
     state_dir = Path(args.state_dir)
+    event_only = bool(args.consume_existing_service_failure_events_only)
     rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
     # Probes are read/network work.  They must not hold the shared Matrix
     # writer lock; every existing ``v7-service-matrix-test`` invocation takes
     # that lock only for its own atomic durable update.  This preserves writer
     # serialization while allowing the fast failure producer to publish during
     # a long full refresh.
-    results = [
+    results = ([] if event_only else [
         run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir)
         for row in rows
-    ]
+    ])
     writer_locks = [
         row.get("service_matrix_lock")
         for row in results
@@ -3803,6 +3907,7 @@ def main() -> int:
             "runtime_behavior_changed": False,
             "users_moved": False,
         },
+        "mode": "EXISTING_EVENT_CONSUMPTION_ONLY" if event_only else "FULL_MATRIX_REFRESH",
     }
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
@@ -3859,6 +3964,20 @@ def main() -> int:
     payload["omp_product_frontiers"] = list(
         consumer_result.get("omp_frontiers") or ()
     )
+    # The fast consumer is deliberately invoked by the already-active planner
+    # timer.  It sees no new network condition and must therefore exit before
+    # advisory planning when no failed source presently owns a user scope.
+    # This prevents a source with zero users from turning a 4-second sentinel
+    # revalidation stream into repeated expensive work.
+    source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+    payload["current_failed_source_scope"] = source_scope
+    if event_only and not source_scope["active"]:
+        payload["next_output"] = source_scope["decision"]
+        compact_payload = compact_refresh_projection(payload)
+        write_json_atomic(summary_file, compact_payload)
+        append_event(Path(args.event_dir), payload)
+        print(json.dumps(compact_payload, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0
     if args.skip_service_failure_automation_advisory:
         payload["service_failure_automation_advisory"] = {
             "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
@@ -4019,7 +4138,7 @@ def main() -> int:
             availability_action = payload[
                 "availability_first_standing_policy_action"
             ]
-        if not (
+        if not event_only and not (
             bounded_action.get("action_completed")
             or availability_action.get("action_completed")
             or topology_action.get("action_completed")

@@ -6,6 +6,10 @@ After=network-online.target v7-health.service v7-benchmark.service
 [Service]
 Type=oneshot
 Environment=V7_ACTOR=autoswitch-planner
+# The fast sentinel writes canonical Matrix events.  Consume only those
+# existing events first; this performs no network probe and can enter the
+# governed path only through the already active standing-policy gates.
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --consume-existing-service-failure-events-only
 ExecStart=/usr/local/bin/v7-users-autoswitch --pre-planner-refresh=write --pre-planner-refresh-command=/usr/local/bin/v7-intelligence-snapshot-refresh
 Nice=10
 IOSchedulingClass=best-effort

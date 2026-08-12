@@ -9,8 +9,11 @@ Environment=V7_ACTOR=autoswitch-planner
 # The fast sentinel writes canonical Matrix events.  Consume only those
 # existing events first; this performs no network probe and can enter the
 # governed path only through the already active standing-policy gates.
+# The event-only Matrix consumer already owns passive -> OMP -> governed
+# consumption.  A second unconditional legacy planner would repeat snapshot,
+# inventory and durable-closure work after the same event and put that work on
+# the fast consumer's critical path.
 ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --consume-existing-service-failure-events-only
-ExecStart=/usr/local/bin/v7-users-autoswitch --pre-planner-refresh=write --pre-planner-refresh-command=/usr/local/bin/v7-intelligence-snapshot-refresh
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

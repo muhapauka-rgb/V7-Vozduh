@@ -1,8 +1,10 @@
 import importlib.machinery
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,6 +14,27 @@ tool = loader.load_module()
 
 
 class OperatorInducedPassiveCaptureTest(unittest.TestCase):
+    def test_full_refresh_delegates_matrix_lock_to_each_durable_checker_write(self):
+        """Network probes must not inherit a batch-wide Matrix writer lock."""
+        with mock.patch.object(
+            tool.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess(
+                ["checker"],
+                0,
+                stdout=json.dumps({
+                    "status": "OK",
+                    "ok_count": 2,
+                    "total": 2,
+                    "service_matrix_lock": {"held": True, "scope": "atomic_durable_write"},
+                }),
+            ),
+        ) as run:
+            result = tool.run_one("source", 3, "checker", Path("/state"))
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["service_matrix_lock"]["held"])
+        self.assertNotIn("env", run.call_args.kwargs)
+
     def test_recovered_vless_history_is_captured_once_by_canonical_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

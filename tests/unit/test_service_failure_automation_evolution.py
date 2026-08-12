@@ -1175,6 +1175,90 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         )
 
+    def test_ct_m0f_one_user_profile_reuses_ready_capacity_two_draft_without_campaign_credit(self):
+        """A one-user latency sample must not inherit the Tier-48 capacity gate."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.102 enabled=1 current=source "
+                "certification_user=1 certification_group=ctm0f\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface "
+                "interface=wg0 enabled=1 certification_group=ctm0f\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--controlled-source-validation-profile", "ct-m0f-one-user",
+            ])
+            target_projection = {
+                "campaign": {
+                    "request_id": "cpsauth_existing",
+                    "request_hash": "a" * 64,
+                    "source_id": "source",
+                    "current_stage": 48,
+                    "remaining_stages": [48],
+                },
+                "targets": [],
+            }
+            draft = {
+                "draft_id": "draft-capacity-two",
+                "hard_capacity": 2,
+                "one_identity_trial_capacity": 1,
+                "ready_for_guarded_disabled_pool_preflight": True,
+            }
+            with (
+                mock.patch.object(
+                    self.autoswitch,
+                    "controlled_campaign_target_selection_diagnostic",
+                    return_value=target_projection,
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_draft_candidates",
+                    return_value=[draft],
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_reservation_owner_capability",
+                    return_value={
+                        "status": "READY",
+                        "owner": "tools/v7-egress-set-state",
+                    },
+                ),
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+
+        self.assertEqual(
+            result["status"],
+            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+        )
+        self.assertEqual(result["validation_profile"], "ct-m0f-one-user")
+        self.assertEqual(
+            result["recommendation"]["selected_option"],
+            "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+        )
+        self.assertEqual(
+            result["recommendation"]["required_authority_action"],
+            "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+        )
+        self.assertEqual(
+            result["production_preflight"]["manifest"]["validation_profile"],
+            "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+        )
+        self.assertEqual(
+            [row["stage"] for row in result[
+                "CONTROLLED_CERTIFICATION_CAMPAIGN_TOPOLOGY_PLAN"]["stages"]],
+            [1],
+        )
+        self.assertTrue(result["authority_package"]["actionable"])
+        self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
+
     def test_post_trial_topology_reuses_same_campaign_source_and_rejects_capacity_two_draft(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

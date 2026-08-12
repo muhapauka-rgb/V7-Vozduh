@@ -16610,6 +16610,17 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--controlled-source-validation-profile",
+        choices=("campaign", "ct-m0f-one-user"),
+        default="campaign",
+        help=(
+            "Select the existing topology owner's capacity disposition: the "
+            "default protects the full certification campaign; ct-m0f-one-user "
+            "allows only one bounded validation source preflight and never "
+            "changes Authority or applies topology."
+        ),
+    )
+    parser.add_argument(
         "--ct-m0f-standing-source-selection",
         action="store_true",
         help=(
@@ -18962,23 +18973,45 @@ def controlled_source_topology_diagnostic(
             and declined_resource
         ):
             declined_drafts.add(declined_resource)
+    validation_profile = str(
+        getattr(args, "controlled_source_validation_profile", "campaign")
+        or "campaign"
+    ).strip().lower()
+    if validation_profile not in {"campaign", "ct-m0f-one-user"}:
+        return {
+            "schema_version": "v7.controlled-source-topology-capability-map.v1",
+            "status": "STOP_SAFE_UNKNOWN_VALIDATION_PROFILE",
+            "ok": False,
+            "blockers": ["controlled_source_validation_profile_invalid"],
+            "forbidden_effects": forbidden_effects,
+        }
     campaign = (
         target_diagnostic.get("campaign")
         if isinstance(target_diagnostic.get("campaign"), dict)
         else {}
     )
     source_id = str(campaign.get("source_id") or "")
-    campaign_stages = sorted({
-        to_int(value, 0)
-        for value in (
-            list(campaign.get("remaining_stages") or [])
-            + list(campaign.get("completed_stages") or [])
-            + [campaign.get("current_stage")]
-        )
-        if to_int(value, 0) > 0
-    }) or [5, 10, 25, 48]
-    current_stage = max(1, to_int(campaign.get("current_stage"), 0) or 5)
-    campaign_completion_stage = max(campaign_stages)
+    campaign_stages = (
+        [1]
+        if validation_profile == "ct-m0f-one-user"
+        else sorted({
+            to_int(value, 0)
+            for value in (
+                list(campaign.get("remaining_stages") or [])
+                + list(campaign.get("completed_stages") or [])
+                + [campaign.get("current_stage")]
+            )
+            if to_int(value, 0) > 0
+        }) or [5, 10, 25, 48]
+    )
+    current_stage = (
+        1 if validation_profile == "ct-m0f-one-user"
+        else max(1, to_int(campaign.get("current_stage"), 0) or 5)
+    )
+    campaign_completion_stage = (
+        1 if validation_profile == "ct-m0f-one-user"
+        else max(campaign_stages)
+    )
     rows = [
         row for row in (target_diagnostic.get("targets") or [])
         if isinstance(row, dict)
@@ -19443,6 +19476,11 @@ def controlled_source_topology_diagnostic(
         selected_option and trial_identity and reservation_owner.get("status") == "READY"
     )
     manifest = {
+        "validation_profile": (
+            "CT_M0F_ONE_USER_CONTROLLED_CONDITION"
+            if validation_profile == "ct-m0f-one-user"
+            else "CAMPAIGN_FULL_PATH"
+        ),
         "selected_option": selected_option,
         "existing_source": trial_identity_source,
         "selected_source_or_draft": exact_resource,
@@ -20200,6 +20238,7 @@ def controlled_source_topology_diagnostic(
                 "empty-source-only Option 1 gate followed by "
                 "one-identity draft preflight ranking"
             ),
+            "validation_profile": validation_profile,
             "current_stage": current_stage,
             "campaign_completion_stage": campaign_completion_stage,
             "ready_draft_count": len(ready_drafts),
@@ -20207,7 +20246,8 @@ def controlled_source_topology_diagnostic(
                 campaign_capable_drafts
             ),
             "hard_capacity_two_blocks_5_10_25_48": bool(
-                ready_drafts
+                validation_profile != "ct-m0f-one-user"
+                and ready_drafts
                 and all(
                     int(row.get("one_identity_trial_capacity") or 0)
                     < current_stage
@@ -20215,7 +20255,8 @@ def controlled_source_topology_diagnostic(
                 )
             ),
             "optimized_only_next_one_user_step": bool(
-                ready_drafts and not campaign_capable_drafts
+                validation_profile == "ct-m0f-one-user"
+                and ready_drafts and bool(campaign_capable_drafts)
             ),
             "stale_recommendation": False,
             "source_target_role_transition_consumed": bool(
@@ -20436,6 +20477,11 @@ def controlled_source_topology_diagnostic(
     result = {
         "schema_version": "v7.controlled-source-topology-capability-map.v1",
         "status": (
+            "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+            if (
+                validation_profile == "ct-m0f-one-user"
+                and preflight_ready
+            ) else
             "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONING_REQUIRED"
             if (
                 not controlled_source_predecessor_ready
@@ -20470,6 +20516,7 @@ def controlled_source_topology_diagnostic(
         "ok": True,
         "read_only": True,
         "owner_mode": "COMPACT_DERIVED_PROJECTION_NO_NEW_REGISTRY",
+        "validation_profile": validation_profile,
         "current_campaign": campaign,
         "campaign_identity_accounting": campaign_identity_accounting,
         "shared_production_target_capacity_projection": (
@@ -20495,7 +20542,13 @@ def controlled_source_topology_diagnostic(
                 "live healthy empty owner-backed egress with capacity for all "
                 "48 identities and reversible ordinary-assignment fence"
                 if selected_rebind else
-                "existing valid dedicated draft supports the current stage "
+                "existing valid dedicated draft supports the exact one-user "
+                "CT-M0F controlled condition without campaign credit"
+                if (
+                    selected_draft
+                    and validation_profile == "ct-m0f-one-user"
+                ) else
+                "existing valid dedicated draft supports the current required "
                 "and the full remaining campaign"
                 if selected_draft else
                 "existing shared production target capacity is owner-backed, but "
@@ -20510,7 +20563,9 @@ def controlled_source_topology_diagnostic(
                 "reuse the next Matrix/quality observation to select a distinct "
                 "healthy target rather than treating the collision as capacity"
                 if shared_target_role_collision else
-                "capacity-2 drafts are bootstrap-only; current controlled "
+                "capacity-2 drafts are bootstrap-only for the full campaign; "
+                "a CT-M0F one-user profile may still request exact dedicated "
+                "provisioning through the same Authority owner; current controlled "
                 "source lifecycle needs repair and no owner-backed target "
                 "can complete stages 5/10/25/48"
             ),
@@ -21836,21 +21891,57 @@ def ct_m0f_standing_source_selection_only(
                 "current_disabled_execution_contract_registry_plus_matrix"
             ),
         })
-    failed_ready = [
-        row for row in projections
-        if (
-            # A CT-M0F transaction selects exactly one fresh identity below;
-            # its isolated source may safely host a larger certification-only
-            # pool.  Requiring the pool itself to contain exactly one row
-            # incorrectly hides an otherwise lawful VLESS failure from the
-            # existing one-user standing-policy consumer.
-            int(row.get("enabled_certification_users_on_source") or 0) >= 1
-            and (
-                bool(row.get("controlled_condition_active"))
-                or not bool((row.get("baseline_health") or {}).get("ok"))
-            )
+    failed_ready = []
+    stale_or_unbound_failed_sources = []
+    for row in projections:
+        source_id = str(row.get("source_id") or "")
+        certification_scope = int(
+            row.get("enabled_certification_users_on_source") or 0
         )
-    ]
+        controlled_condition = bool(row.get("controlled_condition_active"))
+        source_failed = not bool((row.get("baseline_health") or {}).get("ok"))
+        if certification_scope < 1 or not (controlled_condition or source_failed):
+            continue
+        if controlled_condition:
+            # The deliberate condition owner operates on a whole source.  The
+            # CT-M0F envelope permits exactly one certification identity, so
+            # this is a *blast-radius* gate, not merely a later move limit.
+            if certification_scope == 1:
+                failed_ready.append(row)
+            else:
+                stale_or_unbound_failed_sources.append({
+                    "source_id": source_id,
+                    "classification": (
+                        "CONTROLLED_CONDITION_BLAST_RADIUS_EXCEEDS_"
+                        "CT_M0F_MAX_USERS"
+                    ),
+                    "certification_scope": certification_scope,
+                })
+            continue
+        binding = ct_m0f_active_service_failure_binding_projection(
+            state_dir,
+            source_id,
+            event_dir=Path(
+                getattr(args, "event_dir", "") or state_dir / "events"
+            ),
+        )
+        # A genuine live incident may retain a larger unresolved cohort: the
+        # transaction remains one user, while the incident owner supplies the
+        # current source scope.  A stale passive observation must never starve
+        # the controlled-condition predecessor by being selected first.
+        if binding.get("ok") or not binding.get("requires_binding"):
+            failed_ready.append({
+                **row,
+                "active_service_failure_binding": binding,
+            })
+        else:
+            stale_or_unbound_failed_sources.append({
+                "source_id": source_id,
+                "classification": "STALE_OR_UNBOUND_PASSIVE_FAILURE",
+                "certification_scope": certification_scope,
+                "binding_status": str(binding.get("status") or ""),
+                "binding_blockers": list(binding.get("blockers") or []),
+            })
     failed_ready.sort(key=lambda row: str(row.get("source_id") or ""))
     preparation_sources = []
     for row in projections:
@@ -21872,6 +21963,22 @@ def ct_m0f_standing_source_selection_only(
         ):
             preparation_sources.append(row)
     preparation_sources.sort(key=lambda row: str(row.get("source_id") or ""))
+    topology_predecessor = {}
+    if (
+        not failed_ready
+        and not preparation_sources
+        and all(
+            hasattr(args, name)
+            for name in (
+                "egress_drafts_dir",
+                "policy_file",
+                "action_class_audit_store",
+            )
+        )
+    ):
+        topology_args = copy.copy(args)
+        topology_args.controlled_source_validation_profile = "ct-m0f-one-user"
+        topology_predecessor = controlled_source_topology_diagnostic(topology_args)
     healthy_baselines = [
         row for row in projections
         if (
@@ -22034,10 +22141,14 @@ def ct_m0f_standing_source_selection_only(
     )
     selected_source = str(selected.get("source_id") or "")
     active_service_failure_binding = (
-        ct_m0f_active_service_failure_binding_projection(
+        selected.get("active_service_failure_binding")
+        if isinstance(selected.get("active_service_failure_binding"), dict)
+        else ct_m0f_active_service_failure_binding_projection(
             state_dir,
             selected_source,
-            event_dir=Path(args.event_dir),
+            event_dir=Path(
+                getattr(args, "event_dir", "") or state_dir / "events"
+            ),
         )
         if selected_source and not bool(selected.get("controlled_condition_active"))
         else {
@@ -22176,6 +22287,8 @@ def ct_m0f_standing_source_selection_only(
         ),
         "selection_mode": selection_mode,
         "active_service_failure_binding": active_service_failure_binding,
+        "stale_or_unbound_failed_sources": stale_or_unbound_failed_sources,
+        "controlled_source_topology_predecessor": topology_predecessor,
         "target_observation_fingerprint": str(
             (selected_target_projection.get("baseline_health") or
              selected_target_projection.get("health") or {}).get(

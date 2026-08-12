@@ -67,3 +67,47 @@ persistence, recovery, incident identity и execution gates остаются у 
 должен принять созданный Matrix event. Никакой production failure не создаётся
 ради этой проверки; все routing/user effects возможны только через уже
 действующий standing policy, fresh Candidate/Packet/lease и live gates.
+
+## Production verification
+
+Deploy `80904026f4f62fbbf969ddf16fbe23b5598cbcdb` прошёл исключительно через
+`tools/v7-safe-deploy`. Manifest и apply подтвердили единственный runtime-файл:
+`/usr/local/bin/v7-telegram-sentinel`. Forbidden effects равны `false`:
+policy/Authority/restore barrier, routing mutation и user movement не менялись.
+
+Обычный production caller sentinel подтвердил реальный current signal для
+канала `1` и создал один новый owner-backed canonical event:
+
+```text
+sfe_dd85b7f1edbd364f3f8106da4cf25530
+-> SERVICE_FAILURE_OBSERVED
+-> source_incident sfinc_b847db10feb643ecfdc8a475d539c5ef
+-> READY_FOR_EXISTING_AUTOSWITCH_TIMER
+```
+
+Это не Natural L8 credit, не Candidate/Packet/lease и не user move. Local,
+GitHub и production runtime согласованы на `80904026`; `truth` и
+`convergence` вернули `PASS`, `GITHUB_ALIGNED`, `RUNTIME_ALIGNED`.
+
+### Точный remaining blocker
+
+Production `v7-users-autoswitch.timer` имеет состояние `enabled`, но
+`inactive (dead)` с `2026-07-02`. Именно он является существующим ordinary
+consumer, который должен передать новый canonical event в governed executor.
+Поэтому fast producer и canonical event уже production-consumed, но следующий
+action-capable consumer не будет запущен автоматически, пока timer не будет
+операционно активирован.
+
+Это не дефект Telegram/VLESS и не повод запускать новый timer, Planner или
+direct apply. Active standing policy остаётся owner-backed и действует до
+`2026-08-29`; её ordinary production runtime limit равен `4`, однако любой
+реальный action по-прежнему требует fresh target/capacity/anti-flap/Candidate/
+Packet/lease/verification/rollback gates.
+
+**Legal terminal:**
+`OPERATIONAL_TIMER_ACTIVATION_REQUIRED_FOR_EXISTING_GOVERNED_CONSUMER`.
+
+**Exact re-entry:** existing operational/systemd owner activates only
+`v7-users-autoswitch.timer`; then the next timer run consumes the already
+published canonical event through the existing governed path. No new Authority,
+policy write, manual Matrix run or synthetic event is required.

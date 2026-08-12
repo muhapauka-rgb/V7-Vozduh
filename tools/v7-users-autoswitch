@@ -19600,6 +19600,23 @@ def controlled_source_topology_diagnostic(
             and reservation_group_aligned
             and campaign_group_aligned
         )
+        # CT-M0F is a one-identity controlled condition, not a shortcut for
+        # repairing or reusing a wider certification campaign.  A source with
+        # an expired reservation or more than one certification identity may
+        # remain relevant to the wider campaign projection, but is never an
+        # admissible CT-M0F fault source.
+        ct_m0f_exact_source_scope_eligible = bool(
+            validation_profile != "ct-m0f-one-user"
+            or (
+                empty
+                and ordinary_users == 0
+            )
+            or (
+                continuing_reservation_valid
+                and len(assigned_certification_rows) == 1
+                and certification_user_count == 1
+            )
+        )
         hard_gate_blockers = []
         if target_id == source_id:
             hard_gate_blockers.append("same_as_current_failed_source")
@@ -19636,6 +19653,10 @@ def controlled_source_topology_diagnostic(
         if reserved_controlled_source and not campaign_group_aligned:
             hard_gate_blockers.append(
                 "controlled_source_campaign_group_mismatch"
+            )
+        if not ct_m0f_exact_source_scope_eligible:
+            hard_gate_blockers.append(
+                "ct_m0f_source_not_empty_or_exact_one_identity_current_reservation"
             )
         if free_capacity < 1:
             hard_gate_blockers.append("one_identity_capacity_unavailable")
@@ -19689,6 +19710,9 @@ def controlled_source_topology_diagnostic(
             ),
             "continuing_campaign_source_repairable": (
                 continuing_campaign_source_repairable
+            ),
+            "ct_m0f_exact_source_scope_eligible": (
+                ct_m0f_exact_source_scope_eligible
             ),
             "existing_controlled_reservation": {
                 "present": reserved_controlled_source,
@@ -20070,6 +20094,7 @@ def controlled_source_topology_diagnostic(
             row for row in rebind_candidates
             if (
                 str(row.get("source_id") or "") != source_id
+                and row.get("technically_feasible")
                 and int(row.get("ordinary_identities") or 0) == 0
                 and row.get("healthy_baseline")
                 and row.get("stability_pass")

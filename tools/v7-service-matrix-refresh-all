@@ -4045,13 +4045,22 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
-        # An approved topology provision is an earlier, non-routing
-        # predecessor.  Consume it through the same ordinary Matrix wake
-        # before any action-class consumer considers a controlled condition.
-        # The downstream owner fails closed unless an exact, current approval
-        # exists, and its scope is reservation-only (zero user movement).
+        # Controlled-topology preparation belongs to the separate CT-M0F
+        # certification lane.  An event-only consumer must first exhaust the
+        # current service-failure action path; otherwise every fast failure can
+        # silently start a full controlled-certification diagnostic (and its
+        # nested Matrix refresh) before the real incident is drained.
         payload["controlled_source_topology_provision"] = (
-            consume_approved_controlled_source_topology(
+            {
+                "schema_version": "v7.controlled-source-topology-matrix-consumer.v1",
+                "status": "DEFERRED_TO_CT_M0F_CERTIFICATION_LANE",
+                "ok": True,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+                "reason": "event_only_service_failure_consumer_preserves_hot_path",
+            }
+            if event_only
+            else consume_approved_controlled_source_topology(
                 str(args.passive_consumer),
                 state_dir=state_dir,
                 policy_file=Path(args.policy_file),
@@ -4064,6 +4073,8 @@ def main() -> int:
             "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION",
         }
         if (
+            not event_only
+            and
             bounded_action.get("status") in availability_fallback_statuses
             and not bounded_action.get("action_completed")
         ):
@@ -4093,6 +4104,8 @@ def main() -> int:
             else {}
         )
         if (
+            not event_only
+            and
             bounded_action.get("status") in availability_fallback_statuses
             and not bounded_action.get("action_completed")
             and not availability_action.get("action_completed")
@@ -4117,7 +4130,7 @@ def main() -> int:
             )
             else {}
         )
-        if topology_action.get("action_completed"):
+        if not event_only and topology_action.get("action_completed"):
             payload[
                 "availability_first_pre_topology_action"
             ] = availability_action

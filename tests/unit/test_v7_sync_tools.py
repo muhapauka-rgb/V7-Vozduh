@@ -165,6 +165,12 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertNotIn("v7-users-autoswitch --pre-planner-refresh=write", service)
         self.assertNotIn("v7-users-autoswitch --apply", service)
 
+    def test_fast_event_consumer_defers_ct_m0f_certification_fallbacks(self):
+        source = (ROOT / "tools" / "v7-service-matrix-refresh-all").read_text(encoding="utf-8")
+        self.assertIn("DEFERRED_TO_CT_M0F_CERTIFICATION_LANE", source)
+        self.assertIn("event_only_service_failure_consumer_preserves_hot_path", source)
+        self.assertGreaterEqual(source.count("not event_only"), 3)
+
     def test_deploy_manifest_contains_runtime_fingerprint(self):
         manifest = self.lib.build_deploy_manifest(branch="Updatesystem", commit="abc123", deploy_id="deploy-test")
         self.assertEqual(manifest["allowlist_validation"]["final_verdict"], "PASS")

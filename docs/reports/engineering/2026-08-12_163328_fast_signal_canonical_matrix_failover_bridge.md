@@ -8,8 +8,8 @@
 обновлял компактный Telegram-статус в `service-matrix.json`. Канонический
 source-bound `SERVICE_FAILURE_OBSERVED` / `SERVICE_FAILURE_REVALIDATED` event
 создавал только полный `v7-service-matrix-refresh-all`, работающий раз в 15
-минут. В результате существующий governed failover consumer мог не получить
-свежий legal event до следующего полного прохода.
+минут. В результате existing governed consumer мог не получить свежий legal
+event до следующего полного прохода.
 
 Это общий producer-to-consumer gap, а не VLESS-специфичная проблема и не
 условие восстановления исходного канала.
@@ -22,14 +22,17 @@ source-bound `SERVICE_FAILURE_OBSERVED` / `SERVICE_FAILURE_REVALIDATED` event
 confirmed Telegram hard failure (existing 4 s sentinel)
 -> existing tools/v7-service-matrix-test.update_matrix
 -> canonical failure episode / source scope / event identity
--> existing Matrix + autoswitch + governed L3 consumer
+-> existing v7-users-autoswitch.timer -> v7-governed-canary-dry-run-cycle
 ```
 
 Sentinel не создаёт Candidate, Packet, lease, новый Planner, очередь, Runtime
 или собственный event store. Он удерживает существующий matrix writer lock и
 передаёт threshold-crossing (`bad_since`, `bad_for_seconds`) каноническому
-Matrix owner. Таким образом persistence, recovery, incident identity и
-следующий consumer остаются у прежних владельцев.
+Matrix owner. Следующий consumer остаётся существующим 20-секундным
+`v7-users-autoswitch.timer` / governed executor: sentinel не запускает
+длинный lifecycle синхронно и не создаёт новую периодику. Таким образом
+persistence, recovery, incident identity и execution gates остаются у прежних
+владельцев.
 
 ## Границы
 
@@ -42,7 +45,7 @@ Matrix owner. Таким образом persistence, recovery, incident identity
 
 ## Проверка
 
-`tests.unit.test_telegram_sentinel_lock_scope`: `11/11 PASS`.
+Фокусный набор: `11/11 PASS`.
 
 Покрыто:
 
@@ -59,8 +62,8 @@ Matrix owner. Таким образом persistence, recovery, incident identity
 ## Следующий шаг
 
 После commit/push/deploy production caller `v7-telegram-sentinel` должен
-подтвердить: `CONFIRMED_FAILURE_PUBLISHED_TO_EXISTING_MATRIX_OWNER` при
-реальном безопасном signal, затем обычный governed consumer должен принять
-созданный Matrix event. Никакой production failure не создаётся ради этой
-проверки; при отсутствии такого сигнала bridge остаётся готовым, а CT-M0F
-продолжается отдельно.
+подтвердить: `CONFIRMED_FAILURE_PUBLISHED_TO_EXISTING_MATRIX_OWNER` для
+нового реального signal; затем следующий existing 20-second governed consumer
+должен принять созданный Matrix event. Никакой production failure не создаётся
+ради этой проверки; все routing/user effects возможны только через уже
+действующий standing policy, fresh Candidate/Packet/lease и live gates.

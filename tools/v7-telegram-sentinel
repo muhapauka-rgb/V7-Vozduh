@@ -130,6 +130,35 @@ def service_matrix_owner() -> Any:
     return module
 
 
+def canonical_service_event_ids(event_dir: Path, *, channel: str = "") -> set[str]:
+    """Read IDs from the existing Matrix event owner; never create a side store."""
+    path = event_dir / "service-failure-events.jsonl"
+    ids: set[str] = set()
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]
+    except OSError:
+        return ids
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("event_type") or "") not in {
+            "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+        }:
+            continue
+        if str(row.get("producer") or "") != "tools/v7-service-matrix-test.update_matrix":
+            continue
+        if channel and str(row.get("channel") or "") != channel:
+            continue
+        event_id = str(row.get("event_id") or "")
+        if event_id:
+            ids.add(event_id)
+    return ids
+
+
 @contextlib.contextmanager
 def inherited_matrix_writer_lock(owner: Any, matrix_file: Path):
     """Tell the canonical owner that this sentinel already holds its lock."""
@@ -545,6 +574,9 @@ def publish_fast_signal_to_canonical_matrix(
                 channel = str(item.get("egress") or "")
                 if not channel:
                     continue
+                before_channel_event_ids = canonical_service_event_ids(
+                    event_dir, channel=channel,
+                )
                 matrix, _lock = owner.update_matrix(
                     matrix_file,
                     channel,
@@ -565,6 +597,10 @@ def publish_fast_signal_to_canonical_matrix(
                     ((matrix.get("items") or {}).get(channel) or {}).get("services")
                     or {}
                 ).get("telegram") or {}
+                new_event_ids = sorted(
+                    canonical_service_event_ids(event_dir, channel=channel)
+                    - before_channel_event_ids
+                )
                 published.append({
                     "channel": channel,
                     "failure_episode_id": str(service.get("failure_episode_id") or ""),
@@ -574,6 +610,7 @@ def publish_fast_signal_to_canonical_matrix(
                     "confirmed_hard_failure_monotonic_ns": int(
                         service.get("confirmed_hard_failure_monotonic_ns") or 0
                     ),
+                    "new_event_ids": new_event_ids,
                 })
     except (OSError, TimeoutError, ValueError) as exc:
         return {
@@ -597,7 +634,13 @@ def publish_fast_signal_to_canonical_matrix(
         "canonical_event_owner": "tools/v7-service-matrix-test.update_matrix",
         "next_consumer": "existing v7-users-autoswitch / governed L3 consumer",
         "published_channels": published,
-        "events_created": sum(1 for row in published if row.get("failure_event_id")),
+        "new_event_ids": sorted({
+            event_id
+            for row in published
+            for event_id in (row.get("new_event_ids") or [])
+            if isinstance(event_id, str) and event_id
+        }),
+        "events_created": sum(len(row.get("new_event_ids") or []) for row in published),
         "candidate_created": False,
         "packet_created": False,
         "lease_created": False,
@@ -819,6 +862,20 @@ def main() -> int:
         "last_autoswitch_at": last_autoswitch_at,
         "autoswitch": autoswitch,
         "fast_signal_bridge": fast_signal_bridge,
+        "existing_consumer_handoff": {
+            "schema_version": "v7.fast-signal-existing-consumer-handoff.v1",
+            "status": (
+                "READY_FOR_EXISTING_AUTOSWITCH_TIMER"
+                if fast_signal_bridge.get("new_event_ids")
+                else "NOT_REQUIRED_NO_NEW_CANONICAL_EVENT"
+            ),
+            "ok": True,
+            "event_ids": list(fast_signal_bridge.get("new_event_ids") or []),
+            "consumer": "existing v7-users-autoswitch.timer -> v7-governed-canary-dry-run-cycle",
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        },
         "service_matrix_lock": lock_info,
         "items": items,
     }

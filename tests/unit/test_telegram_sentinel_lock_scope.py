@@ -348,7 +348,7 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 self.assertEqual(call["args"][3]["telegram"]["status"], "DOWN")
                 self.assertEqual(call["kwargs"]["persistence_samples"], 1)
                 self.assertEqual(call["kwargs"]["persistence_window_seconds"], 14)
-            self.assertEqual(bridge["events_created"], 2)
+            self.assertEqual(bridge["events_created"], 0)
             self.assertFalse(bridge["runtime_mutation_performed"])
             self.assertFalse(bridge["routing_mutation_performed"])
             self.assertEqual(bridge["users_moved"], 0)
@@ -410,7 +410,9 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 "first_byte_sec": "",
                 "total_sec": 0.001,
             }
-            with mock.patch.object(self.sentinel, "check_telegram", return_value=down):
+            with (
+                mock.patch.object(self.sentinel, "check_telegram", return_value=down),
+            ):
                 rc, payload = self.run_main(root, extra_args=["--egress", "vless"])
 
             self.assertEqual(rc, 0, payload)
@@ -434,6 +436,7 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 observed[0]["evidence_class"],
                 "PROBE_OBSERVED_PRODUCTION_EVENT",
             )
+            self.assertEqual(bridge["events_created"], 1)
 
 
 if __name__ == "__main__":

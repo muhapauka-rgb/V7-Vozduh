@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import importlib.machinery
 import importlib.util
 import json
@@ -5009,6 +5010,67 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(first["next_output"], "V7_SERVICE_FAILURE_AUTOMATION_CALLER_REPAIR")
             second = self.sync.consume_service_failure_automation_frontier(state_dir=state_dir, persist_cps=False)
             self.assertEqual(second["final_verdict"], "NO_PENDING_OBLIGATION")
+
+    def test_changed_current_obligation_semantics_reenter_once_without_replaying_lineage(self):
+        """A stale receipt cannot suppress a later current-scope revalidation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            old_scope = {"affected_scope_count": 2, "unresolved_scope_count": 2,
+                         "affected_scope_fingerprint": "old"}
+            current_scope = {"affected_scope_count": 1, "unresolved_scope_count": 1,
+                             "affected_scope_fingerprint": "current"}
+            base = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_same_lineage",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "source_incident_id": "sfinc_current",
+                "situation_id": "situation_current",
+                "decision_trace_id": "decision_current",
+                "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+                "incident_frontier": "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION",
+                "product_evolution_frontier": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            }
+            def fingerprint(scope):
+                encoded = json.dumps({
+                    "automation_obligation_id": base["automation_obligation_id"],
+                    "source_incident_id": base["source_incident_id"],
+                    "situation_id": base["situation_id"],
+                    "decision_trace_id": base["decision_trace_id"],
+                    "classification": base["stop_safe_classification"],
+                    "incident_frontier": base["incident_frontier"],
+                    "product_evolution_frontier": base["product_evolution_frontier"],
+                    "current_source_scope": scope,
+                }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+            old = {**base, "created_at": "2026-08-12T20:00:00+00:00",
+                   "current_source_scope": old_scope,
+                   "automation_consumption_fingerprint": fingerprint(old_scope)}
+            current = {**base, "created_at": "2026-08-12T20:01:00+00:00",
+                       "current_source_scope": current_scope,
+                       "automation_consumption_fingerprint": fingerprint(current_scope)}
+            old_receipt = {
+                "object_type": "service_failure_automation_omp_consumption",
+                "closure_state": "OMP_CONSUMED",
+                "automation_obligation_id": old["automation_obligation_id"],
+                "automation_consumption_fingerprint": old["automation_consumption_fingerprint"],
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in (old, old_receipt, current)) + "\n",
+                encoding="utf-8",
+            )
+            first = self.sync.consume_service_failure_automation_frontier(
+                state_dir=state_dir, persist_cps=False
+            )
+            self.assertEqual(first["final_verdict"], "PASS", first)
+            self.assertEqual(
+                first["receipt"]["automation_consumption_fingerprint"],
+                current["automation_consumption_fingerprint"],
+            )
+            second = self.sync.consume_service_failure_automation_frontier(
+                state_dir=state_dir, persist_cps=False
+            )
+            self.assertEqual(second["final_verdict"], "NO_PENDING_OBLIGATION", second)
 
     def test_omp_frontier_prefers_live_accounted_scope_over_newer_zero_scope_terminal(self):
         """A historical no-scope terminal cannot starve the current incident."""

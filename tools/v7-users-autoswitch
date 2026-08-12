@@ -14978,6 +14978,21 @@ class AutoswitchPlanner:
             "authority_expanded": False,
             "production_maturity_changed": False,
         }
+        # The lineage id intentionally stays stable across revalidation of one
+        # passive incident.  This fingerprint is the existing closure owner's
+        # exact-once key for its *current* semantics: a changed scope or
+        # classification gets one new consumer turn, while unchanged Matrix
+        # observations remain deduplicated without a new queue or registry.
+        obligation["automation_consumption_fingerprint"] = sha256_json({
+            "automation_obligation_id": obligation_id,
+            "source_incident_id": obligation["source_incident_id"],
+            "situation_id": obligation["situation_id"],
+            "decision_trace_id": obligation["decision_trace_id"],
+            "classification": obligation["stop_safe_classification"],
+            "incident_frontier": obligation["incident_frontier"],
+            "product_evolution_frontier": obligation["product_evolution_frontier"],
+            "current_source_scope": obligation["current_source_scope"],
+        })
         # A normal Matrix generation may see the same passive event again.
         # Compare only durable decision semantics, rather than volatile
         # timestamps or the complete policy diagnostic, so an unchanged

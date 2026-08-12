@@ -6683,8 +6683,32 @@ def service_failure_automation_frontier(
     resolved_state_dir = service_failure_automation_state_dir(root=root, state_dir=state_dir)
     closure_path = resolved_state_dir / "closure-records.jsonl"
     rows = _read_jsonl_records(closure_path)
+    # An obligation id identifies the immutable passive lineage.  It does not
+    # identify one forever-current live projection: an open incident may be
+    # revalidated with a changed accounted scope or a changed safe terminal.
+    # Exact-once must therefore be scoped to the existing owner's durable
+    # consumption semantics, not merely to its historical lineage id.
+    def consumption_key(row: dict[str, Any]) -> str:
+        explicit = str(row.get("automation_consumption_fingerprint") or "")
+        if explicit:
+            return explicit
+        encoded = json.dumps({
+            "automation_obligation_id": str(row.get("automation_obligation_id") or ""),
+            "source_incident_id": str(row.get("source_incident_id") or ""),
+            "situation_id": str(row.get("situation_id") or ""),
+            "decision_trace_id": str(row.get("decision_trace_id") or ""),
+            "classification": str(row.get("stop_safe_classification") or row.get("classification") or ""),
+            "incident_frontier": str(row.get("incident_frontier") or ""),
+            "product_evolution_frontier": str(row.get("product_evolution_frontier") or ""),
+            "current_source_scope": (
+                row.get("current_source_scope")
+                if isinstance(row.get("current_source_scope"), dict) else {}
+            ),
+        }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
     consumed = {
-        str(row.get("automation_obligation_id") or "")
+        consumption_key(row)
         for row in rows
         if str(row.get("object_type") or "") == "service_failure_automation_omp_consumption"
         and str(row.get("closure_state") or "") == "OMP_CONSUMED"
@@ -6693,7 +6717,7 @@ def service_failure_automation_frontier(
         row for row in rows
         if str(row.get("object_type") or "") == "service_failure_automation_obligation"
         and str(row.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
-        and str(row.get("automation_obligation_id") or "") not in consumed
+        and consumption_key(row) not in consumed
     ]
     # A zero-scope historical STOP_SAFE may be appended after an actionable
     # live incident.  Timestamp-only selection then starves the current
@@ -6792,6 +6816,9 @@ def consume_service_failure_automation_frontier(
             "user_movement": 0, "authority_impact": "NONE", "production_maturity_impact": "NO_CHANGE",
         }
     obligation_id = str(obligation.get("automation_obligation_id") or "")
+    obligation_consumption_fingerprint = str(
+        obligation.get("automation_consumption_fingerprint") or ""
+    )
     classification = str(obligation.get("stop_safe_classification") or "STOP_SAFE_DATA_OR_EVIDENCE_GAP")
     product_frontier = str(obligation.get("product_evolution_frontier") or "NONE")
     incident_frontier = str(obligation.get("incident_frontier") or "V7_SERVICE_FAILURE_AUTOMATION_INCIDENT_RECONCILIATION")
@@ -6826,6 +6853,7 @@ def consume_service_failure_automation_frontier(
         "object_type": "service_failure_automation_omp_consumption",
         "object_id": "sfomp_" + hashlib.sha256(obligation_id.encode("utf-8")).hexdigest()[:24],
         "automation_obligation_id": obligation_id,
+        "automation_consumption_fingerprint": obligation_consumption_fingerprint,
         "closure_state": "OMP_CONSUMED",
         "consumed_at": utc_now(),
         "program_id": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,

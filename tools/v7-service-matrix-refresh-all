@@ -28,6 +28,11 @@ if str(ROOT) not in sys.path:
 
 from admin_core import intelligence_workers, operator_execution  # noqa: E402
 
+TOOLS_DIR = ROOT / "tools"
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+from v7_sync_lib import service_failure_automation_consumed_execution_handoff  # noqa: E402
+
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
@@ -4023,6 +4028,28 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
         }
+    # The existing OMP receipt is exact-once, but the bounded executor is the
+    # next consumer of the same currently accounted incident.  In a later
+    # ordinary Matrix generation advisory correctly has no *new* obligation;
+    # recover only a receipt-bound, scope-matching handoff from the existing
+    # closure owner.  A stale receipt, changed generation, or recovered scope
+    # remains fail-closed and is never turned into a Runtime action here.
+    payload["service_failure_execution_handoff"] = (
+        service_failure_automation_consumed_execution_handoff(
+            state_dir=state_dir,
+        )
+        if not service_failure_obligation
+        else {
+            "schema_version": "v7.service-failure-automation-execution-handoff.v1",
+            "final_verdict": "FRESH_ADVISORY_OBLIGATION_PREFERRED",
+            "runtime_mutation_performed": False,
+        }
+    )
+    if (
+        not service_failure_obligation
+        and payload["service_failure_execution_handoff"].get("final_verdict") == "READY"
+    ):
+        service_failure_obligation = payload["service_failure_execution_handoff"].get("obligation") or {}
     if args.skip_bounded_delegated_service_failure_action:
         payload["bounded_delegated_service_failure_action"] = {
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",

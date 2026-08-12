@@ -6750,6 +6750,123 @@ def service_failure_automation_frontier(
     }
 
 
+def service_failure_automation_consumed_execution_handoff(
+    *, root: Path = ROOT, state_dir: Optional[Path] = None,
+) -> dict[str, Any]:
+    """Recover the exact current OMP-consumed obligation for its next owner.
+
+    The service-matrix caller may materialize an obligation in one ordinary
+    generation and the OMP consumer may durably consume it in the same
+    generation.  A later ordinary generation must not mistake that exact-once
+    receipt for absence of the active incident's downstream handoff.  This
+    bridge reads only the existing append-only closure owner and current L3
+    scope projection; it never creates a Candidate, Packet, lease, policy, or
+    Runtime effect.
+
+    A historical receipt is deliberately unusable: the receipt, original
+    obligation, source incident, and current accounted scope must all agree on
+    the explicit semantic fingerprint.  Any drift returns a fail-closed
+    no-handoff result and requires the normal fresh Matrix revalidation.
+    """
+    resolved_state_dir = service_failure_automation_state_dir(
+        root=root, state_dir=state_dir,
+    )
+    rows = _read_jsonl_records(resolved_state_dir / "closure-records.jsonl")
+    obligations_by_fingerprint: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        fingerprint = str(row.get("automation_consumption_fingerprint") or "")
+        if (
+            str(row.get("object_type") or "")
+            == "service_failure_automation_obligation"
+            and str(row.get("closure_state") or "")
+            == "READY_FOR_OMP_CONSUMPTION"
+            and fingerprint
+        ):
+            existing = obligations_by_fingerprint.get(fingerprint)
+            if not existing or str(row.get("created_at") or "") >= str(
+                existing.get("created_at") or ""
+            ):
+                obligations_by_fingerprint[fingerprint] = row
+
+    receipts = sorted(
+        (
+            row for row in rows
+            if str(row.get("object_type") or "")
+            == "service_failure_automation_omp_consumption"
+            and str(row.get("closure_state") or "") == "OMP_CONSUMED"
+            and str(row.get("automation_consumption_fingerprint") or "")
+        ),
+        key=lambda row: str(row.get("consumed_at") or ""),
+        reverse=True,
+    )
+    rejected: list[str] = []
+    for receipt in receipts:
+        fingerprint = str(receipt.get("automation_consumption_fingerprint") or "")
+        obligation = obligations_by_fingerprint.get(fingerprint)
+        if not obligation:
+            rejected.append("matching_obligation_missing")
+            continue
+        if str(receipt.get("next_action") or "") != (
+            "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        ):
+            rejected.append("receipt_not_active_incident_successor")
+            continue
+        if (
+            str(receipt.get("automation_obligation_id") or "")
+            != str(obligation.get("automation_obligation_id") or "")
+            or str(receipt.get("source_incident_id") or "")
+            != str(obligation.get("source_incident_id") or "")
+            or str(receipt.get("situation_id") or "")
+            != str(obligation.get("situation_id") or "")
+            or str(receipt.get("decision_trace_id") or "")
+            != str(obligation.get("decision_trace_id") or "")
+        ):
+            rejected.append("receipt_obligation_identity_mismatch")
+            continue
+        obligation_scope = obligation.get("current_source_scope")
+        obligation_scope = obligation_scope if isinstance(obligation_scope, dict) else {}
+        receipt_scope = receipt.get("current_source_scope")
+        receipt_scope = receipt_scope if isinstance(receipt_scope, dict) else {}
+        expected_fingerprint = str(
+            obligation_scope.get("affected_scope_fingerprint") or ""
+        )
+        if not expected_fingerprint or expected_fingerprint != str(
+            receipt_scope.get("affected_scope_fingerprint") or ""
+        ):
+            rejected.append("receipt_scope_fingerprint_mismatch")
+            continue
+        current_scope = service_failure_active_incident_scope_projection(
+            str(obligation.get("source_incident_id") or ""),
+            state_dir=resolved_state_dir,
+        )
+        if (
+            str(current_scope.get("status") or "") != "ACCOUNTED"
+            or int(current_scope.get("unresolved_scope_count") or 0) <= 0
+            or str(current_scope.get("channel_incident_state") or "OPEN") == "RECOVERED"
+            or str(current_scope.get("affected_scope_fingerprint") or "")
+            != expected_fingerprint
+        ):
+            rejected.append("current_scope_not_matching_active_receipt")
+            continue
+        return {
+            "schema_version": "v7.service-failure-automation-execution-handoff.v1",
+            "owner": "existing closure-records + l3-runtime-state owners",
+            "final_verdict": "READY",
+            "obligation": obligation,
+            "receipt": receipt,
+            "runtime_mutation_performed": False,
+            "new_registry_created": False,
+        }
+    return {
+        "schema_version": "v7.service-failure-automation-execution-handoff.v1",
+        "owner": "existing closure-records + l3-runtime-state owners",
+        "final_verdict": "NO_CURRENT_CONSUMED_HANDOFF",
+        "reason": rejected[0] if rejected else "no_matching_consumed_receipt",
+        "runtime_mutation_performed": False,
+        "new_registry_created": False,
+    }
+
+
 def consume_service_failure_automation_frontier(
     *, root: Path = ROOT, state_dir: Optional[Path] = None, persist_cps: bool = False,
     obligation_override: Optional[dict[str, Any]] = None, record_receipt: bool = True,

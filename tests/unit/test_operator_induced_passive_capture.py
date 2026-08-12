@@ -110,6 +110,46 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
             "event_id": "current", "source_currently_failed": True,
         }])
 
+    def test_certification_only_failed_scope_is_reconciled_but_not_actionable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=failed enabled=true certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "failed": {"services": {"telegram": {
+                    "ok": False, "failure_state": "OBSERVED_CONTINUING",
+                }}},
+            }}), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "certification-only", "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "failed", "source_incident_id": "incident-certification-only",
+                "source_scope": {
+                    "affected_scope_count": 0,
+                    "affected_scope_fingerprint": "ordinary-empty",
+                    "scope_classification": "CERTIFICATION_ONLY",
+                    "ordinary_production_scope": {
+                        "affected_scope_count": 0,
+                        "affected_scope_fingerprint": "ordinary-empty",
+                    },
+                    "controlled_certification_scope": {
+                        "affected_scope_count": 1,
+                        "affected_scope_fingerprint": "certification-one",
+                    },
+                },
+            }) + "\n", encoding="utf-8")
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertFalse(result["active"])
+        self.assertTrue(result["requires_scope_reconciliation"])
+        self.assertEqual(result["decision"], "RECONCILE_CONTROLLED_CERTIFICATION_SCOPE_ONLY")
+        self.assertEqual(result["certification_only_active_sources"][0]["controlled_certification_scope_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

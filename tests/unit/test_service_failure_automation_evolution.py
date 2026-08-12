@@ -32,6 +32,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
     def setUpClass(cls):
         cls.autoswitch = load_module("v7_users_autoswitch_automation", ROOT / "tools" / "v7-users-autoswitch")
         cls.sync = load_module("v7_sync_lib_automation", ROOT / "tools" / "v7_sync_lib.py")
+        cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
 
     def test_stop_safe_is_materialized_once_with_bounded_shadow(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -77,6 +78,81 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertFalse(second["active"])
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
+
+    def test_certification_only_source_scope_never_enters_ordinary_failover(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            incident_id = "sfinc_certification_only"
+            incident_key = "passive_" + self.autoswitch.sha256_json({
+                "owner": "tools/v7-users-autoswitch.passive-causal-projection",
+                "source_incident_id": incident_id,
+            })[:24]
+            ordinary_scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 0,
+                "affected_scope_fingerprint": "ordinary-empty",
+                "protected_scope_count": 0, "unresolved_scope_count": 0,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "scope_classification": "CERTIFICATION_ONLY",
+                "controlled_certification_scope_count": 3,
+                "controlled_certification_scope_fingerprint": "certification-three",
+                "ordinary_customer_reclassification_allowed": False,
+                "raw_user_list_stored": False,
+            }
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({"incidents": {
+                incident_key: {
+                    "incident_key": incident_key, "incident_id": incident_id,
+                    "source_incident_id": incident_id, "channel": "source",
+                    "incident_state": "OPEN", "current_source_scope": ordinary_scope,
+                    "scope_accounting": ordinary_scope,
+                },
+            }}), encoding="utf-8")
+            closure = {
+                "object_type": "passive_production_event", "object_id": incident_id,
+                "source_incident_id": incident_id, "incident_key": incident_key,
+                "situation_id": "situation_certification_only",
+                "decision_trace_id": "decision_certification_only",
+                "terminal_outcome_classification": "STOP_SAFE_NO_ACTION",
+                "event_provenance": "EXTERNAL_UNATTRIBUTED", "channel": "source",
+                "observed_at": "2026-08-13T00:00:00+00:00",
+            }
+            (state_dir / "closure-records.jsonl").write_text(json.dumps(closure) + "\n", encoding="utf-8")
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
+            planner.l3_runtime_state = {}
+            planner.reconcile_service_failure_execution_outcomes = lambda: {"final_verdict": "PASS"}
+            planner._standing_delegated_policy_status = lambda: {"valid": False}
+            result = planner.materialize_service_failure_automation_advisory({"decisions": [{
+                "user_ip": "10.0.0.2", "current_egress": "source",
+                "recommended_egress": "safe-target",
+            }]})
+        obligation = result["obligation"]
+        self.assertEqual(obligation["stop_safe_classification"], "CORRECT_SAFE_TERMINAL")
+        self.assertEqual(obligation["bounded_recommendation_users"], 0)
+        self.assertEqual(obligation["runtime_scope_context"], "CONTROLLED_CERTIFICATION_SCOPE_ONLY")
+        self.assertEqual(obligation["current_source_scope"]["affected_scope_count"], 0)
+        self.assertFalse(obligation["current_source_scope"]["ordinary_customer_reclassification_allowed"])
+
+    def test_matrix_source_scope_partitions_ordinary_and_certification_users(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 enabled=1 current=source\n"
+                "ip=10.0.0.3 enabled=1 current=source certification_user=1 certification_group=pool\n"
+                "ip=10.0.0.4 enabled=1 current=source certification_user=true certification_group=pool\n",
+                encoding="utf-8",
+            )
+            scope = self.matrix.source_scope_snapshot(
+                state_dir, "source", observed_at="2026-08-13T00:00:00+00:00",
+            )
+        self.assertEqual(scope["scope_classification"], "MIXED_ORDINARY_AND_CERTIFICATION")
+        self.assertEqual(scope["affected_scope_count"], 1)
+        self.assertEqual(scope["total_assigned_scope"]["affected_scope_count"], 3)
+        self.assertEqual(scope["ordinary_production_scope"]["affected_scope_count"], 1)
+        self.assertEqual(scope["controlled_certification_scope"]["affected_scope_count"], 2)
+        self.assertFalse(scope["ordinary_customer_reclassification_allowed"])
+        self.assertFalse(scope["raw_user_list_stored"])
 
     def test_adaptive_cohort_uses_exact_count_load_and_authority_bounds(self):
         moves = [{

@@ -3976,8 +3976,25 @@ class AutoswitchPlanner:
         source_hashes = closure.get("source_hashes") if isinstance(closure.get("source_hashes"), dict) else {}
         affected_users = [str(item) for item in (closure.get("affected_users") or []) if str(item)]
         source_scope = closure.get("source_scope") if isinstance(closure.get("source_scope"), dict) else {}
-        source_scope_count = to_int(source_scope.get("affected_scope_count"), -1)
-        source_scope_fingerprint = str(source_scope.get("affected_scope_fingerprint") or "")
+        # The Matrix owns one source observation, but ordinary protection and
+        # controlled certification have non-interchangeable subjects.  Reuse
+        # its compact partition rather than treating certification identities
+        # as ordinary customers or storing a second membership registry.
+        ordinary_source_scope = (
+            source_scope.get("ordinary_production_scope")
+            if isinstance(source_scope.get("ordinary_production_scope"), dict)
+            else source_scope
+        )
+        scope_classification = str(
+            source_scope.get("scope_classification") or "LEGACY_UNPARTITIONED"
+        )
+        controlled_certification_scope = (
+            source_scope.get("controlled_certification_scope")
+            if isinstance(source_scope.get("controlled_certification_scope"), dict)
+            else {}
+        )
+        source_scope_count = to_int(ordinary_source_scope.get("affected_scope_count"), -1)
+        source_scope_fingerprint = str(ordinary_source_scope.get("affected_scope_fingerprint") or "")
         # ``scope_accounting`` is the historical compatibility name for the
         # current-source denominator.  Keep it while exposing the semantic
         # name below: historical packet success must never be mistaken for
@@ -4026,6 +4043,17 @@ class AutoswitchPlanner:
                 "accounted_scope_count": source_scope_count,
                 "live_registry_available": True,
                 "raw_user_list_stored": False,
+                "scope_classification": scope_classification,
+                "controlled_certification_scope_count": max(
+                    0, to_int(
+                        controlled_certification_scope.get("affected_scope_count"),
+                        0,
+                    ),
+                ),
+                "controlled_certification_scope_fingerprint": str(
+                    controlled_certification_scope.get("affected_scope_fingerprint") or ""
+                ),
+                "ordinary_customer_reclassification_allowed": False,
                 "scope_generation": str(source_event_ids[0] if source_event_ids else closure.get("event_id") or ""),
                 "supersedes_prior_scope_generation": ({
                     "affected_scope_count": to_int(existing_scope.get("affected_scope_count"), -1),
@@ -14693,7 +14721,19 @@ class AutoswitchPlanner:
             row for row in (plan.get("decisions") or [])
             if not source or str(row.get("current_egress") or "") == source
         ]
-        classification, reason, product_frontier = self._service_failure_stop_safe_classification(closure, decisions)
+        scope_classification = str(
+            current_source_scope.get("scope_classification") or "LEGACY_UNPARTITIONED"
+        )
+        if scope_classification == "CERTIFICATION_ONLY":
+            classification, reason, product_frontier = (
+                "CORRECT_SAFE_TERMINAL",
+                "the failed source currently contains certification identities only; "
+                "ordinary delegated failover is forbidden and the existing controlled "
+                "certification owner retains that separate scope",
+                "NONE",
+            )
+        else:
+            classification, reason, product_frontier = self._service_failure_stop_safe_classification(closure, decisions)
         movable = [
             row for row in decisions
             if str(row.get("recommended_egress") or "")
@@ -14934,11 +14974,17 @@ class AutoswitchPlanner:
                 "protected_scope_count": max(0, to_int(current_source_scope.get("protected_scope_count"), 0)),
                 "unresolved_scope_count": unresolved_count,
                 "explicitly_excluded_or_recovered_scope_count": max(0, to_int(current_source_scope.get("explicitly_excluded_or_recovered_scope_count"), 0)),
+                "scope_classification": scope_classification,
+                "controlled_certification_scope_count": max(0, to_int(current_source_scope.get("controlled_certification_scope_count"), 0)),
+                "controlled_certification_scope_fingerprint": str(current_source_scope.get("controlled_certification_scope_fingerprint") or ""),
+                "ordinary_customer_reclassification_allowed": False,
                 "raw_user_list_stored": False,
             },
             "bounded_recommendation_users": len(chosen),
             "current_certified_blast_radius_tier": current_tier,
             "runtime_scope_context": (
+                "CONTROLLED_CERTIFICATION_SCOPE_ONLY"
+                if scope_classification == "CERTIFICATION_ONLY" else
                 "CONTROLLED_CERTIFICATION_CONTEXT"
                 if bool_value(controlled_source_context.get("confirmed"))
                 else "ORDINARY_PRODUCTION_SERVICE_FAILURE"

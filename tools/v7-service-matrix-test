@@ -218,22 +218,68 @@ def source_scope_snapshot(state_dir: Path, egress_id: str, *, observed_at: str) 
     ``users.registry``.  Count and a deterministic fingerprint let downstream
     consumers prove that a continuing incident still has an accountable scope.
     """
-    users = sorted({
-        str(row.get("ip") or "")
-        for row in parse_registry(state_dir / "users.registry")
+    assigned = [
+        row for row in parse_registry(state_dir / "users.registry")
         if str(row.get("ip") or "")
         and bool_value(row.get("enabled"), True)
         and str(row.get("current") or "") == str(egress_id)
-    })
+    ]
+
+    def compact_scope(users: list[str], scope_kind: str) -> dict[str, Any]:
+        users = sorted(set(users))
+        return {
+            "affected_scope_count": len(users),
+            "affected_scope_fingerprint": hashlib.sha256(
+                json.dumps(
+                    {
+                        "source_channel": str(egress_id),
+                        "scope_kind": scope_kind,
+                        "users": users,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+            "raw_user_list_stored": False,
+        }
+
+    users = [str(row.get("ip") or "") for row in assigned]
+    ordinary_users = [
+        str(row.get("ip") or "") for row in assigned
+        if not bool_value(row.get("certification_user"), False)
+    ]
+    certification_users = [
+        str(row.get("ip") or "") for row in assigned
+        if bool_value(row.get("certification_user"), False)
+    ]
+    if ordinary_users and certification_users:
+        scope_classification = "MIXED_ORDINARY_AND_CERTIFICATION"
+    elif ordinary_users:
+        scope_classification = "ORDINARY_PRODUCTION_ONLY"
+    elif certification_users:
+        scope_classification = "CERTIFICATION_ONLY"
+    else:
+        scope_classification = "EMPTY"
+    total_scope = compact_scope(users, "ALL_ASSIGNED")
+    ordinary_scope = compact_scope(ordinary_users, "ORDINARY_PRODUCTION")
+    certification_scope = compact_scope(
+        certification_users, "CONTROLLED_CERTIFICATION",
+    )
     return {
-        "schema_version": "v7.service-failure-source-scope.v1",
+        "schema_version": "v7.service-failure-source-scope.v2",
         "observed_at": observed_at,
         "source_channel": str(egress_id),
-        "affected_scope_count": len(users),
-        "affected_scope_fingerprint": hashlib.sha256(
-            json.dumps({"source_channel": str(egress_id), "users": users}, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest(),
-        "raw_user_list_stored": False,
+        # Compatibility fields are the ordinary production denominator: this
+        # is the only scope eligible for the ordinary failover consumer.
+        # The complete observed source cohort remains explicitly preserved
+        # below, so a service failure is never hidden merely because its
+        # current members are certification identities.
+        **ordinary_scope,
+        "total_assigned_scope": total_scope,
+        "scope_classification": scope_classification,
+        "ordinary_production_scope": ordinary_scope,
+        "controlled_certification_scope": certification_scope,
+        "ordinary_customer_reclassification_allowed": False,
         "owner": "users.registry via tools/v7-service-matrix-test",
     }
 

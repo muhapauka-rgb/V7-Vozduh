@@ -4481,11 +4481,23 @@ class AutoswitchPlanner:
         legacy_unpartitioned_scope = str(
             existing_scope.get("scope_classification") or ""
         ) in {"", "LEGACY_UNPARTITIONED"}
+        preserved_protected = max(
+            0,
+            min(
+                baseline_count,
+                to_int(existing_scope.get("protected_scope_count"), 0),
+            ),
+        )
+        preserved_protected_pointers = sorted({
+            str(item)
+            for item in (existing_scope.get("protected_scope_lineage_pointers") or [])
+            if str(item)
+        })
         certification_only_live_scope = bool(
             live_users_on_source
             and not live_ordinary_users_on_source
             and live_users_on_source.issubset(live_certification_users)
-            and len(live_users_on_source) == baseline_count
+            and len(live_users_on_source) + preserved_protected == baseline_count
         )
         if legacy_unpartitioned_scope and certification_only_live_scope:
             exclusion_pointer = "controlled-certification-scope:" + sha256_json({
@@ -4505,21 +4517,26 @@ class AutoswitchPlanner:
                 "baseline_observed_at": str(existing_scope.get("baseline_observed_at") or ""),
                 "affected_scope_count": baseline_count,
                 "affected_scope_fingerprint": baseline_fingerprint,
-                "protected_scope_count": 0,
+                "protected_scope_count": preserved_protected,
                 "protected_scope_fingerprint": sha256_json({
-                    **terminal_basis, "category": "protected", "count": 0,
+                    **terminal_basis,
+                    "category": "protected",
+                    "count": preserved_protected,
+                    "lineage_pointers": preserved_protected_pointers,
                 }),
-                "protected_scope_lineage_pointers": [],
+                "protected_scope_lineage_pointers": preserved_protected_pointers,
                 "unresolved_scope_count": 0,
                 "unresolved_scope_fingerprint": sha256_json({
                     **terminal_basis, "category": "unresolved", "count": 0,
                 }),
                 "unresolved_scope_route_truth_owner": "users.registry",
-                "explicitly_excluded_or_recovered_scope_count": baseline_count,
+                "explicitly_excluded_or_recovered_scope_count": (
+                    baseline_count - preserved_protected
+                ),
                 "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({
                     **terminal_basis,
                     "category": "controlled_certification_excluded",
-                    "count": baseline_count,
+                    "count": baseline_count - preserved_protected,
                     "lineage_pointer": exclusion_pointer,
                 }),
                 "explicitly_excluded_or_recovered_lineage_pointers": [
@@ -4530,7 +4547,7 @@ class AutoswitchPlanner:
                 "live_registry_available": True,
                 "raw_user_list_stored": False,
                 "scope_classification": "CERTIFICATION_ONLY",
-                "controlled_certification_scope_count": baseline_count,
+                "controlled_certification_scope_count": len(live_users_on_source),
                 "controlled_certification_scope_fingerprint": sha256_json({
                     "source_channel": source_channel,
                     "users": sorted(live_users_on_source),

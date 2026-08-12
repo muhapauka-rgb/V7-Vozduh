@@ -184,6 +184,37 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
         self.assertFalse(result["ordinary_customer_reclassification_allowed"])
 
+    def test_legacy_scope_preserves_verified_outcome_while_excluding_certification_remainder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.2 enabled=1 current=source certification_user=1\n"
+                "ip=10.7.0.3 enabled=1 current=source certification_user=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.args = SimpleNamespace()
+            result = planner._reconcile_incident_scope_accounting(
+                existing={
+                    "source_incident_id": "sfinc_legacy_mixed_history",
+                    "channel": "source", "incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED", "baseline_event_id": "evt_legacy",
+                        "affected_scope_count": 3,
+                        "affected_scope_fingerprint": "legacy-all-assigned",
+                        "protected_scope_count": 1,
+                        "protected_scope_lineage_pointers": ["execfb_verified"],
+                    },
+                },
+                execution_rows=[],
+            )
+        self.assertEqual(result["scope_classification"], "CERTIFICATION_ONLY")
+        self.assertEqual(result["protected_scope_count"], 1)
+        self.assertEqual(result["unresolved_scope_count"], 0)
+        self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
+        self.assertEqual(result["protected_scope_lineage_pointers"], ["execfb_verified"])
+
     def test_adaptive_cohort_uses_exact_count_load_and_authority_bounds(self):
         moves = [{
             "user_ip": f"10.0.0.{index + 2}",

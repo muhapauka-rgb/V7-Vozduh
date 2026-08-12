@@ -3868,6 +3868,88 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertEqual(budget["cold_valid_samples"], 1)
         self.assertEqual(budget["next_sample_kind"], "warm")
 
+    def test_ct_m0f_topology_request_uses_active_standing_contract_basis(self):
+        now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
+        manifest = {
+            "validation_profile": "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+            "selected_option": "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+            "existing_source": "vless",
+            "selected_source_or_draft": "draft-one",
+            "trial_identity": "10.7.0.76",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "a" * 64,
+            "expected_assignment_delta": (
+                "10.7.0.76:vless->NEW_DEDICATED_SOURCE"
+            ),
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = sha256_json(manifest)
+        request = operator_execution.build_controlled_source_topology_authority_request(
+            {
+                "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                "mission": (
+                    "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_"
+                    "SLICE_FEASIBILITY_V1"
+                ),
+                "exact_action": (
+                    "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE"
+                ),
+                "manifest": manifest,
+                "authority_basis": {
+                    "kind": "CT_M0F_STANDING_VALIDATION_POLICY",
+                    "contract_id": "ctm0fsdpc_" + "b" * 24,
+                    "contract_hash": "b" * 64,
+                    "authority_request_id": "ctm0fsdpauth_r1_" + "c" * 24,
+                    "authority_request_hash": "c" * 64,
+                    "expires_at": "2026-09-05T08:00:00+00:00",
+                },
+                "current_campaign_request_id": "",
+                "current_campaign_request_hash": "",
+                "supersedes_source_binding_only": True,
+                "tier48_capability_or_campaign_reapproval": False,
+                "ordinary_customer_involvement": False,
+                "self_expansion_allowed": False,
+                "forbidden_effects": ["ordinary_user_movement"],
+                "reentry_condition": "exact independent decision",
+            },
+            now=now,
+        )
+        self.assertTrue(
+            operator_execution.validate_controlled_source_topology_authority_request(
+                request, now=now + timedelta(seconds=1),
+            )["ok"]
+        )
+        malformed = copy.deepcopy(request)
+        malformed["manifest"]["validation_profile"] = "CAMPAIGN_FULL_PATH"
+        malformed["manifest"]["manifest_hash"] = sha256_json({
+            key: value for key, value in malformed["manifest"].items()
+            if key != "manifest_hash"
+        })
+        malformed["request_hash"] = (
+            operator_execution.controlled_source_topology_request_hash(malformed)
+        )
+        malformed["request_id"] = (
+            f"cstopauth_r1_{malformed['request_hash'][:24]}"
+        )
+        validation = operator_execution.validate_controlled_source_topology_authority_request(
+            malformed, now=now + timedelta(seconds=1),
+        )
+        self.assertFalse(validation["ok"])
+        self.assertIn(
+            "controlled_source_topology_ct_m0f_profile_invalid",
+            validation["errors"],
+        )
+
     def test_ct_m0f_invalid_sample_diagnostic_is_durable_and_counts_once(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

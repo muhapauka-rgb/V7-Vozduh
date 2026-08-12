@@ -18985,6 +18985,45 @@ def controlled_source_topology_diagnostic(
             "blockers": ["controlled_source_validation_profile_invalid"],
             "forbidden_effects": forbidden_effects,
         }
+    audit_records = operator_execution.read_live_execution_lineage_records(
+        Path(args.action_class_audit_store)
+    )
+    ct_m0f_contract = (
+        policy_root.get(operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY)
+        if isinstance(policy_root, dict)
+        and isinstance(
+            policy_root.get(
+                operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY
+            ),
+            dict,
+        )
+        else {}
+    )
+    ct_m0f_validation = operator_execution.validate_ct_m0f_standing_validation_policy(
+        ct_m0f_contract,
+        audit_records=audit_records,
+    )
+    ct_m0f_decision = (
+        ct_m0f_contract.get("authority_decision")
+        if isinstance(ct_m0f_contract.get("authority_decision"), dict)
+        else {}
+    )
+    ct_m0f_basis = (
+        {
+            "kind": "CT_M0F_STANDING_VALIDATION_POLICY",
+            "contract_id": str(ct_m0f_contract.get("contract_id") or ""),
+            "contract_hash": str(ct_m0f_contract.get("contract_hash") or ""),
+            "authority_request_id": str(
+                ct_m0f_decision.get("request_id") or ""
+            ),
+            "authority_request_hash": str(
+                ct_m0f_decision.get("request_hash") or ""
+            ),
+            "expires_at": str(ct_m0f_contract.get("expires_at") or ""),
+        }
+        if validation_profile == "ct-m0f-one-user" and ct_m0f_validation.get("ok")
+        else {}
+    )
     campaign = (
         target_diagnostic.get("campaign")
         if isinstance(target_diagnostic.get("campaign"), dict)
@@ -19071,6 +19110,35 @@ def controlled_source_topology_diagnostic(
         and str(row.get("ip") or "")
     )
     trial_identity = certification_users[0] if certification_users else ""
+    ct_trial_identity_source = ""
+    if validation_profile == "ct-m0f-one-user" and ct_m0f_basis:
+        ct_candidates = sorted(
+            (
+                row for row in assignment_rows
+                if bool_value(row.get("certification_user"))
+                and str(row.get("ip") or "")
+                and str(row.get("current") or "")
+            ),
+            key=lambda row: (
+                str(row.get("current") or ""),
+                str(row.get("ip") or ""),
+            ),
+        )
+        if ct_candidates:
+            selected_ct_identity = ct_candidates[0]
+            trial_identity = str(selected_ct_identity.get("ip") or "")
+            ct_trial_identity_source = str(
+                selected_ct_identity.get("current") or ""
+            )
+            source_id = ct_trial_identity_source
+            source_registry = registry_by_id.get(source_id, {})
+            campaign_group = str(
+                selected_ct_identity.get("certification_group") or ""
+            )
+            campaign_identity_rows = [selected_ct_identity]
+            campaign_identity_locations = {ct_trial_identity_source: 1}
+            campaign_identity_count = 1
+            campaign_identity_baseline_source_id = ct_trial_identity_source
     certification_identity_fingerprint = sha256_json(sorted(
         str(row.get("ip") or "")
         for row in campaign_identity_rows
@@ -19421,6 +19489,8 @@ def controlled_source_topology_diagnostic(
         ""
     )
     trial_identity_source = existing_exact_source
+    if validation_profile == "ct-m0f-one-user" and ct_trial_identity_source:
+        trial_identity_source = ct_trial_identity_source
     if (
         selected_option
         == "OPTION_1_CONTINUE_EXISTING_CONTROLLED_EGRESS"
@@ -19473,7 +19543,14 @@ def controlled_source_topology_diagnostic(
         })
 
     preflight_ready = bool(
-        selected_option and trial_identity and reservation_owner.get("status") == "READY"
+        selected_option
+        and trial_identity
+        and reservation_owner.get("status") == "READY"
+        and (
+            bool(ct_m0f_basis)
+            if validation_profile == "ct-m0f-one-user"
+            else True
+        )
     )
     manifest = {
         "validation_profile": (
@@ -19490,7 +19567,7 @@ def controlled_source_topology_diagnostic(
         "expected_assignment_delta": (
             f"{trial_identity}:{trial_identity_source}->{selected_source}"
             if trial_identity and selected_source else
-            f"{trial_identity}:{existing_exact_source}->NEW_DEDICATED_SOURCE"
+            f"{trial_identity}:{trial_identity_source}->NEW_DEDICATED_SOURCE"
             if trial_identity and selected_draft else ""
         ),
         "expected_ordinary_assignment_delta": "NONE",
@@ -19538,6 +19615,7 @@ def controlled_source_topology_diagnostic(
         ],
         "exact_action": required_authority_action,
         "manifest": manifest,
+        "authority_basis": ct_m0f_basis,
         "current_campaign_request_id": str(campaign.get("request_id") or ""),
         "current_campaign_request_hash": str(campaign.get("request_hash") or ""),
         "supersedes_source_binding_only": True,
@@ -19591,6 +19669,7 @@ def controlled_source_topology_diagnostic(
         == str(campaign.get("request_id") or "")
         and str(registered_request.get("current_campaign_request_hash") or "")
         == str(campaign.get("request_hash") or "")
+        and registered_request.get("authority_basis") == ct_m0f_basis
     )
     authority_package = (
         {

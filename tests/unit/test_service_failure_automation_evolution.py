@@ -1191,9 +1191,22 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "interface=wg0 enabled=1 certification_group=ctm0f\n",
                 encoding="utf-8",
             )
+            policy_path = root / "policy.json"
+            policy_path.write_text(json.dumps({
+                operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": "ctm0fsdpc_" + "b" * 24,
+                    "contract_hash": "b" * 64,
+                    "expires_at": "2099-01-01T00:00:00+00:00",
+                    "authority_decision": {
+                        "request_id": "ctm0fsdpauth_r1_" + "c" * 24,
+                        "request_hash": "c" * 64,
+                    },
+                },
+            }), encoding="utf-8")
             args = self.autoswitch.build_arg_parser().parse_args([
                 "--state-dir", str(state_dir),
                 "--egress-drafts-dir", str(root / "drafts"),
+                "--policy-file", str(policy_path),
                 "--controlled-source-validation-profile", "ct-m0f-one-user",
             ])
             target_projection = {
@@ -1231,6 +1244,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "owner": "tools/v7-egress-set-state",
                     },
                 ),
+                mock.patch.object(
+                    self.autoswitch.operator_execution,
+                    "validate_ct_m0f_standing_validation_policy",
+                    return_value={"ok": True},
+                ),
             ):
                 result = self.autoswitch.controlled_source_topology_diagnostic(args)
 
@@ -1250,6 +1268,10 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(
             result["production_preflight"]["manifest"]["validation_profile"],
             "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+        )
+        self.assertEqual(
+            result["authority_package"]["authority_basis"]["kind"],
+            "CT_M0F_STANDING_VALIDATION_POLICY",
         )
         self.assertEqual(
             [row["stage"] for row in result[

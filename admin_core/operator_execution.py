@@ -3406,15 +3406,32 @@ def validate_controlled_source_topology_authority_request(
         or request.get("self_expansion_allowed") is not False
     ):
         errors.append("controlled_source_topology_scope_invalid")
-    if not str(request.get("current_campaign_request_id") or ""):
-        errors.append("controlled_source_topology_campaign_request_missing")
-    if len(str(request.get("current_campaign_request_hash") or "")) != 64:
-        errors.append("controlled_source_topology_campaign_hash_invalid")
     manifest = (
         request.get("manifest")
         if isinstance(request.get("manifest"), dict)
         else {}
     )
+    authority_basis = (
+        request.get("authority_basis")
+        if isinstance(request.get("authority_basis"), dict)
+        else {}
+    )
+    if authority_basis.get("kind") == "CT_M0F_STANDING_VALIDATION_POLICY":
+        if (
+            not str(authority_basis.get("contract_id") or "")
+            or len(str(authority_basis.get("contract_hash") or "")) != 64
+            or not str(authority_basis.get("authority_request_id") or "")
+            or len(str(authority_basis.get("authority_request_hash") or "")) != 64
+            or not str(authority_basis.get("expires_at") or "")
+        ):
+            errors.append("controlled_source_topology_ct_m0f_basis_invalid")
+        if manifest.get("validation_profile") != "CT_M0F_ONE_USER_CONTROLLED_CONDITION":
+            errors.append("controlled_source_topology_ct_m0f_profile_invalid")
+    else:
+        if not str(request.get("current_campaign_request_id") or ""):
+            errors.append("controlled_source_topology_campaign_request_missing")
+        if len(str(request.get("current_campaign_request_hash") or "")) != 64:
+            errors.append("controlled_source_topology_campaign_hash_invalid")
     manifest_hash = str(manifest.get("manifest_hash") or "")
     manifest_preimage = copy.deepcopy(manifest)
     manifest_preimage.pop("manifest_hash", None)

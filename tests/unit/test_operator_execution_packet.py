@@ -571,6 +571,91 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             )
             self.assertTrue(valid["ok"], valid["errors"])
 
+    def test_live_execution_lineage_keeps_controlled_topology_request_and_decision(self):
+        now = datetime(2026, 8, 12, 8, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            audit_path = root / "operator-execution-audit.jsonl"
+            manifest = {
+                "validation_profile": "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+                "selected_option": "OPTION_2_PROVISION_EXISTING_VALID_DRAFT",
+                "existing_source": "source-1",
+                "selected_source_or_draft": "draft-1",
+                "trial_identity": "10.7.0.107",
+                "trial_identity_count": 1,
+                "identity_set_fingerprint": "d" * 64,
+                "expected_assignment_delta": "10.7.0.107:source-1->NEW_DEDICATED_SOURCE",
+                "expected_ordinary_assignment_delta": "NONE",
+                "expected_ordinary_route_delta": "NONE",
+                "capacity_reservation": 1,
+                "certification_group": "ct-group",
+                "reservation_mode": "INITIAL_EMPTY_CONTROLLED_SOURCE_RESERVATION",
+                "max_concurrent_transactions": 1,
+                "reservation_owner": "v7-egress-set-state",
+                "verification": "fresh Matrix baseline",
+                "rollback": "release exact reservation",
+                "failure_mechanism": "existing controlled guard",
+                "lease_and_expiry_required": True,
+                "packet_required_before_effect": True,
+                "restore_barrier_required_before_effect": True,
+            }
+            manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+            request = {
+                "schema_version": (
+                    "v7.controlled-source-topology-authority-request.v1"
+                ),
+                "status": "AWAITING_INDEPENDENT_ENGINEERING_AUTHORITY_DECISION",
+                "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+                "mission": "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_SLICE_FEASIBILITY_V1",
+                "decision_set": [
+                    "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                    "DECLINE",
+                ],
+                "exact_action": "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                "manifest": manifest,
+                "authority_basis": {
+                    "kind": "CT_M0F_STANDING_VALIDATION_POLICY",
+                    "contract_id": "ct-contract",
+                    "contract_hash": "b" * 64,
+                    "authority_request_id": "ct-request",
+                    "authority_request_hash": "c" * 64,
+                    "expires_at": (now + timedelta(days=2)).isoformat(),
+                },
+                "current_campaign_request_id": "",
+                "current_campaign_request_hash": "",
+                "supersedes_source_binding_only": True,
+                "tier48_capability_or_campaign_reapproval": False,
+                "ordinary_customer_involvement": False,
+                "self_expansion_allowed": False,
+                "forbidden_effects": ["routing_mutation"],
+                "reentry_condition": "one exact independent decision",
+                "issuing_owner": "admin_core/operator_execution.py append-only Authority audit",
+                "issuing_owner_required": "admin_core/operator_execution.py",
+                "created_at": now.isoformat(),
+                "expires_at": (now + timedelta(days=1)).isoformat(),
+            }
+            request["request_hash"] = operator_execution.controlled_source_topology_request_hash(request)
+            request["request_id"] = f"cstopauth_r1_{request['request_hash'][:24]}"
+            operator_execution.register_controlled_source_topology_authority_request(
+                request, audit_store=audit_path, now=now,
+            )
+            operator_execution.record_controlled_source_topology_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                actor_id="unit-authority",
+                audit_store=audit_path,
+                now=now + timedelta(seconds=1),
+            )
+            audit_path.rename(root / "operator-execution-audit.jsonl.1")
+            audit_path.write_text("", encoding="utf-8")
+            lineage = operator_execution.read_live_execution_lineage_records(audit_path)
+            status = operator_execution.controlled_source_topology_authority_status(
+                lineage, now=now + timedelta(seconds=2),
+            )
+        self.assertEqual(status["status"], "APPROVED")
+        self.assertEqual(status["request_id"], request["request_id"])
+
     def test_availability_first_campaign_status_consumes_only_exact_prefix(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

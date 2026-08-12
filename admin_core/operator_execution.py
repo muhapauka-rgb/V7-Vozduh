@@ -7193,7 +7193,13 @@ def read_live_execution_lineage_records(
     durable_record_types = {
         STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE,
         CONTROLLED_CERTIFICATION_SUBSTRATE_DECISION_RECORD_TYPE,
+        # The topology decision is meaningful only with its immutable request
+        # (and any invalidation) from the same append-only owner.  Keeping
+        # only the decision made an approved provision invisible after the
+        # bounded live-lineage projection was read.
+        CONTROLLED_SOURCE_TOPOLOGY_REQUEST_RECORD_TYPE,
         CONTROLLED_SOURCE_TOPOLOGY_DECISION_RECORD_TYPE,
+        CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE,
         CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE,

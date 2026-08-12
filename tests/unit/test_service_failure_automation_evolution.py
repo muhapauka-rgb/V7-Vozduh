@@ -3516,6 +3516,42 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             ["closure_partial_recovery"],
         )
 
+    def test_open_unchanged_scope_reuses_baseline_fingerprint_for_ct_binding(self):
+        """An unchanged cohort must not gain a second fingerprint namespace.
+
+        The Matrix producer, L3 accounting and CT-M0F selector all bind the
+        initial unresolved cohort to the existing source-scope fingerprint.
+        A packet-free reconciliation must therefore preserve it exactly.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            users = ["10.0.0.2", "10.0.0.3"]
+            (state_dir / "users.registry").write_text(
+                "".join(f"ip={user} current=vless enabled=1\n" for user in users),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            baseline_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": users,
+            })
+            scope = planner._reconcile_incident_scope_accounting(
+                existing={
+                    "incident_id": "sfinc_same_cohort",
+                    "source_channel": "vless",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED",
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": baseline_fingerprint,
+                    },
+                },
+                execution_rows=[],
+            )
+        self.assertEqual(scope["status"], "ACCOUNTED")
+        self.assertEqual(scope["unresolved_scope_count"], 2)
+        self.assertEqual(scope["unresolved_scope_fingerprint"], baseline_fingerprint)
+
     def test_cumulative_scope_retains_missing_binding_without_claiming_current_membership(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

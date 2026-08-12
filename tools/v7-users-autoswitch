@@ -4512,6 +4512,26 @@ class AutoswitchPlanner:
             excluded_count = len(excluded_users)
         accounted = len(protected_users) + len(unresolved_users) + excluded_count
         valid = live_registry_available and baseline_count == accounted
+        # The first open projection has no protected or excluded member.  In
+        # that identity case the unresolved cohort *is* the immutable
+        # affected cohort, so it must retain the producer's fingerprint.
+        # Re-hashing it under the incident id made the same live cohort appear
+        # different to the Matrix/CT-M0F binding consumer, even though no
+        # packet outcome had changed the denominator.  Once a member leaves
+        # the source, keep the existing incident-scoped subset fingerprint to
+        # distinguish the remaining live subset from the original cohort.
+        unresolved_fingerprint = (
+            baseline_fingerprint
+            if (
+                len(unresolved_users) == baseline_count
+                and not protected_users
+                and excluded_count == 0
+            )
+            else sha256_json({
+                "incident": source_incident_id,
+                "users": sorted(unresolved_users),
+            })
+        )
         return {
             "schema_version": "v7.service-failure-incident-scope-accounting.v2",
             "status": "ACCOUNTED" if valid else "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
@@ -4523,7 +4543,7 @@ class AutoswitchPlanner:
             "protected_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(protected_users)}),
             "protected_scope_lineage_pointers": sorted(protected_pointers),
             "unresolved_scope_count": len(unresolved_users),
-            "unresolved_scope_fingerprint": sha256_json({"incident": source_incident_id, "users": sorted(unresolved_users)}),
+            "unresolved_scope_fingerprint": unresolved_fingerprint,
             "unresolved_scope_route_truth_owner": "state/users.registry",
             "explicitly_excluded_or_recovered_scope_count": excluded_count,
             "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({

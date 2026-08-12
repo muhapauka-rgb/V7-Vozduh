@@ -6691,21 +6691,12 @@ def service_failure_automation_frontier(
     def consumption_key(row: dict[str, Any]) -> str:
         explicit = str(row.get("automation_consumption_fingerprint") or "")
         if explicit:
-            return explicit
-        encoded = json.dumps({
-            "automation_obligation_id": str(row.get("automation_obligation_id") or ""),
-            "source_incident_id": str(row.get("source_incident_id") or ""),
-            "situation_id": str(row.get("situation_id") or ""),
-            "decision_trace_id": str(row.get("decision_trace_id") or ""),
-            "classification": str(row.get("stop_safe_classification") or row.get("classification") or ""),
-            "incident_frontier": str(row.get("incident_frontier") or ""),
-            "product_evolution_frontier": str(row.get("product_evolution_frontier") or ""),
-            "current_source_scope": (
-                row.get("current_source_scope")
-                if isinstance(row.get("current_source_scope"), dict) else {}
-            ),
-        }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+            return "revision:" + explicit
+        # Deploy must not reinterpret historical append-only rows.  Legacy
+        # rows retain the former id-scoped exact-once behaviour.  Only a new
+        # producer projection bearing the explicit semantic fingerprint can
+        # re-enter after a current-scope/classification change.
+        return "legacy:" + str(row.get("automation_obligation_id") or "")
 
     consumed = {
         consumption_key(row)

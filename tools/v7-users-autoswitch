@@ -15006,6 +15006,7 @@ class AutoswitchPlanner:
                 key: row.get(key)
                 for key in (
                     "object_id", "automation_obligation_id", "closure_state",
+                    "automation_consumption_fingerprint",
                     "source_incident_id", "incident_key", "situation_id",
                     "decision_trace_id", "event_provenance", "evidence_class",
                     "channel", "failure_families", "affected_users_count",

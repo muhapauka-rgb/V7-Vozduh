@@ -437,6 +437,17 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
                 "PROBE_OBSERVED_PRODUCTION_EVENT",
             )
             self.assertEqual(bridge["events_created"], 1)
+            handoff = payload["existing_consumer_handoff"]
+            self.assertEqual(
+                handoff["status"],
+                "READY_FOR_EXISTING_MATRIX_CONSUMER",
+            )
+            self.assertEqual(
+                handoff["consumer"],
+                "existing v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
+            )
+            self.assertEqual(handoff["wake_owner"], "v7-service-matrix-refresh.timer")
+            self.assertFalse(handoff["apply_timer_required"])
 
 
 if __name__ == "__main__":

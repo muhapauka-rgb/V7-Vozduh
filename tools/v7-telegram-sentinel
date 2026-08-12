@@ -865,13 +865,19 @@ def main() -> int:
         "existing_consumer_handoff": {
             "schema_version": "v7.fast-signal-existing-consumer-handoff.v1",
             "status": (
-                "READY_FOR_EXISTING_AUTOSWITCH_TIMER"
+                "READY_FOR_EXISTING_MATRIX_CONSUMER"
                 if fast_signal_bridge.get("new_event_ids")
                 else "NOT_REQUIRED_NO_NEW_CANONICAL_EVENT"
             ),
             "ok": True,
             "event_ids": list(fast_signal_bridge.get("new_event_ids") or []),
-            "consumer": "existing v7-users-autoswitch.timer -> v7-governed-canary-dry-run-cycle",
+            # The legacy apply timer is deliberately held.  CPS names the
+            # Matrix refresh owner as the lawful durable-successor consumer;
+            # that owner may subsequently admit the existing governed
+            # executor only after its independent live gates pass.
+            "consumer": "existing v7-service-matrix-refresh-all -> existing governed CT-M0F consumer",
+            "wake_owner": "v7-service-matrix-refresh.timer",
+            "apply_timer_required": False,
             "runtime_mutation_performed": False,
             "routing_mutation_performed": False,
             "users_moved": 0,

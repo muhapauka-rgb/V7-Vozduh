@@ -1656,6 +1656,81 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             validation["errors"],
         )
 
+    def test_approved_topology_provision_reserves_existing_source_exact_once(self):
+        """An approved provision reserves one existing empty source only."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text("", encoding="utf-8")
+            state_dir.joinpath("egress.registry").write_text(
+                "id=pool1 protocol=amneziawg type=interface interface=wg1 enabled=1 "
+                "controlled_certification_source=1 certification_group=t48\n",
+                encoding="utf-8",
+            )
+            audit_path = root / "authority-audit.jsonl"
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--action-class-audit-store", str(audit_path),
+            ])
+            future = "2099-01-01T00:00:00+00:00"
+            diagnostic = {
+                "status": "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY",
+                "authority_lifecycle": {
+                    "status": "APPROVED",
+                    "matching_current_preflight": True,
+                    "decision": "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                    "request_id": "cstopauth_exact",
+                    "request_hash": "a" * 64,
+                    "decision_id": "cstopdec_exact",
+                    "expires_at": future,
+                },
+                "authority_package": {
+                    "exact_action": "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE",
+                    "authority_basis": {"expires_at": future},
+                },
+                "production_preflight": {"manifest": {
+                    "validation_profile": "CT_M0F_ONE_USER_CONTROLLED_CONDITION",
+                    "trial_identity_count": 1,
+                    "expected_ordinary_assignment_delta": "NONE",
+                    "expected_ordinary_route_delta": "NONE",
+                    "selected_source_or_draft": "draft1",
+                    "manifest_hash": "b" * 64,
+                    "reservation_owner": "v7-egress-set-state",
+                    "certification_group": "t48",
+                }},
+            }
+            draft = {
+                "draft_id": "draft1", "pool_egress_id": "pool1",
+                "pool_action": "enabled", "runtime_profile_status": "READY",
+                "protocol": "amneziawg",
+            }
+            proc = SimpleNamespace(
+                returncode=0,
+                stdout="ACTION=controlled_source_reserved\nrestore_backup=/tmp/backup\n",
+            )
+            with (
+                mock.patch.object(
+                    self.autoswitch, "controlled_source_topology_diagnostic",
+                    return_value=diagnostic,
+                ),
+                mock.patch.object(
+                    self.autoswitch, "_controlled_source_draft_candidates",
+                    return_value=[draft],
+                ),
+                mock.patch.object(self.autoswitch.subprocess, "run", return_value=proc) as run,
+            ):
+                first = self.autoswitch.consume_approved_controlled_source_topology(args)
+                second = self.autoswitch.consume_approved_controlled_source_topology(args)
+
+        self.assertEqual(first["status"], "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONED")
+        self.assertTrue(first["registry_write"])
+        self.assertEqual(first["users_moved"], 0)
+        self.assertFalse(first["routing_mutation"])
+        self.assertEqual(second["status"], "ALREADY_CONSUMED_EXACT")
+        self.assertEqual(run.call_count, 1)
+
     def test_controlled_source_topology_prepare_reuses_active_semantic_request(self):
         manifest = {
             "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",

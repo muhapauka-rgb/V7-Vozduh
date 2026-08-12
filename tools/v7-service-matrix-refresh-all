@@ -325,6 +325,67 @@ def read_controlled_target_selection_diagnostic(
     return payload
 
 
+def consume_approved_controlled_source_topology(
+    planner: str,
+    *,
+    state_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+) -> dict[str, Any]:
+    """Deliver an independently approved topology provision to its owner.
+
+    The Matrix is only the existing wake/consumer.  The planner performs all
+    admission, exact-once and reservation checks, so this wrapper cannot turn
+    an absent or mismatched approval into a registry mutation.
+    """
+    command = [
+        planner,
+        "--consume-approved-controlled-source-topology",
+        "--state-dir", str(state_dir),
+        "--policy-file", str(policy_file),
+        "--action-class-audit-store", str(audit_store),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.controlled-source-topology-matrix-consumer.v1",
+            "status": "STOP_SAFE_CONSUMER_UNAVAILABLE",
+            "ok": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "error": f"{type(exc).__name__}:{exc}",
+        }
+    try:
+        result = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        result = {}
+    if not isinstance(result, dict):
+        result = {}
+    return {
+        "schema_version": "v7.controlled-source-topology-matrix-consumer.v1",
+        "status": str(result.get("status") or "STOP_SAFE_INVALID_CONSUMER_RESULT"),
+        "ok": bool(result.get("ok")),
+        "returncode": proc.returncode,
+        "runtime_mutation_performed": bool(
+            result.get("runtime_mutation_performed")
+        ),
+        "registry_write": bool(result.get("registry_write")),
+        "routing_mutation": bool(result.get("routing_mutation")),
+        "users_moved": int(result.get("users_moved") or 0),
+        "consumer_result": result,
+        "output_tail": (proc.stdout or "")[-2000:]
+        if not result.get("ok") else "",
+    }
+
+
 def record_controlled_campaign_stage_consumption(
     *,
     audit_store: Path,
@@ -3863,6 +3924,19 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
+        # An approved topology provision is an earlier, non-routing
+        # predecessor.  Consume it through the same ordinary Matrix wake
+        # before any action-class consumer considers a controlled condition.
+        # The downstream owner fails closed unless an exact, current approval
+        # exists, and its scope is reservation-only (zero user movement).
+        payload["controlled_source_topology_provision"] = (
+            consume_approved_controlled_source_topology(
+                str(args.passive_consumer),
+                state_dir=state_dir,
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+            )
+        )
         availability_fallback_statuses = {
             "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
             "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY",

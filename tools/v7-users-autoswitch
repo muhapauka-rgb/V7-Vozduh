@@ -16610,6 +16610,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--consume-approved-controlled-source-topology",
+        action="store_true",
+        help=(
+            "Consume an exact approved topology decision by reserving only "
+            "its existing empty source. No Candidate, Packet, lease, "
+            "controlled failure, routing change or user movement is allowed."
+        ),
+    )
+    parser.add_argument(
         "--controlled-source-validation-profile",
         choices=("campaign", "ct-m0f-one-user"),
         default="campaign",
@@ -18631,6 +18640,15 @@ def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]
         row = {
             "draft_id": str(metadata.get("id") or metadata_path.parent.name),
             "proposed_source_id": proposed_id,
+            # The draft lifecycle may already have materialized its disabled
+            # pool entry.  Keep this current owner-owned binding compact so an
+            # approved topology request can reserve that exact existing
+            # source rather than attempting to create a duplicate channel.
+            "pool_egress_id": str(metadata.get("pool_egress_id") or ""),
+            "pool_action": str(metadata.get("pool_action") or ""),
+            "runtime_profile_status": str(
+                metadata.get("runtime_profile_status") or ""
+            ),
             "protocol": protocol,
             "runtime_mode": runtime_mode,
             "status": str(metadata.get("status") or ""),
@@ -18652,6 +18670,277 @@ def _controlled_source_draft_candidates(drafts_dir: Path) -> list[dict[str, Any]
         row["fingerprint"] = sha256_json(row)
         rows.append(row)
     return rows
+
+
+def _controlled_source_key_value_output(text: str) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for raw in str(text or "").splitlines():
+        if "=" not in raw:
+            continue
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        if key:
+            result[key] = value.strip()
+    return result
+
+
+def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dict[str, Any]:
+    """Consume one approved topology provision through the existing reservation owner.
+
+    This is the missing handoff between the append-only topology Authority
+    decision and an already materialized admin draft.  It never creates an
+    egress, enables/disables an interface, creates execution artifacts, or
+    moves a user.  It only reserves the exact existing empty source with the
+    immutable one-identity manifest, and is exact-once in the existing audit.
+    """
+    forbidden = [
+        name for name in (
+            "apply",
+            "emergency_failover_autonomy",
+            "controlled_verifier_contention",
+        )
+        if bool_value(getattr(args, name, False))
+    ]
+    if forbidden:
+        return {
+            "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+            "status": "STOP_SAFE_FORBIDDEN_FLAGS",
+            "ok": False,
+            "blockers": sorted(set(forbidden)),
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    diagnostic_args = copy.copy(args)
+    diagnostic_args.controlled_source_validation_profile = "ct-m0f-one-user"
+    diagnostic = controlled_source_topology_diagnostic(diagnostic_args)
+    lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
+    package = diagnostic.get("authority_package") if isinstance(diagnostic.get("authority_package"), dict) else {}
+    preflight = diagnostic.get("production_preflight") if isinstance(diagnostic.get("production_preflight"), dict) else {}
+    manifest = preflight.get("manifest") if isinstance(preflight.get("manifest"), dict) else {}
+    request_id = str(lifecycle.get("request_id") or "")
+    request_hash = str(lifecycle.get("request_hash") or "")
+    blockers: list[str] = []
+    if diagnostic.get("status") != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY":
+        blockers.append("controlled_source_topology_preflight_not_ready")
+    if lifecycle.get("status") != "APPROVED" or lifecycle.get("matching_current_preflight") is not True:
+        blockers.append("controlled_source_topology_exact_approval_not_current")
+    if str(lifecycle.get("decision") or "") != "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":
+        blockers.append("controlled_source_topology_decision_not_provision_approval")
+    if str(package.get("exact_action") or "") != "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":
+        blockers.append("controlled_source_topology_action_changed")
+    if manifest.get("validation_profile") != "CT_M0F_ONE_USER_CONTROLLED_CONDITION":
+        blockers.append("controlled_source_topology_profile_changed")
+    if int(manifest.get("trial_identity_count") or 0) != 1:
+        blockers.append("controlled_source_topology_trial_scope_changed")
+    if manifest.get("expected_ordinary_assignment_delta") != "NONE" or manifest.get("expected_ordinary_route_delta") != "NONE":
+        blockers.append("controlled_source_topology_ordinary_delta_changed")
+    draft_id = str(manifest.get("selected_source_or_draft") or "")
+    candidates = {
+        str(row.get("draft_id") or ""): row
+        for row in _controlled_source_draft_candidates(Path(args.egress_drafts_dir))
+    }
+    draft = candidates.get(draft_id, {})
+    source_id = str(draft.get("pool_egress_id") or "")
+    if not draft or not source_id:
+        blockers.append("approved_draft_not_materialized_to_existing_pool_source")
+    if draft and (
+        draft.get("pool_action") not in {"added_disabled", "enabled"}
+        or draft.get("runtime_profile_status") != "READY"
+    ):
+        blockers.append("approved_draft_runtime_lifecycle_not_ready")
+    state_dir = Path(args.state_dir)
+    registry_rows = parse_registry(state_dir / "egress.registry")
+    source_rows = [row for row in registry_rows if str(row.get("id") or "") == source_id]
+    users = [row for row in parse_registry(state_dir / "users.registry") if bool_value(row.get("enabled", "1"))]
+    source_users = [row for row in users if str(row.get("current") or "") == source_id]
+    if len(source_rows) != 1:
+        blockers.append("approved_draft_pool_source_not_unique")
+    if source_users:
+        blockers.append("approved_draft_pool_source_not_empty")
+    source = source_rows[0] if len(source_rows) == 1 else {}
+    if source and (
+        str(source.get("protocol") or "") != str(draft.get("protocol") or "")
+        or str(source.get("type") or "") != "interface"
+        or not bool_value(source.get("enabled", "1"))
+    ):
+        blockers.append("approved_draft_pool_source_runtime_identity_changed")
+    if blockers:
+        return {
+            "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+            "status": "STOP_SAFE",
+            "ok": False,
+            "blockers": sorted(set(blockers)),
+            "request_id": request_id,
+            "request_hash": request_hash,
+            "draft_id": draft_id,
+            "source_id": source_id,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    reservation_id = "ctres_" + sha256_json({
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "manifest_hash": str(manifest.get("manifest_hash") or ""),
+        "source_id": source_id,
+    })[:24]
+    audit_store = Path(args.action_class_audit_store)
+    with operator_execution.current_action_class_contract_policy_lock(audit_store):
+        records = operator_execution.read_live_execution_lineage_records(
+            audit_store
+        )
+        receipts = [
+            row for row in records
+            if row.get("record_type") == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
+            and str(row.get("authority_request_id") or "") == request_id
+        ]
+        if receipts:
+            exact = [
+                row for row in receipts
+                if str(row.get("authority_request_hash") or "") == request_hash
+                and str(row.get("reservation_id") or "") == reservation_id
+                and str(row.get("source_id") or "") == source_id
+            ]
+            if len(receipts) == 1 and len(exact) == 1:
+                return {
+                    "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                    "status": "ALREADY_CONSUMED_EXACT",
+                    "ok": True,
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                    "reservation_id": reservation_id,
+                    "source_id": source_id,
+                    "audit_write": False,
+                    "registry_write": False,
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                }
+            return {
+                "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                "status": "STOP_SAFE_DUPLICATE_OR_CONFLICTING_PROVISION_RECEIPT",
+                "ok": False,
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+            }
+        # A reservation without this consumer's exact append-only receipt is
+        # an ambiguous partial predecessor.  Never overwrite or silently
+        # adopt it; the fingerprint CAS below is only an additional guard.
+        if any(
+            str(source.get(key) or "").strip()
+            for key in (
+                "execution_reservation_id",
+                "controlled_source_reservation_id",
+                "reservation_id",
+            )
+        ):
+            return {
+                "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                "status": "STOP_SAFE_UNRECEIPTED_RESERVATION",
+                "ok": False,
+                "request_id": request_id,
+                "request_hash": request_hash,
+                "source_id": source_id,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+            }
+        line = next(
+            (
+                item for item in (state_dir / "egress.registry").read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines()
+                if item.startswith(f"id={source_id} ")
+            ),
+            "",
+        )
+        expected_fingerprint = hashlib.sha256(line.encode("utf-8")).hexdigest()
+        expires_at = min(
+            operator_execution.parse_ts(str(lifecycle.get("expires_at") or "")),
+            operator_execution.parse_ts(str((package.get("authority_basis") or {}).get("expires_at") or "")),
+            datetime.now(timezone.utc) + timedelta(minutes=30),
+        ).isoformat()
+        owner = str(manifest.get("reservation_owner") or "v7-egress-set-state")
+        command = [
+            owner, source_id, "certification-reserve",
+            "--certification-group", str(manifest.get("certification_group") or ""),
+            "--reservation-id", reservation_id,
+            "--reservation-expires-at", expires_at,
+            "--expected-egress-fingerprint", expected_fingerprint,
+            "--apply", "--confirm", "RESERVE_CONTROLLED_CERTIFICATION_SOURCE",
+        ]
+        env = dict(os.environ)
+        env["V7_STATE_DIR"] = str(state_dir)
+        try:
+            proc = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=180, env=env)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return {
+                "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                "status": "STOP_SAFE_RESERVATION_OWNER_UNAVAILABLE",
+                "ok": False,
+                "error": f"{type(exc).__name__}:{exc}",
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+            }
+        result = _controlled_source_key_value_output(proc.stdout or "")
+        if proc.returncode != 0 or result.get("ACTION") != "controlled_source_reserved":
+            return {
+                "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+                "status": "STOP_SAFE_RESERVATION_NOT_APPLIED",
+                "ok": False,
+                "request_id": request_id,
+                "source_id": source_id,
+                "reservation_result": result,
+                "runtime_mutation_performed": False,
+                "users_moved": 0,
+            }
+        receipt = operator_execution.append_record(audit_store, {
+            "schema_version": "v7.controlled-source-topology-provision-receipt.v1",
+            "record_type": operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE,
+            "authority_request_id": request_id,
+            "authority_request_hash": request_hash,
+            "authority_decision_id": str(lifecycle.get("decision_id") or ""),
+            "manifest_hash": str(manifest.get("manifest_hash") or ""),
+            "draft_id": draft_id,
+            "source_id": source_id,
+            "reservation_id": reservation_id,
+            "reservation_expires_at": expires_at,
+            "reservation_owner": owner,
+            "restore_backup": str(result.get("restore_backup") or ""),
+            "created_at": now_iso(),
+            "ordinary_user_delta": 0,
+            "routing_mutation": False,
+            "users_moved": 0,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "controlled_failure_created": False,
+            "natural_l8_credit": False,
+        })
+    return {
+        "schema_version": "v7.controlled-source-topology-provision-consumer.v1",
+        "status": "CONTROLLED_SOURCE_TOPOLOGY_PROVISIONED",
+        "ok": True,
+        "request_id": request_id,
+        "request_hash": request_hash,
+        "decision_id": str(lifecycle.get("decision_id") or ""),
+        "draft_id": draft_id,
+        "source_id": source_id,
+        "reservation_id": reservation_id,
+        "reservation_expires_at": expires_at,
+        "restore_backup": str(result.get("restore_backup") or ""),
+        "audit_record_hash": str(receipt.get("record_hash") or ""),
+        "audit_write": True,
+        "registry_write": True,
+        "runtime_mutation_performed": True,
+        "routing_mutation": False,
+        "users_moved": 0,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "controlled_failure_created": False,
+        "natural_l8_credit": False,
+        "next_required_consumer": "existing CT-M0F source-selection and controlled-condition owners",
+    }
 
 
 def controlled_source_topology_diagnostic(
@@ -21939,7 +22228,6 @@ def ct_m0f_standing_source_selection_only(
         exact_execution_contract = (
             bool_value(registry.get("controlled_certification_source"))
             and str(registry.get("type") or "") == "interface"
-            and str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
             and str(registry.get("reservation_owner") or "")
             == "operator_execution_governance"
             and bool_value(registry.get("execution_reserved"))
@@ -22047,10 +22335,17 @@ def ct_m0f_standing_source_selection_only(
         if (
             int(row.get("enabled_certification_users_on_source") or 0) == 0
             and bool((row.get("baseline_health") or {}).get("ok"))
-            and str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
+            and bool_value(registry.get("controlled_certification_source"))
+            and str(registry.get("type") or "") == "interface"
             and str(registry.get("reservation_owner") or "")
             == "operator_execution_governance"
             and bool_value(registry.get("execution_reserved"))
+            and bool_value(registry.get("canary_reserved"))
+            and not bool_value(registry.get("autoswitch_allowed"))
+            and not bool_value(registry.get("rebalance_allowed"))
+            and str(
+                registry.get("production_assignment_allowed") or ""
+            ).lower() in {"0", "false", "no"}
         ):
             preparation_sources.append(row)
     preparation_sources.sort(key=lambda row: str(row.get("source_id") or ""))
@@ -22494,6 +22789,10 @@ def main() -> int:
         result = controlled_source_topology_authority_request_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
+    if args.consume_approved_controlled_source_topology:
+        result = consume_approved_controlled_source_topology(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.controlled_source_topology_diagnostic:
         result = controlled_source_topology_diagnostic(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

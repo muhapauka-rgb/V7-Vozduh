@@ -19811,9 +19811,13 @@ def controlled_source_topology_diagnostic(
         "eligible_target_count": int(
             actual_source_shared_allocation.get("eligible_target_count") or 0
         ),
-        "stage_allocations": dict(
-            actual_source_shared_allocation.get("stage_allocations") or {}
-        ),
+        "stage_allocations": {
+            str(stage): allocation
+            for stage, allocation in (
+                actual_source_shared_allocation.get("stage_allocations") or {}
+            ).items()
+            if isinstance(allocation, dict)
+        },
         # The executor re-reads this diagnostic after apply and needs the
         # current target-specific verification facts.  Keep only the compact
         # fields it consumes; full Matrix/quality truth remains with its
@@ -19897,6 +19901,8 @@ def controlled_source_topology_diagnostic(
         )
         else {}
     )
+    if not isinstance(shared_current_allocation, dict):
+        shared_current_allocation = {}
     shared_completion_allocation = (
         (actual_source_shared_projection.get("stage_allocations") or {}).get(
             str(campaign_completion_stage)
@@ -19905,6 +19911,8 @@ def controlled_source_topology_diagnostic(
         )
         else {}
     )
+    if not isinstance(shared_completion_allocation, dict):
+        shared_completion_allocation = {}
     shared_target_set = [
         str(item.get("target_id") or "")
         for item in (
@@ -19967,6 +19975,8 @@ def controlled_source_topology_diagnostic(
             actual_source_shared_projection.get("stage_allocations"), dict
         ) else {}
     )
+    if not isinstance(shared_availability_first_allocation, dict):
+        shared_availability_first_allocation = {}
     shared_availability_first_target_set = [
         str(item.get("target_id") or "")
         for item in (
@@ -20005,6 +20015,8 @@ def controlled_source_topology_diagnostic(
             )
             else {}
         )
+        if not isinstance(shared_stage, dict):
+            shared_stage = {}
         shared_stage_target_ids = {
             str(item.get("target_id") or "")
             for item in (

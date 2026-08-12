@@ -1259,6 +1259,67 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertTrue(result["authority_package"]["actionable"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_ct_m0f_one_user_profile_normalizes_missing_shared_stage_allocation(self):
+        """A partial capacity projection is a safe no-allocation result, not a crash."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.102 enabled=1 current=source "
+                "certification_user=1 certification_group=ctm0f\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 enabled=1\n",
+                encoding="utf-8",
+            )
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--controlled-source-validation-profile", "ct-m0f-one-user",
+            ])
+            target_projection = {
+                "campaign": {"source_id": "source", "current_stage": 48},
+                "targets": [],
+            }
+            draft = {
+                "draft_id": "draft-capacity-two",
+                "hard_capacity": 2,
+                "one_identity_trial_capacity": 1,
+                "ready_for_guarded_disabled_pool_preflight": True,
+            }
+            with (
+                mock.patch.object(
+                    self.autoswitch,
+                    "controlled_campaign_target_selection_diagnostic",
+                    return_value=target_projection,
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_draft_candidates",
+                    return_value=[draft],
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_reservation_owner_capability",
+                    return_value={"status": "READY"},
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "shared_target_stage_allocations",
+                    return_value={"stage_allocations": {"1": None}},
+                ),
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["shared_production_target_capacity_projection"]
+            ["stage_allocations"],
+            {},
+        )
+
     def test_post_trial_topology_reuses_same_campaign_source_and_rejects_capacity_two_draft(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

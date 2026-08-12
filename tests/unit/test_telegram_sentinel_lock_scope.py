@@ -30,6 +30,7 @@ def load_sentinel():
 class TelegramSentinelLockScopeTest(unittest.TestCase):
     def setUp(self):
         self.sentinel = load_sentinel()
+        self.sentinel._SERVICE_MATRIX_OWNER = None
 
     def write_registry(self, state_dir: Path) -> None:
         state_dir.mkdir(parents=True, exist_ok=True)
@@ -385,6 +386,54 @@ class TelegramSentinelLockScopeTest(unittest.TestCase):
         self.assertEqual(result["failure_started_at"], item["bad_since"])
         self.assertEqual(result["bad_for_seconds"], 14.0)
         self.assertEqual(result["failure_samples"], 1)
+
+    def test_confirmed_fast_failure_creates_real_canonical_source_event(self):
+        """The integration path uses the existing Matrix event writer end to end."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            self.write_registry(state_dir)
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=true\n",
+                encoding="utf-8",
+            )
+            down = {
+                "sample_ok": False,
+                "status": "NOT_STARTED",
+                "score": 0,
+                "ratio": 0.0,
+                "critical_ok": False,
+                "ok_count": 0,
+                "total": 5,
+                "reason": "unit hard failure",
+                "samples": [],
+                "first_byte_sec": "",
+                "total_sec": 0.001,
+            }
+            with mock.patch.object(self.sentinel, "check_telegram", return_value=down):
+                rc, payload = self.run_main(root, extra_args=["--egress", "vless"])
+
+            self.assertEqual(rc, 0, payload)
+            bridge = payload["fast_signal_bridge"]
+            self.assertEqual(
+                bridge["status"],
+                "CONFIRMED_FAILURE_PUBLISHED_TO_EXISTING_MATRIX_OWNER",
+            )
+            events = [
+                json.loads(line)
+                for line in (root / "events" / "service-failure-events.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+                if line.strip()
+            ]
+            observed = [row for row in events if row.get("event_type") == "SERVICE_FAILURE_OBSERVED"]
+            self.assertEqual(len(observed), 1)
+            self.assertEqual(observed[0]["channel"], "vless")
+            self.assertEqual(observed[0]["source_scope"]["affected_scope_count"], 1)
+            self.assertEqual(
+                observed[0]["evidence_class"],
+                "PROBE_OBSERVED_PRODUCTION_EVENT",
+            )
 
 
 if __name__ == "__main__":

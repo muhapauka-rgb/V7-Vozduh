@@ -42,7 +42,7 @@ Matrix owner. Таким образом persistence, recovery, incident identity
 
 ## Проверка
 
-`tests.unit.test_telegram_sentinel_lock_scope`: `10/10 PASS`.
+`tests.unit.test_telegram_sentinel_lock_scope`: `11/11 PASS`.
 
 Покрыто:
 
@@ -52,6 +52,9 @@ Matrix owner. Таким образом persistence, recovery, incident identity
 - healthy/degraded наблюдение не создаёт event bridge;
 - threshold crossing не теряет время начала failure;
 - bridge не выполняет Runtime effects.
+- integration-проверка доказывает: подтверждённый fast signal создаёт один
+  настоящий canonical `SERVICE_FAILURE_OBSERVED` с source-scope через
+  существующий Matrix writer; это не synthetic event и не отдельный store.
 
 ## Следующий шаг
 

@@ -154,6 +154,36 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(scope["ordinary_customer_reclassification_allowed"])
         self.assertFalse(scope["raw_user_list_stored"])
 
+    def test_legacy_all_assigned_scope_reconciles_certification_only_live_members(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.2 enabled=1 current=source certification_user=1\n"
+                "ip=10.7.0.3 enabled=1 current=source certification_user=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.args = SimpleNamespace()
+            result = planner._reconcile_incident_scope_accounting(
+                existing={
+                    "source_incident_id": "sfinc_legacy_certification",
+                    "channel": "source", "incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "ACCOUNTED", "baseline_event_id": "evt_legacy",
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "legacy-all-assigned",
+                    },
+                },
+                execution_rows=[],
+            )
+        self.assertEqual(result["status"], "ACCOUNTED")
+        self.assertEqual(result["scope_classification"], "CERTIFICATION_ONLY")
+        self.assertEqual(result["affected_scope_count"], 2)
+        self.assertEqual(result["unresolved_scope_count"], 0)
+        self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
+        self.assertFalse(result["ordinary_customer_reclassification_allowed"])
+
     def test_adaptive_cohort_uses_exact_count_load_and_authority_bounds(self):
         moves = [{
             "user_ip": f"10.0.0.{index + 2}",

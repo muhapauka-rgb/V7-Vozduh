@@ -4464,6 +4464,83 @@ class AutoswitchPlanner:
             for item in live_rows
             if str(item.get("ip") or "") and bool_value(item.get("certification_user"))
         }
+        live_users_on_source = {
+            user for user, current in live_current.items()
+            if current == source_channel
+        }
+        live_ordinary_users_on_source = (
+            live_users_on_source - live_certification_users
+        )
+        # Older immutable Matrix events predate scope partitioning.  They
+        # correctly preserve their historical all-user denominator, but must
+        # not keep an ordinary drain open after the live route owner proves
+        # that its entire remaining cohort is now certification-only.  Do not
+        # rewrite the event or call these identities protected: retain the
+        # historical denominator and close only the ordinary protection intent
+        # through the existing explicit-exclusion category.
+        legacy_unpartitioned_scope = str(
+            existing_scope.get("scope_classification") or ""
+        ) in {"", "LEGACY_UNPARTITIONED"}
+        certification_only_live_scope = bool(
+            live_users_on_source
+            and not live_ordinary_users_on_source
+            and live_users_on_source.issubset(live_certification_users)
+            and len(live_users_on_source) == baseline_count
+        )
+        if legacy_unpartitioned_scope and certification_only_live_scope:
+            exclusion_pointer = "controlled-certification-scope:" + sha256_json({
+                "source_channel": source_channel,
+                "baseline_scope_fingerprint": baseline_fingerprint,
+                "certification_users": sorted(live_users_on_source),
+            })[:24]
+            terminal_basis = {
+                "incident": source_incident_id,
+                "baseline_scope_fingerprint": baseline_fingerprint,
+                "classification": "CERTIFICATION_ONLY",
+            }
+            return {
+                "schema_version": "v7.service-failure-incident-scope-accounting.v2",
+                "status": "ACCOUNTED",
+                "baseline_event_id": baseline_event_id,
+                "baseline_observed_at": str(existing_scope.get("baseline_observed_at") or ""),
+                "affected_scope_count": baseline_count,
+                "affected_scope_fingerprint": baseline_fingerprint,
+                "protected_scope_count": 0,
+                "protected_scope_fingerprint": sha256_json({
+                    **terminal_basis, "category": "protected", "count": 0,
+                }),
+                "protected_scope_lineage_pointers": [],
+                "unresolved_scope_count": 0,
+                "unresolved_scope_fingerprint": sha256_json({
+                    **terminal_basis, "category": "unresolved", "count": 0,
+                }),
+                "unresolved_scope_route_truth_owner": "users.registry",
+                "explicitly_excluded_or_recovered_scope_count": baseline_count,
+                "explicitly_excluded_or_recovered_scope_fingerprint": sha256_json({
+                    **terminal_basis,
+                    "category": "controlled_certification_excluded",
+                    "count": baseline_count,
+                    "lineage_pointer": exclusion_pointer,
+                }),
+                "explicitly_excluded_or_recovered_lineage_pointers": [
+                    exclusion_pointer,
+                ],
+                "nonmember_or_stale_feedback_pointers": [],
+                "accounted_scope_count": baseline_count,
+                "live_registry_available": True,
+                "raw_user_list_stored": False,
+                "scope_classification": "CERTIFICATION_ONLY",
+                "controlled_certification_scope_count": baseline_count,
+                "controlled_certification_scope_fingerprint": sha256_json({
+                    "source_channel": source_channel,
+                    "users": sorted(live_users_on_source),
+                }),
+                "ordinary_customer_reclassification_allowed": False,
+                "scope_membership_law": (
+                    "LEGACY_ALL_ASSIGNED_SCOPE_RECONCILED_TO_"
+                    "CONTROLLED_CERTIFICATION_EXCLUSION"
+                ),
+            }
         # The reservation is the only lawful way to account for an earlier
         # CT-M0F controlled certification move whose first implementation
         # omitted the passive-incident binding.  It is an explicit exclusion,

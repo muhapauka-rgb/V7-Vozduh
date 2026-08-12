@@ -2900,10 +2900,8 @@ def run_passive_consumer(
 def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
-    env = dict(os.environ)
-    env["V7_SERVICE_MATRIX_LOCK_HELD"] = "1"
     try:
-        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14, env=env)
+        proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14)
     except subprocess.TimeoutExpired as exc:
         return {
             "egress": egress_id,
@@ -2931,6 +2929,11 @@ def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict
         "elapsed_sec": round(time.time() - started, 3),
         "output_tail": output[-2000:],
         "cmd": cmd,
+        "service_matrix_lock": (
+            parsed.get("service_matrix_lock")
+            if isinstance(parsed.get("service_matrix_lock"), dict)
+            else {}
+        ),
     }
 
 
@@ -3755,53 +3758,52 @@ def main() -> int:
     started = time.time()
     state_dir = Path(args.state_dir)
     rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
-    try:
-        with service_matrix_writer_lock(state_dir, int(args.lock_timeout_sec)):
-            if args.lock_acquired_marker:
-                write_json_atomic(Path(args.lock_acquired_marker), {
-                    "schema_version": "v7.service-matrix-lock-acquisition.v1",
-                    "owner": "tools/v7-service-matrix-refresh-all",
-                    "pid": os.getpid(),
-                    "acquired_at": now_iso(),
-                    "lock_path": str(state_dir / "service-matrix.lock"),
-                    "runtime_behavior_changed": False,
-                    "users_moved": False,
-                })
-            results = [run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir) for row in rows]
-            payload = {
-                "schema_version": 1,
-                "updated": now_iso(),
-                "elapsed_sec": round(time.time() - started, 3),
-                "total": len(results),
-                "ok_count": sum(1 for row in results if row.get("ok")),
-                "results": results,
-                "service_matrix_lock": {
-                    "held": True,
-                    "scope": "full_refresh_batch",
-                    "path": str(state_dir / "service-matrix.lock"),
-                    "runtime_behavior_changed": False,
-                    "users_moved": False,
-                },
-            }
-    except TimeoutError:
-        payload = {
-            "schema_version": 1,
-            "updated": now_iso(),
-            "elapsed_sec": round(time.time() - started, 3),
-            "total": len(rows),
-            "ok_count": 0,
-            "results": [],
-            "status": "LOCK_TIMEOUT",
-            "ok": False,
-            "service_matrix_lock": {
-                "held": False,
-                "scope": "full_refresh_batch",
-                "path": str(state_dir / "service-matrix.lock"),
-                "timeout_sec": int(args.lock_timeout_sec),
-                "runtime_behavior_changed": False,
-                "users_moved": False,
-            },
-        }
+    # Probes are read/network work.  They must not hold the shared Matrix
+    # writer lock; every existing ``v7-service-matrix-test`` invocation takes
+    # that lock only for its own atomic durable update.  This preserves writer
+    # serialization while allowing the fast failure producer to publish during
+    # a long full refresh.
+    results = [
+        run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir)
+        for row in rows
+    ]
+    writer_locks = [
+        row.get("service_matrix_lock")
+        for row in results
+        if isinstance(row.get("service_matrix_lock"), dict)
+    ]
+    acquired_writes = [row for row in writer_locks if row.get("held")]
+    if args.lock_acquired_marker and acquired_writes:
+        write_json_atomic(Path(args.lock_acquired_marker), {
+            "schema_version": "v7.service-matrix-lock-acquisition.v1",
+            "owner": "tools/v7-service-matrix-refresh-all",
+            "pid": os.getpid(),
+            "acquired_at": now_iso(),
+            "lock_path": str(state_dir / "service-matrix.lock"),
+            "scope": "per_egress_durable_write",
+            "writer_lock_acquisition_count": len(acquired_writes),
+            "runtime_behavior_changed": False,
+            "users_moved": False,
+        })
+    payload = {
+        "schema_version": 1,
+        "updated": now_iso(),
+        "elapsed_sec": round(time.time() - started, 3),
+        "total": len(results),
+        "ok_count": sum(1 for row in results if row.get("ok")),
+        "results": results,
+        "service_matrix_lock": {
+            "held": bool(acquired_writes),
+            "scope": "per_egress_durable_write",
+            "path": str(state_dir / "service-matrix.lock"),
+            "writer_lock_acquisition_count": len(acquired_writes),
+            "writer_lock_timeout_count": sum(
+                1 for row in writer_locks if str(row.get("status") or "") == "LOCK_TIMEOUT"
+            ),
+            "runtime_behavior_changed": False,
+            "users_moved": False,
+        },
+    }
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
         print(json.dumps({"error": "operator_induced_event_trigger_reference_required"}, ensure_ascii=False))

@@ -1,6 +1,8 @@
 import importlib.machinery
 import importlib.util
+import fcntl
 import json
+import os
 import textwrap
 import tempfile
 import unittest
@@ -262,12 +264,53 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             service_matrix_lock = gate["service_matrix_lock"]
             self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
             self.assertFalse(refresh["stop_required"])
-            self.assertTrue(service_matrix_lock["enabled"])
-            self.assertTrue(service_matrix_lock["acquired"])
-            self.assertEqual(service_matrix_lock["scope"], "planner_snapshot_packet_lifecycle")
+            self.assertFalse(service_matrix_lock["enabled"])
+            self.assertFalse(service_matrix_lock["acquired"])
+            self.assertEqual(service_matrix_lock["scope"], "not_required_for_snapshot_only_planner")
+            self.assertEqual(
+                service_matrix_lock["decision"],
+                "snapshot_source_consistency_owner_handles_concurrent_matrix_writes",
+            )
+            lock_path = root / "state" / "service-matrix.lock"
+            fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            finally:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
             self.assertTrue(gate["active"])
             self.assertFalse(gate["stop_required"])
             self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
+            self.assertEqual(len(plan["selected_moves"]), 1)
+
+    def test_snapshot_only_planner_does_not_block_fast_matrix_writer(self):
+        """A held Matrix writer lock may not stall a snapshot-only planner.
+
+        The snapshot producer verifies source hashes itself; this planner never
+        writes service-matrix.json and therefore must not turn its long derived
+        snapshot work into writer-lock contention for the fast signal path.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            lock_path = root / "state" / "service-matrix.lock"
+            fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                plan = self.plan_with_args(
+                    root,
+                    [
+                        "--pre-planner-refresh", "write",
+                        "--pre-planner-refresh-command", str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                    ],
+                )
+            finally:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+                os.close(fd)
+            refresh = plan["safety"]["intelligence_snapshots"]["pre_planner_refresh"]
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertTrue(refresh["refresh_result"]["source_stable"])
+            self.assertFalse(plan["safety"]["intelligence_snapshots"]["stop_required"])
             self.assertEqual(len(plan["selected_moves"]), 1)
 
     def test_observe_auto_refresh_writes_missing_snapshots_before_planning(self):
@@ -289,8 +332,9 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertEqual(refresh["mode"], "write")
             self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
             self.assertFalse(refresh["stop_required"])
-            self.assertTrue(service_matrix_lock["enabled"])
-            self.assertTrue(service_matrix_lock["acquired"])
+            self.assertFalse(service_matrix_lock["enabled"])
+            self.assertFalse(service_matrix_lock["acquired"])
+            self.assertEqual(service_matrix_lock["scope"], "not_required_for_snapshot_only_planner")
             self.assertFalse(gate["stop_required"])
             self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
             self.assertEqual(len(plan["selected_moves"]), 1)

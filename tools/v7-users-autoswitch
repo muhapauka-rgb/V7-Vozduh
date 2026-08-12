@@ -2804,21 +2804,36 @@ class AutoswitchPlanner:
         )
         self.operation_started_at = now_iso()
         self.state_dir = Path(args.state_dir)
-        lock_enabled = effective_pre_planner_refresh_mode(args) == "write"
         lock_started_ns = time.monotonic_ns()
-        self.service_matrix_lock_fd, self.service_matrix_lock = acquire_service_matrix_lock(
-            self.state_dir,
-            to_int(
-                getattr(args, "service_matrix_lock_timeout_sec", DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS),
-                DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS,
-            ),
-            enabled=lock_enabled,
-        )
+        # Snapshot refresh derives a separate atomic snapshot and never writes
+        # service-matrix.json.  Its existing source-hash/retry contract is the
+        # concurrency guard for those reads.  Holding the Matrix *writer* lock
+        # across snapshot construction and later planning used to delay the
+        # fast failure writer for tens of seconds, even though this planner
+        # was not a Matrix writer.  Matrix writers keep their own lock.
+        self.service_matrix_lock_fd = None
+        self.service_matrix_lock = {
+            "schema": "v7.service-matrix-lifecycle-lock.v1",
+            "enabled": False,
+            "acquired": False,
+            "path": str(self.state_dir / "service-matrix.lock"),
+            "scope": "not_required_for_snapshot_only_planner",
+            "owner": "tools/v7-users-autoswitch",
+            "decision": "snapshot_source_consistency_owner_handles_concurrent_matrix_writes",
+            "runtime_behavior_changed": False,
+            "governance_behavior_changed": False,
+            "execution_behavior_changed": False,
+            "users_moved": False,
+        }
         self._record_performance_span(
-            "lease_lock_acquisition",
+            "matrix_writer_lock_scope_classification",
             lock_started_ns,
-            owner="tools/v7-users-autoswitch.acquire_service_matrix_lock",
-            status="PASS" if not lock_enabled or self.service_matrix_lock.get("acquired") else "STOP_SAFE",
+            owner="tools/v7-users-autoswitch + v7-intelligence-snapshot-refresh",
+            status="PASS",
+            details={
+                "matrix_writer_lock_held": False,
+                "freshness_guard": "existing source-hash/retry snapshot contract",
+            },
         )
         owner_reads_started_ns = time.monotonic_ns()
         self.event_dir = Path(args.event_dir)
@@ -7828,17 +7843,6 @@ class AutoswitchPlanner:
         if status["auto_enabled"]:
             status["auto_reason"] = "read_only_observe_requires_fresh_snapshot_gate"
         if mode == "off":
-            return status
-        lock_status = getattr(self, "service_matrix_lock", {}) or {}
-        if lock_status.get("enabled") and not lock_status.get("acquired"):
-            status.update({
-                "action": "block_refresh_until_service_matrix_lock_available",
-                "state": "SERVICE_MATRIX_LOCK_TIMEOUT",
-                "decision": "freshness_unknown_service_matrix_writer_active",
-                "stop_required": True,
-                "blocked_actions": ["selected_moves", "apply", "operator_visible_promotion"],
-                "next_state": "fail_closed_planner_output",
-            })
             return status
         if bool_value(getattr(self.args, "apply", False)):
             allow_apply_refresh = bool_value(getattr(self.args, "allow_pre_planner_refresh_with_apply", False))

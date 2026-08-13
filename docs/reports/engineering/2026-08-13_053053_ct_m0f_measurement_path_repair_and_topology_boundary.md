@@ -75,6 +75,13 @@ there is no empty owner-verified source or ready existing draft that may become
 the one-user controlled failure domain.  Reusing any occupied source would
 violate the proven whole-interface failure isolation invariant.
 
+The existing `RESTORE_CONTROLLED_CERTIFICATION_BASELINE` consumer was also
+checked.  It is intentionally limited to the exact prior Packet/Outcome and
+its verified forward allocation; it cannot evacuate an arbitrary live group of
+five certification identities to manufacture a CT-M0F source.  Extending it
+for that purpose would be an unapproved routing action and would invalidate the
+measurement.  Therefore no safe internal predecessor remains at this moment.
+
 ## Durable next action
 
 Existing owner: `admin/v7-admin-api egress draft lifecycle` followed by the

@@ -1,0 +1,30 @@
+# V7 PR2 relationship-graph scope.
+# Runtime/program code, units, configs, and tests remain included.
+
+# Existing historical documentation is classified by the repository audit,
+# but excluded from function/component graph generation.
+docs/
+
+# Generated or captured evidence is not executable engine code.
+*_EVIDENCE/
+*_evidence/
+artifacts/
+.v7/
+
+# Local/generated noise and secret-bearing client artifacts.
+test-results/
+clients/
+v7-clients/
+backups/
+v7-backups/
+*.log
+*.jsonl
+*.png
+*.zip
+*.tar
+*.tar.gz
+*.key
+*.pem
+*.p12
+*.mobileconfig
+*.ovpn

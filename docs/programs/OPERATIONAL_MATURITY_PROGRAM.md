@@ -11643,6 +11643,15 @@ owner-backed disposition and re-entry condition. Historical deployment
 snapshots may support provenance but never substitute for current Runtime
 observation or establish present necessity.
 
+The final targeted closure reuses this same projection rather than adding an
+RS6 subprogram: it records the final Runtime responsibility matrix and, for
+every remaining `UNKNOWN_REQUIRES_EVIDENCE`, the reason, exact existing owner,
+required evidence and re-entry condition. A verified source/hash may narrow a
+provenance gap but does not itself classify a component as removable. A failed
+recovery check must distinguish a failed invoked action from an unresolved
+post-verification condition and route the latter to its existing state,
+Matrix or recovery owner; neither result grants mutation authority.
+
 `RS6.2` first records an `EXISTING_EVIDENCE_REUSE_AND_GAP_DELTA`, then keeps
 only the missing in-scope relationship fields in its existing phase report or
 linked generated projection. Its scope is RS0-baselined executable entrypoints,

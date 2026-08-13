@@ -60,6 +60,17 @@ LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
     "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
     "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
 }
+RS_READ_ONLY_STAGE_TERMINALS = {
+    "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION": "NONE_RS0_ADMITTED",
+    "RS1_RESPONSIBILITY_REALIGNMENT_MAP": "NONE_RS1_ADMITTED",
+    "RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT": "NONE_RS1A_ADMITTED",
+    "RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL": "NONE_RS1B_ADMITTED",
+    "RS2_ENGINEERING_PLANE_SEPARATION": "NONE_RS2_ADMITTED",
+    "RS3_CONTROL_PLANE_SIMPLIFICATION": "NONE_RS3_ADMITTED",
+    "RS4_RECOVERY_BOUNDARY_SIMPLIFICATION": "NONE_RS4_ADMITTED",
+    "RS5_ADMIN_AND_MANAGEMENT_SEPARATION": "NONE_RS5_ADMITTED",
+    "RS6_RUNTIME_PACKAGE_MINIMIZATION": "NONE_RS6_ADMITTED",
+}
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
@@ -2245,10 +2256,7 @@ def delegated_policy_live_state_consistency(
         _plain_live_value(live, "ACTIVE_PROGRAM")
         == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-        and rs_read_only_stage in {
-            "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
-            "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
-        }
+        and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2658,10 +2666,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     live.get("ACTIVE_PROGRAM", "").strip("`")
                     == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
                     and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-                    and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in {
-                        "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
-                        "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
-                    }
+                    and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in RS_READ_ONLY_STAGE_TERMINALS
                 )
             )
             else
@@ -2761,10 +2766,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 live.get("ACTIVE_PROGRAM", "").strip("`")
                 == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
                 and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-                and rs_read_only_stage in {
-                    "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
-                    "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
-                }
+                and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
             )
             reset_authority_frontier = (
                 reset_frontier
@@ -2835,10 +2837,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 if not program_terminal_state.startswith("RESET_"):
                     errors.append("program_frontier_terminal_state_invalid")
             elif rs0_frontier:
-                if program_terminal_state != {
-                    "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION": "NONE_RS0_ADMITTED",
-                    "RS1_RESPONSIBILITY_REALIGNMENT_MAP": "NONE_RS1_ADMITTED",
-                }.get(rs_read_only_stage):
+                if program_terminal_state != RS_READ_ONLY_STAGE_TERMINALS.get(rs_read_only_stage):
                     errors.append("program_frontier_terminal_state_invalid")
             elif bounded_continue_omp_frontier:
                 pass
@@ -22919,10 +22918,7 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
     if live.get("ACTIVE_PROGRAM", "").strip("`") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1":
         rs_read_only_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
         rs0_active = all((
-            rs_read_only_stage in {
-                "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
-                "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
-            },
+            rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS,
             live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith(
                 "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_"
             ),
@@ -23318,10 +23314,7 @@ def cps_live_state_consistency(
         live.get("ACTIVE_PROGRAM", "").strip("`")
         == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-        and rs_read_only_stage in {
-            "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
-            "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
-        }
+        and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (

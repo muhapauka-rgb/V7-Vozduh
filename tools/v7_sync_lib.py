@@ -58,6 +58,7 @@ LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
     "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
     "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
     "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+    "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
 }
 
 NORMALIZED_CPS_LIVE_STATE = {
@@ -1050,7 +1051,12 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         and omp_next_action == cps_next_action
         and section20_pointer_ok
     )
-    report_pointer_ok = bool(cps_report and omp_report == cps_report and cps_report in omp_text[:3000])
+    active_mission_pointer = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
+    report_pointer_ok = bool(
+        cps_report
+        and omp_report == cps_report
+        and (cps_report in omp_text[:3000] or active_mission_pointer and cps_report in omp_text)
+    )
     if not pointer_ok:
         contradictions.append("omp_current_pointer_mismatch")
     if not report_pointer_ok:
@@ -1408,18 +1414,28 @@ def mission_role_consistency(
         if plain(live.get(key, "")) != expected:
             contradictions.append(f"cps_section0_mismatch:{key}")
 
-    aliases = {
-        "CURRENT_MISSION_ID": "LATEST_TERMINAL_MISSION_ID",
-        "CURRENT_RUN_NONCE": "LATEST_TERMINAL_RUN_NONCE",
-        "CURRENT_MISSION_STATE": "LATEST_TERMINAL_MISSION_STATE",
-        "CURRENT_MISSION_REPORT": "LATEST_TERMINAL_MISSION_REPORT",
-    }
+    active_role = plain(live.get("CURRENT_MISSION_ROLE", "")) == "ACTIVE_MISSION"
+    active_id = state["current_execution_mission_id"] if active_role else "NONE"
+    active_state = state["current_execution_mission_state"] if active_role else "NONE"
+    aliases = (
+        {
+            "CURRENT_MISSION_ID": "CURRENT_EXECUTION_MISSION_ID",
+            "CURRENT_MISSION_STATE": "CURRENT_EXECUTION_MISSION_STATE",
+        }
+        if active_role
+        else {
+            "CURRENT_MISSION_ID": "LATEST_TERMINAL_MISSION_ID",
+            "CURRENT_RUN_NONCE": "LATEST_TERMINAL_RUN_NONCE",
+            "CURRENT_MISSION_STATE": "LATEST_TERMINAL_MISSION_STATE",
+            "CURRENT_MISSION_REPORT": "LATEST_TERMINAL_MISSION_REPORT",
+        }
+    )
     for alias, owner in aliases.items():
         if plain(live.get(alias, "")) != plain(live.get(owner, "")):
             role_ambiguities.append(f"mission_alias_divergence:{alias}:{owner}")
 
     registry_checks = {
-        "ACTIVE_MISSIONS": "NONE",
+        "ACTIVE_MISSIONS": active_id,
         "LATEST_TERMINAL_MISSION_ID": latest,
         "LATEST_TERMINAL_MISSION_STATE": state["latest_terminal_mission_state"],
         "LATEST_TERMINAL_MISSION_REPORT": state["latest_terminal_mission_report"],
@@ -1431,8 +1447,8 @@ def mission_role_consistency(
             contradictions.append(f"cps_registry_mismatch:{key}")
 
     wip_checks = {
-        "active_mission_id": "NONE",
-        "active_mission_state": "NONE",
+        "active_mission_id": active_id,
+        "active_mission_state": active_state,
         "latest_terminal_mission_id": latest,
         "latest_terminal_mission_state": state["latest_terminal_mission_state"],
         "previous_terminal_mission_id": previous,
@@ -1444,10 +1460,12 @@ def mission_role_consistency(
 
     active_execution = plain(live.get("CURRENT_EXECUTION_MISSION_ID", ""))
     active_wip_mission = plain(wip.get("active_mission_id", ""))
-    if active_execution not in {"", "NONE"}:
+    if active_execution not in {"", "NONE"} and not active_role:
         terminal_marked_active.append(f"current_execution_mission_not_none:{active_execution}")
-    if active_wip_mission not in {"", "NONE"}:
+    if active_wip_mission not in {"", "NONE"} and not active_role:
         terminal_marked_active.append(f"active_wip_mission_not_none:{active_wip_mission}")
+    if active_role and (active_execution != active_id or active_wip_mission != active_id):
+        role_ambiguities.append("active_mission_projection_divergence")
     if plain(registry.get("ACTIVE_MISSIONS", "")) == "NONE" and active_execution != "NONE":
         role_ambiguities.append("active_missions_none_with_current_execution_mission")
     if len({latest, previous, transition_input}) != 3:
@@ -1913,7 +1931,7 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "COMPLETE_OR_LOCKED_CAPABILITIES": f"`{state['complete_or_locked_capabilities']}`",
         "UNFINISHED_CAPABILITIES": f"`{state['unfinished_capabilities']}`",
         "OPEN_ENGINEERING_INTENTS": f"`{state['open_engineering_intents']}`",
-        "ACTIVE_MISSIONS": "`NONE`",
+        "ACTIVE_MISSIONS": f"`{state['current_execution_mission_id'] if state['current_mission_role'] == 'ACTIVE_MISSION' else 'NONE'}`",
         "LATEST_TERMINAL_MISSION_ID": f"`{state['latest_terminal_mission_id']}`",
         "LATEST_TERMINAL_MISSION_STATE": f"`{state['latest_terminal_mission_state']}`",
         "LATEST_TERMINAL_MISSION_REPORT": f"`{state['latest_terminal_mission_report']}`",
@@ -1936,8 +1954,8 @@ def build_normalized_cps_document(cps_text: str, state: Optional[dict[str, str]]
         "current_state_generation": f"`{state['current_state_generation']}`",
         "current_transition_id": f"`{state['current_transition_id']}`",
         "smallest_existing_next_action_id": f"`{state['wip_smallest_existing_next_action_id']}`",
-        "active_mission_id": "`NONE`",
-        "active_mission_state": "`NONE`",
+        "active_mission_id": f"`{state['current_execution_mission_id'] if state['current_mission_role'] == 'ACTIVE_MISSION' else 'NONE'}`",
+        "active_mission_state": f"`{state['current_execution_mission_state'] if state['current_mission_role'] == 'ACTIVE_MISSION' else 'NONE'}`",
         "latest_terminal_mission_id": f"`{state['latest_terminal_mission_id']}`",
         "latest_terminal_mission_state": f"`{state['latest_terminal_mission_state']}`",
         "previous_terminal_mission_id": f"`{state['previous_terminal_mission_id']}`",
@@ -2222,6 +2240,13 @@ def delegated_policy_live_state_consistency(
             )
         )
     )
+    rs0_read_only_frontier = (
+        _plain_live_value(live, "ACTIVE_PROGRAM")
+        == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
+        and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
+        and _plain_live_value(live, "CURRENT_PROGRAM_STAGE")
+        == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+    )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
         r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
@@ -2396,6 +2421,7 @@ def delegated_policy_live_state_consistency(
             or engineering_authority_terminal
             or external_owner_terminal
             or reset_program_frontier
+            or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
         )
         and (
             not independent_program_frontier
@@ -2408,6 +2434,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or safe_reentry_frontier
             or reset_program_frontier
+            or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
     )
@@ -2423,7 +2450,7 @@ def delegated_policy_live_state_consistency(
             independent_program_frontier
             or wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
         )
-        and (reset_program_frontier or f"`{next_action}`" in sequence_one)
+        and (reset_program_frontier or rs0_read_only_frontier or f"`{next_action}`" in sequence_one)
     )
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
@@ -2431,6 +2458,7 @@ def delegated_policy_live_state_consistency(
     cap_action_token = expected_next_action
     cap_consistent = bool(
         reset_program_frontier
+        or rs0_read_only_frontier
         or
         active_capability
         and (
@@ -2618,9 +2646,18 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
         "CURRENT_EXECUTION_FRONTIER": (
             live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
             if (
-                live.get("ACTIVE_PROGRAM", "").strip("`")
-                == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
-                and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("EXECUTE_RESET_")
+                (
+                    live.get("ACTIVE_PROGRAM", "").strip("`")
+                    == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+                    and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("EXECUTE_RESET_")
+                )
+                or (
+                    live.get("ACTIVE_PROGRAM", "").strip("`")
+                    == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
+                    and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
+                    and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+                    == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+                )
             )
             else
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
@@ -2714,6 +2751,13 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
                 and program_frontier.startswith("EXECUTE_RESET_")
             )
+            rs0_frontier = (
+                live.get("ACTIVE_PROGRAM", "").strip("`")
+                == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
+                and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
+                and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+                == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+            )
             reset_authority_frontier = (
                 reset_frontier
                 and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "RESET-M6"
@@ -2745,7 +2789,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     errors.append("program_acceptance_frontier_external_boundary_invalid")
             elif bounded_continue_omp_frontier:
                 pass
-            elif continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE":
+            elif not rs0_frontier and (continuation != "TRUE" or external != "FALSE" or program_terminal != "NONE"):
                 errors.append("program_frontier_stopped_program")
             expected_decision = (
                 "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN" if active_incident_drain_frontier else
@@ -2781,6 +2825,9 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     errors.append("program_frontier_terminal_state_invalid")
             elif reset_frontier:
                 if not program_terminal_state.startswith("RESET_"):
+                    errors.append("program_frontier_terminal_state_invalid")
+            elif rs0_frontier:
+                if program_terminal_state != "NONE_RS0_ADMITTED":
                     errors.append("program_frontier_terminal_state_invalid")
             elif bounded_continue_omp_frontier:
                 pass
@@ -22858,6 +22905,31 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             **calls,
             "errors": [],
         }
+    if live.get("ACTIVE_PROGRAM", "").strip("`") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1":
+        rs0_active = all((
+            live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+            == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+            live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith(
+                "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_"
+            ),
+            live.get("CURRENT_EXECUTION_MISSION_STATE", "").strip("`") == "PREPARED_NOT_ACTIVE",
+            live.get("CURRENT_COMPLETION_CONTRACT", "").strip("`") == "ANALYSIS_COMPLETION",
+            live.get("CURRENT_STOP_CONDITION", "").strip("`") == "NONE",
+        ))
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS" if rs0_active else "NO-GO",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "RS0_READ_ONLY_ADMISSION_PENDING_CONSUMPTION" if rs0_active else "FAIL",
+            "current_completion_contract": "ANALYSIS_COMPLETION",
+            "current_completion_verdict": "RS0_PREPARED_NOT_ACTIVE" if rs0_active else "FAIL",
+            "completion_gate": {},
+            **calls,
+            "errors": [] if rs0_active else ["rs0_read_only_admission_projection_invalid"],
+        }
     errors: list[str] = []
     for field, value in expected.items():
         if live.get(field, "").strip("`") != value:
@@ -23227,6 +23299,13 @@ def cps_live_state_consistency(
             )
         )
     )
+    rs0_read_only_frontier = (
+        live.get("ACTIVE_PROGRAM", "").strip("`")
+        == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
+        and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
+        and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
+        == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+    )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
@@ -23277,6 +23356,7 @@ def cps_live_state_consistency(
             and not external_owner_terminal
             and not engineering_authority_terminal
             and not safe_reentry_frontier
+            and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )
     ):
@@ -23442,7 +23522,13 @@ def cps_live_state_consistency(
         if (
             report_ref
             and report_ref in omp_text
-            and live.get("CURRENT_MISSION_STATE", "").strip("`") in omp_text
+            and (
+                live.get("CURRENT_MISSION_STATE", "").strip("`") in omp_text
+                or (
+                    live.get("CURRENT_MISSION_ROLE", "").strip("`") == "ACTIVE_MISSION"
+                    and mission_identity_consistency == "PASS"
+                )
+            )
             and "Live continuation and the current bounded delegated policy state are owned only by CPS" in omp_text
         ):
             omp_pointer_consistency = "PASS"

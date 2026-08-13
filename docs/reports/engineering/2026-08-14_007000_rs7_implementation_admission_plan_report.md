@@ -42,7 +42,7 @@ candidate conditionally but cannot advance CPS or authorize implementation.
 | --- | --- | --- | --- | --- | --- |
 | `tools/v7_sync_lib.py` | Engineering: CPS/OMP consistency, Polygon, truth/convergence, deploy/release and service-failure continuation | existing CPS/OMP/deploy/truth owners; at least nine executable importers, including `v7-truth-check`, safe deploy/sync tools and Runtime-related `v7-service-matrix-refresh-all` | `25,475` LOC, `289` functions, several 500–1,996 LOC functions, mixed lifecycles | medium/high | `MOVE` only per coherent existing-owner interface; not first |
 | `admin/v7-admin-api` whole file | Management plus guarded Control adapters and embedded UI | existing Admin/API, guarded-action and read-model owners; browser/public gateway/operator consumers | `41,024` LOC, `687` functions, `2` classes, `279` endpoints; size alone is not a split reason | medium | `SHRINK` / `MOVE` in separately proven slices |
-| Admin operator read-model wrapper slice | Management read-only façade over existing `admin_core/operator_views.py` | Admin API and existing operator read-model owner; internal P2.7 composition plus operator endpoints | `10` two-line wrappers, `28` internal call sites and one redundant call hop | low | `SHRINK` + `MERGE`; selected conditionally |
+| Admin operator read-model wrapper slice | Management read-only façade over existing `admin_core/operator_views.py` | Admin API and existing operator read-model owner; internal P2.7 composition plus operator endpoints | `10` two-line wrappers, `22` in-file call sites and one redundant call hop | low | `SHRINK` + `MERGE`; selected conditionally |
 | embedded `html_page_v2` | Management UI presentation inside API source | Admin UI/API; `Handler.send_html_v2` and browser | one `16,528`-line literal UI function | medium | later `MOVE`; not first because it adds a deployable module/file edge and is not physical shrink by itself |
 | `tools/v7-users-autoswitch` | Control/recovery fallback, planner, governed movement, rollback, diagnostics and certification | autoswitch, safety, Authority and rollback owners; Admin actions, manual/systemd paths and OMP consumers | `23,639` LOC, `66` functions, `4` classes; several 600–2,241 LOC functions cross safety boundaries | high | engineering-only `MOVE` later; fallback remains `LEGACY_EXCEPTION`; not first |
 | state-merge/path-sanity/API/benchmark/MSS/proxy provenance residuals | live Control/Management/Data support | exact component and deploy/package owners | incomplete source/deploy evidence | unknown/high | `OWNER_BACKED_EXCEPTION`; not an implementation candidate |
@@ -55,7 +55,7 @@ candidate conditionally but cannot advance CPS or authorize implementation.
 | Runtime/routing risk | medium/high: deployed library and Runtime-related importer | low: read-only Management projection; no routing writer | high: movement, recovery, rollback and Authority-adjacent paths |
 | Observability | high, but broad test/consumer surface | high: deterministic payloads, endpoint inventory and focused tests | high, but safe proof requires recovery/rollback coverage |
 | Existing owner | multiple coherent owners require per-interface split | exact Admin API + `admin_core/operator_views.py` | exact owners exist but boundaries are safety-sensitive |
-| Consumer clarity | many CLI/test/Runtime-related consumers | `28` current in-file calls; no executable external caller of the local wrapper names found | multiple CLI, API, timer/manual and continuation consumers |
+| Consumer clarity | many CLI/test/Runtime-related consumers | `22` current in-file calls; no executable external caller of the local wrapper names found | multiple CLI, API, timer/manual and continuation consumers |
 | Before/after measurability | broad and costly | exact functions, calls, hop and response equality | broad and safety-dependent |
 | Rollback | multi-consumer revert/deploy | single source revert and Admin-only redeploy/restart | movement/recovery rollback semantics involved |
 | First-candidate verdict | reject | select conditionally | reject |
@@ -97,17 +97,17 @@ Authority. It creates no file, module, owner, state, writer or decision path.
 | Field | Value |
 | --- | --- |
 | `TARGET COMPONENT` | `admin/v7-admin-api` operator read-model façade only |
-| `CURRENT STATE` | ten local wrappers bind existing roots/arguments and immediately delegate to `admin_core/operator_views.py`; 28 current calls |
+| `CURRENT STATE` | ten local wrappers bind existing roots/arguments and immediately delegate to `admin_core/operator_views.py`; 22 current calls |
 | `PROBLEM` | redundant façade functions add a duplicate naming/trace hop and obscure the already canonical read-model owner |
 | `WHY CHANGE NOW` | lowest routing risk, clear owner/consumers, deterministic outputs, bounded diff and rollback; matches Management/Admin-first risk priority |
 | `TARGET STATE` | all current callers invoke the existing `operator_views` functions directly with identical arguments; local wrappers absent |
 | `RESPONSIBILITY CHANGE` | no behavior/owner transfer; remove duplicate Admin-local delegation responsibility and expose existing owner directly |
 | `CURRENT CONSUMERS` | P2.7 candidate approval/governance/rehearsal composition and 15 operator read endpoints; all remain within `admin/v7-admin-api` |
-| `MIGRATION PLAN` | record fresh before hash/counts; replace 28 calls; run response/endpoint tests; only then remove ten definitions in the same atomic change |
+| `MIGRATION PLAN` | record fresh before hash/counts; replace 22 calls; run response/endpoint tests; only then remove ten definitions in the same atomic change |
 | `VALIDATION PLAN` | compile; focused operator/P2.7/endpoint tests; endpoint inventory equality; wrapper-call residue search; deterministic before/after payload equality; local truth and safe-deploy dry run |
 | `ROLLBACK PLAN` | revert the single implementation commit; if separately deployed, restore previous safe-deploy Admin binary and restart only `v7-admin-api.service`; verify the same read endpoints |
 | `RESIDUE CHECK PLAN` | zero definitions/calls of the ten local wrappers in executable source; no endpoint/RBAC/CSRF/safe-mode change; historical reports remain historical evidence |
-| `EXPECTED COMPLEXITY DELTA` | `-10` local functions and `-10` redundant delegation hops; `28` consumers migrated; files/modules/owners/state/writers/endpoints/services/timers/routing edges unchanged |
+| `EXPECTED COMPLEXITY DELTA` | `-10` local functions and `-10` redundant delegation hops; `22` call sites migrated; files/modules/owners/state/writers/endpoints/services/timers/routing edges unchanged |
 
 ## 7. Immutable affected-scope BEFORE measurement
 
@@ -118,7 +118,7 @@ Authority. It creates no file, module, owner, state, writer or decision path.
 | top-level functions / classes in Admin | `687 / 2` |
 | selected local wrappers | `10` |
 | selected wrapper definition LOC | `20` |
-| selected current call sites | `28` |
+| selected current call sites | `22` |
 | Admin endpoints | `279` (`126 GET`, `10 HEAD`, `143 POST`) |
 | action handlers / RBAC mappings | `138 / 138` |
 | state surfaces added by slice | `0` |
@@ -141,7 +141,7 @@ OLD RESPONSIBILITY
          -> EXISTING OWNER
             admin_core/operator_views.py
               -> CONSUMER MIGRATION
-                 all 28 calls in one atomic patch
+                 all 22 calls in one atomic patch
                    -> VALIDATION
                       payload + endpoint + focused tests
                         -> OLD PATH CLOSED

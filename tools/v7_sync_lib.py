@@ -23758,6 +23758,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "admin_core/routing_core.py",
+        "local_path": "admin_core/routing_core.py",
+        "remote_path": "/usr/local/bin/admin_core/routing_core.py",
+        "mode": "0644",
+        "service": None,
+    },
+    {
         "name": "v7-users-autoswitch",
         "local_path": "tools/v7-users-autoswitch",
         "remote_path": "/usr/local/bin/v7-users-autoswitch",

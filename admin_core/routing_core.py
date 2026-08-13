@@ -218,3 +218,48 @@ def run_shadow(envelope: dict[str, Any], *, now: datetime | None = None) -> dict
         "verify": verification,
         "elapsed_ms": elapsed_ms,
     }
+
+
+def prepare_semantic_classes(assignments: dict[str, dict[str, Any]], *, generation: str) -> dict[str, Any]:
+    """Compact an Engineering Plane scan into generation-bound class receipts."""
+    if not generation:
+        raise RoutingCoreContractError("MISSING_CLASS_PREPARATION_GENERATION")
+    grouped: dict[str, list[str]] = {}
+    semantics: dict[str, dict[str, Any]] = {}
+    required = ("source_channel", "service_compatibility", "policy_set", "eligible_target_bucket", "path_fingerprint", "correlation_domain", "exception_boundary")
+    for user, row in assignments.items():
+        if not isinstance(row, dict) or any(not str(row.get(key, "") or "") for key in required):
+            raise RoutingCoreContractError("INCOMPLETE_SEMANTIC_CLASS_INPUT")
+        semantic = {key: str(row[key]) for key in required}
+        class_id = "rclass_" + _canonical_hash(semantic)[:24]
+        semantics[class_id] = semantic
+        grouped.setdefault(class_id, []).append(str(user))
+    classes = []
+    for class_id, members in sorted(grouped.items()):
+        ordered = sorted(set(members))
+        classes.append({"class_id": class_id, "semantic": semantics[class_id], "member_count": len(ordered), "membership_fingerprint": _canonical_hash(ordered), "raw_members_retained": False})
+    return {"schema": "v7.routing-core-prepared-classes.v1", "generation": generation, "classes": classes, "class_count": len(classes), "input_member_count": len(assignments), "projection_fingerprint": _canonical_hash({"generation": generation, "classes": classes}), "runtime_effects": "ZERO"}
+
+
+def bounded_class_bucket_commit(
+    prepared: dict[str, Any], *, class_id: str, expected_generation: str,
+    expected_projection_fingerprint: str, target_bucket: str,
+    target_generation: str, capacity_available: int,
+) -> dict[str, Any]:
+    """Validate one O(1)-bounded class indirection commit without effects."""
+    if prepared.get("schema") != "v7.routing-core-prepared-classes.v1":
+        raise RoutingCoreContractError("INVALID_PREPARED_CLASS_SCHEMA")
+    if str(prepared.get("generation") or "") != expected_generation:
+        raise RoutingCoreContractError("CLASS_GENERATION_CHANGED_STOP_SAFE")
+    if str(prepared.get("projection_fingerprint") or "") != expected_projection_fingerprint:
+        raise RoutingCoreContractError("CLASS_PROJECTION_CHANGED_STOP_SAFE")
+    if not class_id or not target_bucket or not target_generation:
+        raise RoutingCoreContractError("CLASS_COMMIT_BINDING_MISSING")
+    match = next((row for row in prepared.get("classes", []) if row.get("class_id") == class_id), None)
+    if not isinstance(match, dict):
+        raise RoutingCoreContractError("PREPARED_CLASS_MISSING_STOP_SAFE")
+    member_count = int(match.get("member_count", 0) or 0)
+    if member_count <= 0 or capacity_available < member_count:
+        raise RoutingCoreContractError("TARGET_BUCKET_CAPACITY_STOP_SAFE")
+    commit = {"class_id": class_id, "membership_fingerprint": str(match.get("membership_fingerprint") or ""), "member_count": member_count, "source_generation": expected_generation, "target_bucket": target_bucket, "target_generation": target_generation}
+    return {"schema": "v7.routing-core-class-bucket-commit.v1", "status": "CLASS_BUCKET_COMMIT_READY", "commit": commit, "commit_fingerprint": _canonical_hash(commit), "member_rows_scanned_in_hot_path": 0, "raw_members_loaded_in_hot_path": False, "per_user_writes_requested": 0, "runtime_effects": "ZERO_CONTRACT_ONLY"}

@@ -2,7 +2,12 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import unittest
 
-from admin_core.routing_core import RoutingCoreContractError, run_shadow
+from admin_core.routing_core import (
+    RoutingCoreContractError,
+    bounded_class_bucket_commit,
+    prepare_semantic_classes,
+    run_shadow,
+)
 
 
 NOW = datetime(2026, 8, 13, 7, 30, tzinfo=timezone.utc)
@@ -94,6 +99,34 @@ class RoutingCoreShadowTests(unittest.TestCase):
         row["omp"] = {"next_action": "anything"}
         with self.assertRaisesRegex(RoutingCoreContractError, "FORBIDDEN_ENGINEERING_INPUT:omp"):
             run_shadow(row, now=NOW)
+
+    def test_10k_users_50_egresses_prepare_then_bounded_commit(self):
+        assignments = {}
+        for index in range(10_000):
+            bucket = index % 50
+            assignments[f"user-{index}"] = {
+                "source_channel": f"egress-{bucket}",
+                "service_compatibility": "global",
+                "policy_set": "default",
+                "eligible_target_bucket": f"bucket-{(bucket + 1) % 50}",
+                "path_fingerprint": f"path-{bucket}",
+                "correlation_domain": f"domain-{bucket}",
+                "exception_boundary": "none",
+            }
+        prepared = prepare_semantic_classes(assignments, generation="scale-generation")
+        self.assertEqual(prepared["input_member_count"], 10_000)
+        self.assertEqual(prepared["class_count"], 50)
+        selected = prepared["classes"][0]
+        result = bounded_class_bucket_commit(
+            prepared, class_id=selected["class_id"], expected_generation="scale-generation",
+            expected_projection_fingerprint=prepared["projection_fingerprint"],
+            target_bucket="target-bucket", target_generation="target-generation",
+            capacity_available=selected["member_count"],
+        )
+        self.assertEqual(result["status"], "CLASS_BUCKET_COMMIT_READY")
+        self.assertEqual(result["member_rows_scanned_in_hot_path"], 0)
+        self.assertEqual(result["per_user_writes_requested"], 0)
+        self.assertFalse(result["raw_members_loaded_in_hot_path"])
 
 
 if __name__ == "__main__":

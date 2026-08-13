@@ -1568,6 +1568,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "current_egress": "1",
                 "recommended_egress": "vless",
             }
+            consumed_receipt = {}
+
+            def consume_receipt(receipt):
+                consumed_receipt.update(receipt)
+                return {
+                    "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                    "ok": True,
+                    "incident_id": receipt["incident_id"],
+                    "incident_generation": receipt["incident_generation"],
+                }
 
             def fake_run(command, **_kwargs):
                 if command[:4] == ["ip", "-j", "addr", "show"]:
@@ -1602,15 +1612,15 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ), mock.patch.object(
                 self.tool.operator_execution_pipeline,
                 "control_plane_kernel_path_cutover_contract",
-                side_effect=lambda receipt: {
-                    "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
-                    "ok": True,
-                    "incident_id": receipt["incident_id"],
-                    "incident_generation": receipt["incident_generation"],
-                },
+                side_effect=consume_receipt,
             ):
                 result = planner._ct_m0f_kernel_cutover_evidence(
-                    {"operation": {}, "safety": {}},
+                    {"operation": {}, "safety": {"l3_incident": {
+                        "incident_id": "matrix_incident_shell",
+                        "incident_generation": "matrix_generation_shell",
+                        "first_failed_observation_monotonic_ns": 0,
+                        "confirmed_hard_failure_monotonic_ns": 0,
+                    }}},
                     move,
                     {
                         "verify_rc": 0,
@@ -1629,8 +1639,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 )
 
         self.assertTrue(result["ok"])
-        self.assertTrue(result["incident_id"].startswith("ctm0finc_"))
-        self.assertEqual(result["incident_generation"], condition["record_hash"])
+        self.assertEqual(result["incident_id"], "matrix_incident_shell")
+        self.assertEqual(result["incident_generation"], "matrix_generation_shell")
+        self.assertEqual(consumed_receipt["first_failed_observation_monotonic_ns"], 100)
+        self.assertEqual(consumed_receipt["confirmed_hard_failure_monotonic_ns"], 100)
 
     def test_ct_m0f_target_identity_reuses_single_declared_tunnel_endpoint(self):
         target = self.tool.Egress(

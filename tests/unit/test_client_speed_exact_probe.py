@@ -270,6 +270,21 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertFalse(receipt["remote_client_recovery_claimed"])
         self.assertEqual(receipt["user_movement"], 0)
 
+    def test_target_payload_route_lookup_models_the_existing_interface_bound_socket(self):
+        context = self.target_payload_context()
+        context["target_egress_interface_bound_probe"] = True
+        with mock.patch.object(
+            client_speed.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess(
+                [], 0, stdout=json.dumps([{"dev": "awg3", "table": "main"}])
+            ),
+        ) as run:
+            route = client_speed.route_lookup_for_exact_probe("1.1.1.1", context)
+        self.assertTrue(route["ok"])
+        self.assertEqual(route["dev"], "awg3")
+        self.assertEqual(run.call_args.args[0][-2:], ["oif", "awg3"])
+
     def test_target_payload_context_requires_full_operation_lineage(self):
         context = self.target_payload_context()
         context.pop("lease_id")

@@ -16375,7 +16375,7 @@ class AutoswitchPlanner:
             "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
         }
         controlled_condition: dict[str, Any] = {}
-        if standing_contract_id and not lineage["incident_id"]:
+        if standing_contract_id:
             condition_records = operator_execution.read_audit_records(
                 Path(self.args.action_class_audit_store)
             )
@@ -16396,7 +16396,7 @@ class AutoswitchPlanner:
                 ),
                 {},
             )
-            if controlled_condition:
+            if controlled_condition and not lineage["incident_id"]:
                 condition_hash = str(
                     controlled_condition.get("record_hash") or ""
                 )
@@ -16553,20 +16553,21 @@ class AutoswitchPlanner:
         route_span = result_row.get("route_writer_timing") if isinstance(result_row.get("route_writer_timing"), dict) else {}
         visibility_span = result_row.get("route_visibility_timing") if isinstance(result_row.get("route_visibility_timing"), dict) else {}
         incident = ((plan.get("safety") or {}).get("l3_incident") or {})
-        first_failed_ns = to_int(
-            incident.get("first_failed_observation_monotonic_ns")
-            or move.get("first_failed_observation_monotonic_ns")
-            or controlled_condition.get(
-                "first_failed_observation_monotonic_ns"
-            ), 0,
-        )
-        confirmed_ns = to_int(
-            incident.get("confirmed_hard_failure_monotonic_ns")
-            or move.get("confirmed_hard_failure_monotonic_ns")
-            or controlled_condition.get(
-                "confirmed_hard_failure_monotonic_ns"
-            ), 0,
-        )
+        # Matrix can legitimately bind a controlled condition to an incident
+        # shell before its clocks are copied into the plan.  Preserve that
+        # incident identity, but consume the exact matching append-only
+        # condition as the clock owner when the plan/move values are zero.
+        # This is a narrow lineage repair, not a synthetic failure timestamp.
+        first_failed_ns = next((value for value in (
+            to_int(incident.get("first_failed_observation_monotonic_ns"), 0),
+            to_int(move.get("first_failed_observation_monotonic_ns"), 0),
+            to_int(controlled_condition.get("first_failed_observation_monotonic_ns"), 0),
+        ) if value > 0), 0)
+        confirmed_ns = next((value for value in (
+            to_int(incident.get("confirmed_hard_failure_monotonic_ns"), 0),
+            to_int(move.get("confirmed_hard_failure_monotonic_ns"), 0),
+            to_int(controlled_condition.get("confirmed_hard_failure_monotonic_ns"), 0),
+        ) if value > 0), 0)
         decision_ns = to_int(
             (span_by_stage.get("planner_entry_target_capacity_and_allocation") or {}).get("completed_monotonic_ns"), 0,
         )

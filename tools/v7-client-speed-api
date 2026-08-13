@@ -411,6 +411,13 @@ def route_lookup_for_exact_probe(destination_ip, context):
         "mark",
         str(context.get("fwmark") or "0"),
     ]
+    # A target-egress payload probe deliberately proves the already selected
+    # target interface.  The socket below uses SO_BINDTODEVICE, so its route
+    # lookup must model that same execution context.  Exact-client probes do
+    # not set this flag: they must continue proving the user's fwmark/table
+    # path without an output-interface constraint.
+    if context.get("target_egress_interface_bound_probe") is True:
+        command.extend(("oif", str(context.get("interface") or "")))
     try:
         proc = subprocess.run(
             command,
@@ -844,6 +851,7 @@ def run_target_egress_payload_context(path):
     # not a claim that the certification user's policy table carried payload.
     probe_context = dict(context)
     probe_context["fwmark"] = 0
+    probe_context["target_egress_interface_bound_probe"] = True
     successful, attempts = execute_fresh_exact_probe_request(probe_context)
     return build_target_egress_payload_receipt(context, successful, attempts)
 

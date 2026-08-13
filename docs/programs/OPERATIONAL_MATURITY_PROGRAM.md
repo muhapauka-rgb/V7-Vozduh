@@ -253,7 +253,7 @@ Status: `CURRENT_PROGRAM_STATE_REFERENCE`.
 
 Registered Program: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
 
-OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M8 are complete; the current phase is `RESET-M9` and the exact successor is `EXECUTE_RESET_M9_LEGACY_RETIREMENT_SYSTEM_SHRINK_AND_PROGRAM_CLEANUP`.
+OMP remains the development-plane orchestrator and records `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` at terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`. CPS alone owns the volatile terminal projection. RESET-M0 through RESET-M9 and the final owner-backed completion evaluation are complete; there is no Reset successor.
 
 The Program-level rule `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` forbids new legacy hot-path routing capability growth while allowing critical production, security/safety, migration-required fixes, comparison instrumentation, and migration-safety deduplication. It grants no Runtime, routing, user, deploy, Authority, Planner, queue, owner, or truth-source effect. Existing Programs remain intact pending `RESET-M0/RESET-M1` disposition.
 
@@ -8093,9 +8093,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `RESET_M8_CORE_PRIMARY_PROMOTION_GATES_REQUIRED`
-Resolved current next action: `EXECUTE_RESET_M8_CORE_PRIMARY_PRODUCTION_PROMOTION_WITH_SAFE_FALLBACK`
-Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M9` after the exact-authorized M8 Core-primary production promotion, restart/idempotency and fallback proof. The exact successor is legacy retirement, system shrink and Program cleanup. No Authority was self-granted and legacy remains explicit fallback until M9 disposition.
+Resolved current stop: `RESET_PROGRAM_TERMINAL`
+Resolved current next action: `NONE_RESET_PROGRAM_TERMINAL`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `NONE_RESET_PROGRAM_TERMINAL`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9081,8 +9081,8 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER`
+Resolved current stop: `RESET_PROGRAM_TERMINAL`
+Resolved current next action: `NONE_RESET_PROGRAM_TERMINAL`
 Current terminal report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

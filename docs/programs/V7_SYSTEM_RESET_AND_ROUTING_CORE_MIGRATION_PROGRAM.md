@@ -2,7 +2,7 @@
 
 Program ID: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1`
 
-Status: `RESET_PROGRAM_CONTRACT_READY_FOR_EXECUTION`
+Status: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`
 
 Program owner: existing `OMP` development-plane orchestrator.
 
@@ -350,3 +350,5 @@ This update strengthens only this existing Program contract and its canonical re
 No further pre-execution contract expansion is allowed without a material safety gap, correctness gap or owner-backed invalidator. The next action remains RESET-M0.
 
 Update terminal: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1 = RESET_PROGRAM_CONTRACT_READY_FOR_EXECUTION`.
+
+This Section 17 terminal is the immutable historical result of the pre-execution contract update. It is superseded for live state only by the executed Program terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`; the contract itself remains the evidence baseline and is not expanded.

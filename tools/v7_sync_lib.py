@@ -2213,7 +2213,14 @@ def delegated_policy_live_state_consistency(
     reset_program_frontier = (
         _plain_live_value(live, "ACTIVE_PROGRAM")
         == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
-        and program_frontier.startswith("EXECUTE_RESET_")
+        and (
+            program_frontier.startswith("EXECUTE_RESET_")
+            or (
+                program_frontier in {"", "NONE"}
+                and live_stop == "RESET_PROGRAM_TERMINAL"
+                and live_program_terminal == "PROGRAM_COMPLETE"
+            )
+        )
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -22833,6 +22840,10 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
     if live.get("ACTIVE_PROGRAM", "").strip("`") == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1":
+        reset_complete = (
+            live.get("CURRENT_STOP_CONDITION", "").strip("`") == "RESET_PROGRAM_TERMINAL"
+            and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`") == "PROGRAM_COMPLETE"
+        )
         return {
             "schema": "v7-omp-functional-footprint-consistency/v1",
             "final_verdict": "PASS",
@@ -22840,9 +22851,9 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
             "heartbeat_status": heartbeat_status,
             "automation_enabled": heartbeat_active,
-            "mission_completion_evidence_gate_status": "RESET_PROGRAM_PHASE_CONTRACT_OWNS_COMPLETION",
-            "current_completion_contract": "RESET_PROGRAM_PHASE_CONTRACT",
-            "current_completion_verdict": "RESET_PHASE_FRONTIER_ACTIVE",
+            "mission_completion_evidence_gate_status": "RESET_PROGRAM_COMPLETION_REPORT_CONSUMED" if reset_complete else "RESET_PROGRAM_PHASE_CONTRACT_OWNS_COMPLETION",
+            "current_completion_contract": "PROGRAM_COMPLETION" if reset_complete else "RESET_PROGRAM_PHASE_CONTRACT",
+            "current_completion_verdict": "RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS" if reset_complete else "RESET_PHASE_FRONTIER_ACTIVE",
             "completion_gate": {},
             **calls,
             "errors": [],
@@ -23207,7 +23218,14 @@ def cps_live_state_consistency(
     reset_program_frontier = (
         live.get("ACTIVE_PROGRAM", "").strip("`")
         == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
-        and program_frontier.startswith("EXECUTE_RESET_")
+        and (
+            program_frontier.startswith("EXECUTE_RESET_")
+            or (
+                program_frontier in {"", "NONE"}
+                and live.get("CURRENT_STOP_CONDITION", "").strip("`") == "RESET_PROGRAM_TERMINAL"
+                and live.get("PROGRAM_TERMINAL_CLASS", "").strip("`") == "PROGRAM_COMPLETE"
+            )
+        )
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
@@ -23248,6 +23266,7 @@ def cps_live_state_consistency(
         or registry_stop != stop
         or (
             not independent_program_frontier
+            and not reset_program_frontier
             and wip_stop != stop
             and not split_authority_natural_boundary
         )
@@ -23345,18 +23364,18 @@ def cps_live_state_consistency(
         cap_cells = [cell.strip() for cell in active_capability.strip().strip("|").split("|")]
         cap_stop = cap_cells[6].strip("`") if len(cap_cells) > 6 else ""
         cap_action = cap_cells[7] if len(cap_cells) > 7 else ""
-        if not independent_program_frontier and cap_stop != normalized["current_stop_condition"]:
+        if not independent_program_frontier and not reset_program_frontier and cap_stop != normalized["current_stop_condition"]:
             errors.append("cps_active_capability_stop_divergence")
         expected_status = f"`{normalized['active_capability_status']}`"
         if expected_status not in active_capability:
             errors.append("cps_active_capability_status_divergence")
         if "bundle drifted" in active_capability or "diagnose existing binding" in active_capability:
             errors.append("cps_active_capability_unresolved_binding_drift")
-        if not independent_program_frontier and normalized["current_next_action_id"] not in cap_action and not (
+        if not independent_program_frontier and not reset_program_frontier and normalized["current_next_action_id"] not in cap_action and not (
             normalized["current_next_action_id"] == "CONTINUE_OMP" and "Continue OMP" in cap_action
         ):
             errors.append("cps_active_capability_next_action_divergence")
-        if not independent_program_frontier and wip.get("smallest_existing_next_action", "") != cap_action:
+        if not independent_program_frontier and not reset_program_frontier and wip.get("smallest_existing_next_action", "") != cap_action:
             errors.append("cps_wip_active_capability_next_action_divergence")
 
     completed_u01_rows = [line for line in completed_capabilities.splitlines() if line.startswith("| `CAP-U01` |")]

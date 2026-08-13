@@ -3603,7 +3603,20 @@ class AutoswitchPlanner:
             plan.setdefault("safety", {})["routing_core_certification"] = result
             return result
         authority_gate = ((plan.get("safety") or {}).get("authority_budget_gate") or {})
-        action_contract = authority_gate.get("current_action_class_contract") or {}
+        raw_policy = getattr(self, "policy", {}) or {}
+        raw_budget = raw_policy.get("authority_budget")
+        raw_budget = raw_budget if isinstance(raw_budget, dict) else {}
+        action_contract = (
+            runtime_authority_contract_status(
+                raw_budget,
+                prepared_class=str(authority_gate.get("prepared_authority_class") or "CANARY"),
+                certified_class=str(authority_gate.get("certified_authority_class") or "CANARY"),
+                standing_policy_contract={},
+                authority_audit_records=[],
+            )
+            if isinstance(raw_budget.get("current_action_class_contract"), dict)
+            else (authority_gate.get("current_action_class_contract") or {})
+        )
         authority_generation = str(action_contract.get("contract_id") or "")
         contract_program = str(action_contract.get("active_program") or "")
         strict_contract = ((action_contract.get("provenance") or {}).get("strict_provenance_contract") is True)

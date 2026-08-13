@@ -16835,6 +16835,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--routing-core-certification-execute",
+        action="store_true",
+        help=(
+            "Execute one exact RESET-M6 Core decision through the existing "
+            "one-use Authority contract, route writer, verifier and rollback "
+            "owners without initializing the legacy O(N) planner."
+        ),
+    )
+    parser.add_argument(
         "--governed-execution-receipt",
         action="store_true",
         help=(
@@ -22617,6 +22626,199 @@ def routing_core_certification_authority_request_only(args: argparse.Namespace) 
     }
 
 
+def _routing_core_scoped_route_verify(
+    state_dir: Path, user_ip: str, expected_egress: str,
+) -> subprocess.CompletedProcess[str]:
+    """Verify one exact assignment and kernel route without planner startup."""
+    argv = ["v7-users-autoswitch", "--routing-core-certification-execute"]
+    users = [row for row in parse_registry(state_dir / "users.registry") if str(row.get("ip") or "") == user_ip]
+    targets = [row for row in parse_registry(state_dir / "egress.registry") if str(row.get("id") or "") == expected_egress]
+    lines = [f"user_ip={user_ip}", f"expected_egress={expected_egress}"]
+    if len(users) != 1 or len(targets) != 1:
+        return subprocess.CompletedProcess(argv, 1, stdout="scoped route truth missing or duplicate\n")
+    user, target = users[0], targets[0]
+    table = str(user.get("table") or "")
+    interface = str(target.get("interface") or "")
+    if str(user.get("current") or "") != expected_egress or not table or not interface:
+        return subprocess.CompletedProcess(argv, 1, stdout="registry assignment or route identity mismatch\n")
+    try:
+        rule = subprocess.run(["ip", "rule", "show"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=10)
+        route = subprocess.run(["ip", "route", "show", "table", table], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=10)
+        route_get = subprocess.run(["ip", "route", "get", "8.8.8.8", "from", user_ip, "iif", "wg0"], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return subprocess.CompletedProcess(argv, 1, stdout=f"scoped route verification command failed: {exc}\n")
+    rule_ok = any(fragment in rule.stdout for fragment in (f"from {user_ip} lookup {table}", f"from {user_ip}/32 lookup {table}"))
+    route_ok = f"default dev {interface}" in route.stdout
+    route_get_ok = f"dev {interface}" in route_get.stdout
+    lines.extend([
+        f"policy_rule={'OK' if rule_ok else 'FAIL'}",
+        f"table_default={'OK' if route_ok else 'FAIL'}",
+        f"route_get={'OK' if route_get_ok else 'FAIL'}",
+    ])
+    return subprocess.CompletedProcess(argv, 0 if rule_ok and route_ok and route_get_ok else 1, stdout="\n".join(lines) + "\n")
+
+
+def routing_core_certification_execute_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Run the bounded RESET-M6 cutover through existing effect owners only."""
+    started_ns = time.monotonic_ns()
+    state_dir = Path(args.state_dir)
+    policy_path = Path(args.policy_file)
+    control_path = Path(args.execution_control_file)
+    user_ip = str(args.user or "")
+    source = str(args.source_egress or "")
+    target = str(args.target_egress or "")
+    selected_hash = sha256_json({"user_ip": user_ip, "source_egress": source, "target_egress": target})
+    blockers: list[str] = []
+    if not args.apply:
+        blockers.append("routing_core_certification_execute_requires_explicit_apply")
+    if not args.verify or not args.rollback_on_verify_fail:
+        blockers.append("routing_core_certification_verify_and_rollback_required")
+    if not SAFE_IP_RE.match(user_ip) or not source or not target or source == target:
+        blockers.append("routing_core_certification_exact_scope_invalid")
+    if to_int(args.max_selected_moves, 0) != 1:
+        blockers.append("routing_core_certification_exact_one_user_scope_required")
+    users = [row for row in parse_registry(state_dir / "users.registry") if str(row.get("ip") or "") == user_ip]
+    targets = [row for row in parse_registry(state_dir / "egress.registry") if str(row.get("id") or "") == target]
+    user = users[0] if len(users) == 1 else {}
+    target_row = targets[0] if len(targets) == 1 else {}
+    if len(users) != 1 or str(user.get("current") or "") != source:
+        blockers.append("routing_core_certification_user_source_truth_mismatch")
+    if len(targets) != 1 or not str(target_row.get("interface") or ""):
+        blockers.append("routing_core_certification_target_truth_missing")
+    if target_row and (not bool_value(target_row.get("enabled", "1")) or str(target_row.get("state") or "enabled").lower() == "disabled"):
+        blockers.append("routing_core_certification_target_not_enabled")
+    policy = read_json(policy_path)
+    budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
+    authority = runtime_authority_contract_status(
+        budget, prepared_class="CANARY", certified_class="CANARY",
+        standing_policy_contract={}, authority_audit_records=[],
+    )
+    contract = budget.get("current_action_class_contract") if isinstance(budget.get("current_action_class_contract"), dict) else {}
+    provenance = authority.get("provenance") if isinstance(authority.get("provenance"), dict) else {}
+    contract_source = contract.get("source_generation") if isinstance(contract.get("source_generation"), dict) else {}
+    if authority.get("blockers"):
+        blockers.extend(f"authority:{item}" for item in authority.get("blockers") or [])
+    if provenance.get("strict_provenance_contract") is not True or str(contract.get("active_program") or "") != "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1":
+        blockers.append("routing_core_certification_exact_reset_contract_required")
+    if str((contract.get("subject") or {}).get("user_ip") or "") != user_ip or {
+        "source_egress": source, "target_egress": target,
+    } != {
+        "source_egress": str((contract.get("scope") or {}).get("source_egress") or ""),
+        "target_egress": str((contract.get("scope") or {}).get("target_egress") or ""),
+    }:
+        blockers.append("routing_core_certification_contract_scope_mismatch")
+    if str(contract_source.get("selected_move_hash") or "") != selected_hash:
+        blockers.append("routing_core_certification_selected_move_hash_mismatch")
+    from admin_core.intelligence_snapshots import read_snapshot_bundle
+    snapshot_results = read_snapshot_bundle(Path(args.intelligence_snapshot_root), list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES))
+    snapshot_sources = {
+        str(name): dict(result.payload.get("source_hashes") or {})
+        for name, result in sorted(snapshot_results.items())
+        if isinstance(result.payload, dict) and isinstance(result.payload.get("source_hashes"), dict)
+    }
+    current_source_bundle = sha256_json({
+        "planner_generation_id": str(contract_source.get("planner_generation_id") or ""),
+        "source_hashes": snapshot_sources,
+    })
+    current_snapshot_bundle = sha256_json({
+        str(name): {"path": str(result.path), "source_hashes": dict(result.payload.get("source_hashes") or {}), "validation_ok": bool(result.validation.ok)}
+        for name, result in sorted(snapshot_results.items())
+    })
+    if current_source_bundle != str(contract_source.get("source_bundle_hash") or ""):
+        blockers.append("routing_core_certification_source_bundle_changed")
+    if current_snapshot_bundle != str(contract_source.get("snapshot_bundle_hash") or ""):
+        blockers.append("routing_core_certification_snapshot_bundle_changed")
+    operation_id = "resetm6_" + sha256_json({"contract_id": contract.get("contract_id"), "selected_move_hash": selected_hash})[:24]
+    now = datetime.now(timezone.utc)
+    core_envelope = {
+        "schema": routing_core.CORE_INPUT_SCHEMA,
+        "generation": str(contract_source.get("planner_generation_id") or ""),
+        "observed_at": now.isoformat(), "max_age_ms": 5000,
+        "scope": {"source": source, "users": [user_ip]},
+        "assignments": {user_ip: source},
+        "targets": {target: {"healthy": not blockers, "capacity": max(1, to_int(target_row.get("capacity_users"), 1)), "assigned": max(0, to_int(target_row.get("users"), 0))}},
+        "policy": {"generation": str(contract_source.get("planner_generation_id") or ""), "allowed_targets": [target], "capacity_reserve": 0},
+        "authority": {"generation": str(contract.get("contract_id") or ""), "permitted_users": [user_ip], "max_users": 1},
+        "operation": {"id": operation_id, "lease_id": str(contract.get("contract_id") or ""), "fencing_token": str(contract.get("contract_hash") or ""), "idempotency_key": operation_id},
+    }
+    core_result: dict[str, Any] = {}
+    if not blockers:
+        try:
+            core_result = routing_core.run_shadow(core_envelope, now=now)
+        except routing_core.RoutingCoreContractError as exc:
+            blockers.append(exc.status)
+    expected_move = [{"user": user_ip, "source": source, "target": target}]
+    if not blockers and (core_result.get("decision") or {}).get("moves") != expected_move:
+        blockers.append("routing_core_certification_decision_mismatch")
+    base = {
+        "schema_version": "v7.routing-core-certification-execution.v1",
+        "operation_id": operation_id, "user_ip": user_ip, "source": source, "target": target,
+        "selected_move_hash": selected_hash, "core_decision": core_result,
+        "legacy_planner_initialized": False, "member_rows_scanned": 1,
+        "effect_writer": "existing v7-user-switch", "contract_owner": operator_execution.CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+    }
+    if blockers:
+        return {**base, "status": "STOP_SAFE", "blockers": sorted(set(blockers)), "user_movement": 0, "runtime_mutation": False}
+    control = operator_execution.build_autonomous_execution_control_state(
+        False, actor="tools/v7-users-autoswitch:RESET-M6", reason="reset_m6_exact_core_certification",
+        operation_id=operation_id, selected_move_hash=selected_hash, action_class="USER_SWITCH",
+        source_bundle_hash=current_source_bundle, snapshot_bundle_hash=current_snapshot_bundle, max_users=1,
+    )
+    operator_execution.write_json_atomic(control_path, control)
+    writer: subprocess.CompletedProcess[str] | None = None
+    verify: subprocess.CompletedProcess[str] | None = None
+    rollback: subprocess.CompletedProcess[str] | None = None
+    consumption: dict[str, Any] = {}
+    try:
+        decision = operator_execution.autonomous_execution_control_decision(
+            control_path, mutation_kind="forward", action_class="USER_SWITCH",
+            expected_generation=str(control.get("generation") or ""), operation_id=operation_id,
+            selected_move_hash=selected_hash, source_bundle_hash=current_source_bundle,
+            snapshot_bundle_hash=current_snapshot_bundle, max_users=1,
+        )
+        if not decision.get("allowed_forward_mutation"):
+            return {**base, "status": "STOP_SAFE", "blockers": decision.get("blockers") or ["execution_control_denied"], "user_movement": 0, "runtime_mutation": False}
+        consumed = operator_execution.consume_current_action_class_contract_to_policy(
+            policy_path, contract_id=str(contract.get("contract_id") or ""), contract_hash=str(contract.get("contract_hash") or ""),
+            subject={"user_ip": user_ip}, scope={"source_egress": source, "target_egress": target},
+            source_generation=dict(contract_source), operation_id=operation_id,
+            audit_store=args.action_class_audit_store, actor_id="tools/v7-users-autoswitch:RESET-M6",
+        )
+        consumption = dict(consumed.get("consumption") or {})
+        env = os.environ.copy()
+        env.update({
+            "V7_SWITCH_REASON": "autoswitch_reset_m6_core_certification", "V7_EXECUTION_CONTROL_GENERATION": str(control.get("generation") or ""),
+            "V7_EXECUTION_MUTATION_KIND": "forward", "V7_EXECUTION_OPERATION_ID": operation_id, "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+            "V7_EXECUTION_SELECTED_MOVE_HASH": selected_hash, "V7_EXECUTION_SOURCE_BUNDLE_HASH": current_source_bundle,
+            "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": current_snapshot_bundle, "V7_EXECUTION_MAX_USERS": "1",
+        })
+        writer = subprocess.run(["v7-user-switch", user_ip, target], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=30, env=env)
+        if writer.returncode == 0:
+            verify = _routing_core_scoped_route_verify(state_dir, user_ip, target)
+        if writer.returncode == 0 and verify is not None and verify.returncode != 0:
+            env.update({"V7_EXECUTION_MUTATION_KIND": "rollback", "V7_EXECUTION_ROLLBACK_CERTIFIED": "1"})
+            rollback = subprocess.run(["v7-user-switch", user_ip, source], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=30, env=env)
+        success = writer.returncode == 0 and verify is not None and verify.returncode == 0
+        return {
+            **base, "status": "SUCCESS" if success else "ROLLBACK_COMPLETED" if rollback is not None and rollback.returncode == 0 else "STOP_SAFE",
+            "contract_consumption": consumption,
+            "writer": {"rc": writer.returncode, "output": (writer.stdout or "")[-4000:]},
+            "verify": {"rc": verify.returncode, "output": (verify.stdout or "")[-4000:]} if verify is not None else {},
+            "rollback": {"rc": rollback.returncode, "output": (rollback.stdout or "")[-4000:]} if rollback is not None else {},
+            "user_movement": 1 if success else 0,
+            "runtime_mutation": bool(writer.returncode == 0),
+            "elapsed_ms": round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3),
+        }
+    except (operator_execution.PacketError, OSError, subprocess.TimeoutExpired) as exc:
+        return {**base, "status": "STOP_SAFE", "blockers": [str(exc)], "contract_consumption": consumption, "user_movement": 0, "runtime_mutation": bool(writer and writer.returncode == 0)}
+    finally:
+        operator_execution.finalize_autonomous_execution_control_window(
+            control_path, expected_generation=str(control.get("generation") or ""), operation_id=operation_id,
+            actor="tools/v7-users-autoswitch:RESET-M6", reason="reset_m6_core_certification_terminal_open",
+            force_fail_closed_open=True,
+        )
+
+
 def ct_m0f_standing_source_selection_only(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -23279,6 +23481,10 @@ def main() -> int:
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
+    if args.routing_core_certification_execute:
+        result = routing_core_certification_execute_only(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("status") == "SUCCESS" else 2
     planner_init_started_ns = time.monotonic_ns()
     planner = AutoswitchPlanner(args)
     parent_launch_ns = to_int(os.environ.get("V7_PARENT_LAUNCH_MONOTONIC_NS"), 0)

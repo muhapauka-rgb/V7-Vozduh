@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -88,6 +89,19 @@ class RoutingCoreCertificationAdapterTests(unittest.TestCase):
         result = self.planner(max_moves=2).bind_routing_core_certification(self.authorized_plan())
         self.assertEqual(result["status"], "STOP_SAFE")
         self.assertIn("core_certification_max_selected_moves_must_equal_one", result["blockers"])
+
+    def test_direct_execute_dispatches_before_legacy_planner_initialization(self):
+        result = {"status": "STOP_SAFE", "legacy_planner_initialized": False}
+        argv = [
+            "v7-users-autoswitch", "--routing-core-certification-execute",
+            "--user", "10.7.0.114", "--source-egress", "awg0",
+            "--target-egress", "awg3", "--max-selected-moves", "1",
+        ]
+        with mock.patch.object(autoswitch, "routing_core_certification_execute_only", return_value=result) as execute, \
+             mock.patch.object(autoswitch, "AutoswitchPlanner", side_effect=AssertionError("legacy planner initialized")), \
+             mock.patch("sys.argv", argv), mock.patch("builtins.print"):
+            self.assertEqual(autoswitch.main(), 2)
+        execute.assert_called_once()
 
 
 if __name__ == "__main__":

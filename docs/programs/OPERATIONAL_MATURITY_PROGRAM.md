@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.73`
+Version: `4.78`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -16,7 +16,7 @@ This program defines how V7 resolves the current system state, highest bottlenec
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
-Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_370000_rt2_post_reset_operating_profile_contract.md` (`RT2_POST_RESET_OPERATING_PROFILE_CONTRACT_READY_NOT_ADMITTED`).
+Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
@@ -9374,6 +9374,19 @@ V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE
 
 This is a contract edge, not the live CPS frontier. RT2 may become active only when the existing OMP/CPS dependency and capability registry admits it without displacing protected WIP or fabricating natural evidence. Until admission, execution, Runtime, Production and Authority effects are `NONE`.
 
+Admission contract:
+
+| Field | Exact value |
+| --- | --- |
+| `ADMISSION_TRIGGER` | an explicit OMP discovery/admission decision that the post-Reset maturity gap is the smallest legal executable frontier after Reset terminal and current protected-WIP/dependency reconciliation |
+| `ADMISSION_OWNER` | existing OMP admission plus CPS current-state projection owners |
+| `REQUIRED_INPUT` | Reset terminal, `FINAL_ARCHITECTURE_MAP`, post-Reset reality evidence, current truth/convergence, current owner/dependency state and measurement-owner availability |
+| `FIRST_EXECUTABLE_CELL` | `RT2-PR1 PRODUCTION_REALITY_VALIDATION`, beginning with the pre-mutation baseline obligation below |
+| `BLOCKED_IF` | another protected capability owns the legal frontier; required input is stale/conflicting; baseline owner is unavailable; execution needs ungranted Runtime/Production/Authority scope; or the proposed work would manufacture natural evidence |
+| `ADMISSION_OUTPUT` | CPS records the admitted RT2 profile, exact first cell, input generation, scope and successor; a report or this contract alone cannot admit execution |
+
+`RT2-S1 -> RT2-S6` are already-completed read-only/advisory capability inputs and owner maps. `RT2-PR1 -> RT2-PR7` are the only post-Reset execution sequence. Admission must reuse S1-S6 outputs and may target-recheck an invalidated fact, but cannot replay S1-S6 as a second execution roadmap.
+
 Purpose: mature the accepted architecture against real operation and reduce only unnecessary residual surface. Architecture meaning, Routing Core boundaries and routing capabilities remain unchanged. Controlling question: `HOW_WELL_DOES_THE_PROVEN_ARCHITECTURE_MATCH_REAL OPERATION, AND HOW_LITTLE UNNECESSARY SURFACE REMAINS?`
 
 Existing capability discovery disposition:
@@ -9387,6 +9400,240 @@ Existing capability discovery disposition:
 | channel admission hardening | existing `CHANNEL_HEALTH_MODEL`, Matrix/quality/capacity/policy owners | extend existing admission evidence only |
 | 10k+/50+ scale validation | Production Scale First, Product Scale Model, existing M7/Polygon owners | targeted revalidation only on exact invalidator |
 | architecture drift protection | Architecture Closed by Default, New Owner Gate, Necessity Certification, canonical owners | strengthen the existing permanent gate |
+
+Deep-simplification coverage reconciliation:
+
+| Required concern | Existing placement | Reuse / extension |
+| --- | --- | --- |
+| real code relationship and responsibility proof | M10 responsibility audit, `RT2-PR2`, Work Placement and component owners | extend PR2 to responsibility-level `file/function -> caller -> consumer -> state -> side effect -> product effect -> terminal outcome`; this is a logical output, not a new graph artifact or audit framework |
+| mature routing-system comparison | M10 benchmark and `RT2-S6` Research/Fit Analysis | reuse Junos/IOS XR/FRR/Linux principles only when a V7 correctness, safety, product or complexity gap is proven; architectural difference alone cannot justify rewrite |
+| closed automatic routing lifecycle | `RT2-S2` through `RT2-S4`, PR1, PR4 and PR5 | require one owner/consumer/timeout/failure/rollback/cleanup/terminal chain from observation through real-traffic verification and recovery |
+| user connectivity product outcome | PR1 production reality, Product Contract, routing/kernel/service verification owners | extend PR1 beyond route presence to DNS, required-service traffic, actual egress, isolation and stable outcome inside admitted production scope |
+| failure and symmetric recovery | `RT2-S4`, PR4/PR5, rollback, movement-protection and recovery owners | add bounded scenario/terminal matrix and prove both failover and recovery close without stale routing residue |
+| production promotion and cleanup | existing OMP Production Promotion Matrix, safe deploy, truth/convergence and PR2/PR3 | reuse the existing ladder; require post-observation residue proof before finalization |
+| operational complexity and security | PR3/PR6/PR7, Complexity Budget, existing safety/Authority/deploy owners | measure net permanent runtime surface and privileged mutation boundaries; no new metrics or security owner |
+| exhaustive V7 engine coverage | PR2 responsibility audit, PR3 package boundary, PR7 final alignment | cover every in-scope engine component and close each with owner/layer/consumer/disposition; named legacy files are priority examples, not the audit boundary |
+| system-wide component interaction | PR2 relationship proof, Work Placement, Runtime/Decision models and PR7 alignment | extend function chains into one logical upstream/downstream dependency, shared-state, synchronization and failure-propagation projection |
+| durable analysis preservation | existing Engineering Report, generated evidence, Canonical Reference, SYSTEM_MAP and `FINAL_ARCHITECTURE_MAP` owners | preserve decision-relevant findings and final relationships without retaining raw dumps or creating a documentation framework |
+| reference-system code/component boundaries | M10 benchmark, `RT2-S6` Research/Fit Analysis and PR7 | compare responsibility and dependency principles, process/state/API boundaries and failure containment; never copy vendor layout or treat difference alone as a gap |
+
+Mandatory cross-cell contract area: `DEEP_ARCHITECTURE_SIMPLIFICATION_AND_AUTOMATIC_INTERNET_OPERATION_ALIGNMENT`. It is not an eighth PR cell, new stage lifecycle, Program, roadmap, Runtime, owner, registry, report family or execution authority. Each obligation is consumed by its mapped existing RT2 cell and cannot reorder `RT2-S1 -> RT2-S6` or `RT2-PR1 -> RT2-PR7`.
+
+Relationship and disposition contract:
+
+1. Audit scope is `ALL_V7_ENGINE_COMPONENTS`, not only autoswitch or named legacy. It includes every V7 deployable executable/library, Data Plane, Control Plane, Engineering Plane component that can influence Runtime or canonical engineering continuation, Routing Core, health/Matrix/quality, policy/capacity/Authority, assignment/state owner, apply/verify/rollback/recovery path, API/read model, CLI/subprocess entrypoint, systemd unit/timer, installer/deploy surface, configuration input, state writer/reader, fallback/legacy surface, and OMP/learning/replay boundary that could become a Runtime dependency. Repository data, generated outputs, tests and historical documents receive sufficient classification and consumer/disposition proof; runtime-level depth is required only when impact or an exact dependency justifies it. Exhaustive coverage does not require uniform depth.
+2. Every in-scope component and responsibility, including but not limited to `v7-users-autoswitch`, `v7-user-switch`, `v7_sync_lib.py`, operator execution, Packet/lease/barrier, planners, fallback, verification and synchronization surfaces, must resolve `COMPONENT, FILE, FUNCTION_OR_ENTRYPOINT, RESPONSIBILITY, OWNER, CALLER, CONSUMER, INPUT_STATE, OUTPUT_STATE, PRODUCT_EFFECT, SAFETY_EFFECT, AUTHORITY_EFFECT, CURRENT_PLANE, PRIMARY_OR_FALLBACK, DISPOSITION, REMOVAL_CONDITION, VALIDATION`.
+3. Allowed dispositions are `KEEP`, `MERGE`, `MOVE_TO_DATA_PLANE`, `MOVE_TO_CONTROL_PLANE`, `MOVE_TO_ENGINEERING_PLANE`, `LEGACY_EXCEPTION`, `REMOVE`, and `REWRITE`. File size is a discovery signal, never a disposition. `REWRITE` requires a proven correctness, safety, Product Contract or architecture-boundary gap.
+4. The real relationship projection must include static/dynamic callers, CLI entrypoints, imports, subprocesses, units, install/deploy paths, deployed binaries, state mutation, next consumer and terminal outcome. Coverage closes only when every discovered in-scope component has a disposition and every mutation-capable or production-relevant edge has a verified caller, consumer and effect; search exhaustion without this closure is insufficient.
+5. Every `LEGACY_EXCEPTION` must name its exact real caller/consumer, safety role, forbidden primary use, observable use, removal condition and owner-backed invalidation trigger. `FALLBACK_WITHOUT_REAL_CONSUMER_OR_REMOVAL_CONDITION = UNBOUNDED_LEGACY = FAIL`.
+
+PR2 audit hierarchy is mandatory and proceeds from ownership context toward the smallest behavior unit before any removal decision:
+
+```text
+REPOSITORY SCOPE
+  -> COMPONENT
+  -> FILE
+  -> MODULE / CLASS
+  -> FUNCTION / ENTRYPOINT
+  -> DEPENDENCY / CALLER
+  -> CONSUMER
+  -> STATE / SIDE EFFECT
+  -> PRODUCT OUTCOME
+  -> DISPOSITION
+```
+
+A file-level `KEEP` cannot implicitly keep every internal responsibility. Critical, mutation-capable, production, Authority, state-writing, fallback and suspected duplicate/orphan functions require function-level proof. Low-impact tests, generated helpers and historical renderers receive sufficient classification without uniform runtime-depth analysis.
+
+PR2 responsibility-conflict classifications:
+
+| Classification | Exact meaning | Required disposition evidence |
+| --- | --- | --- |
+| `ORPHAN_CODE_CANDIDATE` | no proven caller, consumer, state/safety effect or Product Contract effect | dynamic/deploy/test search plus removal-risk proof; never auto-delete from static search alone |
+| `RESPONSIBILITY_MIXING` | one unit combines responsibilities from different owners, planes or lifecycle stages | identify separable consumers/effects and prove whether `KEEP`, `SHRINK`, `MOVE` or `MERGE` reduces coupling |
+| `DUPLICATE_RESPONSIBILITY` | multiple units claim materially the same decision, health, policy, state, apply, verification or reporting responsibility | identify authoritative owner and all real consumers before consolidation |
+| `WRONG_ARCHITECTURAL_LAYER` | Data, Control or Engineering responsibility executes in a conflicting plane or forbidden synchronous path | prove the correct existing owner and transition without creating a new layer |
+| `HISTORICAL_RESIDUE` | code remains from a superseded path with no current required consumer/effect | prove terminal replacement, migration/rollback closure and residue cleanup |
+| `HIDDEN_RUNTIME_DEPENDENCY` | an undeclared import, CLI, subprocess, unit, startup, state or deploy edge affects Runtime | expose the edge, owner, failure behavior and keep/remove transition |
+| `MULTIPLE_STATE_WRITER` | more than one component can mutate the same state without an explicit fenced contract | identify canonical writer, legal exceptions, fencing and reconciliation |
+| `UNCONSUMED_OUTPUT` | a producer creates state/artifact/result with no proven next consumer | remove production or identify the legal consumer; reports alone are not Runtime consumers |
+| `INCOMPLETE_LIFECYCLE` | execution can stop between preparation, apply, verification, rollback, recovery or cleanup without a terminal disposition | close the successor/terminal path before simplification completes |
+
+For every classified unit PR2 records `PURPOSE, OWNER, LAYER, CALLERS, CONSUMERS, DEPENDENCIES, STATE_USED, STATE_PRODUCED, SIDE_EFFECT, PRODUCT_EFFECT, CONFLICT_CLASS, NECESSITY, TARGET_OWNER, FINAL_DISPOSITION, RISK, VALIDATION, REMOVAL_CONDITION`. Allowed final dispositions additionally include `SHRINK`, `ARCHIVE`, and `FUTURE_REVIEW`; the latter must carry an exact owner-backed recheck trigger and cannot conceal an unbounded legacy primary path.
+
+Physical simplification planning is a logical PR2 disposition ledger, not a new `V7_PHYSICAL_SIMPLIFICATION_PLAN` document or lifecycle. Each proposed change resolves:
+
+```text
+CURRENT_COMPONENT_AND_SIZE
+  -> CURRENT_RESPONSIBILITIES_AND_CONSUMERS
+  -> PROVEN_CONFLICT_OR_NO_GAP
+  -> TARGET_STATE_AND_EXISTING_OWNER
+  -> ACTION (REMOVE / MERGE / MOVE / SHRINK / KEEP)
+  -> RISK / AUTHORITY / FALLBACK
+  -> VALIDATION_AND_PROMOTION
+  -> CLEANUP_AND_REMOVAL_CONDITION
+```
+
+The ledger is stored in the existing PR2 Engineering Report or linked existing/generated evidence. It cannot authorize implementation; every mutation still follows the existing OMP Production Promotion Matrix and `PROGRAMMATIC_CHANGE_DELTA` reporting.
+
+System-wide dependency and interaction contract:
+
+```text
+COMPONENT
+  -> UPSTREAM PRODUCERS
+  -> DOWNSTREAM CONSUMERS
+  -> SYNCHRONOUS EDGES
+  -> ASYNCHRONOUS EDGES
+  -> SHARED STATE / WRITERS / READERS
+  -> PROCESS AND PRIVILEGE BOUNDARY
+  -> FAILURE PROPAGATION / CONTAINMENT
+  -> PRODUCT OUTCOME / TERMINAL STATE
+```
+
+The logical graph must reconcile function-level chains into the whole engine and detect duplicate responsibilities, circular dependencies, forbidden dependency direction, multiple writers, hidden synchronization, excessive synchronous depth, unnecessary fan-in/fan-out, orphan producers/consumers, Engineering Plane hot-path edges and failure propagation across component boundaries. File-local correctness cannot close a system interaction whose downstream consumer, state transition or failure terminal remains unproven.
+
+Analysis preservation contract:
+
+1. Raw search output, call dumps and intermediate matrices are temporary/generated evidence and need not become permanent documents.
+2. Decision-relevant findings must survive execution as `CONCLUSION, EVIDENCE_BASIS, AFFECTED_COMPONENTS_AND_EDGES, OWNER, DISPOSITION, RESIDUAL, REMOVAL_OR_RECHECK_TRIGGER, NEXT_ACTION` in the single phase/closure Engineering Report or an existing linked evidence artifact.
+3. Accepted current component ownership, plane placement, production boundary and final dependency direction update existing `FINAL_ARCHITECTURE_MAP`, SYSTEM_MAP or Canonical Reference only when reality changed. Historical rationale remains in Engineering Reports; volatile runtime facts remain with CPS/Runtime owners.
+4. The final accepted relationship projection must be reproducible from current code/deploy evidence or linked generated evidence. It cannot exist only in chat, temporary terminal output or an unreferenced local file.
+5. `REPORT_DEPTH_WITHOUT_REPORT_BLOAT` remains controlling: preserve decisions and traceability, not repeated summary/matrix/graph/table/appendix renderings of the same knowledge.
+
+Programmatic change reality contract:
+
+Every Engineering Report that records an implementation, deletion, move, merge, rewrite, package change or deployed-behavior change must contain one concise `PROGRAMMATIC_CHANGE_DELTA` section. It reuses Git, package/deploy evidence and the accepted relationship projection; it is not a separate report, registry, generator or audit layer.
+
+The section must separate program code from documentation, tests, generated/data and configuration/unit surfaces and report exact `BEFORE -> AFTER -> DELTA` where the comparison is mechanically provable:
+
+| Required metric | Reporting rule |
+| --- | --- |
+| program source LOC | added, deleted and net LOC; identify the included production/runtime/control/engineering source paths |
+| documentation/report LOC | added, deleted and net LOC separately; never count report growth as program implementation |
+| test LOC | added, deleted and net LOC separately |
+| generated/data LOC | separate or excluded with the exact rule |
+| files | added, modified, deleted, moved/renamed, archived and runtime-excluded counts plus exact paths for deletion/move/runtime exclusion |
+| functions/classes/entrypoints | added, removed, moved, merged and materially changed counts; name every removed/moved public or mutation-capable entrypoint |
+| dependency/relationship edges | added, removed and changed caller/import/subprocess/unit/startup/producer-consumer/state edges; identify endpoints and whether the edge is synchronous, asynchronous, runtime, fallback or engineering-only |
+| state ownership | writers/readers/state surfaces added, removed, merged or retained |
+| runtime package | deployed binaries, services, timers, daemons, startup dependencies and privileged commands added/removed/changed |
+| routing surface | writers, planners, rules, tables, nft objects and other kernel/runtime routing objects added/removed/changed |
+| legacy surface | physical removal, logical exclusion, runtime exclusion and retained fallback reported separately |
+
+`PROGRAM_SOURCE_CHANGE` and `DOCUMENTATION_EVIDENCE_CHANGE` must never be merged into one LOC number. A report-only change must say `PROGRAMMATIC_CODE_EFFECT = NONE`. Runtime exclusion must not be counted as file or LOC deletion. Rename/move must not be counted as removal plus addition when Git or equivalent evidence resolves identity.
+
+Relationship-edge delta may be numeric only when both boundaries use the same extraction rule and scope. Otherwise report exact added/removed/changed edges and mark the aggregate count `NOT_PROVEN`; never infer relationship shrink from LOC or file count. Every claimed removed dependency must be checked across static imports, dynamic loading, CLI/subprocess, units/startup, deploy/install, state producer/consumer and production binary reality.
+
+Minimum report block:
+
+```text
+PROGRAMMATIC_CHANGE_DELTA
+
+Program source LOC: BEFORE -> AFTER -> DELTA
+Documentation/report LOC: BEFORE -> AFTER -> DELTA
+Test LOC: BEFORE -> AFTER -> DELTA
+Files added / modified / deleted / moved / runtime-excluded
+Functions/classes/entrypoints added / removed / moved / merged / changed
+Dependency edges added / removed / changed
+State writers/readers/surfaces added / removed / merged / retained
+Runtime units/process/package delta
+Routing object/writer/planner delta
+Legacy physical removal vs logical/runtime exclusion
+Unproven metrics and exact reason
+```
+
+The phase report remains compact by linking detailed diffs or generated projections when necessary. The decision report must retain totals, material identities, evidence basis and residuals; copying the complete raw diff into multiple artifacts is forbidden.
+
+Reference-system code and component boundary comparison:
+
+1. Through the existing Research/Fit Analysis owner, compare Junos, IOS XR, FRRouting and Linux principles for module responsibility, dependency direction, control/dataplane interface, process isolation, state/configuration ownership, transactional programming, verification, restart behavior and failure containment. Cloudflare-style health/failover practices may be used only as an applicable reference for distributed observation, health confidence, failover and recovery; they are not authority for V7 routing architecture or code layout.
+2. For each applicable principle resolve `REFERENCE_PRINCIPLE -> WHY_IT_EXISTS -> V7_EQUIVALENT_RESPONSIBILITY -> CURRENT_V7_IMPLEMENTATION_AND_EDGE -> MATERIAL_GAP_OR_NO_GAP -> MINIMAL_CHANGE_OR_KEEP`.
+3. Reference code layout, daemon count, naming, protocol topology and packaging are not V7 requirements. `REFERENCE_DIFFERENCE_WITHOUT_CORRECTNESS_SAFETY_PRODUCT_PERFORMANCE_OWNERSHIP_OR_COMPLEXITY_GAP = KEEP_OR_NO_CHANGE`.
+4. Comparison findings must feed the same PR2/PR7 dispositions and existing canonical owners; they cannot create a vendor-emulation layer, new abstraction, owner, roadmap or separate benchmark artifact by default.
+
+Closed routing and user-outcome contract:
+
+```text
+OBSERVE
+  -> CLASSIFY HEALTH
+  -> SELECT PATH
+  -> VALIDATE CAPACITY / POLICY / AUTHORITY
+  -> APPLY
+  -> VERIFY KERNEL
+  -> VERIFY REAL TRAFFIC
+  -> STABILIZE
+  -> RECOVER OR ROLLBACK
+  -> CLEANUP
+  -> RECORD TERMINAL OUTCOME
+```
+
+Every edge must name owner, input, output, consumer, state mutation, timeout, retry/idempotency boundary, failure disposition and exact successor. Ownerless intermediate state, output without consumer, infinite retry, partial apply without terminal disposition, an unjoined old/new lifecycle, or action outside existing Authority is `FAIL`.
+
+`USER_CONNECTIVITY_OUTCOME = ROUTE_SELECTED + ROUTE_APPLIED + KERNEL_STATE_CONFIRMED + REAL_TRAFFIC_CONFIRMED + REQUIRED_SERVICES_AVAILABLE + RESULT_STABLE`. Inside an already admitted production scope, proof must include actual egress plus applicable DNS, TCP/TLS/required-service availability, isolation, acceptable loss/latency and stable outcome. Test pass, command success, report, deploy or kernel-object presence alone cannot prove this outcome.
+
+Failure/recovery coverage must include full and partial egress failure, transport/service disagreement, stale health/assignment/Policy/Authority, nft/kernel divergence, process death between apply and verify, restart during transition, concurrent attempts, target capacity loss, all-egress failure, rollback failure, repeated recovery failure and correct routing with failed user traffic. Each applicable scenario terminates as `RECOVERED`, `ROLLED_BACK`, `STOP_SAFE`, `DEGRADED_BUT_STABLE` or `OPERATOR_REQUIRED`; unsupported synthetic substitution cannot close a real-production gate.
+
+Recovery is symmetric:
+
+```text
+OLD_PATH_FAILED
+  -> NEW_PATH_ADMITTED
+  -> USERS_MOVED
+  -> REAL_TRAFFIC_VERIFIED
+  -> OLD_PATH_RECOVERED
+  -> RECOVERY_ADMISSION
+  -> CONTROLLED_RETURN_OR_STICKY_RETENTION
+  -> OBSOLETE_STATE_REMOVED
+  -> TERMINAL_STATE
+```
+
+Existing hysteresis, cooldown, observation, capacity, anti-flap, assignment and movement-protection owners remain authoritative. Completion requires no double assignment and no obsolete rule, table, mark, lock, lease or process.
+
+Measurement, promotion and cleanup contract:
+
+1. `PRE_MUTATION_BASELINE` is a mandatory `RT2-PR1`/existing `RT2-S1`-owner output before any PR2/PR3 mutation. It freezes definitions and current measurements for files/package/runtime/routing/state/legacy surface plus detection, decision, policy/Authority gate, apply, kernel visibility, real-traffic recovery, warm failover, convergence, loss, failed/false switch, rollback, flap, operator-intervention, unavailable-route, CPU, memory, subprocess and state growth. PR4 compares AFTER with this exact baseline. Preserve `p95 < 3 s`, the existing `5 s` ceiling and compatible warm path `<1 s`; absent equivalent baseline is `NOT_PROVEN`, never reconstructed from intent. PR2/PR3 mutation is blocked until `PRE_MUTATION_BASELINE_CAPTURED`.
+2. Any future mutation uses the existing OMP Production Promotion Matrix: `READ_ONLY_ANALYSIS -> TEST -> REPLAY/POLYGON -> EFFECT_FREE_SHADOW -> ONE_CONTROLLED_USER -> BOUNDED_COHORT -> PRODUCTION_CANARY -> FULL_COMPATIBLE_POPULATION -> OBSERVATION_WINDOW -> CLEANUP -> FINALIZE`. Each admitted step retains scope, blast radius, Authority, rollback, evidence, stop and successor gates; this contract admits no step itself.
+3. `NO_DANGLING_LEGACY_RESIDUE_CHECK` covers callers, imports, CLI/subprocess references, units, timers, installers, allowlists, binaries, config/environment, files/locks/leases, nft/ip state, processes, dashboards, monitoring, tests, fallback and obsolete current-looking documents. It passes only when the new consumer is live, the old producer no longer produces an effect, old state is cleaned, rollback/recovery remains intact and no hidden primary path remains.
+4. Physical comparison reports `BEFORE -> AFTER -> DELTA` for files, LOC by plane/package class, deployed binaries, active units/processes, startup/import/privileged dependencies, writers, planners, state surfaces, kernel objects and named legacy. `PHYSICAL_REMOVAL`, `LOGICAL_EXCLUSION`, `RUNTIME_EXCLUSION`, `MOVED_RESPONSIBILITY` and `ADDED_COMPLEXITY` remain distinct.
+5. `NET_OPERATIONAL_COMPLEXITY_NOT_INCREASED` evaluates runtime LOC, active processes/timers, mutation-capable components, synchronous dependencies, states/writers, privileged commands, configuration inputs, deployed files, routing cardinality, legacy exceptions and permanent artifact machinery. No physical shrink is acceptable only with consumer/safety/minimality proof; audit/report machinery cannot grow merely to restate existing knowledge.
+6. Existing safety/Authority/deploy owners verify least privilege, injection boundaries, atomic/fail-closed apply, deployed identity, user isolation/no route leak, freshness, idempotency, single-writer fencing, partial-apply recovery and restart recovery. This creates no Security owner or framework.
+
+Evidence-class boundary:
+
+| Evidence class | Legal use | Cannot prove |
+| --- | --- | --- |
+| `CONTROLLED_FAULT_INJECTION_EVIDENCE` | test/replay/Polygon or explicitly authorized bounded fault injection for technical behavior, invariants, rollback, restart and rare failure branches | natural-event occurrence, ordinary production consumption, full-population safety or Production Authority |
+| `REAL_PRODUCTION_OUTCOME_EVIDENCE` | ordinary or explicitly authorized production observation for real caller, consumer, traffic, stability, recovery and user outcome | unobserved rare failure branches |
+| `NATURAL_PRODUCTION_EVIDENCE` | closes only a gate that explicitly requires an independent natural event | may never be manufactured, scheduled or replaced by controlled injection |
+
+Each gate declares its required evidence class. Controlled evidence may prove algorithmic correctness while real production evidence proves admitted consumption; neither silently substitutes for the other. A missing natural event yields `REAL_WORLD_LIMIT` with exact reentry, not synthetic closure or a global audit restart.
+
+Completion-gate production matrix:
+
+| Completion gate | Producer | Consumer / successor |
+| --- | --- | --- |
+| `PRE_MUTATION_BASELINE_CAPTURED` | PR1 using existing S1/measurement owners | PR2 and all later before/after comparisons |
+| `EXHAUSTIVE_V7_ENGINE_COMPONENT_COVERAGE_PASS`, `V7_REAL_CODE_RELATIONSHIP_GRAPH_COMPLETE`, `SYSTEM_WIDE_DEPENDENCY_INTERACTION_GRAPH_COMPLETE`, `RESPONSIBILITY_AUDIT_COMPLETE` | PR2 | PR3 package simplification and PR7 drift protection |
+| `REFERENCE_SYSTEM_COMPONENT_BOUNDARY_COMPARISON_COMPLETE` | PR2 consuming existing S6 Research/Fit Analysis; finalized by PR7 | owner-backed disposition and final alignment |
+| `DECISION_RELEVANT_ANALYSIS_PRESERVED` | each changing PR cell; reconciled by PR7 | canonical/architecture synchronization and graduation |
+| `PROGRAMMATIC_CHANGE_DELTA_RECORDED` | every mutation-capable PR cell report; reconciled by PR3 physical package evidence and PR7 | next cell and graduation; report-only cells use explicit `PROGRAMMATIC_CODE_EFFECT = NONE` |
+| `CLOSED_ROUTING_LIFECYCLE_PASS`, `REAL_USER_CONNECTIVITY_OUTCOME_CONFIRMED` | PR1 with S2-S4/routing/product verification owners | PR4/PR5 and final readiness |
+| `NO_DANGLING_LEGACY_RESIDUE_PASS` | PR2 for component changes and PR3 for package/deploy changes, finalized after observation | PR4 and graduation |
+| `AUTOMATIC_ROUTING_SLO_CONFIRMED` | PR4 | PR5/PR6 and final readiness |
+| `FAILURE_RECOVERY_MATRIX_PASS`, `FAILOVER_RECOVERY_LIFECYCLE_CLOSED` | PR4 technical/latency evidence plus PR5 health/admission evidence | PR6 and final readiness |
+| `NET_OPERATIONAL_COMPLEXITY_NOT_INCREASED` | PR3 physical surface baseline/delta plus PR6 scale/cost validation | PR7 and graduation |
+| `ROUTING_SECURITY_AND_ISOLATION_PASS` | PR1 path proof, PR3 deployed boundary and PR5 admission proof through existing safety/Authority owners | PR7 and final readiness |
+| `FINAL_IMPLEMENTATION_ARCHITECTURE_ALIGNMENT_PASS` | PR7 using all prior cell terminals | readiness classification |
+| `AUTOMATIC_INTERNET_OPERATION_READY` | RT2 graduation reconciliation | `STEADY_STATE_OPERATIONS` only at the exact readiness/Authority level below |
+
+Automatic-operation readiness levels are distinct effects, not aliases:
+
+| Level | Meaning | Runtime / Authority consequence |
+| --- | --- | --- |
+| `AUTOMATIC_INTERNET_ENGINEERING_READY` | implementation, controlled evidence, cleanup and required owner checks are complete | no Runtime or Production enablement; Authority may remain ungranted |
+| `AUTOMATIC_INTERNET_AUTHORITY_READY` | the existing Authority owner has accepted the exact action class, blast radius, policy and rollback envelope | readiness only; does not prove deployed/consumed production behavior |
+| `AUTOMATIC_INTERNET_PRODUCTION_ENABLED` | exact approved scope is safely deployed, consumed, truth/convergence verified and observed | automatic operation only inside the accepted Authority scope |
+
+`AUTOMATIC_INTERNET_OPERATION_READY` records the strongest fully proven level and may not imply a stronger one. Engineering-ready with Authority ungranted is a legal bounded terminal classification, but full profile graduation to automated `STEADY_STATE_OPERATIONS` requires `AUTOMATIC_INTERNET_PRODUCTION_ENABLED`; otherwise the residual remains owner-mapped and no automation is enabled.
 
 | Cell | Intent and required evidence | Existing owners | Completion terminal | Successor / residual |
 | --- | --- | --- | --- | --- |
@@ -9406,8 +9653,12 @@ Execution laws:
 4. Legacy removal requires proven current path and consumers, intact rollback/recovery and cleanup of imports, units, config, state and document tails.
 5. Runtime self-optimization, synthetic natural evidence, Core v2, new Planner, new Health system, new audit framework, OMP in Runtime and Reset expansion are forbidden.
 6. `CREATE` remains last and still requires Architecture Closed by Default plus New Owner Gate proof.
+7. `NO_TRANSITION_WITHOUT_TERMINAL_CLOSURE`; the end of an old lifecycle and start of its replacement must be joined by consumer and cleanup proof.
+8. `NO_REMOVAL_WITHOUT_CONSUMER_AND_RESIDUE_PROOF`; logical or runtime exclusion is never reported as physical deletion.
+9. `NO_AUTOMATION_WITHOUT_REAL_TRAFFIC_VERIFICATION`; existing Authority, Product Contract and real-world evidence gates remain mandatory.
+10. `NO_SIMPLIFICATION_THAT_WEAKENS_REQUIRED_BEHAVIOR_OR_SAFETY`; vendor similarity and LOC reduction are never independent success criteria.
 
-Completion requires all seven cell terminals, real owner/consumer/production evidence where applicable, final OMP/CPS/canonical reconciliation and explicit transition to `STEADY_STATE_OPERATIONS`.
+Completion requires all seven cell terminals, real owner/consumer/production evidence where applicable, final OMP/CPS/canonical reconciliation and explicit transition to `STEADY_STATE_OPERATIONS`. It additionally requires `EXHAUSTIVE_V7_ENGINE_COMPONENT_COVERAGE_PASS`, `V7_REAL_CODE_RELATIONSHIP_GRAPH_COMPLETE`, `SYSTEM_WIDE_DEPENDENCY_INTERACTION_GRAPH_COMPLETE`, `RESPONSIBILITY_AUDIT_COMPLETE`, `REFERENCE_SYSTEM_COMPONENT_BOUNDARY_COMPARISON_COMPLETE`, `DECISION_RELEVANT_ANALYSIS_PRESERVED`, `PROGRAMMATIC_CHANGE_DELTA_RECORDED`, `CLOSED_ROUTING_LIFECYCLE_PASS`, `REAL_USER_CONNECTIVITY_OUTCOME_CONFIRMED`, `AUTOMATIC_ROUTING_SLO_CONFIRMED`, `FAILURE_RECOVERY_MATRIX_PASS`, `FAILOVER_RECOVERY_LIFECYCLE_CLOSED`, `NO_DANGLING_LEGACY_RESIDUE_PASS`, `NET_OPERATIONAL_COMPLEXITY_NOT_INCREASED`, `ROUTING_SECURITY_AND_ISOLATION_PASS`, `FINAL_IMPLEMENTATION_ARCHITECTURE_ALIGNMENT_PASS`, and `AUTOMATIC_INTERNET_OPERATION_READY`. Any required `NOT_PROVEN` criterion remains open.
 
 Profile terminal: `RT2_POST_RESET_RUNTIME_MATURITY_AND_OPTIMIZATION_COMPLETE`.
 

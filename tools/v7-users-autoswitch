@@ -1713,6 +1713,7 @@ def availability_first_action_class_context(
 def action_class_contract_reconciliation_request(
     plan: dict[str, Any], *, policy_path: Path,
     availability_first_context: Optional[dict[str, Any]] = None,
+    active_program: str = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
 ) -> dict[str, Any]:
     """Produce the next existing-owner input after an Authority STOP_SAFE.
 
@@ -1774,7 +1775,7 @@ def action_class_contract_reconciliation_request(
         current_contract_valid = False
         contract_required = True
     template = {
-        "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+        "active_program": str(active_program or ""),
         "action_class": "GOVERNED_ONLY",
         "max_authority_class": str(authority_gate.get("certified_authority_class") or "CANARY"),
         "authority_ceiling": str(authority_gate.get("certified_authority_class") or "CANARY"),
@@ -22463,6 +22464,11 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     request = action_class_contract_reconciliation_request(
         plan, policy_path=Path(args.policy_file),
         availability_first_context=availability_context,
+        active_program=(
+            "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+            if bool_value(getattr(args, "routing_core_certification", False))
+            else "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+        ),
     )
     snapshot_gate = ((plan.get("safety") or {}).get("intelligence_snapshots") or {})
     refresh = snapshot_gate.get("pre_planner_refresh") if isinstance(snapshot_gate, dict) else {}

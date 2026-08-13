@@ -124,7 +124,7 @@ def core_primary_apply() -> dict:
     for row in classes:
         user_elements.extend(f"{ip} : 0x{row['mark']:x}" for ip in row["members"])
         class_elements.append(f"0x{row['mark']:x} : 0x{row['mark']:x}")
-    lines.extend([f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {', '.join(user_elements)} }}", f"add element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {', '.join(class_elements)} }}", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" meta mark set ip saddr map @user_class", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" meta mark set meta mark map @class_egress"])
+    lines.extend([f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {', '.join(user_elements)} }}", f"add element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {', '.join(class_elements)} }}", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" counter meta mark set ip saddr map @user_class", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" counter meta mark set meta mark map @class_egress"])
     # Removing a missing table is allowed only as the first command through a
     # separate idempotent operation; the apply transaction itself is atomic.
     run(["nft", "delete", "table", NFT_FAMILY, NFT_TABLE])
@@ -175,7 +175,15 @@ def main() -> int:
     lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
     with lock_path.open("a+") as handle:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        result = core_primary_apply() if args.core_primary_apply else core_primary_fallback() if args.core_primary_fallback else verify() if args.core_primary_verify else legacy_sync()
+        if args.core_primary_apply:
+            result = core_primary_apply()
+        elif args.core_primary_fallback:
+            result = core_primary_fallback()
+        elif args.core_primary_verify:
+            result = verify()
+        else:
+            authority_ok, _ = exact_reset_authority(POLICY)
+            result = core_primary_apply() if authority_ok else legacy_sync()
     print(json.dumps(result, sort_keys=True) if args.json else json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("status", "").endswith("PASS") else 2
 

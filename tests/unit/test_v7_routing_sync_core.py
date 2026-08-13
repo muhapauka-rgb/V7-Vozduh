@@ -16,6 +16,8 @@ class RoutingSyncCoreTests(unittest.TestCase):
         self.assertIn("core_primary_fallback", source)
         self.assertIn("meta mark set ip saddr map @user_class", source)
         self.assertIn("meta mark set meta mark map @class_egress", source)
+        self.assertIn("counter meta mark set ip saddr map @user_class", source)
+        self.assertIn("result = core_primary_apply() if authority_ok else legacy_sync()", source)
 
     def test_script_parses(self):
         loader = importlib.machinery.SourceFileLoader("v7_routing_sync_core", str(SCRIPT))

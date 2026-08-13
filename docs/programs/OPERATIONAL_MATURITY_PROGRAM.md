@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.72`
+Version: `4.73`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -16,6 +16,7 @@ This program defines how V7 resolves the current system state, highest bottlenec
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
+Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_370000_rt2_post_reset_operating_profile_contract.md` (`RT2_POST_RESET_OPERATING_PROFILE_CONTRACT_READY_NOT_ADMITTED`).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
@@ -9353,6 +9354,64 @@ RT2 Program Integration: `CANONICALIZED_DOCS_ONLY`.
 RT2 implementation: `FUTURE_NOT_ACTIVE`.
 
 Current practical next OMP step: `A5_CERTIFY_CLASS_LEVEL_BLAST_RADIUS_EVIDENCE_BEYOND_ONE_USER_GUARD`.
+
+### 28.9 RT2 Post-Reset Operating Profile
+
+Status: `CONTRACT_READY_NOT_ADMITTED`.
+
+Canonical owner: existing `Runtime Capability Maturation Program / RT2` inside OMP. This profile is not `V7_POST_RESET_RUNTIME_MATURITY_AND_OPTIMIZATION_PROGRAM_V1`, Reset 2.0, a new Program, phase family, architecture, Core, Planner, Health system, audit framework, owner, CPS, Runtime, queue, state surface or truth source.
+
+Predecessor evidence: Reset terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`; `FINAL_ARCHITECTURE_MAP` through Canonical Reference/SYSTEM_MAP; and `POST_RESET_REALITY_CHECK_COMPLETE`.
+
+Development successor relationship:
+
+```text
+V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE
+  -> OMP admission/reconciliation
+  -> RT2_POST_RESET_OPERATING_PROFILE
+  -> STEADY_STATE_OPERATIONS
+```
+
+This is a contract edge, not the live CPS frontier. RT2 may become active only when the existing OMP/CPS dependency and capability registry admits it without displacing protected WIP or fabricating natural evidence. Until admission, execution, Runtime, Production and Authority effects are `NONE`.
+
+Purpose: mature the accepted architecture against real operation and reduce only unnecessary residual surface. Architecture meaning, Routing Core boundaries and routing capabilities remain unchanged. Controlling question: `HOW_WELL_DOES_THE_PROVEN_ARCHITECTURE_MATCH_REAL OPERATION, AND HOW_LITTLE UNNECESSARY SURFACE REMAINS?`
+
+Existing capability discovery disposition:
+
+| Requested scope | Existing owner | Reuse disposition |
+| --- | --- | --- |
+| post-reset production reality | `RT2-S1`, Runtime Model, truth/convergence, M10 reality evidence | extend measurement/production-consumption evidence |
+| runtime maturity and package boundary | `RT2-S1`, `RT2-S2`, Work Placement, existing deploy/package owners | reuse and classify; no package framework |
+| optimization and legacy reduction | `RT2-S6`, Necessity Certification, Product Evolution Review, component owners | owner-mapped recommendation before mutation |
+| latency and recovery performance | Runtime Time Intelligence under `RT2-S1`/`RT2-S6`, Time owners | reuse existing spans and M6/M7 gates |
+| channel admission hardening | existing `CHANNEL_HEALTH_MODEL`, Matrix/quality/capacity/policy owners | extend existing admission evidence only |
+| 10k+/50+ scale validation | Production Scale First, Product Scale Model, existing M7/Polygon owners | targeted revalidation only on exact invalidator |
+| architecture drift protection | Architecture Closed by Default, New Owner Gate, Necessity Certification, canonical owners | strengthen the existing permanent gate |
+
+| Cell | Intent and required evidence | Existing owners | Completion terminal | Successor / residual |
+| --- | --- | --- | --- | --- |
+| `RT2-PR1 PRODUCTION_REALITY_VALIDATION` | Observe an ordinary real path through class membership, nft mark, selected class table, egress and verification; recovery only through an already lawful event. Reuse M8/M9 proof; do not create synthetic traffic or movement for evidence. | routing/kernel verification, truth/convergence, Assignment, production observation | `REAL_TRAFFIC_PATH_CONFIRMED` | PR2; otherwise `REAL_WORLD_LIMIT` with exact observation reentry |
+| `RT2-PR2 LEGACY_SURFACE_REDUCTION` | For sync library, autoswitch, user-switch, Packet/lease/barrier and fallback prove caller, consumer, product/safety effect and lifecycle before `KEEP`, `SHRINK`, `ARCHIVE`, `DELETE` or `FUTURE_REVIEW`. File size is never the verdict. | component, safety, Authority, fallback and Necessity owners | `LEGACY_SURFACE_REDUCTION_PASS` | PR3; exact exception/removal blocker |
+| `RT2-PR3 RUNTIME_PACKAGE_SIMPLIFICATION` | Reconcile deployed package into `runtime_required`, `engineering_only`, `fallback_only`, `historical`; prove no OMP, report, learning or history primary dependency. | deploy/package, Runtime Model, Work Placement, truth owners | `RUNTIME_PACKAGE_MINIMAL_PASS` | PR4; exact package/dependency mismatch |
+| `RT2-PR4 ROUTING_PERFORMANCE_VALIDATION` | Measure Failure Detection, Decision, Apply, Kernel Visibility and Recovery, including process, lock, read, write, subprocess and latency costs. Preserve initial `p95 < 3 s`, `5 s` ceiling and compatible warm-path `<1 s`; do not redefine clocks or repeat proven samples absent invalidation. | Time/Runtime Model, `RT2-S1`, routing/verification, Production Maturity | `ROUTING_LATENCY_BASELINE_CONFIRMED` | PR5; failed/unproven span or real-world wait |
+| `RT2-PR5 CHANNEL_HEALTH_HARDENING` | Reuse `CHANNEL_HEALTH_MODEL`; validate freshness, stability, confidence, flap prevention and admission quality across Transport, Service, Traffic Quality and Capacity Health. | Matrix, quality, capacity, policy, movement-protection, admission | `CHANNEL_ADMISSION_MODEL_STABLE` | PR6; exact stale/unstable criterion |
+| `RT2-PR6 SCALE_VALIDATION` | Validate 10k+ users and 50+ egresses for latency, CPU, memory and state growth with no O(N) registry rewrite, per-user primary routing objects or global synchronous reconciliation. Reuse M7 evidence unless invalidated. | Product Scale Model, Production Scale First, Polygon/M7/runtime measurement | `SCALE_BOUNDARY_CONFIRMED` | PR7; invalidated dimension or scale limit |
+| `RT2-PR7 ARCHITECTURE_DRIFT_PROTECTION` | For each admitted change prove `SEARCH EXISTING -> REUSE -> MERGE -> SIMPLIFY -> ONLY THEN CREATE`, including owner, state, dependency and synchronous Runtime operation checks. | Architecture Closed by Default, New Owner Gate, Necessity, canonical owners | `ARCHITECTURE_DRIFT_PROTECTION_ACTIVE` | graduation; fundamental gap routes to existing OMP gate |
+
+Execution laws:
+
+1. `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER`; completed Reset, M7 and post-reset evidence are inputs, not work to recreate.
+2. Each cell advances only after predecessor consumption, except independent read-only observation that cannot touch protected WIP, Authority, Runtime or natural-evidence lanes.
+3. Every mutation requires a separately admitted existing OMP Mission and affected-owner tests, safe deploy, production verification, report, canonical update and CPS lifecycle. This profile grants none.
+4. Legacy removal requires proven current path and consumers, intact rollback/recovery and cleanup of imports, units, config, state and document tails.
+5. Runtime self-optimization, synthetic natural evidence, Core v2, new Planner, new Health system, new audit framework, OMP in Runtime and Reset expansion are forbidden.
+6. `CREATE` remains last and still requires Architecture Closed by Default plus New Owner Gate proof.
+
+Completion requires all seven cell terminals, real owner/consumer/production evidence where applicable, final OMP/CPS/canonical reconciliation and explicit transition to `STEADY_STATE_OPERATIONS`.
+
+Profile terminal: `RT2_POST_RESET_RUNTIME_MATURITY_AND_OPTIMIZATION_COMPLETE`.
+
+Contract effects: Runtime effects = `NONE`; Production effects = `NONE`; Authority effects = `NONE`.
 
 ## 29. Master OMP Completeness Certification
 

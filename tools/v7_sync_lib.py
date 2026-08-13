@@ -2240,12 +2240,15 @@ def delegated_policy_live_state_consistency(
             )
         )
     )
+    rs_read_only_stage = _plain_live_value(live, "CURRENT_PROGRAM_STAGE")
     rs0_read_only_frontier = (
         _plain_live_value(live, "ACTIVE_PROGRAM")
         == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-        and _plain_live_value(live, "CURRENT_PROGRAM_STAGE")
-        == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+        and rs_read_only_stage in {
+            "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+            "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
+        }
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2655,8 +2658,10 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     live.get("ACTIVE_PROGRAM", "").strip("`")
                     == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
                     and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-                    and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
-                    == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+                    and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in {
+                        "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+                        "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
+                    }
                 )
             )
             else
@@ -2751,12 +2756,15 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
                 and program_frontier.startswith("EXECUTE_RESET_")
             )
+            rs_read_only_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
             rs0_frontier = (
                 live.get("ACTIVE_PROGRAM", "").strip("`")
                 == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
                 and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-                and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
-                == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+                and rs_read_only_stage in {
+                    "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+                    "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
+                }
             )
             reset_authority_frontier = (
                 reset_frontier
@@ -2827,7 +2835,10 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 if not program_terminal_state.startswith("RESET_"):
                     errors.append("program_frontier_terminal_state_invalid")
             elif rs0_frontier:
-                if program_terminal_state != "NONE_RS0_ADMITTED":
+                if program_terminal_state != {
+                    "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION": "NONE_RS0_ADMITTED",
+                    "RS1_RESPONSIBILITY_REALIGNMENT_MAP": "NONE_RS1_ADMITTED",
+                }.get(rs_read_only_stage):
                     errors.append("program_frontier_terminal_state_invalid")
             elif bounded_continue_omp_frontier:
                 pass
@@ -22906,9 +22917,12 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             "errors": [],
         }
     if live.get("ACTIVE_PROGRAM", "").strip("`") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1":
+        rs_read_only_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
         rs0_active = all((
-            live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
-            == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+            rs_read_only_stage in {
+                "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+                "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
+            },
             live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith(
                 "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_"
             ),
@@ -22923,9 +22937,9 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
             "heartbeat_status": heartbeat_status,
             "automation_enabled": heartbeat_active,
-            "mission_completion_evidence_gate_status": "RS0_READ_ONLY_ADMISSION_PENDING_CONSUMPTION" if rs0_active else "FAIL",
+            "mission_completion_evidence_gate_status": f"{rs_read_only_stage}_READ_ONLY_ADMISSION_PENDING_CONSUMPTION" if rs0_active else "FAIL",
             "current_completion_contract": "ANALYSIS_COMPLETION",
-            "current_completion_verdict": "RS0_PREPARED_NOT_ACTIVE" if rs0_active else "FAIL",
+            "current_completion_verdict": f"{rs_read_only_stage}_PREPARED_NOT_ACTIVE" if rs0_active else "FAIL",
             "completion_gate": {},
             **calls,
             "errors": [] if rs0_active else ["rs0_read_only_admission_projection_invalid"],
@@ -23286,6 +23300,7 @@ def cps_live_state_consistency(
     } != {transition}:
         errors.append("cps_transition_divergence")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+    rs_read_only_stage = live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
     reset_program_frontier = (
         live.get("ACTIVE_PROGRAM", "").strip("`")
@@ -23303,8 +23318,10 @@ def cps_live_state_consistency(
         live.get("ACTIVE_PROGRAM", "").strip("`")
         == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
-        and live.get("CURRENT_PROGRAM_STAGE", "").strip("`")
-        == "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION"
+        and rs_read_only_stage in {
+            "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION",
+            "RS1_RESPONSIBILITY_REALIGNMENT_MAP",
+        }
     )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (

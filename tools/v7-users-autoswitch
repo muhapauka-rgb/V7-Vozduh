@@ -3604,16 +3604,18 @@ class AutoswitchPlanner:
             return result
         authority_gate = ((plan.get("safety") or {}).get("authority_budget_gate") or {})
         action_contract = authority_gate.get("current_action_class_contract") or {}
-        authority_generation = str(
-            action_contract.get("contract_id")
-            or getattr(self.args, "approved_authority_generation", "")
-            or ""
-        )
-        if not authority_generation:
+        authority_generation = str(action_contract.get("contract_id") or "")
+        contract_program = str(action_contract.get("active_program") or "")
+        strict_contract = ((action_contract.get("provenance") or {}).get("strict_provenance_contract") is True)
+        if (
+            not authority_generation
+            or contract_program != "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+            or not strict_contract
+        ):
             result = {
                 "schema_version": "v7.routing-core-certification-binding.v1",
                 "status": "STOP_SAFE",
-                "blockers": ["core_certification_owner_authority_generation_missing"],
+                "blockers": ["core_certification_exact_reset_owner_contract_required"],
                 "runtime_mutation": False,
                 "writer_changed": False,
             }
@@ -22530,6 +22532,7 @@ def routing_core_certification_authority_request_only(args: argparse.Namespace) 
     source_material = {
         "users_registry": sha256_file(state_dir / "users.registry"),
         "egress_registry": sha256_file(state_dir / "egress.registry"),
+        "service_preferences": sha256_file(state_dir / "service-preferences.json"),
         "policy": sha256_file(policy_path),
         "org_policy": sha256_file(Path(args.org_policy_file)),
     }
@@ -22541,9 +22544,33 @@ def routing_core_certification_authority_request_only(args: argparse.Namespace) 
     if not all(source_material.values()) or not all(snapshot_material.values()):
         blockers.append("core_certification_owner_generation_missing")
     generation = sha256_json(source_material)
+    from admin_core.intelligence_snapshots import read_snapshot_bundle
+    snapshot_results = read_snapshot_bundle(
+        Path(args.intelligence_snapshot_root),
+        list(RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES),
+    )
+    snapshot_source_hashes = {
+        str(name): dict(result.payload.get("source_hashes") or {})
+        for name, result in sorted(snapshot_results.items())
+        if isinstance(result.payload, dict)
+        and isinstance(result.payload.get("source_hashes"), dict)
+    }
+    contract_source_bundle_hash = sha256_json({
+        "planner_generation_id": generation,
+        "source_hashes": snapshot_source_hashes,
+    })
+    contract_snapshot_bundle_hash = sha256_json({
+        str(name): {
+            "path": str(result.path),
+            "source_hashes": dict(result.payload.get("source_hashes") or {}),
+            "validation_ok": bool(result.validation.ok),
+        }
+        for name, result in sorted(snapshot_results.items())
+    })
     selected_hash = sha256_json({
-        "user_ip": user_ip, "source": source, "target": target,
-        "generation": generation,
+        "user_ip": user_ip,
+        "source_egress": source,
+        "target_egress": target,
     })
     context = {
         "chosen": {"user_ip": user_ip, "current_egress": source, "recommended_egress": target},
@@ -22553,8 +22580,8 @@ def routing_core_certification_authority_request_only(args: argparse.Namespace) 
         },
         "source_generation": {
             "planner_generation_id": generation,
-            "source_bundle_hash": sha256_json(source_material),
-            "snapshot_bundle_hash": sha256_json(snapshot_material),
+            "source_bundle_hash": contract_source_bundle_hash,
+            "snapshot_bundle_hash": contract_snapshot_bundle_hash,
             "selected_move_hash": selected_hash,
         },
     }

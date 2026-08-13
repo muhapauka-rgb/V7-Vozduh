@@ -61,8 +61,19 @@ class RoutingCoreCertificationAdapterTests(unittest.TestCase):
             },
         }
 
-    def test_exact_core_decision_is_bound_to_existing_writer(self):
+    def authorized_plan(self):
         plan = self.plan()
+        plan["safety"]["authority_budget_gate"] = {
+            "current_action_class_contract": {
+                "contract_id": "acc-reset-m6",
+                "active_program": "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1",
+                "provenance": {"strict_provenance_contract": True},
+            }
+        }
+        return plan
+
+    def test_exact_core_decision_is_bound_to_existing_writer(self):
+        plan = self.authorized_plan()
         result = self.planner().bind_routing_core_certification(plan)
         self.assertEqual(result["status"], "CORE_DECISION_BOUND_TO_EXISTING_WRITER")
         self.assertEqual(result["effect_writer"], "tools/v7-users-autoswitch.apply")
@@ -74,7 +85,7 @@ class RoutingCoreCertificationAdapterTests(unittest.TestCase):
         )
 
     def test_non_one_user_scope_stops_safe(self):
-        result = self.planner(max_moves=2).bind_routing_core_certification(self.plan())
+        result = self.planner(max_moves=2).bind_routing_core_certification(self.authorized_plan())
         self.assertEqual(result["status"], "STOP_SAFE")
         self.assertIn("core_certification_max_selected_moves_must_equal_one", result["blockers"])
 

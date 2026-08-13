@@ -11573,6 +11573,7 @@ residual, never documentation expansion.
 | `RS5 ADMIN_AND_MANAGEMENT_SEPARATION` | Preserve `UI -> API -> guarded operator-action adapter -> Control Plane`; Admin cannot become a second Control Plane. | Admin UI/API, read-model, guarded-action, Authority/safety owners; `MANAGEMENT_PLANE_SEPARATION_PASS`. |
 | `RS6 RUNTIME_PACKAGE_MINIMIZATION` | Reconcile `routing-sync`, health/admission, policy, dataplane and verification against deployed runtime; Engineering Plane is not a primary Runtime dependency. | existing RT2 package/measurement, deploy/package, Runtime Model and Work Placement owners; `RUNTIME_PACKAGE_MINIMAL_PASS`. |
 | `RS6.1 RUNTIME_PROVENANCE_CLOSURE` | Before any package exclusion or physical-change admission, reconcile each active service/timer and mutation-capable Runtime object through `SOURCE -> DEPLOYMENT -> RUNTIME LIFECYCLE -> OWNER -> CALLER -> CONSUMER -> STATE -> EFFECT -> FINAL DISPOSITION`. An active binary, process, timer or historical report alone does not prove necessity. Each unresolved object is one logical `RUNTIME_PROVENANCE_GAP` with current observation, exact missing evidence, existing owner and re-entry condition. This is read-only and grants no removal, disablement, move or Runtime change authority. | existing component, deploy/package, Runtime Model, state, safety and Work Placement owners; `RUNTIME_PROVENANCE_CLOSURE_PASS`. |
+| `RS6.2 BOUNDED_SYSTEM_INTERACTION_EVIDENCE_CLOSURE` | Reuse RS0/RS1/RS1A/RS1B/RS6.1 and existing generated graph; close only the remaining in-scope `entrypoint -> module/service -> state -> consumer -> effect` evidence delta for Runtime-, mutation-, recovery-, routing- and public-API-reachable surfaces. Evidence is explicitly `STATIC_CONFIRMED`, `DEPLOY_CONFIRMED`, `RUNTIME_OBSERVED`, `DYNAMIC_UNPROVEN`, `EXTERNAL_OR_KERNEL` or `NOT_OBSERVED`; an import, name, binary or historical report alone never proves current necessity. This is a compact bounded projection, not a digital twin, registry, new graph owner or physical-change authority. | existing component, Architecture Truth, deploy/package, Runtime Model, state, safety, Work Placement and evidence owners; `SYSTEM_INTERACTION_EVIDENCE_COVERAGE_PASS` or exact owner-backed residual. |
 | `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | After `FIRST_IMPLEMENTATION_CANDIDATE_GATE`, implement only the proven target `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE` transition under Product Contract, hot-path and split-quality gates. This creates no old-path deletion authority and cannot mechanically split by file size. | exact affected existing component owner plus OMP/CPS admission; target reaches `TARGET_IMPLEMENTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
 | `RS7A CONSUMER_MIGRATION_AND_EDGE_CUTOVER` | After target implementation, identify and migrate every real consumer, verify consumption and behavior, then disconnect the old edge. | exact affected existing component, safety, deploy/package and runtime owners; `CONSUMER_MIGRATION_COMPLETE`. |
 | `RS8 VALIDATION_CLEANUP_AND_OLD_PATH_CLOSURE` | Close old file/function/import, dynamic/CLI/subprocess path, unit/timer, deploy/config, writer/state, rollback/recovery, dashboard, test and executable-document tails. Every garbage item is `KEEP_WITH_REASON`, `LEGACY_EXCEPTION`, `ARCHIVE`, `DELETE` or exact recheck; no `UNKNOWN_RESIDUE` at terminal. | affected existing owners; `NO_DANGLING_LEGACY_RESIDUE_PASS`. |
@@ -11642,6 +11643,17 @@ owner-backed disposition and re-entry condition. Historical deployment
 snapshots may support provenance but never substitute for current Runtime
 observation or establish present necessity.
 
+`RS6.2` first records an `EXISTING_EVIDENCE_REUSE_AND_GAP_DELTA`, then keeps
+only the missing in-scope relationship fields in its existing phase report or
+linked generated projection. Its scope is RS0-baselined executable entrypoints,
+public API, units/timers, workers/subprocesses, deploy hooks and
+Runtime-/mutation-/recovery-/routing-reachable state; tests, documents,
+generated artifacts, backups and external/kernel inputs are separate
+classifications, not inferred Runtime dependencies. It may emit only candidate
+observations and exact residuals with existing owners/re-entry conditions. It
+does not rank work, choose an implementation, create an implementation plan,
+authorize RS7 or repeat evidence without an exact invalidation trigger.
+
 Each implementation report includes the existing `PROGRAMMATIC_CHANGE_DELTA`:
 program, documentation, test and generated/data LOC separately; affected-file
 LOC; functions/classes/entrypoints; files added/modified/deleted/moved/
@@ -11672,6 +11684,7 @@ only when `IMMUTABLE_BEFORE_BASELINE_CAPTURED`,
 `CONTROL_PLANE_SIMPLIFICATION_PASS`, `RECOVERY_BOUNDARY_PASS`,
 `MANAGEMENT_PLANE_SEPARATION_PASS`, `RUNTIME_PACKAGE_MINIMAL_PASS`,
 `RUNTIME_PROVENANCE_CLOSURE_PASS`,
+`SYSTEM_INTERACTION_EVIDENCE_COVERAGE_PASS`,
 `CONSUMER_MIGRATION_COMPLETE`, `PHYSICAL_SIMPLIFICATION_PASS`,
 `NO_DANGLING_LEGACY_RESIDUE_PASS`, `FINAL_COMPLEXITY_DELTA_COMPLETE`,
 `FINAL_ARCHITECTURE_ALIGNMENT_PASS`, `PRODUCT_CONTRACT_PRESERVED` and

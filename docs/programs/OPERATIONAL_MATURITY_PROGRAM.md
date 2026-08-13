@@ -8096,8 +8096,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS4_RECOVERY_BOUNDARY_SIMPLIFICATION`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_RS4_RECOVERY_BOUNDARY_SIMPLIFICATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `EXECUTE_RS5_ADMIN_AND_MANAGEMENT_SEPARATION`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_RS5_ADMIN_AND_MANAGEMENT_SEPARATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9084,9 +9084,9 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS4_RECOVERY_BOUNDARY_SIMPLIFICATION`
-Current terminal report: `docs/reports/engineering/2026-08-13_468000_v7_rs3_control_plane_simplification.md`
-Latest consumed report: `docs/reports/engineering/2026-08-13_468000_v7_rs3_control_plane_simplification.md`
+Resolved current next action: `EXECUTE_RS5_ADMIN_AND_MANAGEMENT_SEPARATION`
+Current terminal report: `docs/reports/engineering/2026-08-13_469000_v7_rs4_recovery_boundary_simplification.md`
+Latest consumed report: `docs/reports/engineering/2026-08-13_469000_v7_rs4_recovery_boundary_simplification.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

@@ -253,7 +253,7 @@ Status: `CURRENT_PROGRAM_STATE_REFERENCE`.
 
 Registered Program: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
 
-OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M6 are complete; the current phase is `RESET-M7` and the exact successor is `EXECUTE_RESET_M7_BOUNDED_COHORT_CONSTANT_TIME_AND_WARM_PATH_PROOF`.
+OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M7 are complete; the current phase is `RESET-M8` and the exact successor is `EXECUTE_RESET_M8_CORE_PRIMARY_PRODUCTION_PROMOTION_WITH_SAFE_FALLBACK`.
 
 The Program-level rule `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` forbids new legacy hot-path routing capability growth while allowing critical production, security/safety, migration-required fixes, comparison instrumentation, and migration-safety deduplication. It grants no Runtime, routing, user, deploy, Authority, Planner, queue, owner, or truth-source effect. Existing Programs remain intact pending `RESET-M0/RESET-M1` disposition.
 
@@ -8093,9 +8093,9 @@ Classification: `CURRENT_PROGRAM_STATE_REFERENCE`.
 Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
-Resolved current stop: `RESET_M7_SCALE_AND_WARM_PATH_PROOF_REQUIRED`
-Resolved current next action: `EXECUTE_RESET_M7_BOUNDED_COHORT_CONSTANT_TIME_AND_WARM_PATH_PROOF`
-Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M7` after the owner-backed M6 Core certification cutover. The exact successor is the bounded cohort constant-time and prepared warm-path proof. No Authority is self-granted and legacy remains fallback.
+Resolved current stop: `RESET_M8_CORE_PRIMARY_PROMOTION_GATES_REQUIRED`
+Resolved current next action: `EXECUTE_RESET_M8_CORE_PRIMARY_PRODUCTION_PROMOTION_WITH_SAFE_FALLBACK`
+Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M8` after the M7 bounded cohort and warm-path proof. The exact successor is Core-primary production promotion with safe fallback. No Authority is self-granted and legacy remains fallback.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

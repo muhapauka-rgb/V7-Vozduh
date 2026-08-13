@@ -23779,6 +23779,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-routing-sync",
+        "local_path": "tools/runtime-support/v7-routing-sync",
+        "remote_path": "/usr/local/bin/v7-routing-sync",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-audit-log",
         "local_path": "tools/runtime-support/v7-audit-log",
         "remote_path": "/usr/local/bin/v7-audit-log",

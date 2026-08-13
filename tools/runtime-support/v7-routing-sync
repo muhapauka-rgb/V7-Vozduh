@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""Existing V7 registry-wide route owner with Reset Core class migration mode."""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import ipaddress
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+STATE_DIR = Path(os.environ.get("V7_STATE_DIR", "/opt/v7/egress/state"))
+USERS = Path(os.environ.get("V7_USERS_REGISTRY", STATE_DIR / "users.registry"))
+EGRESS = Path(os.environ.get("V7_EGRESS_REGISTRY", STATE_DIR / "egress.registry"))
+CLASSES = Path(os.environ.get("V7_ROUTE_CLASSES_REG", "/opt/v7/policy/route-classes.registry"))
+POLICY = Path(os.environ.get("V7_POLICY_FILE", "/etc/v7/policy.json"))
+NFT_FAMILY = "inet"
+NFT_TABLE = "v7_routing_core"
+RULE_PREF_BASE = 200
+TABLE_BASE = 200
+MARK_BASE = 0x200
+
+
+def rows(path: Path) -> list[dict[str, str]]:
+    result = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        row = {}
+        for token in raw.split():
+            if "=" in token:
+                key, value = token.split("=", 1)
+                row[key] = value
+        result.append(row)
+    return result
+
+
+def run(argv: list[str], *, input_text: str = "") -> subprocess.CompletedProcess[str]:
+    return subprocess.run(argv, input=input_text or None, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=30)
+
+
+def canonical_hash(value: object) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def replace_rule(*, pref: int, selector: list[str], table: int) -> None:
+    while run(["ip", "rule", "del", "pref", str(pref), *selector, "table", str(table)]).returncode == 0:
+        pass
+    result = run(["ip", "rule", "add", "pref", str(pref), *selector, "table", str(table)])
+    if result.returncode:
+        raise RuntimeError(result.stdout)
+
+
+def exact_reset_authority(policy_path: Path) -> tuple[bool, dict]:
+    try:
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False, {}
+    promotion = policy.get("routing_core_primary_promotion")
+    promotion = promotion if isinstance(promotion, dict) else {}
+    required = {
+        "schema_version": "v7.routing-core-primary-promotion.v1",
+        "active_program": "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1",
+        "state": "APPROVED",
+        "scope": "ALL_COMPATIBLE_PRODUCTION_USERS",
+        "legacy_fallback_required": True,
+    }
+    ok = all(promotion.get(key) == value for key, value in required.items())
+    preimage = dict(promotion)
+    supplied = str(preimage.pop("contract_hash", "") or "")
+    preimage.pop("contract_id", None)
+    ok = ok and bool(supplied) and canonical_hash(preimage) == supplied
+    return ok, promotion
+
+
+def derived_classes() -> tuple[list[dict], list[dict]]:
+    users = [row for row in rows(USERS) if row.get("enabled", "0") == "1"]
+    egress = {row.get("id", ""): row for row in rows(EGRESS) if row.get("enabled", "0") == "1"}
+    classes = []
+    for index, name in enumerate(sorted({row.get("current", "") for row in users})):
+        target = egress.get(name)
+        if not name or not target or not target.get("interface"):
+            raise ValueError(f"unresolved_current_egress:{name}")
+        classes.append({
+            "class_id": "current_" + hashlib.sha256(name.encode()).hexdigest()[:16],
+            "current_egress": name,
+            "interface": target["interface"],
+            "mark": MARK_BASE + index,
+            "table": TABLE_BASE + index,
+            "members": sorted(row["ip"] for row in users if row.get("current") == name),
+        })
+    return users, classes
+
+
+def legacy_sync() -> dict:
+    users, classes = derived_classes()
+    by_egress = {row["current_egress"]: row for row in classes}
+    mutations = 0
+    for user in users:
+        target = by_egress[user["current"]]
+        table = int(user["table"])
+        proc = run(["ip", "route", "replace", "default", "dev", target["interface"], "table", str(table)])
+        if proc.returncode:
+            raise RuntimeError(proc.stdout)
+        replace_rule(pref=table, selector=["from", user["ip"]], table=table)
+        mutations += 1
+    return {"status": "LEGACY_PER_USER_SYNC_PASS", "users": len(users), "mutations": mutations}
+
+
+def core_primary_apply() -> dict:
+    authority_ok, authority = exact_reset_authority(POLICY)
+    if not authority_ok:
+        return {"status": "STOP_SAFE", "blockers": ["exact_reset_core_primary_promotion_contract_required"], "runtime_mutation": False}
+    users, classes = derived_classes()
+    lines = [f"delete table {NFT_FAMILY} {NFT_TABLE}", f"add table {NFT_FAMILY} {NFT_TABLE}", f"add map {NFT_FAMILY} {NFT_TABLE} user_class {{ type ipv4_addr : mark; }}", f"add map {NFT_FAMILY} {NFT_TABLE} class_egress {{ type mark : mark; }}", f"add chain {NFT_FAMILY} {NFT_TABLE} ingress {{ type filter hook prerouting priority -160; policy accept; }}"]
+    user_elements = []
+    class_elements = []
+    for row in classes:
+        user_elements.extend(f"{ip} : 0x{row['mark']:x}" for ip in row["members"])
+        class_elements.append(f"0x{row['mark']:x} : 0x{row['mark']:x}")
+    lines.extend([f"add element {NFT_FAMILY} {NFT_TABLE} user_class {{ {', '.join(user_elements)} }}", f"add element {NFT_FAMILY} {NFT_TABLE} class_egress {{ {', '.join(class_elements)} }}", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" meta mark set ip saddr map @user_class", f"add rule {NFT_FAMILY} {NFT_TABLE} ingress iifname \"wg0\" meta mark set meta mark map @class_egress"])
+    # Removing a missing table is allowed only as the first command through a
+    # separate idempotent operation; the apply transaction itself is atomic.
+    run(["nft", "delete", "table", NFT_FAMILY, NFT_TABLE])
+    transaction = "\n".join(lines[1:]) + "\n"
+    proc = run(["nft", "-f", "-"], input_text=transaction)
+    if proc.returncode:
+        return {"status": "STOP_SAFE", "blockers": ["nft_atomic_apply_failed", proc.stdout[-1000:]], "runtime_mutation": False}
+    try:
+        for index, row in enumerate(classes):
+            result = run(["ip", "route", "replace", "default", "dev", row["interface"], "table", str(row["table"])])
+            if result.returncode:
+                raise RuntimeError(result.stdout)
+            replace_rule(pref=RULE_PREF_BASE + index, selector=["fwmark", hex(row["mark"])], table=row["table"])
+    except RuntimeError as exc:
+        core_primary_fallback()
+        return {"status": "STOP_SAFE_FALLBACK_RESTORED", "blockers": [str(exc)], "runtime_mutation": False}
+    return {"status": "CORE_PRIMARY_APPLY_PASS", "users": len(users), "classes": len(classes), "membership_generation": canonical_hash(users), "class_generation": canonical_hash([{key: value for key, value in row.items() if key != "members"} for row in classes]), "authority_contract_id": authority.get("contract_id", ""), "legacy_per_user_rules_retained": True, "runtime_mutation": True}
+
+
+def core_primary_fallback() -> dict:
+    run(["nft", "delete", "table", NFT_FAMILY, NFT_TABLE])
+    _, classes = derived_classes()
+    for index, row in enumerate(classes):
+        while run(["ip", "rule", "del", "pref", str(RULE_PREF_BASE + index), "fwmark", hex(row["mark"]), "table", str(row["table"])]).returncode == 0:
+            pass
+    legacy = legacy_sync()
+    return {"status": "CORE_PRIMARY_FALLBACK_PASS", "legacy": legacy, "core_table_present": False}
+
+
+def verify() -> dict:
+    authority_ok, authority = exact_reset_authority(POLICY)
+    users, classes = derived_classes()
+    nft = run(["nft", "-j", "list", "table", NFT_FAMILY, NFT_TABLE])
+    rules = run(["ip", "-j", "rule", "show"])
+    rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
+    marks = {str(row.get("fwmark") or "") for row in rule_rows}
+    missing = [hex(row["mark"]) for row in classes if hex(row["mark"]) not in marks]
+    return {"status": "CORE_PRIMARY_VERIFY_PASS" if authority_ok and nft.returncode == 0 and not missing else "STOP_SAFE", "authority_contract_id": authority.get("contract_id", ""), "users": len(users), "classes": len(classes), "nft_table_present": nft.returncode == 0, "missing_mark_rules": missing, "legacy_fallback_present": all(str(user.get("table") or "") for user in users)}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--core-primary-apply", action="store_true")
+    parser.add_argument("--core-primary-fallback", action="store_true")
+    parser.add_argument("--core-primary-verify", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
+    with lock_path.open("a+") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        result = core_primary_apply() if args.core_primary_apply else core_primary_fallback() if args.core_primary_fallback else verify() if args.core_primary_verify else legacy_sync()
+    print(json.dumps(result, sort_keys=True) if args.json else json.dumps(result, indent=2, sort_keys=True))
+    return 0 if result.get("status", "").endswith("PASS") else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

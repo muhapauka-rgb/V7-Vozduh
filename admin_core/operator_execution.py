@@ -645,6 +645,104 @@ def current_action_class_contract_hash(contract):
     return sha256_json(canonical)
 
 
+def routing_core_primary_promotion_hash(contract):
+    canonical = copy.deepcopy(contract if isinstance(contract, dict) else {})
+    canonical.pop("contract_id", None)
+    canonical.pop("contract_hash", None)
+    return sha256_json(canonical)
+
+
+def build_routing_core_primary_promotion_request(
+    *, runtime_fingerprint_path="/opt/v7/runtime-fingerprint.json",
+    routing_sync_path="/usr/local/bin/v7-routing-sync",
+    routing_core_path="/usr/local/bin/admin_core/routing_core.py", now=None,
+):
+    """Build a fresh M8 decision request; never writes policy or Runtime."""
+    now = now or utc_now()
+    runtime = read_json(Path(runtime_fingerprint_path))
+    request = {
+        "schema_version": "v7.routing-core-primary-promotion-request.v1",
+        "status": "AWAITING_INDEPENDENT_AUTHORITY_DECISION",
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(minutes=15)).isoformat(),
+        "active_program": "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1",
+        "scope": "ALL_COMPATIBLE_PRODUCTION_USERS",
+        "decision_set": ["APPROVE_CORE_PRIMARY_WITH_FALLBACK", "DECLINE"],
+        "runtime_generation": {
+            "commit": str(runtime.get("commit") or ""),
+            "deploy_id": str(runtime.get("deploy_id") or ""),
+            "routing_sync_sha256": sha256_file(Path(routing_sync_path)),
+            "routing_core_sha256": sha256_file(Path(routing_core_path)),
+        },
+        "required_gates": {
+            "reset_m6_production_correctness_latency_bounded_complexity": True,
+            "reset_m7_10k_50_egress_constant_time_warm_path": True,
+            "single_writer_fencing": True,
+            "crash_restart_rebuild": True,
+            "duplicate_effect_suppression": True,
+            "blast_radius_and_capacity": True,
+            "kernel_and_payload_verification": True,
+            "observability": True,
+            "legacy_fallback_required": True,
+            "per_user_legacy_rules_retained_until_m9": True,
+        },
+        "authority_effect": "CORE_PRIMARY_PROMOTION_ONLY",
+        "self_expansion_allowed": False,
+    }
+    request["request_hash"] = sha256_json(request)
+    request["request_id"] = "rcppreq_" + request["request_hash"][:24]
+    return request
+
+
+def issue_routing_core_primary_promotion_to_policy(
+    policy_path, request_path, *, decision, actor_id, audit_store=None, now=None,
+):
+    """Issue exact Core-primary policy through the existing Authority owner."""
+    now = now or utc_now()
+    if decision != "APPROVE_CORE_PRIMARY_WITH_FALLBACK":
+        raise PacketError("routing_core_primary_promotion_decision_not_exact")
+    if not str(actor_id or ""):
+        raise PacketError("routing_core_primary_promotion_actor_missing")
+    request = read_json(Path(request_path))
+    request_copy = copy.deepcopy(request)
+    request_id = str(request_copy.pop("request_id", "") or "")
+    request_hash = str(request_copy.pop("request_hash", "") or "")
+    if request.get("schema_version") != "v7.routing-core-primary-promotion-request.v1" or not request_id or sha256_json(request_copy) != request_hash:
+        raise PacketError("routing_core_primary_promotion_request_invalid")
+    if parse_ts(request.get("expires_at")) <= now:
+        raise PacketError("routing_core_primary_promotion_request_expired")
+    generation = request.get("runtime_generation") if isinstance(request.get("runtime_generation"), dict) else {}
+    gates = request.get("required_gates") if isinstance(request.get("required_gates"), dict) else {}
+    if not all(str(generation.get(key) or "") for key in ("commit", "deploy_id", "routing_sync_sha256", "routing_core_sha256")):
+        raise PacketError("routing_core_primary_promotion_runtime_generation_missing")
+    if not gates or not all(value is True for value in gates.values()):
+        raise PacketError("routing_core_primary_promotion_gate_incomplete")
+    contract = {
+        "schema_version": "v7.routing-core-primary-promotion.v1",
+        "state": "APPROVED",
+        "issued_at": now.isoformat(),
+        "active_program": request["active_program"],
+        "scope": request["scope"],
+        "legacy_fallback_required": True,
+        "runtime_generation": copy.deepcopy(generation),
+        "required_gates": copy.deepcopy(gates),
+        "authority_decision": {"decision": decision, "actor_id": str(actor_id), "request_id": request_id, "request_hash": request_hash, "decided_at": now.isoformat()},
+        "self_expansion_allowed": False,
+    }
+    contract["contract_hash"] = routing_core_primary_promotion_hash(contract)
+    contract["contract_id"] = "rcpp_" + contract["contract_hash"][:24]
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(policy_path):
+        policy = read_json(policy_path)
+        if isinstance(policy.get("routing_core_primary_promotion"), dict) and policy["routing_core_primary_promotion"].get("state") == "APPROVED":
+            raise PacketError("routing_core_primary_promotion_already_approved")
+        policy["routing_core_primary_promotion"] = contract
+        write_json_atomic(policy_path, policy)
+        append_record(audit_store, {"schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA, "record_type": "routing_core_primary_promotion_issued", "contract_id": contract["contract_id"], "contract_hash": contract["contract_hash"], "request_id": request_id, "request_hash": request_hash, "actor_provenance": {"actor_id": str(actor_id), "issuing_owner": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER}, "created_at": now.isoformat()})
+    return {"status": "ROUTING_CORE_PRIMARY_PROMOTION_ISSUED", "contract": contract, "policy_write": True, "runtime_apply": False, "routing_mutation": False, "users_moved": 0}
+
+
 def standing_delegated_policy_request_hash(request):
     canonical = copy.deepcopy(request if isinstance(request, dict) else {})
     canonical.pop("request_id", None)
@@ -8312,6 +8410,8 @@ def main(argv=None):
     parser.add_argument("--cancel-current-action-class-contract-id", default="")
     parser.add_argument("--cancel-current-action-class-contract-hash", default="")
     parser.add_argument("--cancel-current-action-class-contract-reason", default="")
+    parser.add_argument("--prepare-routing-core-primary-promotion-request", default="")
+    parser.add_argument("--issue-routing-core-primary-promotion-from-request", default="")
     parser.add_argument(
         "--prepare-standing-delegated-policy-request", action="store_true",
         help="Build and register one fresh exact standing-policy Authority request without activating it.",
@@ -8425,6 +8525,22 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.prepare_routing_core_primary_promotion_request:
+            request = build_routing_core_primary_promotion_request()
+            output = Path(args.prepare_routing_core_primary_promotion_request)
+            write_json_atomic(output, request)
+            print(json.dumps({"status": "ROUTING_CORE_PRIMARY_PROMOTION_REQUEST_READY", "request": request, "output": str(output), "policy_write": False, "runtime_apply": False}, indent=2 if args.pretty else None, sort_keys=True))
+            return 0
+        if args.issue_routing_core_primary_promotion_from_request:
+            result = issue_routing_core_primary_promotion_to_policy(
+                args.action_class_policy_file,
+                args.issue_routing_core_primary_promotion_from_request,
+                decision=args.authority_decision,
+                actor_id=args.authority_actor_id,
+                audit_store=args.audit_store,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.cancel_current_action_class_contract_id:
             result = cancel_unconsumed_current_action_class_contract_to_policy(
                 args.action_class_policy_file,

@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-13T17:47:00+00:00
+State captured: 2026-08-13T17:50:00+00:00
 Latest terminal Mission: `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1`
 Latest terminal Mission state: `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
@@ -13,7 +13,7 @@ Source: RS0 read-only admission from accepted BDP candidate; no Runtime, Product
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-13T17:47:00+00:00`
+Captured: `2026-08-13T17:50:00+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -41,12 +41,12 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE_RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` |
+| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE_RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` |
 | `CURRENT_SCOPE_CLASS` | `ANALYSIS_COMPLETION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_RS1A_ADMITTED_65CB2232971` |
-| `CURRENT_TRANSITION_ID` | `V7_RS_PROGRAM_RS1_MAP_TO_RS1A_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` |
-| `CURRENT_PROGRAM_STAGE` | `RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RS1B_ADMITTED_65CB2232971` |
+| `CURRENT_TRANSITION_ID` | `V7_RS_PROGRAM_RS1A_TO_RS1B_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` |
+| `CURRENT_PROGRAM_STAGE` | `RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
@@ -56,7 +56,7 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_RS1A_ADMITTED` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_RS1B_ADMITTED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
@@ -66,7 +66,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `85` |
-| `CONTINUATION_STOP_REASON` | `RS1_MAP_CONSUMED_RS1A_READ_ONLY_MISSION_PREPARED` |
+| `CONTINUATION_STOP_REASON` | `RS1A_CODE_ARCHAEOLOGY_CONSUMED_RS1B_READ_ONLY_MISSION_PREPARED` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
@@ -170,7 +170,7 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
 | `CURRENT_COMPLETION_CONTRACT` | `ANALYSIS_COMPLETION` |
-| `CURRENT_COMPLETION_VERDICT` | `RS1A_PREPARED_NOT_ACTIVE` |
+| `CURRENT_COMPLETION_VERDICT` | `RS1B_PREPARED_NOT_ACTIVE` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `FSSE_00_BLOCKS_FSSE_01` | `FALSE` |
@@ -209,7 +209,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `CURRENT_RUN_NONCE` | `rs0_65CB2232971BC224D937140C` |
 | `CURRENT_MISSION_STATE` | `PREPARED_NOT_ACTIVE` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-13_464000_v7_rs1_responsibility_realignment_map.md` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-13_465000_v7_rs1a_targeted_code_archaeology.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |
@@ -658,7 +658,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-08-13T17:47:00+00:00`
+Generated At: `2026-08-13T17:50:00+00:00`
 
 Runtime Authority: `NONE`
 
@@ -671,9 +671,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_RS1A_ADMITTED_65CB2232971` |
-| `CURRENT_TRANSITION_ID` | `V7_RS_PROGRAM_RS1_MAP_TO_RS1A_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RS1B_ADMITTED_65CB2232971` |
+| `CURRENT_TRANSITION_ID` | `V7_RS_PROGRAM_RS1A_TO_RS1B_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -702,8 +702,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_RS1A_ADMITTED_65CB2232971` |
-| `current_transition_id` | `V7_RS_PROGRAM_RS1_MAP_TO_RS1A_V1` |
+| `current_state_generation` | `cpsgen_RS1B_ADMITTED_65CB2232971` |
+| `current_transition_id` | `V7_RS_PROGRAM_RS1A_TO_RS1B_V1` |
 | `smallest_existing_next_action_id` | `EXECUTE_RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION` |
 | `active_mission_id` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `active_mission_state` | `PREPARED_NOT_ACTIVE` |
@@ -789,7 +789,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` program frontier; `cpsgen_RS1A_ADMITTED_65CB2232971`; `V7_RS_PROGRAM_RS1_MAP_TO_RS1A_V1` | M0-M10 evidence and final architecture reconciliation are consumed | `EXECUTE_RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` | OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER | `NONE` | final Reset terminal; no successor or Runtime/Authority expansion |
+| `1` | `RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` program frontier; `cpsgen_RS1B_ADMITTED_65CB2232971`; `V7_RS_PROGRAM_RS1A_TO_RS1B_V1` | M0-M10 evidence and final architecture reconciliation are consumed | `EXECUTE_RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` | OMP_PERMANENT_POLYGON_OBLIGATION_CONSUMER | `NONE` | final Reset terminal; no successor or Runtime/Authority expansion |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -857,7 +857,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `EXECUTE_RS1A_CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `EXECUTE_RS1B_TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

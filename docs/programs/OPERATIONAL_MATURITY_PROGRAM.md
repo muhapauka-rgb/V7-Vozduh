@@ -11427,7 +11427,7 @@ Maturity.
 
 ## 47. V7 Responsibility Realignment and System Simplification Program
 
-Status: `CONTRACT_READY_NOT_ADMITTED`.
+Status: `CONTRACT_ACTIVE_READ_ONLY; CPS_OWNS_LIVE_FRONTIER; RS7_PHYSICAL_MUTATION_NOT_ADMITTED`.
 
 Canonical name:
 
@@ -11499,6 +11499,66 @@ valid PR2C/RT2 evidence and target-recheck only exact invalidated criteria.
    or generators when coverage, traceability, owner mapping and disposition
    already survive.
 
+### 47.3A Physical-change quality gates
+
+`PRODUCT_CONTRACT_PRESERVATION_GATE` applies to every admitted `RS7` item.
+The item must prove `CURRENT BEHAVIOR -> TARGET BEHAVIOR -> MIGRATION ->
+VALIDATION -> PRODUCT CONTRACT PRESERVED`; LOC reduction, a smaller file, a
+cleaner diagram, a passing test or a transferred responsibility is never a
+success condition by itself. If the item affects the recovery product path, it
+must cover failed/unusable source, affected and unaffected scope, healthy
+lawful target selection, bounded route change, kernel visibility, target
+payload verification and recovery/rollback. If it does not, it must prove that
+the path is unaffected rather than rerunning unrelated production checks.
+
+`HOT_PATH_PROTECTION_GATE` applies only when the admitted item affects a live
+recovery path. Reuse the immutable RS0 method or an exact existing compatible
+measurement owner to record `BEFORE -> CHANGE -> AFTER -> DELTA` for latency,
+producer-consumer hops, synchronous dependencies, state reads/writes,
+subprocesses and lock domains. An unexplained degradation from failure to
+verified traffic is `STOP_SAFE`; lower code complexity cannot compensate for
+greater recovery latency. Non-hot-path items prove non-impact instead of
+creating a global measurement ritual.
+
+`RESPONSIBILITY_SPLIT_QUALITY_GATE` rejects `COSMETIC_DECOMPOSITION`. A split,
+move or new module is justified only when it reduces at least one proven
+responsibility coupling, existing-owner ambiguity, dependency complexity,
+lifecycle ambiguity or synchronous dependency. Before implementation, the
+item records `CURRENT RESPONSIBILITY -> TARGET RESPONSIBILITY -> EXISTING
+OWNER BOUNDARY -> CONSUMER MIGRATION -> COMPLEXITY DELTA`. Splitting one large
+file into smaller files while those facts are unchanged is not simplification.
+
+`PROGRAM_COMPLEXITY_BUDGET` is enforced through existing phase reports and
+logical outputs, not a new ledger. A proposed phase, report, matrix, artifact
+or process is allowed only when it supplies a decision context, owner mapping
+or consumer/re-entry proof that existing artifacts cannot preserve; otherwise
+the existing artifact is updated. Every allowed object records purpose,
+existing owner, lifetime and completion disposition. Infinite audit loops,
+permanent registries, new truth sources and a report ecosystem are forbidden.
+
+Before its first physical change, `RS7` must pass
+`FIRST_IMPLEMENTATION_CANDIDATE_GATE`: select an individually admitted item
+with low Runtime and routing risk, high observability, a clear existing owner
+and consumer, bounded rollback, and a measurable complexity delta. Core,
+`v7-routing-sync`, `operator_execution`, Authority and rollback semantics are
+not first candidates without a separate product/safety/correctness necessity.
+The default risk priority is Management/Admin separation, Engineering
+interface cleanup, isolated autoswitch Engineering extraction, health/recovery
+boundary clarification, approved legacy cleanup, then closure. It is a
+selection preference, not a schedule: evidence may select another lower-risk
+candidate without bypassing admission.
+
+`SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
+changed system has no unnecessary owner ambiguity, synchronous relationship,
+Runtime dependency, state surface or duplicate responsibility; any asserted
+physical reduction is real; and any hot-path change has no unexplained
+recovery regression. It does not require collapsing distinct safety owners or
+measuring an unaffected hot path. `FINAL_ARCHITECTURE_MAP` must let a new
+engineer identify the current Data/Control/Engineering boundaries, primary
+recovery path, existing owners, retained exceptions and update location
+without reconstructing historical reports. Failure is an exact owner-backed
+residual, never documentation expansion.
+
 ### 47.4 Phases
 
 | Phase | Required outcome | Existing owners and mandatory closure |
@@ -11512,7 +11572,7 @@ valid PR2C/RT2 evidence and target-recheck only exact invalidated criteria.
 | `RS4 RECOVERY_BOUNDARY_SIMPLIFICATION` | Map path guard, user switch, operator execution and rollback to `Recovery Authority -> Bounded Action -> Verification`, including exact rollback and owner. | recovery, restore barrier, movement-protection, Authority, verification owners; `RECOVERY_BOUNDARY_PASS`. |
 | `RS5 ADMIN_AND_MANAGEMENT_SEPARATION` | Preserve `UI -> API -> guarded operator-action adapter -> Control Plane`; Admin cannot become a second Control Plane. | Admin UI/API, read-model, guarded-action, Authority/safety owners; `MANAGEMENT_PLANE_SEPARATION_PASS`. |
 | `RS6 RUNTIME_PACKAGE_MINIMIZATION` | Reconcile `routing-sync`, health/admission, policy, dataplane and verification against deployed runtime; Engineering Plane is not a primary Runtime dependency. | existing RT2 package/measurement, deploy/package, Runtime Model and Work Placement owners; `RUNTIME_PACKAGE_MINIMAL_PASS`. |
-| `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | For an individually admitted item, implement only the proven target `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE` transition. This creates no old-path deletion authority and cannot mechanically split by file size. | exact affected existing component owner plus OMP/CPS admission; target reaches `TARGET_IMPLEMENTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
+| `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | After `FIRST_IMPLEMENTATION_CANDIDATE_GATE`, implement only the proven target `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE` transition under Product Contract, hot-path and split-quality gates. This creates no old-path deletion authority and cannot mechanically split by file size. | exact affected existing component owner plus OMP/CPS admission; target reaches `TARGET_IMPLEMENTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
 | `RS7A CONSUMER_MIGRATION_AND_EDGE_CUTOVER` | After target implementation, identify and migrate every real consumer, verify consumption and behavior, then disconnect the old edge. | exact affected existing component, safety, deploy/package and runtime owners; `CONSUMER_MIGRATION_COMPLETE`. |
 | `RS8 VALIDATION_CLEANUP_AND_OLD_PATH_CLOSURE` | Close old file/function/import, dynamic/CLI/subprocess path, unit/timer, deploy/config, writer/state, rollback/recovery, dashboard, test and executable-document tails. Every garbage item is `KEEP_WITH_REASON`, `LEGACY_EXCEPTION`, `ARCHIVE`, `DELETE` or exact recheck; no `UNKNOWN_RESIDUE` at terminal. | affected existing owners; `NO_DANGLING_LEGACY_RESIDUE_PASS`. |
 | `RS9 PHYSICAL_SHRINK_CLOSURE` | `V7_PHYSICAL_SYSTEM_SIMPLIFICATION_REPORT` logically records mechanically provable `BEFORE -> AFTER -> DELTA`, separating physical removal, logical exclusion, responsibility move, no complexity change and justified increase. | existing report, Git/package/deploy, Runtime Model, truth/convergence and canonical owners; `FINAL_COMPLEXITY_DELTA_COMPLETE`, `FINAL_ARCHITECTURE_ALIGNMENT_PASS`, `PHYSICAL_SIMPLIFICATION_PASS`. |
@@ -11522,6 +11582,7 @@ until `RS7A` and `RS8`. Its mandatory item sequence is:
 
 ```text
 PROVEN_GAP_AND_EXISTING_TARGET_OWNER
+  -> FIRST_IMPLEMENTATION_CANDIDATE_GATE
   -> OMP/CPS_ADMISSION
   -> OWNER_BACKED_TARGET_IMPLEMENTATION
   -> AFFECTED_OWNER_VALIDATION
@@ -11575,7 +11636,10 @@ dependencies; and physical removal distinct from logical exclusion. Every
 change is explicitly `PHYSICAL_REDUCTION`, `LOGICAL_EXCLUSION`,
 `RESPONSIBILITY_MOVE`, `NO_COMPLEXITY_CHANGE` or
 `COMPLEXITY_INCREASE_WITH_JUSTIFICATION`; it may not claim system shrink from
-logical exclusion alone.
+logical exclusion alone. It uses the immutable RS0 method for the affected
+scope and additionally records Product-path latency, hops, state surfaces and
+synchronous dependencies only when the item can affect them; unavailable facts
+are `NOT_PROVEN` with an existing owner and re-entry condition, never invented.
 
 No deletion or migration is complete until `NO_DANGLING_LEGACY_RESIDUE_PASS`
 proves the old file/function/import, dynamic invocation, CLI/subprocess call,
@@ -11594,7 +11658,8 @@ only when `IMMUTABLE_BEFORE_BASELINE_CAPTURED`,
 `MANAGEMENT_PLANE_SEPARATION_PASS`, `RUNTIME_PACKAGE_MINIMAL_PASS`,
 `CONSUMER_MIGRATION_COMPLETE`, `PHYSICAL_SIMPLIFICATION_PASS`,
 `NO_DANGLING_LEGACY_RESIDUE_PASS`, `FINAL_COMPLEXITY_DELTA_COMPLETE`,
-`FINAL_ARCHITECTURE_ALIGNMENT_PASS` and `PRODUCT_CONTRACT_PRESERVED` pass or
+`FINAL_ARCHITECTURE_ALIGNMENT_PASS`, `PRODUCT_CONTRACT_PRESERVED` and
+`SYSTEM_SIMPLIFICATION_FINAL_GATE` pass or
 have an exact owner-backed legal residual. Plane boundaries must match current
 implementation; every changed responsibility must have one existing owner,
 lifecycle and primary consumer; duplicate primary paths must be closed or

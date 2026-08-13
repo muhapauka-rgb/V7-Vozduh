@@ -22506,6 +22506,77 @@ def action_class_contract_reconciliation_only(args: argparse.Namespace) -> dict[
     }
 
 
+def routing_core_certification_authority_request_only(args: argparse.Namespace) -> dict[str, Any]:
+    """Build the exact RESET-M6 one-use request from existing truth owners."""
+    user_ip = str(getattr(args, "user", "") or "")
+    source = str(getattr(args, "source_egress", "") or "")
+    target = str(getattr(args, "target_egress", "") or "")
+    state_dir = Path(args.state_dir)
+    users = parse_registry(state_dir / "users.registry")
+    egress = parse_registry(state_dir / "egress.registry")
+    user_rows = [row for row in users if str(row.get("ip") or "") == user_ip]
+    target_rows = [row for row in egress if str(row.get("id") or "") == target]
+    blockers: list[str] = []
+    if len(user_rows) != 1 or str((user_rows[0] if user_rows else {}).get("current") or "") != source:
+        blockers.append("core_certification_user_source_truth_mismatch")
+    target_row = target_rows[0] if len(target_rows) == 1 else {}
+    if len(target_rows) != 1:
+        blockers.append("core_certification_target_truth_missing_or_duplicate")
+    if not bool_value(target_row.get("enabled", "1")) or str(target_row.get("state") or "enabled").lower() == "disabled":
+        blockers.append("core_certification_target_not_enabled")
+    if to_int(getattr(args, "max_selected_moves", 0), 0) != 1:
+        blockers.append("core_certification_exact_one_user_scope_required")
+    policy_path = Path(args.policy_file)
+    source_material = {
+        "users_registry": sha256_file(state_dir / "users.registry"),
+        "egress_registry": sha256_file(state_dir / "egress.registry"),
+        "policy": sha256_file(policy_path),
+        "org_policy": sha256_file(Path(args.org_policy_file)),
+    }
+    snapshot_material = {
+        "service_matrix": sha256_file(state_dir / "service-matrix.json"),
+        "quality_summary": sha256_file(Path(args.quality_summary_file)),
+        "load_summary": sha256_file(Path(args.load_summary_file)),
+    }
+    if not all(source_material.values()) or not all(snapshot_material.values()):
+        blockers.append("core_certification_owner_generation_missing")
+    generation = sha256_json(source_material)
+    selected_hash = sha256_json({
+        "user_ip": user_ip, "source": source, "target": target,
+        "generation": generation,
+    })
+    context = {
+        "chosen": {"user_ip": user_ip, "current_egress": source, "recommended_egress": target},
+        "incident_generation": {
+            "incident_id": "RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER",
+            "incident_generation": generation,
+        },
+        "source_generation": {
+            "planner_generation_id": generation,
+            "source_bundle_hash": sha256_json(source_material),
+            "snapshot_bundle_hash": sha256_json(snapshot_material),
+            "selected_move_hash": selected_hash,
+        },
+    }
+    request = action_class_contract_reconciliation_request(
+        {}, policy_path=policy_path, availability_first_context=context,
+        active_program="V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1",
+    )
+    if blockers:
+        request["issue_preflight"] = {"ready": False, "blockers": sorted(set(blockers))}
+        request["authority_decision_request"]["issue_preflight"] = copy.deepcopy(request["issue_preflight"])
+    return {
+        "schema_version": "v7.routing-core-certification-authority-entrypoint.v1",
+        "status": "PASS" if not blockers else "STOP_SAFE_PRECONDITION",
+        "ok": not blockers,
+        "result": request,
+        "forbidden_effects": {
+            "policy_write": False, "authority_granted": False,
+            "runtime_apply": False, "routing_mutation": False, "user_movement": 0,
+        },
+    }
+
+
 def ct_m0f_standing_source_selection_only(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -23161,7 +23232,11 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     if args.action_class_contract_reconciliation_only:
-        result = action_class_contract_reconciliation_only(args)
+        result = (
+            routing_core_certification_authority_request_only(args)
+            if args.routing_core_certification
+            else action_class_contract_reconciliation_only(args)
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     planner_init_started_ns = time.monotonic_ns()

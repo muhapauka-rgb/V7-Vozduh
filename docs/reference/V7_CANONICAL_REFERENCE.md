@@ -31,6 +31,14 @@ Before commit and push after major logic work:
 
 ## Current State Consistency Rule
 
+### System Reset and Routing Core Migration Program
+
+`V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` is registered at `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` as the temporary primary engineering priority. It preserves OMP as development-plane orchestrator, CPS as the only volatile state owner, and all existing Runtime/Authority/truth owners.
+
+Durable reset laws are `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH`, `ENGINEERING_PLANE_MUST_NOT_BE_REQUIRED_SYNCHRONOUS_ROUTING_HOT_PATH`, `RESET_OVERHEAD_BUDGET`, `LOGICAL_OUTPUT_NOT_PHYSICAL_SYSTEM`, `PRESERVE_REQUIRED_BEHAVIOR_NOT_LEGACY_STRUCTURE`, `QUESTION_NECESSITY_BEFORE_OPTIMIZING_IMPLEMENTATION`, `EVIDENCE_DEPTH_PROPORTIONAL_TO_RISK`, `DEFAULT_OUTCOME_OF_RESET = SYSTEM_SHRINK_NOT_CODE_REORGANIZATION`, `STRICT_AUDIT_MUTATION_SEPARATION`, `ROUTING_CORE_COMPLEXITY_BUDGET`, `MINIMUM_SYSTEM_SURFACE_WITH_FULL_FUNCTION_PRESERVATION`, and `NEW_CORE_EARNS_AUTHORITY_THROUGH_EVIDENCE`. The freeze is an engineering rule, not a Runtime mutation. Reset is temporary and its logical outputs do not create permanent physical architecture by implication. Current production remains legacy until evidence-backed migration gates are consumed.
+
+The Reset contract requires Intent-vs-Reality proof through real producer, non-test caller, exact consumer, behavior change, Product Contract effect, and legal successor; factual `SYSTEM_COMPLEXITY` baseline/current/delta metrics; `FILE_SIZE_IS_A_SIGNAL_NOT_A_VERDICT`; a Core positive and negative contract; and final gates `OLD_FAILURE_CAUSES_NOT_REINTRODUCED = PASS` plus `PRIMARY_SYSTEM_SURFACE_REDUCED = PASS`. Conflicting historical OMP architecture assumptions must become `RESET_OMP_CONTRACT_CONFLICT` and be resolved in RESET-M1B without weakening real safety or Authority boundaries.
+
 There is exactly one authoritative volatile current-state owner:
 
 ```text

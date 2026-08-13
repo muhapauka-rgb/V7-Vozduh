@@ -39,4 +39,8 @@ Hard-failure classification и anti-flap arbitration уже принадлежа
 
 Repair сохранён в commit `d14121f3`: новый existing-entrypoint flag `--omp-multi-lane-product-evolution-production-certification` строит уже применяемый disposable production-certification layout от deployed manifest, проверяет selector и вызывает тот же OMP consumer read-only. Локальный production-layout caller и 54 focused regression tests: `PASS`.
 
-На момент этого отчёта repair ещё не отправлен/не задеплоен: security gate требует отдельное явное разрешение на GitHub egress для этого второго commit. До этого шага production caller verification остаётся `PENDING_REPAIR_DEPLOY`; routing, users, Authority и Maturity не затронуты.
+Repair завершён и синхронизирован: commits `d14121f3` и `b2111d70` отправлены в `origin/Updatesystem`; штатный `tools/v7-safe-deploy` применил manifest ровно для `tools/v7_sync_lib.py` и `tools/v7-truth-check` (deploy `deploy-z8-14-Updatesystem-b2111d7-20260725T152726`).
+
+Повторный реальный non-test production caller `ssh v7-vps /usr/local/bin/v7-truth-check --omp-multi-lane-product-evolution-production-certification --json` дал `PASS`: deployed manifest layout, exact selector, `SINGLE_CHANNEL_FAILURE` и `OMP_PROGRAM_EXECUTION_RECONCILIATION` подтверждены; `production_state_mutation=false`. Runtime fingerprint, local и GitHub: `b2111d70dbdd47048c0a1248ac9cb12b64961f38`.
+
+Финальные `tools/v7-truth-check --all --json` и `tools/v7-convergence-status --json`: `PASS`, `FULLY_ALIGNED` / `ALIGNED`. Routing, users, Authority, Production Maturity и L7/L8 credit не изменялись.

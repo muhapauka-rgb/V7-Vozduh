@@ -62,5 +62,27 @@ boundary `RESTORE_BARRIER_REQUIRED_FOR_EMERGENCY_FAILOVER`. This repair does not
 issue that barrier or an Action Class contract. After the owner decision, the
 same event-driven loop must resume automatically through fresh reconciliation.
 
-Production deploy, non-test caller, truth and convergence are required before
-this report can claim deployed consumption.
+## Production verification
+
+The change was deployed only through the canonical safe-deploy owner. The only
+runtime delta was the existing sync/OMP consumer library; no service restart
+was required.
+
+The production binary-only service-failure consumer opened the existing
+closure-records owner under the new interprocess lock and returned no pending
+obligation. Runtime, routing, users, Authority and Production Maturity were
+unchanged.
+
+The full Continue OMP consumer remains source-CPS-owned. The binary-only
+production layout intentionally has no duplicate canonical CPS, so external
+event-driven re-entry continues through the already certified Codex Automation
+Platform source-workspace owner. No second production CPS was created.
+
+The source non-test Continue OMP caller invoked the real consumer, consumed the
+next independent product engineering frontier and produced its exact next
+output with zero forbidden effects.
+
+Post-deploy truth returned PASS/FULLY_ALIGNED and convergence returned
+PASS/ALIGNED. CPS was intentionally not rewritten: the current owner-backed
+program terminal remains the independent restore-barrier/Action-Class Authority
+boundary.

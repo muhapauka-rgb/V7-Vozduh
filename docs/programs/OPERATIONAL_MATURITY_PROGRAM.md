@@ -247,6 +247,22 @@ This vision is immutable unless a future ADR explicitly supersedes it.
 
 ## 2. Program Principles
 
+### V7 System Reset and Routing Core Migration Registration
+
+Status: `CURRENT_PROGRAM_STATE_REFERENCE`.
+
+Registered Program: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
+
+OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M5 are complete; the current phase is `RESET-M6` and the exact successor is `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER`.
+
+The Program-level rule `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` forbids new legacy hot-path routing capability growth while allowing critical production, security/safety, migration-required fixes, comparison instrumentation, and migration-safety deduplication. It grants no Runtime, routing, user, deploy, Authority, Planner, queue, owner, or truth-source effect. Existing Programs remain intact pending `RESET-M0/RESET-M1` disposition.
+
+OMP's vNext role is development-plane only. It must not synchronously answer runtime target-selection questions or enter the future Routing Core hot path. This registration creates no Routing Core and performs no migration.
+
+The registered contract now includes internal `RESET-M0B`, `RESET-M0C`, and `RESET-M1B` phases; Intent-vs-Reality producer/caller/consumer/product-effect proof; factual `SYSTEM_COMPLEXITY` baseline/current/delta metrics; semantic rather than mechanical large-file decomposition; and evidence-backed system shrink. The audit uses one immutable scope snapshot, complete production entrypoint/function/dynamic-dispatch coverage, `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER`, stable dispositions and bounded delta reuse so no production function is silently lost and no valid object is ceremonially re-audited. It must also prove the real multi-layer Product goal/Program/component/process/file/function/state/effect/consumer relationships, explain every broken/orphan/circular or misplaced edge, and close RESET-M0 through RESET-M1B through one readable `V7_SYSTEM_RESET_MASTER_AUDIT_REPORT` with goal-coverage, contradiction, root-cause-depth, Product-Contract-trace, targeted-recheck and final-self-review gates. `RESET_OVERHEAD_BUDGET`, logical-output/physical-system separation, necessity-before-redesign, risk-proportional evidence, strict audit/mutation separation and shrink-over-reorganization prevent Reset from becoming permanent infrastructure. The Core contract additionally requires an exact end-to-end recovery clock, single writer and fenced Legacy/Core ownership transfer, recoverable apply-to-closure handoff, explicit stale-input decisions, an initial `<3 s` production gate and prepared compatible warm-path `p95 < 1 s`. The Program contract is ready for RESET-M0 and may not be expanded again without a material safety/correctness gap or owner-backed invalidator. These are Reset phase contracts, not separate Programs or execution performed by registration.
+
+When owner-backed Reset evidence conflicts with a historical OMP architectural assumption, OMP must materialize `RESET_OMP_CONTRACT_CONFLICT` for resolution in `RESET-M1B`. Historical `Architecture Complete` or legacy development-protection claims cannot silently suppress an explicitly approved Reset correction. `REAL_SAFETY_PROTECTION`, Authority, production mutation, rollback, and verification boundaries remain mandatory and cannot be superseded by this registration.
+
 1. Reality First.
 2. Discover -> Reuse -> Extend -> Implement.
 3. No duplicate owners.
@@ -8078,8 +8094,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=48; locations={"awg3":1,"vless":47}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER`
+Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M6` after classified M5 equivalence. The exact successor is the smallest certification-user controlled migration through existing Authority/deploy/writer owners. No Authority is self-granted and legacy remains fallback.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9066,7 +9082,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `ENGINEERING_AUTHORITY`
-Resolved current next action: `V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1`
+Resolved current next action: `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER`
 Current terminal report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-08T16:41:49+00:00
+State captured: 2026-08-13T07:29:45+00:00
 Latest terminal Mission: `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1`
 Latest terminal Mission state: `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
@@ -13,13 +13,21 @@ Source: CT-M0F V4.9/OMP V4.72 replaces the per-generation human approval loop wi
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-08T16:41:49+00:00`
+Captured: `2026-08-13T07:29:45+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
 | Field | Current Value |
 | --- | --- |
-| `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
+| `ACTIVE_PROGRAM` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` |
+| `PRIMARY_ENGINEERING_FRONTIER` | `RESET-M6` |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
+| `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
+| `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
+| `SYSTEM_RESET_PROGRAM_STATE` | `RESET_PROGRAM_CONTRACT_READY_FOR_EXECUTION` |
+| `SYSTEM_RESET_INTERNAL_PHASES` | `RESET-M0,RESET-M0B,RESET-M0C,RESET-M1,RESET-M1B,RESET-M2,RESET-M3,RESET-M4,RESET-M5 COMPLETE; RESET-M6 IN_PROGRESS` |
+| `SYSTEM_RESET_EXISTING_PROGRAM_DISPOSITION` | `ACCEPTED_RESET_M1; NO_EXISTING_PROGRAM_REMOVED_OR_MASS_REWRITTEN` |
+| `CURRENT_PRODUCTION_ROUTING_AUTHORITY` | `LEGACY_V7_RUNTIME_UNCHANGED` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
 | `CAUSAL_CONTINUITY_CONTRACT` | `OMP §14.1A and Service Failure Program V5.2 apply to this active Service Failure/CT-M0F lineage; they do not supersede CURRENT_EXECUTION_FRONTIER or grant Runtime effects.` |
 | `CAUSAL_CONTINUITY_PARENT_GOAL` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN with the existing CT-M0F CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER SLO subgoal; every internal repair must return to the named parent consumer.` |
@@ -31,34 +39,34 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
-| `CURRENT_ACTIVE_SCOPE` | `SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN` |
-| `CURRENT_SAFE_NEXT_ACTION` | `CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING Matrix -> planner -> fresh Candidate/Packet/lease path; the active standing policy is revalidated for every bounded serial transaction (max users=48); do not reuse historical identities` |
-| `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_285AF5FC6F4D_DRAIN` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2` |
-| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
-| `CURRENT_PROGRAM_STAGE` | `PHASE6_MULTI_LANE_CERTIFICATION_ACTIVE` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
+| `CURRENT_ACTIVE_SCOPE` | `SYSTEM_RESET_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Prepare and owner-authorize the smallest certification-user Core cutover with atomic single-writer fencing, fallback and exact recovery-clock evidence; do not self-grant Authority or move an ordinary user.` |
+| `CURRENT_SCOPE_CLASS` | `SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M5_COMPLETE_M6_ACTIVE_20260813T072945Z` |
+| `CURRENT_TRANSITION_ID` | `RESET_M5_COMPLETE_TO_RESET_M6_CONTROLLED_MIGRATION_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
+| `CURRENT_PROGRAM_STAGE` | `RESET-M6` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `CURRENT_EXECUTION_FRONTIER` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `CONTINUATION_DECISION` | `ENGINEERING_AUTHORITY_REQUIRED` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY` |
-| `OMP_CONTINUATION_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE` |
+| `PROGRAM_TERMINAL_STATE` | `ENGINEERING_AUTHORITY_RESET_M6_CORE_CERTIFICATION_CUTOVER_REQUIRED` |
+| `OMP_CONTINUATION_REQUIRED` | `FALSE` |
+| `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
+| `EXTERNAL_INPUT_TYPE` | `OWNER_ISSUED_CORE_CERTIFICATION_ACTION_CLASS_AND_WRITER_TRANSFER_CONTRACT` |
 | `TRANSACTION_TERMINAL_CLASS` | `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED` |
-| `PROGRAM_TERMINAL_CLASS` | `NONE` |
+| `PROGRAM_TERMINAL_CLASS` | `ENGINEERING_AUTHORITY` |
 | `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION` |
+| `NEXT_MISSION_ID` | `RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `85` |
-| `CONTINUATION_STOP_REASON` | `ACTIVE INCIDENT DRAIN PRESERVED; Matrix owns fresh observation and bounded serial transaction admission (max users=48) under standing policy` |
+| `CONTINUATION_STOP_REASON` | `RESET-M6 requires owner-issued Core certification action-class and single-writer transfer Authority; no prior Service Failure/CT-M0F Authority is reusable` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
@@ -69,7 +77,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_VLESS_SERVICE_INCIDENT` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR; source incident sfinc_446bf16efcc9f0141973de8be6e558e6; generation egid_be6367407f70e591005185a2; current route-backed scope affected=40, protected=0, unresolved=40, excluded_or_recovered=0; cumulative packet-bound lineage=39; last feedback NONE` |
 | `CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL` | `NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor` |
 | `CURRENT_L8_CANDIDATE_STATUS` | `CAPTURED_NOT_CREDITED; grouped VLESS incident sfinc_be20296fba3d8a6a33e58a583f1b58db; provenance EXTERNAL_UNATTRIBUTED; Situation situation_ecfe85dceea8a2d7eb3ab995; Decision Trace decision_c410493f06b1a6f34432d7e2; replay NO_DRIFT; Learning delta 0; later expiry reconciliation situation_b82179e3d32bdccf4bf49e53; natural_production_present remains open` |
-| `NO_PROGRESS_FINGERPRINT` | `c8afee9650c4396e7b37ae40782181e4defe67044bc4616abb96b45911443644` |
+| `NO_PROGRESS_FINGERPRINT` | `85ec0c320175612342cea90154e44128c8c1d30ec408e68e61044ef915ab5dc1` |
 | `PROGRAM_RECONCILIATION_FOOTPRINT_CLASS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `PROGRAM_RECONCILIATION_REAL_CALLERS` | `4` |
 | `PROGRAM_RECONCILIATION_TEST_CALLERS` | `4` |
@@ -208,7 +216,7 @@ This section is the single live volatile current-state surface. Older production
 | `BINDING_STABILITY` | `PASS; 22 post-deploy read-only cycles, 10 consecutive stable Candidate cycles, zero unexplained mismatches, zero mixed-generation snapshots` |
 | `BINDING_SCHEMA` | `v7.operation-scoped-source-binding.v2; shared by preview, admission and low-level pre-mutation recheck` |
 | `MISSION_IDENTITY_GUARD` | `PASS; Mission ID + run nonce + start timestamp + report header/path + CPS identity fail-closed validation` |
-| `AUTHORITY_REQUIRED_NOW` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
+| `AUTHORITY_REQUIRED_NOW` | `ENGINEERING_AUTHORITY_FOR_RESET_M6_CORE_CERTIFICATION_CUTOVER_ONLY` |
 | `OLD_PACKETS_REUSABLE` | `NO` |
 | `CURRENT_ACTION_CLASS` | `bounded autonomous controlled certification topology,bounded availability-first controlled failover,channel hard-fail failover` |
 | `CURRENT_ACTION_CLASS_STATE` | `GOVERNED_ONLY` |
@@ -438,7 +446,7 @@ This section is the single live volatile current-state surface. Older production
 | `TIER_2_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_ACTIVE` |
 | `TIER_5_REUSE_CLASSIFICATION` | `ENGINEERING_ADAPTER_QUALIFIED_AUTHORITY_AND_CONTROLLED_OUTCOME_REQUIRED` |
 | `BOUNDED_COHORT_REUSE_MISMATCH_FIELDS` | `Authority_scope,controlled_service_failure_outcomes_5_10_25_48` |
-| `CAUSAL_M10_CURRENT_INCIDENT_STATUS` | `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR` |
+| `CAUSAL_M10_CURRENT_INCIDENT_STATUS` | `RECOVERY_RECONCILIATION_REQUIRED` |
 | `CAUSAL_M8_SEMANTIC_ALIGNMENT` | `PASS` |
 | `CAUSAL_M9_RUNTIME_INVALID_STATES` | `NONE` |
 | `CAUSAL_M9_RUNTIME_INVARIANT_STATUS` | `PASS` |
@@ -450,7 +458,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_ACTION_CLASS_CAN_REUSE_WITHOUT_RECERTIFICATION` | `TRUE_UNLESS_DECLARED_INVALIDATION_TRIGGER` |
 | `CURRENT_ACTION_CLASS_COOLDOWN` | `per_user=1800;source_target_pair=1800` |
 | `CURRENT_ACTION_CLASS_ENGINEERING_PROVEN_TIER` | `TIER_48_CURRENT_CLASS_ENGINEERING` |
-| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `0899d776dfad72e10fd0189769a2afb7fbc410591dab1e489535dc937897fda2` |
+| `CURRENT_ACTION_CLASS_KNOWLEDGE_FINGERPRINT` | `5085d159c7a090b15f29724bf9e3e098ccdb2def540125621a14fe3729bc49c2` |
 | `CURRENT_ACTION_CLASS_KNOWLEDGE_REUSE_STATUS` | `RESULT_REUSED_VALID` |
 | `CURRENT_ACTION_CLASS_NON_REUSABLE_AS` | `current_higher_tier_certification,current_higher_tier_Authority,current_higher_tier_Runtime_activation` |
 | `CURRENT_ACTION_CLASS_REUSABLE_EVIDENCE_DIMENSIONS` | `production_assignment_mutation<=48,production_route_verification<=48,production_rollback_applied<=4,production_certified_no_rollback<=48,engineering_packet_identity<=48,engineering_replay_duplicate_suppression<=48,engineering_partial_apply_containment<=48,engineering_restart_recovery<=48,engineering_serial_cohort<=48,parallel_transactions<=1` |
@@ -491,7 +499,7 @@ This section is the single live volatile current-state surface. Older production
 | `GENERIC_MOVEMENT_PARALLEL_CONCURRENT_TRANSACTIONS_PROVEN_MAX` | `1` |
 | `GENERIC_MOVEMENT_PARTIAL_APPLY_FAILURE_RECOVERY` | `NOT_PROVEN` |
 | `GENERIC_MOVEMENT_PARTIAL_SCOPE_SELECTION` | `48_OF_50_SELECTION_PROVEN; NOT_PARTIAL_APPLY_FAILURE_RECOVERY` |
-| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `1ed055474f43e3b6d7e28739592d5651b26cc939cab00425165a16066e809140` |
+| `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_FINGERPRINT` | `8b5b143375171508b92f5e908d6df8f62e3844cce3dba0f6498aaeeca5eaa487` |
 | `GENERIC_MOVEMENT_PRIMITIVE_OWNER` | `admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence` |
 | `GENERIC_MOVEMENT_PRIMITIVE_STATUS` | `GENERIC_MOVEMENT_PRIMITIVE_EVIDENCE_NORMALIZED_AND_CONSUMED` |
 | `GENERIC_MOVEMENT_REPLAY_DUPLICATE_SUPPRESSION_PROVEN_MAX` | `4` |
@@ -529,7 +537,7 @@ This section is the single live volatile current-state surface. Older production
 | `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_CERTIFIED_SCOPES` | `1,2,4,5,10,25,48` |
 | `GENERIC_MOVEMENT_ENGINEERING_EVIDENCE_CLASS` | `POLYGON_AND_IMPLEMENTATION_CONTRACT` |
-| `GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS` | `{"admin_core/operation_scoped_binding.py":"8a341ef6fe9d5602f695a9aedc633b2ea41fe81aabb3cce16cefe7f8cc645ac2","admin_core/operator_execution.py":"8ab0aa4196d2f7c3cf688eb1907254e1e77bd8c3560e1e2199fff28a7e9a7ea1","tools/v7-governed-canary-dry-run-cycle":"3a0bba62e5ecf9c320861ef605ca6f00288ae3081a4493cfe1fb22afdbaa88a5","tools/v7-users-autoswitch":"5be4a8dec308fc650b1da7002769223cd4c59263151ea9a37f1128c87ec2c406"}` |
+| `GENERIC_MOVEMENT_ENGINEERING_IMPLEMENTATION_FINGERPRINTS` | `{"admin_core/operation_scoped_binding.py":"8a341ef6fe9d5602f695a9aedc633b2ea41fe81aabb3cce16cefe7f8cc645ac2","admin_core/operator_execution.py":"b613b23ce865b02caaae278064846fcd78106f705d082c777f33a89ab19b225f","tools/v7-governed-canary-dry-run-cycle":"e4dd85b7edfce95b41c563e7306d74c8749fdc7cccf24be3cf64196cbc78db7a","tools/v7-users-autoswitch":"1b8932f2a535fa4378361ee17165355b3e94a3d9a608d84b73f1305603d5ef86"}` |
 | `GENERIC_MOVEMENT_ENGINEERING_PACKET_IDENTITY_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_PARTIAL_APPLY_CONTAINMENT_MAX` | `48` |
 | `GENERIC_MOVEMENT_ENGINEERING_REPLAY_DUPLICATE_MAX` | `48` |
@@ -538,8 +546,8 @@ This section is the single live volatile current-state surface. Older production
 | `PROJECT_WIDE_ADAPTER_INHERITANCE_STATUS` | `PROJECT_WIDE_ADAPTER_INHERITANCE_BOUND` |
 | `CONTROLLED_CERTIFICATION_POOL_ACTIVE_SOURCE_COUNT` | `4` |
 | `CONTROLLED_CERTIFICATION_POOL_EXACT_BLOCKER` | `NONE` |
-| `CONTROLLED_CERTIFICATION_POOL_FINGERPRINT` | `c73e3033fdccc1ba52af1d8cb01ee2aa1caf5ad6ae4dca7b18330ef06972cb45` |
-| `CONTROLLED_CERTIFICATION_POOL_MAX_USERS_ON_ONE_ACTIVE_SOURCE` | `39` |
+| `CONTROLLED_CERTIFICATION_POOL_FINGERPRINT` | `b62fa1b063f3b29531dbe4c7fb5690520401a7f7ae2dbdc89ec6dcdb0fc68e45` |
+| `CONTROLLED_CERTIFICATION_POOL_MAX_USERS_ON_ONE_ACTIVE_SOURCE` | `33` |
 | `CONTROLLED_CERTIFICATION_POOL_MISSING_USERS_FOR_TIER_5` | `0` |
 | `CONTROLLED_CERTIFICATION_POOL_REENTRY_CONDITION` | `five_or_more_existing_owner_authorized_enabled_certification_users_are_assigned_to_one_active_controlled_source_with_zero_enabled_non_certification_users` |
 | `CONTROLLED_CERTIFICATION_POOL_RESPONSIBLE_OWNER` | `existing Controlled Production Certification Program user, registry, assignment and Authority owners` |
@@ -562,14 +570,14 @@ This section is the single live volatile current-state surface. Older production
 | `T48_CONTROLLED_SUBSTRATE_AUTHORITY_SEMANTIC_FINGERPRINT` | `` |
 | `AUTOMATIC_REENTRY_CONDITION` | `fresh healthy Matrix baseline on the exact approved source` |
 | `CONTROLLED_SOURCE_ROOT_CAUSE_CLASS` | `UNKNOWN` |
-| `CURRENT_POOL_AND_CAMPAIGN_STATE` | `campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":1,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":39,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5` |
+| `CURRENT_POOL_AND_CAMPAIGN_STATE` | `campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5` |
 | `EXACT_EXTERNAL_OWNER` | `UNKNOWN` |
 | `EXACT_EXTERNAL_RESOURCE` | `UNKNOWN` |
 | `EXACT_REQUIRED_INPUT` | `EXACT_CONTROLLED_CERTIFICATION_SOURCE_HEALTHY_BASELINE` |
 | `NEXT_CONSUMER` | `existing Service Matrix fresh-event revalidation owner` |
 | `WHY_EXISTING_OWNERS_CANNOT_SUPPLY_IT` | `UNKNOWN` |
 | `CONTROLLED_TARGET_FULL_LIVE_ADMISSION` | `STOP_SAFE` |
-| `CONTROLLED_TARGET_INVENTORY_FINGERPRINT` | `04b75954372aa68208b5b9ad92bcc6a32c3bcebda6adb7e8a521a386890e6123` |
+| `CONTROLLED_TARGET_INVENTORY_FINGERPRINT` | `00107dfccb7624b35b10c06cda54508e0da0587f88edcd0d04bda3394c8ce52c` |
 | `CONTROLLED_TARGET_SELECTION_STATUS` | `BETTER_TARGET_SELECTED_INSIDE_APPROVED_ENVELOPE` |
 | `CONTROLLED_SOURCE_TOPOLOGY_AUTHORITY_ACTION` | `NONE` |
 | `CONTROLLED_SOURCE_TOPOLOGY_AUTHORITY_DECISION` | `NONE` |
@@ -580,7 +588,7 @@ This section is the single live volatile current-state surface. Older production
 | `CONTROLLED_SOURCE_TOPOLOGY_REQUEST_ID` | `cstopauth_r1_ac43a8f794d0c644a6723321` |
 | `CONTROLLED_SOURCE_TOPOLOGY_SELECTED_OPTION` | `NONE` |
 | `CONTROLLED_SOURCE_TOPOLOGY_SELECTED_RESOURCE` | `NONE` |
-| `CONTROLLED_SOURCE_TOPOLOGY_STATUS` | `CONTROLLED_TOPOLOGY_AVAILABILITY_FIRST_AUTO_ADMITTED` |
+| `CONTROLLED_SOURCE_TOPOLOGY_STATUS` | `CONTROLLED_SOURCE_TOPOLOGY_PROVISIONING_REQUIRED` |
 | `CONSTANT_TIME_COHORT_FAILOVER_CONTRACT` | docs/reports/engineering/evidence/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_contract.json |
 | `CONSTANT_TIME_COHORT_FAILOVER_CT_M1_STATE` | FORMED_DEPENDENCY_BLOCKED |
 | `CONSTANT_TIME_COHORT_FAILOVER_NEXT_MISSION` | V7_CONSTANT_TIME_COHORT_FAILOVER_REUSABLE_FAST_PRIMITIVES_CLOSURE_V1 |
@@ -650,7 +658,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-08-08T16:41:49+00:00`
+Generated At: `2026-08-09T10:08:46+00:00`
 
 Runtime Authority: `NONE`
 
@@ -663,10 +671,10 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_SDPC_285AF5FC6F4D_DRAIN` |
-| `CURRENT_TRANSITION_ID` | `SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M5_COMPLETE_M6_ACTIVE_20260813T072945Z` |
+| `CURRENT_TRANSITION_ID` | `RESET_M5_COMPLETE_TO_RESET_M6_CONTROLLED_MIGRATION_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
+| `CURRENT_STOP_CONDITION` | `ENGINEERING_AUTHORITY` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
 | `UNFINISHED_CAPABILITIES` | `21` |
@@ -684,8 +692,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The existing Matrix lifecycle continues the accounted open incident through fresh per-transaction gates and publishes its next durable successor. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `OMP_CONTINUATION_POINTER` | Execute RESET-M6 smallest certification-user controlled migration only through existing Authority/deploy/writer owners with atomic fencing and fallback. |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -694,9 +702,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_SDPC_285AF5FC6F4D_DRAIN` |
-| `current_transition_id` | `SERVICE_FAILURE_STANDING_POLICY_RECONCILED_PRESERVING_ACTIVE_DRAIN_V2` |
-| `smallest_existing_next_action_id` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |
+| `current_state_generation` | `cpsgen_RESET_M5_COMPLETE_M6_ACTIVE_20260813T072945Z` |
+| `current_transition_id` | `RESET_M5_COMPLETE_TO_RESET_M6_CONTROLLED_MIGRATION_V1` |
+| `smallest_existing_next_action_id` | `EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
 | `latest_terminal_mission_id` | `V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1` |
@@ -713,7 +721,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN |
+| `smallest_existing_next_action` | EXECUTE_RESET_M6_CONTROLLED_MIGRATION_SINGLE_WRITER_FENCED_CUTOVER |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -872,7 +880,7 @@ No historical content is deleted. Numeric owner revalidation may update only thi
 | `SYSTEM_MAP_SYNC` | `SYSTEM_MAP_UPDATED` |
 | `CURRENT_PROGRAM_STATE_SYNC` | `CURRENT_PROGRAM_STATE_UPDATED` |
 | `OMP_HANDOFF` | `KNOWLEDGE_BASELINE_RECORDED` |
-| `ACTIVE_PROGRAM` | `OMP` |
+| `STAGE_2_ACTIVE_PROGRAM_AT_CLOSURE` | `OMP` |
 | `PROGRAM_STATE` | `CLOSED` |
 | `NEXT_STATE` | `READY_FOR_ENGINEERING_TRUTH_USAGE_ASSURANCE_DISCOVERY` |
 

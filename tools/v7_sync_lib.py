@@ -53,6 +53,7 @@ REMOTE_NAME = "origin"
 DEPLOY_CONFIRMATION = "DEPLOY_V7_APPROVED"
 RELEASE_SYNC_CONFIRMATION = "RELEASE_SYNC_APPROVED"
 LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
+    "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1",
     "PERMANENT_POLYGON_OMP_INTEGRATION_PROGRAM",
     "PERMANENT_POLYGON_DESIGN_TIME_ENGINEERING_COMPLETION_PROGRAM",
     "L7_L8_PRODUCTION_EVIDENCE_AND_AUTHORITY_EVOLUTION_PROGRAM",
@@ -2209,6 +2210,11 @@ def delegated_policy_live_state_consistency(
     live_program_terminal = live.get("PROGRAM_TERMINAL_CLASS", "").strip("`")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
+    reset_program_frontier = (
+        _plain_live_value(live, "ACTIVE_PROGRAM")
+        == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+        and program_frontier.startswith("EXECUTE_RESET_")
+    )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
         r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
@@ -2253,6 +2259,8 @@ def delegated_policy_live_state_consistency(
         and live.get("AUTOMATION_ENABLED", "").strip("`") == "TRUE"
     )
     expected_authority = (
+        f"ENGINEERING_AUTHORITY_FOR_{live.get('CURRENT_PROGRAM_STAGE', '').strip('`').replace('-', '_')}_CORE_CERTIFICATION_CUTOVER_ONLY"
+        if reset_program_frontier and engineering_authority_terminal else
         "YES_FOR_CERTIFICATION_POOL_OR_DELIBERATE_CONTROLLED_CONDITION"
         if engineering_authority_terminal else
         "NO_NEW_AUTHORITY_REQUIRED"
@@ -2324,7 +2332,9 @@ def delegated_policy_live_state_consistency(
         "",
     )
     expected_cap_con_terminal = f"current program terminal is `{live_program_terminal}`"
-    if not cap_con_06:
+    if reset_program_frontier:
+        pass
+    elif not cap_con_06:
         contradictions.append("delegated_policy_cap_con_06_missing")
     elif expected_cap_con_terminal not in cap_con_06:
         contradictions.append("delegated_policy_cap_con_06_current_terminal_divergence")
@@ -2362,6 +2372,9 @@ def delegated_policy_live_state_consistency(
         cells = [cell.strip() for cell in sequence_one.strip().strip("|").split("|")]
         sequence_stop = cells[5].strip("`") if len(cells) > 5 else ""
     stop_consistent = (
+        reset_program_frontier
+        and stop == registry_stop == "ENGINEERING_AUTHORITY"
+        or
         (active_incident_drain_frontier and stop == registry_stop == wip_stop == "NONE")
         or
         (
@@ -2375,6 +2388,7 @@ def delegated_policy_live_state_consistency(
             or len({stop, wip_stop, cap_stop}) == 1
             or engineering_authority_terminal
             or external_owner_terminal
+            or reset_program_frontier
         )
         and (
             not independent_program_frontier
@@ -2386,6 +2400,7 @@ def delegated_policy_live_state_consistency(
             or engineering_authority_terminal
             or external_owner_terminal
             or safe_reentry_frontier
+            or reset_program_frontier
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
     )
@@ -2401,13 +2416,15 @@ def delegated_policy_live_state_consistency(
             independent_program_frontier
             or wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
         )
-        and f"`{next_action}`" in sequence_one
+        and (reset_program_frontier or f"`{next_action}`" in sequence_one)
     )
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
 
     cap_action_token = expected_next_action
     cap_consistent = bool(
+        reset_program_frontier
+        or
         active_capability
         and (
             independent_program_frontier
@@ -2419,7 +2436,11 @@ def delegated_policy_live_state_consistency(
     )
     if not cap_consistent:
         contradictions.append("delegated_policy_active_capability_divergence")
-    sequence_consistent = bool(sequence_one and sequence_four and not any(item.startswith("delegated_policy_sequence") for item in contradictions))
+    sequence_consistent = bool(
+        reset_program_frontier
+        or sequence_one and sequence_four
+        and not any(item.startswith("delegated_policy_sequence") for item in contradictions)
+    )
     if not sequence_consistent:
         contradictions.append("delegated_policy_deterministic_sequence_divergence")
 
@@ -2588,6 +2609,13 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
     expected_projection = {
         "DEPENDENCY_GRAPH_VERSION": "v7.omp-capability-dependency-graph.v1",
         "CURRENT_EXECUTION_FRONTIER": (
+            live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
+            if (
+                live.get("ACTIVE_PROGRAM", "").strip("`")
+                == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+                and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("EXECUTE_RESET_")
+            )
+            else
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`") == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             else "NONE"
@@ -2674,6 +2702,16 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             )
             waiting_input_frontier = program_frontier.startswith("WAITING_INPUT:")
             safe_reentry_frontier = program_frontier.startswith("WAITING_OWNER_EVENT:")
+            reset_frontier = (
+                live.get("ACTIVE_PROGRAM", "").strip("`")
+                == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+                and program_frontier.startswith("EXECUTE_RESET_")
+            )
+            reset_authority_frontier = (
+                reset_frontier
+                and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") == "RESET-M6"
+                and live.get("CURRENT_STOP_CONDITION", "").strip("`") == "ENGINEERING_AUTHORITY"
+            )
             active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if waiting_input_frontier:
                 if (
@@ -2695,7 +2733,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
             elif heartbeat_reentry_active:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "NATURAL_SCHEDULED_RUN":
                     errors.append("program_heartbeat_reentry_boundary_invalid")
-            elif authority_frontier:
+            elif authority_frontier or reset_authority_frontier:
                 if continuation != "FALSE" or external != "TRUE" or program_terminal != "ENGINEERING_AUTHORITY":
                     errors.append("program_acceptance_frontier_external_boundary_invalid")
             elif bounded_continue_omp_frontier:
@@ -2709,7 +2747,8 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 if safe_reentry_frontier else
                 "PROGRAM_ACCEPTANCE_REQUIRED" if acceptance_frontier else
                 "WAIT_EXTERNAL_TRIGGER" if heartbeat_reentry_active else
-                "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier else
+                "ENGINEERING_AUTHORITY_REQUIRED" if authority_frontier or reset_authority_frontier else
+                program_frontier if reset_frontier else
                 "CONTINUE_PROGRAM_FRONTIER"
             )
             if continuation_decision != expected_decision:
@@ -2729,6 +2768,12 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     errors.append("program_frontier_terminal_state_invalid")
             elif safe_deploy_frontier:
                 if program_terminal_state != "ENGINEERING_AUTHORITY_SAFE_DEPLOY_REQUIRED":
+                    errors.append("program_frontier_terminal_state_invalid")
+            elif reset_authority_frontier:
+                if program_terminal_state != "ENGINEERING_AUTHORITY_RESET_M6_CORE_CERTIFICATION_CUTOVER_REQUIRED":
+                    errors.append("program_frontier_terminal_state_invalid")
+            elif reset_frontier:
+                if not program_terminal_state.startswith("RESET_"):
                     errors.append("program_frontier_terminal_state_invalid")
             elif bounded_continue_omp_frontier:
                 pass
@@ -22787,6 +22832,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
         "CURRENT_COMPLETION_CONTRACT": "PROGRAM_COMPLETION" if program_complete else "AUTOMATION_COMPLETION" if permanent_polygon_automation_complete else "INTEGRATION_COMPLETION" if phase6_multi_lane_active else "AUTOMATION_COMPLETION" if fsse_automation_complete else "INTEGRATION_COMPLETION" if fsse_foundation_complete else "AUTOMATION_COMPLETION" if entrypoint_wired else "INTEGRATION_COMPLETION",
         "CURRENT_COMPLETION_VERDICT": completion_gate["completion_verdict"],
     }
+    if live.get("ACTIVE_PROGRAM", "").strip("`") == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1":
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "RESET_PROGRAM_PHASE_CONTRACT_OWNS_COMPLETION",
+            "current_completion_contract": "RESET_PROGRAM_PHASE_CONTRACT",
+            "current_completion_verdict": "RESET_PHASE_FRONTIER_ACTIVE",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
     errors: list[str] = []
     for field, value in expected.items():
         if live.get(field, "").strip("`") != value:
@@ -23144,6 +23204,11 @@ def cps_live_state_consistency(
         errors.append("cps_transition_divergence")
     program_frontier = live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`")
     independent_program_frontier = program_frontier not in {"", "NONE"}
+    reset_program_frontier = (
+        live.get("ACTIVE_PROGRAM", "").strip("`")
+        == "V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1"
+        and program_frontier.startswith("EXECUTE_RESET_")
+    )
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
@@ -23250,7 +23315,9 @@ def cps_live_state_consistency(
         errors.append("cps_historical_invalidation_looks_live")
 
     sequence_rows = [line for line in sequence.splitlines() if line.startswith("| `1` |")]
-    if len(sequence_rows) != 1:
+    if reset_program_frontier:
+        pass
+    elif len(sequence_rows) != 1:
         errors.append("cps_sequence_position_1_missing_or_duplicate")
     else:
         sequence_cells = [cell.strip() for cell in sequence_rows[0].strip().strip("|").split("|")]

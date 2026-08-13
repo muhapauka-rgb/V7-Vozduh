@@ -32,6 +32,7 @@ from admin_core import (
     operation_scoped_binding,
     operator_execution,
     operator_execution_pipeline,
+    routing_core,
     shadow_autonomy,
 )
 
@@ -3557,6 +3558,132 @@ class AutoswitchPlanner:
         if "failover" in text or bool_value(getattr(self.args, "emergency_failover_autonomy", False)):
             return "EMERGENCY_FAILOVER"
         return "USER_SWITCH"
+
+    def bind_routing_core_certification(self, plan: dict[str, Any]) -> dict[str, Any]:
+        """Fence one exact Core decision to the existing effect writer.
+
+        This is the RESET-M6 migration adapter.  It creates no writer, store,
+        process or Authority owner: the Core remains pure, while ``apply``
+        retains all existing packet, lease, rollback and verification gates.
+        """
+        selected = [row for row in (plan.get("selected_moves") or []) if isinstance(row, dict)]
+        requested_user = str(getattr(self.args, "user", "") or "")
+        requested_source = str(getattr(self.args, "source_egress", "") or "")
+        requested_target = str(getattr(self.args, "target_egress", "") or "")
+        blockers: list[str] = []
+        if len(selected) != 1:
+            blockers.append("core_certification_requires_exactly_one_selected_move")
+        if not requested_user or not requested_source or not requested_target:
+            blockers.append("core_certification_exact_user_source_target_required")
+        if to_int(getattr(self.args, "max_selected_moves", 0), 0) != 1:
+            blockers.append("core_certification_max_selected_moves_must_equal_one")
+        move = selected[0] if len(selected) == 1 else {}
+        if move and (
+            str(move.get("user_ip") or "") != requested_user
+            or str(move.get("current_egress") or "") != requested_source
+            or str(move.get("recommended_egress") or "") != requested_target
+        ):
+            blockers.append("core_certification_selected_move_scope_mismatch")
+        target = self.egress.get(requested_target)
+        if target is None:
+            blockers.append("core_certification_target_missing")
+        operation = plan.get("operation") if isinstance(plan.get("operation"), dict) else {}
+        envelope = ((plan.get("safety") or {}).get("atomic_execution_envelope") or {})
+        if not str(operation.get("operation_id") or "") or not str(envelope.get("envelope_id") or ""):
+            blockers.append("core_certification_operation_fence_missing")
+        if blockers:
+            result = {
+                "schema_version": "v7.routing-core-certification-binding.v1",
+                "status": "STOP_SAFE",
+                "blockers": sorted(set(blockers)),
+                "runtime_mutation": False,
+                "writer_changed": False,
+            }
+            plan.setdefault("safety", {})["routing_core_certification"] = result
+            return result
+        authority_gate = ((plan.get("safety") or {}).get("authority_budget_gate") or {})
+        action_contract = authority_gate.get("current_action_class_contract") or {}
+        authority_generation = str(
+            action_contract.get("contract_id")
+            or getattr(self.args, "approved_authority_generation", "")
+            or ""
+        )
+        if not authority_generation:
+            result = {
+                "schema_version": "v7.routing-core-certification-binding.v1",
+                "status": "STOP_SAFE",
+                "blockers": ["core_certification_owner_authority_generation_missing"],
+                "runtime_mutation": False,
+                "writer_changed": False,
+            }
+            plan.setdefault("safety", {})["routing_core_certification"] = result
+            return result
+        observed_at = datetime.now(timezone.utc)
+        core_envelope = {
+            "schema": routing_core.CORE_INPUT_SCHEMA,
+            "generation": str(operation.get("planner_generation_id") or envelope.get("generation_id") or ""),
+            "observed_at": observed_at.isoformat(),
+            "max_age_ms": 5000,
+            "scope": {"source": requested_source, "users": [requested_user]},
+            "assignments": {requested_user: requested_source},
+            "targets": {
+                requested_target: {
+                    "healthy": bool(target.enabled and str(target.state).lower() != "disabled"),
+                    "capacity": max(int(target.capacity_users or 0), int(target.users) + 1),
+                    "assigned": int(target.users),
+                }
+            },
+            "policy": {
+                "generation": str(operation.get("planner_generation_id") or "planner-policy"),
+                "allowed_targets": [requested_target],
+                "capacity_reserve": 0,
+            },
+            "authority": {
+                "generation": authority_generation,
+                "permitted_users": [requested_user],
+                "max_users": 1,
+            },
+            "operation": {
+                "id": str(operation.get("operation_id") or ""),
+                "lease_id": str(envelope.get("envelope_id") or ""),
+                "fencing_token": str(envelope.get("envelope_hash") or ""),
+                "idempotency_key": str(operation.get("operation_id") or ""),
+            },
+        }
+        try:
+            core_result = routing_core.run_shadow(core_envelope, now=observed_at)
+        except routing_core.RoutingCoreContractError as exc:
+            result = {
+                "schema_version": "v7.routing-core-certification-binding.v1",
+                "status": "STOP_SAFE",
+                "blockers": [exc.status],
+                "runtime_mutation": False,
+                "writer_changed": False,
+            }
+            plan.setdefault("safety", {})["routing_core_certification"] = result
+            return result
+        core_moves = core_result.get("decision", {}).get("moves", [])
+        expected = [{"user": requested_user, "source": requested_source, "target": requested_target}]
+        status = (
+            "CORE_DECISION_BOUND_TO_EXISTING_WRITER"
+            if core_result.get("decision", {}).get("decision") == "PLAN_READY" and core_moves == expected
+            else "STOP_SAFE"
+        )
+        result = {
+            "schema_version": "v7.routing-core-certification-binding.v1",
+            "status": status,
+            "decision_fingerprint": str(core_result.get("decision_fingerprint") or ""),
+            "selected_move_hash": str(operation.get("selected_move_hash") or ""),
+            "operation_id": str(operation.get("operation_id") or ""),
+            "atomic_execution_envelope_id": str(envelope.get("envelope_id") or ""),
+            "effect_writer": "tools/v7-users-autoswitch.apply",
+            "runtime_mutation": False,
+            "writer_changed": False,
+            "blockers": [] if status != "STOP_SAFE" else ["core_decision_does_not_match_exact_certification_move"],
+        }
+        plan.setdefault("safety", {})["routing_core_certification"] = result
+        operation["routing_core_decision_fingerprint"] = result["decision_fingerprint"]
+        return result
 
     def _execution_control_decision(
         self,
@@ -13721,6 +13848,14 @@ class AutoswitchPlanner:
             return {"applied": False, "reason": "autoswitch_disabled_by_policy"}
         if mode == "observe":
             return {"applied": False, "reason": "mode_observe_blocks_apply"}
+        if bool_value(getattr(self.args, "routing_core_certification", False)):
+            core_binding = ((plan.get("safety") or {}).get("routing_core_certification") or {})
+            if core_binding.get("status") != "CORE_DECISION_BOUND_TO_EXISTING_WRITER":
+                return {
+                    "applied": False,
+                    "reason": "routing_core_certification_binding_stop_safe",
+                    "routing_core_certification": core_binding,
+                }
         committed_moves = self._committed_selected_moves_from_approved_plan_lock(
             plan
         )
@@ -16675,6 +16810,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-hard-full", action="store_true", help="Allow HARD_FULL egress as a candidate.")
     parser.add_argument("--emergency-failover-autonomy", action="store_true", help="Enable one-run bounded emergency failover autonomy from existing policy gates.")
     parser.add_argument("--apply", action="store_true", help="Apply selected moves. Default is read-only dry-run.")
+    parser.add_argument(
+        "--routing-core-certification",
+        action="store_true",
+        help=(
+            "Require the RESET Routing Core to reproduce one exact governed "
+            "certification move before the existing autoswitch writer may apply it."
+        ),
+    )
     parser.add_argument(
         "--governed-execution-receipt",
         action="store_true",
@@ -23053,6 +23196,8 @@ def main() -> int:
         return 0 if state in {"ROLLBACK_DRY_RUN", "ROLLBACK_COMPLETED"} else 1
     planner_entry_started_ns = time.monotonic_ns()
     plan = planner.plan()
+    if args.routing_core_certification:
+        planner.bind_routing_core_certification(plan)
     planner._record_performance_span(
         "planner_entry_target_capacity_and_allocation",
         planner_entry_started_ns,

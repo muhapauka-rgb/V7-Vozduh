@@ -25,7 +25,7 @@ This section is the single live volatile current-state surface. Older production
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
-| `SYSTEM_RESET_INTERNAL_PHASES` | `RESET-M0,RESET-M0B,RESET-M0C,RESET-M1,RESET-M1B,RESET-M2,RESET-M3,RESET-M4,RESET-M5,RESET-M6,RESET-M7,RESET-M8,RESET-M9 COMPLETE` |
+| `SYSTEM_RESET_INTERNAL_PHASES` | `RESET-M0,RESET-M0B,RESET-M0C,RESET-M1,RESET-M1B,RESET-M2,RESET-M3,RESET-M4,RESET-M5,RESET-M6,RESET-M7,RESET-M8,RESET-M9,RESET-M10 COMPLETE` |
 | `SYSTEM_RESET_EXISTING_PROGRAM_DISPOSITION` | `ACCEPTED_RESET_M1; NO_EXISTING_PROGRAM_REMOVED_OR_MASS_REWRITTEN` |
 | `CURRENT_PRODUCTION_ROUTING_AUTHORITY` | `CORE_PRIMARY_FOR_124_COMPATIBLE_PRODUCTION_USERS_WITH_EXACT_LEGACY_FALLBACK` |
 | `CURRENT_MODE` | `BOUNDED_DELEGATED_AUTONOMY_ACTIVE` |
@@ -41,10 +41,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `RESET_PROGRAM_TERMINAL` |
 | `CURRENT_ACTIVE_SCOPE` | `NONE_RESET_PROGRAM_COMPLETE` |
-| `CURRENT_SAFE_NEXT_ACTION` | `No Reset successor; do not expand or re-run without a material safety gap, correctness gap or owner-backed invalidator.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `NONE_RESET_PROGRAM_TERMINAL; future work returns to ordinary OMP discovery and requires a new material gap or owner-backed invalidator.` |
 | `CURRENT_SCOPE_CLASS` | `SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M9_COMPLETE_PROGRAM_TERMINAL_20260813T105500Z` |
-| `CURRENT_TRANSITION_ID` | `RESET_M9_COMPLETE_TO_RESET_PROGRAM_TERMINAL_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M10_COMPLETE_20260813T143315Z` |
+| `CURRENT_TRANSITION_ID` | `RESET_M10_1_THROUGH_M10_9_TO_PROGRAM_TERMINAL_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `NONE_RESET_PROGRAM_TERMINAL` |
 | `CURRENT_PROGRAM_STAGE` | `PROGRAM_COMPLETE` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `NONE` |
@@ -59,14 +59,14 @@ This section is the single live volatile current-state surface. Older production
 | `PROGRAM_TERMINAL_STATE` | `PROGRAM_COMPLETE_V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
 | `OMP_CONTINUATION_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_REQUIRED` | `TRUE` |
-| `EXTERNAL_INPUT_TYPE` | `NONE_FOR_OWNER_BACKED_RESET_M9_SAFE_SHRINK` |
+| `EXTERNAL_INPUT_TYPE` | `NONE_RESET_PROGRAM_TERMINAL` |
 | `TRANSACTION_TERMINAL_CLASS` | `CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `PROGRAM_COMPLETE` |
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE_RESET_PROGRAM_TERMINAL` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `85` |
-| `CONTINUATION_STOP_REASON` | `RESET-M0_THROUGH_RESET-M9_COMPLETE; FINAL_OWNER_BACKED_COMPLETION_REPORT_PASS` |
+| `CONTINUATION_STOP_REASON` | `RESET-M10 COMPLETE; FINAL OWNER-BACKED PROGRAM TERMINAL` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
@@ -671,8 +671,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M9_COMPLETE_PROGRAM_TERMINAL_20260813T105500Z` |
-| `CURRENT_TRANSITION_ID` | `RESET_M9_COMPLETE_TO_RESET_PROGRAM_TERMINAL_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_RESET_M10_COMPLETE_20260813T143315Z` |
+| `CURRENT_TRANSITION_ID` | `RESET_M10_1_THROUGH_M10_9_TO_PROGRAM_TERMINAL_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `NONE_RESET_PROGRAM_TERMINAL` |
 | `CURRENT_STOP_CONDITION` | `RESET_PROGRAM_TERMINAL` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -692,7 +692,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | Reset is complete; re-entry requires a material safety gap, correctness gap or owner-backed invalidator. |
+| `OMP_CONTINUATION_POINTER` | Reset Program terminal; no Reset successor. Preserve capability-local waits under their existing owners. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `NONE_RESET_PROGRAM_TERMINAL` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -702,8 +702,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_RESET_M9_COMPLETE_PROGRAM_TERMINAL_20260813T105500Z` |
-| `current_transition_id` | `RESET_M9_COMPLETE_TO_RESET_PROGRAM_TERMINAL_V1` |
+| `current_state_generation` | `cpsgen_RESET_M10_COMPLETE_20260813T143315Z` |
+| `current_transition_id` | `RESET_M10_1_THROUGH_M10_9_TO_PROGRAM_TERMINAL_V1` |
 | `smallest_existing_next_action_id` | `NONE_RESET_PROGRAM_TERMINAL` |
 | `active_mission_id` | `NONE` |
 | `active_mission_state` | `NONE` |
@@ -715,7 +715,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `protected_by_active_wip` | `TRUE` |
 | `wip_priority_class` | `COMPLETION_FIRST` |
 | `active_wip_reorder_allowed` | `FALSE` |
-| `current_primary_stop` | `NONE` |
+| `current_primary_stop` | `RESET_PROGRAM_TERMINAL` |
 | `responsibility_class` | `LEARNING` |
 | `authority_required_now` | `NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES` |
 | `last_responsible_link` | existing Matrix timer -> fresh autoswitch planner -> active standing-policy live gates -> scope update -> durable successor |
@@ -789,7 +789,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `RESET_PROGRAM_COMPLETE` terminal; `cpsgen_RESET_M9_COMPLETE_PROGRAM_TERMINAL_20260813T105500Z`; `RESET_M9_COMPLETE_TO_RESET_PROGRAM_TERMINAL_V1` | RESET-M0 through RESET-M9 and final owner-backed completion evaluation passed | `NONE_RESET_PROGRAM_TERMINAL` | existing CPS, OMP, canonical, Runtime and Authority owners | `RESET_PROGRAM_TERMINAL` | no Reset re-entry without a material safety gap, correctness gap or owner-backed invalidator |
+| `1` | `RESET-M10 COMPLETE`; `cpsgen_RESET_M10_COMPLETE_20260813T143315Z`; `RESET_M10_1_THROUGH_M10_9_TO_PROGRAM_TERMINAL_V1` | M0-M10 evidence and final architecture reconciliation are consumed | `NONE_RESET_PROGRAM_TERMINAL` | existing CPS, OMP, canonical, Runtime and component owners | `RESET_PROGRAM_TERMINAL` | final Reset terminal; no successor or Runtime/Authority expansion |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

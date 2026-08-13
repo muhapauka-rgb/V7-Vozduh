@@ -1,6 +1,6 @@
 # V7 Operational Maturity Program
 
-Status: `ACTIVE`
+Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
 Version: `4.72`
@@ -15,6 +15,7 @@ This program defines how V7 resolves the current system state, highest bottlenec
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
+Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
@@ -253,7 +254,7 @@ Status: `CURRENT_PROGRAM_STATE_REFERENCE`.
 
 Registered Program: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
 
-OMP remains the development-plane orchestrator and records `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` at terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`. CPS alone owns the volatile terminal projection. RESET-M0 through RESET-M9 and the final owner-backed completion evaluation are complete; there is no Reset successor.
+OMP remains the Engineering Plane orchestrator and records `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` at terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`. CPS alone owns the volatile terminal projection. RESET-M0 through RESET-M10 are complete; there is no Reset successor and no Runtime or Authority expansion.
 
 The Program-level rule `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` forbids new legacy hot-path routing capability growth while allowing critical production, security/safety, migration-required fixes, comparison instrumentation, and migration-safety deduplication. It grants no Runtime, routing, user, deploy, Authority, Planner, queue, owner, or truth-source effect. Existing Programs remain intact pending `RESET-M0/RESET-M1` disposition.
 
@@ -8095,7 +8096,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `RESET_PROGRAM_TERMINAL`
 Resolved current next action: `NONE_RESET_PROGRAM_TERMINAL`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `NONE_RESET_PROGRAM_TERMINAL`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS records RESET-M10 completion and the final Reset Program terminal. Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

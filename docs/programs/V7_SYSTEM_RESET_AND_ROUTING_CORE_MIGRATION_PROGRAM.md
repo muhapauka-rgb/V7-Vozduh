@@ -8,11 +8,21 @@ Program owner: existing `OMP` development-plane orchestrator.
 
 Volatile state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md` (`CPS`).
 
-Production authority: existing legacy V7 Runtime and Authority owners; unchanged.
+Production authority: current CPS-backed production Authority state `CORE_PRIMARY_FOR_124_COMPATIBLE_PRODUCTION_USERS_WITH_EXACT_LEGACY_FALLBACK`; this reconciliation does not change Authority.
 
-First executable phase: `RESET-M0`.
+## Current Program State
 
-Exact successor: `EXECUTE_RESET_M0_FULL_PROGRAM_PORTFOLIO_AUDIT_AND_FREEZE_RECONCILIATION`.
+Current completed scope: `RESET-M0 -> RESET-M10 COMPLETE`.
+
+Current CPS frontier: `PROGRAM_COMPLETE`; current CPS successor: `NONE_RESET_PROGRAM_TERMINAL`.
+
+Current contract frontier: `RESET-M10 COMPLETE`. CPS consumed the owner-backed whole-production-surface correctness invalidator; M0-M9 evidence remained complete and was not rerun. The final architecture is reconciled through existing canonical owners, with no new Runtime, owner, state or Authority.
+
+### Historical Program Entry Point
+
+First executable phase at Program creation: `RESET-M0`.
+
+Historical exact successor: `EXECUTE_RESET_M0_FULL_PROGRAM_PORTFOLIO_AUDIT_AND_FREEZE_RECONCILIATION`.
 
 ## 1. Purpose and Boundary
 
@@ -29,6 +39,59 @@ Law: `LOGICAL_OUTPUT_NOT_PHYSICAL_SYSTEM`, with the reporting constraint `LOGICA
 Law: `PRESERVE_REQUIRED_BEHAVIOR_NOT_LEGACY_STRUCTURE`. Reset preserves required product semantics, safety, Authority, rollback/recovery, verification, capacity, freshness, anti-flap and compatibility behavior. It does not preserve a legacy class, file, owner, Planner, matrix, snapshot, workflow, state structure or implementation topology merely because that structure exists. Before migration, prove the product intent is necessary, whether it must execute synchronously, whether a dedicated owner is necessary, whether an existing owner can absorb it, and whether a simpler representation preserves the behavior.
 
 Law: `QUESTION_NECESSITY_BEFORE_OPTIMIZING_IMPLEMENTATION`. Before redesign/refactor ask, in order: does the behavior need to exist; must it execute before traffic recovery; does it require a dedicated owner; can an existing owner absorb it; can it be derived or asynchronous; only then redesign implementation. Do not optimize or elegantly rewrite a mechanism that can be removed.
+
+Permanent law: `EXISTING_CAPABILITY_DISCOVERY_BEFORE_IMPLEMENTATION`. New implementation is forbidden until evidence proves that the required capability is absent or that existing behavior and ownership cannot be safely reused, merged, simplified, moved or deduplicated. This law unifies and strengthens the existing OMP Architecture Closed by Default, New Owner Gate, necessity, owner-reuse and duplication controls; it creates no discovery framework, registry, owner, process, document class or approval layer.
+
+Mandatory sequence:
+
+`REQUIREMENT -> EXISTING CAPABILITY SEARCH -> EXISTING OWNER IDENTIFICATION -> EXISTING PRODUCER/CONSUMER ANALYSIS -> REUSE POSSIBILITY -> MERGE POSSIBILITY -> SIMPLIFICATION POSSIBILITY -> MOVE/REMOVE DUPLICATE POSSIBILITY -> ONLY THEN NEW IMPLEMENTATION`.
+
+Before creating or materially extending any code, function, class, file, owner, service, timer, process, state surface, adapter, registry, workflow or architecture component, the implementing Mission must answer through existing repository, owner, test, service, state and contract evidence:
+
+1. Which existing function, module, service or owner already provides all or part of the behavior?
+2. Which real producer and consumer already participate, and is the missing link integration rather than implementation?
+3. Which existing state surface already contains or can derive the required fact?
+4. Which existing Authority, policy, verification, rollback and assignment mechanisms apply?
+5. Can the existing owner be reused, merged, simplified or extended without duplicating responsibility?
+6. Can existing complexity be removed or moved asynchronous instead of adding another layer?
+
+Required logical evidence record: `REQUESTED_CAPABILITY`, `SEARCHED_EXISTING_SURFACES`, `FOUND_EXISTING_COMPONENTS`, `EXISTING_PRODUCER`, `EXISTING_CONSUMER`, `EXISTING_STATE_AND_AUTHORITY_PATH`, `REUSE_DECISION`, `MERGE_DECISION`, `SIMPLIFICATION_OR_REMOVAL_DECISION`, `WHY_EXISTING_IS_NOT_SUFFICIENT`, and `NEW_COMPONENT_JUSTIFICATION`. It belongs in the existing Mission or concise Engineering Report and must not cause documentation explosion.
+
+Default decision order: `REUSE -> MERGE -> SIMPLIFY -> MOVE -> REMOVE_DUPLICATE -> NEW_IMPLEMENTATION`. New implementation is legal only when existing behavior is absent or provably insufficient, responsibility cannot be lawfully moved into an existing owner, and the proposed component reduces net system complexity. `EXISTING_CAPABILITY + NEW_DUPLICATE_IMPLEMENTATION = ARCHITECTURE_ERROR` by default; overlap requires convergence to one behavior owner, one truth source and one responsibility.
+
+Runtime rule: before adding anything to the Data Plane or Control Plane, explicitly search for and reuse the existing channel-health model, policy validation, Authority boundary, verification, rollback and assignment mechanisms. A second version is forbidden without a proven incompatible semantic boundary and net simplification.
+
+Reset/Codex execution rule: every implementation Mission from RESET-M0 through RESET-M10 and every future change begins with terminal `SEARCH_EXISTING_BEFORE_IMPLEMENTATION`, covering repository code, current owners, functions, tests, services, state surfaces and documentation/contracts. Implementation may not begin from the assumption that a capability is missing. Proposals for a new mechanism, layer, manager or orchestrator fail closed to `EXISTING_CAPABILITY_DISCOVERY_REQUIRED` until the evidence record passes.
+
+Permanent architectural law: `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_MODEL`. Every V7 Program, owner, module, file, service, timer, state surface and Runtime component must declare `PURPOSE`, `OWNER`, `LIFECYCLE`, `INPUTS`, `OUTPUTS`, `REAL_CONSUMERS`, `ALLOWED_DEPENDENCIES`, `FORBIDDEN_DEPENDENCIES` and `REMOVAL_CONDITION`. Implementation existence is not necessity evidence. A component remains admitted only when `PURPOSE + REAL_CONSUMER + REAL_PRODUCT_EFFECT` is proven or when an exact safety, Authority, historical-evidence or migration exception is owner-backed.
+
+Responsibility placement is exclusive: `DATA_PLANE`, `CONTROL_PLANE`, `ENGINEERING_PLANE`, `LEGACY_EXCEPTION` or `REMOVE`. Data Plane owns route application, forwarding-state mutation, client switching and effect verification; it forbids OMP, Reports, Learning, Polygon, Programs, roadmap, development history, maturity and certification-lifecycle dependencies. Control Plane owns channel health/state, policy, capacity, Authority, constraints and preparation of decisions. Engineering Plane owns OMP, Reports, Polygon, Learning, Replay, Research, Analytics and certification history and is forbidden from synchronous client switching.
+
+Mandatory `DELETE_TEST`: for every component ask `WHAT_HAPPENS_IF_WE_DELETE_THIS?` and classify the result as `PRODUCT_BREAK`, `SAFETY_OR_AUTHORITY_BREAK`, `HISTORICAL_EVIDENCE_LOSS`, `OPERATOR_CONVENIENCE_LOSS`, or `NO_MATERIAL_EFFECT`. `NO_MATERIAL_EFFECT` requires `REMOVE` or `ARCHIVE` disposition unless an owner-backed invalidator proves otherwise; convenience alone cannot admit a component to the primary Runtime.
+
+Program lifecycle rule: every Program declares purpose, lifecycle (`PERMANENT`, `TEMPORARY`, `MIGRATION_ONLY`, `COMPLETED`), completion condition and removal/archive condition. A temporary or completed Program and its machinery cannot become a permanent Runtime dependency merely because its artifacts remain. State-surface responsibility rule: every state surface proves necessity, owner, writer, readers, real consumer, product effect, freshness, invalidation and lifecycle, then receives exactly one disposition: `KEEP_AUTHORITATIVE`, `MERGE`, `DERIVE`, `ASYNC_ONLY`, `LEGACY_ONLY` or `REMOVE`.
+
+Permanent architectural law: `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH`. Current truth is separated by responsibility and no layer may own another truth class:
+
+- `RUNTIME TRUTH`: live assignments, health, policy state, Authority state and routing state remain owned by their existing Runtime/Control Plane owners; CPS owns volatile Program/execution state. Architecture documents and Engineering Reports cannot make a Runtime decision or grant Authority.
+- `ARCHITECTURE TRUTH`: current component ownership, responsibility boundaries, dependencies, plane placement and production Runtime boundary remain owned by the existing Canonical Reference and `SYSTEM_MAP` topology owners. `FINAL_ARCHITECTURE_MAP` is their reconciled current projection and onboarding reference, not a new owner, Runtime state, Authority source, CPS or independent truth source.
+- `HISTORICAL EVIDENCE`: Engineering Reports, completed Programs, experiments and migration records explain why decisions were made and what occurred; they do not define current Runtime behavior, execution state or architecture unless their result is promoted into the existing canonical owner.
+
+Forbidden dependencies are `ENGINEERING REPORT -> RUNTIME DECISION`, `HISTORICAL DOCUMENT -> CURRENT ARCHITECTURE TRUTH`, and `OLD PROGRAM DOCUMENT -> PRODUCTION BEHAVIOR`. The lawful improvement direction is `RUNTIME OUTCOME -> ENGINEERING ANALYSIS -> OWNER-BACKED ARCHITECTURE IMPROVEMENT -> EXISTING CANONICAL OWNER UPDATE`; analysis alone has no Runtime or Authority effect.
+
+Every scoped architecture-bearing document receives exactly one logical status: `CURRENT_ARCHITECTURE_OWNER`, `HISTORICAL_EVIDENCE` or `OBSOLETE_REFERENCE`. Status is a classification in existing canonical/report artifacts, not a registry or document framework. A document without reconciled status cannot be used as current architecture truth. Before creating an architecture map, system diagram, model or truth document, `EXISTING_CAPABILITY_DISCOVERY_BEFORE_IMPLEMENTATION` must search the Canonical Reference, `SYSTEM_MAP`, current architecture projection and their owners; law: `UPDATE_EXISTING_ARCHITECTURE_TRUTH_BEFORE_CREATE_NEW_ARCHITECTURE_ARTIFACT`. A new artifact is legal only when those owners cannot represent a proven necessary distinction and the ordinary necessity gate passes.
+
+Permanent engineering law: `END_TO_END_CHANGE_COMPLETION_GATE`. A change is complete only when its full lifecycle is owner-backed and consumed:
+
+`STARTING STATE -> TARGET STATE -> TRANSITION -> REAL CONSUMER MIGRATION -> VALIDATION -> OLD SURFACE DISPOSITION -> CLEANUP OR OWNER-BACKED EXCEPTION -> NEXT CONSUMER CONSUMPTION -> FINAL OWNER CONFIRMATION`.
+
+`NEW_PATH_WORKS != CHANGE_COMPLETE`. Every material implementation or migration must identify the starting and final files/functions, existing final owner, producer, real consumers, services, timers, state surfaces, configuration, dependencies and Authority boundary; prove how every real consumer moves; validate production behavior and required rollback/recovery; and disposition every superseded surface as exactly one of `KEEP_REQUIRED`, `MERGE`, `ARCHIVE`, `DELETE` or `LEGACY_EXCEPTION`. A new owner, consumer, flow or state surface is never presumed by the target state and remains subject to `EXISTING_CAPABILITY_DISCOVERY_BEFORE_IMPLEMENTATION` and the existing New Owner Gate.
+
+`NO_UNDISPOSITIONED_ORPHANED_SURFACE_AFTER_CHANGE`: a producer without a consumer, consumer without a producer, owner without responsibility, state without a lawful reader, reader without a current owner, service without purpose, timer without a consumer, file without lifecycle, configuration without Runtime usage, obsolete import/startup dependency or silently duplicated old/new path is an `ORPHANED_SURFACE` until dispositioned. Historical evidence, recovery-only state, dormant fallback, external-owner-bound surfaces and bounded migration checkpoints may remain only through an explicit owner, real purpose, lifecycle, consumer/re-entry condition and removal/review condition; they are not automatic deletion targets.
+
+Migration chain closure requires `OLD FUNCTION -> OLD CONSUMERS IDENTIFIED -> NEW OR REUSED FUNCTION READY -> REAL CONSUMERS MIGRATED -> OLD CONSUMERS REMOVED OR EXCEPTED -> OLD FUNCTION DISPOSITIONED`. An old path that still silently works is incomplete unless admitted as an explicit `LEGACY_EXCEPTION` with owner, caller/consumer, safety purpose and removal condition. Cleanup covers code, imports, processes, startup dependencies, state writers/readers, services, timers, configuration, deploy/monitoring surfaces, documentation references and ownership; historical evidence is archived or marked historical rather than erased.
+
+Audit-only phases RESET-M0/M0B/M0C and disposition/design phases RESET-M1/M1B comply by proving complete coverage, decision and disposition; `STRICT_AUDIT_MUTATION_SEPARATION` forbids physical cleanup as an audit side effect. Implementation and migration phases RESET-M2 through RESET-M10, and all future material V7 changes, require evidence-gated physical cleanup after validation or an exact retained exception. Cleanup never precedes the required fallback, rollback, recovery, Authority or consumer-migration gates and creates no cleanup framework, registry, audit system or new owner.
 
 Law: `EVIDENCE_DEPTH_PROPORTIONAL_TO_RISK`, also expressed as `NECESSARY_DEPTH_WITHOUT_UNIFORM_DEPTH`. Audit coverage is exhaustive, but evidence depth is proportional to production, safety, Authority, migration and deletion risk. Route mutation and rollback/recovery mechanisms require maximum depth. An obvious test-only helper or historical renderer/document helper requires sufficient identity, reachability, classification and disposition evidence, not a production-runtime-level investigation. This proportionality reduces bureaucracy; it never permits a coverage gap.
 
@@ -174,9 +237,9 @@ Self-review checks contradictions, criterion coverage, evidence presence, root-c
 
 Superficial completion is forbidden. A report is not complete merely because it is long, all headings exist, tools ran, counts were produced, or a diagram renders. Completion requires traceable evidence from surface inventory down to root cause and back up to product intent, zero unexplained coverage gaps, reconciled contradictions, explicit limitations, and an exact next implementation/disposition frontier. Terminals: `RESET_MASTER_AUDIT_REPORT_GOAL_COVERAGE_RECONCILED` and `RESET_MASTER_AUDIT_REPORT_FINAL_SELF_REVIEW_PASS`.
 
-Each later phase `RESET-M2` through `RESET-M9` produces its own concise phase Engineering Report linked back to the Master Audit findings and forward to its exact successor. `CONCISE` means compact but evidence-complete: each phase report states what changed, which intent closed, supporting evidence, owner, residual and successor. It links to, and does not repeat, the full Master Audit Report. At Program completion, one coherent `V7_SYSTEM_RESET_PROGRAM_COMPLETION_REPORT` must reconcile every original Program purpose, phase contract, Master Audit root cause, preserve/exclude decision, migration gate, latency/complexity target, production effect, legacy retirement disposition and system-shrink metric against real owner-backed results.
+Each later phase `RESET-M2` through `RESET-M10` produces its own concise phase Engineering Report linked back to the Master Audit findings and forward to its exact successor. `CONCISE` means compact but evidence-complete: each phase report states what changed, which intent closed, supporting evidence, owner, residual and successor. For every material change it also preserves one logical closure record: `OLD_STATE`, `NEW_STATE`, `TRANSITION`, `VALIDATION`, `CLEANUP_PERFORMED`, `REMOVED_SURFACES`, `RETAINED_EXCEPTIONS`, `FINAL_OWNER`, `FINAL_CONSUMER`, `NEXT_CONSUMER_CONSUMPTION` and `RESIDUAL`. These fields reuse existing evidence and do not require a separate table, file or generator. The report links to, and does not repeat, the full Master Audit Report. At Program completion, one coherent `V7_SYSTEM_RESET_PROGRAM_COMPLETION_REPORT` must reconcile every original Program purpose, phase contract, Master Audit root cause, preserve/exclude decision, migration gate, latency/complexity target, production effect, legacy retirement disposition and system-shrink metric against real owner-backed results.
 
-The final Program Completion Report runs the same goal/coverage/contradiction/root-cause/product-trace self-review over the complete `RESET-M0 -> RESET-M9` lifecycle. Every original goal receives `PROVEN_ACHIEVED`, `PROVEN_NOT_APPLICABLE`, or `NOT_COMPLETE_EXACT_RESIDUAL`; the last verdict forbids Program completion. It must distinguish code, test, caller, consumer, deployed Runtime, production behavior, user effect, Authority, rollback/recovery and physical deletion evidence. Final report terminal: `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`.
+The final Program Completion Report runs the same goal/coverage/contradiction/root-cause/product-trace self-review over the complete `RESET-M0 -> RESET-M10` lifecycle. Every original goal receives `PROVEN_ACHIEVED`, `PROVEN_NOT_APPLICABLE`, or `NOT_COMPLETE_EXACT_RESIDUAL`; the last verdict forbids Program completion. It must distinguish code, test, caller, consumer, deployed Runtime, production behavior, user effect, Authority, rollback/recovery and physical deletion evidence. Final report terminal: `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`.
 
 ### RESET-M0B Code Reality and Complexity Audit
 
@@ -315,6 +378,157 @@ RESET-M7 must prove the prepared compatible warm path end-to-end at `p95 < 1 s`,
 
 RESET-M9 canonical name is `LEGACY_RETIREMENT_SYSTEM_SHRINK_AND_PROGRAM_CLEANUP`. Every legacy file, function, module, CLI, service, timer, state surface, owner, Program, projection, and reconciliation path receives `STILL_REQUIRED`, `LEGACY_EXCEPTION_REQUIRED`, `MERGE`, or `DELETE`. Retirement is incomplete when unneeded permanent code merely becomes uncalled. Measure LOC/files/owners/processes/timers/state surfaces/hops/duplicate responsibilities removed while retaining necessary historical evidence.
 
+### RESET-M10 — POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION
+
+RESET-M10 is a bounded final phase of this existing Program, not a new Program, roadmap, owner, CPS, Runtime, Planner, queue, store, truth source or architecture cycle. M0-M9 evidence remains valid and ordered. The owner-backed invalidator for the previous completion scope is that M9 proved kernel/dataplane shrink, while whole-production software/control-plane shrink lacks complete `BEFORE / AFTER / DELTA` evidence.
+
+Every M10 implementation proposal is governed first by `EXISTING_CAPABILITY_DISCOVERY_BEFORE_IMPLEMENTATION`; M10 may not create a replacement merely because the existing surface is large or historically named.
+
+#### RESET-M10.1 — Architecture Responsibility Audit
+
+Apply `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_MODEL` to every scoped current component and answer `WHERE_DOES_THIS_BELONG?` with exactly one of `DATA_PLANE_REQUIRED`, `CONTROL_PLANE_REQUIRED`, `ENGINEERING_PLANE_REQUIRED`, `LEGACY_EXCEPTION` or `REMOVE`. For each, prove purpose, real consumer, product effect, lifecycle and removal condition; run `DELETE_TEST`; trace allowed/forbidden dependencies; and reconcile duplicate responsibility to one owner or an exact owner-backed exception.
+
+This is a bounded projection through the existing M10 Engineering Report and prior Reset coverage ledger, not a new audit framework or inventory restart. `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER` applies.
+
+OMP receives a mandatory boundary audit: OMP is `SYSTEM_DEVELOPMENT_ENGINE`, never `RUNTIME_ROUTING_COMPONENT`. It may analyze problems, select engineering work, map owners, verify changes and improve the system; it may not select a production egress, switch a user, make Runtime health decisions or mutate the dataplane. After stabilization, classify which OMP surfaces remain necessary Engineering Plane tooling and which can be reduced, package-separated, archived or removed.
+
+Every Program receives the Program lifecycle classification, and every state surface receives the state responsibility disposition defined by the global law. This prevents temporary audit, migration or development machinery from silently becoming a permanent production dependency.
+
+Purpose: restore the simple product system `UNUSABLE CHANNEL -> AFFECTED CLIENTS -> HEALTHY CHANNEL SET -> POLICY DECISION -> FAST SWITCH -> VERIFY`, not merely reduce LOC or remove old code. After successful Core migration and legacy-primary retirement, physically reduce the remaining production surface while establishing an explicit `DATA PLANE / CONTROL PLANE / ENGINEERING PLANE` boundary. The disposition order is `REMOVE -> MERGE -> PACKAGE-SEPARATE -> SIMPLIFY`. The controlling question is: `WHY_DOES_A_LARGE_PART_OF_THE_OLD_SYSTEM_STILL_SURROUND_THE_SMALL_ROUTING_CORE_AFTER_SUCCESSFUL_MIGRATION?`
+
+Permanent law: `PRESERVE_SEMANTICS_REMOVE_IMPLEMENTATION`. Preserve required product behavior, safety, Authority, rollback, verification, recovery and compatibility semantics. Do not automatically preserve old files, classes, owners, processes, timers, CLIs, Program machinery or orchestration topology.
+
+Permanent final-gate law: `PRIMARY_SYSTEM_SURFACE_REDUCTION_AS_FINAL_GATE`. `PRIMARY_SYSTEM_SURFACE_REDUCED` applies to the complete production system surface, not only kernel routing. Its evidence compares production LOC, active Runtime LOC, executable files, services, timers, subprocesses, owners, state surfaces, producer-consumer hops, durable writes, locks and routing-specific complexity before and after M10.
+
+#### RESET-M10.2 — Industry Routing Architecture Benchmark
+
+Before optimization, compare current V7 placement against architectural principles from mature routing systems without copying their implementation. Primary benchmark evidence is limited to official Junos Routing Engine/Packet Forwarding Engine separation, Cisco IOS XR control/data-plane and hardware-abstraction boundaries, FRRouting protocol-daemon/zebra/dataplane coordination, and Linux rtnetlink/FIB programming and verification contracts. The benchmark is a bounded Engineering Report section, not a new research Program, framework, owner or permanent artifact.
+
+The benchmark evaluates these V7 boundaries:
+
+- `DATA PLANE`: route application, forwarding-state mutation, fast failover and effect verification only. It must not know history, reports, Learning, Programs, audit or Production Maturity.
+- `CONTROL PLANE`: channel state, policy, best-path selection, capacity, constraints, Authority and preparation of the bounded decision.
+- `ENGINEERING PLANE`: OMP, Reports, Polygon, Learning, Replay, analysis and system improvement. It must not participate synchronously in client switching.
+
+Every current V7 component receives exactly one architectural placement: `DATA_PLANE_REQUIRED`, `CONTROL_PLANE_REQUIRED`, `ENGINEERING_PLANE_REQUIRED`, `LEGACY_EXCEPTION` or `REMOVE`. Placement requires its real caller, consumer, state/effect contract, synchronous/asynchronous position and removal/replacement evidence.
+
+Benchmark references: [Junos OS Architecture Overview](https://www.juniper.net/documentation/us/en/software/junos/junos-overview/topics/concept/junos-software-architecture.html), [Cisco IOS XR Software](https://www.cisco.com/c/en/us/products/collateral/ios-nx-os-software/ios-xr-software/datasheet-c78-743014.html), [FRRouting Architecture Overview](https://docs.frrouting.org/en/latest/overview.html), and [Linux rt-route netlink specification](https://docs.kernel.org/next/networking/netlink_spec/rt_route.html).
+
+#### RESET-M10.3 — Channel Health Model
+
+Mandatory contract: `CHANNEL_HEALTH_MODEL`. Before any routing decision, the existing channel-health owners must produce one formal `EGRESS_ADMISSION_STATE` with the minimum lifecycle `UNKNOWN -> PROBING -> HEALTHY -> DEGRADED -> UNUSABLE -> RECOVERING -> HEALTHY`. For every state define owner, data source, freshness, invalidation, legal transitions, admission for new clients and continued use by existing clients. This contract consolidates existing health facts; it creates no new health owner or truth source.
+
+Admission must separately account for `TRANSPORT_HEALTH` (tunnel/interface, handshake, transport reachability), `SERVICE_HEALTH` (required services, DNS, HTTPS/TLS and required endpoint checks), `TRAFFIC_QUALITY` (latency, packet loss, stability and degradation), and `CAPACITY_HEALTH` (available resource, lawful load and limits). Ping or TCP success alone never proves client eligibility. A channel is eligible only when the required owner-backed admission criteria are fresh and satisfied.
+
+##### Routing Decision Minimality Contract
+
+Permanent law: `ROUTING_DECISION_MINIMALITY`. Before a successful switch, synchronous work is limited to `failure evidence -> affected users -> healthy eligible targets -> policy validation -> bounded switch -> verification`. Reports, Learning, Replay, Production Maturity, historical reconciliation, full inventory refresh, campaign bookkeeping and expanded evidence generation are `POST_ACTION_ASYNC_WORK` and forbidden as pre-switch dependencies.
+
+#### RESET-M10.4 — Final Primary Runtime Boundary
+
+Mandatory output: `FINAL_PRIMARY_RUNTIME_BOUNDARY`. The target primary production graph contains only `routing runtime + health receipt consumer + policy reader + Authority adapter + dataplane adapter + verification`. Every other element is classified `engineering-only`, `fallback-only`, `historical` or `manual` and physically excluded from the primary Runtime dependency graph.
+
+This phase establishes the boundary and applies `ROUTING_DECISION_MINIMALITY` to it. File size is a signal, not a split instruction; mechanical splitting and unproven new ownership are forbidden.
+
+#### RESET-M10.5 — Engineering Plane Extraction
+
+Apply responsibility-based compression after the Runtime boundary is defined. For `tools/v7_sync_lib.py`, classify CPS synchronization, OMP, Polygon, Service Failure history, deploy/truth and Runtime-support responsibilities by caller, lifecycle, change reason and existing owner. For `tools/v7-users-autoswitch`, retain only proven fallback apply, rollback, verification and safety semantics in the production boundary; isolate planning, history, OMP, campaign, Learning and reconciliation.
+
+Every scoped implementation also receives packaging class `runtime_required` or `engineering_only`. The production package must not require OMP, Reports, Polygon, Learning, Replay, Production Maturity or historical reconciliation. No second Engineering Plane is created.
+
+#### RESET-M10.6 — Fast Path / Reconciliation Path Separation
+
+Prove the mandatory split:
+
+- `FAST PATH`: `failure event -> prepared health receipt -> Routing Core -> switch -> verify`.
+- `RECONCILIATION PATH`: `periodic scans -> audit -> reconciliation -> reports -> learning`.
+
+The slow path cannot be a failover prerequisite. Full Matrix refresh, periodic inventory and historical reconciliation remain asynchronous; existing observation/reconciliation owners change only through an owner-backed `MERGE`, `ARCHIVE` or `DELETE` disposition.
+
+#### RESET-M10.7 — Dataplane Adapter Simplification
+
+Evaluate the reduction from `Core -> legacy writer -> scripts/processes -> kernel` to `Core -> minimal dataplane adapter -> kernel`. The goal is fewer synchronous levels between decision and forwarding state, not deletion of a writer by name. Replacement is legal only when measured complexity falls and fencing, idempotency, rollback and verification remain owner-backed; working architecture is not replaced for aesthetic purity.
+
+#### Final V7 Target Architecture Acceptance Contract
+
+The final architecture must prove:
+
+- `Runtime`: one understandable routing Runtime, minimum necessary processes and no OMP/report/history dependency.
+- `Control Plane`: channel health, policy, capacity, Authority and assignment state.
+- `Engineering Plane`: OMP, Polygon, Reports, Learning and Replay, physically and synchronously separate from switching.
+
+Final routing flow: `CHANNEL FAILURE -> AFFECTED CLIENTS -> HEALTHY CHANNEL SET -> POLICY DECISION -> FAST SWITCH -> VERIFY`, with no intermediate Engineering Plane system. Its implementation must retain the already accepted `OBSERVE -> STATE -> PLAN -> APPLY -> VERIFY` Core contract.
+
+#### RESET-M10.8 — Final System Complexity Audit
+
+Classify every production service, timer, startup dependency, subprocess launch, CLI, fallback layer, state surface and legacy adapter as `STILL_REQUIRED`, `LEGACY_EXCEPTION_REQUIRED`, `MERGE`, `ARCHIVE` or `DELETE`. Age is not evidence; removal requires caller/consumer, replacement semantics and rollback/recovery proof. Reconcile governed Packet/lease/barrier, `v7-users-autoswitch`, `v7-user-switch`, legacy fallback and old Planner surfaces so only required fallback, safety, rollback, verification and compatibility remain production-admitted.
+
+Produce one concise existing-type Engineering Report with `BEFORE / AFTER / DELTA` for production LOC, Runtime LOC, executable files, services, timers, subprocess count, owners, state surfaces, pre-apply hops, durable writes, lock domains, routing-specific complexity and duplicated responsibilities. Separately count `LEGACY_SURFACE_NOT_ADMITTED_TO_FINAL_RUNTIME`, link every retained exception to a caller/consumer and preserve deep evidence in existing owners rather than create a new audit framework.
+
+M10 physical shrink must prove both `NEW_ARCHITECTURE_COMPLETE` and `OLD_ARCHITECTURE_CLOSED`. The cleanup pass occurs only after the new path and its real consumers are validated; it checks superseded code, imports, services, timers, startup/configuration entries, state surfaces, writers/readers, owners, deploy/monitoring hooks and documentation references. Every remainder receives an explicit disposition, and no unclassified old routing path or orphaned surface may survive around the Core.
+
+#### RESET-M10.9 — FINAL_ARCHITECTURE_MAP
+
+Produce `FINAL_ARCHITECTURE_MAP` as one final decision-oriented section of the existing M10 Engineering Report. It is a generated projection of the already required M10 responsibility, dependency, flow, ownership and disposition evidence, not a new Runtime artifact, owner, truth source, registry, service, audit framework, file class or parallel document. Its test is whether a new engineer can understand the final V7 architecture, ownership and operating flow within minutes without treating historical reports as live architecture.
+
+The map must contain:
+
+1. `RUNTIME LAYER`: only continuously operating production components and the flow `CLIENT TRAFFIC -> ROUTING RUNTIME -> DATAPLANE APPLY -> VERIFY`; for each component record purpose, existing owner, input, output, real consumer and lifecycle.
+2. `CONTROL PLANE LAYER`: health, admission state, policy, capacity, Authority, assignments and target eligibility, showing `CHANNEL HEALTH -> ADMISSION STATE -> POLICY -> TARGET SELECTION` and answering how a channel becomes eligible.
+3. `ENGINEERING PLANE LAYER`: OMP, Reports, Polygon, Learning, Replay and Research; for each record purpose, real consumer, lifecycle and why it is outside Runtime. Engineering Plane may improve the system but may not participate synchronously in client switching.
+4. `LEGACY EXCEPTION LAYER`: every retained exception with component, reason, existing owner and removal condition, explicitly marked `NOT PRIMARY`, `NOT CORE DEPENDENCY` and `TEMPORARY COMPATIBILITY` unless an owner-backed permanent safety obligation proves otherwise.
+5. `FINAL RUNTIME DEPENDENCY GRAPH`: Runtime may depend only on the admitted Health Receipt, Policy, Authority, Assignment, Dataplane and Verification contracts; it must not depend on OMP, Reports, Learning, Replay, History, Campaigns or Certification.
+6. `FINAL DATA FLOW`: `CHANNEL FAILURE -> AFFECTED CLIENTS -> HEALTHY CHANNEL SET -> POLICY DECISION -> FAST SWITCH -> VERIFY -> ASYNC OUTCOME`. The inverse dependency `CHANNEL FAILURE -> ENGINEERING SYSTEMS -> REPORTS/ANALYSIS -> ROUTING` is forbidden.
+7. `OWNERSHIP MATRIX`: map Channel health to Control Plane, routing decision to Runtime, route apply to Data Plane, verification to Runtime/Data Plane, policy to Control Plane and engineering improvement to Engineering Plane, using the proven canonical owner name for each responsibility. Each responsibility has exactly one owner; the matrix creates none.
+8. `DEPENDENCY RULES`: Control Plane inputs may feed Runtime decisions and Engineering Plane may consume Runtime observations/outcomes asynchronously; Engineering Plane decisions and Reports/history/Learning may not feed a live routing decision.
+9. `FINAL DELETE/REVISIT LIST`: classify every mapped item as `KEEP`, `LEGACY_EXCEPTION`, `REMOVED` or `FUTURE_REVIEW`, with retained exceptions and future reviews linked to owner and removal/revisit condition.
+
+The map reuses `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_MODEL`, `FINAL_PRIMARY_RUNTIME_BOUNDARY`, the M10 coverage ledger and final complexity dispositions. `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER` applies: it must not repeat evidence or reopen proven areas merely to draw the final view.
+
+Before M10 completion, execute `ARCHITECTURAL_TRUTH_RECONCILIATION` through the existing M10 report and canonical owners. Prove that the map matches deployed Runtime, named owners match factual ownership, all production dependencies are represented, every legacy exception has its reason and removal condition, no conflicting document claims current architecture, and no historical Program/Report appears to be the live execution contract. Classify each scoped architecture-bearing document as `CURRENT_ARCHITECTURE_OWNER`, `HISTORICAL_EVIDENCE` or `OBSOLETE_REFERENCE`; promote the resulting current architecture only through the existing Canonical Reference/`SYSTEM_MAP` owners.
+
+#### RESET-M10 Execution Order and Stage Contracts
+
+M10 uses the existing OMP/CPS and concise Engineering Report lifecycle; this table is the complete internal dependency order, not a new management system. The existing Program/OMP owner coordinates every stage, while each referenced canonical component owner retains its existing responsibility and Authority boundary.
+
+| Stage | Purpose | Inputs | Output | Owner | Completion criteria | Exact successor | Residual on failure |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `RESET-M10.1` | Classify what exists, why it exists and where it belongs. | Reused Reset coverage ledger, current production graph, canonical owners. | Exclusive placement and responsibility disposition. | Existing Program/OMP coordinator plus each existing component owner. | Every scoped component has placement, owner, consumer, lifecycle and removal condition. | `RESET-M10.2` | Exact unclassified component or owner/evidence gap. |
+| `RESET-M10.2` | Compare the classified V7 architecture with mature routing principles without copying implementations. | M10.1 placements and official benchmark references. | Bounded placement/architecture comparison. | Existing Program/OMP engineering owner. | Every material V7 boundary has a supported comparison or explicit non-applicability disposition. | `RESET-M10.3` | Exact unsupported boundary conclusion. |
+| `RESET-M10.3` | Define why a channel is eligible. | Existing health, policy, capacity, Authority and assignment evidence. | Owner-backed `EGRESS_ADMISSION_STATE` contract. | Existing channel-health and related canonical owners. | Owner, freshness, invalidation, transitions and admission rules are complete. | `RESET-M10.4` | Exact missing health fact, transition, owner or consumer. |
+| `RESET-M10.4` | Define the minimum primary production Runtime and routing-decision boundary. | M10.1-M10.3 dispositions and admission contract. | `FINAL_PRIMARY_RUNTIME_BOUNDARY` and allowed dependency graph. | Existing Routing Core, policy, Authority, assignment, dataplane and verification owners. | Runtime dependency graph is defined and Engineering Plane is excluded from live decisions. | `RESET-M10.5` | Exact unknown or forbidden Runtime dependency. |
+| `RESET-M10.5` | Physically classify and extract engineering, fallback and historical responsibilities from Runtime packaging. | M10.4 boundary and current caller/consumer/package evidence. | `runtime_required`, `engineering_only`, `fallback_only` or `historical` classification and bounded changes. | Existing Runtime/component and Engineering Plane owners. | Every scoped dependency is classified and no Engineering Plane dependency remains production-required. | `RESET-M10.6` | Exact dependency not yet separated or safely retained. |
+| `RESET-M10.6` | Separate fast failover from slow reconciliation. | M10.3 health receipt and M10.4-M10.5 Runtime boundary. | Proven fast-path and asynchronous reconciliation-path graph. | Existing Runtime, observation and reconciliation owners. | Slow path is not a failover dependency. | `RESET-M10.7` | Exact synchronous slow-path dependency. |
+| `RESET-M10.7` | Reduce dataplane apply levels only when safety and net simplification are proven. | M10.4 boundary, current apply graph, fencing, rollback and verification evidence. | Retained or simplified dataplane adapter disposition. | Existing dataplane writer/adapter and verification owners. | Complexity falls without loss of fencing, idempotency, rollback or verification, or retention is justified. | `RESET-M10.8` | Exact safety/complexity criterion preventing simplification. |
+| `RESET-M10.8` | Measure the final physical system after bounded changes. | M10.1 baseline and M10.3-M10.7 results. | Whole-production `BEFORE / AFTER / DELTA` and final dispositions. | Existing Program/OMP report owner consuming canonical evidence owners. | All required complexity dimensions and retained exceptions are reconciled. | `RESET-M10.9` | Exact unmeasured dimension, unknown dependency or unjustified residual. |
+| `RESET-M10.9` | Project and canonically reconcile the already proven final architecture for decisions and onboarding. | M10.1-M10.8 evidence, final production graph and existing canonical architecture owners. | `FINAL_ARCHITECTURE_MAP` section plus canonical-owner reconciliation. | Existing Program/OMP report owner; Canonical Reference/`SYSTEM_MAP` owners remain authoritative. | `FINAL_ARCHITECTURE_MAP_COMPLETE = PASS` and `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH_PASS`. | M10 completion evaluation | Exact unmapped or conflicting component, owner, boundary, dependency, document status or legacy condition. |
+
+No stage advances on headings, code, tests or report existence alone. Its report entry must state purpose, consumed inputs, output, owners, completion evidence, exact residual and successor. Failed or unproven criteria return only to their exact responsible stage; already proven stages are reused unless an exact invalidation trigger applies.
+
+#### RESET-M10 Completion Contract
+
+RESET-M10 completes only when owner-backed evidence proves all of:
+
+1. `DATA PLANE / CONTROL PLANE / ENGINEERING PLANE` are explicitly classified and separated.
+2. `CHANNEL_HEALTH_MODEL` is the single admission method for channel eligibility and composes transport, service, traffic-quality and capacity health.
+3. The routing decision has no synchronous Engineering Plane dependency.
+4. `FINAL_PRIMARY_RUNTIME_BOUNDARY` is defined and physically reflected in production packaging/dependencies.
+5. Fast path and reconciliation path are separate.
+6. Production Runtime surface is measurably reduced or every residual has an exact necessary owner-backed exception.
+7. No hidden OMP, report, history, Learning, campaign or audit dependency remains in primary routing.
+8. Final production flow conforms to `OBSERVE -> STATE -> PLAN -> APPLY -> VERIFY` and the product flow `failure -> affected clients -> healthy set -> policy -> fast switch -> verify`.
+9. `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_PASS`: every retained component has exclusive plane placement, purpose, owner, consumer, product effect, lifecycle, dependency boundary and removal condition; every duplicate has one owner or an exact exception.
+10. OMP is proven Engineering Plane only, every Program lifecycle is reconciled, and every state surface has one final responsibility disposition.
+11. `FINAL_ARCHITECTURE_MAP_COMPLETE = PASS`: every production Runtime component is mapped, every responsibility has one understandable existing owner, every plane boundary is explicit, no unknown production or hidden Engineering Plane dependency remains, and every legacy exception has a reason and removal condition.
+12. `END_TO_END_CHANGE_COMPLETION_PASS`: the new architecture and its real consumers are proven, the old architecture is closed or explicitly retained, no undispositioned orphaned surface or migration tail remains, the final owner/lifecycle is known, and every stage output is demonstrably consumed by its named next consumer.
+13. `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH_PASS`: Runtime truth retains its factual owners, current architecture is reconciled through the existing Canonical Reference/`SYSTEM_MAP` owners and matches production, historical evidence is separate, no conflicting current architecture description remains, and future changes have one existing architecture owner to update.
+
+M10 completion therefore requires together: physical reduction of the production surface; separation of Data Plane, Control Plane and Engineering Plane; an owner-backed `CHANNEL_HEALTH_MODEL`; a production-reflected `FINAL_PRIMARY_RUNTIME_BOUNDARY`; and a complete `FINAL_ARCHITECTURE_MAP`.
+
+Completion evidence must include real caller/consumer and deployed production effects for physical changes; code, tests, reports, diagrams or classifications alone cannot close M10.
+
+RESET-M10 forbids a new Core, unnecessary Core expansion, a new Program/audit framework/owner/Runtime/Planner/queue/store/truth source, OMP or Reports/Learning/Replay in the Runtime hot path, mass mechanical refactoring, or replacement of working architecture without necessity evidence.
+
 ## 15. Program Phases and Completion Contracts
 
 | Phase | Contract | Exact successor |
@@ -331,15 +545,16 @@ RESET-M9 canonical name is `LEGACY_RETIREMENT_SYSTEM_SHRINK_AND_PROGRAM_CLEANUP`
 | `RESET-M6` | Certification-user and one-user production correctness, latency and bounded-complexity proof consumed. | `RESET-M7` |
 | `RESET-M7` | Bounded cohort, declared constant-time architecture and prepared compatible warm-path `p95 < 1 s` proven without hidden O(N) work. | `RESET-M8` |
 | `RESET-M8` | Core-primary production promotion gates proven with safe fallback. | `RESET-M9` |
-| `RESET-M9` | Legacy primary path retired, system physically shrunk, obsolete Programs/code merged/closed/deleted with evidence retained, and final Program Completion Report proves every RESET-M0-M9 goal owner-backed. | Program completion evaluation |
+| `RESET-M9` | Legacy primary path retired and kernel/dataplane surface physically shrunk with explicit fallback and evidence retained. | `RESET-M10` |
+| `RESET-M10` | Remaining production software/control-plane surface is owner-classified and physically reduced or isolated; Engineering Plane is excluded from the primary Runtime graph; the new architecture is complete, the old architecture is closed or explicitly retained, and `FINAL_RUNTIME_SIMPLIFICATION_PASS`, `FINAL_ARCHITECTURE_MAP_COMPLETE`, `END_TO_END_CHANGE_COMPLETION_PASS` and `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH_PASS` are proven. | Program completion evaluation |
 
 Every phase must identify exact intent, owner, evidence contract, completion contract, next consumer, exact successor, complexity impact, Product Contract impact, producer, output, real consumer, behavior/effect evidence, durable state projection, real cross-component/function relationships, and exact residual. Code/tests/reports alone do not close a phase. RESET-M0 through RESET-M1B cannot collectively close until the unified Master Audit Report passes goal coverage, contradiction, root-cause depth, Product Contract trace and final self-review gates.
 
 ## 16. Final Completion
 
-Completion requires an owner-backed explanation of why old V7 failed its Product Contract and which architecture/process causes allowed it; a final self-reviewed Master Audit Report covering every Program goal and real Program/component/function relationship from surface inventory to root cause; proof those causes are absent from vNext; complete audit coverage with no silently lost production-relevant function or semantic contract; reconciled portfolio; obsolete Programs/code closed/merged/removed with necessary meaning preserved; proven redesigned/scoped OMP vNext role; one owner per necessary runtime fact; simple bounded hot path; active complexity budget; production Core primary; end-to-end `<3 s` gate proven; prepared compatible warm path `p95 < 1 s` proven; single-writer/fencing and atomic ownership transfer; rollback/forward recovery and apply-to-closure crash recovery; declared N-independent bounded cohort; retired legacy primary path; explicit exception/fallback; asynchronous Engineering Plane; compact CPS; no duplicated routing truth; and baseline/current/delta complexity evidence showing a smaller primary production surface.
+Completion requires an owner-backed explanation of why old V7 failed its Product Contract and which architecture/process causes allowed it; a final self-reviewed Master Audit Report covering every Program goal and real Program/component/function relationship from surface inventory to root cause; proof those causes are absent from vNext; complete audit coverage with no silently lost production-relevant function or semantic contract; reconciled portfolio; obsolete Programs/code closed/merged/removed with necessary meaning preserved; proven redesigned/scoped OMP vNext role; one owner per necessary runtime fact; simple bounded hot path; active complexity budget; production Core primary; end-to-end `<3 s` gate proven; prepared compatible warm path `p95 < 1 s` proven; single-writer/fencing and atomic ownership transfer; rollback/forward recovery and apply-to-closure crash recovery; declared N-independent bounded cohort; retired legacy primary path; explicit required fallback; asynchronous and physically separated Engineering Plane; compact CPS; no duplicated routing truth; unnecessary owners/processes/state surfaces removed or isolated; and baseline/current/delta complexity evidence showing a smaller whole production Runtime surface, not only a smaller kernel/dataplane surface.
 
-Mandatory final gates: `OLD_FAILURE_CAUSES_NOT_REINTRODUCED = PASS`, `PRIMARY_SYSTEM_SURFACE_REDUCED = PASS`, and `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`.
+Mandatory final gates: `OLD_FAILURE_CAUSES_NOT_REINTRODUCED = PASS`, `PRIMARY_SYSTEM_SURFACE_REDUCED = PASS`, `FINAL_RUNTIME_SIMPLIFICATION_PASS = PASS`, `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_PASS = PASS`, `FINAL_ARCHITECTURE_MAP_COMPLETE = PASS`, `END_TO_END_CHANGE_COMPLETION_PASS = PASS`, `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH_PASS = PASS`, and `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`.
 
 Final terminal: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`.
 
@@ -351,4 +566,12 @@ No further pre-execution contract expansion is allowed without a material safety
 
 Update terminal: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1 = RESET_PROGRAM_CONTRACT_READY_FOR_EXECUTION`.
 
-This Section 17 terminal is the immutable historical result of the pre-execution contract update. It is superseded for live state only by the executed Program terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`; the contract itself remains the evidence baseline and is not expanded.
+This Section 17 terminal is the immutable historical result of that pre-execution contract update. It was superseded for live state by the executed M0-M9 terminal; Section 18 records the later bounded correctness-gap amendment without rewriting this historical record.
+
+## 18. RESET-M10 Contract-Amendment Effect Record
+
+The whole-production-surface evidence gap is the material correctness invalidator permitting this bounded amendment. This update defines and internally orders RESET-M10 inside the existing Program and strengthens the final completion gate; it does not execute M10, reopen or reorder M0-M9 evidence, delete or refactor code, change Runtime, routing, production, Authority, owners or Core architecture, or automatically change CPS/current successor. CPS remains the sole volatile state owner and requires a separate owner-backed transition before any M10 execution.
+
+Runtime effects: `NONE`. Production effects: `NONE`. Routing effects: `NONE`. Authority effects: `NONE`.
+
+Reconciliation terminal: `RESET_PROGRAM_CONTRACT_RECONCILED_FOR_M10_EXECUTION`. No further pre-execution architectural expansion is legal without a material safety gap, correctness gap or owner-backed invalidator.

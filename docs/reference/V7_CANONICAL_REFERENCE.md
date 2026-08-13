@@ -1,8 +1,8 @@
 # V7 Canonical Reference
 
-Status: canonical project reference
-Last verified commit: `7b3f6bca`
-Last verified date: 2026-06-23
+Status: `CURRENT_ARCHITECTURE_OWNER`
+Last verified commit: `RESET-M10 working tree; production basis b3437322`
+Last verified date: 2026-08-13
 
 This document describes the current meaning of V7 system concepts. It is not a history log and not an audit report. Reports remain evidence. ADRs explain why a decision was made. This reference is the current truth that future V7 work must read before re-auditing old concepts.
 
@@ -33,7 +33,11 @@ Before commit and push after major logic work:
 
 ### System Reset and Routing Core Migration Program
 
-`V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` at `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` is complete at terminal `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`. Core is primary for the exact-authorized compatible production population; the deterministic legacy builder remains explicit fallback. OMP remains development-plane orchestrator, CPS remains the only volatile state owner, and all existing Runtime/Authority/truth owners are preserved.
+`V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` at `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` has RESET-M0 through RESET-M10 complete. Core remains primary for the exact-authorized compatible production population; the deterministic legacy builder and governed per-user transaction remain explicit fallback. OMP remains Engineering Plane orchestrator, CPS remains the only volatile state owner, and all existing Runtime/Authority/truth owners are preserved. The Program has no further executable successor.
+
+The final primary boundary is `v7-routing-sync -> nft/ip -> kernel verification`, consuming existing Assignment and exact Policy/Authority facts. Matrix/quality/runtime health, capacity and routing decision semantics are Control Plane. OMP, Reports, Polygon, Learning, Replay, campaigns and historical reconciliation are Engineering Plane and cannot participate synchronously in forwarding. The governed autoswitch/Packet/lease/barrier/user-switch chain is a fallback/Authority exception, not a Core dependency or parallel primary path.
+
+Channel eligibility uses the logical, non-stored `EGRESS_ADMISSION_STATE` projection `UNKNOWN -> PROBING -> HEALTHY -> DEGRADED -> UNUSABLE -> RECOVERING -> HEALTHY`, composed from fresh transport, required-service, traffic-quality and capacity facts under existing owners. Ping or TCP reachability alone is insufficient. The full `FINAL_ARCHITECTURE_MAP` evidence is `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md`; `SYSTEM_MAP` owns its compact topology projection.
 
 Durable reset laws are `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH`, `ENGINEERING_PLANE_MUST_NOT_BE_REQUIRED_SYNCHRONOUS_ROUTING_HOT_PATH`, `RESET_OVERHEAD_BUDGET`, `LOGICAL_OUTPUT_NOT_PHYSICAL_SYSTEM`, `PRESERVE_REQUIRED_BEHAVIOR_NOT_LEGACY_STRUCTURE`, `QUESTION_NECESSITY_BEFORE_OPTIMIZING_IMPLEMENTATION`, `EVIDENCE_DEPTH_PROPORTIONAL_TO_RISK`, `DEFAULT_OUTCOME_OF_RESET = SYSTEM_SHRINK_NOT_CODE_REORGANIZATION`, `STRICT_AUDIT_MUTATION_SEPARATION`, `ROUTING_CORE_COMPLEXITY_BUDGET`, `MINIMUM_SYSTEM_SURFACE_WITH_FULL_FUNCTION_PRESERVATION`, and `NEW_CORE_EARNS_AUTHORITY_THROUGH_EVIDENCE`. The freeze is an engineering rule, not a Runtime mutation. Reset is temporary and its logical outputs do not create permanent physical architecture by implication. Current production remains legacy until evidence-backed migration gates are consumed.
 

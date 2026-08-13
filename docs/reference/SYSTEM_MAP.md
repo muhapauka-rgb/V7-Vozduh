@@ -1,8 +1,21 @@
 # V7 System Map
 
-Status: compact current system map
-Last verified commit: `3753df1a`
-Last verified date: 2026-06-24
+Status: `CURRENT_ARCHITECTURE_OWNER`
+Last verified commit: `RESET-M10 working tree; production basis b3437322`
+Last verified date: 2026-08-13
+
+## Final Reset Architecture Boundary
+
+`FINAL_ARCHITECTURE_MAP` is the decision-oriented projection in `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md`, reconciled here without creating another architecture owner.
+
+| Plane | Current primary components | Permitted dependency | Forbidden dependency |
+| --- | --- | --- | --- |
+| Data Plane | `v7-routing-sync`, nft class maps, fwmark rules, class route tables, kernel verification | Assignment plus exact Policy/Authority inputs | OMP, Reports, Learning, Replay, history and campaigns |
+| Control Plane | Matrix/quality/runtime health, logical `EGRESS_ADMISSION_STATE`, assignments, policy, capacity, Authority and Routing Core decision semantics | fresh existing-owner facts feeding a bounded decision | direct forwarding ownership or report-derived Runtime truth |
+| Engineering Plane | OMP, CPS reconciliation, Reports, Polygon, Learning, Replay, campaigns and certification | asynchronous observation/outcome consumption | synchronous participation in production forwarding |
+| Legacy exception | governed autoswitch/user-switch, Packet/lease/barrier, rollback and fallback builder | explicit bounded Authority, verification and recovery only | primary or parallel continuous routing authority |
+
+Primary flow: `CLIENT TRAFFIC -> NFT CLASS MAP -> CLASS ROUTE -> INTERFACE -> VERIFY`. Failure handling consumes existing health, policy and Authority owners; its reports and learning are post-action asynchronous. `v7-users-autoswitch.timer` remains inactive/manual and is not a primary Runtime edge.
 
 ## Document Ownership Table
 

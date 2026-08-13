@@ -16,6 +16,7 @@ Status: `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`
 | N-independent bounded cohort and prepared warm path | `PROVEN_ACHIEVED` | RESET-M7 10k/20k/50k and 50 classes; pure Core p95 about `0.005 ms`; production-equivalent nft commit p95 `18.814 ms`, below `<1 s` |
 | Core-primary promotion with safe fallback | `PROVEN_ACHIEVED` | RESET-M8 exact Authority contract, 124 users/6 classes, restart/idempotency, marked route, fallback restoration |
 | legacy retirement and physical shrink | `PROVEN_ACHIEVED` | RESET-M9 removed 124 source rules and 124 per-user routes; final Core verify and fallback rebuild PASS |
+| whole-production Runtime simplification and final architecture | `PROVEN_ACHIEVED` | RESET-M10 classified every primary/control/engineering/fallback surface, formalized channel admission, proved the minimal primary dependency graph, reconciled before/final complexity and promoted one canonical architecture map |
 
 ## Final self-review
 
@@ -31,9 +32,16 @@ Status: `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`
 
 - `OLD_FAILURE_CAUSES_NOT_REINTRODUCED = PASS`
 - `PRIMARY_SYSTEM_SURFACE_REDUCED = PASS`
+- `FINAL_RUNTIME_SIMPLIFICATION_PASS = PASS`
+- `ARCHITECTURAL_RESPONSIBILITY_BOUNDARY_PASS = PASS`
+- `FINAL_ARCHITECTURE_MAP_COMPLETE = PASS`
+- `END_TO_END_CHANGE_COMPLETION_PASS = PASS`
+- `SINGLE_SOURCE_OF_ARCHITECTURAL_TRUTH_PASS = PASS`
 - `RESET_PROGRAM_COMPLETION_REPORT_ALL_GOALS_OWNER_BACKED_PASS`
 - `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` preserved.
 - `NEW_CORE_EARNS_AUTHORITY_THROUGH_EVIDENCE` preserved and satisfied through exact user authorization.
 - Existing owner boundaries preserved; no new Program, roadmap, owner, Planner, Runtime, queue or truth source created.
 
 Final terminal: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE`.
+
+RESET-M10 completion evidence: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md`. The earlier M0-M9 completion was valid for its then-current scope; M10 consumed the later whole-production correctness invalidator and restored this same terminal without rerunning proven phases.

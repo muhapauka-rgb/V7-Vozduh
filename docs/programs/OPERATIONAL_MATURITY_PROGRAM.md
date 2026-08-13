@@ -11548,6 +11548,17 @@ boundary clarification, approved legacy cleanup, then closure. It is a
 selection preference, not a schedule: evidence may select another lower-risk
 candidate without bypassing admission.
 
+`RS7_IMPLEMENTATION_ADMISSION_PLAN` is the logical pre-implementation view of
+that same gate, not a new phase, registry or authorization surface. It reuses
+the existing `V7_SIMPLIFICATION_IMPLEMENTATION_PLAN`, compares the bounded
+candidate set, selects at most one item, records its immutable affected-scope
+before measurement, Product Contract, exact existing owner and consumers,
+migration, validation, rollback, residue closure and expected complexity
+delta, then returns `READY_FOR_FIRST_IMPLEMENTATION` or `NOT_READY` with exact
+owner-backed re-entry conditions. A selected candidate does not advance CPS,
+resolve an open RS6 provenance gap or authorize code/deploy/Runtime change;
+the existing OMP/CPS admission remains mandatory.
+
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,
 Runtime dependency, state surface or duplicate responsibility; any asserted

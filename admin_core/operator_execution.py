@@ -4942,6 +4942,67 @@ def consume_current_action_class_contract_to_policy(policy_path, *, audit_store=
     return result
 
 
+def cancel_unconsumed_current_action_class_contract_to_policy(
+    policy_path, *, expected_contract_id, expected_contract_hash,
+    actor_id, reason, audit_store=None, now=None,
+):
+    """Fail-closed cancellation for a misbound, still-unconsumed one-use grant."""
+    if not str(actor_id or "").strip() or not str(reason or "").strip():
+        raise PacketError("current_action_class_contract_cancellation_provenance_missing")
+    now = now or utc_now()
+    policy_path = Path(policy_path)
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(policy_path):
+        policy = read_json(policy_path)
+        budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
+        contract = budget.get("current_action_class_contract") if isinstance(budget.get("current_action_class_contract"), dict) else {}
+        if (
+            str(contract.get("contract_id") or "") != str(expected_contract_id or "")
+            or str(contract.get("contract_hash") or "") != str(expected_contract_hash or "")
+        ):
+            raise PacketError("current_action_class_contract_cancellation_identity_mismatch")
+        consumption = contract.get("one_use_consumption") if isinstance(contract.get("one_use_consumption"), dict) else {}
+        if str(consumption.get("state") or "") != "ISSUED" or as_int(consumption.get("consumed_uses"), 0) != 0:
+            raise PacketError("current_action_class_contract_cancellation_requires_unconsumed_issued_state")
+        predecessor = {"contract_id": contract.get("contract_id"), "contract_hash": contract.get("contract_hash")}
+        contract = copy.deepcopy(contract)
+        contract["one_use_consumption"] = {
+            **consumption,
+            "state": "CANCELLED",
+            "retry_allowed": False,
+        }
+        contract["cancellation"] = {
+            "cancelled_at": now.isoformat(),
+            "actor_id": str(actor_id),
+            "reason": str(reason),
+            "predecessor": predecessor,
+        }
+        contract_hash = current_action_class_contract_hash(contract)
+        contract["contract_hash"] = contract_hash
+        contract["contract_id"] = f"acc_{contract_hash[:24]}"
+        policy["authority_budget"] = {**budget, "current_action_class_contract": contract}
+        write_json_atomic(policy_path, policy)
+        append_record(audit_store, {
+            "schema_version": CURRENT_ACTION_CLASS_AUDIT_SCHEMA,
+            "record_type": "current_action_class_contract_cancelled",
+            "contract_id": predecessor["contract_id"],
+            "contract_hash": predecessor["contract_hash"],
+            "replacement_contract_id": contract["contract_id"],
+            "replacement_contract_hash": contract["contract_hash"],
+            "actor_provenance": {"actor_id": str(actor_id), "recorded_at": now.isoformat()},
+            "reason": str(reason),
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "CANCELLED_UNCONSUMED",
+        "contract": contract,
+        "policy_write": True,
+        "runtime_apply": False,
+        "routing_mutation": False,
+        "users_moved": 0,
+    }
+
+
 def _standing_delegated_policy_request_records(records, request_id):
     return [
         record for record in records
@@ -8248,6 +8309,9 @@ def main(argv=None):
         "--decline-current-action-class-contract-from-request", default="",
         help="Existing Authority owner only: append one exact DECLINE decision without writing policy.",
     )
+    parser.add_argument("--cancel-current-action-class-contract-id", default="")
+    parser.add_argument("--cancel-current-action-class-contract-hash", default="")
+    parser.add_argument("--cancel-current-action-class-contract-reason", default="")
     parser.add_argument(
         "--prepare-standing-delegated-policy-request", action="store_true",
         help="Build and register one fresh exact standing-policy Authority request without activating it.",
@@ -8361,6 +8425,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     repo_root = Path(args.repo_root).resolve()
     try:
+        if args.cancel_current_action_class_contract_id:
+            result = cancel_unconsumed_current_action_class_contract_to_policy(
+                args.action_class_policy_file,
+                expected_contract_id=args.cancel_current_action_class_contract_id,
+                expected_contract_hash=args.cancel_current_action_class_contract_hash,
+                actor_id=args.authority_actor_id,
+                reason=args.cancel_current_action_class_contract_reason,
+                audit_store=args.audit_store,
+            )
+            print(json.dumps(redact(result), indent=2 if args.pretty else None, sort_keys=True))
+            return 0
         if args.prepare_ct_m0f_standing_validation_policy_request:
             if (
                 args.packet or args.generate_from_plan or args.generate_from_preview

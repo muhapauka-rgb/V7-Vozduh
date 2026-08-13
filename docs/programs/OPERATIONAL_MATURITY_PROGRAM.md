@@ -11572,6 +11572,7 @@ residual, never documentation expansion.
 | `RS4 RECOVERY_BOUNDARY_SIMPLIFICATION` | Map path guard, user switch, operator execution and rollback to `Recovery Authority -> Bounded Action -> Verification`, including exact rollback and owner. | recovery, restore barrier, movement-protection, Authority, verification owners; `RECOVERY_BOUNDARY_PASS`. |
 | `RS5 ADMIN_AND_MANAGEMENT_SEPARATION` | Preserve `UI -> API -> guarded operator-action adapter -> Control Plane`; Admin cannot become a second Control Plane. | Admin UI/API, read-model, guarded-action, Authority/safety owners; `MANAGEMENT_PLANE_SEPARATION_PASS`. |
 | `RS6 RUNTIME_PACKAGE_MINIMIZATION` | Reconcile `routing-sync`, health/admission, policy, dataplane and verification against deployed runtime; Engineering Plane is not a primary Runtime dependency. | existing RT2 package/measurement, deploy/package, Runtime Model and Work Placement owners; `RUNTIME_PACKAGE_MINIMAL_PASS`. |
+| `RS6.1 RUNTIME_PROVENANCE_CLOSURE` | Before any package exclusion or physical-change admission, reconcile each active service/timer and mutation-capable Runtime object through `SOURCE -> DEPLOYMENT -> RUNTIME LIFECYCLE -> OWNER -> CALLER -> CONSUMER -> STATE -> EFFECT -> FINAL DISPOSITION`. An active binary, process, timer or historical report alone does not prove necessity. Each unresolved object is one logical `RUNTIME_PROVENANCE_GAP` with current observation, exact missing evidence, existing owner and re-entry condition. This is read-only and grants no removal, disablement, move or Runtime change authority. | existing component, deploy/package, Runtime Model, state, safety and Work Placement owners; `RUNTIME_PROVENANCE_CLOSURE_PASS`. |
 | `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | After `FIRST_IMPLEMENTATION_CANDIDATE_GATE`, implement only the proven target `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE` transition under Product Contract, hot-path and split-quality gates. This creates no old-path deletion authority and cannot mechanically split by file size. | exact affected existing component owner plus OMP/CPS admission; target reaches `TARGET_IMPLEMENTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
 | `RS7A CONSUMER_MIGRATION_AND_EDGE_CUTOVER` | After target implementation, identify and migrate every real consumer, verify consumption and behavior, then disconnect the old edge. | exact affected existing component, safety, deploy/package and runtime owners; `CONSUMER_MIGRATION_COMPLETE`. |
 | `RS8 VALIDATION_CLEANUP_AND_OLD_PATH_CLOSURE` | Close old file/function/import, dynamic/CLI/subprocess path, unit/timer, deploy/config, writer/state, rollback/recovery, dashboard, test and executable-document tails. Every garbage item is `KEEP_WITH_REASON`, `LEGACY_EXCEPTION`, `ARCHIVE`, `DELETE` or exact recheck; no `UNKNOWN_RESIDUE` at terminal. | affected existing owners; `NO_DANGLING_LEGACY_RESIDUE_PASS`. |
@@ -11627,6 +11628,20 @@ LEGACY_EXCEPTION
 RESIDUAL
 ```
 
+`RS6.1` keeps one compact provenance projection in its existing phase report;
+it is not a registry or a new truth source. For every scoped Runtime object it
+records `COMPONENT`, source, deployed artifact, observed lifecycle, existing
+owner, callers, consumers, state reads/writes, mutation capability, product
+and safety effect, classification and remaining gap. Its classifications are
+`KEEP_RUNTIME`, `ENGINEERING_ONLY`, `FALLBACK_ONLY`, `LEGACY_EXCEPTION`,
+`MOVE`, `REMOVE_CANDIDATE` or `UNKNOWN_REQUIRES_EVIDENCE`. It passes only when
+each mutation-capable object has an existing owner, every active service/timer
+has a lifecycle, every known state writer/reader has an owner map, active
+dependencies have source/deploy provenance, and every residual has an
+owner-backed disposition and re-entry condition. Historical deployment
+snapshots may support provenance but never substitute for current Runtime
+observation or establish present necessity.
+
 Each implementation report includes the existing `PROGRAMMATIC_CHANGE_DELTA`:
 program, documentation, test and generated/data LOC separately; affected-file
 LOC; functions/classes/entrypoints; files added/modified/deleted/moved/
@@ -11656,6 +11671,7 @@ only when `IMMUTABLE_BEFORE_BASELINE_CAPTURED`,
 `TARGET_OWNERSHIP_MODEL_COMPLETE`, `ENGINEERING_PLANE_SEPARATION_PASS`,
 `CONTROL_PLANE_SIMPLIFICATION_PASS`, `RECOVERY_BOUNDARY_PASS`,
 `MANAGEMENT_PLANE_SEPARATION_PASS`, `RUNTIME_PACKAGE_MINIMAL_PASS`,
+`RUNTIME_PROVENANCE_CLOSURE_PASS`,
 `CONSUMER_MIGRATION_COMPLETE`, `PHYSICAL_SIMPLIFICATION_PASS`,
 `NO_DANGLING_LEGACY_RESIDUE_PASS`, `FINAL_COMPLEXITY_DELTA_COMPLETE`,
 `FINAL_ARCHITECTURE_ALIGNMENT_PASS`, `PRODUCT_CONTRACT_PRESERVED` and

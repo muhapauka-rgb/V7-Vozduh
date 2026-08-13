@@ -22687,7 +22687,7 @@ def routing_core_certification_execute_only(args: argparse.Namespace) -> dict[st
         blockers.append("routing_core_certification_target_truth_missing")
     if target_row and (not bool_value(target_row.get("enabled", "1")) or str(target_row.get("state") or "enabled").lower() == "disabled"):
         blockers.append("routing_core_certification_target_not_enabled")
-    policy = read_json(policy_path)
+    policy = read_json(policy_path, {})
     budget = policy.get("authority_budget") if isinstance(policy.get("authority_budget"), dict) else {}
     authority = runtime_authority_contract_status(
         budget, prepared_class="CANARY", certified_class="CANARY",

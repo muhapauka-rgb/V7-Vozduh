@@ -1,5 +1,6 @@
 import importlib.machinery
 import importlib.util
+import inspect
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -102,6 +103,10 @@ class RoutingCoreCertificationAdapterTests(unittest.TestCase):
              mock.patch("sys.argv", argv), mock.patch("builtins.print"):
             self.assertEqual(autoswitch.main(), 2)
         execute.assert_called_once()
+
+    def test_direct_execute_uses_read_json_default_contract(self):
+        source = inspect.getsource(autoswitch.routing_core_certification_execute_only)
+        self.assertIn("read_json(policy_path, {})", source)
 
 
 if __name__ == "__main__":

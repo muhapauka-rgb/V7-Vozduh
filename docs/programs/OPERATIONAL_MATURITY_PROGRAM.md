@@ -253,7 +253,7 @@ Status: `CURRENT_PROGRAM_STATE_REFERENCE`.
 
 Registered Program: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
 
-OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M7 are complete; the current phase is `RESET-M8` and the exact successor is `EXECUTE_RESET_M8_CORE_PRIMARY_PRODUCTION_PROMOTION_WITH_SAFE_FALLBACK`.
+OMP remains the development-plane orchestrator and registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the temporary primary engineering priority. CPS alone owns its volatile frontier. RESET-M0 through RESET-M8 are complete; the current phase is `RESET-M9` and the exact successor is `EXECUTE_RESET_M9_LEGACY_RETIREMENT_SYSTEM_SHRINK_AND_PROGRAM_CLEANUP`.
 
 The Program-level rule `LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH` forbids new legacy hot-path routing capability growth while allowing critical production, security/safety, migration-required fixes, comparison instrumentation, and migration-safety deduplication. It grants no Runtime, routing, user, deploy, Authority, Planner, queue, owner, or truth-source effect. Existing Programs remain intact pending `RESET-M0/RESET-M1` disposition.
 
@@ -8095,7 +8095,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `RESET_M8_CORE_PRIMARY_PROMOTION_GATES_REQUIRED`
 Resolved current next action: `EXECUTE_RESET_M8_CORE_PRIMARY_PRODUCTION_PROMOTION_WITH_SAFE_FALLBACK`
-Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M8` after the M7 bounded cohort and warm-path proof. The exact successor is Core-primary production promotion with safe fallback. No Authority is self-granted and legacy remains fallback.
+Resolved contract state: CPS registers `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` as the primary engineering frontier at `RESET-M9` after the exact-authorized M8 Core-primary production promotion, restart/idempotency and fallback proof. The exact successor is legacy retirement, system shrink and Program cleanup. No Authority was self-granted and legacy remains explicit fallback until M9 disposition.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

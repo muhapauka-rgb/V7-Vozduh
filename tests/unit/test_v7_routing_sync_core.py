@@ -12,12 +12,14 @@ class RoutingSyncCoreTests(unittest.TestCase):
         source = SCRIPT.read_text()
         self.assertIn("exact_reset_authority", source)
         self.assertIn("routing_core_primary_promotion", source)
-        self.assertIn("legacy_per_user_rules_retained", source)
+        self.assertIn("legacy_fallback_ready", source)
         self.assertIn("core_primary_fallback", source)
         self.assertIn("meta mark set ip saddr map @user_class", source)
         self.assertIn("meta mark set meta mark map @class_egress", source)
         self.assertIn("counter meta mark set ip saddr map @user_class", source)
         self.assertIn("result = core_primary_apply() if authority_ok else legacy_sync()", source)
+        self.assertIn("def retire_legacy_primary_routes", source)
+        self.assertIn('"legacy_fallback_ready": True', source)
 
     def test_script_parses(self):
         loader = importlib.machinery.SourceFileLoader("v7_routing_sync_core", str(SCRIPT))

@@ -113,6 +113,23 @@ def legacy_sync() -> dict:
     return {"status": "LEGACY_PER_USER_SYNC_PASS", "users": len(users), "mutations": mutations}
 
 
+def retire_legacy_primary_routes(users: list[dict[str, str]]) -> dict:
+    """Remove only the superseded per-user primary rules/routes.
+
+    The registry facts and legacy_sync builder remain the explicit fallback;
+    no fallback artifact or semantic owner is deleted.
+    """
+    rules_removed = 0
+    routes_removed = 0
+    for user in users:
+        table = int(user["table"])
+        while run(["ip", "rule", "del", "pref", str(table), "from", user["ip"], "table", str(table)]).returncode == 0:
+            rules_removed += 1
+        if run(["ip", "route", "del", "default", "table", str(table)]).returncode == 0:
+            routes_removed += 1
+    return {"rules_removed": rules_removed, "routes_removed": routes_removed}
+
+
 def core_primary_apply() -> dict:
     authority_ok, authority = exact_reset_authority(POLICY)
     if not authority_ok:
@@ -141,7 +158,8 @@ def core_primary_apply() -> dict:
     except RuntimeError as exc:
         core_primary_fallback()
         return {"status": "STOP_SAFE_FALLBACK_RESTORED", "blockers": [str(exc)], "runtime_mutation": False}
-    return {"status": "CORE_PRIMARY_APPLY_PASS", "users": len(users), "classes": len(classes), "membership_generation": canonical_hash(users), "class_generation": canonical_hash([{key: value for key, value in row.items() if key != "members"} for row in classes]), "authority_contract_id": authority.get("contract_id", ""), "legacy_per_user_rules_retained": True, "runtime_mutation": True}
+    retired = retire_legacy_primary_routes(users)
+    return {"status": "CORE_PRIMARY_APPLY_PASS", "users": len(users), "classes": len(classes), "membership_generation": canonical_hash(users), "class_generation": canonical_hash([{key: value for key, value in row.items() if key != "members"} for row in classes]), "authority_contract_id": authority.get("contract_id", ""), "legacy_primary_routes_retired": retired, "legacy_fallback_ready": True, "runtime_mutation": True}
 
 
 def core_primary_fallback() -> dict:
@@ -162,7 +180,7 @@ def verify() -> dict:
     rule_rows = json.loads(rules.stdout or "[]") if rules.returncode == 0 else []
     marks = {str(row.get("fwmark") or "") for row in rule_rows}
     missing = [hex(row["mark"]) for row in classes if hex(row["mark"]) not in marks]
-    return {"status": "CORE_PRIMARY_VERIFY_PASS" if authority_ok and nft.returncode == 0 and not missing else "STOP_SAFE", "authority_contract_id": authority.get("contract_id", ""), "users": len(users), "classes": len(classes), "nft_table_present": nft.returncode == 0, "missing_mark_rules": missing, "legacy_fallback_present": all(str(user.get("table") or "") for user in users)}
+    return {"status": "CORE_PRIMARY_VERIFY_PASS" if authority_ok and nft.returncode == 0 and not missing else "STOP_SAFE", "authority_contract_id": authority.get("contract_id", ""), "users": len(users), "classes": len(classes), "nft_table_present": nft.returncode == 0, "missing_mark_rules": missing, "legacy_primary_rules_present": any(str(row.get("priority") or "") in {str(user.get("table") or "") for user in users} for row in rule_rows), "legacy_fallback_ready": all(str(user.get("table") or "") and str(user.get("ip") or "") for user in users)}
 
 
 def main() -> int:

@@ -11471,7 +11471,7 @@ Historical Evidence.
 | --- | --- |
 | `PREDECESSOR_EVIDENCE` | Reset terminal; `FINAL_ARCHITECTURE_MAP`; accepted PR1/PR2/PR2A/PR2B evidence; `RESPONSIBILITY_REALIGNMENT_AND_SIMPLIFICATION_PLAN_PASS`; and current truth/convergence. |
 | `ADMISSION_OWNER` | existing OMP admission and CPS current-state projection owners. |
-| `FIRST_EXECUTABLE_PHASE` | `RS1 RESPONSIBILITY_REALIGNMENT_MAP`, read-only. |
+| `FIRST_EXECUTABLE_PHASE` | `RS0 IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION`, read-only. |
 | `BLOCKED_IF` | protected CPS WIP owns the frontier; evidence is stale/conflicting; a proposed change has no current caller/consumer/owner-backed gap; or the change needs ungranted Runtime, Production or Authority scope. |
 | `MUTATION_AUTHORITY` | none from this contract, phase report, matrix, plan or vendor comparison. Each physical change requires a separately admitted existing OMP Mission, exact affected owner, validation, deployment and consumer evidence. |
 | `RT2_BOUNDARY` | RT2 is not rewritten or used as this Program's migration executor. RT2-native package/measurement evidence may be reused; physical cross-plane transition, old-path closure and residue proof are governed here after admission. |
@@ -11503,57 +11503,104 @@ valid PR2C/RT2 evidence and target-recheck only exact invalidated criteria.
 
 | Phase | Required outcome | Existing owners and mandatory closure |
 | --- | --- | --- |
+| `RS0 IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION` | Capture one immutable source commit/tree fingerprint, source scope/include-exclude rules and counting method; capture a timestamped Runtime observation with exact available generation/identity and observation interval. Use the same projection for `BEFORE -> AFTER -> DELTA`; Runtime is observed, never misrepresented as immutable. | existing Git, package/deploy, Runtime Model, CPS/Runtime, Work Placement and report owners; `IMMUTABLE_BEFORE_BASELINE_CAPTURED`. |
 | `RS1 RESPONSIBILITY_REALIGNMENT_MAP` | `V7_RESPONSIBILITY_REALIGNMENT_MATRIX` logically records current responsibility, owner, caller/consumer, state, material gap, target existing boundary and migration path for each changed surface. | component, Work Placement, CPS/OMP, Architecture Truth owners; `RESPONSIBILITY_REALIGNMENT_MAP_PASS`. |
+| `RS1A CODE_ARCHAEOLOGY_AND_TARGETED_DEEP_DEPENDENCY_AUDIT` | Reuse PR2A/PR2B/PR2C evidence; target-recheck only changed, invalidated or unresolved units through `file -> function -> caller -> consumer -> state -> effect -> lifecycle -> disposition`. A caller, consumer or test alone never proves necessity. | existing component, safety, Authority, Work Placement, CPS/OMP and evidence owners; `CODE_ARCHAEOLOGY_COMPLETE`. |
+| `RS1B TARGET_RESPONSIBILITY_AND_OWNERSHIP_MODEL` | `V7_RESPONSIBILITY_GRAPH_BEFORE_AFTER` is a logical evidence projection: responsibility, existing owner, producer, consumer, state, dependency, side effect, current/target layer and migration path. External/kernel/network/user producers and retention/recovery state are explicit classifications, not false graph failures. | existing Architecture Truth, Work Placement, component, CPS/OMP and Necessity owners; `TARGET_OWNERSHIP_MODEL_COMPLETE` and `RESPONSIBILITY_GRAPH_COMPLETE`. |
 | `RS2 ENGINEERING_PLANE_SEPARATION` | Classify autoswitch diagnostics, Polygon/certification/topology analysis and sync-library engineering helpers without moving governed fallback, rollback, movement or truth interfaces by assumption. | existing Engineering, safety, CPS/OMP/Polygon/deploy/truth owners; `ENGINEERING_PLANE_SEPARATION_PASS`. |
 | `RS3 CONTROL_PLANE_SIMPLIFICATION` | Prove `Health Producers -> Health State -> Admission` and `Policy + Health + Capacity + Authority -> Decision`, with no hidden secondary decision owner. | Matrix/Sentinel, quality, health, capacity, policy, Authority and admission owners; `CONTROL_PLANE_SIMPLIFICATION_PASS`. |
-| `RS4 RECOVERY_BOUNDARY_SIMPLIFICATION` | Map path guard, user switch, operator execution and rollback to `Recovery Authority -> Bounded Action -> Verification`, including exact rollback and owner. | recovery, restore barrier, movement-protection, Authority, verification owners; `RECOVERY_BOUNDARY_CLOSURE_PASS`. |
-| `RS5 ADMIN_AND_MANAGEMENT_SEPARATION` | Preserve `UI -> API -> guarded operator-action adapter -> Control Plane`; Admin cannot become a second Control Plane. | Admin UI/API, read-model, guarded-action, Authority/safety owners; `MANAGEMENT_BOUNDARY_PASS`. |
-| `RS6 RUNTIME_PACKAGE_MINIMIZATION` | Reconcile `routing-sync`, health/admission, policy, dataplane and verification against deployed runtime; Engineering Plane is not a primary Runtime dependency. | existing RT2 package/measurement, deploy/package, Runtime Model and Work Placement owners; `RUNTIME_PACKAGE_MINIMIZATION_PASS`. |
-| `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | For an individually admitted item, perform only proven `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE`; no mechanical split or size-only deletion. | exact affected existing component owner plus OMP/CPS admission; every item reaches `MUTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
-| `RS8 VALIDATION_AND_CLEANUP` | Prove callers, consumers, imports, dynamic/CLI/subprocess paths, services/timers, deploy/config, writers/state, rollback/recovery, dashboards, tests and documentation tails. | affected existing owners; `NO_DANGLING_LEGACY_RESIDUE_PASS`. |
-| `RS9 PHYSICAL_SHRINK_CLOSURE` | `V7_PHYSICAL_SYSTEM_SIMPLIFICATION_REPORT` logically records mechanically provable `BEFORE -> AFTER -> DELTA`, separating physical removal from logical/runtime exclusion. | existing report, Git/package/deploy, Runtime Model, truth/convergence and canonical owners; `PHYSICAL_SYSTEM_SIMPLIFICATION_PASS`. |
+| `RS4 RECOVERY_BOUNDARY_SIMPLIFICATION` | Map path guard, user switch, operator execution and rollback to `Recovery Authority -> Bounded Action -> Verification`, including exact rollback and owner. | recovery, restore barrier, movement-protection, Authority, verification owners; `RECOVERY_BOUNDARY_PASS`. |
+| `RS5 ADMIN_AND_MANAGEMENT_SEPARATION` | Preserve `UI -> API -> guarded operator-action adapter -> Control Plane`; Admin cannot become a second Control Plane. | Admin UI/API, read-model, guarded-action, Authority/safety owners; `MANAGEMENT_PLANE_SEPARATION_PASS`. |
+| `RS6 RUNTIME_PACKAGE_MINIMIZATION` | Reconcile `routing-sync`, health/admission, policy, dataplane and verification against deployed runtime; Engineering Plane is not a primary Runtime dependency. | existing RT2 package/measurement, deploy/package, Runtime Model and Work Placement owners; `RUNTIME_PACKAGE_MINIMAL_PASS`. |
+| `RS7 PHYSICAL_SIMPLIFICATION_EXECUTION` | For an individually admitted item, implement only the proven target `KEEP`, `SHRINK`, `MOVE`, `MERGE` or `REMOVE` transition. This creates no old-path deletion authority and cannot mechanically split by file size. | exact affected existing component owner plus OMP/CPS admission; target reaches `TARGET_IMPLEMENTATION_CONSUMED_OR_EXACT_RESIDUAL`. |
+| `RS7A CONSUMER_MIGRATION_AND_EDGE_CUTOVER` | After target implementation, identify and migrate every real consumer, verify consumption and behavior, then disconnect the old edge. | exact affected existing component, safety, deploy/package and runtime owners; `CONSUMER_MIGRATION_COMPLETE`. |
+| `RS8 VALIDATION_CLEANUP_AND_OLD_PATH_CLOSURE` | Close old file/function/import, dynamic/CLI/subprocess path, unit/timer, deploy/config, writer/state, rollback/recovery, dashboard, test and executable-document tails. Every garbage item is `KEEP_WITH_REASON`, `LEGACY_EXCEPTION`, `ARCHIVE`, `DELETE` or exact recheck; no `UNKNOWN_RESIDUE` at terminal. | affected existing owners; `NO_DANGLING_LEGACY_RESIDUE_PASS`. |
+| `RS9 PHYSICAL_SHRINK_CLOSURE` | `V7_PHYSICAL_SYSTEM_SIMPLIFICATION_REPORT` logically records mechanically provable `BEFORE -> AFTER -> DELTA`, separating physical removal, logical exclusion, responsibility move, no complexity change and justified increase. | existing report, Git/package/deploy, Runtime Model, truth/convergence and canonical owners; `FINAL_COMPLEXITY_DELTA_COMPLETE`, `FINAL_ARCHITECTURE_ALIGNMENT_PASS`, `PHYSICAL_SIMPLIFICATION_PASS`. |
 
-`RS7` never starts from an RS report alone. Its mandatory item sequence is:
+`RS7` never starts from an RS report alone, and old-path deletion is forbidden
+until `RS7A` and `RS8`. Its mandatory item sequence is:
 
 ```text
 PROVEN_GAP_AND_EXISTING_TARGET_OWNER
   -> OMP/CPS_ADMISSION
-  -> OWNER_BACKED_MUTATION
+  -> OWNER_BACKED_TARGET_IMPLEMENTATION
   -> AFFECTED_OWNER_VALIDATION
   -> SAFE_DEPLOY_AND_REAL_CONSUMER_WHERE_APPLICABLE
-  -> OLD_PATH_CLOSURE
-  -> RESIDUE_PROOF
+  -> RS7A_CONSUMER_CUTOVER_AND_BEHAVIOR_PROOF
+  -> RS8_OLD_PATH_CLOSURE_AND_RESIDUE_PROOF
+  -> BEFORE_AFTER_DELTA_CLASSIFICATION
   -> CPS/CANONICAL_RECONCILIATION
 ```
 
 ### 47.5 Required implementation and closure evidence
 
+`RS0` captures the source/code baseline: tracked source files; program,
+Runtime, Control Plane, Engineering Plane, legacy/fallback and routing LOC;
+functions, classes, executable/CLI entrypoints; dependency edges; and the
+named large-surface file/LOC/function/class/entrypoint/responsibility/caller/
+consumer/layer projection. It separately captures the available Runtime
+package, state, routing-critical-path and dependency observation: active and
+loaded services/timers, processes, startup dependencies, mutation jobs,
+writers/recovery paths, state writers/readers/durable writes/locks/leases/
+barriers, synchronous hops/reads/writes/subprocesses/kernel mutations and
+verification. Scope and method are immutable for later comparison; unavailable
+Runtime facts are `NOT_OBSERVED` with an owner and re-entry condition, never
+invented.
+
 Every `RS7` item maintains one logical
 `V7_SIMPLIFICATION_IMPLEMENTATION_PLAN` and `V7_MIGRATION_TRACKER` entry with
 current/target responsibility, existing owner/boundary, risk, primary and
-fallback consumers, migration/rollback, validation, old-path cleanup and
-exact residual or successor. Each implementation report includes the existing
-`PROGRAMMATIC_CHANGE_DELTA`: program, documentation, test and generated/data
-LOC separately; files added/modified/deleted/moved/archived/runtime-excluded;
-entrypoints and dependency/state/runtime/routing edges; services/timers/processes;
-and physical removal distinct from logical exclusion.
+fallback consumers, migration/rollback, validation, old-path cleanup, exact
+residual or successor, and the `RS7A` consumer-cutover record:
+
+```text
+RESPONSIBILITY
+OLD_OWNER
+TARGET_EXISTING_OWNER
+OLD_CONSUMERS
+MIGRATED_CONSUMERS
+CONSUMPTION_PROOF
+BEHAVIOR_PROOF
+OLD_EDGE_REMOVED
+LEGACY_EXCEPTION
+RESIDUAL
+```
+
+Each implementation report includes the existing `PROGRAMMATIC_CHANGE_DELTA`:
+program, documentation, test and generated/data LOC separately; affected-file
+LOC; functions/classes/entrypoints; files added/modified/deleted/moved/
+archived/runtime-excluded; dependency/caller-consumer/synchronous/cross-plane,
+state, Runtime-package and routing edges; services/timers/processes/startup
+dependencies; and physical removal distinct from logical exclusion. Every
+change is explicitly `PHYSICAL_REDUCTION`, `LOGICAL_EXCLUSION`,
+`RESPONSIBILITY_MOVE`, `NO_COMPLEXITY_CHANGE` or
+`COMPLEXITY_INCREASE_WITH_JUSTIFICATION`; it may not claim system shrink from
+logical exclusion alone.
 
 No deletion or migration is complete until `NO_DANGLING_LEGACY_RESIDUE_PASS`
-proves the old file/function/import, dynamic invocation, unit/timer,
-deploy/install configuration, state/lock/lease/barrier, rollback/recovery,
-nft/ip path, dashboard, test and document tail is closed or has one explicit
-existing-owner lifecycle.
+proves the old file/function/import, dynamic invocation, CLI/subprocess call,
+API/Admin route, unit/timer/job, deploy/install/configuration hook,
+state/lock/lease/barrier, rollback/recovery, nft/ip path, dashboard, test and
+executable-document tail is closed or has one explicit existing-owner
+lifecycle.
 
 ### 47.6 Completion and terminal
 
 The Program reaches `V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_COMPLETE`
-only when RS1-RS9 are consumed or have an exact owner-backed legal residual;
-plane boundaries match current implementation; every changed responsibility
-has one existing owner, lifecycle and primary consumer; duplicate primary
-paths are closed or bounded `LEGACY_EXCEPTION`s; deployed Runtime dependency
-truth is reconciled; physical shrink is evidenced without counting exclusions
-as deletion; Product Contract, safety, Authority, recovery and rollback remain
-proven; and CPS/OMP/canonical truth agrees.
+only when `IMMUTABLE_BEFORE_BASELINE_CAPTURED`,
+`RESPONSIBILITY_GRAPH_COMPLETE`, `CODE_ARCHAEOLOGY_COMPLETE`,
+`TARGET_OWNERSHIP_MODEL_COMPLETE`, `ENGINEERING_PLANE_SEPARATION_PASS`,
+`CONTROL_PLANE_SIMPLIFICATION_PASS`, `RECOVERY_BOUNDARY_PASS`,
+`MANAGEMENT_PLANE_SEPARATION_PASS`, `RUNTIME_PACKAGE_MINIMAL_PASS`,
+`CONSUMER_MIGRATION_COMPLETE`, `PHYSICAL_SIMPLIFICATION_PASS`,
+`NO_DANGLING_LEGACY_RESIDUE_PASS`, `FINAL_COMPLEXITY_DELTA_COMPLETE`,
+`FINAL_ARCHITECTURE_ALIGNMENT_PASS` and `PRODUCT_CONTRACT_PRESERVED` pass or
+have an exact owner-backed legal residual. Plane boundaries must match current
+implementation; every changed responsibility must have one existing owner,
+lifecycle and primary consumer; duplicate primary paths must be closed or
+bounded `LEGACY_EXCEPTION`s; deployed Runtime dependency truth must reconcile;
+physical shrink must not count exclusions as deletion; and CPS/OMP/canonical
+truth must agree.
 
 Completion is not implied by LOC, a report, a code split, a commit, a test or
 a deployed library. A future `STEADY_STATE_OPERATIONS` transition remains an

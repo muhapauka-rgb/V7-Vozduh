@@ -11589,10 +11589,49 @@ source, Runtime, deployment, Production or Authority. Any ambiguous Mission
 or candidate identity, CPS/owner/frontier conflict, missing lifecycle field or
 missing contract is `STOP_SAFE -> NO_MUTATION -> NO_FRONTIER_CHANGE`.
 
-This lifecycle contract does not consume or reinterpret RS0–RS6 read-only
-states. In particular, the current RS6 frontier stays controlling until its
-existing successor is completed and an exact CPS admission is separately
-reconciled.
+`BOUNDED_MISSION_RS6_CONSUMPTION_RULE` resolves a narrower case without
+declaring RS6 globally complete. A non-terminal RS6 physical-minimization
+residual does not automatically block one bounded Mission when that Mission
+can prove its own scope and the residual is orthogonal to the proposed
+change:
+
+```text
+MISSION_SCOPE
+  -> EACH_ACTIVE_RS6_RESIDUAL
+  -> RELATED_TO_MISSION | ORTHOGONAL_TO_MISSION
+  -> IMPACT_EVIDENCE
+  -> SCOPED_ADMISSION_ELIGIBILITY
+  -> EXISTING_CPS_ADMISSION
+```
+
+The Mission packet must retain its exact identity, existing owner, Product
+Contract, validation and rollback contracts, and record an explicit
+`AFFECTS_MISSION = YES|NO` result for every active RS6 residual. `RELATED`,
+unknown or insufficiently evidenced impact is `STOP_SAFE`; that residual must
+close through its existing owner before the Mission may be admitted.
+`ORTHOGONAL_TO_MISSION` requires proof that the change creates no affected
+call/consumer edge, state writer, Runtime/deploy lifecycle edge, Product
+Contract difference, Hot Path/Data Plane effect or Authority effect. A
+residual may still affect the system's upstream data: for a transparent
+read-model change, the sufficient proof is that Current and Target preserve
+the same downstream owner, inputs, observable output and upstream dependency.
+
+This is scoped predecessor consumption only:
+`RS6_CONSUMED_FOR_MISSION:<MISSION_ID>` is an admission disposition in the
+existing Mission packet and its Engineering Report, never a replacement CPS
+truth field or a claim that `RS6_RUNTIME_PACKAGE_MINIMIZATION` is complete.
+The current CPS schema has no equivalent multi-scope predecessor field, so no
+`CURRENT_EXECUTION_SCOPE`, `CONSUMED_PREDECESSOR_SCOPE`,
+`MISSION_RESIDUAL_IMPACT_STATUS` or parallel lifecycle is introduced here.
+The global RS6 stage/frontier remains authoritative until the existing CPS
+atomic-reconciliation owner can make a complete, identity-consistent admission
+projection. Scoped eligibility alone remains `PENDING_CPS_ADMISSION`; it
+cannot return `MISSION_EXECUTION_ALLOWED` or authorize a mutation.
+
+This lifecycle contract therefore does not reinterpret RS0–RS6 read-only
+states or bypass the global frontier. It permits an independent bounded
+Mission to be *evaluated* despite orthogonal residuals, while preserving the
+existing CPS owner as the sole durable authorization path.
 
 `MISSION_EXECUTION_COMPLETION_RULE` applies only after the exact bounded
 Mission reaches `MISSION_EXECUTION_ALLOWED`. When its identity, existing

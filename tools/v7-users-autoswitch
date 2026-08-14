@@ -14386,19 +14386,48 @@ class AutoswitchPlanner:
         }
 
     def finalize_operation(self, plan: dict[str, Any]) -> dict[str, Any]:
+        # Keep durable closure intact, but expose which existing finalization
+        # operation follows the already-completed apply/verification result.
+        # This is observation only: no output is deferred, reordered or given
+        # a new owner until a real bounded latency measurement identifies a
+        # safe separation candidate.
+        def record_finalization_span(stage: str, started_ns: int) -> None:
+            if isinstance(getattr(self, "_performance_spans", None), list):
+                self._record_performance_span(
+                    stage,
+                    started_ns,
+                    owner="tools/v7-users-autoswitch.finalize_operation",
+                    parent="durable_audit_feedback_and_successor_publication",
+                    critical_path=True,
+                )
+
+        terminal_started_ns = time.monotonic_ns()
         operation = plan.setdefault("operation", {})
         terminal = self._terminal_verdict(plan)
         operation.update(terminal)
         rollback = self._rollback_verdict(plan)
         if rollback:
             operation["rollback_verdict"] = rollback.get("rollback_verdict", "")
+        record_finalization_span("finalization_terminal_and_rollback_summary", terminal_started_ns)
+
+        audit_started_ns = time.monotonic_ns()
         audit = self._terminal_audit_reference(plan, rollback)
         if self.args.apply:
             audit = self._emit_terminal_audit(audit)
         plan["audit"] = audit
+        record_finalization_span("finalization_audit_reference_and_emit", audit_started_ns)
+
+        closure_started_ns = time.monotonic_ns()
         plan["closure_target"] = self._closure_target(operation, audit)
+        record_finalization_span("finalization_closure_target", closure_started_ns)
+
+        passive_started_ns = time.monotonic_ns()
         plan["passive_production_event_consumption"] = self._consume_passive_production_events()
+        record_finalization_span("finalization_passive_event_consumption", passive_started_ns)
+
+        learning_started_ns = time.monotonic_ns()
         plan["l3_learning_closure"] = self._l3_materialize_learning_closure(plan)
+        record_finalization_span("finalization_learning_closure", learning_started_ns)
         return plan
 
     def _consume_passive_production_events(self) -> dict[str, Any]:

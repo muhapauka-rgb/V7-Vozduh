@@ -6243,7 +6243,10 @@ def _execute_governed_transaction_with_guards_inner(
         # generation cannot turn an otherwise admissible one-user Packet into
         # a permanent snapshot_mismatch STOP_SAFE.  This writes only the
         # existing engineering snapshot projection; it grants no Authority and
-        # does not apply routing.
+        # does not apply routing.  The canonical shared snapshot root keeps
+        # its full consumer contract.  An exact-user candidate scope is only
+        # allowed when this controlled invocation supplies its own snapshot
+        # root, so it cannot replace a shared Engineering read model.
         certification_setup_snapshot_refresh = (
             refresh_controlled_topology_execution_snapshots(
                 args,
@@ -6251,7 +6254,11 @@ def _execute_governed_transaction_with_guards_inner(
                 event_dir=event_dir,
                 snapshot_root=snapshot_root,
                 current_state_window=True,
-                current_state_user=str(getattr(args, "certification_user", "") or ""),
+                current_state_user=(
+                    str(getattr(args, "certification_user", "") or "")
+                    if str(getattr(args, "snapshot_root", "") or "")
+                    else ""
+                ),
             )
         )
         if not certification_setup_snapshot_refresh.get("ok"):

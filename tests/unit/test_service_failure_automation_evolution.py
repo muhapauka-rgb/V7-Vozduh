@@ -93,6 +93,36 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(sum(row.get("object_type") == "service_failure_automation_obligation" for row in rows), 1)
 
+    def test_advisory_entry_reuses_post_plan_scope_reconciliation_result(self):
+        args = argparse.Namespace(
+            apply=False,
+            emergency_failover_autonomy=False,
+            controlled_verifier_contention=False,
+        )
+        planner = mock.Mock()
+        planner._performance_spans = []
+        planner.reconcile_bounded_cohort_closure_obligations.return_value = {
+            "status": "PASS",
+        }
+        planner.plan.return_value = {"decisions": []}
+        planner.materialize_service_failure_automation_advisory.return_value = {
+            "active": False,
+            "pre_obligation_scope_reconciliation": {"final_verdict": "PASS"},
+        }
+        planner.performance_timeline.return_value = {"spans": []}
+
+        with mock.patch.object(self.autoswitch, "AutoswitchPlanner", return_value=planner), \
+             mock.patch.object(self.autoswitch, "build_prepared_class_decision_projection", return_value={}), \
+             mock.patch.object(self.autoswitch, "validate_prepared_class_decision_projection", return_value={}):
+            result = self.autoswitch.consume_service_failure_automation_only(args)
+
+        self.assertEqual(
+            result["execution_outcome_reconciliation"],
+            {"final_verdict": "PASS"},
+        )
+        planner.reconcile_service_failure_execution_outcomes.assert_not_called()
+        planner.materialize_service_failure_automation_advisory.assert_called_once_with({"decisions": []})
+
     def test_certification_only_source_scope_never_enters_ordinary_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

@@ -15013,6 +15013,7 @@ class AutoswitchPlanner:
                 "reason": "no_open_unmaterialized_passive_terminal",
                 "correct_terminals_skipped": correct_terminals_skipped,
                 "outcome_reconciliation": outcome_reconciliation,
+                "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},
             }
         _has_live_scope, _observed, _scope_count, obligation_id, closure = sorted(
@@ -17232,14 +17233,13 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         owner="tools/v7-users-autoswitch.reconcile_bounded_cohort_closure_obligations",
         parent="service_failure_advisory",
     )
-    entry_scope_reconciliation_started_ns = time.monotonic_ns()
-    execution_outcome_reconciliation = planner.reconcile_service_failure_execution_outcomes()
-    planner._record_performance_span(
-        "advisory_entry_scope_reconciliation",
-        entry_scope_reconciliation_started_ns,
-        owner="tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
-        parent="service_failure_advisory",
-    )
+    # ``plan()`` does not consume the preceding reconciliation result: it
+    # holds the constructor's L3 snapshot and writes only its separate
+    # capacity summary.  The advisory materializer must still reconcile *after*
+    # planning before it reloads current scope, then once again after its
+    # durable write.  Do not pay the same ~12-second execution-history scan a
+    # third time before planning; surface the authoritative post-plan result
+    # under the established response field for existing observers.
     plan_started_ns = time.monotonic_ns()
     plan = planner.plan()
     planner._record_performance_span(
@@ -17261,6 +17261,12 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         parent="service_failure_advisory",
     )
     result = planner.materialize_service_failure_automation_advisory(plan)
+    execution_outcome_reconciliation = (
+        result.get("pre_obligation_scope_reconciliation")
+        if isinstance(result, dict)
+        and isinstance(result.get("pre_obligation_scope_reconciliation"), dict)
+        else {}
+    )
     return {
         "schema_version": "v7.service-failure-automation-entrypoint.v1",
         "status": "PASS",

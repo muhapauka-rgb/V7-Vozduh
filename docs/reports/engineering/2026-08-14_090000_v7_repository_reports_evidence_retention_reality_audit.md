@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root evidence duplicate purge — Batch 1
+
+Forty-six unreferenced exact duplicate files were deleted from root evidence
+directories after SHA-256 grouping. A single surviving copy remains for each
+duplicate group; paths with external references were retained. The removed
+copies totaled `2,265,959` bytes. No archive was created, and no canonical
+truth, Runtime input or production effect changed.
+
 ## Reports duplicate purge — Batch 4
 
 Three byte-identical historical truth/convergence files were deduplicated.

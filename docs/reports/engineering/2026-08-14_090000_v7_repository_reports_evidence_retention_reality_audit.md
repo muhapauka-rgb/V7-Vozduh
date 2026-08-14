@@ -543,6 +543,13 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Empty-directory purge — Batch 5
+
+Fourteen empty directories left by prior evidence compaction were removed.
+No files, consumers or canonical paths were affected. This is a structural
+cleanup only; Runtime, production, routing, policy, Authority and Production
+Maturity effects: `NONE`.
+
 ## Root evidence selected-move dry-run purge — Batch 4
 
 Fourteen unreferenced historical `apply_requested=false` planner payloads with

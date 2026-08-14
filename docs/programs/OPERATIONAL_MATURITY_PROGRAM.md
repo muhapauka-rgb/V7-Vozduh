@@ -8097,8 +8097,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`
-Resolved contract state: CPS proves one `MISSION_ADMITTED` bounded Management Plane simplification after RS6 scoped-residual isolation; the exact live successor is `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`. The global RS6 physical-minimization frontier remains unresolved under its existing owners. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Resolved contract state: the bounded RS7 Admin wrapper Mission is production-consumed with zero old-call residue; CPS has returned to the preserved global `RS6_RUNTIME_PACKAGE_MINIMIZATION` residual under its existing owners. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9085,8 +9085,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`
-Current terminal report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md`
+Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Current terminal report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md`
 Current active Mission report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`

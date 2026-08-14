@@ -209,7 +209,7 @@ This section is the single live volatile current-state surface. Older production
 | `CURRENT_MISSION_ID` | `V7_OMP_BDP_65CB2232971BC224D937140C_V1` |
 | `CURRENT_RUN_NONCE` | `rs0_65CB2232971BC224D937140C` |
 | `CURRENT_MISSION_STATE` | `PREPARED_NOT_ACTIVE` |
-| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` |
+| `CURRENT_MISSION_REPORT` | `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md` |
 | `AUTHORITATIVE_TRANSITION_INPUT_MISSION_ID` | `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3` |
 | `AUTHORITATIVE_TRANSITION_INPUT_STATE` | `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED` |
 | `AUTHORITATIVE_TRANSITION_INPUT_REPORT` | `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` |

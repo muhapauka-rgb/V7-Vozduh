@@ -2811,7 +2811,18 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 confirm_governed_transaction="",
                 execution_control_file=str(root / "control.json"),
                 skip_planner_observe=True,
+                snapshot_root=str(snapshots),
+                certification_user="10.7.0.100",
             )
+            captured_surface = {}
+
+            def cycle(**kwargs):
+                captured_surface.update(kwargs["decision_surface"])
+                return {
+                    "stop_reason": "AUTHORITY_BOUNDARY",
+                    "packet_preview": {"status": "BLOCKED"},
+                }
+
             with mock.patch.object(
                 module.operator_execution,
                 "autonomous_execution_control_state",
@@ -2842,10 +2853,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ), mock.patch.object(
                 module.operator_execution_pipeline,
                 "governed_canary_knowledge_gated_dry_run_cycle",
-                return_value={
-                    "stop_reason": "AUTHORITY_BOUNDARY",
-                    "packet_preview": {"status": "BLOCKED"},
-                },
+                side_effect=cycle,
             ):
                 result = module._execute_governed_transaction_with_guards_inner(
                     args,
@@ -2862,7 +2870,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
             event_dir=events,
             snapshot_root=snapshots,
             current_state_window=True,
-            current_state_user="",
+            current_state_user="10.7.0.100",
+        )
+        self.assertEqual(
+            captured_surface["controlled_execution_gate_profile"],
+            "CONTROLLED_CERTIFICATION_TOPOLOGY",
         )
         self.assertEqual(result["stop_reason"], "packet_not_ready")
 

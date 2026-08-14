@@ -6325,6 +6325,14 @@ def _execute_governed_transaction_with_guards_inner(
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )
+    elif setup_mode:
+        # The setup path is also an exact one-user controlled topology
+        # transition.  It shares the current-state-only gate so historical
+        # prediction and learning read models cannot block a Packet whose
+        # service, risk, candidate, pool and rollback inputs are all fresh.
+        surface["controlled_execution_gate_profile"] = (
+            "CONTROLLED_CERTIFICATION_TOPOLOGY"
+        )
     elif availability_first_reset:
         # This is the exact standing-policy-bound restoration of an already
         # moved certification identity, not a new risk-taking recommendation.

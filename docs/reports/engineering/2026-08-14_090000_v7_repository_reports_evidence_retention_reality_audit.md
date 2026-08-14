@@ -559,3 +559,17 @@ The originals total `44,583,434` bytes. They are recoverable from
 Active-tree reduction before archive overhead is approximately `44.56 MB`.
 Disposition: `ARCHIVE_EXTERNAL`; runtime, production, routing, user movement,
 policy, Authority and Production Maturity effects: `NONE`.
+
+## Cleanup execution update — Batch 20
+
+Fifteen additional historical zero-selection planner payloads were compacted.
+Each had `apply_requested=false`, `selected_move_count=0`, and no direct
+source/test/Runtime reference. Their terminal reasons and operation lineage
+remain in receipts; full payloads remain recoverable in the archive.
+
+Original total: `54,226,825` bytes. Archive:
+`.v7/evidence-archive/2026-08-14-batch20/zero-selection-dry-runs-large.tar.gz`
+(SHA-256
+`c91760f1e9918c937dfe88860fcbbc9cc7d0b989bb84d4edc439f6a8b27520d6`).
+Disposition: `ARCHIVE_EXTERNAL`; no Runtime, production, routing, user,
+policy, Authority or Production Maturity effect.

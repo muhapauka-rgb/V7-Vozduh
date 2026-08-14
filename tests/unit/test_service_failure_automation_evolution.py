@@ -57,6 +57,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             planner.state_dir = state_dir
             planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"
             planner.l3_runtime_state = {}
+            planner._performance_spans = []
             plan = {
                 "decisions": [{
                     "user_ip": "10.0.0.2",
@@ -74,6 +75,19 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             self.assertEqual(first["obligation"]["bounded_recommendation_users"], 1)
             self.assertEqual(first["obligation"]["aggregate_impact_users"], 2)
             self.assertTrue(first["shadow_decision_id"])
+            self.assertEqual(
+                [row["stage"] for row in planner._performance_spans],
+                [
+                    "advisory_shadow_outcome_reconciliation",
+                    "advisory_pre_obligation_scope_reconciliation",
+                    "advisory_l3_and_closure_history_load",
+                    "advisory_passive_candidate_selection",
+                    "advisory_obligation_semantic_construction",
+                    "advisory_durable_projection_materialization",
+                    "advisory_final_scope_reconciliation",
+                    "advisory_materialization_total",
+                ],
+            )
             second = planner.materialize_service_failure_automation_advisory(plan)
             self.assertFalse(second["active"])
             rows = [json.loads(line) for line in (state_dir / "closure-records.jsonl").read_text(encoding="utf-8").splitlines()]

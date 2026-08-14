@@ -14892,18 +14892,52 @@ class AutoswitchPlanner:
         existing planner and the existing Shadow Autonomy JSONL; it neither
         creates a Candidate/Packet/lease nor enters the apply path.
         """
+        advisory_started_ns = time.monotonic_ns()
+
+        # ``materialize_service_failure_automation_advisory`` is currently a
+        # measurable synchronous cost after a prepared decision.  Reuse the
+        # existing in-process monotonic timeline instead of introducing a
+        # profiler, log, state projection, or engineering-plane dependency.
+        # Some narrow unit tests instantiate the planner without ``__init__``;
+        # keeping timing observational preserves their existing owner setup.
+        def record_advisory_span(stage: str, started_ns: int, *, critical_path: bool = True) -> None:
+            if isinstance(getattr(self, "_performance_spans", None), list):
+                self._record_performance_span(
+                    stage,
+                    started_ns,
+                    owner="tools/v7-users-autoswitch.materialize_service_failure_automation_advisory",
+                    parent="service_failure_advisory_materialization",
+                    critical_path=critical_path,
+                )
+
         closure_path = self.state_dir / "closure-records.jsonl"
         shadow_path = self.state_dir / "shadow-autonomy-decisions.jsonl"
+        shadow_reconciliation_started_ns = time.monotonic_ns()
         outcome_reconciliation = self.reconcile_service_failure_shadow_outcomes()
+        record_advisory_span(
+            "advisory_shadow_outcome_reconciliation",
+            shadow_reconciliation_started_ns,
+            critical_path=False,
+        )
         # Refresh the existing current-source denominator before choosing one
         # bounded successor.  A later zero-user incident must not starve an
         # older still-open incident that actually has users on its failed
         # source.  This is selection only; the normal authority/action gates
         # remain downstream and unchanged.
+        scope_reconciliation_started_ns = time.monotonic_ns()
         pre_obligation_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        record_advisory_span(
+            "advisory_pre_obligation_scope_reconciliation",
+            scope_reconciliation_started_ns,
+        )
+        closure_load_started_ns = time.monotonic_ns()
         pre_obligation_state = self._load_l3_runtime_state()
         pre_obligation_incidents = pre_obligation_state.get("incidents") if isinstance(pre_obligation_state.get("incidents"), dict) else {}
         closures = read_jsonl(closure_path)
+        record_advisory_span(
+            "advisory_l3_and_closure_history_load",
+            closure_load_started_ns,
+        )
         # ``closure-records.jsonl`` is the existing append-only obligation
         # owner.  Keep its latest projection for an id: a later current-scope
         # reconciliation may legitimately supersede an earlier passive
@@ -14918,6 +14952,7 @@ class AutoswitchPlanner:
             row for row in closures
             if str(row.get("object_type") or "") == "passive_production_event"
         ]
+        candidate_selection_started_ns = time.monotonic_ns()
         candidates = []
         correct_terminals_skipped = 0
         for row in passive:
@@ -14966,7 +15001,12 @@ class AutoswitchPlanner:
                     obligation_id,
                     row,
                 ))
+        record_advisory_span(
+            "advisory_passive_candidate_selection",
+            candidate_selection_started_ns,
+        )
         if not candidates:
+            record_advisory_span("advisory_materialization_total", advisory_started_ns)
             return {
                 "schema_version": "v7.service-failure-automation-advisory.v1",
                 "active": False,
@@ -14980,6 +15020,7 @@ class AutoswitchPlanner:
             key=lambda row: (row[0], row[1], row[2], row[3]),
             reverse=True,
         )[0]
+        obligation_build_started_ns = time.monotonic_ns()
         source = str(closure.get("channel") or "")
         # The passive terminal is an immutable observation, not the live
         # source denominator.  Before materializing an OMP obligation, reuse
@@ -15368,6 +15409,11 @@ class AutoswitchPlanner:
         )
         current_semantics = obligation_semantic_projection(obligation)
         if previous_semantics == current_semantics:
+            record_advisory_span(
+                "advisory_obligation_semantic_construction",
+                obligation_build_started_ns,
+            )
+            record_advisory_span("advisory_materialization_total", advisory_started_ns)
             return {
                 "schema_version": "v7.service-failure-automation-advisory.v1",
                 "active": False,
@@ -15387,6 +15433,11 @@ class AutoswitchPlanner:
                 "previous_semantic_fingerprint": sha256_json(previous_semantics),
                 "current_semantic_fingerprint": sha256_json(current_semantics),
             }
+        record_advisory_span(
+            "advisory_obligation_semantic_construction",
+            obligation_build_started_ns,
+        )
+        durable_projection_started_ns = time.monotonic_ns()
         shadow_rows = read_jsonl(shadow_path)
         shadow_ids = {str(row.get("decision_id") or "") for row in shadow_rows}
         shadow_record: dict[str, Any] = {}
@@ -15461,10 +15512,20 @@ class AutoswitchPlanner:
             incident_record["updated_at"] = now
             incidents[incident_key] = incident_record
         self._write_l3_runtime_state(state)
+        record_advisory_span(
+            "advisory_durable_projection_materialization",
+            durable_projection_started_ns,
+        )
         # This advisory writes an obligation after planning.  Reconcile once
         # more so a stale passive closure cannot overwrite the current source
         # generation between the pre-plan reconciliation and the consumer.
+        final_scope_reconciliation_started_ns = time.monotonic_ns()
         final_scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        record_advisory_span(
+            "advisory_final_scope_reconciliation",
+            final_scope_reconciliation_started_ns,
+        )
+        record_advisory_span("advisory_materialization_total", advisory_started_ns)
         return {
             "schema_version": "v7.service-failure-automation-advisory.v1",
             "active": True,
@@ -17163,13 +17224,41 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
             "blockers": [f"automation_advisory_forbids_{name}" for name in forbidden],
         }
     planner = AutoswitchPlanner(args)
+    bounded_closure_reconciliation_started_ns = time.monotonic_ns()
     bounded_closure_reconciliation = planner.reconcile_bounded_cohort_closure_obligations()
+    planner._record_performance_span(
+        "advisory_bounded_closure_reconciliation",
+        bounded_closure_reconciliation_started_ns,
+        owner="tools/v7-users-autoswitch.reconcile_bounded_cohort_closure_obligations",
+        parent="service_failure_advisory",
+    )
+    entry_scope_reconciliation_started_ns = time.monotonic_ns()
     execution_outcome_reconciliation = planner.reconcile_service_failure_execution_outcomes()
+    planner._record_performance_span(
+        "advisory_entry_scope_reconciliation",
+        entry_scope_reconciliation_started_ns,
+        owner="tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
+        parent="service_failure_advisory",
+    )
+    plan_started_ns = time.monotonic_ns()
     plan = planner.plan()
+    planner._record_performance_span(
+        "advisory_plan_and_decision_construction",
+        plan_started_ns,
+        owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        parent="service_failure_advisory",
+    )
+    prepared_projection_started_ns = time.monotonic_ns()
     prepared_class_decisions = build_prepared_class_decision_projection(plan)
     prepared_freshness = validate_prepared_class_decision_projection(
         prepared_class_decisions,
         prepared_class_decisions.get("invalidators") or {},
+    )
+    planner._record_performance_span(
+        "advisory_prepared_decision_projection_and_validation",
+        prepared_projection_started_ns,
+        owner="existing prepared-class decision owner",
+        parent="service_failure_advisory",
     )
     result = planner.materialize_service_failure_automation_advisory(plan)
     return {
@@ -17183,6 +17272,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "prepared_class_decision_freshness": prepared_freshness,
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "bounded_closure_reconciliation": bounded_closure_reconciliation,
+        "performance_timeline": planner.performance_timeline(),
         "forbidden_effects": {
             "runtime_apply": False,
             "routing_mutation": False,

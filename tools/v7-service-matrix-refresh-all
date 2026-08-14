@@ -3133,6 +3133,24 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 "owner": str(timing.get("owner") or ""),
                 "spans": advisory_spans,
             }
+        # Passive consumption has an independent, existing read-only timing
+        # result. Keep its three scalar spans in the same compact receipt so
+        # its cost can be compared without retaining raw event/state payloads.
+        passive_spans = [
+            {
+                key: row.get(key)
+                for key in ("stage", "owner", "clock_source", "duration_ms")
+                if row.get(key) not in (None, "", [], {})
+            }
+            for row in spans
+            if isinstance(row, dict)
+            and str(row.get("stage") or "").startswith("passive_")
+        ]
+        if passive_spans:
+            compact_result["passive_performance_timeline"] = {
+                "schema_version": str(timing.get("schema_version") or ""),
+                "spans": passive_spans,
+            }
     sample_preparation = (
         result.get("sample_preparation_receipt")
         or value.get("sample_preparation_receipt")

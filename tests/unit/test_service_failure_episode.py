@@ -3659,6 +3659,35 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(receipt["prepared_class_decision_freshness"]["status"], "PREPARED_CLASS_DECISION_FRESH")
         self.assertEqual(receipt["bounded_closure_reconciliation"]["status"], "DEFERRED_CLOSURE_DURABLE_SUCCESSOR_PROVEN")
 
+    def test_compact_matrix_receipt_retains_passive_scalar_timings_only(self):
+        projection = self.refresh.compact_refresh_projection({
+            "passive_event_consumer": {
+                "status": "PASS",
+                "ok": True,
+                "consumer_result": {
+                    "status": "PASS",
+                    "performance_timeline": {
+                        "schema_version": "v7.passive-event-consumer-timing.v1",
+                        "spans": [
+                            {
+                                "stage": "passive_l3_current_state_load",
+                                "owner": "existing-owner",
+                                "clock_source": "time.monotonic_ns",
+                                "duration_ms": 12.3,
+                                "raw_state": "must-not-project",
+                            },
+                        ],
+                    },
+                },
+            },
+        })
+        receipt = projection["passive_event_consumer"]["consumer_result"]
+        self.assertEqual(
+            receipt["passive_performance_timeline"]["spans"][0]["duration_ms"],
+            12.3,
+        )
+        self.assertNotIn("raw_state", json.dumps(projection))
+
     def test_compact_matrix_receipt_retains_nested_outcome_pointer_without_payload(self):
         projection = self.refresh.compact_refresh_projection({
             "bounded_delegated_service_failure_action": {

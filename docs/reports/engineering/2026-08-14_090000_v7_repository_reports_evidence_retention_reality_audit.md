@@ -322,3 +322,25 @@ the associated ignored checksum file is the restoration manifest. This is a
 physical active-tree reduction of `37,394,118` bytes, not a claim that the
 underlying historical evidence was deleted. Runtime, Production, routing,
 user, policy and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 11
+
+Seven `AUTONOMY_CANARY_1A` Planner observations were historical, no-mutation
+`DRY_RUN` outputs. Each records the same Planner generation and structural
+summary: `26` users, `7` egresses, `4` healthy egresses, `18` candidate moves,
+`0` selected moves and `apply=false`. Their direct consumers are the
+historical 1A report and xref index; there is no source, test, deploy or
+Runtime consumer. Their referenced paths are retained unchanged as compact
+JSON receipts, so those historical consumers keep the operation identity,
+terminal reason, source hash, archive location and decision-bearing summary.
+
+The originals total `33,783,083` bytes; compact receipts total `5,721` bytes,
+for an active-tree reduction of `33,777,362` bytes. The ignored recovery
+archive is
+`.v7/evidence-archive/2026-08-14-batch11/autonomy-canary-1a-planner-observations.tar.gz`
+with SHA-256
+`f2c29f72f38073cc976ac6b2fd4288bb7a19d42f97a4fc0a06fb2930ab2a0559`.
+All seven originals were byte-compared with a clean archive extraction before
+replacement. This is `ARCHIVE_EXTERNAL`, not a claim that any historical
+conclusion was deleted. Runtime, Production, routing, user movement, policy
+and Authority effects: `NONE`.

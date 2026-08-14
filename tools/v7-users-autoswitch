@@ -4495,6 +4495,7 @@ class AutoswitchPlanner:
         *,
         existing: dict[str, Any],
         execution_rows: list[dict[str, Any]],
+        reconciliation_cache: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Recompute one active incident denominator from live route truth.
 
@@ -4608,8 +4609,15 @@ class AutoswitchPlanner:
                 "terminal_scope_frozen": True,
             }
 
-        live_registry_available = (self.state_dir / "users.registry").exists()
-        live_rows = parse_registry(self.state_dir / "users.registry") if live_registry_available else []
+        if reconciliation_cache is not None and "live_registry_available" in reconciliation_cache:
+            live_registry_available = bool(reconciliation_cache["live_registry_available"])
+            live_rows = list(reconciliation_cache.get("live_rows") or [])
+        else:
+            live_registry_available = (self.state_dir / "users.registry").exists()
+            live_rows = parse_registry(self.state_dir / "users.registry") if live_registry_available else []
+            if reconciliation_cache is not None:
+                reconciliation_cache["live_registry_available"] = live_registry_available
+                reconciliation_cache["live_rows"] = live_rows
         live_current = {
             str(item.get("ip") or ""): str(item.get("current") or "")
             for item in live_rows
@@ -4720,18 +4728,23 @@ class AutoswitchPlanner:
         # CT-M0F controlled certification move whose first implementation
         # omitted the passive-incident binding.  It is an explicit exclusion,
         # never a protected-user or evidence-credit rewrite.
-        audit_store = Path(getattr(
-            getattr(self, "args", argparse.Namespace()),
-            "action_class_audit_store",
-            str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
-        ))
-        ct_m0f_reservations = {
-            str(row.get("packet_id") or ""): row
-            for row in operator_execution.read_audit_records(audit_store)
-            if str(row.get("record_type") or "")
-            == operator_execution.CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
-            and str(row.get("packet_id") or "")
-        }
+        if reconciliation_cache is not None and "ct_m0f_reservations" in reconciliation_cache:
+            ct_m0f_reservations = reconciliation_cache["ct_m0f_reservations"]
+        else:
+            audit_store = Path(getattr(
+                getattr(self, "args", argparse.Namespace()),
+                "action_class_audit_store",
+                str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
+            ))
+            ct_m0f_reservations = {
+                str(row.get("packet_id") or ""): row
+                for row in operator_execution.read_audit_records(audit_store)
+                if str(row.get("record_type") or "")
+                == operator_execution.CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+                and str(row.get("packet_id") or "")
+            }
+            if reconciliation_cache is not None:
+                reconciliation_cache["ct_m0f_reservations"] = ct_m0f_reservations
         protected_users: set[str] = set()
         excluded_users: set[str] = set()
         protected_pointers: set[str] = set()
@@ -4912,6 +4925,7 @@ class AutoswitchPlanner:
         existing: dict[str, Any],
         execution_rows: list[dict[str, Any]],
         current_source_scope: Optional[dict[str, Any]] = None,
+        reconciliation_cache: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Preserve packet-bound history without altering the live denominator.
 
@@ -4930,7 +4944,13 @@ class AutoswitchPlanner:
         )
         if not source_incident_id or not source_channel:
             return {}
-        live_rows = parse_registry(self.state_dir / "users.registry") if (self.state_dir / "users.registry").exists() else []
+        if reconciliation_cache is not None and "live_rows" in reconciliation_cache:
+            live_rows = list(reconciliation_cache["live_rows"] or [])
+        else:
+            live_rows = parse_registry(self.state_dir / "users.registry") if (self.state_dir / "users.registry").exists() else []
+            if reconciliation_cache is not None:
+                reconciliation_cache["live_registry_available"] = (self.state_dir / "users.registry").exists()
+                reconciliation_cache["live_rows"] = live_rows
         live_current = {
             str(item.get("ip") or ""): str(item.get("current") or "")
             for item in live_rows
@@ -5279,6 +5299,10 @@ class AutoswitchPlanner:
         state = self._load_l3_runtime_state()
         incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
         rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        # Reuse a read snapshot only within this one reconciliation call.
+        # Existing registry and audit owners remain authoritative and each new
+        # invocation reloads them, so no cache becomes durable state or truth.
+        reconciliation_cache: dict[str, Any] = {}
         changed = 0
         consumed = 0
         rejected: list[str] = []
@@ -5326,11 +5350,13 @@ class AutoswitchPlanner:
             scope_accounting = self._reconcile_incident_scope_accounting(
                 existing=existing,
                 execution_rows=rows,
+                reconciliation_cache=reconciliation_cache,
             )
             cumulative_scope = self._reconcile_incident_cumulative_scope(
                 existing=existing,
                 execution_rows=rows,
                 current_source_scope=scope_accounting or existing_scope,
+                reconciliation_cache=reconciliation_cache,
             )
             lineage = dict(existing.get("causal_lineage") or {})
             lineage.update({
@@ -5419,6 +5445,7 @@ class AutoswitchPlanner:
             scope_accounting = self._reconcile_incident_scope_accounting(
                 existing=record,
                 execution_rows=rows,
+                reconciliation_cache=reconciliation_cache,
             )
             if not scope_accounting:
                 continue
@@ -5429,6 +5456,7 @@ class AutoswitchPlanner:
                     existing=record,
                     execution_rows=rows,
                     current_source_scope=scope_accounting,
+                    reconciliation_cache=reconciliation_cache,
                 ),
                 "affected_scope_count": scope_accounting["affected_scope_count"],
                 "affected_scope_fingerprint": scope_accounting["affected_scope_fingerprint"],
@@ -5489,6 +5517,7 @@ class AutoswitchPlanner:
                 terminal_scope_accounting = self._reconcile_incident_scope_accounting(
                     existing={**record, **desired_scope_fields},
                     execution_rows=rows,
+                    reconciliation_cache=reconciliation_cache,
                 )
                 if terminal_scope_accounting:
                     desired_scope_fields.update({
@@ -5498,6 +5527,7 @@ class AutoswitchPlanner:
                             existing={**record, **desired_scope_fields},
                             execution_rows=rows,
                             current_source_scope=terminal_scope_accounting,
+                            reconciliation_cache=reconciliation_cache,
                         ),
                         "affected_scope_count": terminal_scope_accounting["affected_scope_count"],
                         "affected_scope_fingerprint": terminal_scope_accounting["affected_scope_fingerprint"],

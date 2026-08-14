@@ -265,6 +265,52 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
         self.assertEqual(result["protected_scope_lineage_pointers"], ["execfb_verified"])
 
+    def test_scope_reconciliation_reuses_one_registry_snapshot_per_invocation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.2 enabled=1 current=source certification_user=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.args = SimpleNamespace()
+            existing = {
+                "source_incident_id": "sfinc_shared_snapshot",
+                "channel": "source",
+                "incident_state": "OPEN",
+                "scope_accounting": {
+                    "status": "ACCOUNTED",
+                    "baseline_event_id": "evt_shared_snapshot",
+                    "affected_scope_count": 1,
+                    "affected_scope_fingerprint": "shared-snapshot",
+                },
+            }
+            cache = {}
+            with mock.patch.object(
+                self.autoswitch,
+                "parse_registry",
+                wraps=self.autoswitch.parse_registry,
+            ) as parse_registry:
+                scope = planner._reconcile_incident_scope_accounting(
+                    existing=existing,
+                    execution_rows=[],
+                    reconciliation_cache=cache,
+                )
+                planner._reconcile_incident_cumulative_scope(
+                    existing=existing,
+                    execution_rows=[],
+                    current_source_scope=scope,
+                    reconciliation_cache=cache,
+                )
+                planner._reconcile_incident_scope_accounting(
+                    existing=existing,
+                    execution_rows=[],
+                    reconciliation_cache=cache,
+                )
+        self.assertEqual(parse_registry.call_count, 1)
+        self.assertEqual(scope["scope_classification"], "CERTIFICATION_ONLY")
+
     def test_adaptive_cohort_uses_exact_count_load_and_authority_bounds(self):
         moves = [{
             "user_ip": f"10.0.0.{index + 2}",

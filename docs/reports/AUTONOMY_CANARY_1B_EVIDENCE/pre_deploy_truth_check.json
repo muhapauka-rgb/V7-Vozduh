@@ -11,7 +11,7 @@
   "current_commit": "263cc8e50999ba9819700a07cd2966935fcf164d",
   "current_workspace": "/Users/ponch/Documents/New project",
   "final_verdict": "NO-GO",
-  "git_status_short": "M tests/unit/test_runtime_snapshot_fast_path.py\n M tools/v7-users-autoswitch\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1B_EVIDENCE/",
+  "git_status_short": "M tests/unit/test_runtime_snapshot_fast_path.py\n M tools/v7-users-autoswitch\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1B_EVIDENCE/",
   "github": {
     "blockers": [],
     "canonical_branch": "Updatesystem",
@@ -67,7 +67,7 @@
         },
         {
           "category": "documentation_only",
-          "path": "POOL2_EVIDENCE/",
+          "path": "docs/reports/evidence/POOL2_EVIDENCE/",
           "status": "??"
         },
         {
@@ -97,7 +97,7 @@
         }
       ],
       "info_paths": [
-        "POOL2_EVIDENCE/",
+        "docs/reports/evidence/POOL2_EVIDENCE/",
         "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
         "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
         "docs/reference/V7_PROJECT_MAP.rtfd/",
@@ -110,7 +110,7 @@
       ]
     },
     "final_verdict": "NO-GO",
-    "git_status_short": "M tests/unit/test_runtime_snapshot_fast_path.py\n M tools/v7-users-autoswitch\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1B_EVIDENCE/",
+    "git_status_short": "M tests/unit/test_runtime_snapshot_fast_path.py\n M tools/v7-users-autoswitch\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1B_EVIDENCE/",
     "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
     "warnings": [
       "runtime_relevant_dirty",

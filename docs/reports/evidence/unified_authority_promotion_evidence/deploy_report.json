@@ -1,0 +1,42 @@
+{
+  "program": "PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE",
+  "commit": "d86bdaf49b1b6943fbf96406e6890d204caf085b",
+  "pushed": true,
+  "safe_deploy": {
+    "initial_sandboxed_attempt": {
+      "file": "docs/reports/evidence/unified_authority_promotion_evidence/safe_deploy_apply.json",
+      "exit_code": 1,
+      "blocker": "github_truth_check_failed",
+      "interpreted_as": "remote GitHub read blocked in sandbox before final deploy alignment"
+    },
+    "escalated_attempt": {
+      "file": "docs/reports/evidence/unified_authority_promotion_evidence/safe_deploy_apply_escalated.json",
+      "exit_code": 0,
+      "final_verdict": "PASS",
+      "deploy_id": "deploy-z8-14-Updatesystem-d86bdaf-20260607T110032",
+      "safety": {
+        "autoswitch_apply_executed": false,
+        "user_movement_executed": false,
+        "routing_mutation_executed": false,
+        "policy_modified": false,
+        "restore_barrier_modified": false
+      }
+    }
+  },
+  "truth_check": {
+    "file": "docs/reports/evidence/unified_authority_promotion_evidence/post_deploy_truth_check_escalated.json",
+    "final_verdict": "PASS",
+    "convergence_status": "FULLY_ALIGNED",
+    "local_commit": "d86bdaf49b1b6943fbf96406e6890d204caf085b",
+    "github_commit": "d86bdaf49b1b6943fbf96406e6890d204caf085b",
+    "runtime_commit": "d86bdaf49b1b6943fbf96406e6890d204caf085b"
+  },
+  "convergence_status": {
+    "file": "docs/reports/evidence/unified_authority_promotion_evidence/post_deploy_convergence_status_escalated.json",
+    "status": "ALIGNED",
+    "final_verdict": "PASS",
+    "runtime_action_status": "READY_FOR_RUNTIME_ACTION",
+    "runtime_action_safe": true,
+    "deploy_delta_mismatches": []
+  }
+}

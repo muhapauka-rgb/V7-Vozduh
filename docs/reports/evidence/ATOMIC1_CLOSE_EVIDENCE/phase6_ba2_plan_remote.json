@@ -1,0 +1,19 @@
+{
+  "schema_version": "v7.evidence.compact-receipt.v1",
+  "disposition": "ARCHIVE_EXTERNAL",
+  "original_path": "docs/reports/evidence/ATOMIC1_CLOSE_EVIDENCE/phase6_ba2_plan_remote.json",
+  "original_sha256": "1c1c7bf2fd825ff77c92bf3b1bb0dca97f652a784d98a516365fcb033dd3ba9b",
+  "archive_path": ".v7/evidence-archive/2026-08-14-batch18/zero-selection-dry-runs.tar.gz",
+  "archived_at": "2026-08-14T15:44:40.150615+00:00",
+  "owner": "tools/v7-users-autoswitch",
+  "apply_requested": false,
+  "operation_id": "runtime_autoswitch_ce74cf2e1f8829e1569f9858",
+  "planner_generation_id": "a4ab41bcae2419ab5bc91c2f3f338468f9980dc023348dcfec0887e02a663790",
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "selected_move_count": 0,
+  "users_total": 26,
+  "candidate_moves": 25,
+  "selected_moves": 0,
+  "consumer_note": "Historical zero-selection dry-run; full payload has no active source/test/Runtime consumer."
+}

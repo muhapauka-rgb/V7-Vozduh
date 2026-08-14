@@ -88,7 +88,7 @@ Dynamic limits are pool-relative. They are not the same as legacy `1/2`.
 
 ## Saved Production Evidence
 
-From `full_egress_pool_large_capacity_evidence/production_state/egress-load.state`:
+From `docs/reports/evidence/full_egress_pool_large_capacity_evidence/production_state/egress-load.state`:
 
 ```text
 vless users=14 soft=1 hard=2 status=HARD_FULL
@@ -102,7 +102,7 @@ vless users=13 soft=21 hard=27 status=OK
 awg0 users=1 soft=21 hard=27 status=OK
 ```
 
-From `awg3_forced_closure_large_escalation_evidence/production_state_before/egress-load.state`:
+From `docs/reports/evidence/awg3_forced_closure_large_escalation_evidence/production_state_before/egress-load.state`:
 
 ```text
 vless users=14 soft=1 hard=2 status=HARD_FULL

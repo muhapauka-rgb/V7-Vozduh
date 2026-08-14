@@ -101,7 +101,7 @@ exact structured matches: 1
 The single match is:
 
 ```text
-trust_calibration_operator_certification_evidence/production_trust_inputs.json
+docs/reports/evidence/trust_calibration_operator_certification_evidence/production_trust_inputs.json
 switch_history[15]:
   user_ip: 10.7.0.5
   from: awg0
@@ -124,7 +124,7 @@ This is not the requested July L3 Production Validation Planner candidate. It is
 
 Other inspected planner artifacts containing `10.7.0.5` were not the target tuple:
 
-- `authority_bridge_evidence/current_production_authority_dry_run.txt`: `10.7.0.5` had `current_egress=vless`, not `awg0`.
+- `docs/reports/evidence/authority_bridge_evidence/current_production_authority_dry_run.txt`: `10.7.0.5` had `current_egress=vless`, not `awg0`.
 - `docs/channel_truth_1/evidence/autoswitch_planner_preview.json`: `10.7.0.5` had `current_egress=vless`, target `wireguard-1779454504-c43409`, not `awg0 -> vless`.
 - numerous `awg0 -> vless` planner objects existed for other users such as `10.7.0.9`, `10.7.0.10`, and `10.7.0.13`, but not for the requested `10.7.0.5` target.
 

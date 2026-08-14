@@ -1,0 +1,20 @@
+{
+  "schema_version": "v7.evidence.compact-receipt.v1",
+  "disposition": "ARCHIVE_EXTERNAL",
+  "original_path": "docs/reports/evidence/POOL2_EVIDENCE/api_autoswitch_plan.json",
+  "original_sha256": "7b28f5c7d81f9dd9aa64a6b4f21effdd369018510b0c9cf35f2fe0fe51ac26ef",
+  "archive_path": ".v7/evidence-archive/2026-08-14-batch17/planner-dry-run-wrappers.tar.gz",
+  "archived_at": "2026-08-14T15:43:38.328799+00:00",
+  "owner": "tools/v7-users-autoswitch",
+  "mode": "guarded",
+  "apply_requested": false,
+  "operation_id": "runtime_autoswitch_beca05c6724c5a42fad5ff7e",
+  "planner_generation_id": "d4098562a46e2cb32db70bab1943d638637198b896423da9b633f79d8e250080",
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_generation_expired",
+  "selected_move_count": 0,
+  "users_total": 26,
+  "candidate_moves": 8,
+  "selected_moves": 0,
+  "consumer_note": "Historical dry-run wrapper; full payload has no active source/test/Runtime consumer. Historical path references remain valid."
+}

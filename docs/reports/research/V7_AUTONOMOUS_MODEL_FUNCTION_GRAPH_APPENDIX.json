@@ -342914,8 +342914,8 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "EXEC1_EVIDENCE/autoswitch_plan_summary.json",
-        "SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
+        "docs/reports/evidence/EXEC1_EVIDENCE/autoswitch_plan_summary.json",
+        "docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -342950,8 +342950,8 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "EXEC1_EVIDENCE/autoswitch_plan_summary.json",
-        "SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
+        "docs/reports/evidence/EXEC1_EVIDENCE/autoswitch_plan_summary.json",
+        "docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -342987,8 +342987,8 @@
       "raises": false,
       "readonly": true,
       "reads": [
-        "EXEC1_EVIDENCE/autoswitch_plan_summary.json",
-        "SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
+        "docs/reports/evidence/EXEC1_EVIDENCE/autoswitch_plan_summary.json",
+        "docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_final_summary.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -347324,7 +347324,7 @@
         "/etc/systemd/system/v7-autoswitch-planner.service",
         "/etc/systemd/system/v7-users-autoswitch.service",
         "/usr/local/bin/v7-egress-set-state",
-        "canary_expansion_execution_evidence/phase1_truth_check_all.json",
+        "docs/reports/evidence/canary_expansion_execution_evidence/phase1_truth_check_all.json",
         "json.loads",
         "operational.read_text",
         "runtime_convergence_snapshot.json",
@@ -348138,7 +348138,7 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "canary_expansion_execution_evidence/phase1_truth_check_all.json"
+        "docs/reports/evidence/canary_expansion_execution_evidence/phase1_truth_check_all.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -348486,9 +348486,9 @@
       "readonly": false,
       "reads": [
         " M systemd/v7-users-autoswitch.service",
-        " M tools/v7-users-autoswitch\n?? z8_11-evidence/runtime_convergence_snapshot.json",
-        "?? z8_11-evidence/runtime_convergence_snapshot.json",
-        "BA1_EVIDENCE/final_verdict.json",
+        " M tools/v7-users-autoswitch\n?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
+        "?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
+        "docs/reports/evidence/BA1_EVIDENCE/final_verdict.json",
         "json.loads",
         "manifest.json",
         "runtime-snapshot.json",
@@ -349050,7 +349050,7 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "?? z8_11-evidence/runtime_convergence_snapshot.json"
+        "?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -349171,7 +349171,7 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        " M tools/v7-users-autoswitch\n?? z8_11-evidence/runtime_convergence_snapshot.json"
+        " M tools/v7-users-autoswitch\n?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json"
       ],
       "returns": false,
       "role": "test coverage",
@@ -349360,7 +349360,7 @@
       "raises": false,
       "readonly": false,
       "reads": [
-        "BA1_EVIDENCE/final_verdict.json",
+        "docs/reports/evidence/BA1_EVIDENCE/final_verdict.json",
         "runtime-snapshot.json"
       ],
       "returns": false,

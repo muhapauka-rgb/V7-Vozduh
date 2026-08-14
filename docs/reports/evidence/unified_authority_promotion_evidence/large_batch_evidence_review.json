@@ -1,0 +1,41 @@
+{
+  "program": "PROGRAM_UNIFIED_AUTHORITY_PROMOTION_OWNER_AND_FUTURE_LADDER_GOVERNANCE",
+  "review": "LARGE_BATCH_EVIDENCE_AND_EQUIVALENCE_REVIEW",
+  "new_owner_rule": {
+    "target": "LARGE_BATCH",
+    "source": "MEDIUM_BATCH",
+    "required_successful_runs": 2,
+    "min_users_per_run": 5,
+    "required_feedback": ["outcome", "trust", "prediction", "recommendation", "closure"],
+    "required_stability_window_seconds": 900,
+    "operator_approval_required": true,
+    "rollback_required_must_be_false": true
+  },
+  "current_medium_evidence": {
+    "proven_modern_medium_operation_ids": [
+      "runtime_autoswitch_473252c9659f6434a808e6ea"
+    ],
+    "proven_medium_runs": 1,
+    "users_moved_in_proven_run": 5,
+    "verification_passed": true,
+    "rollback_required": false,
+    "trust_feedback_updated": true,
+    "prediction_feedback_updated": true,
+    "recommendation_feedback_updated": true,
+    "closure_feedback_updated": true,
+    "evidence_sources": [
+      "PROGRAM_SERVICE_MATRIX_VOLATILITY_OWNER_ROOT_CAUSE_CLOSURE_AND_MEDIUM_BATCH_CONTINUATION_REPORT.md",
+      "docs/reports/evidence/service_matrix_volatility_evidence/final_runtime_feedback_state.txt",
+      "PROGRAM_MEDIUM_BATCH_STABILITY_WINDOW_AND_LARGE_BATCH_READINESS_CERTIFICATION_REPORT.md"
+    ]
+  },
+  "equivalence_review": {
+    "accumulated_evidence_supports_owner_generalization": true,
+    "accumulated_evidence_supports_planner_packet_barrier_apply_feedback_chain": true,
+    "accumulated_evidence_replaces_second_medium_run": false,
+    "reason": "The rule intent is repeatability of a fresh 5-user governed execution envelope. Current evidence proves one modern MEDIUM_BATCH execution, not a second independent MEDIUM_BATCH run or a formal equivalence record with the new 900s stability window.",
+    "large_batch_promotion_approved": false,
+    "second_medium_batch_required": true,
+    "single_missing_criterion": "SECOND_SUCCESSFUL_MEDIUM_BATCH_RUN_WITH_900S_STABLE_RUNTIME_TRUTH_WINDOW"
+  }
+}

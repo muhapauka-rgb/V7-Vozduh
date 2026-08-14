@@ -1,0 +1,57 @@
+{
+  "schema_version": "v7.pool-latency-profile.v1",
+  "program": "PROGRAM_POOL_RULE_DEADLOCK_REVIEW_EXECUTION_LATENCY_AND_PROMOTION_DECISION",
+  "profile_type": "observed_evidence_plus_conservative_projection",
+  "instrumentation_status": {
+    "stage_duration_fields_already_present": false,
+    "existing_precise_fields": [
+      "operation.operation_started_at",
+      "updated",
+      "routing_brain.snapshot_gate.pre_planner_refresh.refresh_result.metrics.elapsed_ms"
+    ],
+    "missing_precise_fields": [
+      "planner_duration_ms",
+      "packet_duration_ms",
+      "restore_barrier_duration_ms",
+      "apply_duration_ms",
+      "verification_duration_ms",
+      "feedback_duration_ms",
+      "total_duration_ms"
+    ],
+    "code_instrumentation_added": false,
+    "reason_code_instrumentation_not_added": "The program is a read-only governance and performance review. Existing evidence is sufficient for POOL promotion decision; adding runtime telemetry should be a separate no-behavior-change instrumentation patch if desired."
+  },
+  "observed_operations": [
+    {
+      "label": "2-user governed apply",
+      "operation_id": "runtime_autoswitch_b0c50709be91c6cb757bb7ff",
+      "users": 2,
+      "observed_apply_wall_seconds": 2.207,
+      "pre_planner_refresh_ms": 1484.914,
+      "source": "docs/reports/evidence/canary_expansion_execution_evidence/phase9_live_governed_apply.json"
+    },
+    {
+      "label": "10-user LARGE governed apply retry",
+      "operation_id": "runtime_autoswitch_0425741b308df19ccc0c1e03",
+      "users": 10,
+      "observed_apply_wall_seconds": 0.452,
+      "observed_apply_seconds_per_user": 0.045,
+      "source": "docs/reports/evidence/large_batch_execution_evidence/phase7_real_large_apply_retry.json"
+    }
+  ],
+  "large_batch_file_timestamp_profile": "docs/reports/evidence/pool_rule_deadlock_latency_evidence/large_batch_phase_file_timestamp_profile.json",
+  "estimates": {
+    "expected_10_user_execution_seconds": 3,
+    "expected_25_user_execution_seconds": 8,
+    "expected_25_user_single_batch_seconds": 8,
+    "expected_25_user_batched_10_10_5_seconds": 12
+  },
+  "estimate_basis": [
+    "Observed route apply for 10 users was 0.452 seconds inside v7-users-autoswitch.",
+    "Observed pre-planner snapshot refresh in 2-user execution was 1.485 seconds.",
+    "Conservative estimates include planner/recheck/verification overhead, not the human approval wait or 3600 second stability window.",
+    "For first POOL execution, 10+10+5 is preferred despite higher overhead because it keeps rollback and blast radius bounded."
+  ],
+  "latency_profile_complete_for_decision": true,
+  "latency_profile_complete_for_precise_stage_observability": false
+}

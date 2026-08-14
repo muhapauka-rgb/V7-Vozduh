@@ -24723,9 +24723,9 @@ DEPLOYABLE_CHANGE_PREFIXES = (
 DOCS_ONLY_CHANGE_PREFIXES = (
     "docs/",
     "tests/",
-    "canary_expansion_execution_evidence/",
-    "service_matrix_lineage_evidence/",
-    "version_convergence_guard_evidence/",
+    "docs/reports/evidence/canary_expansion_execution_evidence/",
+    "docs/reports/evidence/service_matrix_lineage_evidence/",
+    "docs/reports/evidence/version_convergence_guard_evidence/",
 )
 
 ALLOWLISTED_RUNTIME_HASH_COMMAND_PATHS = {

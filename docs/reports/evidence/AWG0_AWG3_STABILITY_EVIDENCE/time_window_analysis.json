@@ -1,0 +1,110 @@
+[
+  {
+    "channel": "awg0",
+    "snapshots": [
+      {
+        "snapshot": "2026-06-06T22:39",
+        "source": "docs/reports/evidence/full_egress_pool_large_capacity_evidence/production_state/egress-quality-summary.json",
+        "channel": "awg0",
+        "live_stability": null,
+        "1h": 0.5081,
+        "24h": 0.4436,
+        "7d": 0.4046,
+        "1h_avg_mbps": 51.867,
+        "1h_min_mbps": 26.887,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-06T22:54",
+        "source": "docs/reports/evidence/awg3_forced_closure_large_escalation_evidence/production_state_before/egress-quality-summary.json",
+        "channel": "awg0",
+        "live_stability": null,
+        "1h": 0.5991,
+        "24h": 0.488,
+        "7d": 0.4222,
+        "1h_avg_mbps": 50.089,
+        "1h_min_mbps": 30.133,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-07T12:16",
+        "source": "docs/reports/evidence/large_batch_stability_pool_readiness_evidence/phase3_egress_quality_summary.json",
+        "channel": "awg0",
+        "live_stability": null,
+        "1h": 0.5714,
+        "24h": 0.5889,
+        "7d": 0.5633,
+        "1h_avg_mbps": 45.687,
+        "1h_min_mbps": 26.214,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-13T07:46",
+        "source": "docs/reports/evidence/STABILITY1_CLOSE_EVIDENCE/phase6_fresh_planner.json",
+        "channel": "awg0",
+        "live_stability": 0.315,
+        "1h": 0.2162,
+        "24h": 0.3186,
+        "7d": 0.4436,
+        "1h_avg_mbps": 35.875,
+        "1h_min_mbps": 14.199,
+        "1h_fail_rate": 0.0716
+      }
+    ],
+    "conclusion": "passed 1h floor on 2026-06-06/07, then dropped sharply by 2026-06-13; 7d nearly at floor, indicating recent degradation over a previously healthier baseline"
+  },
+  {
+    "channel": "awg3",
+    "snapshots": [
+      {
+        "snapshot": "2026-06-06T22:39",
+        "source": "docs/reports/evidence/full_egress_pool_large_capacity_evidence/production_state/egress-quality-summary.json",
+        "channel": "awg3",
+        "live_stability": null,
+        "1h": 0.3104,
+        "24h": 0.3785,
+        "7d": 0.3862,
+        "1h_avg_mbps": 47.517,
+        "1h_min_mbps": 14.813,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-06T22:54",
+        "source": "docs/reports/evidence/awg3_forced_closure_large_escalation_evidence/production_state_before/egress-quality-summary.json",
+        "channel": "awg3",
+        "live_stability": null,
+        "1h": 0.5598,
+        "24h": 0.4614,
+        "7d": 0.4146,
+        "1h_avg_mbps": 51.633,
+        "1h_min_mbps": 30.191,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-07T12:16",
+        "source": "docs/reports/evidence/large_batch_stability_pool_readiness_evidence/phase3_egress_quality_summary.json",
+        "channel": "awg3",
+        "live_stability": null,
+        "1h": 0.526,
+        "24h": 0.4994,
+        "7d": 0.5079,
+        "1h_avg_mbps": 41.671,
+        "1h_min_mbps": 22.176,
+        "1h_fail_rate": 0.0716
+      },
+      {
+        "snapshot": "2026-06-13T07:46",
+        "source": "docs/reports/evidence/STABILITY1_CLOSE_EVIDENCE/phase6_fresh_planner.json",
+        "channel": "awg3",
+        "live_stability": 0.183,
+        "1h": 0.1836,
+        "24h": 0.387,
+        "7d": 0.4964,
+        "1h_avg_mbps": 37.137,
+        "1h_min_mbps": 13.068,
+        "1h_fail_rate": 0.1335
+      }
+    ],
+    "conclusion": "passed 1h floor on 2026-06-06 22:54 and 2026-06-07 12:16, then dropped sharply by 2026-06-13; 7d remains above floor, indicating acute recent degradation"
+  }
+]

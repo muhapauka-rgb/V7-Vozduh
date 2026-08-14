@@ -295,7 +295,7 @@ class V7SyncToolsTest(unittest.TestCase):
             status,
             changed_files=[
                 "PROGRAM_CANARY_EXPANSION_BRIDGE_EXECUTION_AND_SMALL_BATCH_CERTIFICATION_REPORT.md",
-                "canary_expansion_execution_evidence/phase1_truth_check_all.json",
+                "docs/reports/evidence/canary_expansion_execution_evidence/phase1_truth_check_all.json",
             ],
         )
         self.assertEqual(guard["status"], "DOCS_ONLY_MISMATCH")

@@ -722,7 +722,7 @@
       "current_commit": "7695fc38e1dfd7fc577671bd8a27b16b06cf4321",
       "current_workspace": "/Users/ponch/Documents/New project",
       "final_verdict": "PASS",
-      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
+      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
       "github": {},
       "local": {
         "blockers": [],
@@ -769,7 +769,7 @@
             },
             {
               "category": "documentation_only",
-              "path": "POOL2_EVIDENCE/",
+              "path": "docs/reports/evidence/POOL2_EVIDENCE/",
               "status": "??"
             },
             {
@@ -807,7 +807,7 @@
             "docs/reference/SYSTEM_MAP.md",
             "docs/reference/V7_CANONICAL_REFERENCE.md",
             "docs/reference/V7_PROJECT_MAP.md",
-            "POOL2_EVIDENCE/",
+            "docs/reports/evidence/POOL2_EVIDENCE/",
             "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
             "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
             "docs/reference/V7_PROJECT_MAP.rtfd/",
@@ -819,7 +819,7 @@
           "warning_paths": []
         },
         "final_verdict": "PASS",
-        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
+        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
         "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
         "warnings": [
           "documentation_dirty_ignored"
@@ -853,7 +853,7 @@
       "current_commit": "7695fc38e1dfd7fc577671bd8a27b16b06cf4321",
       "current_workspace": "/Users/ponch/Documents/New project",
       "final_verdict": "PASS",
-      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
+      "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
       "github": {
         "blockers": [],
         "canonical_branch": "Updatesystem",
@@ -909,7 +909,7 @@
             },
             {
               "category": "documentation_only",
-              "path": "POOL2_EVIDENCE/",
+              "path": "docs/reports/evidence/POOL2_EVIDENCE/",
               "status": "??"
             },
             {
@@ -947,7 +947,7 @@
             "docs/reference/SYSTEM_MAP.md",
             "docs/reference/V7_CANONICAL_REFERENCE.md",
             "docs/reference/V7_PROJECT_MAP.md",
-            "POOL2_EVIDENCE/",
+            "docs/reports/evidence/POOL2_EVIDENCE/",
             "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
             "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
             "docs/reference/V7_PROJECT_MAP.rtfd/",
@@ -959,7 +959,7 @@
           "warning_paths": []
         },
         "final_verdict": "PASS",
-        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
+        "git_status_short": "M docs/reference/SYSTEM_MAP.md\n M docs/reference/V7_CANONICAL_REFERENCE.md\n M docs/reference/V7_PROJECT_MAP.md\n?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_EVIDENCE/\n?? docs/reports/AUTONOMY_PREDICTION_EVIDENCE_1_REPORT.md",
         "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
         "warnings": [
           "documentation_dirty_ignored"

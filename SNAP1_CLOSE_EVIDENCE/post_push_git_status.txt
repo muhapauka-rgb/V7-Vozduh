@@ -1,4 +1,0 @@
-## Updatesystem...origin/Updatesystem
-?? SNAP1_CLOSE_EVIDENCE/post_push_git_status.txt
-?? SNAP1_CLOSE_EVIDENCE/post_push_head.txt
-?? SNAP1_CLOSE_EVIDENCE/post_push_log.txt

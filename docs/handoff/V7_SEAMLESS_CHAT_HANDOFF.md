@@ -160,7 +160,7 @@ Latest checks:
 
 Worktree at capture has documentation-only untracked files:
 
-- `POOL2_EVIDENCE/`
+- `docs/reports/evidence/POOL2_EVIDENCE/`
 - `POOL2_STABILITY_WINDOW_RECHECK_REPORT.md`
 - `V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md`
 - `docs/reference/V7_PROJECT_MAP.rtfd/`

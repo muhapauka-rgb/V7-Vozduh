@@ -1,0 +1,153 @@
+tests/unit/test_best_available_pool_policy.py:10:TOOL = ROOT / "tools" / "v7-users-autoswitch"
+systemd/v7-users-autoswitch.service:9:ExecStart=/usr/local/bin/v7-users-autoswitch --apply
+tests/unit/test_v7_users_autoswitch_policy.py:12:TOOL = ROOT / "tools" / "v7-users-autoswitch"
+tests/unit/test_v7_users_autoswitch_policy.py:184:            return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+tests/unit/test_v7_users_autoswitch_policy.py:220:        self.assertEqual(operation["operation_owner"], "tools/v7-users-autoswitch")
+tests/unit/test_v7_users_autoswitch_policy.py:246:        closure = plan.get("closure_target")
+tests/unit/test_v7_users_autoswitch_policy.py:356:            self.assertEqual(plan["closure_target"]["closure_state"], "VERIFIED_READY")
+tests/unit/test_v7_users_autoswitch_policy.py:357:            self.assertEqual(plan["closure_target"]["closure_blocker"], "")
+tests/unit/test_v7_users_autoswitch_policy.py:367:                    "operation_owner": "tools/v7-users-autoswitch",
+tests/unit/test_v7_users_autoswitch_policy.py:395:            packet_path = root / "rollback-packet.json"
+tests/unit/test_v7_users_autoswitch_policy.py:401:                return subprocess.CompletedProcess(["v7-user-switch"], 0, stdout="ok\n")
+tests/unit/test_v7_users_autoswitch_policy.py:426:        self.assertEqual(result["closure_target"]["closure_state"], "VERIFIED_READY")
+tests/unit/test_service_aware_policy.py:10:TOOL = ROOT / "tools" / "v7-users-autoswitch"
+tests/unit/test_v7_route_movement_preview.py:55:        self.assertEqual(plan["rollback"]["command"], "v7-user-switch 10.7.0.10 vless")
+tests/unit/test_v7_truth_check.py:121:            runner=self.runner(status=" M tools/v7-users-autoswitch"),
+tests/unit/test_v7_truth_check.py:143:            runner=self.runner(status=" M systemd/v7-users-autoswitch.service"),
+tests/unit/test_v7_truth_check.py:202:            runner=self.runner(status=" M tools/v7-users-autoswitch\n?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json"),
+tools/v7_sync_lib.py:36:        "name": "v7-users-autoswitch",
+tools/v7_sync_lib.py:37:        "local_path": "tools/v7-users-autoswitch",
+tools/v7_sync_lib.py:38:        "remote_path": "/usr/local/bin/v7-users-autoswitch",
+tools/v7_sync_lib.py:43:        "name": "v7-audit-log",
+tools/v7_sync_lib.py:44:        "local_path": "tools/runtime-support/v7-audit-log",
+tools/v7_sync_lib.py:45:        "remote_path": "/usr/local/bin/v7-audit-log",
+tools/v7_sync_lib.py:57:        "name": "v7-operator-execution-packet",
+tools/v7_sync_lib.py:58:        "local_path": "tools/v7-operator-execution-packet",
+tools/v7_sync_lib.py:59:        "remote_path": "/usr/local/bin/v7-operator-execution-packet",
+tools/v7_sync_lib.py:532:        "for f in /usr/local/bin/v7-users-autoswitch /usr/local/bin/v7-audit-log /usr/local/bin/v7-admin-api; do "
+tools/v7_sync_lib.py:702:        if "/usr/local/bin/v7-users-autoswitch --apply" in text:
+tests/unit/test_operator_execution_packet.py:41:        "schema_version": "e22.operator-execution-packet.v1",
+admin_core/operator_execution.py:38:ZERO_PACKET_SCHEMA = "e22.operator-execution-packet.v1"
+systemd/v7-users-autoswitch.timer:8:Unit=v7-users-autoswitch.service
+tests/unit/test_v7_sync_tools.py:39:        dirty = self.lib.classify_status(" M tools/v7-users-autoswitch")
+tests/unit/test_v7_sync_tools.py:79:                "/usr/local/bin/v7-users-autoswitch",
+tests/unit/test_v7_sync_tools.py:80:                "/usr/local/bin/v7-audit-log",
+tests/unit/test_v7_sync_tools.py:82:                "/usr/local/bin/v7-operator-execution-packet",
+tests/unit/test_v7_sync_tools.py:90:        self.assertIn("v7-users-autoswitch", names)
+admin/v7-admin-api:10024:    backup = config_path.with_name(f"{config_path.name}.backup.v7-user-switch-runtime.{stamp}")
+admin/v7-admin-api:10571:            ["v7-audit-log", action, "admin", message, *extra],
+admin/v7-admin-api:15549:    cmd = ["v7-users-autoswitch", "--pretty"]
+admin/v7-admin-api:15565:    cmd = ["v7-users-autoswitch", "--pretty"]
+admin/v7-admin-api:15577:    cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--pretty"]
+admin/v7-admin-api:18620:            ["v7-user-switch", ip, target],
+admin/v7-admin-api:18665:            ["v7-user-switch", ip, target],
+admin/v7-admin-api:33675:                    ["v7-audit-log", "admin_login", "admin", f"username={username}", f"object_type=admin_auth", f"object_id={username}", "result=OK"],
+admin/v7-admin-api:33687:                ["v7-audit-log", "admin_login_failed", "admin", f"username={username}"],
+admin/v7-admin-api:33962:            result = run_action(["v7-rollback-last-change"], actor, timeout=20)
+admin/v7-admin-api:33980:            result = run_action(["v7-rollback-last-change", "--apply"], actor, timeout=30)
+admin/v7-admin-api:34358:            result = run_action(["v7-user-switch", ip, egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual"})
+admin/v7-admin-api:34364:                rollback_result = run_action(["v7-user-switch", ip, previous_egress], actor, timeout=25, extra_env={"V7_SWITCH_REASON": "admin_manual_rollback"})
+systemd/drafts/v7-autoswitch-planner.service:9:ExecStart=/usr/local/bin/v7-users-autoswitch
+tools/v7-admin-endpoint-inventory:301:                "audit_behavior": "audit_admin_or_v7_audit_log" if ("audit_admin(" in "\n".join(block) or "v7-audit-log" in "\n".join(block)) else "not_observed_static",
+tools/runtime-support/v7-admin-password-rotate:74:        ["v7-audit-log", "admin_password_rotate", "admin", f"username={username} sessions_invalidated={str(not args.keep_sessions).lower()}"],
+tools/v7-egress-set-state:296:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/v7-egress-set-state:297:  v7-audit-log "egress_set_state" "egress" "id=$EGRESS_ID state=$STATE enabled=$enabled_value interface=$ifname" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true
+tools/v7-truth-check:32:    ["sha256sum", "/usr/local/bin/v7-users-autoswitch"],
+tools/v7-truth-check:33:    ["sha256sum", "/usr/local/bin/v7-audit-log"],
+tools/v7-truth-check:35:    ["systemctl", "status", "v7-users-autoswitch.service", "--no-pager"],
+tools/v7-truth-check:36:    ["systemctl", "status", "v7-users-autoswitch.timer", "--no-pager"],
+tools/v7-truth-check:38:    ["test", "-x", "/usr/local/bin/v7-users-autoswitch"],
+tools/v7-truth-check:39:    ["test", "-x", "/usr/local/bin/v7-audit-log"],
+tools/v7-truth-check:41:    ["/usr/local/bin/v7-users-autoswitch", "--pretty"],
+tools/v7-autoswitch-install-systemd:5:BIN_SRC="$ROOT/tools/v7-users-autoswitch"
+tools/v7-autoswitch-install-systemd:9:SERVICE_SRC="$ROOT/systemd/v7-users-autoswitch.service"
+tools/v7-autoswitch-install-systemd:10:TIMER_SRC="$ROOT/systemd/v7-users-autoswitch.timer"
+tools/v7-autoswitch-install-systemd:37:  install -m 0755 "$BIN_SRC" /usr/local/bin/v7-users-autoswitch
+tools/v7-autoswitch-install-systemd:41:  install -m 0644 "$SERVICE_SRC" /etc/systemd/system/v7-users-autoswitch.service
+tools/v7-autoswitch-install-systemd:42:  install -m 0644 "$TIMER_SRC" /etc/systemd/system/v7-users-autoswitch.timer
+tools/v7-autoswitch-install-systemd:51:  systemctl enable --now v7-users-autoswitch.timer
+tools/v7-autoswitch-install-systemd:55:  systemctl status v7-users-autoswitch.timer --no-pager
+tools/v7-autoswitch-install-systemd:61:  echo "would install $BIN_SRC -> /usr/local/bin/v7-users-autoswitch"
+tools/v7-autoswitch-install-systemd:65:  echo "would install $SERVICE_SRC -> /etc/systemd/system/v7-users-autoswitch.service"
+tools/v7-autoswitch-install-systemd:66:  echo "would install $TIMER_SRC -> /etc/systemd/system/v7-users-autoswitch.timer"
+tools/v7-autoswitch-install-systemd:75:  echo "would run systemctl enable --now v7-users-autoswitch.timer"
+tools/runtime-support/v7-rollback-last-change:102:  echo "To apply: v7-rollback-last-change --apply"
+tools/runtime-support/v7-rollback-last-change:127:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-rollback-last-change:128:  v7-audit-log "rollback_last_change" "rollback" "restored=$target from=$latest" >/dev/null 2>&1 || true
+tools/v7-telegram-sentinel:391:    cmd = ["v7-users-autoswitch", "--mode", "guarded", "--apply", "--service", "telegram", "--route-class", "GLOBAL_STABLE", "--pretty"]
+tools/v7-telegram-sentinel:393:        cmd = ["v7-users-autoswitch", "--service", "telegram", "--route-class", "GLOBAL_STABLE", "--pretty"]
+tools/v7-sensitive-state-check:61:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:80:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:99:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:121:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:143:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:149:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:161:            "tools/v7-users-autoswitch",
+tools/v7-sensitive-state-check:167:            "tools/v7-users-autoswitch planning/apply paths",
+tools/runtime-support/v7-direct-add-domain:18:  if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-direct-add-domain:19:    v7-audit-log "direct_domain_add" "direct_ru" "domain=$DOMAIN" >/dev/null 2>&1 || true
+tools/v7-restore-settle-gate:5:call systemctl, v7-users-autoswitch, v7-user-switch, v7-routing-sync, ip, nft,
+tools/runtime-support/v7-proxy-runtime-guard-rollback:76:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-proxy-runtime-guard-rollback:77:  v7-audit-log "proxy_runtime_guard_rollback" "proxy_inbound" "inbound_id=${inbound_id:-unknown} backup=$BACKUP_DIR user_removed=$user_removed" object_type=proxy_inbound object_id="${inbound_id:-unknown}" result=OK >/dev/null 2>&1 || true
+tools/v7-autoswitch-safety-review:4:This helper intentionally does not import or execute v7-users-autoswitch because
+tools/v7-autoswitch-safety-review:520:        "This command does not execute v7-users-autoswitch and does not write reconnect observation state.",
+tools/v7-autoswitch-safety-review:521:        "Use this helper for read-only preflight; use v7-users-autoswitch dry-run only when low-risk state observation writes are acceptable.",
+tools/v7-autoswitch-safety-review:537:            "known_autoswitch_dry_run_state_write": "client-reconnect-state.json may be updated by v7-users-autoswitch planning",
+tools/runtime-support/v7-admin-auth-init:70:        ["v7-audit-log", "admin_auth_init", "admin", f"username={args.username}"],
+tools/runtime-support/v7-user-reissue-config:107:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-user-reissue-config:108:  v7-audit-log "user_reissue_config" "users" "ip=$client_ip table=$routing_table egress=$current_egress name=$client_name" >/dev/null 2>&1 || true
+tools/runtime-support/v7-subnet-test-rollback:88:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-subnet-test-rollback:89:  v7-audit-log "subnet_test_rollback" "network" "test_subnet=$TEST_SUBNET backup=$backup_dir" >/dev/null 2>&1 || true
+tools/v7-users-autoswitch:7:set of safe moves through the existing v7-user-switch command.
+tools/v7-users-autoswitch:37:ROLLBACK_PACKET_SCHEMA = "c2.autoswitch-rollback-packet.v1"
+tools/v7-users-autoswitch:681:            "source": "v7-users-autoswitch",
+tools/v7-users-autoswitch:1257:            "operation_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1330:            "rollback_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1377:        if packet.get("rollback_owner") != "tools/v7-users-autoswitch":
+tools/v7-users-autoswitch:1425:            "operation_owner": "tools/v7-users-autoswitch",
+tools/v7-users-autoswitch:1494:        closure = self._closure_target(operation_payload, audit)
+tools/v7-users-autoswitch:1504:            "closure_target": closure,
+tools/v7-users-autoswitch:2439:        plan["closure_target"] = self._closure_target(operation, audit)
+tools/v7-users-autoswitch:2585:                ["v7-audit-log", audit["action"], audit["component"], f"operation_id={audit.get('object_id', '')}", *args],
+tools/v7-users-autoswitch:2601:    def _closure_target(self, operation: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
+tools/v7-users-autoswitch:2678:            ["v7-user-switch", ip, egress],
+tools/v7-users-autoswitch:2722:    parser.add_argument("--generate-rollback-packet-from-result", default="", help="Generate an operation-scoped rollback packet from a successful autoswitch result.")
+tools/v7-users-autoswitch:2723:    parser.add_argument("--rollback-packet-output", default="", help="Path for generated rollback packet.")
+tools/v7-users-autoswitch:2724:    parser.add_argument("--rollback-packet", default="", help="Execute or dry-run an operation-scoped rollback packet.")
+tools/v7-users-autoswitch:2733:        output = Path(args.rollback_packet_output) if args.rollback_packet_output else Path(args.generate_rollback_packet_from_result).with_suffix(".rollback-packet.json")
+tools/runtime-support/v7-safe-run:70:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-safe-run:71:  v7-audit-log "safe_run" "safe_mode" "command=$base" >/dev/null 2>&1 || true
+tools/runtime-support/v7-user-rotate-key:168:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-user-rotate-key:169:  v7-audit-log "user_rotate_key" "users" "ip=$client_ip table=$routing_table egress=$current_egress name=$client_name" >/dev/null 2>&1 || true
+tools/v7-route-movement-preview:5:v7-routing-sync, v7-user-switch, ip, nft, systemctl, or live runtime commands.
+tools/v7-route-movement-preview:201:        "command": f"v7-user-switch {user_ip} {current}",
+tools/runtime-support/v7-ipam-allocate:96:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-ipam-allocate:97:  v7-audit-log "ipam_allocate" "ipam" "ip=$next_ip table=$next_table user=$USER_LABEL device=$DEVICE_LABEL status=reserved" >/dev/null 2>&1 || true
+tools/v7-second-canary-target-readiness:5:It never calls v7-user-switch, v7-routing-sync, autoswitch, ip, nft,
+tools/v7-control-plane-governance-check:22:    "v7-user-switch": "one-user route table and registry mutation",
+tools/v7-control-plane-governance-check:23:    "v7-users-autoswitch": "bounded user movement through v7-user-switch when --apply is used",
+tools/v7-control-plane-governance-check:30:    "v7-rollback-last-change": "generic backup restore with broad target classes",
+tools/v7-control-plane-governance-check:296:    "source": Path("tools/v7-users-autoswitch"),
+tools/v7-control-plane-governance-check:530:    "tool": Path("tools/v7-users-autoswitch"),
+tools/v7-control-plane-governance-check:542:    "tool": Path("tools/v7-users-autoswitch"),
+tools/v7-control-plane-governance-check:774:        and "systemctl is-active v7-users-autoswitch.timer" in post_restore
+tools/v7-control-plane-governance-check:843:        and "Id=v7-users-autoswitch.timer\nActiveState=active" in post_restore
+tools/v7-control-plane-governance-check:845:        and "Id=v7-users-autoswitch.service\nActiveState=inactive" in post_restore
+tools/v7-control-plane-governance-check:940:        "v7-users-autoswitch.timer=inactive/dead" in report
+tools/v7-control-plane-governance-check:942:            "### v7-users-autoswitch.timer" in final_status
+tools/v7-control-plane-governance-check:1024:            "### v7-users-autoswitch.timer" in authority
+tools/v7-control-plane-governance-check:1246:        and f"{fixed_hash}  /usr/local/bin/v7-users-autoswitch" in deploy
+tools/v7-control-plane-governance-check:1250:        and "backup_path=/usr/local/bin/v7-users-autoswitch.backup.e9_3_9" in report
+tools/v7-control-plane-governance-check:1259:        and "v7-users-autoswitch.timer=inactive" in proof
+tools/v7-control-plane-governance-check:2654:            "v7-users-autoswitch.timer=inactive" in containment
+tools/v7-control-plane-governance-check:2656:            or "v7-users-autoswitch.timer=inactive" in containment
+tools/v7-control-plane-governance-check:2734:        "apply_timer_held": "v7-users-autoswitch.timer=inactive" in samples
+tools/v7-control-plane-governance-check:2735:        or "v7-users-autoswitch.timer=inactive" in barrier,
+tools/v7-control-plane-governance-check:2782:            or "systemctl start v7-users-autoswitch.timer" in immediate
+tools/v7-control-plane-governance-check:2786:            "held" if "v7-users-autoswitch.timer=inactive" in rehold else "unknown",
+tools/v7-control-plane-governance-check:2873:            "held" if "v7-users-autoswitch.timer=inactive" in final else "unknown",
+tools/v7-control-plane-governance-check:2984:        "runtime_fix_executed": "runtime_fix_executed=true" in report or "v7-users-autoswitch.e11_17" in deploy,
+tools/runtime-support/v7-direct-remove-domain:21:if command -v v7-audit-log >/dev/null 2>&1; then
+tools/runtime-support/v7-direct-remove-domain:22:  v7-audit-log "direct_domain_remove" "direct_ru" "domain=$DOMAIN" >/dev/null 2>&1 || true
+tools/v7-observability-summary:192:        "writer": "v7-users-autoswitch",
+tools/v7-observability-summary:200:        "writer": "v7-users-autoswitch/client observers",

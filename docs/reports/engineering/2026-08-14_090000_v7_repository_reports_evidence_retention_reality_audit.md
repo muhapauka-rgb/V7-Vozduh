@@ -480,8 +480,8 @@ selected-move count, source hash and archive pointer.
 
 | Receipt | Original bytes | Receipt bytes | Original SHA-256 |
 |---|---:|---:|---|
-| `POOL2_EVIDENCE/api_autoswitch_plan.json` | 5,270,640 | 992 | `7b28f5c7d81f9dd9aa64a6b4f21effdd369018510b0c9cf35f2fe0fe51ac26ef` |
-| `EXEC1_EVIDENCE/autoswitch_plan_raw.json` | 5,256,361 | 1,003 | `3a6613cc1fc873a05a48602172e2d4f79f44ee6dd30860f889d784460b1f9baf` |
+| `docs/reports/evidence/POOL2_EVIDENCE/api_autoswitch_plan.json` | 5,270,640 | 992 | `7b28f5c7d81f9dd9aa64a6b4f21effdd369018510b0c9cf35f2fe0fe51ac26ef` |
+| `docs/reports/evidence/EXEC1_EVIDENCE/autoswitch_plan_raw.json` | 5,256,361 | 1,003 | `3a6613cc1fc873a05a48602172e2d4f79f44ee6dd30860f889d784460b1f9baf` |
 
 The originals are recoverable from the ignored existing archive lifecycle at
 `.v7/evidence-archive/2026-08-14-batch17/planner-dry-run-wrappers.tar.gz`
@@ -597,8 +597,8 @@ production effect occurred.
 
 `PROGRAM_Z6_6_RUNTIME_OPERATION_MODEL_DESIGN_REPORT.md` was removed as a
 historical root-level duplicate. Its canonical semantic content remains in
-`z6_6-evidence/02_canonical_operation_model.md` and
-`z6_6-evidence/06_final_verdicts.md`; the stale cross-reference entry was
+`docs/reports/evidence/z6_6-evidence/02_canonical_operation_model.md` and
+`docs/reports/evidence/z6_6-evidence/06_final_verdicts.md`; the stale cross-reference entry was
 removed from the existing xref summary. No Runtime or production effect.
 
 ## Generated analysis-cache purge — Batch 6

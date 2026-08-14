@@ -1,0 +1,41 @@
+[
+  {
+    "scenario": "current",
+    "channels_healthy_or_eligible": 1,
+    "channels": [
+      "vless"
+    ],
+    "candidate_moves_estimate": 3,
+    "basis": "actual STABILITY1_CLOSE planner"
+  },
+  {
+    "scenario": "ignore_stability_floor_only",
+    "channels_healthy_or_eligible": 3,
+    "channels": [
+      "vless",
+      "awg0",
+      "awg3"
+    ],
+    "candidate_moves_estimate": "would likely restore rebalance pool to at least vless+awg0+awg3; BA3 candidate count likely >=23 based on docs/reports/evidence/BA3_EVIDENCE/phase3_fresh_planner.json",
+    "basis": "diagnostic only; no runtime change"
+  },
+  {
+    "scenario": "ignore_canary_reservation_only",
+    "channels_healthy_or_eligible": 2,
+    "channels": [
+      "vless",
+      "wireguard-1779454504-c43409"
+    ],
+    "candidate_moves_estimate": "unknown without safe planner simulation; adds one healthy but reserved channel",
+    "basis": "diagnostic only; reservation is governance blocker"
+  },
+  {
+    "scenario": "ignore_trust_only",
+    "channels_healthy_or_eligible": 1,
+    "channels": [
+      "vless"
+    ],
+    "candidate_moves_estimate": 3,
+    "basis": "no channel was blocked by CTR/trust in observed evidence"
+  }
+]

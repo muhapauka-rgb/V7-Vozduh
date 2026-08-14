@@ -1661,7 +1661,7 @@
     "current_commit": "7b3f6bca262fb39d3d3d8506d8f0121553bef1c0",
     "current_workspace": "/Users/ponch/Documents/New project",
     "final_verdict": "PASS",
-    "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1C_EVIDENCE/",
+    "git_status_short": "?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1C_EVIDENCE/",
     "github": {
       "blockers": [],
       "canonical_branch": "Updatesystem",
@@ -1702,7 +1702,7 @@
         "entries": [
           {
             "category": "documentation_only",
-            "path": "POOL2_EVIDENCE/",
+            "path": "docs/reports/evidence/POOL2_EVIDENCE/",
             "status": "??"
           },
           {
@@ -1732,7 +1732,7 @@
           }
         ],
         "info_paths": [
-          "POOL2_EVIDENCE/",
+          "docs/reports/evidence/POOL2_EVIDENCE/",
           "POOL2_STABILITY_WINDOW_RECHECK_REPORT.md",
           "V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md",
           "docs/reference/V7_PROJECT_MAP.rtfd/",
@@ -1743,7 +1743,7 @@
         "warning_paths": []
       },
       "final_verdict": "PASS",
-      "git_status_short": "?? POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1C_EVIDENCE/",
+      "git_status_short": "?? docs/reports/evidence/POOL2_EVIDENCE/\n?? POOL2_STABILITY_WINDOW_RECHECK_REPORT.md\n?? V7_VOZDUH_PROJECT_HANDOFF_DOCUMENTATION_2026_06_13.md\n?? docs/reference/V7_PROJECT_MAP.rtfd/\n?? docs/reference/V7_PROJECT_MAP_VISUAL.txt\n?? docs/reports/AUTONOMY_CANARY_1C_EVIDENCE/",
       "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
       "warnings": [
         "documentation_dirty_ignored"

@@ -1,0 +1,14 @@
+{
+  "approval_id": "appr_9087d1ab886d9f6477a5ddcb",
+  "audit_store": "/Users/ponch/Documents/New project/docs/track7/productization/e22-evidence/operator-execution-audit.jsonl",
+  "execution_allowed_now": false,
+  "mode": "validate",
+  "packet_path": "/Users/ponch/Documents/New project/docs/reports/evidence/medium_batch_preparation_evidence/phase6_medium_batch_approval_packet.json",
+  "real_runtime_action_performed": false,
+  "recheck": {
+    "errors": [],
+    "ok": true,
+    "verdict": "PACKET_VALID"
+  },
+  "record_written": false
+}

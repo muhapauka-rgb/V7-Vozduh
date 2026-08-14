@@ -1,0 +1,1193 @@
+{
+  "dynamic_blast_radius_recommendation": {
+    "inputs": {
+      "affected_users": 5,
+      "execution_trust": 70.0,
+      "platform_health": 75.217,
+      "service_risk": 24.783,
+      "total_users": 20
+    },
+    "reason": "foundation_recommendation_shadow_only",
+    "recommended_budget": 3,
+    "runtime_decision_authority": "none_shadow_only"
+  },
+  "execution_trust": {
+    "counters": {
+      "blast_radius_expansions": 0,
+      "failed_executions": 0,
+      "failed_rollbacks": 0,
+      "governance_violations": 0,
+      "records_seen": 1,
+      "successful_executions": 0,
+      "successful_rollbacks": 0
+    },
+    "explainability": [
+      "records_seen=1",
+      "successful_executions=0",
+      "successful_rollbacks=0",
+      "failed_executions=0",
+      "failed_rollbacks=0",
+      "governance_violations=0",
+      "blast_radius_expansions=0",
+      "median_blast_radius=0"
+    ],
+    "median_blast_radius": 0,
+    "runtime_decision_authority": "none_shadow_only",
+    "score": 70.0
+  },
+  "generated_at": "2026-06-03T08:26:39.323989+00:00",
+  "history": {
+    "generated_at": "2026-06-03T08:26:39.323107+00:00",
+    "schema_version": "ri1.service-history.v1",
+    "services": {
+      "chatgpt": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      },
+      "google": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      },
+      "google_auth": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      },
+      "instagram": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      },
+      "telegram": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": true,
+                "confidence": 0.8,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 700.0,
+                "sample_count": 1,
+                "stability": 0.85,
+                "status": "OK",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": true,
+                "confidence": 0.8,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 700.0,
+                "sample_count": 1,
+                "stability": 0.85,
+                "status": "OK",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": true,
+                "confidence": 0.8,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 700.0,
+                "sample_count": 1,
+                "stability": 0.85,
+                "status": "OK",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": true,
+                "confidence": 0.8,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 700.0,
+                "sample_count": 1,
+                "stability": 0.85,
+                "status": "OK",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 1,
+                "stability": 0.5,
+                "status": "DOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 1,
+                "stability": 0.5,
+                "status": "DOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 1,
+                "stability": 0.5,
+                "status": "DOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 1,
+                "stability": 0.5,
+                "status": "DOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": true,
+                "confidence": 0.95,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 200.0,
+                "sample_count": 1,
+                "stability": 0.9,
+                "status": "OK",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": true,
+                "confidence": 0.95,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 200.0,
+                "sample_count": 1,
+                "stability": 0.9,
+                "status": "OK",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": true,
+                "confidence": 0.95,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 200.0,
+                "sample_count": 1,
+                "stability": 0.9,
+                "status": "OK",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": true,
+                "confidence": 0.95,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 200.0,
+                "sample_count": 1,
+                "stability": 0.9,
+                "status": "OK",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      },
+      "youtube": {
+        "targets": {
+          "backup": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.02,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.85,
+                "status": "UNKNOWN",
+                "throughput_mbps": 35.0
+              }
+            }
+          },
+          "current": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.2,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.5,
+                "status": "UNKNOWN",
+                "throughput_mbps": 4.0
+              }
+            }
+          },
+          "fast": {
+            "windows": {
+              "1h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "24h": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "30d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              },
+              "7d": {
+                "availability": false,
+                "confidence": 0.0,
+                "error_rate": 0.01,
+                "freshness_seconds": 0,
+                "latency_ms": 0.0,
+                "sample_count": 0,
+                "stability": 0.9,
+                "status": "UNKNOWN",
+                "throughput_mbps": 50.0
+              }
+            }
+          }
+        }
+      }
+    },
+    "sources": {
+      "authoritative_runtime_truth": "false_shadow_read_model_only",
+      "quality_summary_hash": "81dc80b54187b3dca746d924967a555e2c06f11e1f66c0edd5aaf4f4fa905e51",
+      "service_matrix_hash": "82bbd3df0c42bc0e914bb987cea79fc32aefdd21f59bc6ba6139ddae25385df4"
+    }
+  },
+  "input_files": {
+    "audit_logs": [
+      "docs/reports/evidence/ri2_evidence/shadow_fixture/state/client-reconnect-state.json"
+    ],
+    "quality_summary": "docs/reports/evidence/ri2_evidence/shadow_fixture/state/egress-quality-summary.json",
+    "service_matrix": "docs/reports/evidence/ri2_evidence/shadow_fixture/state/service-matrix.json",
+    "service_preferences": "docs/reports/evidence/ri2_evidence/shadow_fixture/state/service-preferences.json"
+  },
+  "mode": "shadow_read_only",
+  "non_authority_guards": {
+    "no_governance_change": true,
+    "no_routing_decision_change": true,
+    "no_runtime_mutation": true,
+    "no_user_movement": true
+  },
+  "predictive_foundation": {
+    "examples": [
+      {
+        "baseline_health": 31.7,
+        "current_health": 31.7,
+        "service": "chatgpt",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "chatgpt",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 32.85,
+        "current_health": 32.85,
+        "service": "chatgpt",
+        "target": "fast",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 31.7,
+        "current_health": 31.7,
+        "service": "google",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "google",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 32.85,
+        "current_health": 32.85,
+        "service": "google",
+        "target": "fast",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 31.7,
+        "current_health": 31.7,
+        "service": "google_auth",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "google_auth",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 32.85,
+        "current_health": 32.85,
+        "service": "google_auth",
+        "target": "fast",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 31.7,
+        "current_health": 31.7,
+        "service": "instagram",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "instagram",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 32.85,
+        "current_health": 32.85,
+        "service": "instagram",
+        "target": "fast",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 92.7,
+        "current_health": 92.7,
+        "service": "telegram",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "telegram",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 96.85,
+        "current_health": 96.85,
+        "service": "telegram",
+        "target": "fast",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 31.7,
+        "current_health": 31.7,
+        "service": "youtube",
+        "target": "backup",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 22.0,
+        "current_health": 22.0,
+        "service": "youtube",
+        "target": "current",
+        "trend": "stable"
+      },
+      {
+        "baseline_health": 32.85,
+        "current_health": 32.85,
+        "service": "youtube",
+        "target": "fast",
+        "trend": "stable"
+      }
+    ],
+    "model_status": "storage_and_examples_only",
+    "prediction_enabled": false,
+    "runtime_decision_authority": "none_shadow_only"
+  },
+  "schema_version": "ri1.shadow-replay.v1",
+  "service_intelligence_scores": {
+    "backup": {
+      "aggregate_score": 91.9,
+      "per_service": [
+        {
+          "confidence": 0.8,
+          "explainability": [
+            "availability=ok",
+            "latency_ms=700.0",
+            "throughput_mbps=35.0",
+            "error_rate=0.02",
+            "stability=0.85",
+            "confidence=0.8",
+            "freshness_seconds=0"
+          ],
+          "score": 91.9,
+          "service": "telegram",
+          "status": "OK",
+          "target": "backup",
+          "window": "1h"
+        }
+      ],
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_shadow_only",
+      "target": "backup",
+      "verdict": "OK",
+      "weights": {
+        "telegram": 100.0
+      },
+      "window": "1h"
+    },
+    "current": {
+      "aggregate_score": 35.8,
+      "per_service": [
+        {
+          "confidence": 0.0,
+          "explainability": [
+            "availability=not_ok",
+            "latency_ms=0.0",
+            "throughput_mbps=4.0",
+            "error_rate=0.2",
+            "stability=0.5",
+            "confidence=0.0",
+            "freshness_seconds=0",
+            "score_below_foundation_floor"
+          ],
+          "score": 35.8,
+          "service": "telegram",
+          "status": "DOWN",
+          "target": "current",
+          "window": "1h"
+        }
+      ],
+      "required_low": [
+        "telegram"
+      ],
+      "required_missing": [],
+      "runtime_decision_authority": "none_shadow_only",
+      "target": "current",
+      "verdict": "REVIEW_REQUIRED_LOW_SERVICE_SCORE",
+      "weights": {
+        "telegram": 100.0
+      },
+      "window": "1h"
+    },
+    "fast": {
+      "aggregate_score": 97.95,
+      "per_service": [
+        {
+          "confidence": 0.95,
+          "explainability": [
+            "availability=ok",
+            "latency_ms=200.0",
+            "throughput_mbps=50.0",
+            "error_rate=0.01",
+            "stability=0.9",
+            "confidence=0.95",
+            "freshness_seconds=0"
+          ],
+          "score": 97.95,
+          "service": "telegram",
+          "status": "OK",
+          "target": "fast",
+          "window": "1h"
+        }
+      ],
+      "required_low": [],
+      "required_missing": [],
+      "runtime_decision_authority": "none_shadow_only",
+      "target": "fast",
+      "verdict": "OK",
+      "weights": {
+        "telegram": 100.0
+      },
+      "window": "1h"
+    }
+  },
+  "user_service_weights": {
+    "defaults": {
+      "telegram": 100.0
+    },
+    "runtime_decision_authority": "none_shadow_only",
+    "schema_version": "ri1.user-service-weights.v1",
+    "users": {}
+  }
+}

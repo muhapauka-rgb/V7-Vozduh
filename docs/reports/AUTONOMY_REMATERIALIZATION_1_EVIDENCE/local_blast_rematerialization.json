@@ -1,10 +1,10 @@
 {
   "schema_version": "v7.autonomy-rematerialization-1.local-blast-rematerialization.v1",
   "source_counts": {
-    "small_batch_stability_evidence/production_operator_execution_audit_tail.jsonl": 28,
-    "small_batch_stability_evidence/production_execution_events_tail.jsonl": 6,
-    "small_batch_stability_evidence/production_runtime_trust_tail.jsonl": 3,
-    "small_batch_stability_evidence/production_closure_records_tail.jsonl": 3
+    "docs/reports/evidence/small_batch_stability_evidence/production_operator_execution_audit_tail.jsonl": 28,
+    "docs/reports/evidence/small_batch_stability_evidence/production_execution_events_tail.jsonl": 6,
+    "docs/reports/evidence/small_batch_stability_evidence/production_runtime_trust_tail.jsonl": 3,
+    "docs/reports/evidence/small_batch_stability_evidence/production_closure_records_tail.jsonl": 3
   },
   "records_total": 40,
   "blast_rows": [

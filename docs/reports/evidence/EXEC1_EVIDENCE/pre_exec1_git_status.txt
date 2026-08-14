@@ -1,0 +1,13 @@
+## Updatesystem...origin/Updatesystem
+?? docs/reports/evidence/EXEC1_EVIDENCE/
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/autoswitch_plan_after_deploy_summary.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/convergence_after_deploy_before_endpoint_refresh.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/convergence_final_after_endpoint_refresh.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/convergence_final_summary.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/planner_refresh_dry_run_after_deploy_summary.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/safe_deploy_apply_success.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/safe_deploy_apply_success_summary.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_after_deploy_before_endpoint_refresh.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_final_after_endpoint_refresh.json
+?? docs/reports/evidence/SNAP1_CLOSE_EVIDENCE/truth_final_summary.json
+?? SNAP1_CLOSE_PRODUCTION_VERIFICATION_REPORT.md

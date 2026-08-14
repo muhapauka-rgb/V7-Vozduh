@@ -1,0 +1,28 @@
+{
+  "current": {
+    "healthy_pool": [
+      "vless"
+    ],
+    "candidate_moves_total": 3,
+    "ba3_ready": false,
+    "reason": "needs 5 real candidates; only 3 failovers exist"
+  },
+  "recovered_awg0_awg3": {
+    "healthy_pool": [
+      "vless",
+      "awg0",
+      "awg3"
+    ],
+    "candidate_moves_total_reference": 23,
+    "reference": "docs/reports/evidence/BA3_EVIDENCE/phase3_fresh_planner.json",
+    "ba3_ready": "likely true if fresh planner again reports >=5 real candidates"
+  },
+  "reserved_wireguard_unblocked": {
+    "healthy_pool": [
+      "vless",
+      "wireguard-1779454504-c43409"
+    ],
+    "candidate_moves_total": "unknown without approved governance change",
+    "ba3_ready": "not assumed"
+  }
+}

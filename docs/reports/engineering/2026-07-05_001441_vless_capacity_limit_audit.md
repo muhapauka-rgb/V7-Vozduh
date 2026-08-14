@@ -173,7 +173,7 @@ In inspected production snapshots, `vless` had no explicit cap, but its status c
 Source:
 
 ```text
-awg3_forced_closure_large_escalation_evidence/production_state_before/egress-load-summary.json
+docs/reports/evidence/awg3_forced_closure_large_escalation_evidence/production_state_before/egress-load-summary.json
 ```
 
 Dynamic pool:
@@ -209,7 +209,7 @@ Planner should avoid casually adding more users unless policy/authority/gates al
 Source:
 
 ```text
-full_egress_pool_large_capacity_evidence/production_state/egress-load-summary.json
+docs/reports/evidence/full_egress_pool_large_capacity_evidence/production_state/egress-load-summary.json
 ```
 
 Dynamic pool:

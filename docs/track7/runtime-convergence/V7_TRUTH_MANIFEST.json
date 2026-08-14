@@ -8,7 +8,7 @@
   "runtime_root": "/opt/v7",
   "state_root": "/opt/v7/egress/state",
   "runtime_snapshot_path": ".v7/runtime_convergence_snapshot.json",
-  "runtime_snapshot_seed_path": "z8_11-evidence/runtime_convergence_snapshot.json",
+  "runtime_snapshot_seed_path": "docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
   "event_root": "/opt/v7/events",
   "audit_root": "/opt/v7/audit",
   "admin_root": "/opt/v7/admin",

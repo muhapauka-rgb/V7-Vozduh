@@ -1,0 +1,113 @@
+{
+  "channel": "wireguard-1779454504-c43409",
+  "baseline": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 1,
+    "candidate_moves_total": 3,
+    "selected_moves": 1
+  },
+  "counterfactual_canary_reserved_false": {
+    "users_total": 26,
+    "egress_total": 7,
+    "healthy_egress_total": 2,
+    "candidate_moves_total": 26,
+    "selected_moves": 1
+  },
+  "planner_impact": {
+    "healthy_egress_total": "1 -> 2",
+    "candidate_moves_total": "3 -> 26",
+    "selected_moves": "1 -> 1"
+  },
+  "baseline_wireguard_candidate": {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": false,
+    "score": 0.0,
+    "blocked": [
+      "canary_reserved_production_assignment_blocked"
+    ],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok"
+    ],
+    "canary_reserved": true,
+    "best_available_pool": false,
+    "pool_rank": 0,
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_aggregate_score": 100.0,
+    "service_required_missing": [],
+    "service_required_low": [],
+    "telegram_ok": true,
+    "telegram_status": "OK",
+    "capacity_projected_load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "status": "OK"
+    },
+    "quality_history_1h": {
+      "avg_mbps": 55.419,
+      "min_mbps": 51.926,
+      "stability": 0.9366,
+      "samples": 6196,
+      "fail_rate": 0.0716
+    }
+  },
+  "counterfactual_wireguard_candidate": {
+    "egress": "wireguard-1779454504-c43409",
+    "eligible": true,
+    "score": 2234.66,
+    "blocked": [],
+    "reasons": [
+      "service_youtube_ok",
+      "service_instagram_ok",
+      "service_telegram_ok",
+      "service_google_ok",
+      "service_google_auth_ok",
+      "route_class_VIDEO_OPTIMIZED_ok",
+      "best_available_pool_rank_1"
+    ],
+    "canary_reserved": false,
+    "best_available_pool": true,
+    "pool_rank": 1,
+    "avg_mbps": 55.03,
+    "min_mbps": 51.35,
+    "stability": 0.933,
+    "service_aggregate_score": 100.0,
+    "service_required_missing": [],
+    "service_required_low": [],
+    "telegram_ok": true,
+    "telegram_status": "OK",
+    "capacity_projected_load": {
+      "users": 0,
+      "soft_limit": 30,
+      "hard_limit": 38,
+      "status": "OK"
+    },
+    "quality_history_1h": {
+      "avg_mbps": 55.419,
+      "min_mbps": 51.926,
+      "stability": 0.9366,
+      "samples": 6196,
+      "fail_rate": 0.0716
+    }
+  },
+  "counterfactual_first_selected_move": {
+    "user_ip": "10.0.0.2",
+    "current_egress": "awg3",
+    "recommended_egress": "wireguard-1779454504-c43409",
+    "recommended_score": 2234.66,
+    "reason": [
+      "current_egress_not_eligible"
+    ],
+    "selected_move_hash": "3f737390478d23d15be117b45809f8fcd3b33ee6376b8ac78c1a5bdbd9e6f855"
+  },
+  "counterfactual_scope_note": "Only docs/reports/evidence/WG_CANARY_EVIDENCE/counterfactual_state/egress.registry was edited; production state was not changed.",
+  "capacity_risk_note": "Historical governance reports E11.11/E11.18 record soft_limit=1 hard_limit=2 for this WireGuard canary; planner projection in copied state reports 30/38, so real promotion must revalidate the canonical capacity owner before any unreserved production use."
+}

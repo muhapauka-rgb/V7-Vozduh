@@ -3,37 +3,37 @@
   "interesting_files": [
     {
       "mtime": 1781377897.7600582,
-      "path": "/opt/v7/BA4_EVIDENCE/phase3/fresh_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase3/fresh_planner.json",
       "size": 5053773
     },
     {
       "mtime": 1781377897.978966,
-      "path": "/opt/v7/BA4_EVIDENCE/phase4/ba4_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase4/ba4_packet.json",
       "size": 9764
     },
     {
       "mtime": 1781378059.8559594,
-      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/ba4_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase5_retry/ba4_packet.json",
       "size": 9776
     },
     {
       "mtime": 1781378059.6700897,
-      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/fresh_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase5_retry/fresh_planner.json",
       "size": 5053662
     },
     {
       "mtime": 1781378059.8620875,
-      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/packet_generate.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase5_retry/packet_generate.json",
       "size": 10474
     },
     {
       "mtime": 1781378265.9145846,
-      "path": "/opt/v7/BA4_EVIDENCE/phase7/ten_user_apply.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase7/ten_user_apply.json",
       "size": 5167238
     },
     {
       "mtime": 1781378298.818569,
-      "path": "/opt/v7/BA4_EVIDENCE/phase8/rollback_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase8/rollback_packet.json",
       "size": 4839
     },
     {
@@ -620,12 +620,12 @@
     },
     {
       "mtime": 1780731841.479931,
-      "path": "/opt/v7/deploy_convergence_closure_evidence/phase6_fresh_planner_pre_refresh.json",
+      "path": "/opt/v7/docs/reports/evidence/deploy_convergence_closure_evidence/phase6_fresh_planner_pre_refresh.json",
       "size": 1386534
     },
     {
       "mtime": 1780731843.7939026,
-      "path": "/opt/v7/deploy_convergence_closure_evidence/phase9_fresh_approval_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/deploy_convergence_closure_evidence/phase9_fresh_approval_packet.json",
       "size": 2624
     },
     {
@@ -1420,227 +1420,227 @@
     },
     {
       "mtime": 1780831755.0691893,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_large_authority_promotion.json",
       "size": 11308
     },
     {
       "mtime": 1780832357.79361,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
       "size": 19445
     },
     {
       "mtime": 1780832337.3440478,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
       "size": 5558
     },
     {
       "mtime": 1780832337.4629076,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
       "size": 5558
     },
     {
       "mtime": 1780832337.6307554,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
       "size": 5558
     },
     {
       "mtime": 1780832337.8147812,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
       "size": 5558
     },
     {
       "mtime": 1780832337.2295818,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
       "size": 5558
     },
     {
       "mtime": 1780832337.0996432,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
       "size": 5506
     },
     {
       "mtime": 1780832336.559879,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
       "size": 5674
     },
     {
       "mtime": 1780832336.6937623,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
       "size": 5674
     },
     {
       "mtime": 1780832336.813839,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
       "size": 5674
     },
     {
       "mtime": 1780832336.9357018,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
       "size": 5500
     },
     {
       "mtime": 1780832337.8148632,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_retry_summary.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_retry_summary.json",
       "size": 2153
     },
     {
       "mtime": 1780832104.6336496,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_2.json",
       "size": 20
     },
     {
       "mtime": 1780832104.6536589,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_3.json",
       "size": 20
     },
     {
       "mtime": 1780832104.6735704,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_0_0_6.json",
       "size": 20
     },
     {
       "mtime": 1780832104.690057,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_3.json",
       "size": 20
     },
     {
       "mtime": 1780832104.617954,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_1ceca614139382db49eed3a4_10_7_0_5.json",
       "size": 20
     },
     {
       "mtime": 1780832104.5997198,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_10.json",
       "size": 20
     },
     {
       "mtime": 1780832104.4766622,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_4.json",
       "size": 20
     },
     {
       "mtime": 1780832104.5317717,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_6.json",
       "size": 20
     },
     {
       "mtime": 1780832104.551374,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_8.json",
       "size": 20
     },
     {
       "mtime": 1780832104.5726602,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_runtime_autoswitch_473252c9659f6434a808e6ea_10_7_0_9.json",
       "size": 20
     },
     {
       "mtime": 1780832104.6903036,
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_stability_feedback_summary.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_stability_feedback_summary.json",
       "size": 1663
     },
     {
       "mtime": 1780833091.8373117,
-      "path": "/opt/v7/large_batch_execution_evidence/phase4_after_rebalance_policy_convergence_status.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase4_after_rebalance_policy_convergence_status.json",
       "size": 0
     },
     {
       "mtime": 1780833091.494316,
-      "path": "/opt/v7/large_batch_execution_evidence/phase4_after_rebalance_policy_truth_check.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase4_after_rebalance_policy_truth_check.json",
       "size": 0
     },
     {
       "mtime": 1780832445.7904954,
-      "path": "/opt/v7/large_batch_execution_evidence/phase4_fresh_large_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase4_fresh_large_planner.json",
       "size": 2652828
     },
     {
       "mtime": 1780833199.4739485,
-      "path": "/opt/v7/large_batch_execution_evidence/phase4_fresh_large_planner_after_rebalance_policy.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase4_fresh_large_planner_after_rebalance_policy.json",
       "size": 2663068
     },
     {
       "mtime": 1780833033.408561,
-      "path": "/opt/v7/large_batch_execution_evidence/phase4_rebalance_policy_update_result.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase4_rebalance_policy_update_result.json",
       "size": 689
     },
     {
       "mtime": 1780833345.7290936,
-      "path": "/opt/v7/large_batch_execution_evidence/phase5_packet_generation.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase5_packet_generation.json",
       "size": 10451
     },
     {
       "mtime": 1780833345.941091,
-      "path": "/opt/v7/large_batch_execution_evidence/phase5_restore_barrier_clearance.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase5_restore_barrier_clearance.json",
       "size": 24100
     },
     {
       "mtime": 1780833345.722583,
-      "path": "/opt/v7/large_batch_execution_evidence/phase5_ten_user_approval_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase5_ten_user_approval_packet.json",
       "size": 9727
     },
     {
       "mtime": 1780833405.463336,
-      "path": "/opt/v7/large_batch_execution_evidence/phase6_post_clearance_dry_run_recheck.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase6_post_clearance_dry_run_recheck.json",
       "size": 2676248
     },
     {
       "mtime": 1780833471.1055033,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_real_large_apply.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_real_large_apply.json",
       "size": 2512552
     },
     {
       "mtime": 1780833931.1306677,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_real_large_apply_retry.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_real_large_apply_retry.json",
       "size": 2578195
     },
     {
       "mtime": 1780833856.3836157,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_retry_dry_run_recheck_after_snapshot_refresh.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_retry_dry_run_recheck_after_snapshot_refresh.json",
       "size": 2496596
     },
     {
       "mtime": 1780833837.054861,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_snapshot_refresh_before_retry.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_snapshot_refresh_before_retry.json",
       "size": 2115
     },
     {
       "mtime": 1780833471.1460555,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_after_apply.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_users_registry_after_apply.txt",
       "size": 1004
     },
     {
       "mtime": 1780833931.1772814,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_after_apply_retry.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_users_registry_after_apply_retry.txt",
       "size": 882
     },
     {
       "mtime": 1780833470.44975,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_before_apply.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_users_registry_before_apply.txt",
       "size": 1004
     },
     {
       "mtime": 1780833907.9340224,
-      "path": "/opt/v7/large_batch_execution_evidence/phase7_users_registry_before_apply_retry.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase7_users_registry_before_apply_retry.txt",
       "size": 1004
     },
     {
       "mtime": 1780834026.0444636,
-      "path": "/opt/v7/large_batch_execution_evidence/phase8_convergence_status_absence.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase8_convergence_status_absence.txt",
       "size": 167
     },
     {
       "mtime": 1780834026.0374637,
-      "path": "/opt/v7/large_batch_execution_evidence/phase8_convergence_status_command_path.txt",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase8_convergence_status_command_path.txt",
       "size": 0
     },
     {
       "mtime": 1780833996.2628415,
-      "path": "/opt/v7/large_batch_execution_evidence/phase8_post_apply_convergence_status.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase8_post_apply_convergence_status.json",
       "size": 0
     },
     {
       "mtime": 1780834025.7384675,
-      "path": "/opt/v7/large_batch_execution_evidence/phase8_post_apply_truth_check.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase8_post_apply_truth_check.json",
       "size": 0
     },
     {
@@ -1660,52 +1660,52 @@
     },
     {
       "mtime": 1780776460.5369306,
-      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase2_fresh_planner_remote.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_controlled_live_evidence/phase2_fresh_planner_remote.json",
       "size": 2619564
     },
     {
       "mtime": 1780776853.2740462,
-      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase3_five_user_approval_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_controlled_live_evidence/phase3_five_user_approval_packet.json",
       "size": 7100
     },
     {
       "mtime": 1780776853.2790258,
-      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase3_packet_generation.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_controlled_live_evidence/phase3_packet_generation.json",
       "size": 6300
     },
     {
       "mtime": 1780776946.122867,
-      "path": "/opt/v7/medium_batch_controlled_live_evidence/phase4_restore_barrier_clearance.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_controlled_live_evidence/phase4_restore_barrier_clearance.json",
       "size": 15996
     },
     {
       "mtime": 1780777906.7264922,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_approval_packet.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt1_approval_packet.json",
       "size": 7100
     },
     {
       "mtime": 1780777835.4387634,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_fresh_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt1_fresh_planner.json",
       "size": 2618435
     },
     {
       "mtime": 1780777906.733871,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_packet_generation.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt1_packet_generation.json",
       "size": 6289
     },
     {
       "mtime": 1780777949.6593337,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt1_restore_barrier_clearance.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt1_restore_barrier_clearance.json",
       "size": 15985
     },
     {
       "mtime": 1780778488.957583,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt2_fresh_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt2_fresh_planner.json",
       "size": 2491300
     },
     {
       "mtime": 1780778556.8017335,
-      "path": "/opt/v7/medium_batch_target_drift_evidence/attempt3_fresh_planner.json",
+      "path": "/opt/v7/docs/reports/evidence/medium_batch_target_drift_evidence/attempt3_fresh_planner.json",
       "size": 2490217
     },
     {
@@ -2563,7 +2563,7 @@
         "execfb_dfac3391a383f3f76793fea0",
         "execfb_e42729ab1d2fe5ffad827c56"
       ],
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_large_authority_promotion.json",
       "sha256": "62b3f17d3bb7135f458a861ce296008f3db55432b1f43020354f251fa595867e",
       "size": 11308
     },
@@ -2573,7 +2573,7 @@
         "execfb_dfac3391a383f3f76793fea0",
         "execfb_e42729ab1d2fe5ffad827c56"
       ],
-      "path": "/opt/v7/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
+      "path": "/opt/v7/docs/reports/evidence/large_batch_execution_evidence/phase3_large_authority_promotion_after_stability_feedback.json",
       "sha256": "d7236f9455ce8359ac4e1938d41cd29444e658e059bb505d86d7b7d1383f93bd",
       "size": 19445
     },
@@ -2581,7 +2581,7 @@
       "found": [
         "BA4"
       ],
-      "path": "/opt/v7/BA4_EVIDENCE/phase5_retry/packet_generate.json",
+      "path": "/opt/v7/docs/reports/evidence/BA4_EVIDENCE/phase5_retry/packet_generate.json",
       "sha256": "bc658eaebc3420b05fdaa9a03525b8bed6dec754452bb3d8e0b6d1b3718dca11",
       "size": 10474
     },

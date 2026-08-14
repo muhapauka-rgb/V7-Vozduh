@@ -163,11 +163,11 @@ contextual operator comparison
 
 | Area | Current % | State | Evidence |
 | --- | ---: | --- | --- |
-| Runtime truth / convergence | 100% | PASS / FULLY_ALIGNED | `POOL2_EVIDENCE/truth_check.json`, `POOL2_EVIDENCE/convergence_status.json` |
+| Runtime truth / convergence | 100% | PASS / FULLY_ALIGNED | `docs/reports/evidence/POOL2_EVIDENCE/truth_check.json`, `docs/reports/evidence/POOL2_EVIDENCE/convergence_status.json` |
 | Snapshot gate | 85% | CLOSED_FOR_NORMAL_OBSERVE | `AUTONOMY.CANARY.1B`: normal production observe reports `stop_required=false`, `stop_families=[]`, and `pre_planner_refresh.state=REFRESH_SUCCESS` |
 | Restore barrier preview | 80% | VALID_READ_ONLY_PREVIEW | `AUTONOMY.CANARY.1C`: `ALLOW_RESTORE_BARRIER_CLEARANCE` and `RESTORE_BARRIER_CLEARANCE_PREVIEW_VALID` for one fresh canary packet, without writing barrier state |
 | Atomic envelope | 100% | valid | `condition=ENVELOPE_VALID`, `mismatches=[]` |
-| Current distribution evidence | 100% | known | `POOL2_EVIDENCE/current_distribution.json` |
+| Current distribution evidence | 100% | known | `docs/reports/evidence/POOL2_EVIDENCE/current_distribution.json` |
 
 ## Open Roadmap Items
 

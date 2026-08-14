@@ -1,3 +1,0 @@
-spawn scp -o StrictHostKeyChecking=no WG_PROMOTE_APPLY_EVIDENCE/mutation/wg_promote_apply_remote.sh root@195.2.79.116:/tmp/wg_promote_apply_remote.sh
-root@195.2.79.116's password: 
-wg_promote_apply_remote.sh                      0%    0     0.0KB/s   --:-- ETAwg_promote_apply_remote.sh                    100% 2286    97.7KB/s   00:00    

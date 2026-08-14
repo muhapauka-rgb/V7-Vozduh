@@ -36,8 +36,8 @@ id=openvpn-1779388847-d2ad7c enabled=1 role=GLOBAL_FAST soft_limit=1 hard_limit=
 
 Examples:
 
-- `full_egress_pool_large_capacity_evidence/production_state/egress.registry`
-- `awg3_forced_closure_large_escalation_evidence/production_state_before/egress.registry`
+- `docs/reports/evidence/full_egress_pool_large_capacity_evidence/production_state/egress.registry`
+- `docs/reports/evidence/awg3_forced_closure_large_escalation_evidence/production_state_before/egress.registry`
 - `docs/track7/control-plane/e10_3-evidence/current-state/egress.registry`
 - `docs/reports/engineering/live_openvpn_trace_2026-06-30/fixture/state/egress.registry`
 

@@ -90,10 +90,10 @@ The local existing-builder exercise consumed saved production feedback sources:
 
 | Source | Records |
 | --- | ---: |
-| `small_batch_stability_evidence/production_operator_execution_audit_tail.jsonl` | 28 |
-| `small_batch_stability_evidence/production_execution_events_tail.jsonl` | 6 |
-| `small_batch_stability_evidence/production_runtime_trust_tail.jsonl` | 3 |
-| `small_batch_stability_evidence/production_closure_records_tail.jsonl` | 3 |
+| `docs/reports/evidence/small_batch_stability_evidence/production_operator_execution_audit_tail.jsonl` | 28 |
+| `docs/reports/evidence/small_batch_stability_evidence/production_execution_events_tail.jsonl` | 6 |
+| `docs/reports/evidence/small_batch_stability_evidence/production_runtime_trust_tail.jsonl` | 3 |
+| `docs/reports/evidence/small_batch_stability_evidence/production_closure_records_tail.jsonl` | 3 |
 
 Rows produced:
 

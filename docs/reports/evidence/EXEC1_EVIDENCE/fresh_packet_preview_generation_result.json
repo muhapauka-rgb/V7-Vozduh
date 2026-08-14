@@ -1,0 +1,358 @@
+{
+  "execution_allowed_now": false,
+  "mode": "generate",
+  "packet": {
+    "approval_id": "appr_ddc1ef779978ebc7cdb5ade1",
+    "approvals": [
+      {
+        "confirmed_at": "2026-06-11T19:28:42.020645+00:00",
+        "operator_id": "operator-a",
+        "role": "approval_author"
+      },
+      {
+        "confirmed_at": "2026-06-11T19:28:42.020645+00:00",
+        "operator_id": "operator-b",
+        "role": "approval_reviewer"
+      }
+    ],
+    "approved_plan_lock": {
+      "allowed_targets": [
+        "vless"
+      ],
+      "allowed_users": [
+        "10.7.0.5",
+        "10.0.0.2",
+        "10.0.0.3",
+        "10.0.0.6",
+        "10.7.0.3",
+        "10.7.0.2",
+        "10.7.0.4",
+        "10.7.0.6",
+        "10.7.0.8",
+        "10.7.0.9",
+        "10.7.0.10",
+        "10.7.0.11",
+        "10.7.0.12",
+        "10.7.0.13",
+        "10.7.0.14",
+        "10.7.0.15"
+      ],
+      "atomic_execution_envelope_hash": "3c77c85fe172a0d41edcbbdc3be4c7304b19e1fe6be4809d52f93dea1915ae55",
+      "atomic_execution_envelope_id": "aee_3c77c85fe172a0d41edcbbdc",
+      "egress_registry_hash": "",
+      "executor_may_replace_targets": false,
+      "executor_may_replace_users": false,
+      "executor_may_reselect": false,
+      "expires_at": "2026-06-11T19:43:42.020645+00:00",
+      "lock_hash": "3643a0c899bc8b14047ad8396daa96d8caa82a4ef66d5ef4fd3f572af3442d2f",
+      "lock_id": "apl_f7850ab1d088579f5a04cb1b",
+      "owner": "admin_core/operator_execution.py",
+      "packet_hash": "fd51034ed317ddbf38a2dd9e10ea198b61d9ce2f69345f3e10c9163eb6c8fee9",
+      "packet_id": "pkt_13883d4fe08ff40af9349bce",
+      "planner_generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+      "restore_barrier_hash": "",
+      "restore_barrier_id": "",
+      "schema_version": "v7.approved-plan-lock.v1",
+      "selected_move_count": 16,
+      "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+      "selected_moves": [
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.5"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.2"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.3"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.0.0.6"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.3"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.2"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.4"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.6"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.8"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.9"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.10"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.11"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.12"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.13"
+        },
+        {
+          "current_egress": "awg3",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.14"
+        },
+        {
+          "current_egress": "awg0",
+          "move_type": "failover",
+          "recommended_egress": "vless",
+          "user_ip": "10.7.0.15"
+        }
+      ],
+      "snapshot_bundle_hash": "48eb956e7bd524b338d0f21eadc3db09403ace2d79c24b0ba6ab2d0449b50129",
+      "source_bundle_hash": "f211e4359c10cb2f0f316bbf369ebee37a658deb640e7672b4ab7ac0a741595b",
+      "source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+        "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "73b72a829164b9fef35864ab5d377cf6cf71ce22de46f3287e98a416f14afc79"
+      },
+      "users_registry_hash": ""
+    },
+    "constraints": {
+      "allowed_targets": [
+        "vless"
+      ],
+      "allowed_users": [
+        "10.7.0.5",
+        "10.0.0.2",
+        "10.0.0.3",
+        "10.0.0.6",
+        "10.7.0.3",
+        "10.7.0.2",
+        "10.7.0.4",
+        "10.7.0.6",
+        "10.7.0.8",
+        "10.7.0.9",
+        "10.7.0.10",
+        "10.7.0.11",
+        "10.7.0.12",
+        "10.7.0.13",
+        "10.7.0.14",
+        "10.7.0.15"
+      ],
+      "autoswitch_apply_allowed": false,
+      "routing_mutation_allowed": false,
+      "selected_move_budget": 16,
+      "user_movement_allowed": false
+    },
+    "created_at": "2026-06-11T19:28:42.020645+00:00",
+    "expected": {
+      "atomic_execution_envelope_hash": "3c77c85fe172a0d41edcbbdc3be4c7304b19e1fe6be4809d52f93dea1915ae55",
+      "atomic_execution_envelope_id": "aee_3c77c85fe172a0d41edcbbdc",
+      "generation_id": "8cb2eb0a755229f12aa558a7aac860595e5985875e5577bc9df6ad3c5c701f75",
+      "runtime_snapshot_hash": "3df78169e1eb7bcb1d445fe665e2610431177fe930b594feb10db72f6cd4807d",
+      "selected_move_count": 16,
+      "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+      "snapshot_bundle_hash": "48eb956e7bd524b338d0f21eadc3db09403ace2d79c24b0ba6ab2d0449b50129",
+      "source_bundle_hash": "f211e4359c10cb2f0f316bbf369ebee37a658deb640e7672b4ab7ac0a741595b",
+      "source_hashes": {
+        "egress_registry": "f884a1269e1077a31a8e1dbbf55160e61822a8af5c2dc9abb28a243cadc4acd5",
+        "quality_summary": "87ec4efc04002cac51a5e9b348a69d4a5dc3d4d8e53e8d992c77df505715760d",
+        "service_matrix": "790a088f32ccd6baa84df3f485ef9487ecb374c1d4129dd9391317a68f7d27e9",
+        "service_preferences": "88f6c01ada260967da9ff6f73b944df565ce69bc710b79a950bbe89ae054a06c",
+        "users_registry": "73b72a829164b9fef35864ab5d377cf6cf71ce22de46f3287e98a416f14afc79"
+      }
+    },
+    "expires_at": "2026-06-11T19:43:42.020645+00:00",
+    "governance_owner": "admin_core/operator_execution.py",
+    "operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+    "packet_id": "pkt_13883d4fe08ff40af9349bce",
+    "rollback_manifest": {
+      "items": [
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.5"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.0.0.2"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.0.0.3"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.0.0.6"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.3"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.2"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.4"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.6"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.8"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.9"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.10"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.11"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.12"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.13"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg3",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.14"
+        },
+        {
+          "forward_target": "vless",
+          "move_type": "failover",
+          "rollback_target": "awg0",
+          "selected_move_hash": "25c2fec2750e5a0063098d5d5ea2cacedce5d2502c5f96dbbde20ec5c2268224",
+          "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0",
+          "user_ip": "10.7.0.15"
+        }
+      ],
+      "partial_failure_policy": "stop_and_contain",
+      "rollback_execution_owner": "admin_core/operator_execution.py",
+      "rollback_manifest_id": "rb_0dc67acddc07d8cd9a3804a0",
+      "source_operation_id": "govexec_0dc67acddc07d8cd9a3804a0"
+    },
+    "runtime_action": "CREATE_RESTORE_BARRIER_CLEARANCE",
+    "schema_version": "c1.governance-lifecycle-packet.v1",
+    "selected_first_action": "NONZERO_MOVEMENT_GENERATION_CLEARANCE_RECHECK"
+  },
+  "packet_path": "/Users/ponch/Documents/New project/docs/reports/evidence/EXEC1_EVIDENCE/fresh_packet_preview_from_current_plan.json",
+  "real_runtime_action_performed": false
+}

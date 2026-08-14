@@ -1,0 +1,19 @@
+{
+  "schema_version": "v7.evidence.compact-receipt.v1",
+  "disposition": "ARCHIVE_EXTERNAL",
+  "original_path": "docs/reports/evidence/EXEC5_6_EVIDENCE/phase6_remaining_planner_after_stageB.json",
+  "original_sha256": "501516137f111070a850118d7df95bd3f8cfeccb2a0d26f3df53000f54707ee6",
+  "archive_path": ".v7/evidence-archive/2026-08-14-batch20/zero-selection-dry-runs-large.tar.gz",
+  "archived_at": "2026-08-14T15:50:46.096666+00:00",
+  "owner": "tools/v7-users-autoswitch",
+  "apply_requested": false,
+  "operation_id": "runtime_autoswitch_b650a83b1f1b261bd287c3f2",
+  "planner_generation_id": "5f388fbfc7321664a60ed3ae74678871ce47428cc1a42b34bb5f0eb6b583344c",
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_restore_barrier_clearance_selected_moves_exceed_budget",
+  "selected_move_count": 0,
+  "users_total": 26,
+  "candidate_moves": 8,
+  "selected_moves": 0,
+  "consumer_note": "Historical zero-selection dry-run; no active source/test/Runtime consumer."
+}

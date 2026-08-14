@@ -1,6 +1,0 @@
-## Updatesystem...origin/Updatesystem
-?? PROGRAM_SMALL_BATCH_STABILITY_WINDOW_AND_MEDIUM_BATCH_REVIEW_REPORT.md
-?? PROGRAM_VLESS_SERVICE_FAILURE_ROOT_CAUSE_CLOSURE_AND_CANARY_EXPANSION_EXECUTION_REPORT.md
-?? medium_batch_readiness_evidence/
-?? small_batch_stability_evidence/
-?? vless_service_failure_evidence/

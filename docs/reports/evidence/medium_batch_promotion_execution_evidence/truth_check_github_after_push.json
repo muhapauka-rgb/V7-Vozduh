@@ -1,0 +1,86 @@
+{
+  "blockers": [
+    "canonical_branch_missing_on_remote",
+    "github_remote_unreadable"
+  ],
+  "canonical_branch": "Updatesystem",
+  "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+  "canonical_workspace": "/Users/ponch/Documents/New project",
+  "convergence_status": "GITHUB_NO_GO",
+  "current_branch": "Updatesystem",
+  "current_commit": "45bf2a391d82771da8bac6bf9b82356fb463d31f",
+  "current_workspace": "/Users/ponch/Documents/New project",
+  "final_verdict": "NO-GO",
+  "git_status_short": "?? docs/reports/evidence/medium_batch_promotion_execution_evidence/",
+  "github": {
+    "blockers": [
+      "github_remote_unreadable",
+      "canonical_branch_missing_on_remote"
+    ],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "convergence_status": "GITHUB_NO_GO",
+    "final_verdict": "NO-GO",
+    "local_commit": "45bf2a391d82771da8bac6bf9b82356fb463d31f",
+    "remote_branch_commit": "UNKNOWN",
+    "remote_read_status": "FAILED"
+  },
+  "local": {
+    "blockers": [],
+    "canonical_branch": "Updatesystem",
+    "canonical_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "canonical_workspace": "/Users/ponch/Documents/New project",
+    "checks": {
+      "branch_matches": true,
+      "remote_matches": true,
+      "workspace_clean": false,
+      "workspace_has_no_blocking_dirtiness": true,
+      "workspace_matches": true
+    },
+    "convergence_status": "LOCAL_ALIGNED",
+    "current_branch": "Updatesystem",
+    "current_commit": "45bf2a391d82771da8bac6bf9b82356fb463d31f",
+    "current_workspace": "/Users/ponch/Documents/New project",
+    "dirty_classification": {
+      "blocking": false,
+      "blocking_paths": [],
+      "clean": false,
+      "counts": {
+        "documentation_only": 1,
+        "runtime_critical": 0,
+        "runtime_relevant": 0,
+        "unknown": 0
+      },
+      "documentation_only": true,
+      "entries": [
+        {
+          "category": "documentation_only",
+          "path": "docs/reports/evidence/medium_batch_promotion_execution_evidence/",
+          "status": "??"
+        }
+      ],
+      "info_paths": [
+        "docs/reports/evidence/medium_batch_promotion_execution_evidence/"
+      ],
+      "warning": false,
+      "warning_paths": []
+    },
+    "final_verdict": "PASS",
+    "git_status_short": "?? docs/reports/evidence/medium_batch_promotion_execution_evidence/",
+    "origin_remote": "https://github.com/muhapauka-rgb/V7-Vozduh.git",
+    "warnings": [
+      "documentation_dirty_ignored"
+    ],
+    "worktree_list": "worktree /Users/ponch/Documents/New project\nHEAD 45bf2a391d82771da8bac6bf9b82356fb463d31f\nbranch refs/heads/Updatesystem\n\nworktree /private/tmp/v7-convergence-c\nHEAD c40cae13298594b7ad7040df4b19306c4e2c29d4\nbranch refs/heads/v7-next\nprunable gitdir file points to non-existent location\n\nworktree /private/tmp/v7-vozduh-main\nHEAD 593619d494e215d11fd826086593527a4a555690\ndetached\nprunable gitdir file points to non-existent location"
+  },
+  "mode": "github",
+  "remote_branch_commit": "UNKNOWN",
+  "runtime": {},
+  "runtime_access_status": "NOT_CHECKED",
+  "runtime_truth_status": "NOT_CHECKED",
+  "schema": "v7-truth-check/v1",
+  "state_truth_status": "NOT_CHECKED",
+  "warnings": [
+    "documentation_dirty_ignored"
+  ]
+}

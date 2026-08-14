@@ -25502,10 +25502,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_1-evidence/00_discovery_index.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/00_discovery_index.md",
       "type": "document",
       "name": "00_discovery_index.md",
-      "filePath": "z6_1-evidence/00_discovery_index.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/00_discovery_index.md",
       "summary": "Документ фиксирует 00 discovery index: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25516,10 +25516,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_1-evidence/01_ownership_map.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/01_ownership_map.md",
       "type": "document",
       "name": "01_ownership_map.md",
-      "filePath": "z6_1-evidence/01_ownership_map.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/01_ownership_map.md",
       "summary": "Документ фиксирует 01 ownership map: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25530,10 +25530,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_1-evidence/02_authority_and_state_map.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/02_authority_and_state_map.md",
       "type": "document",
       "name": "02_authority_and_state_map.md",
-      "filePath": "z6_1-evidence/02_authority_and_state_map.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/02_authority_and_state_map.md",
       "summary": "Документ фиксирует 02 authority and state map: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25544,10 +25544,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_1-evidence/03_orchestrator_candidates.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/03_orchestrator_candidates.md",
       "type": "document",
       "name": "03_orchestrator_candidates.md",
-      "filePath": "z6_1-evidence/03_orchestrator_candidates.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/03_orchestrator_candidates.md",
       "summary": "Документ фиксирует 03 orchestrator candidates: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25558,10 +25558,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_1-evidence/04_truth_source_and_risk_audit.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/04_truth_source_and_risk_audit.md",
       "type": "document",
       "name": "04_truth_source_and_risk_audit.md",
-      "filePath": "z6_1-evidence/04_truth_source_and_risk_audit.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/04_truth_source_and_risk_audit.md",
       "summary": "Документ фиксирует 04 truth source and risk audit: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25572,10 +25572,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_1-evidence/05_critical_questions.md",
+      "id": "document:docs/reports/evidence/z6_1-evidence/05_critical_questions.md",
       "type": "document",
       "name": "05_critical_questions.md",
-      "filePath": "z6_1-evidence/05_critical_questions.md",
+      "filePath": "docs/reports/evidence/z6_1-evidence/05_critical_questions.md",
       "summary": "Документ фиксирует 05 critical questions: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25586,10 +25586,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_2-evidence/00_discovery_index.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/00_discovery_index.md",
       "type": "document",
       "name": "00_discovery_index.md",
-      "filePath": "z6_2-evidence/00_discovery_index.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/00_discovery_index.md",
       "summary": "Документ фиксирует 00 discovery index: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25600,10 +25600,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_2-evidence/01_signal_flow.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/01_signal_flow.md",
       "type": "document",
       "name": "01_signal_flow.md",
-      "filePath": "z6_2-evidence/01_signal_flow.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/01_signal_flow.md",
       "summary": "Документ фиксирует 01 signal flow: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25614,10 +25614,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_2-evidence/02_planner_selected_restore_flow.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/02_planner_selected_restore_flow.md",
       "type": "document",
       "name": "02_planner_selected_restore_flow.md",
-      "filePath": "z6_2-evidence/02_planner_selected_restore_flow.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/02_planner_selected_restore_flow.md",
       "summary": "Документ фиксирует 02 planner selected restore flow: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25628,10 +25628,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
       "type": "document",
       "name": "03_execution_rollback_audit_bypass_flow.md",
-      "filePath": "z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
       "summary": "Документ фиксирует 03 execution rollback audit bypass flow: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25642,10 +25642,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
       "type": "document",
       "name": "04_end_to_end_timeline_and_gaps.md",
-      "filePath": "z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
       "summary": "Документ фиксирует 04 end to end timeline and gaps: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25656,10 +25656,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_2-evidence/05_final_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_2-evidence/05_final_verdicts.md",
       "type": "document",
       "name": "05_final_verdicts.md",
-      "filePath": "z6_2-evidence/05_final_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_2-evidence/05_final_verdicts.md",
       "summary": "Документ фиксирует 05 final verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25670,10 +25670,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_3-evidence/00_gate0_inventory.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/00_gate0_inventory.md",
       "type": "document",
       "name": "00_gate0_inventory.md",
-      "filePath": "z6_3-evidence/00_gate0_inventory.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/00_gate0_inventory.md",
       "summary": "Документ фиксирует 00 gate0 inventory: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25684,10 +25684,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_3-evidence/01_lifecycle_owner_matrix.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/01_lifecycle_owner_matrix.md",
       "type": "document",
       "name": "01_lifecycle_owner_matrix.md",
-      "filePath": "z6_3-evidence/01_lifecycle_owner_matrix.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/01_lifecycle_owner_matrix.md",
       "summary": "Документ фиксирует 01 lifecycle owner matrix: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25698,10 +25698,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_3-evidence/02_authority_and_bypass_analysis.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/02_authority_and_bypass_analysis.md",
       "type": "document",
       "name": "02_authority_and_bypass_analysis.md",
-      "filePath": "z6_3-evidence/02_authority_and_bypass_analysis.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/02_authority_and_bypass_analysis.md",
       "summary": "Документ фиксирует 02 authority and bypass analysis: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25712,10 +25712,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_3-evidence/03_legacy_and_closure_analysis.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/03_legacy_and_closure_analysis.md",
       "type": "document",
       "name": "03_legacy_and_closure_analysis.md",
-      "filePath": "z6_3-evidence/03_legacy_and_closure_analysis.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/03_legacy_and_closure_analysis.md",
       "summary": "Документ фиксирует 03 legacy and closure analysis: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25726,10 +25726,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_3-evidence/04_orchestrator_readiness_answers.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/04_orchestrator_readiness_answers.md",
       "type": "document",
       "name": "04_orchestrator_readiness_answers.md",
-      "filePath": "z6_3-evidence/04_orchestrator_readiness_answers.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/04_orchestrator_readiness_answers.md",
       "summary": "Документ фиксирует 04 orchestrator readiness answers: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25740,10 +25740,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_3-evidence/05_truth_source_audit.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/05_truth_source_audit.md",
       "type": "document",
       "name": "05_truth_source_audit.md",
-      "filePath": "z6_3-evidence/05_truth_source_audit.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/05_truth_source_audit.md",
       "summary": "Документ фиксирует 05 truth source audit: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25754,10 +25754,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_3-evidence/06_final_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_3-evidence/06_final_verdicts.md",
       "type": "document",
       "name": "06_final_verdicts.md",
-      "filePath": "z6_3-evidence/06_final_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_3-evidence/06_final_verdicts.md",
       "summary": "Документ фиксирует 06 final verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25768,10 +25768,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_4-evidence/00_gate0_revalidation.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/00_gate0_revalidation.md",
       "type": "document",
       "name": "00_gate0_revalidation.md",
-      "filePath": "z6_4-evidence/00_gate0_revalidation.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/00_gate0_revalidation.md",
       "summary": "Документ фиксирует 00 gate0 revalidation: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25782,10 +25782,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_4-evidence/01_target_lifecycle_model.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/01_target_lifecycle_model.md",
       "type": "document",
       "name": "01_target_lifecycle_model.md",
-      "filePath": "z6_4-evidence/01_target_lifecycle_model.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/01_target_lifecycle_model.md",
       "summary": "Документ фиксирует 01 target lifecycle model: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25796,10 +25796,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
       "type": "document",
       "name": "02_runtime_scheduler_admin_audit_models.md",
-      "filePath": "z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
       "summary": "Документ фиксирует 02 runtime scheduler admin audit models: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25810,10 +25810,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
       "type": "document",
       "name": "03_rollback_restore_barrier_closure_models.md",
-      "filePath": "z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
       "summary": "Документ фиксирует 03 rollback restore barrier closure models: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25824,10 +25824,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_4-evidence/04_authority_reduction_plan.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/04_authority_reduction_plan.md",
       "type": "document",
       "name": "04_authority_reduction_plan.md",
-      "filePath": "z6_4-evidence/04_authority_reduction_plan.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/04_authority_reduction_plan.md",
       "summary": "Документ фиксирует 04 authority reduction plan: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25838,10 +25838,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_4-evidence/05_consolidated_ownership_map.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/05_consolidated_ownership_map.md",
       "type": "document",
       "name": "05_consolidated_ownership_map.md",
-      "filePath": "z6_4-evidence/05_consolidated_ownership_map.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/05_consolidated_ownership_map.md",
       "summary": "Документ фиксирует 05 consolidated ownership map: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25852,10 +25852,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
       "type": "document",
       "name": "06_orchestrator_readiness_and_truth_audit.md",
-      "filePath": "z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
       "summary": "Документ фиксирует 06 orchestrator readiness and truth audit: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25866,10 +25866,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_4-evidence/07_final_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_4-evidence/07_final_verdicts.md",
       "type": "document",
       "name": "07_final_verdicts.md",
-      "filePath": "z6_4-evidence/07_final_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_4-evidence/07_final_verdicts.md",
       "summary": "Документ фиксирует 07 final verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25880,10 +25880,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_5-evidence/00_gate0_state_discovery.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/00_gate0_state_discovery.md",
       "type": "document",
       "name": "00_gate0_state_discovery.md",
-      "filePath": "z6_5-evidence/00_gate0_state_discovery.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/00_gate0_state_discovery.md",
       "summary": "Документ фиксирует 00 gate0 state discovery: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25894,10 +25894,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_5-evidence/01_operation_object_and_boundaries.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/01_operation_object_and_boundaries.md",
       "type": "document",
       "name": "01_operation_object_and_boundaries.md",
-      "filePath": "z6_5-evidence/01_operation_object_and_boundaries.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/01_operation_object_and_boundaries.md",
       "summary": "Документ фиксирует 01 operation object and boundaries: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25908,10 +25908,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_5-evidence/02_target_state_machine.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/02_target_state_machine.md",
       "type": "document",
       "name": "02_target_state_machine.md",
-      "filePath": "z6_5-evidence/02_target_state_machine.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/02_target_state_machine.md",
       "summary": "Документ фиксирует 02 target state machine: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25922,10 +25922,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_5-evidence/03_state_ownership_and_terminal_states.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/03_state_ownership_and_terminal_states.md",
       "type": "document",
       "name": "03_state_ownership_and_terminal_states.md",
-      "filePath": "z6_5-evidence/03_state_ownership_and_terminal_states.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/03_state_ownership_and_terminal_states.md",
       "summary": "Документ фиксирует 03 state ownership and terminal states: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25936,10 +25936,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
       "type": "document",
       "name": "04_audit_closure_rollback_noop_relationships.md",
-      "filePath": "z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
       "summary": "Документ фиксирует 04 audit closure rollback noop relationships: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25950,10 +25950,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
       "type": "document",
       "name": "05_end_to_end_timeline_and_gap_impact.md",
-      "filePath": "z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
       "summary": "Документ фиксирует 05 end to end timeline and gap impact: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25964,10 +25964,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_5-evidence/06_final_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_5-evidence/06_final_verdicts.md",
       "type": "document",
       "name": "06_final_verdicts.md",
-      "filePath": "z6_5-evidence/06_final_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_5-evidence/06_final_verdicts.md",
       "summary": "Документ фиксирует 06 final verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25978,10 +25978,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_6-evidence/00_identity_discovery.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/00_identity_discovery.md",
       "type": "document",
       "name": "00_identity_discovery.md",
-      "filePath": "z6_6-evidence/00_identity_discovery.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/00_identity_discovery.md",
       "summary": "Документ фиксирует 00 identity discovery: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -25992,10 +25992,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_6-evidence/01_operation_like_objects.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/01_operation_like_objects.md",
       "type": "document",
       "name": "01_operation_like_objects.md",
-      "filePath": "z6_6-evidence/01_operation_like_objects.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/01_operation_like_objects.md",
       "summary": "Документ фиксирует 01 operation like objects: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26006,10 +26006,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_6-evidence/02_canonical_operation_model.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/02_canonical_operation_model.md",
       "type": "document",
       "name": "02_canonical_operation_model.md",
-      "filePath": "z6_6-evidence/02_canonical_operation_model.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/02_canonical_operation_model.md",
       "summary": "Документ фиксирует 02 canonical operation model: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26020,10 +26020,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_6-evidence/03_operation_attributes_and_timeline.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/03_operation_attributes_and_timeline.md",
       "type": "document",
       "name": "03_operation_attributes_and_timeline.md",
-      "filePath": "z6_6-evidence/03_operation_attributes_and_timeline.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/03_operation_attributes_and_timeline.md",
       "summary": "Документ фиксирует 03 operation attributes and timeline: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26034,10 +26034,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_6-evidence/04_relationship_noop_lineage_models.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/04_relationship_noop_lineage_models.md",
       "type": "document",
       "name": "04_relationship_noop_lineage_models.md",
-      "filePath": "z6_6-evidence/04_relationship_noop_lineage_models.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/04_relationship_noop_lineage_models.md",
       "summary": "Документ фиксирует 04 relationship noop lineage models: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26048,10 +26048,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_6-evidence/05_readiness_truth_audit.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/05_readiness_truth_audit.md",
       "type": "document",
       "name": "05_readiness_truth_audit.md",
-      "filePath": "z6_6-evidence/05_readiness_truth_audit.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/05_readiness_truth_audit.md",
       "summary": "Документ фиксирует 05 readiness truth audit: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26062,10 +26062,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_6-evidence/06_final_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_6-evidence/06_final_verdicts.md",
       "type": "document",
       "name": "06_final_verdicts.md",
-      "filePath": "z6_6-evidence/06_final_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_6-evidence/06_final_verdicts.md",
       "summary": "Документ фиксирует 06 final verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26076,10 +26076,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_7-evidence/00_program_discovery.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/00_program_discovery.md",
       "type": "document",
       "name": "00_program_discovery.md",
-      "filePath": "z6_7-evidence/00_program_discovery.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/00_program_discovery.md",
       "summary": "Документ фиксирует 00 program discovery: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26090,10 +26090,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_7-evidence/01_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/01_duplication_audit.md",
       "type": "document",
       "name": "01_duplication_audit.md",
-      "filePath": "z6_7-evidence/01_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/01_duplication_audit.md",
       "summary": "Документ фиксирует 01 duplication audit: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26104,10 +26104,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_7-evidence/02_program_boundary_and_loop.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/02_program_boundary_and_loop.md",
       "type": "document",
       "name": "02_program_boundary_and_loop.md",
-      "filePath": "z6_7-evidence/02_program_boundary_and_loop.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/02_program_boundary_and_loop.md",
       "summary": "Документ фиксирует 02 program boundary and loop: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26118,10 +26118,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_7-evidence/03_authority_breakglass_states.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/03_authority_breakglass_states.md",
       "type": "document",
       "name": "03_authority_breakglass_states.md",
-      "filePath": "z6_7-evidence/03_authority_breakglass_states.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/03_authority_breakglass_states.md",
       "summary": "Документ фиксирует 03 authority breakglass states: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26132,10 +26132,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z6_7-evidence/04_final_program_maps.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/04_final_program_maps.md",
       "type": "document",
       "name": "04_final_program_maps.md",
-      "filePath": "z6_7-evidence/04_final_program_maps.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/04_final_program_maps.md",
       "summary": "Документ фиксирует 04 final program maps: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26146,10 +26146,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z6_7-evidence/05_readiness_truth_verdicts.md",
+      "id": "document:docs/reports/evidence/z6_7-evidence/05_readiness_truth_verdicts.md",
       "type": "document",
       "name": "05_readiness_truth_verdicts.md",
-      "filePath": "z6_7-evidence/05_readiness_truth_verdicts.md",
+      "filePath": "docs/reports/evidence/z6_7-evidence/05_readiness_truth_verdicts.md",
       "summary": "Документ фиксирует 05 readiness truth verdicts: решения, доказательства и условия перехода в рамках управляемого жизненного цикла V7.",
       "tags": [
         "документация",
@@ -26160,10 +26160,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_1-evidence/00_discovery_inventory.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/00_discovery_inventory.md",
       "type": "document",
       "name": "00_discovery_inventory.md",
-      "filePath": "z7_1-evidence/00_discovery_inventory.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/00_discovery_inventory.md",
       "summary": "Документ фиксирует 00 discovery inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26173,10 +26173,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_1-evidence/01_operation_identity_wiring.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/01_operation_identity_wiring.md",
       "type": "document",
       "name": "01_operation_identity_wiring.md",
-      "filePath": "z7_1-evidence/01_operation_identity_wiring.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/01_operation_identity_wiring.md",
       "summary": "Документ фиксирует 01 operation identity wiring и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26186,10 +26186,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_1-evidence/02_runtime_operation_wiring.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/02_runtime_operation_wiring.md",
       "type": "document",
       "name": "02_runtime_operation_wiring.md",
-      "filePath": "z7_1-evidence/02_runtime_operation_wiring.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/02_runtime_operation_wiring.md",
       "summary": "Документ фиксирует 02 runtime operation wiring и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26199,10 +26199,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_1-evidence/03_audit_closure_wiring.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/03_audit_closure_wiring.md",
       "type": "document",
       "name": "03_audit_closure_wiring.md",
-      "filePath": "z7_1-evidence/03_audit_closure_wiring.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/03_audit_closure_wiring.md",
       "summary": "Документ фиксирует 03 audit closure wiring и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26212,10 +26212,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
       "type": "document",
       "name": "04_rollback_barrier_recheck_wiring.md",
-      "filePath": "z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
       "summary": "Документ фиксирует 04 rollback barrier recheck wiring и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26225,10 +26225,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_1-evidence/05_duplication_and_full_wiring_map.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/05_duplication_and_full_wiring_map.md",
       "type": "document",
       "name": "05_duplication_and_full_wiring_map.md",
-      "filePath": "z7_1-evidence/05_duplication_and_full_wiring_map.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/05_duplication_and_full_wiring_map.md",
       "summary": "Документ фиксирует 05 duplication and full wiring map и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26238,10 +26238,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_1-evidence/06_implementation_readiness.md",
+      "id": "document:docs/reports/evidence/z7_1-evidence/06_implementation_readiness.md",
       "type": "document",
       "name": "06_implementation_readiness.md",
-      "filePath": "z7_1-evidence/06_implementation_readiness.md",
+      "filePath": "docs/reports/evidence/z7_1-evidence/06_implementation_readiness.md",
       "summary": "Документ фиксирует 06 implementation readiness и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26251,10 +26251,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_2-evidence/00_lineage_inventory.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/00_lineage_inventory.md",
       "type": "document",
       "name": "00_lineage_inventory.md",
-      "filePath": "z7_2-evidence/00_lineage_inventory.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/00_lineage_inventory.md",
       "summary": "Документ фиксирует 00 lineage inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26264,10 +26264,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_2-evidence/01_operation_creation_model.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/01_operation_creation_model.md",
       "type": "document",
       "name": "01_operation_creation_model.md",
-      "filePath": "z7_2-evidence/01_operation_creation_model.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/01_operation_creation_model.md",
       "summary": "Документ фиксирует 01 operation creation model и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26277,10 +26277,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_2-evidence/02_autoswitch_wiring_model.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/02_autoswitch_wiring_model.md",
       "type": "document",
       "name": "02_autoswitch_wiring_model.md",
-      "filePath": "z7_2-evidence/02_autoswitch_wiring_model.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/02_autoswitch_wiring_model.md",
       "summary": "Документ фиксирует 02 autoswitch wiring model и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26290,10 +26290,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_2-evidence/03_rollback_and_noop_wiring.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/03_rollback_and_noop_wiring.md",
       "type": "document",
       "name": "03_rollback_and_noop_wiring.md",
-      "filePath": "z7_2-evidence/03_rollback_and_noop_wiring.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/03_rollback_and_noop_wiring.md",
       "summary": "Документ фиксирует 03 rollback and noop wiring и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26303,10 +26303,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_2-evidence/04_audit_closure_wiring_model.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/04_audit_closure_wiring_model.md",
       "type": "document",
       "name": "04_audit_closure_wiring_model.md",
-      "filePath": "z7_2-evidence/04_audit_closure_wiring_model.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/04_audit_closure_wiring_model.md",
       "summary": "Документ фиксирует 04 audit closure wiring model и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26316,10 +26316,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_2-evidence/05_lineage_map_and_readiness.md",
+      "id": "document:docs/reports/evidence/z7_2-evidence/05_lineage_map_and_readiness.md",
       "type": "document",
       "name": "05_lineage_map_and_readiness.md",
-      "filePath": "z7_2-evidence/05_lineage_map_and_readiness.md",
+      "filePath": "docs/reports/evidence/z7_2-evidence/05_lineage_map_and_readiness.md",
       "summary": "Документ фиксирует 05 lineage map and readiness и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26329,10 +26329,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_3-evidence/00_file_inventory.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/00_file_inventory.md",
       "type": "document",
       "name": "00_file_inventory.md",
-      "filePath": "z7_3-evidence/00_file_inventory.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/00_file_inventory.md",
       "summary": "Документ фиксирует 00 file inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26342,10 +26342,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_3-evidence/01_function_inventory.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/01_function_inventory.md",
       "type": "document",
       "name": "01_function_inventory.md",
-      "filePath": "z7_3-evidence/01_function_inventory.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/01_function_inventory.md",
       "summary": "Документ фиксирует 01 function inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26355,10 +26355,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_3-evidence/02_metadata_and_duplication_inventory.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/02_metadata_and_duplication_inventory.md",
       "type": "document",
       "name": "02_metadata_and_duplication_inventory.md",
-      "filePath": "z7_3-evidence/02_metadata_and_duplication_inventory.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/02_metadata_and_duplication_inventory.md",
       "summary": "Документ фиксирует 02 metadata and duplication inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26368,10 +26368,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_3-evidence/03_test_inventory.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/03_test_inventory.md",
       "type": "document",
       "name": "03_test_inventory.md",
-      "filePath": "z7_3-evidence/03_test_inventory.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/03_test_inventory.md",
       "summary": "Документ фиксирует 03 test inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26381,10 +26381,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_3-evidence/04_change_map_and_order.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/04_change_map_and_order.md",
       "type": "document",
       "name": "04_change_map_and_order.md",
-      "filePath": "z7_3-evidence/04_change_map_and_order.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/04_change_map_and_order.md",
       "summary": "Документ фиксирует 04 change map and order и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26394,10 +26394,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_3-evidence/05_risk_and_readiness.md",
+      "id": "document:docs/reports/evidence/z7_3-evidence/05_risk_and_readiness.md",
       "type": "document",
       "name": "05_risk_and_readiness.md",
-      "filePath": "z7_3-evidence/05_risk_and_readiness.md",
+      "filePath": "docs/reports/evidence/z7_3-evidence/05_risk_and_readiness.md",
       "summary": "Документ фиксирует 05 risk and readiness и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26407,10 +26407,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_4-evidence/00_discovery_scope.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/00_discovery_scope.md",
       "type": "document",
       "name": "00_discovery_scope.md",
-      "filePath": "z7_4-evidence/00_discovery_scope.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/00_discovery_scope.md",
       "summary": "Документ фиксирует 00 discovery scope и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26420,10 +26420,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_4-evidence/01_autoswitch_consumer_inventory.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/01_autoswitch_consumer_inventory.md",
       "type": "document",
       "name": "01_autoswitch_consumer_inventory.md",
-      "filePath": "z7_4-evidence/01_autoswitch_consumer_inventory.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/01_autoswitch_consumer_inventory.md",
       "summary": "Документ фиксирует 01 autoswitch consumer inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26433,10 +26433,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_4-evidence/02_json_contract_audit.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/02_json_contract_audit.md",
       "type": "document",
       "name": "02_json_contract_audit.md",
-      "filePath": "z7_4-evidence/02_json_contract_audit.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/02_json_contract_audit.md",
       "summary": "Документ фиксирует 02 json contract audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26446,10 +26446,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_4-evidence/03_duplication_identifier_audit.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/03_duplication_identifier_audit.md",
       "type": "document",
       "name": "03_duplication_identifier_audit.md",
-      "filePath": "z7_4-evidence/03_duplication_identifier_audit.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/03_duplication_identifier_audit.md",
       "summary": "Документ фиксирует 03 duplication identifier audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26459,10 +26459,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_4-evidence/04_change_impact_matrix.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/04_change_impact_matrix.md",
       "type": "document",
       "name": "04_change_impact_matrix.md",
-      "filePath": "z7_4-evidence/04_change_impact_matrix.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/04_change_impact_matrix.md",
       "summary": "Документ фиксирует 04 change impact matrix и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26472,10 +26472,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_4-evidence/05_readiness_verdicts.md",
+      "id": "document:docs/reports/evidence/z7_4-evidence/05_readiness_verdicts.md",
       "type": "document",
       "name": "05_readiness_verdicts.md",
-      "filePath": "z7_4-evidence/05_readiness_verdicts.md",
+      "filePath": "docs/reports/evidence/z7_4-evidence/05_readiness_verdicts.md",
       "summary": "Документ фиксирует 05 readiness verdicts и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26485,10 +26485,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_6_z8-evidence/00_discovery_duplication_gate.md",
+      "id": "document:docs/reports/evidence/z7_6_z8-evidence/00_discovery_duplication_gate.md",
       "type": "document",
       "name": "00_discovery_duplication_gate.md",
-      "filePath": "z7_6_z8-evidence/00_discovery_duplication_gate.md",
+      "filePath": "docs/reports/evidence/z7_6_z8-evidence/00_discovery_duplication_gate.md",
       "summary": "Документ фиксирует 00 discovery duplication gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26498,10 +26498,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_6_z8-evidence/01_wiring_map.md",
+      "id": "document:docs/reports/evidence/z7_6_z8-evidence/01_wiring_map.md",
       "type": "document",
       "name": "01_wiring_map.md",
-      "filePath": "z7_6_z8-evidence/01_wiring_map.md",
+      "filePath": "docs/reports/evidence/z7_6_z8-evidence/01_wiring_map.md",
       "summary": "Документ фиксирует 01 wiring map и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26511,10 +26511,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z7_6_z8-evidence/02_dry_run_certification.md",
+      "id": "document:docs/reports/evidence/z7_6_z8-evidence/02_dry_run_certification.md",
       "type": "document",
       "name": "02_dry_run_certification.md",
-      "filePath": "z7_6_z8-evidence/02_dry_run_certification.md",
+      "filePath": "docs/reports/evidence/z7_6_z8-evidence/02_dry_run_certification.md",
       "summary": "Документ фиксирует 02 dry run certification и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26524,10 +26524,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z7_6_z8-evidence/03_test_results.md",
+      "id": "document:docs/reports/evidence/z7_6_z8-evidence/03_test_results.md",
       "type": "document",
       "name": "03_test_results.md",
-      "filePath": "z7_6_z8-evidence/03_test_results.md",
+      "filePath": "docs/reports/evidence/z7_6_z8-evidence/03_test_results.md",
       "summary": "Документ фиксирует 03 test results и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26537,10 +26537,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/00_local_and_github_truth.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/00_local_and_github_truth.md",
       "type": "document",
       "name": "00_local_and_github_truth.md",
-      "filePath": "z8_10-evidence/00_local_and_github_truth.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/00_local_and_github_truth.md",
       "summary": "Документ фиксирует 00 local and github truth и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26550,10 +26550,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/01_production_inventory.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/01_production_inventory.md",
       "type": "document",
       "name": "01_production_inventory.md",
-      "filePath": "z8_10-evidence/01_production_inventory.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/01_production_inventory.md",
       "summary": "Документ фиксирует 01 production inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26563,10 +26563,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
       "type": "document",
       "name": "02_binary_and_operation_wiring_forensics.md",
-      "filePath": "z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
       "summary": "Документ фиксирует 02 binary and operation wiring forensics и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26576,10 +26576,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/03_scheduler_and_service_forensics.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/03_scheduler_and_service_forensics.md",
       "type": "document",
       "name": "03_scheduler_and_service_forensics.md",
-      "filePath": "z8_10-evidence/03_scheduler_and_service_forensics.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/03_scheduler_and_service_forensics.md",
       "summary": "Документ фиксирует 03 scheduler and service forensics и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26589,10 +26589,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/04_runtime_root_and_provenance.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/04_runtime_root_and_provenance.md",
       "type": "document",
       "name": "04_runtime_root_and_provenance.md",
-      "filePath": "z8_10-evidence/04_runtime_root_and_provenance.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/04_runtime_root_and_provenance.md",
       "summary": "Документ фиксирует 04 runtime root and provenance и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26602,10 +26602,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/05_state_store_forensics.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/05_state_store_forensics.md",
       "type": "document",
       "name": "05_state_store_forensics.md",
-      "filePath": "z8_10-evidence/05_state_store_forensics.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/05_state_store_forensics.md",
       "summary": "Документ фиксирует 05 state store forensics и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26615,10 +26615,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/06_root_cause_and_remediation_plan.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/06_root_cause_and_remediation_plan.md",
       "type": "document",
       "name": "06_root_cause_and_remediation_plan.md",
-      "filePath": "z8_10-evidence/06_root_cause_and_remediation_plan.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/06_root_cause_and_remediation_plan.md",
       "summary": "Документ фиксирует 06 root cause and remediation plan и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26628,10 +26628,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_10-evidence/07_final_truth_check_results.md",
+      "id": "document:docs/reports/evidence/z8_10-evidence/07_final_truth_check_results.md",
       "type": "document",
       "name": "07_final_truth_check_results.md",
-      "filePath": "z8_10-evidence/07_final_truth_check_results.md",
+      "filePath": "docs/reports/evidence/z8_10-evidence/07_final_truth_check_results.md",
       "summary": "Документ фиксирует 07 final truth check results и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26641,10 +26641,10 @@
       "complexity": "simple"
     },
     {
-      "id": "config:z8_10-evidence/runtime_identity_snapshot.json",
+      "id": "config:docs/reports/evidence/z8_10-evidence/runtime_identity_snapshot.json",
       "type": "config",
       "name": "runtime_identity_snapshot.json",
-      "filePath": "z8_10-evidence/runtime_identity_snapshot.json",
+      "filePath": "docs/reports/evidence/z8_10-evidence/runtime_identity_snapshot.json",
       "summary": "Конфигурация runtime_identity_snapshot.json задаёт параметры и зафиксированное состояние соответствующего компонента проекта.",
       "tags": [
         "конфигурация",
@@ -26654,10 +26654,10 @@
       "complexity": "complex"
     },
     {
-      "id": "document:z8_11-evidence/00_discovery_gate.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/00_discovery_gate.md",
       "type": "document",
       "name": "00_discovery_gate.md",
-      "filePath": "z8_11-evidence/00_discovery_gate.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/00_discovery_gate.md",
       "summary": "Документ фиксирует 00 discovery gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26667,10 +26667,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_11-evidence/01_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/01_duplication_audit.md",
       "type": "document",
       "name": "01_duplication_audit.md",
-      "filePath": "z8_11-evidence/01_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/01_duplication_audit.md",
       "summary": "Документ фиксирует 01 duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26680,10 +26680,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_11-evidence/02_backup_and_package.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/02_backup_and_package.md",
       "type": "document",
       "name": "02_backup_and_package.md",
-      "filePath": "z8_11-evidence/02_backup_and_package.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/02_backup_and_package.md",
       "summary": "Документ фиксирует 02 backup and package и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26693,10 +26693,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_11-evidence/03_convergence_actions.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/03_convergence_actions.md",
       "type": "document",
       "name": "03_convergence_actions.md",
-      "filePath": "z8_11-evidence/03_convergence_actions.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/03_convergence_actions.md",
       "summary": "Документ фиксирует 03 convergence actions и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26706,10 +26706,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_11-evidence/04_post_deploy_validation.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/04_post_deploy_validation.md",
       "type": "document",
       "name": "04_post_deploy_validation.md",
-      "filePath": "z8_11-evidence/04_post_deploy_validation.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/04_post_deploy_validation.md",
       "summary": "Документ фиксирует 04 post deploy validation и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26719,10 +26719,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_11-evidence/05_truth_check_certification.md",
+      "id": "document:docs/reports/evidence/z8_11-evidence/05_truth_check_certification.md",
       "type": "document",
       "name": "05_truth_check_certification.md",
-      "filePath": "z8_11-evidence/05_truth_check_certification.md",
+      "filePath": "docs/reports/evidence/z8_11-evidence/05_truth_check_certification.md",
       "summary": "Документ фиксирует 05 truth check certification и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26732,10 +26732,10 @@
       "complexity": "simple"
     },
     {
-      "id": "config:z8_11-evidence/runtime_convergence_snapshot.json",
+      "id": "config:docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
       "type": "config",
       "name": "runtime_convergence_snapshot.json",
-      "filePath": "z8_11-evidence/runtime_convergence_snapshot.json",
+      "filePath": "docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
       "summary": "Конфигурация runtime_convergence_snapshot.json задаёт параметры и зафиксированное состояние соответствующего компонента проекта.",
       "tags": [
         "конфигурация",
@@ -26745,10 +26745,10 @@
       "complexity": "complex"
     },
     {
-      "id": "document:z8_12-evidence/00_discovery_and_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/00_discovery_and_duplication_audit.md",
       "type": "document",
       "name": "00_discovery_and_duplication_audit.md",
-      "filePath": "z8_12-evidence/00_discovery_and_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/00_discovery_and_duplication_audit.md",
       "summary": "Документ фиксирует 00 discovery and duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26758,10 +26758,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_12-evidence/01_runtime_impact_model.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/01_runtime_impact_model.md",
       "type": "document",
       "name": "01_runtime_impact_model.md",
-      "filePath": "z8_12-evidence/01_runtime_impact_model.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/01_runtime_impact_model.md",
       "summary": "Документ фиксирует 01 runtime impact model и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26771,10 +26771,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_12-evidence/02_implementation_summary.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/02_implementation_summary.md",
       "type": "document",
       "name": "02_implementation_summary.md",
-      "filePath": "z8_12-evidence/02_implementation_summary.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/02_implementation_summary.md",
       "summary": "Документ фиксирует 02 implementation summary и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26784,10 +26784,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_12-evidence/03_test_results.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/03_test_results.md",
       "type": "document",
       "name": "03_test_results.md",
-      "filePath": "z8_12-evidence/03_test_results.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/03_test_results.md",
       "summary": "Документ фиксирует 03 test results и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26797,10 +26797,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_12-evidence/04_validation_outputs.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/04_validation_outputs.md",
       "type": "document",
       "name": "04_validation_outputs.md",
-      "filePath": "z8_12-evidence/04_validation_outputs.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/04_validation_outputs.md",
       "summary": "Документ фиксирует 04 validation outputs и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26810,10 +26810,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_12-evidence/05_z9_readiness.md",
+      "id": "document:docs/reports/evidence/z8_12-evidence/05_z9_readiness.md",
       "type": "document",
       "name": "05_z9_readiness.md",
-      "filePath": "z8_12-evidence/05_z9_readiness.md",
+      "filePath": "docs/reports/evidence/z8_12-evidence/05_z9_readiness.md",
       "summary": "Документ фиксирует 05 z9 readiness и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26823,10 +26823,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/00_fresh_discovery_gate.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/00_fresh_discovery_gate.md",
       "type": "document",
       "name": "00_fresh_discovery_gate.md",
-      "filePath": "z8_13-evidence/00_fresh_discovery_gate.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/00_fresh_discovery_gate.md",
       "summary": "Документ фиксирует 00 fresh discovery gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26836,10 +26836,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/01_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/01_duplication_audit.md",
       "type": "document",
       "name": "01_duplication_audit.md",
-      "filePath": "z8_13-evidence/01_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/01_duplication_audit.md",
       "summary": "Документ фиксирует 01 duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26849,10 +26849,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/02_blocker_closure_loop.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/02_blocker_closure_loop.md",
       "type": "document",
       "name": "02_blocker_closure_loop.md",
-      "filePath": "z8_13-evidence/02_blocker_closure_loop.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/02_blocker_closure_loop.md",
       "summary": "Документ фиксирует 02 blocker closure loop и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26862,10 +26862,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/03_runtime_provenance_refresh.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/03_runtime_provenance_refresh.md",
       "type": "document",
       "name": "03_runtime_provenance_refresh.md",
-      "filePath": "z8_13-evidence/03_runtime_provenance_refresh.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/03_runtime_provenance_refresh.md",
       "summary": "Документ фиксирует 03 runtime provenance refresh и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26875,10 +26875,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/04_final_truth_check_results.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/04_final_truth_check_results.md",
       "type": "document",
       "name": "04_final_truth_check_results.md",
-      "filePath": "z8_13-evidence/04_final_truth_check_results.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/04_final_truth_check_results.md",
       "summary": "Документ фиксирует 04 final truth check results и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26888,10 +26888,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_13-evidence/05_z9_readiness_packet.md",
+      "id": "document:docs/reports/evidence/z8_13-evidence/05_z9_readiness_packet.md",
       "type": "document",
       "name": "05_z9_readiness_packet.md",
-      "filePath": "z8_13-evidence/05_z9_readiness_packet.md",
+      "filePath": "docs/reports/evidence/z8_13-evidence/05_z9_readiness_packet.md",
       "summary": "Документ фиксирует 05 z9 readiness packet и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26901,10 +26901,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_14-evidence/discovery.md",
+      "id": "document:docs/reports/evidence/z8_14-evidence/discovery.md",
       "type": "document",
       "name": "discovery.md",
-      "filePath": "z8_14-evidence/discovery.md",
+      "filePath": "docs/reports/evidence/z8_14-evidence/discovery.md",
       "summary": "Документ фиксирует discovery и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26914,10 +26914,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_14-evidence/final_sync_result.md",
+      "id": "document:docs/reports/evidence/z8_14-evidence/final_sync_result.md",
       "type": "document",
       "name": "final_sync_result.md",
-      "filePath": "z8_14-evidence/final_sync_result.md",
+      "filePath": "docs/reports/evidence/z8_14-evidence/final_sync_result.md",
       "summary": "Документ фиксирует final sync result и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26927,10 +26927,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_14-evidence/local_validation.md",
+      "id": "document:docs/reports/evidence/z8_14-evidence/local_validation.md",
       "type": "document",
       "name": "local_validation.md",
-      "filePath": "z8_14-evidence/local_validation.md",
+      "filePath": "docs/reports/evidence/z8_14-evidence/local_validation.md",
       "summary": "Документ фиксирует local validation и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26940,10 +26940,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/00_repository_reality.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/00_repository_reality.md",
       "type": "document",
       "name": "00_repository_reality.md",
-      "filePath": "z8_5-evidence/00_repository_reality.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/00_repository_reality.md",
       "summary": "Документ фиксирует 00 repository reality и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26953,10 +26953,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/01_local_worktree_duplication.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/01_local_worktree_duplication.md",
       "type": "document",
       "name": "01_local_worktree_duplication.md",
-      "filePath": "z8_5-evidence/01_local_worktree_duplication.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/01_local_worktree_duplication.md",
       "summary": "Документ фиксирует 01 local worktree duplication и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26966,10 +26966,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/02_runtime_access_gate.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/02_runtime_access_gate.md",
       "type": "document",
       "name": "02_runtime_access_gate.md",
-      "filePath": "z8_5-evidence/02_runtime_access_gate.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/02_runtime_access_gate.md",
       "summary": "Документ фиксирует 02 runtime access gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26979,10 +26979,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
       "type": "document",
       "name": "03_local_owner_and_duplicate_path_audit.md",
-      "filePath": "z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
       "summary": "Документ фиксирует 03 local owner and duplicate path audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -26992,10 +26992,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/04_convergence_map.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/04_convergence_map.md",
       "type": "document",
       "name": "04_convergence_map.md",
-      "filePath": "z8_5-evidence/04_convergence_map.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/04_convergence_map.md",
       "summary": "Документ фиксирует 04 convergence map и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27005,10 +27005,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_5-evidence/05_readiness_verdicts.md",
+      "id": "document:docs/reports/evidence/z8_5-evidence/05_readiness_verdicts.md",
       "type": "document",
       "name": "05_readiness_verdicts.md",
-      "filePath": "z8_5-evidence/05_readiness_verdicts.md",
+      "filePath": "docs/reports/evidence/z8_5-evidence/05_readiness_verdicts.md",
       "summary": "Документ фиксирует 05 readiness verdicts и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27018,10 +27018,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_7-evidence/00_discovery_inventory.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/00_discovery_inventory.md",
       "type": "document",
       "name": "00_discovery_inventory.md",
-      "filePath": "z8_7-evidence/00_discovery_inventory.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/00_discovery_inventory.md",
       "summary": "Документ фиксирует 00 discovery inventory и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27031,10 +27031,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z8_7-evidence/01_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/01_duplication_audit.md",
       "type": "document",
       "name": "01_duplication_audit.md",
-      "filePath": "z8_7-evidence/01_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/01_duplication_audit.md",
       "summary": "Документ фиксирует 01 duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27044,10 +27044,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_7-evidence/02_truth_manifest_design.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/02_truth_manifest_design.md",
       "type": "document",
       "name": "02_truth_manifest_design.md",
-      "filePath": "z8_7-evidence/02_truth_manifest_design.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/02_truth_manifest_design.md",
       "summary": "Документ фиксирует 02 truth manifest design и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27057,10 +27057,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z8_7-evidence/03_convergence_gate_design.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/03_convergence_gate_design.md",
       "type": "document",
       "name": "03_convergence_gate_design.md",
-      "filePath": "z8_7-evidence/03_convergence_gate_design.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/03_convergence_gate_design.md",
       "summary": "Документ фиксирует 03 convergence gate design и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27070,10 +27070,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z8_7-evidence/04_v7_truth_check_design.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/04_v7_truth_check_design.md",
       "type": "document",
       "name": "04_v7_truth_check_design.md",
-      "filePath": "z8_7-evidence/04_v7_truth_check_design.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/04_v7_truth_check_design.md",
       "summary": "Документ фиксирует 04 v7 truth check design и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27083,10 +27083,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z8_7-evidence/05_retirement_plan.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/05_retirement_plan.md",
       "type": "document",
       "name": "05_retirement_plan.md",
-      "filePath": "z8_7-evidence/05_retirement_plan.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/05_retirement_plan.md",
       "summary": "Документ фиксирует 05 retirement plan и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27096,10 +27096,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_7-evidence/06_future_rules.md",
+      "id": "document:docs/reports/evidence/z8_7-evidence/06_future_rules.md",
       "type": "document",
       "name": "06_future_rules.md",
-      "filePath": "z8_7-evidence/06_future_rules.md",
+      "filePath": "docs/reports/evidence/z8_7-evidence/06_future_rules.md",
       "summary": "Документ фиксирует 06 future rules и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27109,10 +27109,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_9-evidence/00_discovery_gate.md",
+      "id": "document:docs/reports/evidence/z8_9-evidence/00_discovery_gate.md",
       "type": "document",
       "name": "00_discovery_gate.md",
-      "filePath": "z8_9-evidence/00_discovery_gate.md",
+      "filePath": "docs/reports/evidence/z8_9-evidence/00_discovery_gate.md",
       "summary": "Документ фиксирует 00 discovery gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27122,10 +27122,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_9-evidence/01_dirty_workspace_map.md",
+      "id": "document:docs/reports/evidence/z8_9-evidence/01_dirty_workspace_map.md",
       "type": "document",
       "name": "01_dirty_workspace_map.md",
-      "filePath": "z8_9-evidence/01_dirty_workspace_map.md",
+      "filePath": "docs/reports/evidence/z8_9-evidence/01_dirty_workspace_map.md",
       "summary": "Документ фиксирует 01 dirty workspace map и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27135,10 +27135,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_9-evidence/02_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z8_9-evidence/02_duplication_audit.md",
       "type": "document",
       "name": "02_duplication_audit.md",
-      "filePath": "z8_9-evidence/02_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z8_9-evidence/02_duplication_audit.md",
       "summary": "Документ фиксирует 02 duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27148,10 +27148,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z8_9-evidence/03_runtime_readonly_audit.md",
+      "id": "document:docs/reports/evidence/z8_9-evidence/03_runtime_readonly_audit.md",
       "type": "document",
       "name": "03_runtime_readonly_audit.md",
-      "filePath": "z8_9-evidence/03_runtime_readonly_audit.md",
+      "filePath": "docs/reports/evidence/z8_9-evidence/03_runtime_readonly_audit.md",
       "summary": "Документ фиксирует 03 runtime readonly audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27161,10 +27161,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "config:z8_9-evidence/runtime_truth_snapshot.json",
+      "id": "config:docs/reports/evidence/z8_9-evidence/runtime_truth_snapshot.json",
       "type": "config",
       "name": "runtime_truth_snapshot.json",
-      "filePath": "z8_9-evidence/runtime_truth_snapshot.json",
+      "filePath": "docs/reports/evidence/z8_9-evidence/runtime_truth_snapshot.json",
       "summary": "Конфигурация runtime_truth_snapshot.json задаёт параметры и зафиксированное состояние соответствующего компонента проекта.",
       "tags": [
         "конфигурация",
@@ -27174,10 +27174,10 @@
       "complexity": "moderate"
     },
     {
-      "id": "document:z9-evidence/00_mandatory_discovery_gate_no_go.md",
+      "id": "document:docs/reports/evidence/z9-evidence/00_mandatory_discovery_gate_no_go.md",
       "type": "document",
       "name": "00_mandatory_discovery_gate_no_go.md",
-      "filePath": "z9-evidence/00_mandatory_discovery_gate_no_go.md",
+      "filePath": "docs/reports/evidence/z9-evidence/00_mandatory_discovery_gate_no_go.md",
       "summary": "Документ фиксирует 00 mandatory discovery gate no go и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27187,10 +27187,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z9-evidence/00_prompt_and_safety_boundary.md",
+      "id": "document:docs/reports/evidence/z9-evidence/00_prompt_and_safety_boundary.md",
       "type": "document",
       "name": "00_prompt_and_safety_boundary.md",
-      "filePath": "z9-evidence/00_prompt_and_safety_boundary.md",
+      "filePath": "docs/reports/evidence/z9-evidence/00_prompt_and_safety_boundary.md",
       "summary": "Документ фиксирует 00 prompt and safety boundary и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27200,10 +27200,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z9-evidence/01_local_reality_snapshot.md",
+      "id": "document:docs/reports/evidence/z9-evidence/01_local_reality_snapshot.md",
       "type": "document",
       "name": "01_local_reality_snapshot.md",
-      "filePath": "z9-evidence/01_local_reality_snapshot.md",
+      "filePath": "docs/reports/evidence/z9-evidence/01_local_reality_snapshot.md",
       "summary": "Документ фиксирует 01 local reality snapshot и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27213,10 +27213,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z9-evidence/02_local_owner_and_duplication_audit.md",
+      "id": "document:docs/reports/evidence/z9-evidence/02_local_owner_and_duplication_audit.md",
       "type": "document",
       "name": "02_local_owner_and_duplication_audit.md",
-      "filePath": "z9-evidence/02_local_owner_and_duplication_audit.md",
+      "filePath": "docs/reports/evidence/z9-evidence/02_local_owner_and_duplication_audit.md",
       "summary": "Документ фиксирует 02 local owner and duplication audit и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27226,10 +27226,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z9-evidence/03_live_access_gate.md",
+      "id": "document:docs/reports/evidence/z9-evidence/03_live_access_gate.md",
       "type": "document",
       "name": "03_live_access_gate.md",
-      "filePath": "z9-evidence/03_live_access_gate.md",
+      "filePath": "docs/reports/evidence/z9-evidence/03_live_access_gate.md",
       "summary": "Документ фиксирует 03 live access gate и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -27239,10 +27239,10 @@
       "complexity": "simple"
     },
     {
-      "id": "document:z9-evidence/04_no_go_verdicts.md",
+      "id": "document:docs/reports/evidence/z9-evidence/04_no_go_verdicts.md",
       "type": "document",
       "name": "04_no_go_verdicts.md",
-      "filePath": "z9-evidence/04_no_go_verdicts.md",
+      "filePath": "docs/reports/evidence/z9-evidence/04_no_go_verdicts.md",
       "summary": "Документ фиксирует 04 no go verdicts и служит доказательной или справочной частью проекта.",
       "tags": [
         "документация",
@@ -85233,9 +85233,9 @@
         "config:releases/v7-runtime-20260523T174503Z/verification.json",
         "config:releases/v7-runtime-20260523T174503Z/warnings.json",
         "config:runtime-enumeration.json",
-        "config:z8_10-evidence/runtime_identity_snapshot.json",
-        "config:z8_11-evidence/runtime_convergence_snapshot.json",
-        "config:z8_9-evidence/runtime_truth_snapshot.json",
+        "config:docs/reports/evidence/z8_10-evidence/runtime_identity_snapshot.json",
+        "config:docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json",
+        "config:docs/reports/evidence/z8_9-evidence/runtime_truth_snapshot.json",
         "file:tools/runtime-support/v7-admin-auth-init",
         "file:tools/runtime-support/v7-admin-auth-status",
         "file:tools/runtime-support/v7-admin-password-rotate",
@@ -86196,134 +86196,134 @@
         "document:web/src/stores/README.md",
         "document:web/src/styles/README.md",
         "document:web/src/utils/README.md",
-        "document:z6_1-evidence/00_discovery_index.md",
-        "document:z6_1-evidence/01_ownership_map.md",
-        "document:z6_1-evidence/02_authority_and_state_map.md",
-        "document:z6_1-evidence/03_orchestrator_candidates.md",
-        "document:z6_1-evidence/04_truth_source_and_risk_audit.md",
-        "document:z6_1-evidence/05_critical_questions.md",
-        "document:z6_2-evidence/00_discovery_index.md",
-        "document:z6_2-evidence/01_signal_flow.md",
-        "document:z6_2-evidence/02_planner_selected_restore_flow.md",
-        "document:z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
-        "document:z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
-        "document:z6_2-evidence/05_final_verdicts.md",
-        "document:z6_3-evidence/00_gate0_inventory.md",
-        "document:z6_3-evidence/01_lifecycle_owner_matrix.md",
-        "document:z6_3-evidence/02_authority_and_bypass_analysis.md",
-        "document:z6_3-evidence/03_legacy_and_closure_analysis.md",
-        "document:z6_3-evidence/04_orchestrator_readiness_answers.md",
-        "document:z6_3-evidence/05_truth_source_audit.md",
-        "document:z6_3-evidence/06_final_verdicts.md",
-        "document:z6_4-evidence/00_gate0_revalidation.md",
-        "document:z6_4-evidence/01_target_lifecycle_model.md",
-        "document:z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
-        "document:z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
-        "document:z6_4-evidence/04_authority_reduction_plan.md",
-        "document:z6_4-evidence/05_consolidated_ownership_map.md",
-        "document:z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
-        "document:z6_4-evidence/07_final_verdicts.md",
-        "document:z6_5-evidence/00_gate0_state_discovery.md",
-        "document:z6_5-evidence/01_operation_object_and_boundaries.md",
-        "document:z6_5-evidence/02_target_state_machine.md",
-        "document:z6_5-evidence/03_state_ownership_and_terminal_states.md",
-        "document:z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
-        "document:z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
-        "document:z6_5-evidence/06_final_verdicts.md",
-        "document:z6_6-evidence/00_identity_discovery.md",
-        "document:z6_6-evidence/01_operation_like_objects.md",
-        "document:z6_6-evidence/02_canonical_operation_model.md",
-        "document:z6_6-evidence/03_operation_attributes_and_timeline.md",
-        "document:z6_6-evidence/04_relationship_noop_lineage_models.md",
-        "document:z6_6-evidence/05_readiness_truth_audit.md",
-        "document:z6_6-evidence/06_final_verdicts.md",
-        "document:z6_7-evidence/00_program_discovery.md",
-        "document:z6_7-evidence/01_duplication_audit.md",
-        "document:z6_7-evidence/02_program_boundary_and_loop.md",
-        "document:z6_7-evidence/03_authority_breakglass_states.md",
-        "document:z6_7-evidence/04_final_program_maps.md",
-        "document:z6_7-evidence/05_readiness_truth_verdicts.md",
-        "document:z7_1-evidence/00_discovery_inventory.md",
-        "document:z7_1-evidence/01_operation_identity_wiring.md",
-        "document:z7_1-evidence/02_runtime_operation_wiring.md",
-        "document:z7_1-evidence/03_audit_closure_wiring.md",
-        "document:z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
-        "document:z7_1-evidence/05_duplication_and_full_wiring_map.md",
-        "document:z7_1-evidence/06_implementation_readiness.md",
-        "document:z7_2-evidence/00_lineage_inventory.md",
-        "document:z7_2-evidence/01_operation_creation_model.md",
-        "document:z7_2-evidence/02_autoswitch_wiring_model.md",
-        "document:z7_2-evidence/03_rollback_and_noop_wiring.md",
-        "document:z7_2-evidence/04_audit_closure_wiring_model.md",
-        "document:z7_2-evidence/05_lineage_map_and_readiness.md",
-        "document:z7_3-evidence/00_file_inventory.md",
-        "document:z7_3-evidence/01_function_inventory.md",
-        "document:z7_3-evidence/02_metadata_and_duplication_inventory.md",
-        "document:z7_3-evidence/03_test_inventory.md",
-        "document:z7_3-evidence/04_change_map_and_order.md",
-        "document:z7_3-evidence/05_risk_and_readiness.md",
-        "document:z7_4-evidence/00_discovery_scope.md",
-        "document:z7_4-evidence/01_autoswitch_consumer_inventory.md",
-        "document:z7_4-evidence/02_json_contract_audit.md",
-        "document:z7_4-evidence/03_duplication_identifier_audit.md",
-        "document:z7_4-evidence/04_change_impact_matrix.md",
-        "document:z7_4-evidence/05_readiness_verdicts.md",
-        "document:z7_6_z8-evidence/00_discovery_duplication_gate.md",
-        "document:z7_6_z8-evidence/01_wiring_map.md",
-        "document:z7_6_z8-evidence/02_dry_run_certification.md",
-        "document:z7_6_z8-evidence/03_test_results.md",
-        "document:z8_10-evidence/00_local_and_github_truth.md",
-        "document:z8_10-evidence/01_production_inventory.md",
-        "document:z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
-        "document:z8_10-evidence/03_scheduler_and_service_forensics.md",
-        "document:z8_10-evidence/04_runtime_root_and_provenance.md",
-        "document:z8_10-evidence/05_state_store_forensics.md",
-        "document:z8_10-evidence/06_root_cause_and_remediation_plan.md",
-        "document:z8_10-evidence/07_final_truth_check_results.md",
-        "document:z8_11-evidence/00_discovery_gate.md",
-        "document:z8_11-evidence/01_duplication_audit.md",
-        "document:z8_11-evidence/02_backup_and_package.md",
-        "document:z8_11-evidence/03_convergence_actions.md",
-        "document:z8_11-evidence/04_post_deploy_validation.md",
-        "document:z8_11-evidence/05_truth_check_certification.md",
-        "document:z8_12-evidence/00_discovery_and_duplication_audit.md",
-        "document:z8_12-evidence/01_runtime_impact_model.md",
-        "document:z8_12-evidence/02_implementation_summary.md",
-        "document:z8_12-evidence/03_test_results.md",
-        "document:z8_12-evidence/04_validation_outputs.md",
-        "document:z8_12-evidence/05_z9_readiness.md",
-        "document:z8_13-evidence/00_fresh_discovery_gate.md",
-        "document:z8_13-evidence/01_duplication_audit.md",
-        "document:z8_13-evidence/02_blocker_closure_loop.md",
-        "document:z8_13-evidence/03_runtime_provenance_refresh.md",
-        "document:z8_13-evidence/04_final_truth_check_results.md",
-        "document:z8_13-evidence/05_z9_readiness_packet.md",
-        "document:z8_14-evidence/discovery.md",
-        "document:z8_14-evidence/final_sync_result.md",
-        "document:z8_14-evidence/local_validation.md",
-        "document:z8_5-evidence/00_repository_reality.md",
-        "document:z8_5-evidence/01_local_worktree_duplication.md",
-        "document:z8_5-evidence/02_runtime_access_gate.md",
-        "document:z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
-        "document:z8_5-evidence/04_convergence_map.md",
-        "document:z8_5-evidence/05_readiness_verdicts.md",
-        "document:z8_7-evidence/00_discovery_inventory.md",
-        "document:z8_7-evidence/01_duplication_audit.md",
-        "document:z8_7-evidence/02_truth_manifest_design.md",
-        "document:z8_7-evidence/03_convergence_gate_design.md",
-        "document:z8_7-evidence/04_v7_truth_check_design.md",
-        "document:z8_7-evidence/05_retirement_plan.md",
-        "document:z8_7-evidence/06_future_rules.md",
-        "document:z8_9-evidence/00_discovery_gate.md",
-        "document:z8_9-evidence/01_dirty_workspace_map.md",
-        "document:z8_9-evidence/02_duplication_audit.md",
-        "document:z8_9-evidence/03_runtime_readonly_audit.md",
-        "document:z9-evidence/00_mandatory_discovery_gate_no_go.md",
-        "document:z9-evidence/00_prompt_and_safety_boundary.md",
-        "document:z9-evidence/01_local_reality_snapshot.md",
-        "document:z9-evidence/02_local_owner_and_duplication_audit.md",
-        "document:z9-evidence/03_live_access_gate.md",
-        "document:z9-evidence/04_no_go_verdicts.md"
+        "document:docs/reports/evidence/z6_1-evidence/00_discovery_index.md",
+        "document:docs/reports/evidence/z6_1-evidence/01_ownership_map.md",
+        "document:docs/reports/evidence/z6_1-evidence/02_authority_and_state_map.md",
+        "document:docs/reports/evidence/z6_1-evidence/03_orchestrator_candidates.md",
+        "document:docs/reports/evidence/z6_1-evidence/04_truth_source_and_risk_audit.md",
+        "document:docs/reports/evidence/z6_1-evidence/05_critical_questions.md",
+        "document:docs/reports/evidence/z6_2-evidence/00_discovery_index.md",
+        "document:docs/reports/evidence/z6_2-evidence/01_signal_flow.md",
+        "document:docs/reports/evidence/z6_2-evidence/02_planner_selected_restore_flow.md",
+        "document:docs/reports/evidence/z6_2-evidence/03_execution_rollback_audit_bypass_flow.md",
+        "document:docs/reports/evidence/z6_2-evidence/04_end_to_end_timeline_and_gaps.md",
+        "document:docs/reports/evidence/z6_2-evidence/05_final_verdicts.md",
+        "document:docs/reports/evidence/z6_3-evidence/00_gate0_inventory.md",
+        "document:docs/reports/evidence/z6_3-evidence/01_lifecycle_owner_matrix.md",
+        "document:docs/reports/evidence/z6_3-evidence/02_authority_and_bypass_analysis.md",
+        "document:docs/reports/evidence/z6_3-evidence/03_legacy_and_closure_analysis.md",
+        "document:docs/reports/evidence/z6_3-evidence/04_orchestrator_readiness_answers.md",
+        "document:docs/reports/evidence/z6_3-evidence/05_truth_source_audit.md",
+        "document:docs/reports/evidence/z6_3-evidence/06_final_verdicts.md",
+        "document:docs/reports/evidence/z6_4-evidence/00_gate0_revalidation.md",
+        "document:docs/reports/evidence/z6_4-evidence/01_target_lifecycle_model.md",
+        "document:docs/reports/evidence/z6_4-evidence/02_runtime_scheduler_admin_audit_models.md",
+        "document:docs/reports/evidence/z6_4-evidence/03_rollback_restore_barrier_closure_models.md",
+        "document:docs/reports/evidence/z6_4-evidence/04_authority_reduction_plan.md",
+        "document:docs/reports/evidence/z6_4-evidence/05_consolidated_ownership_map.md",
+        "document:docs/reports/evidence/z6_4-evidence/06_orchestrator_readiness_and_truth_audit.md",
+        "document:docs/reports/evidence/z6_4-evidence/07_final_verdicts.md",
+        "document:docs/reports/evidence/z6_5-evidence/00_gate0_state_discovery.md",
+        "document:docs/reports/evidence/z6_5-evidence/01_operation_object_and_boundaries.md",
+        "document:docs/reports/evidence/z6_5-evidence/02_target_state_machine.md",
+        "document:docs/reports/evidence/z6_5-evidence/03_state_ownership_and_terminal_states.md",
+        "document:docs/reports/evidence/z6_5-evidence/04_audit_closure_rollback_noop_relationships.md",
+        "document:docs/reports/evidence/z6_5-evidence/05_end_to_end_timeline_and_gap_impact.md",
+        "document:docs/reports/evidence/z6_5-evidence/06_final_verdicts.md",
+        "document:docs/reports/evidence/z6_6-evidence/00_identity_discovery.md",
+        "document:docs/reports/evidence/z6_6-evidence/01_operation_like_objects.md",
+        "document:docs/reports/evidence/z6_6-evidence/02_canonical_operation_model.md",
+        "document:docs/reports/evidence/z6_6-evidence/03_operation_attributes_and_timeline.md",
+        "document:docs/reports/evidence/z6_6-evidence/04_relationship_noop_lineage_models.md",
+        "document:docs/reports/evidence/z6_6-evidence/05_readiness_truth_audit.md",
+        "document:docs/reports/evidence/z6_6-evidence/06_final_verdicts.md",
+        "document:docs/reports/evidence/z6_7-evidence/00_program_discovery.md",
+        "document:docs/reports/evidence/z6_7-evidence/01_duplication_audit.md",
+        "document:docs/reports/evidence/z6_7-evidence/02_program_boundary_and_loop.md",
+        "document:docs/reports/evidence/z6_7-evidence/03_authority_breakglass_states.md",
+        "document:docs/reports/evidence/z6_7-evidence/04_final_program_maps.md",
+        "document:docs/reports/evidence/z6_7-evidence/05_readiness_truth_verdicts.md",
+        "document:docs/reports/evidence/z7_1-evidence/00_discovery_inventory.md",
+        "document:docs/reports/evidence/z7_1-evidence/01_operation_identity_wiring.md",
+        "document:docs/reports/evidence/z7_1-evidence/02_runtime_operation_wiring.md",
+        "document:docs/reports/evidence/z7_1-evidence/03_audit_closure_wiring.md",
+        "document:docs/reports/evidence/z7_1-evidence/04_rollback_barrier_recheck_wiring.md",
+        "document:docs/reports/evidence/z7_1-evidence/05_duplication_and_full_wiring_map.md",
+        "document:docs/reports/evidence/z7_1-evidence/06_implementation_readiness.md",
+        "document:docs/reports/evidence/z7_2-evidence/00_lineage_inventory.md",
+        "document:docs/reports/evidence/z7_2-evidence/01_operation_creation_model.md",
+        "document:docs/reports/evidence/z7_2-evidence/02_autoswitch_wiring_model.md",
+        "document:docs/reports/evidence/z7_2-evidence/03_rollback_and_noop_wiring.md",
+        "document:docs/reports/evidence/z7_2-evidence/04_audit_closure_wiring_model.md",
+        "document:docs/reports/evidence/z7_2-evidence/05_lineage_map_and_readiness.md",
+        "document:docs/reports/evidence/z7_3-evidence/00_file_inventory.md",
+        "document:docs/reports/evidence/z7_3-evidence/01_function_inventory.md",
+        "document:docs/reports/evidence/z7_3-evidence/02_metadata_and_duplication_inventory.md",
+        "document:docs/reports/evidence/z7_3-evidence/03_test_inventory.md",
+        "document:docs/reports/evidence/z7_3-evidence/04_change_map_and_order.md",
+        "document:docs/reports/evidence/z7_3-evidence/05_risk_and_readiness.md",
+        "document:docs/reports/evidence/z7_4-evidence/00_discovery_scope.md",
+        "document:docs/reports/evidence/z7_4-evidence/01_autoswitch_consumer_inventory.md",
+        "document:docs/reports/evidence/z7_4-evidence/02_json_contract_audit.md",
+        "document:docs/reports/evidence/z7_4-evidence/03_duplication_identifier_audit.md",
+        "document:docs/reports/evidence/z7_4-evidence/04_change_impact_matrix.md",
+        "document:docs/reports/evidence/z7_4-evidence/05_readiness_verdicts.md",
+        "document:docs/reports/evidence/z7_6_z8-evidence/00_discovery_duplication_gate.md",
+        "document:docs/reports/evidence/z7_6_z8-evidence/01_wiring_map.md",
+        "document:docs/reports/evidence/z7_6_z8-evidence/02_dry_run_certification.md",
+        "document:docs/reports/evidence/z7_6_z8-evidence/03_test_results.md",
+        "document:docs/reports/evidence/z8_10-evidence/00_local_and_github_truth.md",
+        "document:docs/reports/evidence/z8_10-evidence/01_production_inventory.md",
+        "document:docs/reports/evidence/z8_10-evidence/02_binary_and_operation_wiring_forensics.md",
+        "document:docs/reports/evidence/z8_10-evidence/03_scheduler_and_service_forensics.md",
+        "document:docs/reports/evidence/z8_10-evidence/04_runtime_root_and_provenance.md",
+        "document:docs/reports/evidence/z8_10-evidence/05_state_store_forensics.md",
+        "document:docs/reports/evidence/z8_10-evidence/06_root_cause_and_remediation_plan.md",
+        "document:docs/reports/evidence/z8_10-evidence/07_final_truth_check_results.md",
+        "document:docs/reports/evidence/z8_11-evidence/00_discovery_gate.md",
+        "document:docs/reports/evidence/z8_11-evidence/01_duplication_audit.md",
+        "document:docs/reports/evidence/z8_11-evidence/02_backup_and_package.md",
+        "document:docs/reports/evidence/z8_11-evidence/03_convergence_actions.md",
+        "document:docs/reports/evidence/z8_11-evidence/04_post_deploy_validation.md",
+        "document:docs/reports/evidence/z8_11-evidence/05_truth_check_certification.md",
+        "document:docs/reports/evidence/z8_12-evidence/00_discovery_and_duplication_audit.md",
+        "document:docs/reports/evidence/z8_12-evidence/01_runtime_impact_model.md",
+        "document:docs/reports/evidence/z8_12-evidence/02_implementation_summary.md",
+        "document:docs/reports/evidence/z8_12-evidence/03_test_results.md",
+        "document:docs/reports/evidence/z8_12-evidence/04_validation_outputs.md",
+        "document:docs/reports/evidence/z8_12-evidence/05_z9_readiness.md",
+        "document:docs/reports/evidence/z8_13-evidence/00_fresh_discovery_gate.md",
+        "document:docs/reports/evidence/z8_13-evidence/01_duplication_audit.md",
+        "document:docs/reports/evidence/z8_13-evidence/02_blocker_closure_loop.md",
+        "document:docs/reports/evidence/z8_13-evidence/03_runtime_provenance_refresh.md",
+        "document:docs/reports/evidence/z8_13-evidence/04_final_truth_check_results.md",
+        "document:docs/reports/evidence/z8_13-evidence/05_z9_readiness_packet.md",
+        "document:docs/reports/evidence/z8_14-evidence/discovery.md",
+        "document:docs/reports/evidence/z8_14-evidence/final_sync_result.md",
+        "document:docs/reports/evidence/z8_14-evidence/local_validation.md",
+        "document:docs/reports/evidence/z8_5-evidence/00_repository_reality.md",
+        "document:docs/reports/evidence/z8_5-evidence/01_local_worktree_duplication.md",
+        "document:docs/reports/evidence/z8_5-evidence/02_runtime_access_gate.md",
+        "document:docs/reports/evidence/z8_5-evidence/03_local_owner_and_duplicate_path_audit.md",
+        "document:docs/reports/evidence/z8_5-evidence/04_convergence_map.md",
+        "document:docs/reports/evidence/z8_5-evidence/05_readiness_verdicts.md",
+        "document:docs/reports/evidence/z8_7-evidence/00_discovery_inventory.md",
+        "document:docs/reports/evidence/z8_7-evidence/01_duplication_audit.md",
+        "document:docs/reports/evidence/z8_7-evidence/02_truth_manifest_design.md",
+        "document:docs/reports/evidence/z8_7-evidence/03_convergence_gate_design.md",
+        "document:docs/reports/evidence/z8_7-evidence/04_v7_truth_check_design.md",
+        "document:docs/reports/evidence/z8_7-evidence/05_retirement_plan.md",
+        "document:docs/reports/evidence/z8_7-evidence/06_future_rules.md",
+        "document:docs/reports/evidence/z8_9-evidence/00_discovery_gate.md",
+        "document:docs/reports/evidence/z8_9-evidence/01_dirty_workspace_map.md",
+        "document:docs/reports/evidence/z8_9-evidence/02_duplication_audit.md",
+        "document:docs/reports/evidence/z8_9-evidence/03_runtime_readonly_audit.md",
+        "document:docs/reports/evidence/z9-evidence/00_mandatory_discovery_gate_no_go.md",
+        "document:docs/reports/evidence/z9-evidence/00_prompt_and_safety_boundary.md",
+        "document:docs/reports/evidence/z9-evidence/01_local_reality_snapshot.md",
+        "document:docs/reports/evidence/z9-evidence/02_local_owner_and_duplication_audit.md",
+        "document:docs/reports/evidence/z9-evidence/03_live_access_gate.md",
+        "document:docs/reports/evidence/z9-evidence/04_no_go_verdicts.md"
       ]
     }
   ],

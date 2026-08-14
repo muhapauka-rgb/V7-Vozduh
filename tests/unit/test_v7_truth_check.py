@@ -385,7 +385,7 @@ class V7TruthCheckTest(unittest.TestCase):
         result = self.tool.combine_results(
             manifest,
             mode="local",
-            runner=self.runner(status="?? z8_11-evidence/runtime_convergence_snapshot.json"),
+            runner=self.runner(status="?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json"),
             cwd=Path("/tmp/v7-work"),
         )
         self.assertEqual(result["final_verdict"], "PASS")
@@ -421,7 +421,7 @@ class V7TruthCheckTest(unittest.TestCase):
         result = self.tool.combine_results(
             manifest,
             mode="local",
-            runner=self.runner(status=" M tools/v7-users-autoswitch\n?? z8_11-evidence/runtime_convergence_snapshot.json"),
+            runner=self.runner(status=" M tools/v7-users-autoswitch\n?? docs/reports/evidence/z8_11-evidence/runtime_convergence_snapshot.json"),
             cwd=Path("/tmp/v7-work"),
         )
         self.assertEqual(result["final_verdict"], "NO-GO")
@@ -620,7 +620,7 @@ class V7TruthCheckTest(unittest.TestCase):
                     remote_commit="new123",
                     changed_files="\n".join([
                         "BA1_ONE_USER_AUTONOMY_CERTIFICATION_REPORT.md",
-                        "BA1_EVIDENCE/final_verdict.json",
+                        "docs/reports/evidence/BA1_EVIDENCE/final_verdict.json",
                     ]),
                 ),
                 cwd=Path(tmp),

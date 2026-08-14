@@ -1,0 +1,19 @@
+{
+  "schema_version": "v7.evidence.compact-receipt.v1",
+  "disposition": "ARCHIVE_EXTERNAL",
+  "original_path": "docs/reports/evidence/BA4_EVIDENCE/phase6/post_clearance_dry_run.json",
+  "original_sha256": "0ca586c58a31e851e06b7b74314be516a700b92a9128c4db946564f0e4a7d764",
+  "archive_path": ".v7/evidence-archive/2026-08-14-batch19/selected-moves-dry-runs.tar.gz",
+  "archived_at": "2026-08-14T15:48:42.481749+00:00",
+  "owner": "tools/v7-users-autoswitch",
+  "apply_requested": false,
+  "operation_id": "runtime_autoswitch_370a7672c5e73ebcd227ebc1",
+  "planner_generation_id": "1fd508b2fc82598d134f3defb598dd6593f0decd3da8437d953e788c3d3c098b",
+  "terminal_state": "DRY_RUN",
+  "terminal_reason": "dry_run_selected_moves_available",
+  "selected_move_count": 10,
+  "users_total": 26,
+  "candidate_moves": 20,
+  "selected_moves": 10,
+  "consumer_note": "Historical dry-run decision payload; no active source/test/Runtime consumer. Full payload recoverable from archive."
+}

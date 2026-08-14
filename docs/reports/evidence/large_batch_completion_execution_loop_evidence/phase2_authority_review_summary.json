@@ -1,0 +1,51 @@
+{
+  "program": "PROGRAM_LARGE_BATCH_COMPLETION_STABILITY_AND_EXECUTION_LOOP_FOUNDATION",
+  "phase": "PHASE_2_AUTHORITY_REVIEW",
+  "runtime_truth": {
+    "truth_check_file": "docs/reports/evidence/large_batch_completion_execution_loop_evidence/phase1_truth_check.json",
+    "convergence_status_file": "docs/reports/evidence/large_batch_completion_execution_loop_evidence/phase1_convergence_status.json",
+    "local_github_production_aligned": true,
+    "production_commit": "8dda6fa35a7657f28c7a4164bdfd2a3ab6729989"
+  },
+  "current_authority": {
+    "prepared_authority_class": "MEDIUM_BATCH",
+    "certified_authority_class": "MEDIUM_BATCH",
+    "runtime_authority_class": "MEDIUM_BATCH",
+    "current_allowed_user_budget": 5,
+    "next_authority_class": "LARGE_BATCH",
+    "next_allowed_user_budget": 10
+  },
+  "planner_evidence": {
+    "file": "docs/reports/evidence/large_batch_completion_execution_loop_evidence/phase3_fresh_planner_max10_summary.json",
+    "candidate_moves_total": 18,
+    "selected_moves_before_gate": 6,
+    "selected_moves_after_authority_gate": 5,
+    "selected_moves_for_execution": 0,
+    "authority_cap_applied": true,
+    "snapshot_stop_required": false,
+    "source_mismatch_families": []
+  },
+  "promotion_owner_audit": {
+    "owner": "tools/v7-users-autoswitch",
+    "current_large_batch_promotion_supported": false,
+    "blocking_code_marker": "only_medium_batch_promotion_supported_by_this_action",
+    "large_batch_rule": {
+      "required_successful_medium_batch_runs": 2,
+      "requires_stable_runtime_truth_window": true,
+      "requires_operator_review": true
+    }
+  },
+  "operator_approval_status": {
+    "large_batch_authority_promotion_attempt_executed": false,
+    "reason": "escalation reviewer rejected production authority promotion because explicit transcript-level approval for MEDIUM_BATCH -> LARGE_BATCH budget 10 was not present",
+    "routing_mutation_performed": false,
+    "autoswitch_apply_run": false,
+    "users_moved": 0
+  },
+  "decision": {
+    "large_batch_authority_approved": false,
+    "large_batch_execution_allowed": false,
+    "single_blocker": "LARGE_BATCH_AUTHORITY_NOT_APPROVED_AND_PROMOTION_OWNER_NOT_LARGE_BATCH_READY",
+    "safe_next_step": "LARGE_BATCH_AUTHORITY_PROMOTION_SUPPORT_AND_OPERATOR_APPROVAL_GATE"
+  }
+}

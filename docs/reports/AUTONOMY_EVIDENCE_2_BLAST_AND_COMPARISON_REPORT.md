@@ -131,10 +131,10 @@ A previous local rebuilt snapshot also showed:
 Evidence:
 
 - `PROGRAM_BLAST_RADIUS_AND_SUITABILITY_EVIDENCE_BINDING_CLOSURE_REPORT.md`
-- `blast_radius_suitability_evidence_binding_evidence/local_rebuilt_snapshots/trust-evolution-summaries.json`
-- `small_batch_stability_evidence/production_execution_events_tail.jsonl`
-- `small_batch_stability_evidence/production_closure_records_tail.jsonl`
-- `small_batch_stability_evidence/production_runtime_trust_tail.jsonl`
+- `docs/reports/evidence/blast_radius_suitability_evidence_binding_evidence/local_rebuilt_snapshots/trust-evolution-summaries.json`
+- `docs/reports/evidence/small_batch_stability_evidence/production_execution_events_tail.jsonl`
+- `docs/reports/evidence/small_batch_stability_evidence/production_closure_records_tail.jsonl`
+- `docs/reports/evidence/small_batch_stability_evidence/production_runtime_trust_tail.jsonl`
 
 ## 5. Part A Root Cause
 

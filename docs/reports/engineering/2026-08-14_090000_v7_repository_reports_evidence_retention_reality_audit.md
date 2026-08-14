@@ -543,6 +543,15 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root evidence planner purge — Batch 2
+
+Seventy-nine unreferenced historical planner/dry-run JSON payloads were
+deleted directly. Every file had `apply_requested=false`,
+`selected_move_count=0`, and no external repository reference. Real apply
+payloads and dry-runs with selected users were retained for separate lineage
+review. Deleted size: `167,452,948` bytes. No archive was created and no
+Runtime, production, routing, user, policy or Authority effect occurred.
+
 ## Root evidence duplicate purge — Batch 1
 
 Forty-six unreferenced exact duplicate files were deleted from root evidence

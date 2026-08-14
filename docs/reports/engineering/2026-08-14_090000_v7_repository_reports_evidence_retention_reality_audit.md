@@ -543,6 +543,15 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root Z7 report consolidation — Batch 9
+
+Five superseded root-level Z7 reports were deleted directly. Their complete
+wiring, readiness and test evidence remains in `z7_1-evidence`,
+`z7_2-evidence`, `z7_3-evidence`, `z7_4-evidence` and `z7_6_z8-evidence`.
+`PROGRAM_Z7_5_OPERATION_ENVELOPE_FOUNDATION_REPORT.md` was retained because
+no corresponding evidence directory was found. Stale xref entries were
+removed; no Runtime or production effect occurred.
+
 ## Root Z6 report consolidation — Batch 8
 
 Six superseded root-level `PROGRAM_Z6_*` reports were deleted directly. Their

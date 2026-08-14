@@ -442,3 +442,28 @@ receipt reduces the active tree by `5,389,728` bytes. This is
 `ARCHIVE_EXTERNAL`, not deletion; restoration requires archive extraction and
 source-hash verification. Runtime, Production, routing, user movement, policy
 and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 16
+
+The two `AUTONOMY_SOURCE_CONFIDENCE_REALITY_AUDIT` Planner observations are
+historical no-mutation `DRY_RUN` evidence. Both record the existing
+`tools/v7-users-autoswitch` owner, `observe` mode, `apply=false`, `26` users,
+`7` egresses, `2` healthy egresses, `10` candidates and zero selected moves.
+Their distinct operation identities are retained in the receipts; both ended
+with `dry_run_restore_barrier_clearance_generation_expired`. The historical
+confidence-audit report already retains the decision-bearing conclusion about
+forecast source confidence. Its only other consumer is the cross-reference
+index; there is no source, test, deploy or Runtime consumer of the full raw
+payload. Existing paths therefore remain compact receipts.
+
+The originals total `10,752,120` bytes. They are recoverable from the ignored
+existing archive lifecycle at
+`.v7/evidence-archive/2026-08-14-batch16/autonomy-source-confidence-observations.tar.gz`
+(SHA-256
+`583b45f36dd9ef281e5d44d69dfa32ec569c767ef396cf99087f49f82ebde549`).
+The individual source hashes are retained in the receipts and clean archive
+extraction was byte-compared before replacement. Receipts total `2,434` bytes,
+reducing the active tree by `10,749,686` bytes. This is `ARCHIVE_EXTERNAL`,
+not deletion; restoration requires archive extraction and source-hash
+verification. Runtime, Production, routing, user movement, policy and
+Authority effects: `NONE`.

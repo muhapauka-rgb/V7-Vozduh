@@ -543,6 +543,13 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Generated analysis-cache purge — Batch 6
+
+The generated `.understand-anything/.trash-*` cache and `fingerprints.json`
+were permanently removed. The canonical `knowledge-graph.json` remains. These
+files were not V7 truth, evidence, source or Runtime inputs. No archive was
+created and no production effect occurred.
+
 ## Empty-directory purge — Batch 5
 
 Fourteen empty directories left by prior evidence compaction were removed.

@@ -11427,7 +11427,7 @@ Maturity.
 
 ## 47. V7 Responsibility Realignment and System Simplification Program
 
-Status: `CONTRACT_ACTIVE_READ_ONLY; CPS_OWNS_LIVE_FRONTIER; RS7_PHYSICAL_MUTATION_NOT_ADMITTED`.
+Status: `CONTRACT_ACTIVE_READ_ONLY; CPS_OWNS_LIVE_FRONTIER; RS7_LIFECYCLE_BINDING_READY; RS7_PHYSICAL_MUTATION_NOT_ADMITTED`.
 
 Canonical name:
 
@@ -11558,6 +11558,41 @@ delta, then returns `READY_FOR_FIRST_IMPLEMENTATION` or `NOT_READY` with exact
 owner-backed re-entry conditions. A selected candidate does not advance CPS,
 resolve an open RS6 provenance gap or authorize code/deploy/Runtime change;
 the existing OMP/CPS admission remains mandatory.
+
+### 47.3B RS7 physical Mission lifecycle binding
+
+`RS7_PHYSICAL_SIMPLIFICATION_EXECUTION` uses the existing OMP admission and
+CPS atomic-reconciliation owners; it creates neither a parallel lifecycle nor
+a new CPS projection owner. An OMP result of `MISSION_ACCEPTED` is only a
+prepared packet. It becomes executable only after the existing CPS owner has
+atomically reconciled the exact same Mission identity, candidate identity,
+scope, existing owner, Product Contract, validation and rollback contracts.
+
+```text
+MISSION_PREPARED
+  -> MISSION_ADMITTED
+  -> MISSION_EXECUTION_ALLOWED
+  -> MISSION_EXECUTING
+  -> MISSION_VALIDATION
+  -> MISSION_COMPLETE
+```
+
+`MISSION_BLOCKED`, `MISSION_ROLLED_BACK` and `MISSION_FAILED` are terminal
+outcomes. A terminal outcome requires its own implementation/validation or
+rollback evidence; it cannot be inferred from a packet, report or test.
+
+The binding requires an exact `ADMITTED_READY_FOR_IMPLEMENTATION:<MISSION_ID>`
+CPS frontier, active Mission identity and `MISSION_ADMITTED` state before it
+can return `MISSION_EXECUTION_ALLOWED`. Before that atomic projection, the
+only legal result is `PENDING_CPS_ADMISSION`; it is not authority to change
+source, Runtime, deployment, Production or Authority. Any ambiguous Mission
+or candidate identity, CPS/owner/frontier conflict, missing lifecycle field or
+missing contract is `STOP_SAFE -> NO_MUTATION -> NO_FRONTIER_CHANGE`.
+
+This lifecycle contract does not consume or reinterpret RS0–RS6 read-only
+states. In particular, the current RS6 frontier stays controlling until its
+existing successor is completed and an exact CPS admission is separately
+reconciled.
 
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,

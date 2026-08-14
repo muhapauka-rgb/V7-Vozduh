@@ -71,6 +71,24 @@ RS_READ_ONLY_STAGE_TERMINALS = {
     "RS5_ADMIN_AND_MANAGEMENT_SEPARATION": "NONE_RS5_ADMITTED",
     "RS6_RUNTIME_PACKAGE_MINIMIZATION": "NONE_RS6_ADMITTED",
 }
+# RS7 is deliberately not folded into the read-only terminal map.  It uses the
+# same OMP/CPS owners and atomic reconciliation path, but an admitted physical
+# Mission has a different, explicitly bounded lifecycle.  These constants are
+# a validation contract, not a second CPS, registry, owner or writer.
+RS7_PHYSICAL_SIMPLIFICATION_STAGE = "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION"
+RS7_PHYSICAL_MISSION_LIFECYCLE = (
+    "MISSION_PREPARED",
+    "MISSION_ADMITTED",
+    "MISSION_EXECUTION_ALLOWED",
+    "MISSION_EXECUTING",
+    "MISSION_VALIDATION",
+    "MISSION_COMPLETE",
+)
+RS7_PHYSICAL_MISSION_TERMINALS = (
+    "MISSION_BLOCKED",
+    "MISSION_ROLLED_BACK",
+    "MISSION_FAILED",
+)
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
@@ -8904,6 +8922,122 @@ def omp_candidate_admission_decision(
         "production_impact": "NONE",
         "authority_expansion": False,
         "final_verdict": "PASS" if accepted else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def rs7_physical_mission_lifecycle_binding(
+    cps_text: str,
+    mission_packet: dict[str, Any],
+    *,
+    requested_state: str = "MISSION_PREPARED",
+) -> dict[str, Any]:
+    """Validate one bounded RS7 Mission against the existing CPS lifecycle.
+
+    This is intentionally a pure admission/authorization check.  It neither
+    writes CPS nor executes a Mission.  A future existing CPS writer must
+    atomically project ``MISSION_ADMITTED`` before this function can return
+    ``MISSION_EXECUTION_ALLOWED``.  That keeps an accepted OMP packet from
+    being mistaken for permission to mutate source or Runtime.
+    """
+    requested = str(requested_state or "").strip().upper()
+    errors: list[str] = []
+    if requested not in RS7_PHYSICAL_MISSION_LIFECYCLE + RS7_PHYSICAL_MISSION_TERMINALS:
+        errors.append("rs7_lifecycle_state_invalid")
+
+    mission_id = str(mission_packet.get("mission_id") or "")
+    candidate_id = str(mission_packet.get("candidate_instance_id") or "")
+    candidate_identity = str(mission_packet.get("candidate_identity") or "")
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]{7,159}", mission_id):
+        errors.append("rs7_mission_identity_invalid")
+    if not re.fullmatch(r"BDP-ICI-[0-9A-F]{24}", candidate_id):
+        errors.append("rs7_candidate_id_invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", candidate_identity):
+        errors.append("rs7_candidate_identity_invalid")
+    elif candidate_id and candidate_id != f"BDP-ICI-{candidate_identity[:24].upper()}":
+        errors.append("rs7_candidate_identity_mismatch")
+
+    required_exact = {
+        "omp_admission_decision": "MISSION_ACCEPTED",
+        "omp_mission_state": "PREPARED_NOT_ACTIVE",
+        "scope_classification": "MANAGEMENT_PLANE",
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+    }
+    for field, expected in required_exact.items():
+        if str(mission_packet.get(field) or "") != expected:
+            errors.append(f"rs7_packet_{field}_invalid")
+    if not str(mission_packet.get("existing_owner") or "").strip():
+        errors.append("rs7_existing_owner_missing")
+    for field in (
+        "product_contract_preserved",
+        "validation_contract_exists",
+        "rollback_contract_exists",
+        "no_new_owner",
+        "no_new_truth_source",
+        "no_new_runtime",
+    ):
+        if mission_packet.get(field) is not True:
+            errors.append(f"rs7_packet_{field}_not_proven")
+
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    active_program = _plain_live_value(live, "ACTIVE_PROGRAM")
+    current_stage = _plain_live_value(live, "CURRENT_PROGRAM_STAGE")
+    current_frontier = _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
+    current_mission = _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID")
+    current_mission_state = _plain_live_value(live, "CURRENT_EXECUTION_MISSION_STATE")
+    current_role = _plain_live_value(live, "CURRENT_MISSION_ROLE")
+    if active_program != "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1":
+        errors.append("rs7_active_program_mismatch")
+
+    expected_frontier = f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}"
+    requires_durable_admission = requested not in {"MISSION_PREPARED", "MISSION_BLOCKED"}
+    if requires_durable_admission:
+        if current_stage != RS7_PHYSICAL_SIMPLIFICATION_STAGE:
+            errors.append("rs7_predecessor_not_consumed")
+        if current_frontier != expected_frontier:
+            errors.append("rs7_cps_frontier_identity_mismatch")
+        if current_mission != mission_id:
+            errors.append("rs7_cps_mission_identity_mismatch")
+        if current_role != "ACTIVE_MISSION":
+            errors.append("rs7_cps_mission_role_mismatch")
+        if requested in {"MISSION_ADMITTED", "MISSION_EXECUTION_ALLOWED"} and current_mission_state != "MISSION_ADMITTED":
+            errors.append("rs7_cps_admission_state_missing")
+
+    # The transition model is deliberately monotonic.  No terminal can be
+    # asserted from a packet: completion/rollback/failure require their own
+    # implementation evidence and existing-owner validation.
+    if requested in {"MISSION_COMPLETE", "MISSION_ROLLED_BACK", "MISSION_FAILED"}:
+        errors.append("rs7_terminal_requires_execution_evidence")
+
+    unique = sorted(set(errors))
+    prepared_only = requested == "MISSION_PREPARED" and not unique
+    admitted = requested == "MISSION_ADMITTED" and not unique
+    allowed = requested == "MISSION_EXECUTION_ALLOWED" and not unique
+    return {
+        "schema": "v7-rs7-physical-mission-lifecycle-binding/v1",
+        "binding_owner": "existing OMP/CPS lifecycle owners",
+        "mission_id": mission_id if not any("mission_identity" in item for item in unique) else "NONE",
+        "candidate_instance_id": candidate_id,
+        "candidate_identity": candidate_identity,
+        "requested_state": requested or "NONE",
+        "lifecycle": list(RS7_PHYSICAL_MISSION_LIFECYCLE),
+        "terminal_states": list(RS7_PHYSICAL_MISSION_TERMINALS),
+        "current_cps_stage": current_stage or "NONE",
+        "current_cps_frontier": current_frontier or "NONE",
+        "required_cps_frontier": expected_frontier if mission_id else "NONE",
+        "binding_status": "RS7_LIFECYCLE_BINDING_READY" if prepared_only or admitted or allowed else "STOP_SAFE_NOT_READY",
+        "execution_authorization": "MISSION_EXECUTION_ALLOWED" if allowed else "PENDING_EXECUTION_AUTHORIZATION" if admitted else "PENDING_CPS_ADMISSION" if prepared_only else "NONE",
+        "mutation_performed": False,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if prepared_only or admitted or allowed else "STOP_SAFE",
         "errors": unique,
     }
 

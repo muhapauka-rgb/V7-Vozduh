@@ -62,6 +62,23 @@ grants no mutation authority and does not advance RS6.
 - Git history rewrite: `NONE`;
 - raw production evidence deletion: `NONE`.
 
+## Final verification
+
+- `git diff --check`: `PASS` before commit;
+- cleanup commit: `1ef8f08e7232b485909413d2d17570a2687c735f`;
+- local/GitHub `Updatesystem` identity: `PASS`, both point to that commit;
+- CPS consistency: `PASS`, contradiction count `0`, exact next action
+  `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`;
+- overall truth/convergence: `NO-GO` for a pre-existing independent production
+  delta: local `tools/v7_sync_lib.py` differs from production, whose deployed
+  commit remains `16be228951bbc122ab0fa429b7379dc9467d88f7`;
+- cleanup deployment: `NOT_REQUIRED_AND_NOT_PERFORMED`; this batch has no
+  deployable Runtime artifact and must not use deployment to erase an unrelated
+  convergence residual;
+- unrelated local residue left untouched:
+  `docs/reports/engineering/V7_PHYSICAL_SYSTEM_SHRINK_REPORT.md` remains
+  untracked and is not part of this batch.
+
 ## Exact successor
 
 Continue the already admitted read-only

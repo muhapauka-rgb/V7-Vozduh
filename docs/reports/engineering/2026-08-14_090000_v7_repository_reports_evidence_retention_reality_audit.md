@@ -467,3 +467,36 @@ reducing the active tree by `10,749,686` bytes. This is `ARCHIVE_EXTERNAL`,
 not deletion; restoration requires archive extraction and source-hash
 verification. Runtime, Production, routing, user movement, policy and
 Authority effects: `NONE`.
+
+## Structural inventory — 2026-08-14
+
+The repository was re-measured before any further deletion or relocation. The
+inventory confirms that age alone is not a safe retention rule:
+
+| Surface | Files | Bytes | Initial disposition |
+|---|---:|---:|---|
+| `docs/programs` | 17 | 1,847,959 | keep canonical |
+| `docs/reference` | 34 | 1,514,163 | keep canonical |
+| `docs/reports/engineering` | 906 | 33,984,016 | retain compact mission/closure reports; classify raw payloads |
+| `docs/reports/research` | 57 | 18,770,954 | retain decision-bearing research; classify payloads |
+| `docs/track7` | 3,539 | 121,148,577 | retain consumer-required receipts; archive raw outputs |
+| root `*_EVIDENCE` directories | 180 | 542,284,642 | disposition by owner/reference/consumer, never by age alone |
+
+The current Git tree contains 8,863 tracked files and 817,312,657 bytes. A
+30-day mtime filter reports 999 old report files, but mtime is not evidence
+age, lifecycle state, or consumer reachability. No mass deletion is therefore
+admitted.
+
+The next cleanup batch is restricted to root evidence payloads that satisfy all
+of the following existing-owner checks: no source/test/Runtime consumer reads
+the full payload; a decision-bearing report or receipt already preserves the
+identity and conclusion; a byte-verifiable archive pointer can be created;
+and the original path can remain as a compact receipt when a historical
+consumer references it. Any item failing one check remains
+`UNKNOWN_REQUIRES_OWNER_REVIEW`.
+
+This inventory is a read-only disposition result. It authorizes neither
+program deletion nor Git-history rewriting. The next safe action is a bounded
+candidate scan of the 180 root evidence directories, followed by a separately
+reviewable archive/compact-receipt batch. Runtime, production, routing, user,
+Authority and Production Maturity effects: `NONE`.

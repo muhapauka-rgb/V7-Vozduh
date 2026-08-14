@@ -143,11 +143,13 @@ runtime-lifecycle residual and was not changed by this bounded correction.
 | Source/test change across both commits | baseline | 5 files touched | `+157 / -3` lines; one test file added |
 | Routing / policy / user movement / Authority | unchanged | unchanged | `NONE` |
 
-**Residual and exact re-entry:** `errors=124` is the actual desired-state
-failure and still blocks any package removal. The stale/failed Matrix evidence
-and the observed health-loop cadence require the existing health/recovery and
-Matrix owners to provide fresh lifecycle evidence before a physical RS6
-minimization decision. CPS remains at
+**Historical residual and exact re-entry:** at this observation point,
+`errors=124` was the reported desired-state failure and blocked any package
+removal. The execution addenda below supersede its legacy-route interpretation
+with Core-primary evidence. The stale/failed Matrix evidence and the observed
+health-loop cadence required the existing health/recovery and Matrix owners to
+provide fresh lifecycle evidence before a physical RS6 minimization decision.
+CPS remains at
 `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`; no RS6 completion or frontier
 advance is claimed.
 
@@ -188,3 +190,111 @@ services, timers, state surfaces, routes, users and Authority boundaries
 created/removed/changed: `0` except the observer's own refreshed diagnostic
 projection. The remaining exact RS6 blocker is actual health/admission and
 Matrix recovery evidence, not the former stale Matrix read path.
+
+## Provenance addendum — state merge and residue
+
+`v7-state-merge` is no longer an unknown source/provenance blocker. Its tracked
+`tools/runtime-support/v7-state-merge` source is in the existing approved
+deploy manifest and its SHA-256 exactly matches `/usr/local/bin/v7-state-merge`.
+The existing active health loop calls it; it atomically writes fresh
+`summary.state` from benchmark, stability, status, load and diagnosis inputs.
+Observed existing readers are egress history, diagnose, state JSON and stale
+check. Its disposition is therefore `KEEP_RUNTIME`, not a removal candidate:
+it is a live Control-plane aggregation writer with known source, deploy,
+caller, state and readers.
+
+During this targeted verification, `v7-system-check` was identified as a
+state-refreshing diagnostic rather than a read-only command because its source
+calls existing stability and merge writers. Its invocation was stopped and is
+not used as evidence; it performed no routing, policy, user, service, timer or
+Authority operation. The existing health service remained active and its
+atomic `summary.state` projection stayed fresh. One exact old orphan file,
+`summary.state.tmp.2634283` (dated `2026-07-29`, with no live writer PID), was
+removed after verification. No current writer temp or durable state was
+removed.
+
+This closes only the state-merge provenance classification. At this point the
+Matrix/desired-state observations, path-sanity unit provenance and other named
+RS6 owner-backed exceptions remained; later execution addenda record the
+desired-state/path-guard correction. No physical minimization or CPS advance
+is claimed.
+
+## Execution addendum — Core-primary desired-state semantics
+
+The remaining `desired-state` failure was not a missing route repair. The
+existing Core-primary owner correctly reported, in a direct read-only verify,
+`CORE_PRIMARY_VERIFY_PASS`: `124` compatible users are mapped through `6`
+classes, the Core nft table exists, all required fwmark rules exist, and legacy
+per-user primary rules are intentionally absent. The prior desired-state helper
+was therefore checking a retired primary mechanism and reporting every enabled
+user as failed (`ip_rule_missing`, `table_route_mismatch`,
+`route_get_mismatch`). Creating those old rules again would have violated the
+Core-primary architecture.
+
+Commit `3a87e078` reuses the existing `v7-routing-sync
+--core-primary-verify --json` owner. When it returns
+`CORE_PRIMARY_VERIFY_PASS`, desired-state verifies shared Core routing and
+retains real per-user WireGuard/configuration checks, but no longer requires
+retired per-user route rules. A non-passing Core verifier with no proven legacy
+primary rules remains `CORE_PRIMARY_UNVERIFIED -> FAIL`; legacy validation is
+used only when the existing verifier proves legacy primary rules are live.
+
+| Check | Result |
+| --- | --- |
+| Core verify, deployed Runtime | `CORE_PRIMARY_VERIFY_PASS`; 124 users, 6 classes, no missing marks |
+| Target regression suite | `79 PASS` |
+| Safe deploy | `deploy-z8-14-Updatesystem-3a87e07-20260814T130003`; no restart |
+| Direct desired-state | `CORE_PRIMARY_CLASS_ROUTING`, `errors=0`, terminal `OK` |
+| Direct path-sanity | `user_policy_routes=OK`; canonical Matrix remains `FAIL`; overall `WARN` |
+| Next existing path-guard timer | `WARN -> WARN`, actions `0`, failures `0`, `V7_PATH_GUARD_REPAIR=OK` |
+
+The Matrix residual is now correctly isolated: current failed channel `1` has
+`0` enabled users, while `vless=WARN` has `11`; neither fact caused a route,
+policy, user-movement or Authority action. The existing path guard accepts the
+result as `v7_path_watch`, rather than issuing the former unnecessary routing
+sync. This closes the desired-state/path-guard false-failure chain. Physical
+delta for this correction is two existing files changed, `+71 / -10` lines;
+no files/services/timers/state surfaces/owners were created or removed.
+
+The Program remains at `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. The next
+work is still bounded provenance/residue closure for remaining live units and
+legacy exceptions; it is not a routing recovery or permission to remove a
+runtime package.
+
+## Targeted provenance closure — Direct/RU autosync
+
+`v7-direct-autosync` is a proven live Direct/RU runtime component, not an
+unknown unit and not a physical-minimization candidate. The tracked source
+`tools/runtime-support/v7-direct-auto-sync` and deployed
+`/usr/local/bin/v7-direct-auto-sync` have the identical SHA-256
+`f58d3f845022ea6deadb999feddadc0ba55341198b7eb95f342639af363228c4`.
+Its existing owner is `Direct/RU`; the canonical lineage record classifies it
+as `authoritative_runtime`, `runtime-critical`, and release-owned.
+
+```text
+v7-direct-autosync.timer (enabled, active, waiting)
+  -> v7-direct-autosync.service (oneshot)
+  -> /usr/local/bin/v7-direct-auto-sync
+  -> Direct/RU domain inputs + policy direct-domain input
+  -> direct domain file / autosync state
+  -> dnsmasq render and restart only when the domain configuration changes
+```
+
+The source also has a guarded recovery caller from
+`v7-path-guard-repair`, after a successful existing killswitch repair. The
+observed service completed successfully at `2026-08-14 12:59:15+03:00`; the
+active enabled timer triggered it, and its fresh state reported `changed=0`,
+`render=SKIPPED`, `dnsmasq=active`, eight checked samples, and zero stale or
+failed samples. This was observation only: the autosync itself was never run
+manually in this recheck.
+
+| Component | Owner | Source/deploy/lifecycle evidence | Effect | Final classification |
+| --- | --- | --- | --- | --- |
+| `v7-direct-auto-sync` | existing `Direct/RU` owner | source/live hash equal; existing lineage; enabled timer -> successful oneshot service | may update Direct/RU domains and restart `dnsmasq` only on a real configuration change | `KEEP_RUNTIME` / high-risk Direct/RU boundary |
+
+There is no missing owner, caller, consumer class, deploy provenance or
+rollback ambiguity that a generic RS6 package change can safely solve. Any
+future change requires the existing Direct/RU owner, explicit policy-domain
+consumer analysis, and `dnsmasq` rollback validation. It is therefore excluded
+from the current physical-minimization admission, with no change to Runtime,
+Production, Authority, route policy, service, timer, or CPS frontier.

@@ -585,3 +585,39 @@ projection or substitute lifecycle was created.
 
 This is a closure of successor-routing evidence, not a new audit or a claim
 that RS6 physical minimization is complete.
+
+## Executed physical shrink — dated autoswitch backups
+
+Existing archive evidence revealed a previously used, recoverable owner path:
+`/root/v7-backups/usr-local-bin-archive/<timestamp>/`, with an original-path
+mapping and checksums. The seven specifically inventoried dated
+`v7-users-autoswitch.*backup*` files were moved — not deleted — to
+`/root/v7-backups/usr-local-bin-archive/20260814T104858Z-rs6-autoswitch-backups/`.
+The archive has `moved-files.txt`, before/after SHA-256 lists and an
+`archive-manifest.txt` with the exact rollback operation.
+
+| Metric | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| dated autoswitch backup executables in `/usr/local/bin` | 7 | 0 | -7 from executable search path |
+| archive copies | 0 in this archive run | 7 checksum-verified | +7 retained, no deletion |
+| active `/usr/local/bin/v7-users-autoswitch` SHA-256 | `0033a991…768f6` | `0033a991…768f6` | unchanged |
+| service/timer operations issued by this Mission | 0 | 0 | 0 |
+| files deleted | 0 | 0 | 0 |
+
+Post-operation verification passed: all seven archive checksums match,
+no dated backup residue remains in `/usr/local/bin`, and no backup process
+exists. The currently canonical `v7-autoswitch-planner.timer` remains
+`active/running`; the older `v7-users-autoswitch.timer` is enabled but was
+already inactive with its last run on 2026-07-02. No unit was enabled,
+disabled, started, stopped, reloaded or otherwise changed by this operation.
+
+**Rollback:** verify `checksums.after.sha256` in the archive directory, then
+move only the named archived file back to its original `/usr/local/bin/` path.
+The active canonical binary is intentionally not part of the rollback set.
+
+**Effects:** Runtime behavior `NONE`; Production physical surface `-7`
+executable-path artifacts, with seven recoverable archives retained; Authority
+`NONE`; routing, user movement, state and service configuration `NONE`.
+This closes the previously owner-backed backup retention residual for the
+scoped seven files. It does not claim a general backup-retention policy or
+authorize deletion of any archive.

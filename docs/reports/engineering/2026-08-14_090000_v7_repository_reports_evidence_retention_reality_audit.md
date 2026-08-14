@@ -279,3 +279,26 @@ recoverable only from the hash-bound local archive; the compact Git receipt
 does not replicate internal user addresses. The active-tree size changed
 `6,753,352 -> 1,782` bytes, a `6,751,570`-byte reduction. Runtime,
 Production, routing, user, policy and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 8
+
+`CTR_FINAL_EVIDENCE` contained nineteen intermediate historical observations:
+nine `production_dry_run_02` through `_10` snapshots and ten API-wrapper
+snapshots. Static reference reconciliation found no source, test, deploy or
+Runtime consumer. Their only references were historical inventory listings;
+the certification's decision-bearing inputs remain at their existing paths:
+the primary dry-run (`_01`), `production_observation_window.json`, convergence
+and truth evidence, and `CTR_FINAL_CERTIFICATION_REPORT.md`.
+
+The nineteen intermediate files were moved out of active Git only after exact
+archive restoration. Their original aggregate is `84,397,669` bytes and is
+recoverable from the ignored archive
+`.v7/evidence-archive/2026-08-14-batch8/ctr-final-intermediate-snapshots.tar.gz`
+with SHA-256
+`62187ca8d52cef254179965a33ffd3d07adaefcfbf0795be1a24352e64fa90cf`.
+The colocated ignored `source-sha256sums.txt` passed for all nineteen files
+after a clean extraction. This is `ARCHIVE_EXTERNAL`, not logical exclusion:
+the active-tree physical reduction is exactly `84,397,669` bytes; no
+conclusion, certification summary, source owner or archive/recovery path was
+deleted. Runtime, Production, routing, user, policy and Authority effects:
+`NONE`.

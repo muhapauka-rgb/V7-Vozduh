@@ -437,3 +437,33 @@ deploy/package owners, preserve both retained traffic data and live read
 responses, explicitly address the nft-counter side effect, and provide a
 rollback path. No counter, SQLite, service, timer, Runtime, Production,
 Authority or CPS state was changed in this recheck.
+
+## Targeted provenance closure — active runtime-unit batch
+
+Six previously incomplete unit mappings are now current source-to-Runtime
+facts. Their tracked executable and unit definitions match the deployed
+artifacts byte-for-byte; all are live in their expected long-running or
+`RemainAfterExit` lifecycle. They are not removal candidates.
+
+| Component | Current source / unit / live effect | Classification |
+| --- | --- | --- |
+| `v7-api.service` | `v7-api` source hash and tracked unit match; active local API is ordered after health and Routing Sync; Admin reports it as a service dependency | `KEEP_RUNTIME` Management/local API boundary |
+| `v7-benchmark.service` | tracked benchmark helper hash and unit match; active five-minute measurement loop is ordered after Routing Sync | `KEEP_RUNTIME` measurement producer |
+| `v7-killswitch.service` | tracked binary and unit match; active-exited boot leak guard precedes Routing Sync, benchmark, health and API, and is a guarded path-guard/egress-state recovery caller | `KEEP_RUNTIME` Data/Recovery safety boundary |
+| `v7-mss-clamp.service` | tracked binary and unit match; active-exited client TCP MSS safety and conditional path-guard repair target | `KEEP_RUNTIME` network-safety boundary |
+| `v7-public-gateway.service` | tracked binary and unit match; active `/connect` and profile gateway requires existing Admin API upstream | `KEEP_RUNTIME` public product ingress boundary |
+| `v7-egress-openvpn@v7edb0c189291.service` | tracked template unit matches; active instance has explicit external `.ovpn` Runtime configuration and is governed by existing egress lifecycle tooling | `KEEP_RUNTIME` egress Data-plane support |
+
+The seventh unit, `v7-proxy-inbound-happ-test.service`, remains deliberately
+separate. It runs `sing-box` with an external Runtime configuration and has
+privileged `ExecStartPre`/`ExecStopPost` ip-rule lifecycle. Its existing
+proxy/ingress owner is known, but a current tracked source/config deployment
+chain and product-consumer/rollback packet for that exact public-candidate
+configuration were not established in this bounded check. Its final
+classification is therefore `OWNER_BACKED_EXCEPTION`, never removal or
+disablement authority.
+
+This recheck closes source/deploy ambiguity for the six proven components and
+narrows the remaining ingress residual to one exact owner-backed Runtime
+configuration boundary. It made no changes to services, timers, processes,
+kernel rules, routes, Runtime, Production, Authority or CPS.

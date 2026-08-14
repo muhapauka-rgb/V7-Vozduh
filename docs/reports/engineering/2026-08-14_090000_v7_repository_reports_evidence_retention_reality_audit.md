@@ -543,6 +543,13 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root convergence-scratch purge — Batch 11
+
+Ninety-eight obsolete root-level `P2_7`, `P2_8` and `CONVERGENCE_A/B` working
+notes were deleted directly. They had no active references, no canonical
+owner, and no corresponding Runtime or production consumer. Canonical Programs,
+reference documents and evidence packages were not affected.
+
 ## Root report consolidation — Batch 10
 
 Fourteen additional root-level historical reports were removed because each

@@ -3101,6 +3101,39 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
     bounded_closure = result.get("bounded_closure_reconciliation") or value.get("bounded_closure_reconciliation")
     if isinstance(bounded_closure, dict) and bounded_closure:
         compact_result["bounded_closure_reconciliation"] = bounded_closure
+    # The Autoswitch owner already produces a bounded monotonic performance
+    # timeline.  Preserve only its scalar advisory spans in the existing
+    # Matrix lifecycle projection: this makes the observed cost attributable
+    # without re-embedding child state, raw history or a new metrics store.
+    timing = result.get("performance_timeline") or value.get("performance_timeline")
+    if isinstance(timing, dict):
+        spans = timing.get("spans") if isinstance(timing.get("spans"), list) else []
+        advisory_spans = [
+            {
+                key: row.get(key)
+                for key in (
+                    "stage", "parent", "owner", "clock_source", "duration_ms",
+                    "status", "critical_path",
+                )
+                if row.get(key) not in (None, "", [], {})
+            }
+            for row in spans
+            if isinstance(row, dict)
+            and (
+                str(row.get("parent") or "") in {
+                    "service_failure_advisory",
+                    "service_failure_advisory_materialization",
+                }
+                or str(row.get("stage") or "").startswith("advisory_")
+            )
+        ]
+        if advisory_spans:
+            compact_result["advisory_performance_timeline"] = {
+                "schema_version": str(timing.get("schema_version") or ""),
+                "clock_source": str(timing.get("clock_source") or ""),
+                "owner": str(timing.get("owner") or ""),
+                "spans": advisory_spans,
+            }
     sample_preparation = (
         result.get("sample_preparation_receipt")
         or value.get("sample_preparation_receipt")

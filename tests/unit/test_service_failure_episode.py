@@ -3081,6 +3081,41 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(projected["campaign_stage"], 0)
         self.assertEqual(len(projected["cohort_execution_timings"]), 1)
 
+    def test_advisory_timing_projection_retains_only_compact_advisory_spans(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "status": "PASS",
+                "performance_timeline": {
+                    "schema_version": "v7.governed-transaction-nested-timing.v1",
+                    "clock_source": "time.monotonic_ns",
+                    "owner": "tools/v7-users-autoswitch",
+                    "spans": [
+                        {
+                            "stage": "advisory_l3_and_closure_history_load",
+                            "parent": "service_failure_advisory_materialization",
+                            "owner": "tools/v7-users-autoswitch",
+                            "duration_ms": 12.5,
+                            "critical_path": True,
+                            "started_monotonic_ns": 1,
+                            "completed_monotonic_ns": 2,
+                        },
+                        {
+                            "stage": "planner_initialization_total",
+                            "parent": "governed_transaction",
+                            "owner": "tools/v7-users-autoswitch",
+                            "duration_ms": 1.0,
+                            "critical_path": True,
+                        },
+                    ],
+                },
+            },
+        })["consumer_result"]
+
+        spans = projected["advisory_performance_timeline"]["spans"]
+        self.assertEqual(len(spans), 1)
+        self.assertEqual(spans[0]["stage"], "advisory_l3_and_closure_history_load")
+        self.assertNotIn("started_monotonic_ns", spans[0])
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

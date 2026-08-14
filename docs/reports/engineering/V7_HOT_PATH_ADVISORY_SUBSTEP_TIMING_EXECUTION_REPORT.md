@@ -37,7 +37,10 @@ bounded closure reconciliation
 ```
 
 `consume_service_failure_automation_only()` returns this existing performance
-timeline in its normal JSON result. The spans are observational and use
+timeline in its normal JSON result. The existing Matrix lifecycle projection
+then retains only compact scalar advisory spans (stage, owner, parent, duration
+and status). It deliberately excludes monotonic timestamps, raw child output,
+identities and history. The spans are observational and use
 `time.monotonic_ns`; they do not affect decision selection, obligation
 semantics, re-entry, Packet, lease, barrier, apply, routing or verification.
 
@@ -47,6 +50,7 @@ semantics, re-entry, Packet, lease, barrier, apply, routing or verification.
 | --- | --- |
 | In-memory source compilation | PASS |
 | Exact advisory materialization timing-sequence unit test | PASS |
+| Compact Matrix lifecycle timing-projection test | PASS |
 | Two existing service-failure test modules | 152 / 167 PASS; 15 existing unrelated CPS/legacy-fixture failures remain | 
 | New owner / truth source / runtime dependency | NONE |
 | CPS change | NONE |

@@ -11666,6 +11666,41 @@ Engineering Report records completed actions, validation, residue result,
 `BEFORE -> AFTER -> DELTA`, final state and the exact next frontier; internal
 substeps do not receive standalone reports merely for being substeps.
 
+`CONTINUOUS_BOUNDED_MISSION_CLOSURE_AND_FRONTIER_RULE` strengthens that
+existing completion rule; it is not a lifecycle, scheduler, registry, durable
+context document or automatic implementation authority. It applies only after
+`MISSION_COMPLETE` or an existing-owner terminal `MISSION_ROLLED_BACK`,
+`MISSION_FAILED` or `MISSION_BLOCKED` outcome has been reconciled through the
+existing CPS/OMP owners. A commit, one test, one report, partial migration or
+an admitted Mission is never such a terminal trigger. For a successful
+completion, the one concise Engineering Report records Mission identity and
+scope, before state, changed files/functions, migrated consumers, validation,
+residue result, Runtime/Production/Authority effects, and a decision-relevant
+physical `BEFORE -> AFTER -> DELTA` that distinguishes removal from logical
+exclusion. It is Historical Evidence, not current execution truth.
+
+After that terminal reconciliation, the existing CPS Section 0 remains the
+only volatile context owner and the existing OMP pointer/history remains the
+rule owner. They must identify the terminal Mission, active Mission or `NONE`,
+blockers, existing owner-backed re-entry condition and `NEXT_CANDIDATE_OR_NONE`;
+no parallel status projection is allowed. The only automatic post-terminal
+step is a bounded read-only recomputation of the next *candidate* from
+existing evidence and the existing unfinished deterministic sequence. It
+reuses closed evidence unless an `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER`
+occurs, and it must not form, admit or execute a new Mission while any active
+Mission remains. A candidate becomes executable only through the existing
+First Implementation Candidate, Product Contract, Hot Path, Consumer
+Migration and exact OMP/CPS admission gates.
+
+The same stop-safe boundaries apply to this recomputation: scope drift,
+unknown owner/consumer/dependency/state writer, missing validation or rollback,
+failed residue proof, Product Contract/Runtime/Production/Authority/Data
+Plane/Control Plane/recovery impact, CPS/OMP contradiction or an external
+invalidator returns the exact existing owner-backed blocker and re-entry
+condition. It must not open a new audit, duplicate a responsibility map,
+create a report without a decision-relevant state change, or bypass the
+current global frontier.
+
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,
 Runtime dependency, state surface or duplicate responsibility; any asserted

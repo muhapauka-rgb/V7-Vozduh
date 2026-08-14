@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REG="/opt/v7/egress/state/egress.registry"
+OUT="/opt/v7/egress/state/summary.state"
+TMP="${OUT}.tmp.$$"
+
+BENCH="/opt/v7/egress/state/benchmark.state"
+BENCH_TMP="${BENCH}.tmp.$$"
+STATUS="/opt/v7/egress/state/egress-status.state"
+URL="https://speed.cloudflare.com/__down?bytes=5000000"
+
+FAIL_LIMIT=3
+QUARANTINE_SECONDS=300
+
+get_status() {
+  key="$1"
+  grep "^${key}=" "$STATUS" 2>/dev/null | tail -n1 | cut -d= -f2 || true
+}
+
+set_status() {
+  key="$1"
+  val="$2"
+  touch "$STATUS"
+  grep -v "^${key}=" "$STATUS" > "$STATUS.tmp" || true
+  echo "${key}=${val}" >> "$STATUS.tmp"
+  mv "$STATUS.tmp" "$STATUS"
+}
+
+echo "updated=$(date -Is)" > "$TMP"
+echo "updated=$(date -Is)" > "$BENCH_TMP"
+touch "$STATUS"
+
+now="$(date +%s)"
+
+while read -r line; do
+  [ -z "$line" ] && continue
+  eval "$line"
+  [ "${enabled:-0}" != "1" ] && continue
+
+  echo "=== $id ==="
+
+  if [ "$type" = "proxy" ]; then
+    host=$(echo "$test" | cut -d/ -f3)
+    result=$(curl -4 -sS --max-time 10 \
+      --socks5-hostname "$host" \
+      -o /dev/null \
+      -w "code=%{http_code} speed=%{speed_download} start=%{time_starttransfer}" \
+      "$URL" 2>/dev/null || echo "code=000 speed=0 start=0")
+
+  elif [ "$type" = "interface" ]; then
+    result=$(curl --interface "$interface" -4 -sS --max-time 10 \
+      -o /dev/null \
+      -w "code=%{http_code} speed=%{speed_download} start=%{time_starttransfer}" \
+      "$URL" 2>/dev/null || echo "code=000 speed=0 start=0")
+
+  else
+    echo "unknown type $type"
+    continue
+  fi
+
+  code=$(echo "$result" | grep -o "code=[0-9]*" | head -n1 | cut -d= -f2)
+  speed=$(echo "$result" | grep -o "speed=[0-9]*" | head -n1 | cut -d= -f2)
+  start=$(echo "$result" | grep -o "start=[0-9.]*" | head -n1 | cut -d= -f2)
+
+  [ -z "$code" ] && code="000"
+  [ -z "$speed" ] && speed="0"
+  [ -z "$start" ] && start="0"
+
+  echo "${id}_code=$code" >> "$TMP"
+  echo "${id}_speed=$speed" >> "$TMP"
+  echo "${id}_start=$start" >> "$TMP"
+
+  echo "${id}_code=$code" >> "$BENCH_TMP"
+  echo "${id}_speed=$speed" >> "$BENCH_TMP"
+  echo "${id}_start=$start" >> "$BENCH_TMP"
+
+  old_fail="$(get_status "${id}_fail_count")"
+  [ -z "$old_fail" ] && old_fail=0
+
+  if [ "$code" = "200" ]; then
+    set_status "${id}_fail_count" "0"
+    set_status "${id}_quarantine_until" "0"
+    set_status "${id}_last_ok" "$now"
+    set_status "${id}_last_code" "$code"
+    echo "${id}_status=OK"
+  else
+    new_fail=$((old_fail + 1))
+    set_status "${id}_fail_count" "$new_fail"
+    set_status "${id}_last_fail" "$now"
+    set_status "${id}_last_code" "$code"
+
+    if [ "$new_fail" -ge "$FAIL_LIMIT" ]; then
+      quarantine_until=$((now + QUARANTINE_SECONDS))
+      set_status "${id}_quarantine_until" "$quarantine_until"
+      echo "${id}_status=QUARANTINE fail_count=${new_fail} until=${quarantine_until}"
+    else
+      echo "${id}_status=FAIL fail_count=${new_fail}"
+    fi
+  fi
+
+done < "$REG"
+
+mv "$TMP" "$OUT"
+mv "$BENCH_TMP" "$BENCH"
+
+echo "=== SUMMARY ==="
+cat "$OUT"
+
+echo "=== BENCHMARK STATE ==="
+cat "$BENCH"
+
+echo "=== STATUS ==="
+cat "$STATUS"

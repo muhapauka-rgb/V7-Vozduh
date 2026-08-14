@@ -1,0 +1,12 @@
+[Unit]
+Description=V7 Benchmark Loop
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'while true; do v7-egress-benchmark-all; sleep 300; done'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

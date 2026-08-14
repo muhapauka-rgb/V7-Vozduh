@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WG_IF="${V7_MSS_WG_IF:-wg0}"
+MSS="${V7_MSS_CLAMP_VALUE:-1240}"
+OUT_IFS=(${V7_MSS_OUT_IFS:-tun0 awg2 ens3})
+
+command -v iptables >/dev/null || {
+  echo "ERROR: iptables not found" >&2
+  exit 1
+}
+
+for out_if in "${OUT_IFS[@]}"; do
+  iptables -t mangle -C FORWARD -i "$WG_IF" -o "$out_if" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$MSS" 2>/dev/null \
+    || iptables -t mangle -A FORWARD -i "$WG_IF" -o "$out_if" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$MSS"
+done
+
+echo "V7_MSS_CLAMP=OK"
+echo "wg_if=$WG_IF"
+echo "mss=$MSS"
+echo "out_ifs=${OUT_IFS[*]}"
+iptables -t mangle -S FORWARD | grep -- '--set-mss' || true

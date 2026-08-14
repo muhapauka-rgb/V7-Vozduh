@@ -1,0 +1,14 @@
+[Unit]
+Description=V7 Kill Switch Rules
+After=network-online.target
+Wants=network-online.target
+Before=v7-routing-sync.service v7-benchmark.service v7-health.service v7-api.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/v7-killswitch-enable
+ExecStop=/usr/local/bin/v7-killswitch-disable-temporary
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

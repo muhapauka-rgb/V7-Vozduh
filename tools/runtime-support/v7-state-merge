@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_DIR="/opt/v7/egress/state"
+
+BENCH="${STATE_DIR}/benchmark.state"
+STAB="${STATE_DIR}/stability.state"
+STATUS="${STATE_DIR}/egress-status.state"
+LOAD="${STATE_DIR}/egress-load.state"
+DIAG="${STATE_DIR}/egress-diagnose.state"
+
+OUT="${STATE_DIR}/summary.state"
+TMP="${OUT}.tmp.$$"
+
+touch "$TMP"
+
+echo "updated=$(date -Is)" > "$TMP"
+
+for f in "$BENCH" "$STAB" "$STATUS" "$LOAD" "$DIAG"; do
+  [ -f "$f" ] || continue
+
+  while read -r line; do
+    [ -z "$line" ] && continue
+
+    key="${line%%=*}"
+
+    grep -v "^${key}=" "$TMP" > "${TMP}.2" || true
+    echo "$line" >> "${TMP}.2"
+    mv "${TMP}.2" "$TMP"
+
+  done < "$f"
+done
+
+mv "$TMP" "$OUT"
+
+echo "===== MERGED SUMMARY ====="
+cat "$OUT"

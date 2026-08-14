@@ -2025,6 +2025,48 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(record["last_execution_feedback_id"], outcome["feedback_id"])
         self.assertFalse(any(second["forbidden_effects"].values()))
 
+    def test_passive_consumer_prunes_only_consumptions_outside_current_event_window(self):
+        """The exact-once cache may shrink without forgetting a current event."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            event_dir = root / "events"
+            state_dir.mkdir()
+            event_dir.mkdir()
+            event = {
+                "event_id": "sfe_current_window",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "channel": "vless",
+                "failure_samples": 3,
+                "bad_for_seconds": 180,
+            }
+            (event_dir / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8"
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "passive_event_consumptions": {
+                    "sfe_expired_cache_entry": {"consumed_at": "old"},
+                    event["event_id"]: {"consumed_at": "current"},
+                },
+            }), encoding="utf-8")
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--consume-passive-events-only",
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(root / "missing-policy.json"),
+                "--org-policy-file", str(root / "missing-org-policy.json"),
+            ])
+            result = self.autoswitch.consume_passive_events_only(args)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["result"]["reason"], "already_consumed_idempotent")
+        self.assertEqual(
+            state["passive_event_consumptions"],
+            {"sfe_current_window": {"consumed_at": "current"}},
+        )
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_newer_owner_backed_scope_rotates_current_denominator_only(self):
         """A newer revalidation replaces only current scope, never Outcome history."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

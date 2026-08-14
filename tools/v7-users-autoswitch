@@ -14436,9 +14436,11 @@ class AutoswitchPlanner:
             #
             # This is compact-state reconciliation only.  It cannot enter the
             # planner, create Candidate/Packet/lease, or cause Runtime apply.
-            scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+            # Persist a compacted cache first: the reconciler reloads the
+            # current L3 state and may publish newer outcome facts.
             if consumption_cache_compacted:
                 self._write_l3_runtime_state(state)
+            scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
             return {
                 "active": True,
                 "reason": "already_consumed_idempotent",

@@ -237,3 +237,20 @@ consumed by the governance checker. Full before/after checker comparison has
 `0` semantic differences after excluding only the volatile `generated_at`
 timestamp. Runtime, Production, routing, user, policy and Authority effects:
 `NONE`.
+
+## Cleanup execution update — Batch 6
+
+The ignored local directory `.understand-anything/.trash-1786636987` was
+classified as `KEEP_LOCAL_GENERATED_EXCLUDED_FROM_GIT` residue, not as a
+knowledge-graph owner. It had no tracked files, no repository-visible
+consumer references and is excluded by the existing
+`.understand-anything/.gitignore` rule. The retained
+`.understand-anything/knowledge-graph.json` remains present and non-empty.
+
+The local trash directory was removed: `24,064 KiB -> 0 KiB`. This is a
+workspace-cache reduction only: tracked-path delta `0`, Git-history delta
+`0`, Runtime/Production/routing/user/Authority effects `NONE`, and no archive
+was required because the data was regenerated trash rather than retained
+evidence. The next Evidence Cleanup candidate must again prove its own
+consumer, archive/restore and compact-knowledge disposition; Batch 6 creates
+no deletion rule for other generated outputs.

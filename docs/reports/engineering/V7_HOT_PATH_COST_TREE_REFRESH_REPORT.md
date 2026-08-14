@@ -12,7 +12,7 @@ cohorts and `RECONCILE_CONTROLLED_CERTIFICATION_SCOPE_ONLY`.
 | Segment | Natural observation |
 | --- | ---: |
 | Passive consumer | 12.99–20.92 s |
-| Advisory planner total | 57.22–63.15 s; one timeout at 90 s |
+| Advisory planner total | 57.22–63.15 s; one timeout at 90 s before substep timing was exposed |
 | Advisory → prepared decision | 22.82–22.96 s |
 | Prepared decision → advisory completion | ~34.4–40.3 s |
 | OMP consumer | 2.15–4.73 s, after advisory; no execution obligation |
@@ -45,24 +45,39 @@ reconcile_bounded_cohort_closure_obligations
 → materialize_service_failure_automation_advisory
 ```
 
+## Current measured refinement
+
+The deployed compact advisory timeline subsequently isolated the repeated
+scope scans. One natural baseline contained 12.024 s at entry, 12.789 s
+post-plan and 13.103 s after a durable write. The entry result had no consumer
+between it and the post-plan reconciliation. It was removed in
+`a8be3166` while the two safety rechecks remained; the first post-deploy
+receipt contains no entry span and retains a 9.489-s post-plan recheck.
+
+This is a real removed synchronous operation. It is not an end-to-end client
+failover result, and it does not authorize removal of either retained recheck.
+
 ## Decision
 
-The next admissible optimization is not a generic Planner rewrite. It is a
-bounded certification-only fast-return: when the existing Matrix owner proves
-there are no ordinary affected users, no fresh/legacy/direct handoff and no
-Packet/lease/apply obligation, it must return the existing certification
-re-entry work without running full advisory materialization in the synchronous
-Matrix cycle.
+A global `CERTIFICATION_ONLY` fast return is **not admitted**: 28 legacy open
+cohorts retain owner-backed re-entry and lack terminal/superseding disposition.
+Current Matrix scope cannot replace their individual lineage.
 
-This must preserve re-entry, current scope lineage and the existing controlled
-certification owner. It may not classify `CERTIFICATION_ONLY` from a stale
-historical row or treat zero current users as an incident closure.
+The next admissible optimization is therefore not a generic Planner rewrite
+or a certification bypass. It is a bounded read-only consumer proof for the
+two retained post-plan/final scope reconciliations: establish whether their
+freshness and durable-write consumers can share one result in a specific
+semantic branch, without changing legacy re-entry, Packet, lease, barrier,
+apply or verification.
 
 ## Next step
 
-`V7_HOT_PATH_CERTIFICATION_ONLY_FAST_RETURN_ADMISSION_V1`:
-prove the exact current-owner predicate and migration/rollback contract before
-implementing any early return.
+`V7_HOT_PATH_POST_PLAN_SCOPE_RECONCILIATION_CONSUMER_PROOF_V1`:
+map only the post-plan and final scope recheck inputs, writers and consumers;
+admit a change only if one has an exact existing-owner replacement. In
+parallel, collect a natural **ordinary** service-failure event to measure
+`failure → decision → Packet → lease → apply → verify`; no synthetic failure
+or user movement is permitted.
 
 ## Effects
 

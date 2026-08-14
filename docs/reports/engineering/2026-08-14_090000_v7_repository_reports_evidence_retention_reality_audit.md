@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root report duplicate purge — Batch 7
+
+`PROGRAM_Z6_6_RUNTIME_OPERATION_MODEL_DESIGN_REPORT.md` was removed as a
+historical root-level duplicate. Its canonical semantic content remains in
+`z6_6-evidence/02_canonical_operation_model.md` and
+`z6_6-evidence/06_final_verdicts.md`; the stale cross-reference entry was
+removed from the existing xref summary. No Runtime or production effect.
+
 ## Generated analysis-cache purge — Batch 6
 
 The generated `.understand-anything/.trash-*` cache and `fingerprints.json`

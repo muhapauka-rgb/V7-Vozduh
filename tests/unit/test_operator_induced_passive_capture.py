@@ -108,6 +108,8 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
             "channel": "failed", "source_incident_id": "incident-current",
             "affected_scope_count": 1, "source_scope_fingerprint": "old",
             "event_id": "current", "source_currently_failed": True,
+            "scope_classification": "LEGACY_UNPARTITIONED",
+            "controlled_certification_scope_count": 0,
         }])
 
     def test_certification_only_failed_scope_is_reconciled_but_not_actionable(self):

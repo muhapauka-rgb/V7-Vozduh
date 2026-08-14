@@ -57,6 +57,12 @@ AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS = (
 RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
+# ``current_failed_source_scope`` has always needed only the current event
+# window.  Keep that logical 2,000-record bound physically bounded as well:
+# the production event ledger is append-only historical evidence and must not
+# be parsed in full by every event-only wake.
+CURRENT_SCOPE_EVENT_ROW_LIMIT = 2_000
+CURRENT_SCOPE_EVENT_BYTE_LIMIT = 16_000_000
 PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 PERFORMANCE_REVALIDATION_GENERATION = (
     "stage48-second-level-critical-path-v3"
@@ -3524,17 +3530,12 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     """
     path = event_dir / "service-failure-events.jsonl"
     latest_by_incident: dict[tuple[str, str], dict[str, Any]] = {}
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]
-    except OSError:
-        lines = []
-    for line in lines:
-        try:
-            row = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(row, dict):
-            continue
+    rows = intelligence_workers.read_jsonl_tail(
+        path,
+        limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
+        max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
+    )
+    for row in rows:
         if str(row.get("event_type") or "") not in {
             "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
         }:

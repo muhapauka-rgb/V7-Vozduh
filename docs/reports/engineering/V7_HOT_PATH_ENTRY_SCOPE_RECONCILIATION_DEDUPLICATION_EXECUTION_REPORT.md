@@ -2,7 +2,7 @@
 
 **Mission:** `V7_HOT_PATH_ENTRY_SCOPE_RECONCILIATION_DEDUPLICATION_V1`  
 **Program / CPS frontier:** unchanged — `RS6_RUNTIME_PACKAGE_MINIMIZATION` → `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`  
-**Verdict:** `IMPLEMENTED_AWAITING_NATURAL_LATENCY_OBSERVATION`
+**Verdict:** `IMPLEMENTED_AND_NATURALLY_OBSERVED`
 
 ## Evidence and decision
 
@@ -68,6 +68,23 @@ Authority or CPS transition is bypassed. OMP is not added to this path.
 This is a removal of a proven duplicate, not an end-to-end failover latency
 claim. A fresh production observation is required before claiming the measured
 reduction.
+
+## Natural post-deploy observation
+
+Safe deploy `deploy-z8-14-Updatesystem-a8be316-20260814T205618` passed the
+existing truth check. The deployed autoswitch hash was
+`fe5ca1ef884c8205f429de98325c9647732902c4bf7f2c2b0623649c240809d3`.
+
+The first completed post-deploy natural advisory receipt contains **no**
+`advisory_entry_scope_reconciliation` span. It retained the required
+post-plan scope reconciliation at **9,488.809 ms**. Advisory materialization
+was **12,593.642 ms** in that receipt; its final reconciliation was correctly
+not invoked because existing obligation semantics were already current.
+
+This proves the removed duplicate no longer runs. It does not compare total
+advisory wall time directly with an earlier cycle, because the retained final
+recheck is conditional on a semantic write. No failure was created and no
+user was moved to obtain this observation.
 
 ## Effects and rollback
 

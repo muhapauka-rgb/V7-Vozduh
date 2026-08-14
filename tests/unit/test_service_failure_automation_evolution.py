@@ -5254,6 +5254,55 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             rejected = self.sync.service_failure_automation_consumed_execution_handoff(state_dir=state_dir)
             self.assertEqual(rejected["final_verdict"], "NO_CURRENT_CONSUMED_HANDOFF", rejected)
 
+    def test_l3_direct_handoff_reuses_compact_receipt_projection_without_reading_receipt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 2,
+                "protected_scope_count": 0, "unresolved_scope_count": 2,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "d" * 64,
+            }
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_direct", "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "automation_consumption_fingerprint": "e" * 64,
+                "source_incident_id": "sfinc_direct", "incident_key": "current",
+                "situation_id": "sit_direct", "decision_trace_id": "dec_direct",
+                "current_source_scope": scope,
+            }
+            receipt = {
+                "object_type": "service_failure_automation_omp_consumption", "object_id": "sfomp_direct",
+                "closure_state": "OMP_CONSUMED", "automation_obligation_id": "sfaob_direct",
+                "automation_consumption_fingerprint": "e" * 64,
+                "source_incident_id": "sfinc_direct", "incident_key": "current",
+                "situation_id": "sit_direct", "decision_trace_id": "dec_direct",
+                "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                "current_source_scope": scope,
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                "\n".join(json.dumps(row) for row in (obligation, receipt)) + "\n", encoding="utf-8"
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"current": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE", "incident_id": "sfinc_direct",
+                    "incident_state": "OPEN", "channel_incident_state": "OPEN",
+                    "current_source_scope": scope,
+                }}
+            }), encoding="utf-8")
+            reconciled = self.sync.reconcile_service_failure_omp_receipts_to_incident_state(state_dir=state_dir)
+            self.assertEqual(reconciled["final_verdict"], "PASS", reconciled)
+            handoff = self.sync.service_failure_direct_execution_handoff(state_dir=state_dir)
+            self.assertEqual(handoff["final_verdict"], "READY", handoff)
+            self.assertEqual(handoff["obligation"]["automation_obligation_id"], "sfaob_direct")
+
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            state["incidents"]["current"]["direct_execution_handoff"]["automation_consumption_fingerprint"] = "stale"
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps(state), encoding="utf-8")
+            rejected = self.sync.service_failure_direct_execution_handoff(state_dir=state_dir)
+            self.assertEqual(rejected["final_verdict"], "NO_CURRENT_DIRECT_HANDOFF", rejected)
+
     def test_omp_frontier_prefers_live_accounted_scope_over_newer_zero_scope_terminal(self):
         """A historical no-scope terminal cannot starve the current incident."""
         with tempfile.TemporaryDirectory() as tmp:

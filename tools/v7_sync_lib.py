@@ -6798,6 +6798,28 @@ def reconcile_service_failure_omp_receipts_to_incident_state(
                     "existing OMP residual recomputation consumes a new owner-backed "
                     f"state change for {str(receipt.get('next_action') or 'NONE')}"
                 ),
+                # This compact projection is derived from the same immutable
+                # receipt while the existing closure owner lock is held.  A
+                # later Matrix generation can validate it without making OMP
+                # a synchronous predecessor of the governed executor.
+                "direct_execution_handoff": {
+                    "status": "READY",
+                    "automation_obligation_id": obligation_id,
+                    "automation_consumption_fingerprint": str(
+                        receipt.get("automation_consumption_fingerprint") or ""
+                    ),
+                    "source_incident_id": source_incident_id,
+                    "incident_key": str(key),
+                    "situation_id": situation_id,
+                    "decision_trace_id": decision_trace_id,
+                    "next_action": str(receipt.get("next_action") or ""),
+                    "current_source_scope": (
+                        dict(receipt.get("current_source_scope") or {})
+                        if isinstance(receipt.get("current_source_scope"), dict)
+                        else {}
+                    ),
+                    "provenance": "existing_closure_receipt_projected_by_existing_l3_owner",
+                },
                 "causal_lineage": {
                     **(record.get("causal_lineage") if isinstance(record.get("causal_lineage"), dict) else {}),
                     "obligation_id": obligation_id,
@@ -7100,6 +7122,111 @@ def service_failure_automation_consumed_execution_handoff(
         "owner": "existing closure-records + l3-runtime-state owners",
         "final_verdict": "NO_CURRENT_CONSUMED_HANDOFF",
         "reason": rejected[0] if rejected else "no_matching_consumed_receipt",
+        "runtime_mutation_performed": False,
+        "new_registry_created": False,
+    }
+
+
+def service_failure_direct_execution_handoff(
+    *, root: Path = ROOT, state_dir: Optional[Path] = None,
+) -> dict[str, Any]:
+    """Read a compact existing-L3 handoff without consulting an OMP receipt.
+
+    The projection was materialized by the existing receipt reconciliation
+    under ``closure-records.lock``.  This reader joins it only to the original
+    closure obligation and live L3 scope, so a later Matrix generation does
+    not put OMP in front of the governed executor.  Any ambiguity or drift is
+    deliberately a no-handoff result; the legacy receipt bridge stays outside
+    this helper as a compatibility fallback.
+    """
+    resolved_state_dir = service_failure_automation_state_dir(
+        root=root, state_dir=state_dir,
+    )
+    state = _read_json_object(resolved_state_dir / "l3-runtime-state.json")
+    incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    candidates = [
+        (str(key), record, record.get("direct_execution_handoff"))
+        for key, record in incidents.items()
+        if isinstance(record, dict)
+        and str(record.get("authority_object") or "") == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+        and str(record.get("incident_state") or "") == "OPEN"
+        and isinstance(record.get("direct_execution_handoff"), dict)
+        and str((record.get("direct_execution_handoff") or {}).get("status") or "") == "READY"
+    ]
+    if len(candidates) != 1:
+        return {
+            "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+            "owner": "existing closure-records + l3-runtime-state owners",
+            "final_verdict": "NO_CURRENT_DIRECT_HANDOFF",
+            "reason": "direct_handoff_candidate_ambiguous_or_absent",
+            "candidate_count": len(candidates),
+            "runtime_mutation_performed": False,
+            "new_registry_created": False,
+        }
+    incident_key, record, direct = candidates[0]
+    obligation_id = str(direct.get("automation_obligation_id") or "")
+    fingerprint = str(direct.get("automation_consumption_fingerprint") or "")
+    identity = {
+        "source_incident_id": str(direct.get("source_incident_id") or ""),
+        "situation_id": str(direct.get("situation_id") or ""),
+        "decision_trace_id": str(direct.get("decision_trace_id") or ""),
+    }
+    rows = _read_jsonl_records(resolved_state_dir / "closure-records.jsonl")
+    obligations = [
+        row for row in rows
+        if str(row.get("object_type") or "") == "service_failure_automation_obligation"
+        and str(row.get("closure_state") or "") == "READY_FOR_OMP_CONSUMPTION"
+        and str(row.get("automation_obligation_id") or "") == obligation_id
+        and str(row.get("automation_consumption_fingerprint") or "") == fingerprint
+    ]
+    if len(obligations) != 1 or not obligation_id or not fingerprint:
+        return {
+            "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+            "owner": "existing closure-records + l3-runtime-state owners",
+            "final_verdict": "NO_CURRENT_DIRECT_HANDOFF",
+            "reason": "matching_current_obligation_missing_or_ambiguous",
+            "runtime_mutation_performed": False,
+            "new_registry_created": False,
+        }
+    obligation = obligations[0]
+    if any(str(obligation.get(name) or "") != value for name, value in identity.items()):
+        return {
+            "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+            "owner": "existing closure-records + l3-runtime-state owners",
+            "final_verdict": "NO_CURRENT_DIRECT_HANDOFF",
+            "reason": "direct_handoff_obligation_identity_mismatch",
+            "runtime_mutation_performed": False,
+            "new_registry_created": False,
+        }
+    direct_scope = direct.get("current_source_scope") if isinstance(direct.get("current_source_scope"), dict) else {}
+    obligation_scope = obligation.get("current_source_scope") if isinstance(obligation.get("current_source_scope"), dict) else {}
+    current_scope = service_failure_active_incident_scope_projection(
+        identity["source_incident_id"], state_dir=resolved_state_dir,
+    )
+    expected_scope_fingerprint = str(obligation_scope.get("affected_scope_fingerprint") or "")
+    scope_valid = all((
+        str(current_scope.get("status") or "") == "ACCOUNTED",
+        int(current_scope.get("unresolved_scope_count") or 0) > 0,
+        str(current_scope.get("channel_incident_state") or "OPEN") != "RECOVERED",
+        bool(expected_scope_fingerprint),
+        str(direct_scope.get("affected_scope_fingerprint") or "") == expected_scope_fingerprint,
+        str(current_scope.get("affected_scope_fingerprint") or "") == expected_scope_fingerprint,
+    ))
+    if not scope_valid or str(direct.get("next_action") or "") != "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN":
+        return {
+            "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+            "owner": "existing closure-records + l3-runtime-state owners",
+            "final_verdict": "NO_CURRENT_DIRECT_HANDOFF",
+            "reason": "direct_handoff_scope_or_successor_not_current",
+            "runtime_mutation_performed": False,
+            "new_registry_created": False,
+        }
+    return {
+        "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+        "owner": "existing closure-records + l3-runtime-state owners",
+        "final_verdict": "READY",
+        "obligation": obligation,
+        "incident_key": incident_key,
         "runtime_mutation_performed": False,
         "new_registry_created": False,
     }

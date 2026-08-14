@@ -31,7 +31,10 @@ from admin_core import intelligence_workers, operator_execution  # noqa: E402
 TOOLS_DIR = ROOT / "tools"
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
-from v7_sync_lib import service_failure_automation_consumed_execution_handoff  # noqa: E402
+from v7_sync_lib import (  # noqa: E402
+    service_failure_automation_consumed_execution_handoff,
+    service_failure_direct_execution_handoff,
+)
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -4036,8 +4039,25 @@ def main() -> int:
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}
     )
-    service_failure_obligation = service_failure_obligation_from_advisory(
+    fresh_service_failure_obligation = service_failure_obligation_from_advisory(
         advisory_result
+    )
+    payload["service_failure_direct_execution_handoff"] = (
+        service_failure_direct_execution_handoff(state_dir=state_dir)
+        if not fresh_service_failure_obligation
+        else {
+            "schema_version": "v7.service-failure-direct-execution-handoff.v1",
+            "final_verdict": "FRESH_ADVISORY_OBLIGATION_PREFERRED",
+            "runtime_mutation_performed": False,
+        }
+    )
+    direct_service_failure_obligation = (
+        (payload.get("service_failure_direct_execution_handoff") or {}).get("obligation")
+        if (payload.get("service_failure_direct_execution_handoff") or {}).get("final_verdict") == "READY"
+        else {}
+    )
+    service_failure_obligation = (
+        fresh_service_failure_obligation or direct_service_failure_obligation
     )
     # A fresh advisory obligation is passed directly to the existing governed
     # executor below.  OMP is its exact-once receipt/evidence consumer, not
@@ -4045,7 +4065,7 @@ def main() -> int:
     # fresh failure execution.  The receipt-bound handoff branch (no fresh
     # obligation) deliberately retains its existing ordering.
     defer_omp_receipt_until_after_fresh_execution = bool(
-        service_failure_obligation
+        fresh_service_failure_obligation
         and not args.skip_service_failure_omp_consumer
         and (payload.get("passive_event_consumer") or {}).get("ok") is True
     )
@@ -4060,6 +4080,13 @@ def main() -> int:
             "status": "DEFERRED_UNTIL_AFTER_FRESH_EXECUTION",
             "ok": True,
             "reason": "fresh_advisory_obligation_passed_directly_to_existing_executor",
+        }
+    elif direct_service_failure_obligation:
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "NOT_REQUIRED_DIRECT_L3_HANDOFF_READY",
+            "ok": True,
+            "reason": "existing_l3_projection_proves_current_exact_handoff",
         }
     elif (payload.get("passive_event_consumer") or {}).get("ok") is True:
         # The OMP owner selects only an existing durable obligation and is
@@ -4076,12 +4103,9 @@ def main() -> int:
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
         }
-    # The existing OMP receipt is exact-once, but the bounded executor is the
-    # next consumer of the same currently accounted incident.  In a later
-    # ordinary Matrix generation advisory correctly has no *new* obligation;
-    # recover only a receipt-bound, scope-matching handoff from the existing
-    # closure owner.  A stale receipt, changed generation, or recovered scope
-    # remains fail-closed and is never turned into a Runtime action here.
+    # A direct L3 handoff is preferred after a prior post-execution receipt.
+    # Legacy records without that compact projection retain their exact
+    # receipt-bound bridge. A stale or changed scope remains fail-closed.
     payload["service_failure_execution_handoff"] = (
         service_failure_automation_consumed_execution_handoff(
             state_dir=state_dir,
@@ -4089,7 +4113,11 @@ def main() -> int:
         if not service_failure_obligation
         else {
             "schema_version": "v7.service-failure-automation-execution-handoff.v1",
-            "final_verdict": "FRESH_ADVISORY_OBLIGATION_PREFERRED",
+            "final_verdict": (
+                "FRESH_ADVISORY_OBLIGATION_PREFERRED"
+                if fresh_service_failure_obligation
+                else "DIRECT_L3_HANDOFF_PREFERRED"
+            ),
             "runtime_mutation_performed": False,
         }
     )

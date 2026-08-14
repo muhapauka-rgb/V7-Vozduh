@@ -11594,6 +11594,37 @@ states. In particular, the current RS6 frontier stays controlling until its
 existing successor is completed and an exact CPS admission is separately
 reconciled.
 
+`MISSION_EXECUTION_COMPLETION_RULE` applies only after the exact bounded
+Mission reaches `MISSION_EXECUTION_ALLOWED`. When its identity, existing
+owner, scope, target state, Product Contract, validation and rollback
+contracts remain valid, Codex continues the one admitted Mission through its
+complete existing lifecycle without asking for a new prompt between internal
+engineering steps:
+
+```text
+RESTORE_CONTEXT -> VERIFY_SCOPE -> IMPLEMENTATION -> VALIDATION
+  -> CONSUMER_MIGRATION_AND_RESIDUE_CHECK -> BEFORE_AFTER_DELTA
+  -> CLOSURE -> NEXT_EXISTING_FRONTIER
+```
+
+This is one bounded delivery, not authorization to widen scope. A Mission is
+not complete after one file, function, test, report or partial migration. Its
+required terminal proof remains `IMPLEMENTATION_COMPLETE + VALIDATION_PASS +
+CONSUMER_MIGRATION_COMPLETE + RESIDUE_CHECK_PASS +
+BEFORE_AFTER_DELTA_RECORDED`, or one explicit existing-owner terminal state.
+Temporary internal checks return to the same parent Mission; they do not
+create micro-Missions, Programs, owners, lifecycles, truth sources or reports
+unless an existing contract cannot preserve a decision-relevant distinction.
+
+Automatic continuation stops safely only at an exact boundary: scope or
+identity drift; Product Contract, Data Plane, recovery or Authority impact;
+unknown owner, consumer, dependency or rollback; failed validation/residue
+proof; or a required external owner/system/manual decision. In every other
+case, the admitted Mission continues to its terminal state. Its one existing
+Engineering Report records completed actions, validation, residue result,
+`BEFORE -> AFTER -> DELTA`, final state and the exact next frontier; internal
+substeps do not receive standalone reports merely for being substeps.
+
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,
 Runtime dependency, state surface or duplicate responsibility; any asserted

@@ -969,6 +969,39 @@ class IntelligenceWorkersTest(unittest.TestCase):
         )
         self.assertEqual(result.metrics["snapshot_count"], 7)
 
+    def test_snapshot_refresh_current_state_window_can_bound_candidate_projection_to_exact_user(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh_exact_user",
+            SourceFileLoader("v7_intelligence_snapshot_refresh_exact_user", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+
+        result = refresh.build_current_state_snapshots(inputs={
+            "service_matrix": service_matrix(),
+            "quality_summary": quality_summary(),
+            "service_preferences": {"required_services": ["telegram"]},
+            "audit_records": [{"result": "OK"}],
+            "switch_records": [],
+            "rollback_records": [],
+            "runtime_state": {"egress": {"awg0": {}}},
+            "users_registry": [
+                {"ip": "10.7.0.2", "enabled": "1"},
+                {"ip": "10.7.0.3", "enabled": "1"},
+            ],
+            "egress_registry": [{"id": "awg0", "enabled": "1"}],
+        }, current_state_user="10.7.0.3")
+
+        self.assertEqual(result.metrics["candidate_scope"]["mode"], "EXACT_USER")
+        self.assertEqual(result.metrics["candidate_scope"]["candidate_user_count"], 1)
+        self.assertEqual(
+            result.snapshots["candidate-suitability-summary"]["items"][0]["user"],
+            "10.7.0.3",
+        )
+
     def test_snapshot_refresh_preserves_rotated_blast_evidence_through_regeneration(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
         spec = importlib.util.spec_from_loader(

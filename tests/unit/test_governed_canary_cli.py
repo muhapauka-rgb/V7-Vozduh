@@ -2862,6 +2862,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             event_dir=events,
             snapshot_root=snapshots,
             current_state_window=True,
+            current_state_user="",
         )
         self.assertEqual(result["stop_reason"], "packet_not_ready")
 

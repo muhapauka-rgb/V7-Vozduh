@@ -85,6 +85,14 @@ def build_parser() -> argparse.ArgumentParser:
             "historical evidence remains in its canonical stores"
         ),
     )
+    parser.add_argument(
+        "--current-state-user",
+        default="",
+        help=(
+            "bound candidate-suitability generation to one existing user for "
+            "an exact governed setup; only valid with --current-state-window"
+        ),
+    )
     return parser
 
 
@@ -196,7 +204,11 @@ def source_consistency_errors(result, latest_inputs: dict[str, Any]) -> list[str
     return errors
 
 
-def build_current_state_snapshots(*, inputs: dict[str, Any]) -> WorkerRunResult:
+def build_current_state_snapshots(
+    *,
+    inputs: dict[str, Any],
+    current_state_user: str = "",
+) -> WorkerRunResult:
     """Build only the required current-state projection for a bounded setup.
 
     Prediction, learning and broad pool projections remain owned by the
@@ -234,11 +246,17 @@ def build_current_state_snapshots(*, inputs: dict[str, Any]) -> WorkerRunResult:
         affected_candidates=0,
         generated_at=generated_at,
     )
+    candidate_users = inputs["users_registry"]
+    if current_state_user:
+        candidate_users = [
+            row for row in candidate_users
+            if str(row.get("ip") or row.get("user") or "") == current_state_user
+        ]
     snapshots["candidate-suitability-summary"] = build_candidate_suitability_snapshot(
         service_matrix=inputs["service_matrix"],
         quality_summary=inputs["quality_summary"],
         service_preferences=inputs["service_preferences"],
-        users_registry=inputs["users_registry"],
+        users_registry=candidate_users,
         egress_registry=inputs["egress_registry"],
         trust_summary_snapshot=trust,
         risk_summary_snapshot=risk,
@@ -279,6 +297,11 @@ def build_current_state_snapshots(*, inputs: dict[str, Any]) -> WorkerRunResult:
             "snapshot_sizes": sizes,
             "total_snapshot_bytes": sum(sizes.values()),
             "max_snapshot_bytes": max(sizes.values()) if sizes else 0,
+            "candidate_scope": {
+                "mode": "EXACT_USER" if current_state_user else "ALL_ENABLED_USERS",
+                "requested_user": current_state_user or None,
+                "candidate_user_count": len(candidate_users),
+            },
         },
         warnings=warnings,
     )
@@ -301,6 +324,7 @@ def build_stable_snapshot_run(
     history_record_limit: int = JSONL_FAMILY_READ_LIMIT,
     history_read_bytes: int = JSONL_FAMILY_READ_BYTES,
     current_state_window: bool = False,
+    current_state_user: str = "",
 ) -> tuple[Any, dict[str, Any]]:
     attempts = max(1, int(max_source_retries) + 1)
     last_errors: list[str] = []
@@ -319,7 +343,10 @@ def build_stable_snapshot_run(
             history_read_bytes=history_read_bytes,
         )
         result = (
-            build_current_state_snapshots(inputs=inputs)
+            build_current_state_snapshots(
+                inputs=inputs,
+                current_state_user=current_state_user,
+            )
             if current_state_window
             else build_all_snapshots(
                 service_matrix=inputs["service_matrix"],
@@ -366,6 +393,8 @@ def build_stable_snapshot_run(
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
+    if args.current_state_user and not args.current_state_window:
+        raise SystemExit("--current-state-user requires --current-state-window")
     state_dir = Path(args.state_dir)
     event_dir = Path(args.event_dir)
     service_matrix_file = Path(args.service_matrix_file) if args.service_matrix_file else state_dir / "service-matrix.json"
@@ -422,6 +451,7 @@ def main(argv=None) -> int:
         history_record_limit=history_record_limit,
         history_read_bytes=history_read_bytes,
         current_state_window=bool(args.current_state_window),
+        current_state_user=(args.current_state_user if args.current_state_window else ""),
     )
     written = {} if args.dry_run or not source_status["source_stable"] else write_snapshots(Path(args.out_dir), result.snapshots)
     warnings = list(result.warnings)
@@ -439,6 +469,9 @@ def main(argv=None) -> int:
             "record_limit": history_record_limit,
             "read_bytes_limit": history_read_bytes,
             "historical_evidence_retained_in_canonical_stores": True,
+            "candidate_scope": (
+                "EXACT_USER" if args.current_state_user else "ALL_ENABLED_USERS"
+            ),
         },
         **source_status,
         "snapshot_count": len(result.snapshots),

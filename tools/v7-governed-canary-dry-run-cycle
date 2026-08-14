@@ -6251,6 +6251,7 @@ def _execute_governed_transaction_with_guards_inner(
                 event_dir=event_dir,
                 snapshot_root=snapshot_root,
                 current_state_window=True,
+                current_state_user=str(getattr(args, "certification_user", "") or ""),
             )
         )
         if not certification_setup_snapshot_refresh.get("ok"):
@@ -7000,6 +7001,7 @@ def refresh_controlled_topology_execution_snapshots(
     event_dir: Path,
     snapshot_root: Path,
     current_state_window: bool = False,
+    current_state_user: str = "",
 ) -> dict[str, Any]:
     """Consume the existing snapshot owner after reservation changes its source."""
     command = [
@@ -7017,6 +7019,8 @@ def refresh_controlled_topology_execution_snapshots(
     ]
     if current_state_window:
         command.append("--current-state-window")
+    if current_state_user:
+        command.extend(["--current-state-user", current_state_user])
     try:
         proc = subprocess.run(
             command,

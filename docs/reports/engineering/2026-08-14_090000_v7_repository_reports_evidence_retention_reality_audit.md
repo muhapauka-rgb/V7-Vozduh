@@ -254,3 +254,28 @@ was required because the data was regenerated trash rather than retained
 evidence. The next Evidence Cleanup candidate must again prove its own
 consumer, archive/restore and compact-knowledge disposition; Batch 6 creates
 no deletion rule for other generated outputs.
+
+## Cleanup execution update — Batch 7
+
+`docs/channel_truth_1/evidence/autoswitch_planner_preview.json` was a
+`6,753,352`-byte historical dry-run Planner observation. It has no current
+source, test or Runtime consumer: its only direct consumers are three
+historical reports that require the dry-run operation identity, aggregate
+decision outcome and a historical user-level counterexample. It is therefore not
+`OBSOLETE_DELETE`; it is `ARCHIVE_EXTERNAL` with a compact evidence projection
+at the unchanged path.
+
+The original is recoverable from the ignored local archive
+`.v7/evidence-archive/2026-08-14-batch7/autoswitch-planner-preview.tar.gz`
+(`SHA-256 2e26d2a20e64cf33d3eebc01c66f379abba1137a7d3ec54a3a5477618b2fa79e`)
+and its source hash is
+`c7d6d2a7cd89fff4ce8d40c5255494ee79b1acca2be821fb4d9d560928bbb05d`.
+Archive extraction reproduced that source hash before replacement.
+
+The compact receipt retains the operation and Planner generation identifiers,
+terminal `DRY_RUN` outcome, the 26-user/18-selected-move summary and all
+three route-group outcomes. Exact per-user historical observations remain
+recoverable only from the hash-bound local archive; the compact Git receipt
+does not replicate internal user addresses. The active-tree size changed
+`6,753,352 -> 1,782` bytes, a `6,751,570`-byte reduction. Runtime,
+Production, routing, user, policy and Authority effects: `NONE`.

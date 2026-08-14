@@ -543,6 +543,15 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root report consolidation — Batch 12
+
+Seventy-six additional root reports were removed after content-based
+verification: each explicitly referenced an existing evidence package, had no
+active external reference, and did not own current truth. The evidence
+packages remain. Fifty-eight stale xref entries were removed from the existing
+consumer audit; the remaining deleted reports had no xref entry. No Runtime or
+production effect occurred.
+
 ## Root convergence-scratch purge — Batch 11
 
 Ninety-eight obsolete root-level `P2_7`, `P2_8` and `CONVERGENCE_A/B` working

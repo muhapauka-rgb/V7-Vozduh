@@ -4,6 +4,8 @@
 **CPS stage / exact successor:** `RS6_RUNTIME_PACKAGE_MINIMIZATION` / `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`  
 **Verdict:** `RS6_PHYSICAL_MINIMIZATION_NOT_READY; SAFETY_RESIDUAL_CONFIRMED`  
 **Runtime / Production / Authority effects:** `NONE / NONE / NONE`
+**Deployment effect:** existing Engineering admission library synchronized; no
+service, timer, route, state or policy operation was invoked.
 
 ## Decision-relevant recheck
 
@@ -63,6 +65,8 @@ Authority-boundary work still fails closed through their current owners.
 This permits a future fully evidenced `v7_sync_lib.py` Engineering-interface
 candidate to use the existing lifecycle; it does not create a Mission, alter
 CPS, authorize the desired-state repair, or broaden the current RS6 frontier.
+The existing safe-deploy owner synchronized only this approved library after
+the commit; post-deploy Runtime truth is aligned to `054bd117`.
 
 ## Validation and delta
 
@@ -71,6 +75,7 @@ Focused lifecycle tests: 40 PASS
 Local CPS/OMP consistency: PASS
 GitHub / workspace / Runtime truth: FULLY_ALIGNED
 CPS frontier changed: 0
+Safe-deploy delta: one Engineering library; service/timer restart: 0
 ```
 
 | Surface | Before | After | Delta |
@@ -78,7 +83,7 @@ CPS frontier changed: 0
 | Product/runtime source | unchanged | unchanged | `0` lines/files/services/timers changed for the recovery residual |
 | RS7 admission validator | Management-only | Management + Engineering non-Runtime scopes | one scope guard generalized; Control/Data/Recovery remain blocked |
 | Tests | existing Admin lifecycle cases | plus Engineering acceptance and Control rejection | `+2` cases |
-| Runtime deployment | all recovered RS6 artifacts hash-equal | hash-equal | `0` deployment delta |
+| Runtime deployment | previous admission library | existing admission library at `054bd117` | one approved Engineering library copied; no process/service/timer change |
 
 **Next frontier:** retain `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`; do not
 advance CPS. The smallest material re-entry is an existing-owner safety

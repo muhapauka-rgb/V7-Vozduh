@@ -14181,7 +14181,17 @@ class AutoswitchPlanner:
             }
             if proc.returncode == 0 and self.args.verify:
                 route_visibility_started_ns = time.monotonic_ns()
-                verify = self._verify_routes_for_apply(ip if emergency_mode else "", target if emergency_mode else "")
+                # A strict current-action-class contract is already limited to
+                # one exact approved user and target.  Its post-apply evidence
+                # must therefore validate that exact policy binding instead of
+                # running the unrelated global route scan.  Ordinary/batch
+                # governed applies preserve their global verifier; L3 keeps
+                # its existing emergency-scoped behavior.
+                scoped_route_verification = emergency_mode or strict_contract
+                verify = self._verify_routes_for_apply(
+                    ip if scoped_route_verification else "",
+                    target if scoped_route_verification else "",
+                )
                 route_visibility_span = self._record_performance_span(
                     "route_visibility_verification",
                     route_visibility_started_ns,
@@ -14191,8 +14201,8 @@ class AutoswitchPlanner:
                 )
                 row["verify_rc"] = verify.returncode
                 row["verify_output"] = verify.stdout[-4000:]
-                row["route_verification_scope"] = "selected_user" if emergency_mode else "global"
-                if emergency_mode:
+                row["route_verification_scope"] = "selected_user" if scoped_route_verification else "global"
+                if scoped_route_verification:
                     row["route_verification_expected_egress"] = target
                 row["route_visibility_timing"] = route_visibility_span
                 service_verify = None

@@ -5257,6 +5257,51 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertTrue(all(row["terminal_outcome_classification"] == "SUCCESS" for row in plan["apply_result"]["results"]))
 
+    def test_strict_one_user_contract_uses_scoped_route_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, _switch_calls = self.governed_source_bundle_lease_plan(
+                root, users=1, max_selected_moves=1
+            )
+            move = plan["selected_moves"][0]
+            plan["safety"].setdefault("authority_budget_gate", {})[
+                "current_action_class_contract"
+            ] = {
+                "contract_id": "acc_strict_scope_unit",
+                "contract_hash": "strict-scope-hash",
+                "provenance": {"strict_provenance_contract": True},
+            }
+            verify_calls = []
+
+            def fake_verify_routes(user_ip: str = "", expected_egress: str = ""):
+                verify_calls.append((user_ip, expected_egress))
+                if not user_ip:
+                    return subprocess.CompletedProcess(
+                        ["v7-user-route-check"], 1, stdout="global verify must not run\n"
+                    )
+                return subprocess.CompletedProcess(
+                    ["v7-users-autoswitch", "--verify-user-route", user_ip],
+                    0,
+                    stdout="scoped verify ok\n",
+                )
+
+            planner._verify_routes = fake_verify_routes
+            with mock.patch.object(
+                self.tool.operator_execution,
+                "consume_current_action_class_contract_to_policy",
+                return_value={
+                    "policy": planner.policy,
+                    "consumption": {"state": "CONSUMED", "consumption_id": "acc-consume-unit"},
+                },
+            ):
+                result = planner.apply(plan)
+
+        self.assertTrue(result["applied"])
+        self.assertEqual(verify_calls, [(move["user_ip"], move["recommended_egress"])])
+        row = result["results"][0]
+        self.assertEqual(row["route_verification_scope"], "selected_user")
+        self.assertEqual(row["route_verification_expected_egress"], move["recommended_egress"])
+
     def test_global_route_verification_failure_does_not_quarantine_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

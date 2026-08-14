@@ -1934,6 +1934,20 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result = self.autoswitch.consume_passive_events_only(args)
             self.assertEqual(result["status"], "PASS")
             self.assertEqual(result["result"]["natural_event_candidates_captured"], 1)
+            self.assertEqual(
+                [row["stage"] for row in result["performance_timeline"]["spans"]],
+                [
+                    "passive_l3_current_state_load",
+                    "passive_policy_and_signal_inputs",
+                    "passive_exact_once_event_consumption",
+                ],
+            )
+            self.assertTrue(
+                all(
+                    row["runtime_mutation_performed"] is False
+                    for row in result["performance_timeline"]["spans"]
+                )
+            )
             self.assertFalse(any(result["forbidden_effects"].values()))
             self.assertFalse((state_dir / "client-reconnect-state.json").exists())
             self.assertFalse((state_dir / "autoswitch-safety.json").exists())

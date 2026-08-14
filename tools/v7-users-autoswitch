@@ -17283,16 +17283,33 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
             "forbidden_effects": forbidden_effects,
         }
 
+    spans: list[dict[str, Any]] = []
+
+    def record_passive_span(stage: str, started_ns: int) -> None:
+        spans.append({
+            "stage": stage,
+            "owner": "tools/v7-users-autoswitch.consume_passive_events_only",
+            "clock_source": "time.monotonic_ns",
+            "duration_ms": round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3),
+            "runtime_mutation_performed": False,
+        })
+
     planner = object.__new__(AutoswitchPlanner)
     planner.args = args
     planner.state_dir = Path(args.state_dir)
     planner.event_dir = Path(args.event_dir)
     planner.l3_runtime_state_file = planner.state_dir / "l3-runtime-state.json"
+    l3_load_started_ns = time.monotonic_ns()
     planner.l3_runtime_state = planner._load_l3_runtime_state()
+    record_passive_span("passive_l3_current_state_load", l3_load_started_ns)
+    policy_load_started_ns = time.monotonic_ns()
     planner.policy = read_json(Path(args.policy_file), {})
     planner.org_policy = read_json(Path(args.org_policy_file), {})
     planner.service_signal_policy = planner._service_signal_policy()
+    record_passive_span("passive_policy_and_signal_inputs", policy_load_started_ns)
+    consumption_started_ns = time.monotonic_ns()
     result = planner._consume_passive_production_events()
+    record_passive_span("passive_exact_once_event_consumption", consumption_started_ns)
     return {
         "schema_version": "v7.passive-event-consumer-entrypoint.v1",
         "status": "PASS",
@@ -17300,6 +17317,10 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
         "mode": "PASSIVE_EVENTS_ONLY",
         "consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
         "result": result,
+        "performance_timeline": {
+            "schema_version": "v7.passive-event-consumer-timing.v1",
+            "spans": spans,
+        },
         "forbidden_effects": forbidden_effects,
     }
 

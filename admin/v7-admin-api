@@ -9396,10 +9396,6 @@ def ip_in_cidr(ip_value, cidr_value):
         return False
 
 
-def capacity_pool_row(label, cidr, capacity, users, mode):
-    return diagnostic_views.capacity_pool_row(label, cidr, capacity, users, mode)
-
-
 def capacity_state(capacity_result, readiness_result, ipam_preview_result, users):
     capacity_kv = parse_command_kv((capacity_result or {}).get("output", ""))
     readiness_kv = parse_command_kv((readiness_result or {}).get("output", ""))

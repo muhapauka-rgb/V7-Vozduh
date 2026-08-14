@@ -277,7 +277,7 @@ terminal `DRY_RUN` outcome, the 26-user/18-selected-move summary and all
 three route-group outcomes. Exact per-user historical observations remain
 recoverable only from the hash-bound local archive; the compact Git receipt
 does not replicate internal user addresses. The active-tree size changed
-`6,753,352 -> 1,782` bytes, a `6,751,570`-byte reduction. Runtime,
+`6,753,352 -> 2,046` bytes, a `6,751,306`-byte reduction. Runtime,
 Production, routing, user, policy and Authority effects: `NONE`.
 
 ## Cleanup execution update — Batch 8

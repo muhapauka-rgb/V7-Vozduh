@@ -560,6 +560,14 @@ Active-tree reduction before archive overhead is approximately `44.56 MB`.
 Disposition: `ARCHIVE_EXTERNAL`; runtime, production, routing, user movement,
 policy, Authority and Production Maturity effects: `NONE`.
 
+## Archive purge — 2026-08-14
+
+Per explicit operator instruction, the local raw-evidence archives for cleanup
+batches 3–5, 7–20 were permanently removed. The compact receipts and this
+report remain; the archived raw payloads are no longer recoverable locally.
+This purge affects repository evidence copies only and has no Runtime,
+production, routing, user, policy, Authority or Production Maturity effect.
+
 ## Cleanup execution update — Batch 20
 
 Fifteen additional historical zero-selection planner payloads were compacted.

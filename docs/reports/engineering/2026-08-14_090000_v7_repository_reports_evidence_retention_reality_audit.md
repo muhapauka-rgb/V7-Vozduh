@@ -543,6 +543,15 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root report residual classification — 2026-08-14
+
+After Batches 8–12, a second content-based scan found no additional root report
+that both explicitly names an existing evidence package and is safe to delete.
+The remaining root Markdown set contains canonical handoff/governance/design
+documents and historical reports without a direct evidence pair. Those files
+are not automatic deletion candidates; they require semantic owner review or
+an explicit replacement mapping before removal.
+
 ## Root report consolidation — Batch 12
 
 Seventy-six additional root reports were removed after content-based

@@ -104,3 +104,33 @@ and convergence-proven at `f9810d67`. The candidate identity, scope, owner,
 validation and rollback contracts remain unchanged. It may be atomically
 re-admitted once, through the existing CPS/OMP owner; no broad re-analysis or
 new candidate is required.
+
+## Final execution closure
+
+The unchanged candidate was atomically re-admitted and completed under the
+exact RS7 lifecycle. Commit `b3bacf1f` removed only the two admitted local
+definitions from `tools/v7_sync_lib.py`: `executable_installed(Path)` and
+`copy_available()`. The final physical delta is therefore **one modified file,
+zero files added or deleted, two functions removed and six source LOC removed**.
+No caller, consumer, import, dynamic reference, deploy manifest, systemd unit,
+timer, state read/write, routing edge or ownership boundary was changed.
+
+Validation passed: source compilation, exact residue search (no remaining
+definition or use outside this historical evidence), `43` focused existing
+OMP/CPS lifecycle tests, `git diff --check`, local and GitHub truth checks, and
+production convergence. Existing safe deployment synchronized the approved
+Engineering library as `deploy-z8-14-Updatesystem-b3bacf1-20260814T155704`;
+the resulting local, GitHub and Runtime commit is `b3bacf1f`.
+
+Runtime effects: **NONE**. Production behavior effects: **NONE**; the
+production copy of the existing Engineering library was synchronized solely to
+keep source/runtime provenance aligned. Authority effects: **NONE**. No
+service, timer, process, routing, recovery, Product Contract or state change
+occurred. Rollback remains a one-commit revert plus the existing safe deploy
+path.
+
+**Terminal:** `MISSION_COMPLETE`. The old delegation-free helper path is
+physically closed because it had zero consumers. The existing CPS/OMP owner
+must now return only the global frontier to
+`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`; that is not an RS6 completion
+claim and does not reopen the completed Mission.

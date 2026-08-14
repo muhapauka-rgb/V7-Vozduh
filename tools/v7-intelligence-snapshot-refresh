@@ -26,6 +26,7 @@ from admin_core.intelligence_workers import (  # noqa: E402
     WorkerRunResult,
     build_all_snapshots,
     build_blast_radius_snapshot,
+    build_candidate_suitability_snapshot,
     build_overview_snapshot,
     build_risk_snapshot,
     build_service_score_snapshots,
@@ -198,10 +199,11 @@ def source_consistency_errors(result, latest_inputs: dict[str, Any]) -> list[str
 def build_current_state_snapshots(*, inputs: dict[str, Any]) -> WorkerRunResult:
     """Build only the required current-state projection for a bounded setup.
 
-    User/candidate scoring, prediction and learning projections remain owned by
-    the ordinary Engineering refresh.  An exact certification setup already
-    supplies its user and target through the governed selection owner, so it
-    must not synchronously rebuild those advisory surfaces.
+    Prediction, learning and broad pool projections remain owned by the
+    ordinary Engineering refresh.  The governed selection owner does require
+    a fresh candidate-suitability projection to bind its exact user/target
+    check to the same service/trust/risk generation, so that single current
+    projection is included without rebuilding the other advisory surfaces.
     """
     started = time.perf_counter()
     generated_at = datetime.now(timezone.utc).isoformat()
@@ -230,6 +232,17 @@ def build_current_state_snapshots(*, inputs: dict[str, Any]) -> WorkerRunResult:
         risk_summary_snapshot=risk,
         total_users=len(inputs["users_registry"]),
         affected_candidates=0,
+        generated_at=generated_at,
+    )
+    snapshots["candidate-suitability-summary"] = build_candidate_suitability_snapshot(
+        service_matrix=inputs["service_matrix"],
+        quality_summary=inputs["quality_summary"],
+        service_preferences=inputs["service_preferences"],
+        users_registry=inputs["users_registry"],
+        egress_registry=inputs["egress_registry"],
+        trust_summary_snapshot=trust,
+        risk_summary_snapshot=risk,
+        blast_radius_snapshot=snapshots["blast-radius-summaries"],
         generated_at=generated_at,
     )
     statuses = {

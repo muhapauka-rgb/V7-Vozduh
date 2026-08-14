@@ -963,10 +963,11 @@ class IntelligenceWorkersTest(unittest.TestCase):
                 "trust-summaries",
                 "risk-summaries",
                 "blast-radius-summaries",
+                "candidate-suitability-summary",
                 "overview-summary",
             },
         )
-        self.assertLess(result.metrics["snapshot_count"], 11)
+        self.assertEqual(result.metrics["snapshot_count"], 7)
 
     def test_snapshot_refresh_preserves_rotated_blast_evidence_through_regeneration(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"

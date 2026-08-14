@@ -363,3 +363,29 @@ with SHA-256
 `611e1dbbe2b98f3b33528dce55e502f6c065dbfbbf9ec4800e6e8524bafe262d`.
 Runtime, Production, routing, user movement, policy and Authority effects:
 `NONE`.
+
+## Cleanup execution update — Batch 13
+
+The `AUTONOMY_TIER1_GOVERNED_CANARY_READINESS` observation from
+`2026-06-24` is historical, no-mutation `DRY_RUN` evidence. The raw payload
+records operation `runtime_autoswitch_0ec504cee56cd0936f0766e7`, its existing
+`tools/v7-users-autoswitch` owner, a zero selected-move result, `apply=false`,
+and terminal reason
+`dry_run_restore_barrier_clearance_selected_moves_exceed_budget`. Its direct
+consumers are historical `truth_final.json`, `convergence_final.json`, and
+the cross-reference index; no source, test, deploy or Runtime consumer reads
+the full 5,391,621-byte payload. Those references remain at the exact same
+path as a compact JSON receipt, preserving the operation identity, decision,
+source hash, archive location and decision-bearing summary.
+
+The original has SHA-256
+`f4660dbfcefd0f3efa31202d4cd98b453f88f88b3f3d875ac9141ceb47cf0930` and is
+recoverable from the ignored existing archive lifecycle at
+`.v7/evidence-archive/2026-08-14-batch13/autonomy-tier1-governed-canary-observation.tar.gz`
+(archive SHA-256
+`a12bda9bbbaee8ae9c8aa5a74cee8d6fe1a0e3ecfc0bdf5f4fcde59ec54bcd88`). A
+clean extraction was byte-compared before replacement. The 1,501-byte receipt
+reduces the active tree by `5,390,120` bytes. This is `ARCHIVE_EXTERNAL`, not
+deletion or a claim that historical evidence disappeared; restoration is
+possible through the recorded archive and source hash. Runtime, Production,
+routing, user movement, policy and Authority effects: `NONE`.

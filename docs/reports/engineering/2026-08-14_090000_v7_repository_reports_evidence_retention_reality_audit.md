@@ -344,3 +344,22 @@ All seven originals were byte-compared with a clean archive extraction before
 replacement. This is `ARCHIVE_EXTERNAL`, not a claim that any historical
 conclusion was deleted. Runtime, Production, routing, user movement, policy
 and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 12
+
+Two `AUTONOMY_CANARY_1B` post-deploy Planner observations are historical
+`DRY_RUN` evidence: both preserve the same generation, `26` users, `7`
+egresses, `2` healthy egresses, `8` candidate moves, `0` selected moves and
+`apply=false`. Their only consumers are later historical 1C inventory records
+and the cross-reference index; no source, test, deploy or Runtime consumer
+reads their full payload. The existing evidence paths now contain compact JSON
+receipts with operation identity, terminal reason, source SHA-256 and summary.
+
+The original total was `10,001,187` bytes; receipts total `1,633` bytes, for
+an active-tree reduction of `9,999,554` bytes. Clean archive extraction was
+byte-compared before replacement. The ignored recovery archive is
+`.v7/evidence-archive/2026-08-14-batch12/autonomy-canary-1b-planner-observations.tar.gz`
+with SHA-256
+`611e1dbbe2b98f3b33528dce55e502f6c065dbfbbf9ec4800e6e8524bafe262d`.
+Runtime, Production, routing, user movement, policy and Authority effects:
+`NONE`.

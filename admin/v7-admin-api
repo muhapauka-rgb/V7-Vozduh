@@ -14983,7 +14983,9 @@ def p2_7_candidate_truth_sources(candidate):
 
 
 def p2_7_candidate_approval_detail(candidate, approval_preview=None):
-    approval_preview = approval_preview or operator_approval_preview()
+    approval_preview = approval_preview or operator_views.approval_preview(
+        repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+    )
     query = p2_7_candidate_query(candidate)
     readiness = p2_7_first_item(execution_candidate_readiness_response(query))
     risk = p2_7_first_item(execution_candidate_risks_response(query))
@@ -15059,7 +15061,9 @@ def execution_candidate_approval_response(query=None):
     params = query or {}
     rows = execution_candidates_from_query(params)
     limit, offset = pagination_from_query(params)
-    approval_preview = operator_approval_preview()
+    approval_preview = operator_views.approval_preview(
+        repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+    )
     details = [p2_7_candidate_approval_detail(row, approval_preview=approval_preview) for row in rows[offset: offset + limit]]
     include_detail = query_value(params, "detail").lower() in {"1", "true", "yes"}
     return {
@@ -15088,7 +15092,9 @@ def p2_7_governance_state(candidate, governance_preview=None):
 
 def p2_7_candidate_governance_detail(candidate, governance_preview=None):
     operation_id = p2_7_candidate_operation_id(candidate)
-    governance_preview = governance_preview or operator_execution_governance_preview(operation_id)
+    governance_preview = governance_preview or operator_views.execution_governance_preview(
+        operation_id, repo_root=REPO_ROOT,
+    )
     query = p2_7_candidate_query(candidate)
     readiness = p2_7_first_item(execution_candidate_readiness_response(query))
     risk = p2_7_first_item(execution_candidate_risks_response(query))
@@ -15178,7 +15184,9 @@ def execution_candidate_governance_response(query=None):
 
 def p2_7_candidate_rehearsal_detail(candidate, rehearsal_preview=None):
     operation_id = p2_7_candidate_operation_id(candidate)
-    rehearsal_preview = rehearsal_preview or operator_execution_rehearsal_preview(operation_id)
+    rehearsal_preview = rehearsal_preview or operator_views.execution_rehearsal_preview(
+        operation_id, repo_root=REPO_ROOT,
+    )
     query = p2_7_candidate_query(candidate)
     outcome = p2_7_first_item(execution_outcome_preview_response(query))
     validation = p2_7_first_item(execution_validation_preview_response(query))
@@ -15299,9 +15307,24 @@ def p2_7_workflow_consistency(candidate, approval_detail, governance_detail, reh
 
 def p2_7_candidate_workflow_detail(candidate):
     operation_id = p2_7_candidate_operation_id(candidate)
-    approval = p2_7_candidate_approval_detail(candidate, approval_preview=operator_approval_preview())
-    governance = p2_7_candidate_governance_detail(candidate, governance_preview=operator_execution_governance_preview(operation_id))
-    rehearsal = p2_7_candidate_rehearsal_detail(candidate, rehearsal_preview=operator_execution_rehearsal_preview(operation_id))
+    approval = p2_7_candidate_approval_detail(
+        candidate,
+        approval_preview=operator_views.approval_preview(
+            repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+        ),
+    )
+    governance = p2_7_candidate_governance_detail(
+        candidate,
+        governance_preview=operator_views.execution_governance_preview(
+            operation_id, repo_root=REPO_ROOT,
+        ),
+    )
+    rehearsal = p2_7_candidate_rehearsal_detail(
+        candidate,
+        rehearsal_preview=operator_views.execution_rehearsal_preview(
+            operation_id, repo_root=REPO_ROOT,
+        ),
+    )
     proposal_id = (candidate.get("proposal_references") or [""])[0] if candidate.get("proposal_references") else ""
     steps = [
         {"step": "Proposal", "status": "LINKED" if proposal_id else "FAIL_CLOSED", "object_id": proposal_id, "truth_source": "proposal_store"},
@@ -19967,46 +19990,6 @@ def operator_view_model():
         "execution_allowed_now": False,
     }
     return model
-
-
-def operator_approval_preview():
-    return operator_views.approval_preview(repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR)
-
-
-def operator_lineage_archive():
-    return operator_views.lineage_archive(repo_root=REPO_ROOT)
-
-
-def operator_operation_detail(operation_id):
-    return operator_views.operation_detail(operation_id, repo_root=REPO_ROOT)
-
-
-def operator_audit_search(query="", operation_type="", state="", evidence_kind="", limit=60):
-    return operator_views.audit_search(repo_root=REPO_ROOT, query=query, operation_type=operation_type, state=state, evidence_kind=evidence_kind, limit=limit)
-
-
-def operator_audit_export_preview(operation_id=""):
-    return operator_views.audit_export_preview(operation_id, repo_root=REPO_ROOT)
-
-
-def operator_execution_governance_preview(operation_id=""):
-    return operator_views.execution_governance_preview(operation_id, repo_root=REPO_ROOT)
-
-
-def operator_execution_rehearsal_preview(operation_id=""):
-    return operator_views.execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT)
-
-
-def operator_approved_execution_controller_preview(decision="DRAFT"):
-    return operator_views.approved_execution_controller_preview(decision, repo_root=REPO_ROOT)
-
-
-def operator_evidence_archive():
-    return operator_views.evidence_archive(repo_root=REPO_ROOT)
-
-
-def operator_evidence_file_detail(evidence_id):
-    return operator_views.evidence_file_detail(evidence_id, repo_root=REPO_ROOT)
 
 
 def login_page(error=""):
@@ -37590,41 +37573,47 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/operator/approval-preview":
             if not self.require_auth(api=True):
                 return
-            self.send_json(operator_approval_preview())
+            self.send_json(operator_views.approval_preview(
+                repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+            ))
         elif path == "/api/operator/approval-contracts":
             if not self.require_auth(api=True):
                 return
-            self.send_json({"preview_only": True, "execution_allowed_now": False, "contracts": operator_approval_preview().get("contracts", {})})
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "contracts": operator_views.approval_preview(
+                repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+            ).get("contracts", {})})
         elif path == "/api/operator/rollback-preview":
             if not self.require_auth(api=True):
                 return
-            self.send_json({"preview_only": True, "execution_allowed_now": False, "rollback_manifest": operator_approval_preview().get("rollback_manifest", {})})
+            self.send_json({"preview_only": True, "execution_allowed_now": False, "rollback_manifest": operator_views.approval_preview(
+                repo_root=REPO_ROOT, state_dir=STATE_DIR, event_dir=EVENT_DIR,
+            ).get("rollback_manifest", {})})
         elif path == "/api/operator/timeline":
             if not self.require_auth(api=True):
                 return
-            archive = operator_lineage_archive()
+            archive = operator_views.lineage_archive(repo_root=REPO_ROOT)
             self.send_json({"preview_only": True, "execution_allowed_now": False, "timeline": archive.get("timeline", []), "filters": archive.get("filters", {}), "freshness": archive.get("freshness", {})})
         elif path == "/api/operator/lineage":
             if not self.require_auth(api=True):
                 return
-            archive = operator_lineage_archive()
+            archive = operator_views.lineage_archive(repo_root=REPO_ROOT)
             self.send_json({"preview_only": True, "execution_allowed_now": False, "lineage": archive})
         elif path == "/api/operator/runtime-verdicts":
             if not self.require_auth(api=True):
                 return
-            archive = operator_lineage_archive()
+            archive = operator_views.lineage_archive(repo_root=REPO_ROOT)
             verdicts = [{"operation_id": item.get("operation_id"), "state": item.get("state"), "runtime_verdict": item.get("runtime_verdict")} for item in archive.get("timeline", [])]
             self.send_json({"preview_only": True, "execution_allowed_now": False, "runtime_verdicts": verdicts})
         elif path == "/api/operator/operation-detail":
             if not self.require_auth(api=True):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            self.send_json(operator_operation_detail(operation_id))
+            self.send_json(operator_views.operation_detail(operation_id, repo_root=REPO_ROOT))
         elif path == "/api/operator/evidence-detail":
             if not self.require_auth(api=True):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            detail = operator_operation_detail(operation_id)
+            detail = operator_views.operation_detail(operation_id, repo_root=REPO_ROOT)
             self.send_json({"preview_only": True, "execution_allowed_now": False, "operation_id": operation_id, "evidence_refs": detail.get("evidence_refs", [])})
         elif path == "/api/operator/audit-search":
             if not self.require_auth(api=True):
@@ -37635,7 +37624,8 @@ class Handler(BaseHTTPRequestHandler):
                 limit = max(1, min(120, int(limit_raw)))
             except ValueError:
                 limit = 60
-            self.send_json(operator_audit_search(
+            self.send_json(operator_views.audit_search(
+                repo_root=REPO_ROOT,
                 query=(params.get("q") or [""])[0],
                 operation_type=(params.get("type") or [""])[0],
                 state=(params.get("state") or [""])[0],
@@ -37645,33 +37635,33 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/operator/evidence-archive":
             if not self.require_auth(api=True):
                 return
-            archive = operator_evidence_archive()
+            archive = operator_views.evidence_archive(repo_root=REPO_ROOT)
             self.send_json({"preview_only": True, "execution_allowed_now": False, "evidence_count": archive.get("evidence_count", 0), "items": archive.get("items", [])[:300], "filters": archive.get("filters", {}), "freshness": archive.get("freshness", {})})
         elif path == "/api/operator/audit-export-preview":
             if not self.require_auth(api=True):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            self.send_json(operator_audit_export_preview(operation_id))
+            self.send_json(operator_views.audit_export_preview(operation_id, repo_root=REPO_ROOT))
         elif path == "/api/operator/execution-governance-preview":
             if not self.require_auth(api=True):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            self.send_json(operator_execution_governance_preview(operation_id))
+            self.send_json(operator_views.execution_governance_preview(operation_id, repo_root=REPO_ROOT))
         elif path == "/api/operator/execution-rehearsal-preview":
             if not self.require_auth(api=True):
                 return
             operation_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            self.send_json(operator_execution_rehearsal_preview(operation_id))
+            self.send_json(operator_views.execution_rehearsal_preview(operation_id, repo_root=REPO_ROOT))
         elif path == "/api/operator/approved-execution-controller-preview":
             if not self.require_auth(api=True):
                 return
             decision = (parse_qs(urlparse(self.path).query).get("decision") or ["DRAFT"])[0]
-            self.send_json(operator_approved_execution_controller_preview(decision))
+            self.send_json(operator_views.approved_execution_controller_preview(decision, repo_root=REPO_ROOT))
         elif path == "/api/operator/evidence-file-detail":
             if not self.require_auth(api=True):
                 return
             evidence_id = (parse_qs(urlparse(self.path).query).get("id") or [""])[0]
-            self.send_json(operator_evidence_file_detail(evidence_id))
+            self.send_json(operator_views.evidence_file_detail(evidence_id, repo_root=REPO_ROOT))
         elif path == "/api/state":
             if not self.require_auth(api=True):
                 return

@@ -150,7 +150,16 @@ class Api5RuntimeRouteDiagnosticViewsTest(unittest.TestCase):
                 }
             }
         }
-        self.assertEqual(self.admin.client_speed_summary(users, client_data), diagnostic_views.client_speed_summary(users, client_data))
+        self.assertEqual(diagnostic_views.client_speed_summary(users, client_data), {
+            "awg0": {
+                "users": ["10.7.0.2"],
+                "client_v7_mbps": 50.0,
+                "client_direct_mbps": 100.0,
+                "degradation_pct": 50.0,
+                "client_v7_samples": 1,
+                "client_direct_samples": 1,
+            },
+        })
 
         check = {
             "rc": 0,

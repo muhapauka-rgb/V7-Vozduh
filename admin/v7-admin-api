@@ -16975,10 +16975,6 @@ def client_commands_state(limit=50):
     return redact({"commands": commands[-limit:]})
 
 
-def client_speed_summary(active_users, client_data):
-    return diagnostic_views.client_speed_summary(active_users, client_data)
-
-
 def client_speed_user_rows(active_users, client_data, agents_data):
     rows = {}
     users_data = client_data.get("users") or {}
@@ -19707,7 +19703,7 @@ def overview(session=None):
         "client_speed": client_speed,
         "client_agents": client_agents,
         "client_commands": client_commands_state(),
-        "client_speed_summary": client_speed_summary(active_users, client_speed),
+        "client_speed_summary": diagnostic_views.client_speed_summary(active_users, client_speed),
         "client_speed_users": client_speed_users,
         "user_readiness": user_readiness,
         "user_onboarding": user_onboarding,

@@ -11717,6 +11717,12 @@ without a CPS write; it cannot consume unrelated work or declare the phase
 complete. This preserves the smallest current frontier until its own evidence
 and existing owner-backed terminal are present.
 
+An admitted `RS7_PHYSICAL_SIMPLIFICATION_EXECUTION` Mission receives the same
+generic-continuation protection. `Continue OMP` may acknowledge only its exact
+existing RS7 physical-Mission lifecycle owner and `CURRENT_NEXT_ACTION_ID`; it
+cannot select a Polygon, Matrix or another Program consumer, mutate CPS or
+interpret that acknowledgement as implementation completion.
+
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,
 Runtime dependency, state surface or duplicate responsibility; any asserted

@@ -62,6 +62,26 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def classify(self, **values):
         return self.lib.classify_program_stage(values)
 
+    def rs7_admitted_cps(self):
+        text = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        mission_id = "TEST_RS7_PHYSICAL_MISSION"
+        for key, value in (
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_TEST_RS7_PHYSICAL_MISSION"),
+            ("CURRENT_PROGRAM_STAGE", "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}"),
+            ("CURRENT_EXECUTION_MISSION_ID", mission_id),
+            ("CURRENT_EXECUTION_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_MISSION_ROLE", "ACTIVE_MISSION"),
+        ):
+            text = self.lib._replace_section_field(
+                text,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+                key,
+                f"`{value}`",
+            )
+        return text
+
     def test_01_document_status_is_not_execution_status(self):
         self.assertNotEqual(self.reconcile()["program_inventory"][1]["document_status"], "TERMINAL_COMPLETE")
 
@@ -249,6 +269,39 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
         )
         omp = next(row for row in result["program_inventory"] if row["program_id"] == "OMP")
         self.assertNotEqual(omp["next_consumer"], "tools/v7-service-matrix-refresh-all")
+
+    def test_35_rs7_physical_frontier_preempts_generic_omp_without_persisting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            before = self.rs7_admitted_cps()
+            cps_path.write_text(before)
+            result = self.lib.continue_omp_engineering_control_loop(
+                root=root, persist_cps=True,
+            )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(
+            result["priority_decision"],
+            "RS7_PHYSICAL_MISSION_FRONTIER_PREEMPTS_GENERIC_OMP",
+        )
+        self.assertEqual(
+            result["real_consumer"],
+            "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER",
+        )
+        self.assertEqual(cps_path.read_text() if cps_path.exists() else before, before)
+
+    def test_36_rs7_physical_frontier_has_exact_owner_projection(self):
+        result = self.reconcile(cps=self.rs7_admitted_cps())
+        rows = {row["program_id"]: row for row in result["program_inventory"]}
+        self.assertEqual(
+            rows[self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID]["next_consumer"],
+            "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER",
+        )
+        self.assertEqual(
+            rows["OMP"]["next_consumer"],
+            "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER",
+        )
 
 
 if __name__ == "__main__":

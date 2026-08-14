@@ -142,3 +142,22 @@ test `+50/-2` lines; no product behavior, CPS frontier, Runtime, Production,
 Authority, service, timer, routing, state or deploy change. This closes a
 correctness gap in the existing OMP/CPS projection owner; it does not admit or
 execute a Mission.
+
+## Execution addendum — RS7 generic-continuation preemption
+
+The next dry-run identified a second, coupled correctness gap: an active
+`RS7_PHYSICAL_SIMPLIFICATION_EXECUTION` Mission was not protected from generic
+`Continue OMP` selection, and program reconciliation could expose a generic
+consumer instead of its exact lifecycle owner. The existing reconciliation
+owner now returns an effect-free RS7 acknowledgement and projects
+`EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER` for both the Responsibility
+Program and OMP rows. It cannot execute the Mission, change CPS, route traffic
+or invoke Matrix/Polygon work.
+
+Focused coverage now proves the original RS6 preemption, RS7 preemption and
+exact owner projection (`45` lifecycle/reconciliation tests PASS). Physical
+delta: source `+49/-0`, tests `+53/-0`, Program contract `+6/-0`; this is a
+justified correctness increase that prevents an unrelated consumer from
+crossing an admitted Mission boundary. Runtime, Production and Authority
+effects remain `NONE`; the helper-removal Mission stays blocked until this
+correction is committed, synchronized and re-admitted.

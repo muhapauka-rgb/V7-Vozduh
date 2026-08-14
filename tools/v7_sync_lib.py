@@ -5564,6 +5564,9 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
             portfolio_state = "ACTIVE_WITH_DURABLE_SUCCESSOR"
             residual = current_next or "existing RS phase-owner residual"
             next_consumer = (
+                "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER"
+                if _is_rs7_physical_admission_frontier(live_state)
+                else
                 "EXISTING_RS_READ_ONLY_PHASE_OWNER"
                 if _is_rs_read_only_admission_frontier(live_state)
                 else "existing OMP/CPS RS phase owner"
@@ -5599,6 +5602,10 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
             next_consumer = (
                 "existing passive L8 capture owner"
                 if program_id == "AEP" else
+                "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER"
+                if program_id == "OMP" and responsibility_realignment_active
+                and _is_rs7_physical_admission_frontier(live_state)
+                else
                 "EXISTING_RS_READ_ONLY_PHASE_OWNER"
                 if program_id == "OMP" and responsibility_realignment_active
                 and _is_rs_read_only_admission_frontier(live_state)
@@ -21024,6 +21031,48 @@ def continue_omp_engineering_control_loop(
         external_input_required = _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED") == "TRUE"
         current_stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
         current_next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+        # An admitted RS7 physical Mission has the same priority protection as
+        # RS0-RS6 read-only work: generic Polygon/product selection must not
+        # consume or replace its exact bounded lifecycle owner.
+        if _is_rs7_physical_admission_frontier(live):
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "RS7_PHYSICAL_MISSION_FRONTIER_RETAINED_FOR_EXISTING_OWNER",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "RS7_PHYSICAL_MISSION_FRONTIER_PREEMPTS_GENERIC_OMP",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER",
+                "exact_next_operator_command": current_next_action,
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": "RS7_PHYSICAL_MISSION_FRONTIER_ACKNOWLEDGED",
+                    "mission_id": _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID"),
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "CURRENT_RS7_PHYSICAL_MISSION_FRONTIER_RETAINED",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
         # A CPS-admitted RS0-RS6 read-only phase is already the smallest
         # existing engineering frontier.  Generic Polygon/product selection
         # cannot consume unrelated work before its exact phase owner does.

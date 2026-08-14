@@ -25911,11 +25911,3 @@ def ensure_no_unsafe_tool_body(paths: Iterable[Path]) -> dict[str, Any]:
         "findings": findings,
         "final_verdict": "PASS" if not findings else "NO-GO",
     }
-
-
-def executable_installed(path: Path) -> bool:
-    return path.exists() and os.access(path, os.X_OK)
-
-
-def copy_available() -> bool:
-    return shutil.which("ssh") is not None

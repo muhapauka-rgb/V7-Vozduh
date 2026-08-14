@@ -82,6 +82,18 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
             )
         return text
 
+    def rs6_read_only_cps(self):
+        text = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+        for key, value in (
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION"),
+            ("CURRENT_PROGRAM_STAGE", "RS6_RUNTIME_PACKAGE_MINIMIZATION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+        ):
+            text = self.lib._replace_section_field(text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", key, f"`{value}`")
+        return text
+
     def test_01_document_status_is_not_execution_status(self):
         self.assertNotEqual(self.reconcile()["program_inventory"][1]["document_status"], "TERMINAL_COMPLETE")
 
@@ -234,7 +246,7 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
             root = Path(directory)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
             cps_path.parent.mkdir(parents=True)
-            before = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+            before = self.rs6_read_only_cps()
             cps_path.write_text(before)
 
             result = self.lib.continue_omp_engineering_control_loop(
@@ -261,14 +273,14 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
             if row["program_id"] == self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID
         )
         self.assertEqual(rs["portfolio_state"], "ACTIVE_WITH_DURABLE_SUCCESSOR")
-        self.assertEqual(rs["current_mission"], "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION")
-        self.assertEqual(rs["next_consumer"], "EXISTING_RS_READ_ONLY_PHASE_OWNER")
+        self.assertEqual(rs["current_mission"], "EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1")
+        self.assertEqual(rs["next_consumer"], "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER")
         self.assertEqual(
             rs["reentry_condition"],
-            "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION through the exact existing RS phase owner",
+            "EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1 through the exact existing RS phase owner",
         )
         omp = next(row for row in result["program_inventory"] if row["program_id"] == "OMP")
-        self.assertNotEqual(omp["next_consumer"], "tools/v7-service-matrix-refresh-all")
+        self.assertEqual(omp["next_consumer"], "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER")
 
     def test_35_rs7_physical_frontier_preempts_generic_omp_without_persisting(self):
         with tempfile.TemporaryDirectory() as directory:

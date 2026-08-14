@@ -510,3 +510,35 @@ The order is intentional: neither proof permits removal by itself; each must
 first produce an existing-owner bounded Mission with Product Contract,
 consumer migration (if any), validation, rollback and residue closure. CPS
 remains the sole authority to admit that future physical work.
+
+## Final targeted recheck — proxy validation and backup automation scope
+
+The existing `sing-box` validator accepted the live proxy configuration
+(`exit=0`) without starting or reloading any process. Redacted aggregate facts
+are one inbound, twelve configured identities, five configured outbounds and
+twelve route rules. The listener had zero established sessions at the sampled
+instant; that is an observation, not evidence of no product consumer. Together
+with the active listener and unit-owned ip-rule lifecycle, this confirms the
+component must remain unchanged until its existing proxy/ingress owner can
+provide the current config/deploy/rollback contract.
+
+For the seven autoswitch backup executables, the negative search now covers
+the existing automation and deployment surfaces: systemd, cron, current
+`/opt/v7/ops` deployment manifests/checksums/unit summaries and current
+`/usr/local/bin` executable scripts. It found zero literal backup references
+and zero backup unit files, in addition to the already-proven absence from
+live processes. This proves `NO_AUTOMATED_RUNTIME_CONSUMER_FOUND` for the
+scoped surfaces. It deliberately does not claim that a human can never invoke
+an absolute backup path, so the group remains `OWNER_BACKED_EXCEPTION` rather
+than a removal decision.
+
+| Residual | Current conclusion | Re-entry condition |
+| --- | --- | --- |
+| proxy ingress config | live and validator-accepted external Runtime boundary; no current source/deploy/rollback contract | existing proxy/ingress + deploy/package owner packet with product-consumer and rollback evidence |
+| autoswitch backups | no automated/deploy/process consumer found; manual invocation not negatively provable in this recheck | existing autoswitch + deploy/package owner archive/delete packet with manual-operation retention decision and recoverability proof |
+
+The final RS6 result is unchanged: `NOT_READY_FOR_PHYSICAL_MINIMIZATION`,
+`REMOVE_CANDIDATE = NONE`, and CPS successor
+`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. These checks performed no code,
+config, service, timer, process, routing, policy, Runtime, Production or
+Authority change.

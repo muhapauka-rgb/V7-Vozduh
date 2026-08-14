@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import tempfile
@@ -11,7 +12,7 @@ SAVE_SCRIPT = ROOT / "tools/runtime-support/v7-user-desired-state-save"
 
 
 class V7UserDesiredStateTest(unittest.TestCase):
-    def run_checker(self, *, rules_present, route_matches):
+    def run_checker(self, *, rules_present, route_matches, core_verify_status=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             bin_dir = root / "bin"
@@ -60,7 +61,20 @@ class V7UserDesiredStateTest(unittest.TestCase):
                 "fi\n",
                 encoding="utf-8",
             )
-            for command in (bin_dir / "wg", bin_dir / "ip", bin_dir / "date"):
+            if core_verify_status is not None:
+                (bin_dir / "v7-routing-sync").write_text(
+                    "#!/usr/bin/env bash\n"
+                    "printf '%s\\n' '"
+                    + json.dumps({
+                        "status": core_verify_status,
+                        "legacy_primary_rules_present": False,
+                    })
+                    + "'\n",
+                    encoding="utf-8",
+                )
+            for command in (bin_dir / "wg", bin_dir / "ip", bin_dir / "date", bin_dir / "v7-routing-sync"):
+                if not command.exists():
+                    continue
                 command.chmod(0o755)
             env = {
                 **os.environ,
@@ -86,6 +100,29 @@ class V7UserDesiredStateTest(unittest.TestCase):
         result = self.run_checker(rules_present=False, route_matches=False)
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.count("status=FAIL"), 2)
+        self.assertIn("V7_USER_DESIRED_STATE=FAIL", result.stdout)
+
+    def test_core_primary_validation_does_not_require_retired_per_user_rules(self):
+        result = self.run_checker(
+            rules_present=False,
+            route_matches=False,
+            core_verify_status="CORE_PRIMARY_VERIFY_PASS",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("routing_mode=CORE_PRIMARY_CLASS_ROUTING", result.stdout)
+        self.assertIn("core_verify_status=CORE_PRIMARY_VERIFY_PASS", result.stdout)
+        self.assertNotIn("ip_rule_missing", result.stdout)
+        self.assertIn("V7_USER_DESIRED_STATE=OK", result.stdout)
+
+    def test_unverified_core_fails_closed_without_legacy_assumption(self):
+        result = self.run_checker(
+            rules_present=False,
+            route_matches=False,
+            core_verify_status="STOP_SAFE",
+        )
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("routing_mode=CORE_PRIMARY_UNVERIFIED", result.stdout)
+        self.assertIn("core_primary_unverified", result.stdout)
         self.assertIn("V7_USER_DESIRED_STATE=FAIL", result.stdout)
 
     def test_saver_persists_terminal_fail_and_preserves_failure_exit(self):

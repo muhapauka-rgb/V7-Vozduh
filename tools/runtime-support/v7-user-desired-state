@@ -74,6 +74,25 @@ if [ ! -r "$USER_REG" ]; then
   exit 1
 fi
 
+routing_mode="LEGACY_PER_USER"
+core_verify_status="UNAVAILABLE"
+core_legacy_primary=""
+if command -v v7-routing-sync >/dev/null 2>&1; then
+  core_verify_output="$(v7-routing-sync --core-primary-verify --json 2>&1 || true)"
+  core_verify_status="$(printf '%s\n' "$core_verify_output" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | tail -n1)"
+  core_legacy_primary="$(printf '%s\n' "$core_verify_output" | sed -n 's/.*"legacy_primary_rules_present"[[:space:]]*:[[:space:]]*\(true\|false\).*/\1/p' | tail -n1)"
+  if [ "$core_verify_status" = "CORE_PRIMARY_VERIFY_PASS" ]; then
+    routing_mode="CORE_PRIMARY_CLASS_ROUTING"
+  elif [ "$core_legacy_primary" = "true" ]; then
+    routing_mode="LEGACY_PER_USER"
+  else
+    routing_mode="CORE_PRIMARY_UNVERIFIED"
+    err
+  fi
+fi
+echo "routing_mode=$routing_mode"
+echo "core_verify_status=${core_verify_status:-UNKNOWN}"
+
 while IFS= read -r line || [ -n "$line" ]; do
   [ -n "$line" ] || continue
   case "$line" in \#*) continue ;; esac
@@ -110,14 +129,19 @@ while IFS= read -r line || [ -n "$line" ]; do
   reasons=""
   if [ "${enabled:-0}" = "1" ]; then
     if [ -z "$expected_dev" ]; then status="FAIL"; reasons="${reasons},missing_egress_interface"; fi
-    if [ "$assign_egress" != "$current" ]; then status="WARN"; reasons="${reasons},assign_mismatch"; fi
     if [ "$wg_conf_peer" != "yes" ]; then status="WARN"; reasons="${reasons},wg_conf_peer_missing"; fi
     if [ "$wg_live_peer" != "yes" ]; then status="WARN"; reasons="${reasons},wg_live_peer_missing"; fi
-    if [ "$ip_rule" != "yes" ]; then status="FAIL"; reasons="${reasons},ip_rule_missing"; fi
-    if [ -n "$expected_dev" ] && [ "$table_dev" != "$expected_dev" ]; then status="FAIL"; reasons="${reasons},table_route_mismatch"; fi
-    if [ -n "$expected_dev" ] && [ "$route_get_dev" != "$expected_dev" ]; then
-      [ "$status" = "FAIL" ] || status="WARN"
-      reasons="${reasons},route_get_mismatch"
+    if [ "$routing_mode" = "LEGACY_PER_USER" ]; then
+      if [ "$assign_egress" != "$current" ]; then status="WARN"; reasons="${reasons},assign_mismatch"; fi
+      if [ "$ip_rule" != "yes" ]; then status="FAIL"; reasons="${reasons},ip_rule_missing"; fi
+      if [ -n "$expected_dev" ] && [ "$table_dev" != "$expected_dev" ]; then status="FAIL"; reasons="${reasons},table_route_mismatch"; fi
+      if [ -n "$expected_dev" ] && [ "$route_get_dev" != "$expected_dev" ]; then
+        [ "$status" = "FAIL" ] || status="WARN"
+        reasons="${reasons},route_get_mismatch"
+      fi
+    elif [ "$routing_mode" = "CORE_PRIMARY_UNVERIFIED" ]; then
+      status="FAIL"
+      reasons="${reasons},core_primary_unverified"
     fi
   fi
 
@@ -128,8 +152,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   reasons="${reasons#,}"
   [ -n "$reasons" ] || reasons="none"
 
-  printf 'user=%s enabled=%s current=%s table=%s expected_dev=%s assign=%s wg_conf_peer=%s wg_live_peer=%s ip_rule=%s table_dev=%s route_get_dev=%s status=%s reasons=%s\n' \
-    "$ip" "${enabled:-0}" "$current" "$table" "${expected_dev:-missing}" "${assign_egress:-missing}" "$wg_conf_peer" "$wg_live_peer" "$ip_rule" "${table_dev:-missing}" "${route_get_dev:-missing}" "$status" "$reasons"
+  printf 'user=%s enabled=%s current=%s table=%s routing_mode=%s expected_dev=%s assign=%s wg_conf_peer=%s wg_live_peer=%s ip_rule=%s table_dev=%s route_get_dev=%s status=%s reasons=%s\n' \
+    "$ip" "${enabled:-0}" "$current" "$table" "$routing_mode" "${expected_dev:-missing}" "${assign_egress:-missing}" "$wg_conf_peer" "$wg_live_peer" "$ip_rule" "${table_dev:-missing}" "${route_get_dev:-missing}" "$status" "$reasons"
 done < "$USER_REG"
 
 echo

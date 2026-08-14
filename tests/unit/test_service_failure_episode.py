@@ -3917,13 +3917,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
         direct_read = source.index("service_failure_direct_execution_handoff(state_dir=state_dir)")
+        advisory_gate = source.index('if direct_service_failure_obligation:')
         direct_status = source.index('"NOT_REQUIRED_DIRECT_L3_HANDOFF_READY"')
         executor_call = source.index(
             'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
         )
         pre_executor = source[direct_read:executor_call]
+        self.assertLess(direct_read, advisory_gate)
         self.assertLess(direct_read, direct_status)
         self.assertLess(direct_status, executor_call)
+        self.assertNotIn("run_service_failure_automation_advisory(", pre_executor.split(
+            'if direct_service_failure_obligation:', 1
+        )[1].split('elif args.skip_service_failure_automation_advisory:', 1)[0])
         self.assertIn("elif direct_service_failure_obligation:", pre_executor)
         direct_branch = pre_executor.split("elif direct_service_failure_obligation:", 1)[1].split(
             "elif (payload.get(\"passive_event_consumer\")", 1

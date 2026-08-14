@@ -4049,7 +4049,28 @@ def main() -> int:
         append_event(Path(args.event_dir), payload)
         print(json.dumps(compact_payload, ensure_ascii=False, indent=2 if args.pretty else None))
         return 0
-    if args.skip_service_failure_automation_advisory:
+    # A validated existing-L3 handoff is already an exact Runtime input for
+    # the existing executor.  Check it immediately after passive capture so
+    # advisory history/reconciliation cannot add its measured ~49-second
+    # background cost ahead of an eligible client move.  If it is absent or
+    # ambiguous, retain the existing advisory producer and its fail-closed
+    # semantics unchanged.
+    payload["service_failure_direct_execution_handoff"] = (
+        service_failure_direct_execution_handoff(state_dir=state_dir)
+    )
+    direct_service_failure_obligation = (
+        (payload.get("service_failure_direct_execution_handoff") or {}).get("obligation")
+        if (payload.get("service_failure_direct_execution_handoff") or {}).get("final_verdict") == "READY"
+        else {}
+    )
+    if direct_service_failure_obligation:
+        payload["service_failure_automation_advisory"] = {
+            "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
+            "status": "NOT_REQUIRED_DIRECT_L3_HANDOFF_READY",
+            "ok": True,
+            "reason": "existing_l3_projection_proves_current_exact_handoff",
+        }
+    elif args.skip_service_failure_automation_advisory:
         payload["service_failure_automation_advisory"] = {
             "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
             "status": "SKIPPED_EXPLICITLY",
@@ -4074,20 +4095,12 @@ def main() -> int:
     fresh_service_failure_obligation = service_failure_obligation_from_advisory(
         advisory_result
     )
-    payload["service_failure_direct_execution_handoff"] = (
-        service_failure_direct_execution_handoff(state_dir=state_dir)
-        if not fresh_service_failure_obligation
-        else {
+    if fresh_service_failure_obligation:
+        payload["service_failure_direct_execution_handoff"] = {
             "schema_version": "v7.service-failure-direct-execution-handoff.v1",
             "final_verdict": "FRESH_ADVISORY_OBLIGATION_PREFERRED",
             "runtime_mutation_performed": False,
         }
-    )
-    direct_service_failure_obligation = (
-        (payload.get("service_failure_direct_execution_handoff") or {}).get("obligation")
-        if (payload.get("service_failure_direct_execution_handoff") or {}).get("final_verdict") == "READY"
-        else {}
-    )
     service_failure_obligation = (
         fresh_service_failure_obligation or direct_service_failure_obligation
     )

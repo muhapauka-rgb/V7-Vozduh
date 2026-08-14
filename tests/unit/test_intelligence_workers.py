@@ -964,10 +964,11 @@ class IntelligenceWorkersTest(unittest.TestCase):
                 "risk-summaries",
                 "blast-radius-summaries",
                 "candidate-suitability-summary",
+                "best-available-pool",
                 "overview-summary",
             },
         )
-        self.assertEqual(result.metrics["snapshot_count"], 7)
+        self.assertEqual(result.metrics["snapshot_count"], 8)
 
     def test_snapshot_refresh_current_state_window_can_bound_candidate_projection_to_exact_user(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"

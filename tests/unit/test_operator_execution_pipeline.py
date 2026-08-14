@@ -1064,6 +1064,41 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertFalse(model["apply_executed"])
         self.assertEqual(model["users_moved"], 0)
 
+    def test_controlled_certification_snapshot_gate_requires_current_state_not_learning_projections(self):
+        required = {
+            "service-scores",
+            "channel-service-scores",
+            "risk-summaries",
+            "trust-summaries",
+            "blast-radius-summaries",
+            "candidate-suitability-summary",
+            "best-available-pool",
+            "overview-summary",
+        }
+        statuses = {
+            name: {
+                "status": "OK",
+                "validation_ok": True,
+                "freshness_state": "FRESH",
+                "stop_required": False,
+            }
+            for name in required
+        }
+        statuses["prediction-summaries"] = {"status": "MISSING", "validation_ok": False}
+        statuses["trust-evolution-summaries"] = {"status": "EXPIRED", "validation_ok": False}
+        surface = {
+            "controlled_execution_gate_profile": "CONTROLLED_CERTIFICATION_TOPOLOGY",
+            "snapshot_statuses": statuses,
+        }
+
+        self.assertEqual(pipeline._snapshot_gate_blockers(surface), [])
+
+        del statuses["best-available-pool"]
+        self.assertEqual(
+            pipeline._snapshot_gate_blockers(surface),
+            ["snapshot_mismatch:best-available-pool"],
+        )
+
     def test_autonomous_dry_run_blocks_low_trust_and_prediction_confidence(self):
         decision_surface = {
             "users_by_ip": {

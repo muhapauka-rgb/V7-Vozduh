@@ -198,6 +198,21 @@ AUTONOMY_NON_NEGOTIABLE_BLOCKERS = {
     "capacity_blocker",
 }
 
+# A controlled certification topology validates one already-bound identity.
+# Its current-state gate needs the routing inputs that govern that exact move,
+# not the historical learning projections.  Those remain available to the
+# Engineering plane and never become an execution bypass for another profile.
+CONTROLLED_CERTIFICATION_CURRENT_STATE_SNAPSHOTS = {
+    "service-scores",
+    "channel-service-scores",
+    "risk-summaries",
+    "trust-summaries",
+    "blast-radius-summaries",
+    "candidate-suitability-summary",
+    "best-available-pool",
+    "overview-summary",
+}
+
 REQUIRED_RECOMMENDATION_FIELDS = [
     "user",
     "current_channel",
@@ -1573,7 +1588,18 @@ def autonomy_engine_trace_model(
 def _snapshot_gate_blockers(decision_surface: dict[str, Any]) -> list[str]:
     snapshots = decision_surface.get("snapshot_statuses") if isinstance(decision_surface.get("snapshot_statuses"), dict) else {}
     blockers = []
-    for key, item in snapshots.items():
+    gate_profile = str(decision_surface.get("controlled_execution_gate_profile") or "DEFAULT")
+    required = (
+        CONTROLLED_CERTIFICATION_CURRENT_STATE_SNAPSHOTS
+        if gate_profile == "CONTROLLED_CERTIFICATION_TOPOLOGY"
+        else None
+    )
+    rows = (
+        ((key, snapshots.get(key, {"status": "MISSING"})) for key in sorted(required))
+        if required is not None
+        else snapshots.items()
+    )
+    for key, item in rows:
         if not isinstance(item, dict):
             continue
         state = str(item.get("status") or item.get("state") or item.get("freshness_state") or "").upper()

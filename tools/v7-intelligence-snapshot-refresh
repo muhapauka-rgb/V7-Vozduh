@@ -25,6 +25,7 @@ from admin_core.intelligence_snapshots import CANONICAL_SNAPSHOT_ROOT  # noqa: E
 from admin_core.intelligence_workers import (  # noqa: E402
     WorkerRunResult,
     build_all_snapshots,
+    build_best_available_pool_snapshot,
     build_blast_radius_snapshot,
     build_candidate_suitability_snapshot,
     build_overview_snapshot,
@@ -261,6 +262,12 @@ def build_current_state_snapshots(
         trust_summary_snapshot=trust,
         risk_summary_snapshot=risk,
         blast_radius_snapshot=snapshots["blast-radius-summaries"],
+        generated_at=generated_at,
+    )
+    snapshots["best-available-pool"] = build_best_available_pool_snapshot(
+        candidate_suitability_snapshot=snapshots["candidate-suitability-summary"],
+        runtime_state=inputs["runtime_state"],
+        egress_registry=inputs["egress_registry"],
         generated_at=generated_at,
     )
     statuses = {

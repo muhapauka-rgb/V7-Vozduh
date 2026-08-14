@@ -14408,6 +14408,22 @@ class AutoswitchPlanner:
         if not isinstance(consumed, dict):
             consumed = {}
             state["passive_event_consumptions"] = consumed
+        # ``source_rows`` is the only event window this consumer can examine.
+        # Keep its exact-once cache aligned with that window: older immutable
+        # observations remain in the event/closure owners, while retaining
+        # their cache keys here makes the current L3 projection grow forever.
+        # Do not prune an event that is still observable in this invocation;
+        # it remains the exact-once boundary for a repeated current-tail read.
+        current_event_ids = set(event_by_id)
+        retained_consumptions = {
+            event_id: receipt
+            for event_id, receipt in consumed.items()
+            if event_id in current_event_ids
+        }
+        consumption_cache_compacted = len(retained_consumptions) != len(consumed)
+        if consumption_cache_compacted:
+            consumed = retained_consumptions
+            state["passive_event_consumptions"] = consumed
         new_events = [row for row in events if str(row["event_id"]) not in consumed]
         if not new_events:
             # A Matrix cycle can consume its passive observation before it
@@ -14421,6 +14437,8 @@ class AutoswitchPlanner:
             # This is compact-state reconciliation only.  It cannot enter the
             # planner, create Candidate/Packet/lease, or cause Runtime apply.
             scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+            if consumption_cache_compacted:
+                self._write_l3_runtime_state(state)
             return {
                 "active": True,
                 "reason": "already_consumed_idempotent",

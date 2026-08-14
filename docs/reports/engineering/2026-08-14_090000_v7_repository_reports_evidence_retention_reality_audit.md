@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root evidence raw-text purge — Batch 3
+
+Six unreferenced historical raw text bundles and remote refresh dumps were
+deleted directly (approximately 9.3 MB). Authority validation, rollback tails,
+channel-quality sources and production-writer discovery files were retained
+because they remain decision-bearing. No archive was created and no Runtime,
+production, routing, user, policy or Authority effect occurred.
+
 ## Root evidence planner purge — Batch 2
 
 Seventy-nine unreferenced historical planner/dry-run JSON payloads were

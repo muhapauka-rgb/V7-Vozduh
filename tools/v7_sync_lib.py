@@ -60,6 +60,9 @@ LIVE_CPS_RECONSTRUCTION_PROGRAMS = {
     "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
     "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
 }
+RESPONSIBILITY_REALIGNMENT_PROGRAM_ID = (
+    "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1"
+)
 RS_READ_ONLY_STAGE_TERMINALS = {
     "RS0_IMMUTABLE_SOURCE_BASELINE_AND_TIMESTAMPED_RUNTIME_OBSERVATION": "NONE_RS0_ADMITTED",
     "RS1_RESPONSIBILITY_REALIGNMENT_MAP": "NONE_RS1_ADMITTED",
@@ -107,7 +110,7 @@ def _is_rs_read_only_admission_frontier(live: dict[str, str]) -> bool:
     stage = value("CURRENT_PROGRAM_STAGE")
     mission_id = value("CURRENT_EXECUTION_MISSION_ID")
     return all((
-        value("ACTIVE_PROGRAM") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
+        value("ACTIVE_PROGRAM") == RESPONSIBILITY_REALIGNMENT_PROGRAM_ID,
         stage in RS_READ_ONLY_STAGE_TERMINALS,
         mission_id not in {"", "NONE"},
         value("CURRENT_EXECUTION_MISSION_STATE") == "PREPARED_NOT_ACTIVE",
@@ -122,7 +125,7 @@ def _is_rs7_physical_admission_frontier(live: dict[str, str]) -> bool:
     frontier = value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
     mission_id = frontier.removeprefix("ADMITTED_READY_FOR_IMPLEMENTATION:")
     return all((
-        value("ACTIVE_PROGRAM") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
+        value("ACTIVE_PROGRAM") == RESPONSIBILITY_REALIGNMENT_PROGRAM_ID,
         value("CURRENT_PROGRAM_STAGE") == RS7_PHYSICAL_SIMPLIFICATION_STAGE,
         frontier.startswith("ADMITTED_READY_FOR_IMPLEMENTATION:"),
         bool(mission_id),
@@ -5501,6 +5504,19 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
             "document_status": "APPROVED_EXECUTION_PLAN",
             "execution_status": "ACTIVE_INCIDENT_DRAIN",
         })
+    responsibility_realignment_active = (
+        _plain_live_value(live_state, "ACTIVE_PROGRAM")
+        == RESPONSIBILITY_REALIGNMENT_PROGRAM_ID
+    )
+    if responsibility_realignment_active and RESPONSIBILITY_REALIGNMENT_PROGRAM_ID not in known_ids:
+        inventory.append({
+            "program_id": RESPONSIBILITY_REALIGNMENT_PROGRAM_ID,
+            "type": "ACTIVE_EXECUTION_PROGRAM",
+            "document_status": "CONTRACT_ACTIVE_READ_ONLY",
+            "execution_status": (
+                _plain_live_value(live_state, "CURRENT_PROGRAM_STAGE") or "UNKNOWN"
+            ),
+        })
     service_lifecycle_id = _plain_live_value(live_state, "SERVICE_FAILURE_LIFECYCLE_PROGRAM_ID")
     if service_lifecycle_id and service_lifecycle_id not in known_ids:
         inventory.append({
@@ -5532,7 +5548,20 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
     for row in inventory:
         program_id = str(row.get("program_id") or "")
         execution_status = str(row.get("execution_status") or "")
-        if program_id == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
+        if program_id == RESPONSIBILITY_REALIGNMENT_PROGRAM_ID:
+            portfolio_state = "ACTIVE_WITH_DURABLE_SUCCESSOR"
+            residual = current_next or "existing RS phase-owner residual"
+            next_consumer = (
+                "EXISTING_RS_READ_ONLY_PHASE_OWNER"
+                if _is_rs_read_only_admission_frontier(live_state)
+                else "existing OMP/CPS RS phase owner"
+            )
+            reentry = (
+                f"{current_next} through the exact existing RS phase owner"
+                if current_next else "owner-backed RS phase state change"
+            )
+            authority_boundary = "NO_IMPLICIT_AUTHORITY_OR_MATURITY_CHANGE"
+        elif program_id == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID:
             portfolio_state = "ACTIVE_WITH_DURABLE_SUCCESSOR"
             residual = f"current VLESS unresolved scope={unresolved_scope or 'UNKNOWN'}"
             next_consumer = matrix_consumer or "tools/v7-service-matrix-refresh-all"
@@ -5557,11 +5586,18 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
             )
             next_consumer = (
                 "existing passive L8 capture owner"
-                if program_id == "AEP" else matrix_consumer or "existing OMP consumer"
+                if program_id == "AEP" else
+                "EXISTING_RS_READ_ONLY_PHASE_OWNER"
+                if program_id == "OMP" and responsibility_realignment_active
+                and _is_rs_read_only_admission_frontier(live_state)
+                else matrix_consumer or "existing OMP consumer"
             )
             reentry = (
                 "qualifying Natural L8 event"
-                if program_id == "AEP" else matrix_reentry or "owner-backed state change"
+                if program_id == "AEP" else
+                f"{current_next} through the exact existing RS phase owner"
+                if program_id == "OMP" and responsibility_realignment_active and current_next
+                else matrix_reentry or "owner-backed state change"
             )
             authority_boundary = "NO_IMPLICIT_AUTHORITY_OR_MATURITY_CHANGE"
         elif execution_status in {"CONSUMED_NOT_TERMINAL"} or row.get("type") == "SUPPORTING_REFERENCE":
@@ -5591,7 +5627,15 @@ def program_execution_reconciliation(sources: dict[str, Any], *, root: Path = RO
         row.update({
             "portfolio_state": portfolio_state,
             "canonical_owner": f"existing {row.get('type') or 'PROGRAM'} owner + OMP/CPS projection",
-            "current_mission": current_next if program_id in {SERVICE_FAILURE_AUTOMATION_PROGRAM_ID, "OMP"} else execution_status,
+            "current_mission": (
+                current_next
+                if program_id in {
+                    SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+                    RESPONSIBILITY_REALIGNMENT_PROGRAM_ID,
+                    "OMP",
+                }
+                else execution_status
+            ),
             "last_consumed_output": execution_status,
             "unresolved_residual": residual,
             "next_consumer": next_consumer,

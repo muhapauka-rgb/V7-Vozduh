@@ -621,3 +621,33 @@ executable-path artifacts, with seven recoverable archives retained; Authority
 This closes the previously owner-backed backup retention residual for the
 scoped seven files. It does not claim a general backup-retention policy or
 authorize deletion of any archive.
+
+## Execution addendum — active RS6 successor-owner projection
+
+The existing `program_execution_reconciliation` projection previously exposed
+the active `RS6_RUNTIME_PACKAGE_MINIMIZATION` residual through the unrelated
+Service Failure Matrix consumer. That was a reporting/continuation-model
+misattribution: the Matrix timer owns Service Failure observation, not the
+active Simplification Program's read-only RS6 phase.
+
+The existing reconciliation owner now projects the already canonical active
+Program as its own `ACTIVE_WITH_DURABLE_SUCCESSOR` row. Both that row and the
+OMP continuation row name the same facts:
+
+| Field | Before | After |
+| --- | --- | --- |
+| active RS6 consumer projection | `tools/v7-service-matrix-refresh-all` | `EXISTING_RS_READ_ONLY_PHASE_OWNER` |
+| re-entry condition | Service Failure Matrix observation | `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION` through that exact existing owner |
+| CPS frontier / successor | unchanged | unchanged |
+
+This is a minimal correction to the existing OMP/CPS-derived projection; it
+does **not** add an executor, lifecycle, CPS field, owner, Runtime component
+or physical-minimization authority. It prevents an unrelated Matrix loop from
+being presented as the RS6 consumer while preserving the current legal
+frontier for the exact existing RS phase owner.
+
+Validation: `34` focused reconciliation tests pass;
+`tools/v7-truth-check --omp-program-reconciliation --json` and
+`tools/v7-truth-check --local --json` pass. Physical delta: two existing
+source/test files changed, `+68/-6` lines; Runtime effects `NONE`, Production
+effects `NONE`, Authority effects `NONE`.

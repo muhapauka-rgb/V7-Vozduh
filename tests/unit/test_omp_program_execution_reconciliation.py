@@ -232,6 +232,24 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
             )
             self.assertEqual(cps_path.read_text(), before)
 
+    def test_34_current_rs_frontier_has_its_own_exact_owner_projection(self):
+        result = self.lib.program_execution_reconciliation(
+            self.lib.load_program_execution_sources(ROOT), root=ROOT,
+        )
+        rs = next(
+            row for row in result["program_inventory"]
+            if row["program_id"] == self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID
+        )
+        self.assertEqual(rs["portfolio_state"], "ACTIVE_WITH_DURABLE_SUCCESSOR")
+        self.assertEqual(rs["current_mission"], "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION")
+        self.assertEqual(rs["next_consumer"], "EXISTING_RS_READ_ONLY_PHASE_OWNER")
+        self.assertEqual(
+            rs["reentry_condition"],
+            "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION through the exact existing RS phase owner",
+        )
+        omp = next(row for row in result["program_inventory"] if row["program_id"] == "OMP")
+        self.assertNotEqual(omp["next_consumer"], "tools/v7-service-matrix-refresh-all")
+
 
 if __name__ == "__main__":
     unittest.main()

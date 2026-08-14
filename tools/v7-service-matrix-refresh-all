@@ -4039,10 +4039,27 @@ def main() -> int:
     service_failure_obligation = service_failure_obligation_from_advisory(
         advisory_result
     )
+    # A fresh advisory obligation is passed directly to the existing governed
+    # executor below.  OMP is its exact-once receipt/evidence consumer, not
+    # the producer of that object, so do not put the receipt wait in front of
+    # fresh failure execution.  The receipt-bound handoff branch (no fresh
+    # obligation) deliberately retains its existing ordering.
+    defer_omp_receipt_until_after_fresh_execution = bool(
+        service_failure_obligation
+        and not args.skip_service_failure_omp_consumer
+        and (payload.get("passive_event_consumer") or {}).get("ok") is True
+    )
     if args.skip_service_failure_omp_consumer:
         payload["service_failure_omp_consumer"] = {
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "SKIPPED_EXPLICITLY", "ok": False, "reason": "explicit_skip",
+        }
+    elif defer_omp_receipt_until_after_fresh_execution:
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "DEFERRED_UNTIL_AFTER_FRESH_EXECUTION",
+            "ok": True,
+            "reason": "fresh_advisory_obligation_passed_directly_to_existing_executor",
         }
     elif (payload.get("passive_event_consumer") or {}).get("ok") is True:
         # The OMP owner selects only an existing durable obligation and is
@@ -4103,6 +4120,16 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
+        if defer_omp_receipt_until_after_fresh_execution:
+            # Preserve the existing receipt exactly once, but do it after the
+            # fresh governed attempt.  It cannot change the already supplied
+            # obligation, Packet/lease/barrier contract or executor result.
+            payload["service_failure_omp_consumer"] = run_service_failure_omp_consumer(
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
+            )
+            payload["service_failure_omp_consumer"][
+                "receipt_deferred_until_after_fresh_execution"
+            ] = True
         # Controlled-topology preparation belongs to the separate CT-M0F
         # certification lane.  An event-only consumer must first exhaust the
         # current service-failure action path; otherwise every fast failure can

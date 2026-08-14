@@ -3858,6 +3858,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(result["reservation_mutation_performed"])
         self.assertTrue(result["reservation_released_after_stop"])
 
+    def test_fresh_advisory_obligation_defers_omp_receipt_until_after_executor(self):
+        """Fresh execution must not wait for the Engineering-plane receipt."""
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        defer_marker = source.index(
+            "defer_omp_receipt_until_after_fresh_execution = bool("
+        )
+        executor_call = source.index(
+            'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
+        )
+        deferred_receipt = source.index(
+            '"receipt_deferred_until_after_fresh_execution"'
+        )
+        self.assertLess(defer_marker, executor_call)
+        self.assertLess(executor_call, deferred_receipt)
+        self.assertIn(
+            "if not service_failure_obligation",
+            source[defer_marker:executor_call],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

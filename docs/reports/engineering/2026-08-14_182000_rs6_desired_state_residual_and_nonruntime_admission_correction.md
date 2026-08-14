@@ -467,3 +467,46 @@ This recheck closes source/deploy ambiguity for the six proven components and
 narrows the remaining ingress residual to one exact owner-backed Runtime
 configuration boundary. It made no changes to services, timers, processes,
 kernel rules, routes, Runtime, Production, Authority or CPS.
+
+## Targeted runtime observation — proxy ingress retained boundary
+
+`v7-proxy-inbound-happ-test.service` is confirmed as a live public ingress,
+not a stale unit name. Its active `sing-box` process listens on
+`0.0.0.0:1443` from the external Runtime configuration
+`/etc/v7/inbound-runtime/happ-test/public-candidate/sing-box.json`
+(observed SHA-256 `98a4bcdd050a28487d5cb27040c3bd1d5e67a7af20f8673f806c00f6baf08b9b`).
+The sanitised configuration exposes a VLESS inbound and several direct egress
+route tags; no credentials or configuration secrets were collected. The unit
+also owns its existing `uidrange 995-995 lookup 100` and public-source
+ip-rule lifecycle.
+
+| Component | Proved current effect | Disposition / exact re-entry |
+| --- | --- | --- |
+| `v7-proxy-inbound-happ-test.service` | active public listener + external Runtime configuration + privileged ip-rule lifecycle | `OWNER_BACKED_EXCEPTION`; existing proxy/ingress and deploy/package owners must supply the current tracked config/deploy chain, real product consumer and rollback contract before any change proposal |
+
+This evidence eliminates the possibility of treating the unit as a dormant
+test artifact. It does not evaluate configuration quality, infer unused route
+tags, reveal secrets, or authorize changes to proxy, routes, Runtime,
+Production, Authority or CPS.
+
+## Current RS6 decision after targeted closures
+
+The bounded rechecks have converted the previously broad runtime inventory
+into decision-ready dispositions: Direct autosync, path sanity, path guard,
+traffic accounting, API, benchmark, killswitch, MSS clamp, public gateway and
+OpenVPN are `KEEP_RUNTIME`; the seven dated autoswitch backups and the proxy
+ingress are explicit `OWNER_BACKED_EXCEPTION` boundaries. No checked object
+has earned `REMOVE_CANDIDATE` status.
+
+```text
+RS6 physical minimization verdict = NOT_READY
+CURRENT CPS successor = EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION
+NEXT LEGAL WORK = existing-owner proof for
+  (1) proxy ingress source/config -> real consumer -> rollback, or
+  (2) autoswitch-backup negative dynamic/manual invocation -> retained/archive/delete packet
+```
+
+The order is intentional: neither proof permits removal by itself; each must
+first produce an existing-owner bounded Mission with Product Contract,
+consumer migration (if any), validation, rollback and residue closure. CPS
+remains the sole authority to admit that future physical work.

@@ -19184,6 +19184,19 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
         blockers.append("controlled_source_topology_preflight_not_ready")
     if lifecycle.get("status") != "APPROVED" or lifecycle.get("matching_current_preflight") is not True:
         blockers.append("controlled_source_topology_exact_approval_not_current")
+    try:
+        approval_expired = min(
+            operator_execution.parse_ts(
+                str(lifecycle.get("expires_at") or "")
+            ),
+            operator_execution.parse_ts(
+                str((package.get("authority_basis") or {}).get("expires_at") or "")
+            ),
+        ) <= datetime.now(timezone.utc)
+    except operator_execution.PacketError:
+        approval_expired = True
+    if approval_expired:
+        blockers.append("controlled_source_topology_approval_expired")
     if str(lifecycle.get("decision") or "") != "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":
         blockers.append("controlled_source_topology_decision_not_provision_approval")
     if str(package.get("exact_action") or "") != "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":

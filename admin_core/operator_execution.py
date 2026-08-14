@@ -3662,17 +3662,25 @@ def controlled_source_topology_authority_status(records, *, now=None):
         error for error in (validation.get("errors") or [])
         if error != "controlled_source_topology_request_expired"
     ]
-    decision_record = {}
+    decision_record = decisions[0] if len(decisions) == 1 else {}
+    try:
+        request_expired = parse_ts(request.get("expires_at")) <= now
+    except PacketError:
+        request_expired = False
     if len(invalidations) > 1:
         status = "STOP_SAFE_DUPLICATE_REQUEST_INVALIDATIONS"
     elif invalidations:
         status = "SUPERSEDED_STALE_PREFLIGHT"
     elif non_expiry_errors:
         status = "STOP_SAFE_INVALID_REQUEST"
+    elif request_expired:
+        # An approval is bound to the same one-use request TTL.  Retaining an
+        # old decision as APPROVED after that TTL would let a topology consumer
+        # reserve a source with an already-expired authority boundary.
+        status = "EXPIRED"
     elif len(decisions) > 1:
         status = "STOP_SAFE_DUPLICATE_OR_CONFLICTING_DECISIONS"
     elif decisions:
-        decision_record = decisions[0]
         status = (
             "APPROVED"
             if str(decision_record.get("decision") or "").startswith(

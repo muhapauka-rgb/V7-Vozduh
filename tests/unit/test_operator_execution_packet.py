@@ -655,6 +655,11 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             )
         self.assertEqual(status["status"], "APPROVED")
         self.assertEqual(status["request_id"], request["request_id"])
+        expired = operator_execution.controlled_source_topology_authority_status(
+            lineage, now=now + timedelta(days=1, seconds=1),
+        )
+        self.assertEqual(expired["status"], "EXPIRED")
+        self.assertEqual(expired["decision"], "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE")
 
     def test_availability_first_campaign_status_consumes_only_exact_prefix(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)

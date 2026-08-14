@@ -558,3 +558,30 @@ location, recoverability period, rollback/restore procedure and post-action
 negative consumer check. Until then `RS6_RUNTIME_PACKAGE_MINIMIZATION` is
 correctly complete only as read-only evidence closure, not as physical
 minimization authority.
+
+## Existing OMP successor-consumer verification
+
+The canonical source-side entrypoint
+`tools/v7-truth-check --continue-omp --json` was invoked once without CPS
+persistence. It returned `PASS` with
+`RS_READ_ONLY_FRONTIER_PREEMPTS_GENERIC_OMP`, retained the current
+read-only RS6 frontier, made no CPS write and returned the unchanged exact
+successor `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. Its actual consumer is
+`EXISTING_RS_READ_ONLY_PHASE_OWNER`.
+
+The source contains no separate executable handler for the literal action
+`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. The existing
+`--omp-permanent-polygon-consumer` is not such a handler: it consumes the
+Permanent Polygon program's own obligation corpus. Invoking it for RS6 would
+cross the active-Program boundary and would be invalid. No adapter, CPS
+projection or substitute lifecycle was created.
+
+| Fact | Result |
+| --- | --- |
+| standard OMP continuation | `PASS`; one acknowledgement only |
+| CPS / Runtime / Production / Authority effect | `NONE / NONE / NONE / NONE` |
+| exact RS6 physical decision | still blocked by the autoswitch backup retention decision |
+| lawful re-entry | existing autoswitch + deploy/package owner supplies the retention packet, then the existing RS6 phase owner re-evaluates the same successor |
+
+This is a closure of successor-routing evidence, not a new audit or a claim
+that RS6 physical minimization is complete.

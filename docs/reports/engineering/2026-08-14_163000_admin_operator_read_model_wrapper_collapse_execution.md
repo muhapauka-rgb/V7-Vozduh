@@ -2,8 +2,8 @@
 
 Mission: `ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`
 Program: `V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1`
-Статус реализации: `TARGET_IMPLEMENTED_VALIDATED_PENDING_SAFE_DEPLOY`
-Runtime / Production / Authority effects на момент отчёта: `NONE / NONE / NONE`
+Статус: `TARGET_IMPLEMENTED_DEPLOYED_CONSUMED_RESIDUE_CLOSED`
+Runtime / Production / Authority effects: `ADMIN_READ_MODEL_ONLY / ADMIN_READ_ONLY_CONSUMER / NONE`
 
 ## Результат
 
@@ -51,7 +51,23 @@ Fresh AST proof подтвердил отсутствие десяти definitio
 - AST old-path residue: `PASS`, definitions `0`, calls `0`;
 - endpoint inventory: `279`, прежнее распределение методов сохранено.
 
-## Rollback и следующий существующий consumer
+## Production consumption
+
+Safe deploy `deploy-z8-14-Updatesystem-2a5da0f-20260814T101841`
+перенёс только `tools/v7_sync_lib.py` и `admin/v7-admin-api`, после чего
+перезапустил только `v7-admin-api.service`. Manifest сохранил нулевые routing,
+user movement, policy, planner, restore-barrier и Authority effects.
+
+- production hashes совпали с local/GitHub;
+- `v7-admin-api.service`: `active`, новый MainPID после deploy;
+- `/health`: HTTP `200`, `status=OK`;
+- защищённый `/api/operator/approval-preview`: HTTP `401` без credentials,
+  то есть auth boundary сохранён;
+- production non-test read-only вызов существующего owner с реальными
+  state/event roots вернул `e16.approval-preview.v1`, `preview_only=true`,
+  `execution_allowed_now=false`, `contracts=dict`.
+
+## Rollback и closure
 
 Rollback — один implementation commit с возвратом wrappers и call sites.
 Следующий обязательный владелец — существующий deploy/package owner:
@@ -59,10 +75,15 @@ Rollback — один implementation commit с возвратом wrappers и ca
 ```text
 commit/push
 -> tools/v7-safe-deploy exact manifest
--> Admin-only production restart when changed
--> authenticated/read-only Admin consumer smoke
--> RS7A/RS8 residue closure
+-> Admin-only production restart
+-> read-only Admin consumer smoke
+-> RS7A consumer cutover PASS
+-> RS8 old definition/call residue = 0
 -> atomic CPS/OMP completion projection
 ```
 
-До production caller proof Mission не объявляется полностью потреблённой.
+Mission completion terminal:
+
+```text
+ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED
+```

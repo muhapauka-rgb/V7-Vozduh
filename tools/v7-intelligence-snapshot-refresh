@@ -35,6 +35,8 @@ DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
 JSONL_FAMILY_READ_LIMIT = 5000
 JSONL_FAMILY_READ_BYTES = 2_500_000
+CURRENT_STATE_HISTORY_RECORD_LIMIT = 256
+CURRENT_STATE_HISTORY_READ_BYTES = 262_144
 
 
 def default_audit_dir(state_dir: Path) -> Path:
@@ -66,6 +68,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pretty", action="store_true")
     parser.add_argument("--max-source-retries", type=int, default=5)
     parser.add_argument("--source-retry-sleep-sec", type=float, default=0.25)
+    parser.add_argument(
+        "--current-state-window",
+        action="store_true",
+        help=(
+            "build from a bounded recent window of existing evidence stores; "
+            "historical evidence remains in its canonical stores"
+        ),
+    )
     return parser
 
 
@@ -79,12 +89,18 @@ def load_inputs(
     feedback_paths: list[Path] | None = None,
     switch_history_file: Path,
     rollback_history_file: Path,
+    history_record_limit: int = JSONL_FAMILY_READ_LIMIT,
+    history_read_bytes: int = JSONL_FAMILY_READ_BYTES,
 ) -> dict[str, Any]:
     audit_records = []
     for path in audit_paths:
-        audit_records.extend(read_jsonl_family(path))
+        audit_records.extend(read_jsonl_family(
+            path, limit=history_record_limit, max_bytes=history_read_bytes,
+        ))
     for path in feedback_paths or []:
-        audit_records.extend(read_jsonl_family(path))
+        audit_records.extend(read_jsonl_family(
+            path, limit=history_record_limit, max_bytes=history_read_bytes,
+        ))
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     return {
@@ -92,8 +108,12 @@ def load_inputs(
         "quality_summary": read_json(quality_summary_file, {"items": {}}),
         "service_preferences": read_json(service_preferences_file, {}),
         "audit_records": audit_records,
-        "switch_records": read_jsonl_family(switch_history_file),
-        "rollback_records": read_jsonl_family(rollback_history_file),
+        "switch_records": read_jsonl_family(
+            switch_history_file, limit=history_record_limit, max_bytes=history_read_bytes,
+        ),
+        "rollback_records": read_jsonl_family(
+            rollback_history_file, limit=history_record_limit, max_bytes=history_read_bytes,
+        ),
         "runtime_state": read_json(state_dir / "v7-state.json", {}),
         "users_registry": users,
         "egress_registry": egress,
@@ -131,11 +151,16 @@ def jsonl_family_paths(path: Path) -> list[Path]:
     return unique
 
 
-def read_jsonl_family(path: Path) -> list[dict[str, Any]]:
+def read_jsonl_family(
+    path: Path,
+    *,
+    limit: int = JSONL_FAMILY_READ_LIMIT,
+    max_bytes: int = JSONL_FAMILY_READ_BYTES,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for item in jsonl_family_paths(path):
-        rows.extend(read_jsonl_tail(item, limit=JSONL_FAMILY_READ_LIMIT, max_bytes=JSONL_FAMILY_READ_BYTES))
-    return rows[-JSONL_FAMILY_READ_LIMIT:]
+        rows.extend(read_jsonl_tail(item, limit=limit, max_bytes=max_bytes))
+    return rows[-limit:]
 
 
 def source_hashes_for_inputs(inputs: dict[str, Any]) -> dict[str, str]:
@@ -176,6 +201,8 @@ def build_stable_snapshot_run(
     affected_candidates: int,
     max_source_retries: int,
     source_retry_sleep_sec: float,
+    history_record_limit: int = JSONL_FAMILY_READ_LIMIT,
+    history_read_bytes: int = JSONL_FAMILY_READ_BYTES,
 ) -> tuple[Any, dict[str, Any]]:
     attempts = max(1, int(max_source_retries) + 1)
     last_errors: list[str] = []
@@ -190,6 +217,8 @@ def build_stable_snapshot_run(
             feedback_paths=feedback_paths or [],
             switch_history_file=switch_history_file,
             rollback_history_file=rollback_history_file,
+            history_record_limit=history_record_limit,
+            history_read_bytes=history_read_bytes,
         )
         result = build_all_snapshots(
             service_matrix=inputs["service_matrix"],
@@ -213,6 +242,8 @@ def build_stable_snapshot_run(
             feedback_paths=feedback_paths or [],
             switch_history_file=switch_history_file,
             rollback_history_file=rollback_history_file,
+            history_record_limit=history_record_limit,
+            history_read_bytes=history_read_bytes,
         )
         last_errors = source_consistency_errors(result, latest_inputs)
         last_result = result
@@ -262,6 +293,16 @@ def main(argv=None) -> int:
             state_dir / "proposals.jsonl",
             closure_records_file,
         ])
+    history_record_limit = (
+        CURRENT_STATE_HISTORY_RECORD_LIMIT
+        if args.current_state_window
+        else JSONL_FAMILY_READ_LIMIT
+    )
+    history_read_bytes = (
+        CURRENT_STATE_HISTORY_READ_BYTES
+        if args.current_state_window
+        else JSONL_FAMILY_READ_BYTES
+    )
 
     result, source_status = build_stable_snapshot_run(
         state_dir=state_dir,
@@ -276,6 +317,8 @@ def main(argv=None) -> int:
         affected_candidates=args.affected_candidates,
         max_source_retries=args.max_source_retries,
         source_retry_sleep_sec=args.source_retry_sleep_sec,
+        history_record_limit=history_record_limit,
+        history_read_bytes=history_read_bytes,
     )
     written = {} if args.dry_run or not source_status["source_stable"] else write_snapshots(Path(args.out_dir), result.snapshots)
     warnings = list(result.warnings)
@@ -284,6 +327,16 @@ def main(argv=None) -> int:
     payload = {
         "schema": "v7.intelligence-snapshot-refresh-result.v1",
         "dry_run": bool(args.dry_run),
+        "history_window": {
+            "mode": (
+                "CURRENT_STATE_BOUNDED"
+                if args.current_state_window
+                else "EXTENDED_EVIDENCE"
+            ),
+            "record_limit": history_record_limit,
+            "read_bytes_limit": history_read_bytes,
+            "historical_evidence_retained_in_canonical_stores": True,
+        },
         **source_status,
         "snapshot_count": len(result.snapshots),
         "written": written,

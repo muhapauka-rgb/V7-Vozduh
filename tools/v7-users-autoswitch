@@ -21707,16 +21707,16 @@ def controlled_source_topology_authority_request_only(
         if isinstance(diagnostic.get("authority_package"), dict)
         else {}
     )
+    lifecycle = (
+        diagnostic.get("authority_lifecycle")
+        if isinstance(diagnostic.get("authority_lifecycle"), dict)
+        else {}
+    )
     if (
         diagnostic.get("status")
         != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
         or package.get("actionable") is not True
     ):
-        lifecycle = (
-            diagnostic.get("authority_lifecycle")
-            if isinstance(diagnostic.get("authority_lifecycle"), dict)
-            else {}
-        )
         if (
             package.get("registered") is True
             and lifecycle.get("matching_current_preflight") is True
@@ -21738,6 +21738,53 @@ def controlled_source_topology_authority_request_only(
                 },
                 "next_required_consumer": (
                     "existing independent Authority owner"
+                ),
+                "forbidden_effects": diagnostic.get("forbidden_effects"),
+            }
+        if (
+            diagnostic.get("status")
+            == "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY"
+            and package.get("registered") is True
+            and lifecycle.get("matching_current_preflight") is True
+            and lifecycle.get("status") == "EXPIRED"
+        ):
+            request = (
+                operator_execution.build_controlled_source_topology_authority_request(
+                    package
+                )
+            )
+            registration = (
+                operator_execution.register_controlled_source_topology_authority_request(
+                    request,
+                    audit_store=Path(args.action_class_audit_store),
+                    producer_id="tools/v7-users-autoswitch",
+                )
+            )
+            registered_request = (
+                registration.get("request")
+                if isinstance(registration.get("request"), dict)
+                else request
+            )
+            return {
+                "schema_version": (
+                    "v7.controlled-source-topology-authority-entrypoint.v1"
+                ),
+                "status": "PASS",
+                "ok": True,
+                "authority_classification": "ENGINEERING_AUTHORITY",
+                "request": registered_request,
+                "registration": registration,
+                "selected_option": str(
+                    ((diagnostic.get("recommendation") or {}).get("selected_option"))
+                    or ""
+                ),
+                "selected_resource": str(
+                    ((diagnostic.get("recommendation") or {}).get("selected_resource"))
+                    or ""
+                ),
+                "next_required_consumer": "existing independent Authority owner",
+                "reentry_condition": str(
+                    registered_request.get("reentry_condition") or ""
                 ),
                 "forbidden_effects": diagnostic.get("forbidden_effects"),
             }

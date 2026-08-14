@@ -2,7 +2,8 @@
 
 **Program:** `V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1`
 **Scope:** existing `Continue OMP` selection only
-**Runtime / Production / Authority effects:** `NONE / NONE / NONE`
+**Runtime behavior / Production / Authority effects:** `NONE / NONE / NONE`
+**Deployment effect:** one existing approved Engineering library copy synchronized
 
 ## Problem
 
@@ -31,10 +32,12 @@ exact successor and leaves CPS byte-identical even when persistence is
 requested.
 
 The existing safe-deploy preflight found only `tools/v7_sync_lib.py` different
-from the deployed approved copy. It correctly refused deployment because the
-canonical GitHub branch was not readable/aligned for the uncommitted source
-candidate. No `--apply` deployment, service restart, Runtime mutation or
-Production mutation was performed.
+from the deployed approved copy. A sandbox-only DNS failure initially prevented
+the GitHub truth check; the existing elevated read-only check then confirmed
+`origin/Updatesystem = d8a4eb29`. The existing safe-deploy owner synchronized
+only that approved file. Fresh runtime truth confirmed
+`local_commit = runtime_commit = d8a4eb29`; no service restart, routing,
+user-movement, policy, state, Production or Authority mutation occurred.
 
 ## Before / after / delta
 

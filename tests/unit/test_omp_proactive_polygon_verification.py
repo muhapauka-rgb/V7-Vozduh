@@ -27,6 +27,16 @@ class OmpProactivePolygonVerificationTest(unittest.TestCase):
             "## Authoritative Unfinished Capability Closure Registry",
             "CURRENT_STOP_CONDITION", "`REAL_WORLD_LIMIT`",
         )
+        # This suite models the independent Polygon fallback condition.  The
+        # checked-in CPS legitimately owns an active RS6 Mission, which must
+        # preempt Polygon in production and is covered by the program-frontier
+        # tests.  Clear only the fixture's active-Mission field so these tests
+        # exercise the fallback contract rather than the live RS6 precedence.
+        cls.cps = cls.lib._replace_section_field(
+            cls.cps, "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+            "CURRENT_EXECUTION_MISSION_ID", "`NONE`",
+        )
         cls.lib.current_engineering_polygon_scenario_supply = lambda *args, **kwargs: {"discovery": {"active_source_count": 0}}
 
     def source(self, **overrides):

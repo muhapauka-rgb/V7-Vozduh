@@ -96,3 +96,11 @@ generic continuation and names its exact existing consumer. Re-entry requires
 that focused correction, its tests and a fresh atomic admission of this same
 unchanged candidate identity. This is not a rejection of the helper evidence
 and does not reopen the broad `v7_sync_lib.py` audit.
+
+## Re-entry condition satisfied
+
+The exact RS7 preemption correction is now committed, production-synchronized
+and convergence-proven at `f9810d67`. The candidate identity, scope, owner,
+validation and rollback contracts remain unchanged. It may be atomically
+re-admitted once, through the existing CPS/OMP owner; no broad re-analysis or
+new candidate is required.

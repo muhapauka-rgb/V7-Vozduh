@@ -161,3 +161,9 @@ justified correctness increase that prevents an unrelated consumer from
 crossing an admitted Mission boundary. Runtime, Production and Authority
 effects remain `NONE`; the helper-removal Mission stays blocked until this
 correction is committed, synchronized and re-admitted.
+
+The correction was synchronized as
+`deploy-z8-14-Updatesystem-f9810d6-20260814T155221`. Post-deploy
+`v7-truth-check --all` is `PASS/FULLY_ALIGNED` and convergence is `ALIGNED` at
+`f9810d67`; no deploy-delta mismatch, service/timer change, routing effect or
+Authority effect was observed.

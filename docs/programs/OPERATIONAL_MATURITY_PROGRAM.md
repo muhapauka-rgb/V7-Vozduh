@@ -21,6 +21,7 @@ Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_st
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
+Current bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_160000_admin_operator_read_model_cps_admission_report.md` (`MISSION_ADMITTED`; CPS-only lifecycle projection, no implementation effect).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
 
 V4.72 removes the invalid per-generation human approval loop from CT-M0F by
@@ -8096,8 +8097,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`
+Resolved contract state: CPS proves one `MISSION_ADMITTED` bounded Management Plane simplification after RS6 scoped-residual isolation; the exact live successor is `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`. The global RS6 physical-minimization frontier remains unresolved under its existing owners. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9084,9 +9085,10 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Resolved current next action: `EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1`
 Current terminal report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
+Current active Mission report: `docs/reports/engineering/2026-08-14_160000_admin_operator_read_model_cps_admission_report.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

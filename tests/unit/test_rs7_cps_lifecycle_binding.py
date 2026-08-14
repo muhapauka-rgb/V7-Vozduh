@@ -1,4 +1,5 @@
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -63,6 +64,60 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
             )
         return text
 
+    def rs6_pre_admission_cps(self):
+        text = self.cps
+        for key, value in (
+            ("CURRENT_STATE_GENERATION", "cpsgen_RS6_ADMITTED_65CB2232971"),
+            ("CURRENT_PROGRAM_STAGE", "RS6_RUNTIME_PACKAGE_MINIMIZATION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+        ):
+            text = self.lib._replace_section_field(
+                text, "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry", key, f"`{value}`",
+            )
+        return text
+
+    def rs7_admission_state(self, cps_text=None):
+        mission_id = self.packet()["mission_id"]
+        state = self.lib._normalized_state_from_live_cps(cps_text or self.rs6_pre_admission_cps())
+        state.update({
+            "state_captured": "2026-08-14T07:08:37+00:00",
+            "current_active_scope": "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION",
+            "current_safe_next_action": "EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1",
+            "current_scope_class": "BOUNDED_MANAGEMENT_PLANE_SIMPLIFICATION",
+            "current_state_generation": "cpsgen_RS7_ADMIN_ADMITTED_F5B31A66F633",
+            "current_transition_id": "V7_RS6_SCOPED_TO_RS7_ADMIN_OPERATOR_READ_MODEL_ADMISSION_V1",
+            "current_next_action_id": "EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1",
+            "current_program_stage": "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION",
+            "current_program_execution_frontier": f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}",
+            "current_execution_frontier": f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}",
+            "program_frontier_input": "RS6 scoped residual isolation PASS for one bounded Management Plane Mission",
+            "program_frontier_owner": "EXISTING_OMP_CPS_ATOMIC_RECONCILIATION_OWNER",
+            "program_frontier_expected_output": "MISSION_EXECUTION_ALLOWED -> bounded implementation -> validation -> residue closure",
+            "program_terminal_state": "NONE_RS7_BOUNDED_MISSION_ADMITTED",
+            "current_execution_mission_id": mission_id,
+            "current_execution_mission_state": "MISSION_ADMITTED",
+            "current_mission_role": "ACTIVE_MISSION",
+            "current_mission_id": mission_id,
+            "current_run_nonce": "rs7_admin_wrapper_f5b31a66f633",
+            "current_mission_state": "MISSION_ADMITTED",
+            "current_mission_report": "docs/reports/engineering/2026-08-14_160000_admin_operator_read_model_cps_admission_report.md",
+            "current_completion_contract": "IMPLEMENTATION_COMPLETION",
+            "current_completion_verdict": "MISSION_ADMITTED",
+            "transaction_terminal_class": "RS7_BOUNDED_MISSION_ADMITTED",
+            "next_mission_id": mission_id,
+            "continuation_stop_reason": "RS6_SCOPED_CONSUMPTION_ELIGIBLE; RS7_ADMIN_MISSION_ADMITTED",
+            "no_progress_fingerprint": self.packet()["candidate_identity"],
+            "smallest_existing_next_action": "EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1",
+            "wip_smallest_existing_next_action_id": "EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1",
+            "wip_smallest_existing_next_action": "EXECUTE_ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1; preserve CAP-U07 natural-evidence WIP",
+            "omp_continuation_pointer": "execute only ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_V1 through existing RS7 lifecycle; preserve RS6 physical-minimization residuals",
+            "source_summary": "RS6 scoped residual isolation admits one existing-owner Management Plane Mission; no Runtime, Production or Authority effect.",
+        })
+        return state
+
     def test_prepared_packet_is_bound_but_not_authorized_to_execute(self):
         result = self.lib.rs7_physical_mission_lifecycle_binding(self.cps, self.packet())
         self.assertEqual(result["final_verdict"], "PASS")
@@ -72,7 +127,7 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
 
     def test_current_rs6_frontier_cannot_issue_execution_authorization(self):
         result = self.lib.rs7_physical_mission_lifecycle_binding(
-            self.cps, self.packet(), requested_state="MISSION_EXECUTION_ALLOWED",
+            self.rs6_pre_admission_cps(), self.packet(), requested_state="MISSION_EXECUTION_ALLOWED",
         )
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertIn("rs7_predecessor_not_consumed", result["errors"])
@@ -97,6 +152,21 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
         )
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertIn("rs7_packet_rollback_contract_exists_not_proven", result["errors"])
+
+    def test_atomic_owner_can_admit_one_rs7_mission_without_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "V7_CURRENT_PROGRAM_STATE.md"
+            before = self.rs6_pre_admission_cps()
+            path.write_text(before, encoding="utf-8")
+            result = self.lib.atomic_reconcile_cps(
+                path, state=self.rs7_admission_state(before),
+                expected_generation="cpsgen_RS6_ADMITTED_65CB2232971", request_external_wake=False,
+            )
+            self.assertTrue(result["ok"])
+            admitted = self.lib.rs7_physical_mission_lifecycle_binding(
+                path.read_text(encoding="utf-8"), self.packet(), requested_state="MISSION_EXECUTION_ALLOWED",
+            )
+            self.assertEqual(admitted["execution_authorization"], "MISSION_EXECUTION_ALLOWED")
 
 
 if __name__ == "__main__":

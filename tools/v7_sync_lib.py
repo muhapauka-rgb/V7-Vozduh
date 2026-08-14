@@ -90,6 +90,22 @@ RS7_PHYSICAL_MISSION_TERMINALS = (
     "MISSION_FAILED",
 )
 
+
+def _is_rs7_physical_admission_frontier(live: dict[str, str]) -> bool:
+    """Recognize the existing bounded RS7 admission projection, not a new lifecycle."""
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    frontier = value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
+    mission_id = frontier.removeprefix("ADMITTED_READY_FOR_IMPLEMENTATION:")
+    return all((
+        value("ACTIVE_PROGRAM") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
+        value("CURRENT_PROGRAM_STAGE") == RS7_PHYSICAL_SIMPLIFICATION_STAGE,
+        frontier.startswith("ADMITTED_READY_FOR_IMPLEMENTATION:"),
+        bool(mission_id),
+        value("CURRENT_EXECUTION_MISSION_ID") == mission_id,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+    ))
+
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
     "current_mode": "FULL_INDEPENDENT_ENGINEERING_AUTOMATION_ACTIVE",
@@ -1068,9 +1084,14 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     stop_match = re.search(r"(?m)^Resolved current stop:\s*`([^`]+)`", pointer)
     next_match = re.search(r"(?m)^Resolved current next action:\s*`([^`]+)`", pointer)
     report_match = re.search(r"(?m)^Latest consumed report:\s*`([^`]+)`", pointer)
+    active_report_match = re.search(r"(?m)^Current active Mission report:\s*`([^`]+)`", pointer)
     omp_stop = stop_match.group(1) if stop_match else ""
     omp_next_action = next_match.group(1) if next_match else ""
-    omp_report = report_match.group(1) if report_match else ""
+    active_mission_pointer = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
+    omp_report = (
+        active_report_match.group(1) if active_mission_pointer and active_report_match
+        else report_match.group(1) if report_match else ""
+    )
     pointer_ok = (
         pointer_classification == "CURRENT_PROGRAM_STATE_REFERENCE"
         and "Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`" in pointer
@@ -1080,7 +1101,6 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
         and omp_next_action == cps_next_action
         and section20_pointer_ok
     )
-    active_mission_pointer = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
     report_pointer_ok = bool(
         cps_report
         and omp_report == cps_report
@@ -2276,6 +2296,7 @@ def delegated_policy_live_state_consistency(
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
         and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
+    rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
         r"CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_"
@@ -2464,6 +2485,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
+            or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
     )
@@ -2479,7 +2501,7 @@ def delegated_policy_live_state_consistency(
             independent_program_frontier
             or wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
         )
-        and (reset_program_frontier or rs0_read_only_frontier or f"`{next_action}`" in sequence_one)
+        and (reset_program_frontier or rs0_read_only_frontier or rs7_physical_admission_frontier or f"`{next_action}`" in sequence_one)
     )
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
@@ -2686,6 +2708,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
                     and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in RS_READ_ONLY_STAGE_TERMINALS
                 )
+                or _is_rs7_physical_admission_frontier(live)
             )
             else
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
@@ -23060,6 +23083,27 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             live.get("CURRENT_COMPLETION_CONTRACT", "").strip("`") == "ANALYSIS_COMPLETION",
             live.get("CURRENT_STOP_CONDITION", "").strip("`") == "NONE",
         ))
+        rs7_active = all((
+            _is_rs7_physical_admission_frontier(live),
+            live.get("CURRENT_COMPLETION_CONTRACT", "").strip("`") == "IMPLEMENTATION_COMPLETION",
+            live.get("CURRENT_COMPLETION_VERDICT", "").strip("`") == "MISSION_ADMITTED",
+            live.get("CURRENT_STOP_CONDITION", "").strip("`") == "NONE",
+        ))
+        if rs7_active:
+            return {
+                "schema": "v7-omp-functional-footprint-consistency/v1",
+                "final_verdict": "PASS",
+                "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+                "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+                "heartbeat_status": heartbeat_status,
+                "automation_enabled": heartbeat_active,
+                "mission_completion_evidence_gate_status": "RS7_PHYSICAL_MISSION_ADMITTED",
+                "current_completion_contract": "IMPLEMENTATION_COMPLETION",
+                "current_completion_verdict": "MISSION_ADMITTED",
+                "completion_gate": {},
+                **calls,
+                "errors": [],
+            }
         return {
             "schema": "v7-omp-functional-footprint-consistency/v1",
             "final_verdict": "PASS" if rs0_active else "NO-GO",
@@ -23450,6 +23494,7 @@ def cps_live_state_consistency(
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
         and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
+    rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
         _is_controlled_certification_safe_frontier(program_frontier)
@@ -23501,6 +23546,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
+            and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )
     ):

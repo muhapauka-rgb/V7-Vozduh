@@ -2020,10 +2020,25 @@ def write_json_atomic(path: Path, data: Any) -> None:
     os.replace(tmp, path)
 
 
-def read_jsonl(path: Path) -> list[dict[str, Any]]:
+def read_jsonl(
+    path: Path,
+    *,
+    tail_limit: int = 0,
+    tail_max_bytes: int = 0,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        if tail_limit > 0 and tail_max_bytes > 0:
+            with path.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                size = handle.tell()
+                handle.seek(max(0, size - tail_max_bytes))
+                data = handle.read(tail_max_bytes)
+            lines = data.decode("utf-8", errors="replace").splitlines()
+            if size > tail_max_bytes and lines:
+                lines = lines[1:]
+        else:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except FileNotFoundError:
         return rows
     except OSError:
@@ -2038,7 +2053,7 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
             continue
         if isinstance(row, dict):
             rows.append(row)
-    return rows
+    return rows[-tail_limit:] if tail_limit > 0 else rows
 
 
 def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -14363,7 +14378,7 @@ class AutoswitchPlanner:
         credit can result from this passive step.
         """
         path = self.event_dir / "service-failure-events.jsonl"
-        source_rows = read_jsonl(path)[-2000:]
+        source_rows = read_jsonl(path, tail_limit=2000, tail_max_bytes=16_000_000)
         persistence_samples = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
         persistence_window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
         event_by_id: dict[str, dict[str, Any]] = {}

@@ -2067,6 +2067,22 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertFalse(any(result["forbidden_effects"].values()))
 
+    def test_jsonl_tail_reader_preserves_exact_latest_event_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "service-failure-events.jsonl"
+            rows = [
+                {"event_id": f"evt_{index}", "padding": "x" * 96}
+                for index in range(6)
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            result = self.autoswitch.read_jsonl(
+                path, tail_limit=2, tail_max_bytes=400
+            )
+        self.assertEqual([row["event_id"] for row in result], ["evt_4", "evt_5"])
+
     def test_newer_owner_backed_scope_rotates_current_denominator_only(self):
         """A newer revalidation replaces only current scope, never Outcome history."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

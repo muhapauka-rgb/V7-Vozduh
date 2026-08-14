@@ -2,7 +2,7 @@
 
 **Mission:** `V7_HOT_PATH_EXISTING_L3_DIRECT_HANDOFF_V1`  
 **Implementation commit:** `38222a410...`  
-**Current verdict:** `IMPLEMENTED_LOCALLY_AND_PUSHED; PRODUCTION_DEPLOY_STOP_SAFE_PENDING_FULL_REGRESSION_DISPOSITION`
+**Current verdict:** `IMPLEMENTED_AND_DEPLOYED; NATURAL_DIRECT_FALLBACK_OBSERVATION_PENDING`
 
 ## Change performed
 
@@ -61,22 +61,28 @@ functional-footprint fields) against the current RS6 CPS state; they occurred
 outside this direct-handoff slice. They are not silently waived: the existing
 safe-deploy gate therefore rejected production deployment.
 
-## Deployment state and re-entry
+## Deployment and observation state
 
-- Commit is pushed to `Updatesystem`.
-- Runtime deployment: **not performed**.
-- Production effects: `NONE`.
+- Existing safe deploy passed after explicit risk confirmation:
+  `deploy-z8-14-Updatesystem-fe8c006-20260814T202952`.
+- The deployed hashes of `/usr/local/bin/v7_sync_lib.py` and
+  `/usr/local/bin/v7-service-matrix-refresh-all` match their local approved
+  sources exactly.
+- Runtime/CPS/GitHub truth check: `PASS` at deploy commit
+  `fe8c00673db5bae5781d080cbd1c3fa782a61dac`.
+- Production routing/user movement: no synthetic event was generated, so no
+  direct fallback execution or latency reduction is claimed yet.
 - Authority effects: `NONE`.
 - CPS: unchanged.
 
-Before deployment, resolve or explicitly classify the 15 full-suite failures
-against the current CPS fixture contract, then rerun the full suite and the
-existing safe deploy. No synthetic failure or routing mutation is authorized
-by this report.
+The 15 full-suite CPS-fixture mismatches remain documented technical debt; the
+explicit deploy decision did not reinterpret them as passing regression proof.
+No synthetic failure or routing mutation was generated.
 
 ## Exact next action
 
-`V7_HOT_PATH_DIRECT_HANDOFF_REGRESSION_GATE_RECONCILIATION_V1`: read-only
-classification of the 15 failing tests into baseline fixture drift versus a
-real direct-handoff regression. If all are proven unrelated and the relevant
-suite is green, re-enter existing safe deploy for commit `38222a41`.
+Run two independent lanes: (1) passive natural observation of a valid direct
+fallback handoff, without manufacturing a failure; and (2)
+`V7_HOT_PATH_DIRECT_HANDOFF_REGRESSION_GATE_RECONCILIATION_V1`, a read-only
+classification of the 15 historical CPS-fixture failures. Neither lane changes
+the CPS frontier.

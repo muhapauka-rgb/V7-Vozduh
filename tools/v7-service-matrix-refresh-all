@@ -32,7 +32,6 @@ TOOLS_DIR = ROOT / "tools"
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 from v7_sync_lib import (  # noqa: E402
-    service_failure_automation_consumed_execution_handoff,
     service_failure_direct_execution_handoff,
 )
 
@@ -4122,43 +4121,48 @@ def main() -> int:
             "reason": "existing_l3_projection_proves_current_exact_handoff",
         }
     elif (payload.get("passive_event_consumer") or {}).get("ok") is True:
-        # The OMP owner selects only an existing durable obligation and is
-        # exact-once.  It must still run when the advisory refresh timed out:
-        # a fresh, already-materialized actionable obligation otherwise has no
-        # receipt and the governed CT-M0F executor correctly fails closed.
-        # With no such obligation it returns NO_PENDING_OBLIGATION, so this
-        # cannot manufacture an execution path.
-        payload["service_failure_omp_consumer"] = run_service_failure_omp_consumer(
-            timeout_sec=int(args.passive_consumer_timeout_sec) + 30,
-        )
+        # OMP is Engineering-plane receipt/evidence machinery.  It must never
+        # become a synchronous fallback between a failure and an executor
+        # attempt.  Without a fresh obligation or an existing exact L3
+        # handoff, fail closed below; a later Engineering consumer may record
+        # evidence, but it cannot unblock this Runtime decision.
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "DEFERRED_OUTSIDE_RUNTIME_HOT_PATH",
+            "ok": True,
+            "reason": "no_fresh_or_direct_l3_handoff; runtime_fails_closed_without_omp_fallback",
+        }
     else:
         payload["service_failure_omp_consumer"] = {
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
             "status": "NOT_REQUIRED_NO_NEW_OBLIGATION", "ok": True,
         }
-    # A direct L3 handoff is preferred after a prior post-execution receipt.
-    # Legacy records without that compact projection retain their exact
-    # receipt-bound bridge. A stale or changed scope remains fail-closed.
-    payload["service_failure_execution_handoff"] = (
-        service_failure_automation_consumed_execution_handoff(
-            state_dir=state_dir,
-        )
-        if not service_failure_obligation
-        else {
-            "schema_version": "v7.service-failure-automation-execution-handoff.v1",
-            "final_verdict": (
-                "FRESH_ADVISORY_OBLIGATION_PREFERRED"
-                if fresh_service_failure_obligation
-                else "DIRECT_L3_HANDOFF_PREFERRED"
-            ),
-            "runtime_mutation_performed": False,
-        }
-    )
-    if (
-        not service_failure_obligation
-        and payload["service_failure_execution_handoff"].get("final_verdict") == "READY"
-    ):
-        service_failure_obligation = payload["service_failure_execution_handoff"].get("obligation") or {}
+    # An OMP-consumed receipt is historical/engineering evidence, not a
+    # Runtime handoff.  Keep its compatibility reader available to its
+    # existing Engineering owner, but do not consult it here: a stale or
+    # missing direct L3 handoff must fail closed rather than wait for OMP.
+    payload["service_failure_execution_handoff"] = {
+        "schema_version": "v7.service-failure-automation-execution-handoff.v1",
+        "owner": "existing closure-records + l3-runtime-state owners",
+        "final_verdict": (
+            "FRESH_ADVISORY_OBLIGATION_PREFERRED"
+            if fresh_service_failure_obligation
+            else "DIRECT_L3_HANDOFF_PREFERRED"
+            if direct_service_failure_obligation
+            else "STOP_SAFE_DIRECT_L3_HANDOFF_REQUIRED"
+        ),
+        "reason": (
+            "fresh_advisory_obligation_available"
+            if fresh_service_failure_obligation
+            else "existing_l3_projection_proves_current_exact_handoff"
+            if direct_service_failure_obligation
+            else str(
+                (payload.get("service_failure_direct_execution_handoff") or {}).get("reason")
+                or "no_current_direct_l3_handoff"
+            )
+        ),
+        "runtime_mutation_performed": False,
+    }
     if args.skip_bounded_delegated_service_failure_action:
         payload["bounded_delegated_service_failure_action"] = {
             "schema_version": "v7.service-failure-bounded-delegated-action-consumer.v1",

@@ -3908,7 +3908,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertLess(defer_marker, executor_call)
         self.assertLess(executor_call, deferred_receipt)
         self.assertIn(
-            "if not service_failure_obligation",
+            "fresh_service_failure_obligation",
             source[defer_marker:executor_call],
         )
 
@@ -3928,6 +3928,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "elif (payload.get(\"passive_event_consumer\")", 1
         )[0]
         self.assertNotIn("run_service_failure_omp_consumer(", direct_branch)
+
+    def test_no_omp_fallback_exists_before_runtime_executor(self):
+        """Runtime may use fresh or L3 evidence, never an OMP receipt fallback."""
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        direct_read = source.index("service_failure_direct_execution_handoff(state_dir=state_dir)")
+        executor_call = source.index(
+            'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
+        )
+        pre_executor = source[direct_read:executor_call]
+        self.assertIn("DEFERRED_OUTSIDE_RUNTIME_HOT_PATH", pre_executor)
+        self.assertIn("STOP_SAFE_DIRECT_L3_HANDOFF_REQUIRED", pre_executor)
+        self.assertNotIn("service_failure_automation_consumed_execution_handoff(", pre_executor)
+        self.assertNotIn("run_service_failure_omp_consumer(", pre_executor)
 
 
 if __name__ == "__main__":

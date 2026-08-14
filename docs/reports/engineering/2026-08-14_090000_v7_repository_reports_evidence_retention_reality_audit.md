@@ -524,3 +524,21 @@ program deletion nor Git-history rewriting. The next safe action is a bounded
 candidate scan of the 180 root evidence directories, followed by a separately
 reviewable archive/compact-receipt batch. Runtime, production, routing, user,
 Authority and Production Maturity effects: `NONE`.
+
+## Cleanup execution update — Batch 18
+
+An additional 18 historical planner JSON payloads were checked by semantics,
+not by age. Every item had `apply_requested=false`,
+`selected_move_count=0`, and no exact path reference from source, tests or
+Runtime. Existing historical consumers can continue to read the original paths
+because each path now contains a compact receipt preserving operation identity,
+generation, terminal reason, source hash and archive pointer.
+
+The originals total `90,124,919` bytes. They are recoverable from the ignored
+archive
+`.v7/evidence-archive/2026-08-14-batch18/zero-selection-dry-runs.tar.gz`
+(SHA-256
+`b435e04262a9468bb3f99290dd506a0cc66f5a09681e5a5a1839bec73cc9c83e`).
+The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
+not deletion. Runtime, production, routing, user movement, policy, Authority
+and Production Maturity effects: `NONE`.

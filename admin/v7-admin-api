@@ -15719,10 +15719,6 @@ def speed_state():
     return redact(data)
 
 
-def traffic_zero_summary(entity_type="", entity_id=""):
-    return diagnostic_views.traffic_zero_summary(entity_type, entity_id)
-
-
 def traffic_db_connect():
     if not TRAFFIC_DB_FILE.exists():
         return None
@@ -15752,7 +15748,7 @@ def traffic_sum_rows(conn, table, entity_type, entity_id, where="", params=()):
 
 def traffic_entity_summary(conn, entity_type, entity_id):
     if not conn or not entity_id:
-        return traffic_zero_summary(entity_type, entity_id)
+        return diagnostic_views.traffic_zero_summary(entity_type, entity_id)
     now = datetime.now(timezone.utc)
     today = now.strftime("%Y-%m-%d")
     week_start = (now - timedelta(days=6)).strftime("%Y-%m-%d")
@@ -15768,7 +15764,7 @@ def traffic_entity_summary(conn, entity_type, entity_id):
             (entity_type, entity_id),
         ).fetchone()
     except sqlite3.Error:
-        return traffic_zero_summary(entity_type, entity_id)
+        return diagnostic_views.traffic_zero_summary(entity_type, entity_id)
     return diagnostic_views.traffic_entity_payload(
         entity_type=entity_type,
         entity_id=entity_id,

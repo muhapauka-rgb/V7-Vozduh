@@ -129,7 +129,15 @@ class Api5RuntimeRouteDiagnosticViewsTest(unittest.TestCase):
         self.assertEqual(quick["quick_domain"], "ok.example")
 
     def test_diagnostic_view_parity(self):
-        self.assertEqual(self.admin.traffic_zero_summary("user", "10.7.0.2"), diagnostic_views.traffic_zero_summary("user", "10.7.0.2"))
+        self.assertEqual(diagnostic_views.traffic_zero_summary("user", "10.7.0.2"), {
+            "entity_type": "user", "entity_id": "10.7.0.2",
+            "today": {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0},
+            "last_24h": {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0},
+            "week": {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0},
+            "month": {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0},
+            "all_time": {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0},
+            "updated_at": "", "snapshot": {},
+        })
 
         users = [{"ip": "10.7.0.2", "current": "awg0", "enabled": "1"}]
         client_data = {

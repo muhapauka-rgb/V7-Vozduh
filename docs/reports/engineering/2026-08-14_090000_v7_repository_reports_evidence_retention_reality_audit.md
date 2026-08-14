@@ -389,3 +389,29 @@ reduces the active tree by `5,390,120` bytes. This is `ARCHIVE_EXTERNAL`, not
 deletion or a claim that historical evidence disappeared; restoration is
 possible through the recorded archive and source hash. Runtime, Production,
 routing, user movement, policy and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 14
+
+Two related `AUTONOMY_TIER1_GOVERNED_CANARY_READINESS` observations are
+historical, no-mutation `DRY_RUN` evidence. Both retain the existing
+`tools/v7-users-autoswitch` owner, Planner generation, `observe` mode,
+`apply=false`, zero selected moves and terminal reason
+`dry_run_restore_barrier_clearance_generation_expired`. The ordinary canary
+observation recorded `26` candidates; the WireGuard-target observation
+recorded `0`. Their only consumers are historical `truth_final.json`,
+`convergence_final.json` and the cross-reference index; no source, test,
+deploy or Runtime consumer requires their full payloads. Existing references
+remain unchanged at compact JSON receipts carrying the decision-bearing
+operation and summary facts.
+
+The originals total `10,778,977` bytes. They are recoverable from the ignored
+existing archive lifecycle at
+`.v7/evidence-archive/2026-08-14-batch14/autonomy-tier1-canary-observations.tar.gz`
+(SHA-256
+`6d31f1ad3d5a5d06d945773c17cfeedd6af32c1d07f2932e573e01cac0a23ae6`).
+Their individual source hashes are recorded in their receipts; clean archive
+extraction was byte-compared before replacement. Compact receipts total
+`2,888` bytes, reducing the active tree by `10,776,089` bytes. This is
+`ARCHIVE_EXTERNAL`, not deletion: restoration requires archive extraction and
+source-hash verification. Runtime, Production, routing, user movement, policy
+and Authority effects: `NONE`.

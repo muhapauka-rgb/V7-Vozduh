@@ -73,7 +73,17 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         self.assertIn("omp_current_next_action_divergence", self.validate(drift)["omp_contradiction_ids"])
 
     def test_08_latest_consumed_report_mismatch_fails(self):
-        drift = self.omp.replace(self.state["latest_terminal_mission_report"], "docs/reports/engineering/stale.md")
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
+        report = live["CURRENT_MISSION_REPORT"].strip("`")
+        drift = self.omp.replace(
+            f"Current active Mission report: `{report}`",
+            "Current active Mission report: `docs/reports/engineering/stale.md`",
+            1,
+        )
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 
     def test_09_historical_section_cannot_create_mission(self):
@@ -164,8 +174,13 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             reconciled = (programs / OMP.name).read_text(encoding="utf-8")
         self.assertTrue(result["ok"], result)
         self.assertEqual(result["status"], "OMP_POINTER_ATOMIC_UPDATE_APPLIED")
+        live = self.lib._markdown_field_table(self.lib._markdown_section(
+            self.cps,
+            "## 0. Authoritative Live Current State",
+            "## Authoritative Unfinished Capability Closure Registry",
+        ))
         self.assertIn(
-            f"Current terminal report: `{self.state['latest_terminal_mission_report']}`",
+            f"Current active Mission report: `{live['CURRENT_MISSION_REPORT'].strip('`')}`",
             reconciled,
         )
         self.assertEqual(
@@ -174,6 +189,39 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
             ],
             "PASS",
         )
+
+    def test_20_existing_owner_reconciles_active_rs7_mission_report_pointer(self):
+        mission_id = "TEST_RS7_MISSION"
+        report = "docs/reports/engineering/test_rs7.md"
+        cps = self.cps
+        for key, value in (
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_TEST_RS7_MISSION"),
+            ("CURRENT_PROGRAM_STAGE", "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}"),
+            ("CURRENT_EXECUTION_MISSION_ID", mission_id),
+            ("CURRENT_EXECUTION_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_MISSION_ROLE", "ACTIVE_MISSION"),
+            ("CURRENT_MISSION_ID", mission_id),
+            ("CURRENT_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_MISSION_REPORT", report),
+        ):
+            cps = self.lib._replace_section_field(
+                cps,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+                key,
+                f"`{value}`",
+            )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            programs = root / "docs/programs"
+            programs.mkdir(parents=True)
+            (programs / CPS.name).write_text(cps, encoding="utf-8")
+            (programs / OMP.name).write_text(self.omp, encoding="utf-8")
+            result = self.lib.atomic_reconcile_omp_current_pointer_from_cps(root=root)
+            reconciled = (programs / OMP.name).read_text(encoding="utf-8")
+        self.assertTrue(result["ok"], result)
+        self.assertIn(f"Current active Mission report: `{report}`", reconciled)
 
 
 if __name__ == "__main__":

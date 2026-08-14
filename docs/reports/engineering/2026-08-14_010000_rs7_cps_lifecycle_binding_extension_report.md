@@ -125,3 +125,20 @@ Only after that existing frontier is legally consumed may the existing CPS
 owner atomically admit the exact prepared Mission and re-run this binding for
 `MISSION_EXECUTION_ALLOWED`. This report neither launches nor authorizes the
 Admin wrapper collapse.
+
+## Execution addendum — active-Mission OMP pointer reconciliation
+
+The RS7 dry-run exposed one narrow existing-owner defect: when CPS names an
+active bounded Mission, `atomic_reconcile_omp_current_pointer_from_cps` updated
+the terminal-report fields but left `Current active Mission report` stale.
+That makes the correct CPS projection fail the existing CPS/OMP consistency
+gate. The reconciler now updates only the active-Mission pointer in that state;
+terminal and latest-consumed history remain untouched. A new focused regression
+test proves the RS7 pointer is rewritten atomically and a stale active report
+fails the existing consistency check.
+
+Physical delta: two existing Engineering files changed, source `+26/-14` and
+test `+50/-2` lines; no product behavior, CPS frontier, Runtime, Production,
+Authority, service, timer, routing, state or deploy change. This closes a
+correctness gap in the existing OMP/CPS projection owner; it does not admit or
+execute a Mission.

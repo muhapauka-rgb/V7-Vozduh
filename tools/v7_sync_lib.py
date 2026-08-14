@@ -1206,6 +1206,7 @@ def atomic_reconcile_omp_current_pointer_from_cps(
     stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
     next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
     report = _plain_live_value(live, "CURRENT_MISSION_REPORT")
+    active_mission = _plain_live_value(live, "CURRENT_MISSION_ROLE") == "ACTIVE_MISSION"
     authority_status = _plain_live_value(
         live, "CURRENT_AUTHORITY_REQUEST_STATUS"
     )
@@ -1241,18 +1242,26 @@ def atomic_reconcile_omp_current_pointer_from_cps(
             count=1,
         )
         if include_report:
-            candidate = re.sub(
-                r"(?m)^Current terminal report:\s*`[^`]+`$",
-                f"Current terminal report: `{report}`",
-                candidate,
-                count=1,
-            )
-            candidate = re.sub(
-                r"(?m)^Latest consumed report:\s*`[^`]+`$",
-                f"Latest consumed report: `{report}`",
-                candidate,
-                count=1,
-            )
+            if active_mission:
+                candidate = re.sub(
+                    r"(?m)^Current active Mission report:\s*`[^`]+`$",
+                    f"Current active Mission report: `{report}`",
+                    candidate,
+                    count=1,
+                )
+            else:
+                candidate = re.sub(
+                    r"(?m)^Current terminal report:\s*`[^`]+`$",
+                    f"Current terminal report: `{report}`",
+                    candidate,
+                    count=1,
+                )
+                candidate = re.sub(
+                    r"(?m)^Latest consumed report:\s*`[^`]+`$",
+                    f"Latest consumed report: `{report}`",
+                    candidate,
+                    count=1,
+                )
         else:
             contract_projection = (
                 "Resolved contract state: CPS proves "
@@ -1274,8 +1283,11 @@ def atomic_reconcile_omp_current_pointer_from_cps(
             f"Resolved current next action: `{next_action}`",
         ]
         if include_report:
-            required.append(f"Current terminal report: `{report}`")
-            required.append(f"Latest consumed report: `{report}`")
+            if active_mission:
+                required.append(f"Current active Mission report: `{report}`")
+            else:
+                required.append(f"Current terminal report: `{report}`")
+                required.append(f"Latest consumed report: `{report}`")
         if not all(item in candidate for item in required):
             raise ValueError(f"omp_pointer_fields_missing:{start}")
         return text.replace(section, candidate, 1)

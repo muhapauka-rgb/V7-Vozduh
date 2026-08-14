@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/runtime-support/v7-user-desired-state"
+SAVE_SCRIPT = ROOT / "tools/runtime-support/v7-user-desired-state-save"
 
 
 class V7UserDesiredStateTest(unittest.TestCase):
@@ -86,6 +87,40 @@ class V7UserDesiredStateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.count("status=FAIL"), 2)
         self.assertIn("V7_USER_DESIRED_STATE=FAIL", result.stdout)
+
+    def test_saver_persists_terminal_fail_and_preserves_failure_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            bin_dir = root / "bin"
+            state_dir = root / "state"
+            bin_dir.mkdir()
+            state_dir.mkdir()
+            (bin_dir / "v7-user-desired-state").write_text(
+                "#!/usr/bin/env bash\n"
+                "printf 'subject=10.0.0.2 status=FAIL reason=missing_rule\\n'\n"
+                "printf 'V7_USER_DESIRED_STATE=FAIL\\n'\n"
+                "exit 1\n",
+                encoding="utf-8",
+            )
+            (bin_dir / "v7-user-desired-state").chmod(0o755)
+            output_file = state_dir / "user-desired-state.state"
+            result = subprocess.run(
+                ["bash", str(SAVE_SCRIPT)],
+                env={
+                    **os.environ,
+                    "PATH": f"{bin_dir}:{os.environ['PATH']}",
+                    "V7_STATE_DIR": str(state_dir),
+                    "V7_USER_DESIRED_STATE_FILE": str(output_file),
+                },
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("V7_USER_DESIRED_STATE_SAVE=OK", result.stdout)
+            self.assertTrue(output_file.exists())
+            self.assertIn("V7_USER_DESIRED_STATE=FAIL", output_file.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

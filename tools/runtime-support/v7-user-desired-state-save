@@ -8,7 +8,11 @@ mkdir -p "$STATE_DIR"
 tmp="$(mktemp "$STATE_DIR/.user-desired-state.state.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 
-v7-user-desired-state > "$tmp"
+if v7-user-desired-state > "$tmp"; then
+  desired_state_exit=0
+else
+  desired_state_exit=$?
+fi
 grep -q '^V7_USER_DESIRED_STATE=' "$tmp" || {
   echo "ERROR: desired-state output is incomplete" >&2
   exit 1
@@ -20,3 +24,4 @@ trap - EXIT
 
 echo "V7_USER_DESIRED_STATE_SAVE=OK"
 echo "file=$OUT"
+exit "$desired_state_exit"

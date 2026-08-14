@@ -540,3 +540,21 @@ The final RS6 result is unchanged: `NOT_READY_FOR_PHYSICAL_MINIMIZATION`,
 `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. These checks performed no code,
 config, service, timer, process, routing, policy, Runtime, Production or
 Authority change.
+
+## Final retention-contract check — autoswitch binary backups
+
+No existing autoswitch/deploy/package retention, archive or deletion contract
+for `/usr/local/bin/v7-users-autoswitch.*backup*` was found. The existing
+`v7-maintenance-cleanup-preview` is deliberately not repurposed: it governs
+only timestamped archive files in `/root/v7-backups` and explicitly does not
+cover executable binaries. The sole historical governance-check reference to a
+backup path is evidence text, not an invocation or retention policy.
+
+Therefore the backup group remains an exact `OWNER_BACKED_EXCEPTION` with
+`NO_AUTOMATED_RUNTIME_CONSUMER_FOUND`, not a self-authorized archive/delete
+candidate. The smallest remaining implementation input is an explicit
+existing autoswitch + deploy/package owner retention decision defining archive
+location, recoverability period, rollback/restore procedure and post-action
+negative consumer check. Until then `RS6_RUNTIME_PACKAGE_MINIMIZATION` is
+correctly complete only as read-only evidence closure, not as physical
+minimization authority.

@@ -542,3 +542,20 @@ archive
 The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
+
+## Cleanup execution update — Batch 19
+
+Nine historical planner dry-runs with available selected moves were checked
+against the same owner/reference rule. They were all `apply_requested=false`,
+had no active source/test/Runtime path reference, and their decision-bearing
+counts and terminal reasons are now preserved in compact receipts. This is
+not a certification invalidation and does not erase the archived selected-move
+details.
+
+The originals total `44,583,434` bytes. They are recoverable from
+`.v7/evidence-archive/2026-08-14-batch19/selected-moves-dry-runs.tar.gz`
+(SHA-256
+`24e15a76673ed2fcdc0032f96479739f4664caab98cf5d19e543dd3160f08720`).
+Active-tree reduction before archive overhead is approximately `44.56 MB`.
+Disposition: `ARCHIVE_EXTERNAL`; runtime, production, routing, user movement,
+policy, Authority and Production Maturity effects: `NONE`.

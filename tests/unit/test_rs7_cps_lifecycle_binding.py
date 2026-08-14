@@ -153,6 +153,20 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertIn("rs7_packet_rollback_contract_exists_not_proven", result["errors"])
 
+    def test_engineering_plane_packet_can_be_prepared_without_runtime_authority(self):
+        result = self.lib.rs7_physical_mission_lifecycle_binding(
+            self.cps, self.packet(scope_classification="ENGINEERING_PLANE"),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(result["execution_authorization"], "PENDING_CPS_ADMISSION")
+
+    def test_control_plane_packet_remains_outside_generic_rs7_binding(self):
+        result = self.lib.rs7_physical_mission_lifecycle_binding(
+            self.cps, self.packet(scope_classification="CONTROL_PLANE"),
+        )
+        self.assertEqual(result["final_verdict"], "STOP_SAFE")
+        self.assertIn("rs7_packet_scope_classification_invalid", result["errors"])
+
     def test_atomic_owner_can_admit_one_rs7_mission_without_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "V7_CURRENT_PROGRAM_STATE.md"

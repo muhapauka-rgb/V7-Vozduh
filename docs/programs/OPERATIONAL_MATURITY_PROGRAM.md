@@ -11591,6 +11591,15 @@ source, Runtime, deployment, Production or Authority. Any ambiguous Mission
 or candidate identity, CPS/owner/frontier conflict, missing lifecycle field or
 missing contract is `STOP_SAFE -> NO_MUTATION -> NO_FRONTIER_CHANGE`.
 
+The generic binding admits only bounded `MANAGEMENT_PLANE` or
+`ENGINEERING_PLANE` simplification packets whose contracts prove
+`Runtime = NONE`, `Production = NONE` and `Authority = NONE`. This preserves
+the existing admission path for a proven Engineering-interface slice without
+inventing a second lifecycle. `CONTROL_PLANE`, `DATA_PLANE`, recovery and
+Authority-boundary work remain outside this generic binding: they must close
+through their existing phase and safety owners before any mutation can be
+considered.
+
 `BOUNDED_MISSION_RS6_CONSUMPTION_RULE` resolves a narrower case without
 declaring RS6 globally complete. A non-terminal RS6 physical-minimization
 residual does not automatically block one bounded Mission when that Mission

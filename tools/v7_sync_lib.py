@@ -89,6 +89,16 @@ RS7_PHYSICAL_MISSION_TERMINALS = (
     "MISSION_ROLLED_BACK",
     "MISSION_FAILED",
 )
+# RS7's bounded physical lifecycle is deliberately limited to non-Runtime
+# simplification.  Management and Engineering items may use the existing
+# OMP/CPS admission path when their contracts prove no Runtime, Production or
+# Authority effect.  Control/Data/Recovery work remains with its existing
+# phase and safety owners; it cannot acquire execution authority through this
+# generic simplification binding.
+RS7_NON_RUNTIME_SCOPE_CLASSIFICATIONS = {
+    "MANAGEMENT_PLANE",
+    "ENGINEERING_PLANE",
+}
 
 
 def _is_rs_read_only_admission_frontier(live: dict[str, str]) -> bool:
@@ -8998,7 +9008,6 @@ def rs7_physical_mission_lifecycle_binding(
     required_exact = {
         "omp_admission_decision": "MISSION_ACCEPTED",
         "omp_mission_state": "PREPARED_NOT_ACTIVE",
-        "scope_classification": "MANAGEMENT_PLANE",
         "runtime_impact": "NONE",
         "production_impact": "NONE",
         "authority_impact": "NONE",
@@ -9006,6 +9015,8 @@ def rs7_physical_mission_lifecycle_binding(
     for field, expected in required_exact.items():
         if str(mission_packet.get(field) or "") != expected:
             errors.append(f"rs7_packet_{field}_invalid")
+    if str(mission_packet.get("scope_classification") or "") not in RS7_NON_RUNTIME_SCOPE_CLASSIFICATIONS:
+        errors.append("rs7_packet_scope_classification_invalid")
     if not str(mission_packet.get("existing_owner") or "").strip():
         errors.append("rs7_existing_owner_missing")
     for field in (

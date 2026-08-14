@@ -651,3 +651,26 @@ Validation: `34` focused reconciliation tests pass;
 `tools/v7-truth-check --local --json` pass. Physical delta: two existing
 source/test files changed, `+68/-6` lines; Runtime effects `NONE`, Production
 effects `NONE`, Authority effects `NONE`.
+
+## Deployment addendum — successor-owner projection convergence
+
+The source-side reconciliation correction above was synchronized through the
+existing safe deploy path after its source validation. The deployed
+`tools/v7_sync_lib.py` changed from the previous production artifact hash to
+the source artifact at commit `b80716e42f058c717cf0aa2845e75fa5c075dc29`.
+The deploy receipt is
+`deploy-z8-14-Updatesystem-b80716e-20260814T152429`.
+
+| Check | Result |
+| --- | --- |
+| safe-deploy manifest / allowlist | `PASS`; one approved engineering-library artifact synchronized |
+| services, timers, processes, route/state configuration | `0` changes |
+| local / GitHub / production revision | `b80716e4` / `b80716e4` / `b80716e4` |
+| `v7-truth-check --all --json` | `PASS`, `FULLY_ALIGNED` |
+| `v7-convergence-status --json` | `PASS`, `ALIGNED`, no deploy-delta mismatches |
+
+**Effects:** Runtime behavior `NONE`; production deployment effect is one
+existing Engineering/OMP library synchronized with its validated source;
+Authority `NONE`; routing, user movement, health writers, systemd lifecycle
+and CPS frontier `NONE`. This addendum records a completed convergence action,
+not an RS6 physical-minimization completion claim.

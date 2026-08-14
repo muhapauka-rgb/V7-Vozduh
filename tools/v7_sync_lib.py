@@ -24165,6 +24165,20 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-user-desired-state",
+        "local_path": "tools/runtime-support/v7-user-desired-state",
+        "remote_path": "/usr/local/bin/v7-user-desired-state",
+        "mode": "0755",
+        "service": None,
+    },
+    {
+        "name": "v7-user-desired-state-save",
+        "local_path": "tools/runtime-support/v7-user-desired-state-save",
+        "remote_path": "/usr/local/bin/v7-user-desired-state-save",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-egress-benchmark-all",
         "local_path": "tools/runtime-support/v7-egress-benchmark-all",
         "remote_path": "/usr/local/bin/v7-egress-benchmark-all",

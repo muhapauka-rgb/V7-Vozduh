@@ -18,7 +18,10 @@ errors=0
 
 warn() {
   warnings=$((warnings + 1))
-  [ "$result" = "OK" ] && result="WARN"
+  if [ "$result" = "OK" ]; then
+    result="WARN"
+  fi
+  return 0
 }
 
 err() {
@@ -112,7 +115,10 @@ while IFS= read -r line || [ -n "$line" ]; do
     if [ "$wg_live_peer" != "yes" ]; then status="WARN"; reasons="${reasons},wg_live_peer_missing"; fi
     if [ "$ip_rule" != "yes" ]; then status="FAIL"; reasons="${reasons},ip_rule_missing"; fi
     if [ -n "$expected_dev" ] && [ "$table_dev" != "$expected_dev" ]; then status="FAIL"; reasons="${reasons},table_route_mismatch"; fi
-    if [ -n "$expected_dev" ] && [ "$route_get_dev" != "$expected_dev" ]; then status="WARN"; reasons="${reasons},route_get_mismatch"; fi
+    if [ -n "$expected_dev" ] && [ "$route_get_dev" != "$expected_dev" ]; then
+      [ "$status" = "FAIL" ] || status="WARN"
+      reasons="${reasons},route_get_mismatch"
+    fi
   fi
 
   case "$status" in

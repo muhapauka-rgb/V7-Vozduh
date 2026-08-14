@@ -302,3 +302,23 @@ the active-tree physical reduction is exactly `84,397,669` bytes; no
 conclusion, certification summary, source owner or archive/recovery path was
 deleted. Runtime, Production, routing, user, policy and Authority effects:
 `NONE`.
+
+## Cleanup execution update — Batch 9
+
+Nine large BA2 intermediate Planner, dry-run and policy-response snapshots
+were `ARCHIVE_EXTERNAL` candidates. The two BA2 historical reports preserve
+the decision-bearing facts (two-user selection, restore-barrier mismatch,
+safety revert and final PASS), while the current source, tests, deployment and
+Runtime have no consumer of these historical raw files. Existing compact BA2
+summaries, truth/convergence gates and the certification report remain in Git.
+
+The exact originals total `37,394,118` bytes. They were restored and checked
+against all nine source SHA-256 records before active-tree removal. The
+ignored archive is
+`.v7/evidence-archive/2026-08-14-batch9/ba2-intermediate-runtime-snapshots.tar.gz`
+with SHA-256
+`15c1ad7011eab34f535fe509461fdd09fffabd5a31c3092ed5a99324d5fafe67`;
+the associated ignored checksum file is the restoration manifest. This is a
+physical active-tree reduction of `37,394,118` bytes, not a claim that the
+underlying historical evidence was deleted. Runtime, Production, routing,
+user, policy and Authority effects: `NONE`.

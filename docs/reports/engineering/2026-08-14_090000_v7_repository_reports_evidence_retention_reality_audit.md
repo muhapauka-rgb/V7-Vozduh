@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root report consolidation — Batch 10
+
+Fourteen additional root-level historical reports were removed because each
+explicitly pointed to an existing evidence directory, had no active reference,
+and duplicated the evidence package rather than owning current truth. Their
+evidence directories remain. The existing xref summary was reconciled; no
+Runtime, production, routing, user, policy or Authority effect occurred.
+
 ## Root Z7 report consolidation — Batch 9
 
 Five superseded root-level Z7 reports were deleted directly. Their complete

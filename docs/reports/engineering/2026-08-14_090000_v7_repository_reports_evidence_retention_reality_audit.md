@@ -543,6 +543,15 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Reports raw-payload purge — 2026-08-14
+
+Eight large historical `production_autoswitch_observe`/canary raw payloads
+under `docs/reports/*_EVIDENCE` were directly deleted. Each was over 4.7 MB,
+had no repository reference outside itself, and had its surrounding
+safe-deploy, truth, convergence, inventory or summary artifacts retained.
+This was a direct purge per operator instruction, not archival. No canonical
+program, CPS/OMP state, Runtime input or production source was changed.
+
 ## Cleanup execution update — Batch 19
 
 Nine historical planner dry-runs with available selected moves were checked

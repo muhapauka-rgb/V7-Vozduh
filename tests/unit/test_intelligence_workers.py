@@ -932,6 +932,42 @@ class IntelligenceWorkersTest(unittest.TestCase):
         self.assertEqual(rows[0]["order"], 384)
         self.assertEqual(rows[-1]["order"], 399)
 
+    def test_snapshot_refresh_current_state_window_builds_required_projections_only(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        spec = importlib.util.spec_from_loader(
+            "v7_intelligence_snapshot_refresh",
+            SourceFileLoader("v7_intelligence_snapshot_refresh", str(tool_path)),
+        )
+        self.assertIsNotNone(spec)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+
+        result = refresh.build_current_state_snapshots(inputs={
+            "service_matrix": service_matrix(),
+            "quality_summary": quality_summary(),
+            "service_preferences": {"required_services": ["telegram"]},
+            "audit_records": [{"result": "OK"}],
+            "switch_records": [],
+            "rollback_records": [],
+            "runtime_state": {"egress": {"awg0": {}}},
+            "users_registry": [{"ip": "10.7.0.2", "enabled": "1"}],
+            "egress_registry": [{"id": "awg0", "enabled": "1"}],
+        })
+
+        self.assertEqual(
+            set(result.snapshots),
+            {
+                "service-scores",
+                "channel-service-scores",
+                "trust-summaries",
+                "risk-summaries",
+                "blast-radius-summaries",
+                "overview-summary",
+            },
+        )
+        self.assertLess(result.metrics["snapshot_count"], 11)
+
     def test_snapshot_refresh_preserves_rotated_blast_evidence_through_regeneration(self):
         tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
         spec = importlib.util.spec_from_loader(

@@ -6235,6 +6235,28 @@ def _execute_governed_transaction_with_guards_inner(
     events = event_rows(event_dir, args.max_events)
     shadow_history = read_jsonl_family(state_dir / "shadow-autonomy-decisions.jsonl")
     availability_reset_snapshot_refresh: dict[str, Any] = {}
+    certification_setup_snapshot_refresh: dict[str, Any] = {}
+    if setup_mode:
+        # The exact certification setup is a governed state transition, not a
+        # read-only planner observation.  Refresh the existing snapshot owner
+        # before building its decision surface so an older service-scores
+        # generation cannot turn an otherwise admissible one-user Packet into
+        # a permanent snapshot_mismatch STOP_SAFE.  This writes only the
+        # existing engineering snapshot projection; it grants no Authority and
+        # does not apply routing.
+        certification_setup_snapshot_refresh = (
+            refresh_controlled_topology_execution_snapshots(
+                args,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                snapshot_root=snapshot_root,
+            )
+        )
+        if not certification_setup_snapshot_refresh.get("ok"):
+            return transaction_stop(
+                "controlled_certification_setup_snapshot_refresh_failed",
+                snapshot_refresh=certification_setup_snapshot_refresh,
+            )
     if availability_first_reset:
         # A serialized cohort reset changes route-backed risk/blast/overview
         # inputs after every member.  Reusing the preceding member's

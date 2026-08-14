@@ -2773,6 +2773,148 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ]["baseline_reset"]
         )
 
+    def test_certification_setup_refreshes_existing_snapshot_owner_before_selection(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            snapshots = root / "snapshots"
+            audit = root / "audit"
+            for path in (state, events, snapshots, audit):
+                path.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.100 current=awg0 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n"
+                "id=awg0 enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "v7-state.json").write_text("{}", encoding="utf-8")
+            args = argparse.Namespace(
+                execute_controlled_topology_standing_transaction=False,
+                execute_availability_first_standing_stage=False,
+                execute_bounded_delegated_transaction=False,
+                _certification_setup_request={
+                    "user": "10.7.0.100",
+                    "source": "vless",
+                    "certification_identity_mode": "REGISTRY_MARKED",
+                },
+                _certification_cleanup_request=None,
+                engineering_authority_request_file="",
+                engineering_authority_decision="",
+                max_users=1,
+                max_events=20,
+                approved_source="vless",
+                confirm_governed_transaction="",
+                execution_control_file=str(root / "control.json"),
+                skip_planner_observe=True,
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "autonomous_execution_control_state",
+                return_value={"valid": True, "state": "OPEN"},
+            ), mock.patch.object(
+                module,
+                "refresh_controlled_topology_execution_snapshots",
+                return_value={"ok": True, "returncode": 0},
+            ) as snapshot_refresh, mock.patch.object(
+                module.operator_decision_surface,
+                "build_operator_decision_surface",
+                return_value={"users_by_ip": {}, "batch_preview": {}},
+            ), mock.patch.object(
+                module.autonomy_trust_acceleration,
+                "build_acceleration_inventory",
+                return_value={},
+            ), mock.patch.object(
+                module,
+                "controlled_certification_setup_selection",
+                return_value={"selection_status": "SELECTED"},
+            ), mock.patch.object(
+                module,
+                "merge_a4_gap_candidate_into_surface",
+                side_effect=lambda surface, _selection: surface,
+            ), mock.patch.object(
+                module,
+                "attach_controlled_execution_source_binding",
+            ), mock.patch.object(
+                module.operator_execution_pipeline,
+                "governed_canary_knowledge_gated_dry_run_cycle",
+                return_value={
+                    "stop_reason": "AUTHORITY_BOUNDARY",
+                    "packet_preview": {"status": "BLOCKED"},
+                },
+            ):
+                result = module._execute_governed_transaction_with_guards_inner(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=snapshots,
+                    audit_dir=audit,
+                    lease_file=root / "lease.json",
+                )
+
+        snapshot_refresh.assert_called_once_with(
+            args,
+            state_dir=state,
+            event_dir=events,
+            snapshot_root=snapshots,
+        )
+        self.assertEqual(result["stop_reason"], "packet_not_ready")
+
+    def test_certification_setup_stops_when_existing_snapshot_owner_cannot_refresh(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            snapshots = root / "snapshots"
+            audit = root / "audit"
+            for path in (state, events, snapshots, audit):
+                path.mkdir()
+            (state / "users.registry").write_text("", encoding="utf-8")
+            (state / "egress.registry").write_text("", encoding="utf-8")
+            (state / "v7-state.json").write_text("{}", encoding="utf-8")
+            args = argparse.Namespace(
+                execute_controlled_topology_standing_transaction=False,
+                execute_availability_first_standing_stage=False,
+                execute_bounded_delegated_transaction=False,
+                _certification_setup_request={"user": "10.7.0.100", "source": "vless"},
+                _certification_cleanup_request=None,
+                engineering_authority_request_file="",
+                engineering_authority_decision="",
+                max_users=1,
+                max_events=20,
+                approved_source="vless",
+                confirm_governed_transaction="",
+                execution_control_file=str(root / "control.json"),
+                skip_planner_observe=True,
+            )
+            with mock.patch.object(
+                module.operator_execution,
+                "autonomous_execution_control_state",
+                return_value={"valid": True, "state": "OPEN"},
+            ), mock.patch.object(
+                module,
+                "refresh_controlled_topology_execution_snapshots",
+                return_value={"ok": False, "returncode": 1},
+            ):
+                result = module._execute_governed_transaction_with_guards_inner(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=snapshots,
+                    audit_dir=audit,
+                    lease_file=root / "lease.json",
+                )
+
+        self.assertEqual(
+            result["stop_reason"],
+            "controlled_certification_setup_snapshot_refresh_failed",
+        )
+
     def test_availability_baseline_reset_reconciles_missing_child_terminal_without_outcome_credit(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -3,9 +3,11 @@
 **Program:** `V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1`  
 **CPS stage / exact successor:** `RS6_RUNTIME_PACKAGE_MINIMIZATION` / `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`  
 **Verdict:** `RS6_PHYSICAL_MINIMIZATION_NOT_READY; SAFETY_RESIDUAL_CONFIRMED`  
-**Runtime / Production / Authority effects:** `NONE / NONE / NONE`
-**Deployment effect:** existing Engineering admission library synchronized; no
-service, timer, route, state or policy operation was invoked.
+**Runtime / Production / Authority effects:** existing fail-closed
+desired-state projection corrected / `NONE` / `NONE`
+**Deployment effect:** the existing helper and its existing saver were
+synchronized through the approved manifest; no service, timer, route, policy
+or user operation was invoked.
 
 ## Decision-relevant recheck
 
@@ -89,3 +91,62 @@ Safe-deploy delta: one Engineering library; service/timer restart: 0
 advance CPS. The smallest material re-entry is an existing-owner safety
 admission for the desired-state helper and stale Matrix evidence, not physical
 cleanup and not a generic RS7 Mission.
+
+## Execution addendum — fail-closed projection persistence
+
+The owner-backed correction described above was subsequently executed as two
+small, reversible commits: `49b55345` and `84550530`. It fixes only the
+existing `v7-user-desired-state` and `v7-user-desired-state-save` chain:
+
+```text
+v7-user-desired-state
+  -> terminal V7_USER_DESIRED_STATE=OK|WARN|FAIL
+  -> existing v7-user-desired-state-save
+  -> existing user-desired-state.state
+  -> existing health/path-sanity readers
+```
+
+The checker no longer exits before its terminal line when more than one
+warning occurs, and a later route-get warning cannot lower a prior `FAIL`.
+The saver now persists a syntactically complete terminal projection even when
+the checker returns `1` for a real `FAIL`, then preserves that non-zero exit
+for the existing health lifecycle. No new writer, state surface, consumer,
+service, timer, owner, routing operation or Authority path was added.
+
+### Evidence and validation
+
+| Check | Result |
+| --- | --- |
+| Focused fail-severity/persistence tests | `3 PASS` (`WARN`, monotonic `FAIL`, persisted `FAIL`) |
+| Target CPS/OMP and deploy tests | `69 PASS` |
+| Shell syntax and diff whitespace | `PASS` |
+| Safe deploy | `deploy-z8-14-Updatesystem-8455053-20260814T121932`; no service/timer restart |
+| Runtime/GitHub/CPS truth after deployment | `FULLY_ALIGNED` / `PASS` / CPS frontier unchanged |
+| Direct read-only checker | terminal `V7_USER_DESIRED_STATE=FAIL` (real failure is now observable) |
+| Existing saver invocation | `SAVE_EXIT=1`, fresh state with `errors=124`, `V7_USER_DESIRED_STATE=FAIL` |
+
+The pre-existing saved projection had remained at `2026-08-13 13:47:07` with
+`V7_USER_DESIRED_STATE=OK`. The corrected existing saver wrote a fresh
+projection at `2026-08-14 12:21:25` with `FAIL`. This is a truthful state
+refresh by the existing owner, not a routing, policy, user-movement or
+Authority effect. The health service was active and its deployed `ExecStart`
+and saver hash matched source; its observed loop cadence remains a separate
+runtime-lifecycle residual and was not changed by this bounded correction.
+
+### Before / after / delta
+
+| Surface | Before | After | Delta |
+| --- | --- | --- | --- |
+| Checker terminal on warning/failure branch | could abort or downgrade `FAIL` | terminal always emitted; severity monotonic | fail-closed result restored |
+| Saved desired-state projection after real `FAIL` | stale historical `OK` | fresh terminal `FAIL` persisted | existing writer completes its state contract |
+| Runtime files/services/timers | existing | existing | `0` created/removed/restarted |
+| Source/test change across both commits | baseline | 5 files touched | `+157 / -3` lines; one test file added |
+| Routing / policy / user movement / Authority | unchanged | unchanged | `NONE` |
+
+**Residual and exact re-entry:** `errors=124` is the actual desired-state
+failure and still blocks any package removal. The stale/failed Matrix evidence
+and the observed health-loop cadence require the existing health/recovery and
+Matrix owners to provide fresh lifecycle evidence before a physical RS6
+minimization decision. CPS remains at
+`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`; no RS6 completion or frontier
+advance is claimed.

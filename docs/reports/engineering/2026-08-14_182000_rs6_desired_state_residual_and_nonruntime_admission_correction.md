@@ -150,3 +150,41 @@ Matrix owners to provide fresh lifecycle evidence before a physical RS6
 minimization decision. CPS remains at
 `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`; no RS6 completion or frontier
 advance is claimed.
+
+## Execution addendum — canonical Matrix path-safety reader
+
+The Matrix timer and writer were not stale: the observed timer invocation ran
+successfully and the canonical `service-matrix.json` was fresh. The stale
+artifact was the legacy `service-matrix-refresh.state` reader in the existing
+`v7-path-sanity-check`; it still contained a May `FAIL` while the canonical
+Matrix reported current per-egress `OK`, `WARN` and `FAIL` facts. Other current
+Control/Management consumers already use the canonical JSON.
+
+Commit `12aa5271` makes the existing observer read that canonical JSON first,
+aggregate its item statuses conservatively (`FAIL` > `WARN` > `OK`), and emit
+`UNKNOWN` rather than fall back to a stale legacy `OK` when a present canonical
+file is empty or malformed. The old state file remains a compatibility
+fallback only when the canonical file is absent. This changes no Matrix writer,
+timer, consumer, routing decision, recovery action, policy, user or Authority
+boundary.
+
+```text
+Matrix timer -> v7-service-matrix-refresh-all -> service-matrix.json
+  -> v7-path-sanity-check -> v7-path-sanity.state -> existing path guard reader
+```
+
+| Check | Result |
+| --- | --- |
+| New canonical precedence/fallback tests | `3 PASS` |
+| Combined desired-state, path-sanity, CPS/OMP and deploy tests | `75 PASS` |
+| Safe deploy | `deploy-z8-14-Updatesystem-12aa527-20260814T124841`; no restart |
+| Direct existing path-sanity observation | canonical Matrix note present; `egress_service_matrix=FAIL` and `V7_PATH_SANITY=FAIL` |
+
+The final `FAIL` is intentional and truthful: the fresh canonical Matrix has
+at least one current failed egress and desired-state has real errors. The
+change removes a stale input, not the safety residual. Physical delta is one
+existing observer modified plus one test file: `+119 / -2` lines; files,
+services, timers, state surfaces, routes, users and Authority boundaries
+created/removed/changed: `0` except the observer's own refreshed diagnostic
+projection. The remaining exact RS6 blocker is actual health/admission and
+Matrix recovery evidence, not the former stale Matrix read path.

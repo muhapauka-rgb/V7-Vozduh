@@ -23,11 +23,25 @@ tail of the Matrix event owner. It made no write and exposed no raw identity.
 | Linked events classified `CERTIFICATION_ONLY` | 11 / 11 |
 | Open incidents not represented by a current-tail event | 15 |
 
+A one-time Engineering Plane lookup of the full immutable event ledger then
+resolved the lineage without adding it to the Runtime path:
+
+| Full-history lineage fact | Count |
+| --- | ---: |
+| Open incidents with an existing source event | 26 / 26 |
+| Latest linked source event classified `CERTIFICATION_ONLY` | 19 |
+| Latest linked source event with a legacy empty classification | 7 |
+
 The first group is proof that the current Matrix producer is capable of
 supplying the intended incident-level classification. The second group is not
 proof of terminality, recovery, supersession or safe certification-only
 status; absence from the bounded current window must not be interpreted as any
 of those states.
+
+The full-history result improves the evidence: no open incident lacks lineage.
+It does not change the admission verdict, because seven owner-backed source
+events still predate the scope-partition field. Their empty classification
+cannot safely be inferred as either ordinary or certification-only.
 
 ## Admission decision
 

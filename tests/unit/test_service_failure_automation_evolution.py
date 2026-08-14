@@ -82,6 +82,8 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "advisory_pre_obligation_scope_reconciliation",
                     "advisory_l3_and_closure_history_load",
                     "advisory_passive_candidate_selection",
+                    "advisory_standing_policy_validation",
+                    "advisory_adaptive_cohort_projection",
                     "advisory_obligation_semantic_construction",
                     "advisory_durable_projection_materialization",
                     "advisory_final_scope_reconciliation",

@@ -454,14 +454,12 @@ artifacts byte-for-byte; all are live in their expected long-running or
 | `v7-public-gateway.service` | tracked binary and unit match; active `/connect` and profile gateway requires existing Admin API upstream | `KEEP_RUNTIME` public product ingress boundary |
 | `v7-egress-openvpn@v7edb0c189291.service` | tracked template unit matches; active instance has explicit external `.ovpn` Runtime configuration and is governed by existing egress lifecycle tooling | `KEEP_RUNTIME` egress Data-plane support |
 
-The seventh unit, `v7-proxy-inbound-happ-test.service`, remains deliberately
-separate. It runs `sing-box` with an external Runtime configuration and has
-privileged `ExecStartPre`/`ExecStopPost` ip-rule lifecycle. Its existing
-proxy/ingress owner is known, but a current tracked source/config deployment
-chain and product-consumer/rollback packet for that exact public-candidate
-configuration were not established in this bounded check. Its final
-classification is therefore `OWNER_BACKED_EXCEPTION`, never removal or
-disablement authority.
+The seventh unit, `v7-proxy-inbound-happ-test.service`, is deliberately
+separate but now has a complete existing-owner chain: the active `sing-box`
+configuration is an external Runtime-generated artifact, while current
+Admin owner-gates, candidate/identity/guard helpers and the guarded rollback
+helper are source-to-deployed hash-equal. It remains `KEEP_RUNTIME` as a
+public ingress boundary; this is not a removal or disablement authority.
 
 This recheck closes source/deploy ambiguity for the six proven components and
 narrows the remaining ingress residual to one exact owner-backed Runtime
@@ -482,7 +480,7 @@ ip-rule lifecycle.
 
 | Component | Proved current effect | Disposition / exact re-entry |
 | --- | --- | --- |
-| `v7-proxy-inbound-happ-test.service` | active public listener + external Runtime configuration + privileged ip-rule lifecycle | `OWNER_BACKED_EXCEPTION`; existing proxy/ingress and deploy/package owners must supply the current tracked config/deploy chain, real product consumer and rollback contract before any change proposal |
+| `v7-proxy-inbound-happ-test.service` | active public listener + external Runtime configuration + privileged ip-rule lifecycle | `KEEP_RUNTIME`; external config is rendered and governed by existing Admin/proxy owners with deployed candidate, guard and rollback helpers |
 
 This evidence eliminates the possibility of treating the unit as a dormant
 test artifact. It does not evaluate configuration quality, infer unused route
@@ -493,21 +491,20 @@ Production, Authority or CPS.
 
 The bounded rechecks have converted the previously broad runtime inventory
 into decision-ready dispositions: Direct autosync, path sanity, path guard,
-traffic accounting, API, benchmark, killswitch, MSS clamp, public gateway and
-OpenVPN are `KEEP_RUNTIME`; the seven dated autoswitch backups and the proxy
-ingress are explicit `OWNER_BACKED_EXCEPTION` boundaries. No checked object
-has earned `REMOVE_CANDIDATE` status.
+traffic accounting, API, benchmark, killswitch, MSS clamp, public gateway,
+OpenVPN and proxy ingress are `KEEP_RUNTIME`; only the seven dated autoswitch
+backups retain `OWNER_BACKED_EXCEPTION` status. No checked object has earned
+`REMOVE_CANDIDATE` status.
 
 ```text
 RS6 physical minimization verdict = NOT_READY
 CURRENT CPS successor = EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION
-NEXT LEGAL WORK = existing-owner proof for
-  (1) proxy ingress source/config -> real consumer -> rollback, or
-  (2) autoswitch-backup negative dynamic/manual invocation -> retained/archive/delete packet
+NEXT LEGAL WORK = existing autoswitch + deploy/package owner archive/delete
+packet after an explicit manual-operation retention decision
 ```
 
-The order is intentional: neither proof permits removal by itself; each must
-first produce an existing-owner bounded Mission with Product Contract,
+The order is intentional: the backup proof does not permit removal by itself;
+it must first produce an existing-owner bounded Mission with Product Contract,
 consumer migration (if any), validation, rollback and residue closure. CPS
 remains the sole authority to admit that future physical work.
 
@@ -517,10 +514,11 @@ The existing `sing-box` validator accepted the live proxy configuration
 (`exit=0`) without starting or reloading any process. Redacted aggregate facts
 are one inbound, twelve configured identities, five configured outbounds and
 twelve route rules. The listener had zero established sessions at the sampled
-instant; that is an observation, not evidence of no product consumer. Together
-with the active listener and unit-owned ip-rule lifecycle, this confirms the
-component must remain unchanged until its existing proxy/ingress owner can
-provide the current config/deploy/rollback contract.
+instant; that is an observation, not evidence of no product consumer. The
+external Runtime profile is not an orphan: current Admin owner-gates invoke
+source-to-deployed candidate, identity and guard helpers, and the deployed
+guard rollback helper exactly matches its tracked source. Together these facts
+close its owner/config/consumer/rollback classification as `KEEP_RUNTIME`.
 
 For the seven autoswitch backup executables, the negative search now covers
 the existing automation and deployment surfaces: systemd, cron, current
@@ -534,7 +532,7 @@ than a removal decision.
 
 | Residual | Current conclusion | Re-entry condition |
 | --- | --- | --- |
-| proxy ingress config | live and validator-accepted external Runtime boundary; no current source/deploy/rollback contract | existing proxy/ingress + deploy/package owner packet with product-consumer and rollback evidence |
+| proxy ingress config | live, validator-accepted external Runtime boundary; existing Admin/proxy render, identity, guard and rollback chain source/deploy matched | `KEEP_RUNTIME`; no physical change candidate |
 | autoswitch backups | no automated/deploy/process consumer found; manual invocation not negatively provable in this recheck | existing autoswitch + deploy/package owner archive/delete packet with manual-operation retention decision and recoverability proof |
 
 The final RS6 result is unchanged: `NOT_READY_FOR_PHYSICAL_MINIMIZATION`,

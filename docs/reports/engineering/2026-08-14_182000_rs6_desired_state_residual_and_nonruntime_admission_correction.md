@@ -360,3 +360,41 @@ negative dynamic/manual invocation and deployment-retention proof, define a
 recoverable archive/delete action, and validate the governed autoswitch
 contract. Until then all seven files are retained unchanged. No Runtime,
 Production, Authority, route, user, service, timer or CPS change occurred.
+
+## Targeted recovery closure — path guard post-correction lifecycle
+
+`v7-path-guard-repair` is now a proven, healthy safety boundary rather than a
+failed recovery residual. The tracked `hardening/v7-path-guard-repair` source
+and deployed `/usr/local/bin/v7-path-guard-repair` have the identical SHA-256
+`894a347a7e24e3d1ee10513cc7f0be7fdfce523e2711c8db6415695543f074c7`.
+Its existing enabled two-minute timer invokes the static oneshot service with
+the existing `--apply` mode.
+
+The two latest naturally scheduled executions, including the run observed at
+`2026-08-14 13:08:17+03:00`, completed successfully with the same result:
+
+```text
+before=WARN / v7_path_watch
+after=WARN / v7_path_watch
+actions=0
+failures=0
+V7_PATH_GUARD_REPAIR=OK
+```
+
+The source only enters its existing mutation calls (`sysctl`, MSS clamp,
+Routing Sync, killswitch or Direct autosync) for a non-safe pre-check state.
+Those calls were not taken in the observed successful runs. The current
+`WARN` is therefore a truthful monitoring classification, not evidence of a
+failed repair or permission to simplify the recovery path.
+
+| Component | Existing role and evidence | Final classification |
+| --- | --- | --- |
+| `v7-path-guard-repair` | enabled timer -> successful `--apply` oneshot; source/live hash equal; consumes path-sanity result and may invoke bounded existing recovery only when unsafe | `KEEP_RUNTIME` safety/recovery boundary |
+
+The service still consumes material CPU time while it performs its existing
+checks (roughly 25–27 CPU seconds in the observed cycles). That is a measured
+performance observation, not a removal or tuning authorization: any change
+must first retain the current path-safety owner, prove equivalent checks,
+rollback and no loss of recovery coverage. No service, timer, path guard,
+routing, Runtime, Production, Authority or CPS change was made by this
+verification.

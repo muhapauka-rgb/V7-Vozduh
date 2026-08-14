@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root evidence selected-move dry-run purge — Batch 4
+
+Fourteen unreferenced historical `apply_requested=false` planner payloads with
+selected moves were deleted directly. Their surrounding campaign summaries and
+verification records remain; no active source, test or Runtime consumer
+referenced the raw payloads. Deleted size: `46,639,542` bytes. No archive was
+created and no production or routing effect occurred.
+
 ## Root evidence raw-text purge — Batch 3
 
 Six unreferenced historical raw text bundles and remote refresh dumps were

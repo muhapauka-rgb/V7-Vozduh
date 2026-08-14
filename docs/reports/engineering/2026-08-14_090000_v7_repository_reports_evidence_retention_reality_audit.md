@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Reports raw-payload purge — Batch 2
+
+Ten additional unreferenced historical report payloads were directly removed:
+two large POOL3 API JSON files and eight obsolete overview/snapshot/event-tail
+files. Their surrounding mission summaries and verification artifacts remain.
+No source, CPS/OMP, Runtime or production consumer referenced these paths.
+This is a direct purge per operator instruction; no archive was created.
+
 ## Reports raw-payload purge — 2026-08-14
 
 Eight large historical `production_autoswitch_observe`/canary raw payloads

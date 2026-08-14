@@ -91,6 +91,21 @@ RS7_PHYSICAL_MISSION_TERMINALS = (
 )
 
 
+def _is_rs_read_only_admission_frontier(live: dict[str, str]) -> bool:
+    """Recognize the existing RS0-RS6 CPS frontier before generic OMP selection."""
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    stage = value("CURRENT_PROGRAM_STAGE")
+    mission_id = value("CURRENT_EXECUTION_MISSION_ID")
+    return all((
+        value("ACTIVE_PROGRAM") == "V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1",
+        stage in RS_READ_ONLY_STAGE_TERMINALS,
+        mission_id not in {"", "NONE"},
+        value("CURRENT_EXECUTION_MISSION_STATE") == "PREPARED_NOT_ACTIVE",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == f"ADMITTED_READY_READ_ONLY:{mission_id}",
+        value("CURRENT_NEXT_ACTION_ID").startswith(f"EXECUTE_{stage}"),
+    ))
+
+
 def _is_rs7_physical_admission_frontier(live: dict[str, str]) -> bool:
     """Recognize the existing bounded RS7 admission projection, not a new lifecycle."""
     value = lambda key: str(live.get(key) or "").strip().strip("`")
@@ -20942,6 +20957,50 @@ def continue_omp_engineering_control_loop(
         external_input_required = _plain_live_value(live, "EXTERNAL_INPUT_REQUIRED") == "TRUE"
         current_stop = _plain_live_value(live, "CURRENT_STOP_CONDITION")
         current_next_action = _plain_live_value(live, "CURRENT_NEXT_ACTION_ID")
+        # A CPS-admitted RS0-RS6 read-only phase is already the smallest
+        # existing engineering frontier.  Generic Polygon/product selection
+        # cannot consume unrelated work before its exact phase owner does.
+        # This acknowledgement intentionally performs no CPS write, including
+        # when a caller asks to persist the generic Continue OMP result.
+        if _is_rs_read_only_admission_frontier(live):
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "RS_READ_ONLY_FRONTIER_RETAINED_FOR_EXISTING_OWNER",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "RS_READ_ONLY_FRONTIER_PREEMPTS_GENERIC_OMP",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_RS_READ_ONLY_PHASE_OWNER",
+                "exact_next_operator_command": current_next_action,
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": "RS_READ_ONLY_FRONTIER_ACKNOWLEDGED",
+                    "mission_id": _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID"),
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "CURRENT_RS_READ_ONLY_FRONTIER_RETAINED",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
         # An active Service-Failure drain has a dedicated production Matrix
         # consumer.  It must preempt the generic Polygon selector: invoking
         # that selector here can consume unrelated engineering work and then

@@ -11701,6 +11701,13 @@ condition. It must not open a new audit, duplicate a responsibility map,
 create a report without a decision-relevant state change, or bypass the
 current global frontier.
 
+An admitted `RS0`–`RS6` read-only CPS frontier preempts generic Polygon,
+product-action or capability selection in the existing `Continue OMP` caller.
+That caller may only acknowledge the exact existing phase owner and successor
+without a CPS write; it cannot consume unrelated work or declare the phase
+complete. This preserves the smallest current frontier until its own evidence
+and existing owner-backed terminal are present.
+
 `SYSTEM_SIMPLIFICATION_FINAL_GATE` is required at `RS9`. It proves that the
 changed system has no unnecessary owner ambiguity, synchronous relationship,
 Runtime dependency, state surface or duplicate responsibility; any asserted

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -207,6 +208,29 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
                 self.assertTrue(row["reentry_condition"], row)
         self.assertEqual(result["program_portfolio_reconciliation_status"], "PASS")
         self.assertRegex(result["program_portfolio_fingerprint"], r"^[0-9a-f]{64}$")
+
+    def test_33_rs_read_only_frontier_preempts_generic_omp_without_persisting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            cps_path.parent.mkdir(parents=True)
+            before = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
+            cps_path.write_text(before)
+
+            result = self.lib.continue_omp_engineering_control_loop(
+                root=root, persist_cps=True,
+            )
+
+            self.assertEqual(result["final_verdict"], "PASS")
+            self.assertEqual(
+                result["priority_decision"],
+                "RS_READ_ONLY_FRONTIER_PREEMPTS_GENERIC_OMP",
+            )
+            self.assertEqual(
+                result["exact_next_operator_command"],
+                "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION",
+            )
+            self.assertEqual(cps_path.read_text(), before)
 
 
 if __name__ == "__main__":

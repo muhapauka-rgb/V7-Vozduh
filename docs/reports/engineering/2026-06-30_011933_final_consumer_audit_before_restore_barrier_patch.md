@@ -25,10 +25,16 @@ Final verdict: IMPLEMENTATION_GO_WITH_MINOR_UI_API_CHANGES.
 
 ## Repository-Wide XREF
 
-Complete raw xref artifacts were generated under:
+Complete raw xref artifacts were generated under the paths below. The two
+large repository-wide TSV indexes were retired from Git on 2026-08-14 after
+consumer/reproducibility review because they are stale point-in-time generated
+search output, have no executable consumer, and their decision-relevant result
+is preserved by this report plus the retained scoped/summary projections.
+Their retirement metadata is recorded in
+`docs/reports/engineering/2026-08-14_100000_v7_repository_cleanup_batch1_cps_reconciliation_and_generated_xref_retirement.md`.
 
-- `docs/reports/engineering/final_consumer_audit_2026-06-30/xref.tsv`
-- `docs/reports/engineering/final_consumer_audit_2026-06-30/xref_important.tsv`
+- retired: `docs/reports/engineering/final_consumer_audit_2026-06-30/xref.tsv`
+- retired: `docs/reports/engineering/final_consumer_audit_2026-06-30/xref_important.tsv`
 - `docs/reports/engineering/final_consumer_audit_2026-06-30/xref_scoped_code.tsv`
 - `docs/reports/engineering/final_consumer_audit_2026-06-30/xref_summary.json`
 

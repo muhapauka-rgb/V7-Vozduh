@@ -42,5 +42,10 @@ auth.json
 egress-history.jsonl
 test-results/
 
+# Retired one-shot repository-wide consumer-audit indexes. Keep the compact
+# report, scoped code projection and JSON summary under version control.
+docs/reports/engineering/final_consumer_audit_2026-06-30/xref.tsv
+docs/reports/engineering/final_consumer_audit_2026-06-30/xref_important.tsv
+
 # Local operational truth/cache, not release evidence
 .v7/

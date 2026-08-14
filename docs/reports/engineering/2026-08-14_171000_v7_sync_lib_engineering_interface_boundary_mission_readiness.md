@@ -96,3 +96,31 @@ files changed, `+20/-0` lines; production source, services, timers, state,
 routing and deploy delta: `0`. The sync-library extraction itself remains
 `STOP_SAFE_NOT_READY_FOR_MISSION_CREATION`: the correction restores honest
 test isolation and does not manufacture a candidate, owner or admission.
+
+## Targeted candidate re-entry — unreachable local helpers
+
+The broad `v7_sync_lib.py` extraction remains out of scope. A separate,
+strictly smaller Engineering-plane slice is now proven: the local definitions
+`executable_installed(Path)` and `copy_available()` at lines `25855–25860`.
+An exact repository symbol search found no caller, import, string/dynamic
+reference or consumer outside those two definitions. They read no state,
+write no state, invoke no subprocess and are absent from deploy manifests,
+systemd units and Runtime paths. Their removal changes no responsibility
+owner: the existing `tools/v7_sync_lib.py` Engineering-interface owner stays
+in place.
+
+| Field | Result |
+| --- | --- |
+| bounded candidate | `V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1` |
+| candidate instance / identity | `BDP-ICI-4E88BCEBB045EBF8D1092719` / `4e88bcebb045ebf8d109271956fa9435678a772ff9d3e6617076a8e810fa1628` |
+| existing OMP admission decision | `MISSION_ACCEPTED`; unique; `IMPLEMENTATION_READY` |
+| exact allowed implementation scope | the two definitions only; expected physical delta `-6` LOC, `-2` functions |
+| validation / rollback | focused old-name residue check + compile/truth checks / revert one implementation commit |
+| Runtime / Production / Authority effects | `NONE / NONE / NONE` |
+
+This is an admission packet for one unreachable-helper removal, not a claim
+that the mixed library can be split or that RS6 is globally complete. CPS
+Section 0 remains unchanged at `RS6_RUNTIME_PACKAGE_MINIMIZATION`; therefore
+the candidate is `MISSION_ACCEPTED / PREPARED_NOT_ACTIVE` only and no source
+deletion is authorized until the existing CPS atomic-reconciliation owner
+projects the same identity through the established RS7 bounded-Mission path.

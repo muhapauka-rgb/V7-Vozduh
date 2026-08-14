@@ -543,6 +543,12 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Reports duplicate purge — Batch 4
+
+Three byte-identical historical truth/convergence files were deduplicated.
+The later/current-named copies remain; only exact duplicate paths were removed.
+No semantic evidence or canonical state was lost, and no archive was created.
+
 ## Reports raw-payload purge — Batch 3
 
 Six unreferenced historical operator `decision_surface` JSON dumps were

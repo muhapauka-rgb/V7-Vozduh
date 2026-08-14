@@ -298,3 +298,65 @@ future change requires the existing Direct/RU owner, explicit policy-domain
 consumer analysis, and `dnsmasq` rollback validation. It is therefore excluded
 from the current physical-minimization admission, with no change to Runtime,
 Production, Authority, route policy, service, timer, or CPS frontier.
+
+## Targeted provenance closure — path-sanity observer
+
+`v7-path-sanity-check` is a proven diagnostic observer/producer and not an
+unknown runtime artifact. The tracked
+`tools/runtime-support/v7-path-sanity-check` source and deployed
+`/usr/local/bin/v7-path-sanity-check` have the identical SHA-256
+`4e6fa4e20afb50a88f2780a97c7fd8097abe4a4dc62a69d6f5250e8839dfc09a`.
+The existing manifest maps the source to that deployed binary. Its enabled
+active timer triggers a successful static oneshot service every existing
+five-minute lifecycle; `v7-path-guard-repair` is the confirmed recovery
+consumer that reads its result before deciding whether its own existing owner
+may act.
+
+```text
+v7-path-sanity.timer -> v7-path-sanity.service
+  -> v7-path-sanity-check
+  -> v7-path-sanity.state
+  -> v7-path-guard-repair (existing decision/repair owner)
+```
+
+The observed fresh projection at `2026-08-14 13:06:23+03:00` has
+`user_policy_routes=OK`, `warnings=1`, `errors=0`, and
+`V7_PATH_SANITY=WARN`. The warning is attributable to the missing optional
+`awg2` interface and the separately reported canonical Matrix direct-egress
+fact; the projection explicitly marks the latter as not a full client-path
+decision. The observer did not mutate routes, policy, users, services,
+timers, Authority or Production.
+
+| Component | Owner / role | Evidence | Final classification |
+| --- | --- | --- | --- |
+| `v7-path-sanity-check` | existing path-safety/guard boundary; diagnostic state producer | source/live hash equal; approved manifest mapping; enabled timer -> successful service; known recovery reader | `KEEP_RUNTIME` observer; not a routing writer |
+
+`runtime-enumeration.json` contains an older historical hash and
+`repo_present=false` snapshot for this executable. It is historical evidence,
+not current Architecture Truth, and is not changed to manufacture a new
+runtime claim. The current source/deploy/consumer chain above is the durable
+fact used for this RS6 classification. Physical minimization remains
+unadmitted for the path-safety boundary; no CPS frontier, Runtime, Production
+or Authority change is claimed.
+
+## Targeted residue closure — retained autoswitch backups
+
+Seven dated `v7-users-autoswitch` backup executables remain in
+`/usr/local/bin`, all from `2026-05-23` through `2026-05-27`. A direct
+read-only Runtime check found no literal reference to any of them in
+`/etc/systemd/system` and no active process command line. The current
+`v7-users-autoswitch.timer` is enabled but inactive; its service is likewise
+inactive and its configured command is the existing
+`v7-governed-canary-dry-run-cycle --execute-l3-production-validation ...
+--max-users 0`, not an autoswitch backup.
+
+| Residue group | Proved absent | Not disproved | Existing owner / disposition |
+| --- | --- | --- | --- |
+| seven dated `v7-users-autoswitch.*backup*` executables | systemd reference and live-process consumer | dynamic/manual/deploy-boundary invocation | existing autoswitch + deploy/package owners; `OWNER_BACKED_EXCEPTION` |
+
+This is a genuine reduction of the unknown surface, not a deletion decision.
+An exact future removal Mission must first complete the existing owners'
+negative dynamic/manual invocation and deployment-retention proof, define a
+recoverable archive/delete action, and validate the governed autoswitch
+contract. Until then all seven files are retained unchanged. No Runtime,
+Production, Authority, route, user, service, timer or CPS change occurred.

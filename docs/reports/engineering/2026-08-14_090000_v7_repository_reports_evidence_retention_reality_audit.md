@@ -189,3 +189,29 @@ truth source or parallel archive system was added.
 
 Measured active-tree reduction in this batch: `79,849,674` bytes. Runtime,
 Production, routing, user, policy and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 4
+
+Five additional raw historical Track 7 snapshots were archived locally and
+replaced in place by compact receipts bound to their existing consumers:
+
+| Artifact | Original bytes | Consumer contract retained |
+| --- | ---: | --- |
+| E9.4.4 runtime journal | `13,643,090` | presence only; bounded extract/report owns semantics |
+| E11.14 full Runtime snapshot | `12,221,984` | historical timeline pointer only |
+| E11.2 WireGuard truth | `10,333,049` | presence only; approval report owns semantics |
+| E9.3.9 Planner observation | `10,080,389` | `selected_moves=[]` |
+| E9.4.1 post-policy snapshot | `8,937,424` | four safety PASS markers plus `selected_moves=[]` |
+
+The ignored recovery archive is
+`.v7/evidence-archive/2026-08-14-batch4/track7-raw-snapshots.tar.gz`,
+SHA-256
+`973703a481424b21657e60ac0200c7a77e2de74ee26be3d5258d3d65f9cf586e`.
+Every receipt preserves the original content hash, byte/line count, existing
+consumer and exact minimal contract.
+
+Full before/after output comparison of
+`tools/v7-control-plane-governance-check` found no semantic difference. The
+only JSON delta was the expected volatile `generated_at` timestamp. Measured
+active-tree reduction: `55,213,419` bytes. Runtime, Production, routing, user,
+policy and Authority effects: `NONE`.

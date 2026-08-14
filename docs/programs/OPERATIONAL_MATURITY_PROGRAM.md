@@ -11500,6 +11500,16 @@ valid PR2C/RT2 evidence and target-recheck only exact invalidated criteria.
    generated evidence. They do not require new physical documents, registries
    or generators when coverage, traceability, owner mapping and disposition
    already survive.
+6. `NO_UNNECESSARY_WAITING`: an external dependency, unavailable service or
+   missing production observation blocks only the exact proof or mutation that
+   depends on it. It is not a reason to suspend this Program while an
+   independent existing-owner bounded action remains READY. The executor must
+   consume the smallest such action through the existing admission/lifecycle
+   rules, retain the blocked item's owner and re-entry condition, and return
+   to it when its dependency recovers. It must not bypass the blocked safety
+   gate, infer its evidence, widen scope, create a parallel lane, queue,
+   scheduler, owner or truth source, or repeat already-closed discovery. A
+   real wait is legal only when the independent READY frontier is empty.
 
 ### 47.3A Physical-change quality gates
 

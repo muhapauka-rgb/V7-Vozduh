@@ -8097,8 +8097,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9085,10 +9085,10 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1`
+Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
 Current terminal report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
 Latest consumed report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md`
-Current active Mission report: `docs/reports/engineering/2026-08-14_183000_v7_sync_lib_unused_local_helper_removal_mission_admission.md`
+Current active Mission report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

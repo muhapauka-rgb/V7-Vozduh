@@ -79,3 +79,20 @@ The lifecycle binding returned `MISSION_EXECUTION_ALLOWED`; full CPS/OMP
 consistency and local truth checks passed. The global RS6 completion claim was
 not changed. This is now the sole active bounded Mission and authorizes only
 the exact two-definition removal described above.
+
+## Stop-safe boundary discovered before commit
+
+During the required validation, the current program reconciliation projected
+the active RS7 Mission through a generic OMP consumer instead of an exact RS7
+physical-Mission lifecycle owner. That is an unrelated lifecycle-preemption
+gap, not evidence about either unreachable helper. Per the Mission closure
+rule, implementation stopped before any commit, deploy, Runtime or production
+effect. The two temporary source deletions were restored immediately; final
+physical delta for this Mission is `0` files, `0` LOC and `0` functions.
+
+**Terminal:** `MISSION_BLOCKED` — existing OMP/CPS lifecycle owner must first
+prove that an active `RS7_PHYSICAL_SIMPLIFICATION_EXECUTION` frontier preempts
+generic continuation and names its exact existing consumer. Re-entry requires
+that focused correction, its tests and a fresh atomic admission of this same
+unchanged candidate identity. This is not a rejection of the helper evidence
+and does not reopen the broad `v7_sync_lib.py` audit.

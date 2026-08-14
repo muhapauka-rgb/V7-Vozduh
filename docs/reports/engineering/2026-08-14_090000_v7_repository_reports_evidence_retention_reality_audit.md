@@ -415,3 +415,30 @@ extraction was byte-compared before replacement. Compact receipts total
 `ARCHIVE_EXTERNAL`, not deletion: restoration requires archive extraction and
 source-hash verification. Runtime, Production, routing, user movement, policy
 and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 15
+
+The post-deploy observation for `AUTONOMY_REAL_OUTCOME_COLLECTION` is historical
+no-mutation evidence. It records operation
+`runtime_autoswitch_ce4804d6deebc84aba227384`, the existing
+`tools/v7-users-autoswitch` owner, `observe` mode, `apply=false`, `26`
+candidates, zero selected moves and terminal reason
+`dry_run_restore_barrier_clearance_generation_expired`. Its full raw payload
+is referenced only by the historical mission report and cross-reference index;
+that report already retains the decision-bearing outcome and confidence
+conclusions. No source, test, deploy or Runtime consumer requires the full
+payload. The existing evidence path therefore remains as a compact receipt
+with its operation identity, conclusion-bearing summary, source hash and
+recoverable archive pointer.
+
+The original is `5,391,059` bytes with SHA-256
+`baf5ba02eeabf18a076be0ff1712953a5ad65d44c588df46e59d92ef2fb783a7`.
+The ignored archive is
+`.v7/evidence-archive/2026-08-14-batch15/autonomy-real-outcome-observation.tar.gz`
+with SHA-256
+`b738970f36fdfb23fa86f602e9b3e788dd1efff329f65249358ba2b111b20b09`.
+Clean extraction was byte-compared before replacement. The `1,331`-byte
+receipt reduces the active tree by `5,389,728` bytes. This is
+`ARCHIVE_EXTERNAL`, not deletion; restoration requires archive extraction and
+source-hash verification. Runtime, Production, routing, user movement, policy
+and Authority effects: `NONE`.

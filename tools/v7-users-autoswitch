@@ -15073,6 +15073,7 @@ class AutoswitchPlanner:
             if isinstance(pre_obligation_incident.get("current_source_scope"), dict)
             else (pre_obligation_incident.get("scope_accounting") if isinstance(pre_obligation_incident.get("scope_accounting"), dict) else {})
         )
+        obligation_inputs_started_ns = time.monotonic_ns()
         decisions = [
             row for row in (plan.get("decisions") or [])
             if not source or str(row.get("current_egress") or "") == source
@@ -15126,7 +15127,16 @@ class AutoswitchPlanner:
             if isinstance(emergency_policy.get("runtime_scope_axes"), dict)
             else {}
         )
+        record_advisory_span(
+            "advisory_obligation_input_projection",
+            obligation_inputs_started_ns,
+        )
+        controlled_context_started_ns = time.monotonic_ns()
         controlled_source_context = self._controlled_certification_failure_context(source)
+        record_advisory_span(
+            "advisory_controlled_scope_context",
+            controlled_context_started_ns,
+        )
         current_tier = max(
             0,
             to_int(
@@ -15155,6 +15165,7 @@ class AutoswitchPlanner:
         # non-executable: Candidate, Packet, lease and all live gates are
         # still owned and revalidated downstream.
         ct_m0f_controlled_selection: dict[str, Any] = {}
+        controlled_selection_started_ns = time.monotonic_ns()
         if (
             standing_policy_active
             and classification == "STOP_SAFE_NO_SAFE_TARGET"
@@ -15240,6 +15251,10 @@ class AutoswitchPlanner:
                     ),
                     "read_only": True,
                 }
+        record_advisory_span(
+            "advisory_controlled_target_selection",
+            controlled_selection_started_ns,
+        )
         request_safe_scope = current_tier
         adaptive_cohort_started_ns = time.monotonic_ns()
         adaptive_cohort = build_service_failure_adaptive_cohort_contract(
@@ -15315,6 +15330,7 @@ class AutoswitchPlanner:
                 "routing_mutation_performed": False,
                 "users_moved": 0,
             }
+        obligation_projection_started_ns = time.monotonic_ns()
         obligation = {
             "schema_version": "v7.service-failure-automation-obligation.v1",
             "object_type": "service_failure_automation_obligation",
@@ -15453,6 +15469,10 @@ class AutoswitchPlanner:
             if isinstance(previous_obligation, dict) else {}
         )
         current_semantics = obligation_semantic_projection(obligation)
+        record_advisory_span(
+            "advisory_obligation_projection_and_semantic_compare",
+            obligation_projection_started_ns,
+        )
         if previous_semantics == current_semantics:
             record_advisory_span(
                 "advisory_obligation_semantic_construction",

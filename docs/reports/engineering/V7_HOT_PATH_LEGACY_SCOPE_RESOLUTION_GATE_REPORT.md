@@ -52,6 +52,25 @@ The first three may close or supersede an individual protection intent only
 through the existing L3/Matrix/closure owners. The fourth preserves the current
 consumer. None permits a global certification-only shortcut.
 
+## Existing execution and closure lookup
+
+A read-only lookup of existing `execution-events.jsonl` and
+`closure-records.jsonl` was performed after this gate was opened. The live
+open-record count had advanced naturally to 28; the result is unambiguous:
+
+| Existing-evidence condition | Open incidents proven |
+| --- | ---: |
+| Any exact packet-bound execution feedback | 0 |
+| Verified successful packet outcome | 0 |
+| Recovery or expiry terminal | 0 |
+| Existing closure evidence | 28 |
+
+The closures are `STOP_SAFE_NO_ACTION`/non-executing evidence rather than an
+outcome that disposes the historical cohort. Thus no existing execution or
+recovery owner can close these records automatically. The only lawful current
+disposition is `STOP_SAFE_RETAINED_REENTRY` until a fresh Matrix generation or
+an explicit owner-backed historical cohort disposition exists.
+
 ## Hot-path consequence and next frontier
 
 `V7_HOT_PATH_CERTIFICATION_SCOPE_ISOLATION_V1` is **not implementation-ready**.

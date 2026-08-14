@@ -215,3 +215,25 @@ Full before/after output comparison of
 only JSON delta was the expected volatile `generated_at` timestamp. Measured
 active-tree reduction: `55,213,419` bytes. Runtime, Production, routing, user,
 policy and Authority effects: `NONE`.
+
+## Cleanup execution update — Batch 5
+
+Eleven more large Track 7 runtime/planner snapshots were reduced to compact
+receipts after their real consumers were checked by meaning, not by filename.
+The batch includes the E11.3 execution/pre-gate context, E9.4/E9.4.2 restore
+observations, E10/E10.3 runtime truth, E11.9/E11.10 drain/closeout context,
+E9.3.6 autoswitch snapshot, E11.1 governance snapshot and E11.3 switch-history
+context.
+
+Original total: `72,291,046` bytes. Compact receipts: `6,335` bytes. Measured
+active-tree reduction: `72,284,711` bytes. Every receipt records its original
+path, SHA-256, byte/line count and archive hash. The ignored restorable archive
+is `.v7/evidence-archive/2026-08-14-batch5/track7-raw-snapshots.tar.gz`,
+SHA-256
+`424d691b6ee96004caa84f41b2a87dd786731fcad54f8b64fd99808b70208edf`.
+
+The E9.3.6 receipt additionally preserves the four exact safety markers
+consumed by the governance checker. Full before/after checker comparison has
+`0` semantic differences after excluding only the volatile `generated_at`
+timestamp. Runtime, Production, routing, user, policy and Authority effects:
+`NONE`.

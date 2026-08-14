@@ -121,11 +121,49 @@ trap 'rm -f "$tmp"' EXIT
     mark_warn "user_policy_routes" "v7-user-desired-state_missing"
   fi
 
+  matrix_json="$STATE_DIR/service-matrix.json"
   matrix_state="$STATE_DIR/service-matrix-refresh.state"
-  if [ -f "$matrix_state" ]; then
+  if [ -f "$matrix_json" ] && have_cmd python3; then
+    if matrix_status="$(python3 - "$matrix_json" <<'PY'
+import json
+import sys
+
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, dict) or not items:
+        raise ValueError("matrix_items_missing")
+    statuses = [
+        str(row.get("status") or "").strip().upper()
+        for row in items.values()
+        if isinstance(row, dict)
+    ]
+    statuses = [status for status in statuses if status]
+    if not statuses:
+        raise ValueError("matrix_statuses_missing")
+except Exception:
+    print("UNKNOWN")
+else:
+    if any(status in {"FAIL", "ERROR", "DOWN", "NOT_STARTED", "LOCK_TIMEOUT"} for status in statuses):
+        print("FAIL")
+    elif any(status in {"WARN", "DEGRADED", "HTTP_LIMITED", "SUSPECT"} for status in statuses):
+        print("WARN")
+    elif all(status == "OK" for status in statuses):
+        print("OK")
+    else:
+        print("UNKNOWN")
+PY
+    )"; then
+      echo "egress_service_matrix=${matrix_status:-UNKNOWN}"
+      notes+=("service_matrix_canonical_egress_direct_not_full_client_path")
+    else
+      echo "egress_service_matrix=UNKNOWN"
+      notes+=("service_matrix_canonical_read_failed")
+    fi
+  elif [ -f "$matrix_state" ]; then
     matrix_status="$(awk -F= '$1=="status"{print $2}' "$matrix_state" | tail -n1)"
     echo "egress_service_matrix=${matrix_status:-UNKNOWN}"
-    notes+=("service_matrix_is_egress_direct_not_full_client_path")
+    notes+=("service_matrix_legacy_fallback_egress_direct_not_full_client_path")
   else
     echo "egress_service_matrix=missing"
   fi

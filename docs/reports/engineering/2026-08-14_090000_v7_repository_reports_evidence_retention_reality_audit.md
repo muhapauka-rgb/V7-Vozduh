@@ -161,3 +161,31 @@ projection, prove consumers and admit exact archive/delete candidates.
 Final terminal:
 
 `REPORT_EVIDENCE_RETENTION_REALITY_AUDITED_DISPOSITION_AND_ARCHIVE_PROOF_REQUIRED`
+
+## Cleanup execution update — Batch 3
+
+Batch 1 removed two generated cross-reference TSVs after preserving their
+producer, hashes and compact conclusions. Batch 2 stopped tracking the
+regenerable Understand Anything fingerprints/intermediate scan while retaining
+the consumed `knowledge-graph.json` owner. Batch 3 resolved the two largest raw
+Track 7 snapshots rather than deleting around their active consumer.
+
+| Artifact | Before | After | Disposition |
+| --- | ---: | ---: | --- |
+| `e11_16-evidence/pre-ttl-snapshot.txt` | `59,566,997` bytes | `840` bytes | compact receipt at the same existing path; exact TTL field preserved |
+| `e12-evidence/full-orchestration-snapshot-corrected.txt` | `20,284,392` bytes | `875` bytes | compact receipt at the same existing path; consumer needs presence only |
+
+Original hashes are recorded in the receipts. Both originals are restorable
+from Git history and from the ignored local archive
+`.v7/evidence-archive/2026-08-14-batch3/track7-large-raw-snapshots.tar.gz`
+with SHA-256
+`7d42f9dee7ecd3bd45b787eb829e30d157a065df141dfd2e32e03406ea9df46a`.
+
+Fresh before/after execution of the existing
+`tools/v7-control-plane-governance-check` compared all `34` E11.16/E12 output
+fields and produced `0` semantic differences. The E11 TTL remains `81917`;
+both artifact-completeness projections remain true. No tool, owner, registry,
+truth source or parallel archive system was added.
+
+Measured active-tree reduction in this batch: `79,849,674` bytes. Runtime,
+Production, routing, user, policy and Authority effects: `NONE`.

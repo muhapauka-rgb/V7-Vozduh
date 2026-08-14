@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Reports raw-payload purge — Batch 3
+
+Six unreferenced historical operator `decision_surface` JSON dumps were
+deleted directly. They were generated read-model payloads, not canonical
+truth, and had no references outside themselves. Mission summaries,
+convergence/truth evidence and deployment records remain. No archive was
+created, per operator instruction; no Runtime or production effect occurred.
+
 ## Reports raw-payload purge — Batch 2
 
 Ten additional unreferenced historical report payloads were directly removed:

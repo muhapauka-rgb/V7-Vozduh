@@ -543,6 +543,14 @@ The receipts are approximately 20 KB in total. This is `ARCHIVE_EXTERNAL`,
 not deletion. Runtime, production, routing, user movement, policy, Authority
 and Production Maturity effects: `NONE`.
 
+## Root Z6 report consolidation — Batch 8
+
+Six superseded root-level `PROGRAM_Z6_*` reports were deleted directly. Their
+complete semantic evidence remains in the corresponding `z6_1-evidence` through
+`z6_7-evidence` directories, including final/readiness verdicts. Stale xref
+entries were removed from the existing consumer audit. No Runtime or
+production effect occurred.
+
 ## Root report duplicate purge — Batch 7
 
 `PROGRAM_Z6_6_RUNTIME_OPERATION_MODEL_DESIGN_REPORT.md` was removed as a

@@ -398,3 +398,42 @@ must first retain the current path-safety owner, prove equivalent checks,
 rollback and no loss of recovery coverage. No service, timer, path guard,
 routing, Runtime, Production, Authority or CPS change was made by this
 verification.
+
+## Targeted provenance closure — traffic accounting path
+
+`v7-traffic-snapshot` is a proven product/runtime accounting path, not an
+unowned binary. Its deployed SHA-256
+`b42c6c1c82c78234007ae5fc3430375bcb0338ec0a5fb81183f16cb310746c23`
+exactly matches the existing Git source at
+`b8358323:hardening/v7-traffic-snapshot`. That same historical commit contains
+the currently observed `v7-traffic-collector.service` and timer definitions;
+the source is historical rather than a present tracked file, so this is
+provenance recovery, not a claim that it has been reintroduced into the
+current package.
+
+```text
+enabled 15-minute timer -> traffic-collector.service
+  -> v7-traffic-snapshot --collect
+  -> nft traffic counters + traffic.sqlite
+  -> Admin traffic read model and read-only live endpoint calls
+```
+
+The live timer's latest successful run refreshed
+`/opt/v7/traffic/traffic.sqlite` at `2026-08-14 13:01:14+03:00`. The existing
+Admin API reads its `traffic_snapshots` and `traffic_totals` tables and uses
+the binary only through the established `run_readonly` calls for live user or
+egress views. The matched source shows why this is not removable: `--collect`
+can ensure the existing nft accounting counter table/rules before writing the
+SQLite snapshots. The systemd unit is deliberately low-priority (`Nice=10`,
+best-effort I/O), but that is scheduling policy, not an exemption from the
+product/accounting boundary.
+
+| Component | Owner / consumers / effect | Final classification |
+| --- | --- | --- |
+| `v7-traffic-snapshot` plus collector unit/timer | existing traffic/accounting and Admin owners; scheduled counters + SQLite, Admin read model + read-only live calls | `KEEP_RUNTIME`; historical source/unit provenance retained |
+
+Any future change must use the existing traffic/accounting, Admin and
+deploy/package owners, preserve both retained traffic data and live read
+responses, explicitly address the nft-counter side effect, and provide a
+rollback path. No counter, SQLite, service, timer, Runtime, Production,
+Authority or CPS state was changed in this recheck.

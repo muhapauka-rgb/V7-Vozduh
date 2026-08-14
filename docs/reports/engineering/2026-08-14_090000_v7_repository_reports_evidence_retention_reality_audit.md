@@ -468,6 +468,30 @@ not deletion; restoration requires archive extraction and source-hash
 verification. Runtime, Production, routing, user movement, policy and
 Authority effects: `NONE`.
 
+## Cleanup execution update — Batch 17
+
+Two historical `tools/v7-users-autoswitch` dry-run wrapper payloads were
+checked before compaction. Both had `apply_requested=false`, zero selected
+moves, and a terminal dry-run reason. Their only path references are the
+historical stability report and the existing cross-reference audit; no source,
+test or Runtime consumer reads the full payload. The original paths remain as
+compact receipts with operation identity, planner generation, terminal reason,
+selected-move count, source hash and archive pointer.
+
+| Receipt | Original bytes | Receipt bytes | Original SHA-256 |
+|---|---:|---:|---|
+| `POOL2_EVIDENCE/api_autoswitch_plan.json` | 5,270,640 | 992 | `7b28f5c7d81f9dd9aa64a6b4f21effdd369018510b0c9cf35f2fe0fe51ac26ef` |
+| `EXEC1_EVIDENCE/autoswitch_plan_raw.json` | 5,256,361 | 1,003 | `3a6613cc1fc873a05a48602172e2d4f79f44ee6dd30860f889d784460b1f9baf` |
+
+The originals are recoverable from the ignored existing archive lifecycle at
+`.v7/evidence-archive/2026-08-14-batch17/planner-dry-run-wrappers.tar.gz`
+(archive SHA-256
+`38f476c9097ccaa6dfd5e8110fb664e48babd99a56f664f364f4429a28bbd466`).
+Active-tree reduction: 10,525,006 bytes before
+archive overhead). This is `ARCHIVE_EXTERNAL`, not deletion. Runtime,
+production, routing, user movement, policy, Authority and Production Maturity
+effects: `NONE`.
+
 ## Structural inventory — 2026-08-14
 
 The repository was re-measured before any further deletion or relocation. The

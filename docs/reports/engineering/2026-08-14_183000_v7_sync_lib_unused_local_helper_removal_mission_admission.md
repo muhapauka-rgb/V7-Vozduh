@@ -67,3 +67,15 @@ safe deploy and truth/convergence `PASS` where a source-library synchronization
 is required, and the existing CPS/OMP owner returning to the RS6 residual
 frontier. Until that atomic admission occurs, this report grants no code,
 Runtime, Production or Authority mutation.
+
+## CPS admission result
+
+The existing atomic CPS/OMP reconciliation owner consumed this exact scoped
+packet with no substitution: generation
+`cpsgen_RS7_SYNC_HELPER_ADMITTED_4E88BCEB`, transition
+`V7_RS6_SCOPED_TO_RS7_SYNC_HELPER_ADMISSION_V1`, and frontier
+`ADMITTED_READY_FOR_IMPLEMENTATION:V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1`.
+The lifecycle binding returned `MISSION_EXECUTION_ALLOWED`; full CPS/OMP
+consistency and local truth checks passed. The global RS6 completion claim was
+not changed. This is now the sole active bounded Mission and authorizes only
+the exact two-definition removal described above.

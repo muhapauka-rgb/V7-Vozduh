@@ -2023,6 +2023,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(second["result"]["scope_reconciliation"]["consumed_records"], 1)
         self.assertEqual(third["result"]["scope_reconciliation"]["changed_records"], 0)
         self.assertEqual(record["last_execution_feedback_id"], outcome["feedback_id"])
+        self.assertTrue(record["scope_accounting"]["terminal_scope_frozen"])
         self.assertFalse(any(second["forbidden_effects"].values()))
 
     def test_passive_consumer_prunes_only_consumptions_outside_current_event_window(self):

@@ -5482,6 +5482,30 @@ class AutoswitchPlanner:
                     },
                     "consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
                 })
+                # Persist the terminal, frozen scope projection in this same
+                # existing reconciliation write.  Without it, the next
+                # otherwise-idempotent re-entry performs one avoidable state
+                # rewrite merely to freeze a closure already established here.
+                terminal_scope_accounting = self._reconcile_incident_scope_accounting(
+                    existing={**record, **desired_scope_fields},
+                    execution_rows=rows,
+                )
+                if terminal_scope_accounting:
+                    desired_scope_fields.update({
+                        "scope_accounting": terminal_scope_accounting,
+                        "current_source_scope": terminal_scope_accounting,
+                        "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(
+                            existing={**record, **desired_scope_fields},
+                            execution_rows=rows,
+                            current_source_scope=terminal_scope_accounting,
+                        ),
+                        "affected_scope_count": terminal_scope_accounting["affected_scope_count"],
+                        "affected_scope_fingerprint": terminal_scope_accounting["affected_scope_fingerprint"],
+                        "protected_scope_count": terminal_scope_accounting["protected_scope_count"],
+                        "protected_scope_fingerprint": terminal_scope_accounting["protected_scope_fingerprint"],
+                        "unresolved_scope_count": terminal_scope_accounting["unresolved_scope_count"],
+                        "unresolved_scope_fingerprint": terminal_scope_accounting["unresolved_scope_fingerprint"],
+                    })
             elif (
                 str(record.get("next_required_consumer") or "")
                 == "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes"

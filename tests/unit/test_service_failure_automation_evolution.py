@@ -5189,8 +5189,9 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(scope["explicitly_excluded_or_recovered_scope_count"], 3)
         self.assertEqual(
             scope["scope_membership_law"],
-            "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY_PROTECTION_INTENT_CLOSURE",
+            "INTENT_CLOSED_TERMINAL_SCOPE_FROZEN",
         )
+        self.assertTrue(scope["terminal_scope_frozen"])
         self.assertFalse(result["forbidden_effects"]["routing_mutation"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 

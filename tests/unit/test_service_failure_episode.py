@@ -3464,6 +3464,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "child_transaction_status": "STOP_SAFE",
                     "child_stop_reason": "route_visibility_not_confirmed",
                     "proof_blockers": ["route_visibility_not_confirmed"],
+                    "route_apply_failure_count": 1,
+                    "route_apply_failure_reasons": ["route_writer_apply_failed"],
                     "verification_failure_count": 1,
                     "verification_failure_reasons": ["route_verify_failed"],
                     "route_verification_failure_categories": ["TABLE_DEFAULT_MISMATCH"],
@@ -3476,6 +3478,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
         diagnostic = projected["downstream_proof_diagnostic"]
         self.assertTrue(diagnostic["apply_command_ok"])
+        self.assertEqual(diagnostic["route_apply_failure_count"], 1)
+        self.assertEqual(
+            diagnostic["route_apply_failure_reasons"],
+            ["route_writer_apply_failed"],
+        )
         self.assertEqual(
             diagnostic["child_stop_reason"],
             "route_visibility_not_confirmed",

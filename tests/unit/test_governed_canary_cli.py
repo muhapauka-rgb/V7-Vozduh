@@ -5355,6 +5355,27 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(proof["route_verification_scopes"], ["selected_user"])
 
+    def test_l3_production_proof_does_not_misclassify_route_apply_failure(self):
+        module = load_cli_module()
+        proof = module.l3_production_validation_proof_quality(
+            {"ok": True, "returncode": 0},
+            {
+                "apply_result": {
+                    "applied": True,
+                    "results": [{
+                        "user_ip": "10.7.0.18",
+                        "rc": 2,
+                    }],
+                },
+                "operation": {},
+            },
+        )
+
+        self.assertFalse(proof["ok"])
+        self.assertIn("route_apply_failed", proof["blockers"])
+        self.assertEqual(proof["verification_failures"], [])
+        self.assertEqual(proof["route_apply_failure_reasons"], ["route_writer_apply_failed"])
+
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()
         captured = {}

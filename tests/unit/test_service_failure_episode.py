@@ -1597,6 +1597,57 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(event["source_scope"]["raw_user_list_stored"])
         self.assertNotIn("affected_users", event["source_scope"])
 
+    def test_matrix_scope_change_emits_fresh_revalidation_generation(self):
+        """A changed compact scope must reach the exact-once passive consumer."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            users = state_dir / "users.registry"
+            users.write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            matrix_file = state_dir / "service-matrix.json"
+            event_dir = root / "events"
+            failure = {
+                "ok": False,
+                "status": "FAIL",
+                "tested_at": "2026-07-27T03:00:00+00:00",
+                "reason": "reset",
+            }
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": failure}, 1,
+                event_dir=event_dir, persistence_samples=1, state_dir=state_dir,
+            )
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0",
+                {"youtube": {**failure, "tested_at": "2026-07-27T03:01:00+00:00"}},
+                1, event_dir=event_dir, persistence_samples=1, state_dir=state_dir,
+            )
+            users.write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0",
+                {"youtube": {**failure, "tested_at": "2026-07-27T03:02:00+00:00"}},
+                1, event_dir=event_dir, persistence_samples=1, state_dir=state_dir,
+            )
+            events = [
+                json.loads(line)
+                for line in (event_dir / "service-failure-events.jsonl").read_text(
+                    encoding="utf-8"
+                ).splitlines()
+            ]
+        self.assertEqual(
+            [row["event_type"] for row in events],
+            ["SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED", "SERVICE_FAILURE_REVALIDATED"],
+        )
+        self.assertNotEqual(events[-2]["event_id"], events[-1]["event_id"])
+        self.assertEqual(events[-1]["source_scope"]["affected_scope_count"], 2)
+
     def test_failure_family_and_registry_generation_split_episode(self):
         previous = {
             "ok": False,
@@ -2191,6 +2242,54 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             record["current_source_scope"]["supersedes_prior_scope_generation"]["rotation_reason"],
             "FRESHER_OWNER_BACKED_SOURCE_SCOPE_GENERATION",
+        )
+
+    def test_newer_matrix_snapshot_repairs_legacy_broken_scope_with_same_fingerprint(self):
+        """Repair needs a fresh owner snapshot, not a guessed membership list."""
+        planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+        incident_id = "sfinc_legacy_scope_repair"
+        incident_key = planner._passive_incident_projection_key(incident_id)
+        state = {
+            "incidents": {
+                incident_key: {
+                    "incident_key": incident_key,
+                    "incident_id": incident_id,
+                    "source_incident_id": incident_id,
+                    "channel": "vless",
+                    "current_source_scope": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "baseline_event_id": "sfrev_legacy",
+                        "baseline_observed_at": "2026-07-27T12:00:00+00:00",
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "scope_current",
+                    },
+                },
+            },
+        }
+        fresh = {
+            "source_incident_id": incident_id,
+            "event_id": "sfrev_repaired",
+            "source_event_ids": ["sfrev_repaired"],
+            "channel": "vless",
+            "observed_at": "2026-07-27T12:15:00+00:00",
+            "source_scope": {
+                "source_channel": "vless",
+                "affected_scope_count": 2,
+                "affected_scope_fingerprint": "scope_current",
+                "observed_at": "2026-07-27T12:15:00+00:00",
+            },
+        }
+        projection = planner._materialize_passive_incident_projection(
+            state, fresh, terminal="STOP_SAFE_NO_ACTION"
+        )
+        scope = state["incidents"][projection["incident_key"]]["current_source_scope"]
+        self.assertEqual(scope["status"], "ACCOUNTED")
+        self.assertEqual(scope["baseline_event_id"], "sfrev_repaired")
+        self.assertEqual(scope["protected_scope_count"], 0)
+        self.assertEqual(scope["unresolved_scope_count"], 2)
+        self.assertEqual(
+            scope["supersedes_prior_scope_generation"]["rotation_reason"],
+            "LIVE_ROUTE_SCOPE_NO_LONGER_RECONCILABLE_WITH_LEGACY_GENERATION",
         )
 
     def test_passive_consumer_does_not_materialize_unbound_expiry_as_incident(self):

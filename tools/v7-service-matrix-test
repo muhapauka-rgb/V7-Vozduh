@@ -1205,6 +1205,37 @@ def update_matrix(
             and str(merged.get("source_incident_id") or "") == source_incident_id
         ]
         if revalidation_rows and not fresh_failure_event_emitted:
+            # A revalidation generation is an exact-once boundary for the
+            # passive L3 consumer.  Keep stable probes of the same live scope
+            # idempotent, but make a changed compact scope a new owner-backed
+            # generation: otherwise the consumer retains a legacy denominator
+            # even though the existing Matrix owner has observed the current
+            # ordinary/certification partition.  This contains only counts and
+            # fingerprints; users.registry remains the sole membership owner.
+            def compact_scope_identity(scope: Any) -> dict[str, Any]:
+                scope = scope if isinstance(scope, dict) else {}
+                try:
+                    count = int(scope.get("affected_scope_count"))
+                except (TypeError, ValueError):
+                    count = -1
+                return {
+                    "affected_scope_count": count,
+                    "affected_scope_fingerprint": str(
+                        scope.get("affected_scope_fingerprint") or ""
+                    ),
+                }
+
+            revalidation_scope_identity = {
+                "scope_classification": str(
+                    scope_snapshot.get("scope_classification") or ""
+                ),
+                "ordinary_production_scope": compact_scope_identity(
+                    scope_snapshot.get("ordinary_production_scope")
+                ),
+                "controlled_certification_scope": compact_scope_identity(
+                    scope_snapshot.get("controlled_certification_scope")
+                ),
+            }
             revalidation_basis = {
                 service_id: {
                     "episode_id": str(merged.get("failure_episode_id") or ""),
@@ -1220,6 +1251,7 @@ def update_matrix(
                         "source_incident_id": source_incident_id,
                         "identity_generation": identity.get("egress_identity_generation"),
                         "rows": revalidation_basis,
+                        "current_compact_scope": revalidation_scope_identity,
                     },
                     ensure_ascii=True,
                     sort_keys=True,

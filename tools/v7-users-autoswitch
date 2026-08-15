@@ -4240,7 +4240,23 @@ class AutoswitchPlanner:
             and scope_changed
             and parse_ts(incoming_scope_observed_at) > parse_ts(prior_scope_observed_at)
         )
-        if source_scope_count >= 0 and source_scope_fingerprint and (not existing_scope or scope_rotation):
+        # A legacy compact projection can retain a valid current Matrix
+        # fingerprint but omit the accounting partition fields.  A strictly
+        # newer snapshot from the existing Matrix owner is enough to rebuild
+        # that denominator through this L3 owner; it does not infer members,
+        # reuse historical Packet outcomes, or authorize execution.  Treat it
+        # as a one-time repair generation even when the live fingerprint did
+        # not change, so the existing outcome reconciler can classify prior
+        # feedback against the restored denominator.
+        scope_repair = bool(
+            existing_scope
+            and str(existing_scope.get("status") or "")
+            == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+            and parse_ts(incoming_scope_observed_at) > parse_ts(prior_scope_observed_at)
+        )
+        if source_scope_count >= 0 and source_scope_fingerprint and (
+            not existing_scope or scope_rotation or scope_repair
+        ):
             scope_accounting = {
                 "schema_version": "v7.service-failure-incident-scope-accounting.v2",
                 "status": "ACCOUNTED",
@@ -4280,7 +4296,7 @@ class AutoswitchPlanner:
                         if str(existing_scope.get("status") or "") == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
                         else "FRESHER_OWNER_BACKED_SOURCE_SCOPE_GENERATION"
                     ),
-                } if scope_rotation else {}),
+                } if (scope_rotation or scope_repair) else {}),
             }
         else:
             scope_accounting = existing_scope

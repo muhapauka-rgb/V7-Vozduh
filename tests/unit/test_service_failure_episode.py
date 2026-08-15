@@ -3467,6 +3467,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "verification_failure_count": 1,
                     "verification_failure_reasons": ["route_verify_failed"],
                     "route_verification_failure_categories": ["TABLE_DEFAULT_MISMATCH"],
+                    "route_verification_scopes": ["selected_user"],
                     "rollback_failure_count": 0,
                     "raw_child_payload": {"must-not-project": True},
                 },
@@ -3487,6 +3488,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             diagnostic["route_verification_failure_categories"],
             ["TABLE_DEFAULT_MISMATCH"],
         )
+        self.assertEqual(diagnostic["route_verification_scopes"], ["selected_user"])
         self.assertNotIn("raw_child_payload", diagnostic)
 
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):

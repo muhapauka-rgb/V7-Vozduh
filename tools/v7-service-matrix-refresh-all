@@ -3287,6 +3287,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "child_stop_reason", "child_stop_detail", "proof_blockers",
             "verification_failure_count", "verification_failure_reasons",
             "route_verification_failure_categories",
+            "route_verification_scopes",
             "rollback_failure_count", "capability_production_proven",
         )
         if downstream.get(key) not in (None, "", [], {})
@@ -3382,6 +3383,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                     "child_stop_detail", "proof_blockers",
                     "verification_failure_count", "verification_failure_reasons",
                     "route_verification_failure_categories", "rollback_failure_count",
+                    "route_verification_scopes",
                     "capability_production_proven",
                 )
                 if downstream.get(key) not in (None, "", [], {})

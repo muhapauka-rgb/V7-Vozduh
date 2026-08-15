@@ -5342,6 +5342,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                         "route_verification_failure_categories": [
                             "ROUTE_GET_PUBLIC_LEAK", "invalid category"
                         ],
+                        "route_verification_scope": "selected_user",
                     }],
                 },
                 "operation": {},
@@ -5352,6 +5353,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             proof["route_verification_failure_categories"],
             ["ROUTE_GET_PUBLIC_LEAK"],
         )
+        self.assertEqual(proof["route_verification_scopes"], ["selected_user"])
 
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()

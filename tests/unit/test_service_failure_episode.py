@@ -3451,6 +3451,32 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertNotIn("raw_packet", projected)
 
+    def test_matrix_projection_retains_bounded_downstream_proof_terminal(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "STOP_SAFE",
+                "stop_reason": "l3_production_validation_downstream_proof_failed",
+                "downstream_proof_diagnostic": {
+                    "apply_command_ok": True,
+                    "apply_returncode": 0,
+                    "apply_timed_out": False,
+                    "child_final_verdict": "STOP_SAFE",
+                    "child_transaction_status": "STOP_SAFE",
+                    "child_stop_reason": "route_visibility_not_confirmed",
+                    "proof_blockers": ["route_visibility_not_confirmed"],
+                    "raw_child_payload": {"must-not-project": True},
+                },
+            },
+        })["consumer_result"]
+
+        diagnostic = projected["downstream_proof_diagnostic"]
+        self.assertTrue(diagnostic["apply_command_ok"])
+        self.assertEqual(
+            diagnostic["child_stop_reason"],
+            "route_visibility_not_confirmed",
+        )
+        self.assertNotIn("raw_child_payload", diagnostic)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

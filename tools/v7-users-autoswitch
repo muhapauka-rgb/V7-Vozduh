@@ -2202,17 +2202,6 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
 
     invalid_states: set[str] = set()
     historical_integrity_warnings: list[dict[str, Any]] = []
-    registry_path = state_path.parent / "users.registry"
-    live_source_member_counts: dict[str, int] = {}
-    if registry_path.exists():
-        for row in parse_registry(registry_path):
-            if not bool_value(row.get("enabled", "1")):
-                continue
-            source = str(row.get("current") or "")
-            if source:
-                live_source_member_counts[source] = (
-                    live_source_member_counts.get(source, 0) + 1
-                )
     open_incidents = 0
     checked_incidents = 0
     open_incident_projections: list[dict[str, Any]] = []
@@ -2287,27 +2276,14 @@ def service_failure_causal_integrity_status(state_dir: Path) -> dict[str, Any]:
             current_fingerprint = str(scope.get("affected_scope_fingerprint") or "")
             if cumulative_fingerprint and current_fingerprint and cumulative_fingerprint != current_fingerprint:
                 record_invalid_states.add("CURRENT_SCOPE_REPLACES_CUMULATIVE_HISTORY")
-        source_channel = str(record.get("channel") or record.get("source_channel") or "")
-        stale_zero_scope_open = (
-            not closed
-            and registry_path.exists()
-            and live_source_member_counts.get(source_channel, 0) == 0
-            and record_invalid_states == {"INCIDENT_SCOPE_ACCOUNTING_BROKEN"}
-            and bool(str(record.get("next_required_consumer") or ""))
-            and bool(str(record.get("reentry_condition") or ""))
-        )
-        if closed or stale_zero_scope_open:
+        if closed:
             if record_invalid_states:
                 historical_integrity_warnings.append({
                     "incident_id": str(record.get("incident_id") or ""),
                     "incident_generation": str(record.get("incident_generation") or record.get("generation") or ""),
-                    "source_channel": source_channel,
+                    "source_channel": str(record.get("channel") or record.get("source_channel") or ""),
                     "warning_states": sorted(record_invalid_states),
-                    "owner": (
-                        "existing l3-runtime-state closed historical projection"
-                        if closed else
-                        "existing l3-runtime-state zero-current-route historical projection"
-                    ),
+                    "owner": "existing l3-runtime-state closed historical projection",
                     "blocks_live_execution": False,
                     "raw_user_list_stored": False,
                 })

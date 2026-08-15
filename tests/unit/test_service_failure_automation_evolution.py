@@ -5085,43 +5085,6 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             "raw_user_list_stored": False,
         }])
 
-    def test_causal_integrity_zero_current_route_legacy_scope_is_warning_only(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            state_dir = Path(tmp)
-            state_dir.joinpath("users.registry").write_text(
-                json.dumps({"ip": "10.0.0.2", "enabled": "1", "current": "other"}) + "\n",
-                encoding="utf-8",
-            )
-            state_dir.joinpath("l3-runtime-state.json").write_text(json.dumps({
-                "incidents": {
-                    "legacy-empty": {
-                        "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
-                        "incident_id": "sfinc_legacy_empty",
-                        "incident_generation": "legacy-generation",
-                        "channel": "old-source",
-                        "incident_state": "OPEN",
-                        "next_required_consumer": "tools/v7-users-autoswitch.reconcile_service_failure_execution_outcomes",
-                        "reentry_condition": "reconcile exact source-scope fingerprint with current route truth before any further action",
-                        "current_source_scope": {
-                            "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
-                            "unresolved_scope_count": 3,
-                        },
-                    },
-                },
-            }), encoding="utf-8")
-            status = self.autoswitch.service_failure_causal_integrity_status(state_dir)
-        self.assertEqual(status["final_verdict"], "PASS", status)
-        self.assertEqual(status["invalid_states"], [])
-        self.assertEqual(status["historical_integrity_warnings"], [{
-            "incident_id": "sfinc_legacy_empty",
-            "incident_generation": "legacy-generation",
-            "source_channel": "old-source",
-            "warning_states": ["INCIDENT_SCOPE_ACCOUNTING_BROKEN"],
-            "owner": "existing l3-runtime-state zero-current-route historical projection",
-            "blocks_live_execution": False,
-            "raw_user_list_stored": False,
-        }])
-
     def test_causal_integrity_status_keeps_closed_legacy_anomaly_auditable(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

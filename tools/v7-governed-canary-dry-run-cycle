@@ -4620,6 +4620,7 @@ def service_failure_obligation_execution_binding(
     ]
     consumption = consumptions[-1] if consumptions else {}
     direct_l3_handoff = False
+    direct_l3_scope: dict[str, Any] = {}
     l3 = read_json(state_dir / "l3-runtime-state.json", {})
     for record in (l3.get("incidents") or {}).values() if isinstance(l3, dict) else []:
         if not isinstance(record, dict):
@@ -4634,7 +4635,14 @@ def service_failure_obligation_execution_binding(
             and current.get("affected_scope_fingerprint") == expected_scope_fingerprint
         ):
             direct_l3_handoff = True
+            direct_l3_scope = dict(current)
             break
+    if direct_l3_handoff and "service_failure_obligation_not_durable" in blockers:
+        # The exact current L3 projection is the existing durable Runtime
+        # handoff.  Do not require a duplicated historical closure row before
+        # Candidate/Packet fencing; its identity/scope were checked above.
+        blockers.remove("service_failure_obligation_not_durable")
+        scope = direct_l3_scope
     if not consumption and not direct_l3_handoff:
         blockers.append("service_failure_obligation_omp_consumption_missing")
     elif consumption:

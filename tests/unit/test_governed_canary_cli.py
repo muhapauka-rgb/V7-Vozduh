@@ -4909,6 +4909,24 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(diagnosis["stderr_tail"], "no eligible decision")
         self.assertNotIn("unbounded_child_dump", diagnosis)
 
+    def test_compact_transaction_result_retains_ordinary_scope_counts(self):
+        module = load_cli_module()
+        compact = module.compact_transaction_result({
+            "ordinary_pre_packet_scope": {
+                "valid": False,
+                "selected_count": 4,
+                "requested_max_users": 4,
+                "certification_selected_count": 1,
+                "selected_identities": ["must-not-project"],
+            },
+        })
+
+        scope = compact["ordinary_pre_packet_scope"]
+        self.assertFalse(scope["valid"])
+        self.assertEqual(scope["selected_count"], 4)
+        self.assertEqual(scope["certification_selected_count"], 1)
+        self.assertNotIn("selected_identities", scope)
+
     def test_jsonl_family_uses_bounded_tail_and_preserves_rotation_order(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

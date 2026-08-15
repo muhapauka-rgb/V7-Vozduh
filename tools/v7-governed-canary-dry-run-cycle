@@ -2441,6 +2441,24 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     }
     if compact_planner_plan_availability:
         receipt["planner_plan_availability"] = compact_planner_plan_availability
+    ordinary_pre_packet_scope = result.get("ordinary_pre_packet_scope")
+    ordinary_pre_packet_scope = (
+        ordinary_pre_packet_scope
+        if isinstance(ordinary_pre_packet_scope, dict)
+        else {}
+    )
+    compact_ordinary_pre_packet_scope = {
+        key: ordinary_pre_packet_scope.get(key)
+        for key in (
+            "valid",
+            "selected_count",
+            "requested_max_users",
+            "certification_selected_count",
+        )
+        if key in ordinary_pre_packet_scope
+    }
+    if compact_ordinary_pre_packet_scope:
+        receipt["ordinary_pre_packet_scope"] = compact_ordinary_pre_packet_scope
     downstream = result.get("downstream_proof_diagnostic")
     if isinstance(downstream, dict) and downstream:
         receipt["downstream_proof_diagnostic"] = {
@@ -5207,6 +5225,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 "ordinary_service_failure_pre_packet_scope_invalid",
                 selected_count=len(selected_rows),
                 certification_selected_count=len(certification_selected),
+                ordinary_pre_packet_scope={
+                    "selected_count": len(selected_rows),
+                    "requested_max_users": requested_max_users,
+                    "certification_selected_count": len(certification_selected),
+                    "valid": False,
+                },
                 candidate_created=False,
                 packet_created=False,
                 lease_created=False,

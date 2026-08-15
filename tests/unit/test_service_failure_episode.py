@@ -3415,6 +3415,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertNotIn("raw_child_response", diagnosis)
 
+    def test_matrix_projection_retains_ordinary_pre_packet_scope_counts(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "ordinary_pre_packet_scope": {
+                    "valid": False,
+                    "selected_count": 4,
+                    "requested_max_users": 4,
+                    "certification_selected_count": 1,
+                    "selected_identities": ["must-not-project"],
+                },
+            },
+        })["consumer_result"]
+
+        scope = projected["ordinary_pre_packet_scope"]
+        self.assertFalse(scope["valid"])
+        self.assertEqual(scope["selected_count"], 4)
+        self.assertEqual(scope["certification_selected_count"], 1)
+        self.assertNotIn("selected_identities", scope)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

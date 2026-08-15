@@ -3250,6 +3250,26 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         compact_result["planner_plan_availability"] = (
             compact_planner_plan_availability
         )
+    ordinary_pre_packet_scope = result.get("ordinary_pre_packet_scope")
+    ordinary_pre_packet_scope = (
+        ordinary_pre_packet_scope
+        if isinstance(ordinary_pre_packet_scope, dict)
+        else {}
+    )
+    compact_ordinary_pre_packet_scope = {
+        key: ordinary_pre_packet_scope.get(key)
+        for key in (
+            "valid",
+            "selected_count",
+            "requested_max_users",
+            "certification_selected_count",
+        )
+        if key in ordinary_pre_packet_scope
+    }
+    if compact_ordinary_pre_packet_scope:
+        compact_result["ordinary_pre_packet_scope"] = (
+            compact_ordinary_pre_packet_scope
+        )
     for key in (
         "performance_benchmark",
         "campaign_stage_credit",

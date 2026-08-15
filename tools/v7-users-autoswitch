@@ -5296,9 +5296,20 @@ class AutoswitchPlanner:
         creates no execution artefact and keeps a partially protected channel
         incident open for its remaining scope.
         """
+        recorder = getattr(self, "_passive_performance_recorder", None)
+
+        def record_passive_reconciliation_span(stage: str, started_ns: int) -> None:
+            if callable(recorder):
+                recorder(stage, started_ns)
+
+        ledger_load_started_ns = time.monotonic_ns()
         state = self._load_l3_runtime_state()
         incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
         rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        record_passive_reconciliation_span(
+            "passive_reconciliation_l3_and_execution_ledger_load",
+            ledger_load_started_ns,
+        )
         # Reuse a read snapshot only within this one reconciliation call.
         # Existing registry and audit owners remain authoritative and each new
         # invocation reloads them, so no cache becomes durable state or truth.
@@ -5306,6 +5317,7 @@ class AutoswitchPlanner:
         changed = 0
         consumed = 0
         rejected: list[str] = []
+        feedback_ingest_started_ns = time.monotonic_ns()
         for row in rows:
             if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
                 continue
@@ -5435,10 +5447,15 @@ class AutoswitchPlanner:
             incidents[incident_key] = desired
             changed += 1
             consumed += 1
+        record_passive_reconciliation_span(
+            "passive_reconciliation_feedback_ingest",
+            feedback_ingest_started_ns,
+        )
         # Scope truth is a live-route projection, not a side effect of the
         # first feedback consumer.  Recompute it even when every immutable
         # feedback id was already consumed; otherwise a generation-local
         # result can remain stale forever after a deploy or a route change.
+        incident_refresh_started_ns = time.monotonic_ns()
         for incident_key, record in list(incidents.items()):
             if not isinstance(record, dict):
                 continue
@@ -5554,6 +5571,11 @@ class AutoswitchPlanner:
             if any(record.get(key) != value for key, value in desired_scope_fields.items()):
                 incidents[incident_key] = {**record, **desired_scope_fields}
                 changed += 1
+        record_passive_reconciliation_span(
+            "passive_reconciliation_all_incident_scope_refresh",
+            incident_refresh_started_ns,
+        )
+        recovery_and_write_started_ns = time.monotonic_ns()
         recovery_reconciliation = self._reconcile_recovered_service_failure_intents(
             state,
         )
@@ -5561,6 +5583,10 @@ class AutoswitchPlanner:
         if changed:
             state["incidents"] = incidents
             self._write_l3_runtime_state(state)
+        record_passive_reconciliation_span(
+            "passive_reconciliation_recovery_and_state_write",
+            recovery_and_write_started_ns,
+        )
         return {
             "schema_version": "v7.service-failure-execution-outcome-reconciliation.v1",
             "active": bool(rows),

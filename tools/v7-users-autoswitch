@@ -1359,6 +1359,25 @@ def bool_value(value: Any) -> bool:
     return str(value).strip().lower() in ("1", "true", "yes", "on", "enabled")
 
 
+def route_writer_failure_code(output: str, returncode: Any) -> str:
+    """Project a bounded route-writer failure code without retaining raw output."""
+    try:
+        failed = int(returncode) != 0
+    except (TypeError, ValueError):
+        failed = True
+    if not failed:
+        return ""
+    text = str(output or "")
+    match = re.search(r"^V7_ROUTE_WRITE_FAILURE=([A-Z0-9_]+)$", text, flags=re.MULTILINE)
+    if match:
+        return f"ROUTE_WRITER_{match.group(1)}"
+    if "STOP_SAFE: autonomous execution control denied" in text:
+        return "EXECUTION_CONTROL_DENIED_BEFORE_ROUTE_WRITER"
+    if not text.strip():
+        return "ROUTE_WRITER_OUTPUT_UNAVAILABLE"
+    return "ROUTE_WRITER_UNCLASSIFIED_FAILURE"
+
+
 def split_csv(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v).strip() for v in value if str(v).strip()]
@@ -14409,6 +14428,10 @@ class AutoswitchPlanner:
                     "status": "PASS" if low_level_route_ms is not None else "UNMEASURED",
                 },
             }
+            if proc.returncode != 0:
+                row["route_writer_failure_code"] = route_writer_failure_code(
+                    proc.stdout or "", proc.returncode
+                )
             if proc.returncode == 0 and self.args.verify:
                 route_visibility_started_ns = time.monotonic_ns()
                 # A strict current-action-class contract is already limited to

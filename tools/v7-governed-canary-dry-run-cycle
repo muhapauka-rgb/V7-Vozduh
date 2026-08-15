@@ -3499,6 +3499,9 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
             return True
 
     def route_apply_failure_reason(row: dict[str, Any]) -> str:
+        stored = str(row.get("route_writer_failure_code") or "")
+        if re.fullmatch(r"[A-Z0-9_]+", stored):
+            return stored.lower()
         output = str(row.get("output") or "")
         match = re.search(
             r"^V7_ROUTE_WRITE_FAILURE=([A-Z0-9_]+)$",

@@ -5401,6 +5401,28 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ["route_writer_route_interface_unavailable"],
         )
 
+    def test_l3_production_proof_prefers_stored_safe_route_writer_failure_code(self):
+        module = load_cli_module()
+        proof = module.l3_production_validation_proof_quality(
+            {"ok": True, "returncode": 0},
+            {
+                "apply_result": {
+                    "applied": True,
+                    "results": [{
+                        "user_ip": "10.7.0.18",
+                        "rc": 2,
+                        "route_writer_failure_code": "EXECUTION_CONTROL_DENIED_BEFORE_ROUTE_WRITER",
+                    }],
+                },
+                "operation": {},
+            },
+        )
+
+        self.assertEqual(
+            proof["route_apply_failure_reasons"],
+            ["execution_control_denied_before_route_writer"],
+        )
+
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()
         captured = {}

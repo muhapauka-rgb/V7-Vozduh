@@ -30,6 +30,24 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tool = load_tool_module()
 
+    def test_route_writer_failure_code_is_safe_and_bounded(self):
+        self.assertEqual(
+            self.tool.route_writer_failure_code(
+                "V7_ROUTE_WRITE_FAILURE=ROUTE_INTERFACE_UNAVAILABLE\n", 1
+            ),
+            "ROUTE_WRITER_ROUTE_INTERFACE_UNAVAILABLE",
+        )
+        self.assertEqual(
+            self.tool.route_writer_failure_code(
+                "STOP_SAFE: autonomous execution control denied\n", 2
+            ),
+            "EXECUTION_CONTROL_DENIED_BEFORE_ROUTE_WRITER",
+        )
+        self.assertEqual(
+            self.tool.route_writer_failure_code("", 1),
+            "ROUTE_WRITER_OUTPUT_UNAVAILABLE",
+        )
+
     def write_fixture(
         self,
         root: Path,

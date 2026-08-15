@@ -2302,6 +2302,73 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "LIVE_ROUTE_SCOPE_NO_LONGER_RECONCILABLE_WITH_LEGACY_GENERATION",
         )
 
+    def test_consumed_revalidation_repairs_broken_scope_from_newer_snapshot(self):
+        """Exact-once does not discard a newer Matrix scope repair snapshot."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_dir = root / "events"
+            state_dir = root / "state"
+            event_dir.mkdir()
+            state_dir.mkdir()
+            incident_id = "sfinc_consumed_scope_repair"
+            event = {
+                "event_id": "sfrev_consumed_scope_repair",
+                "source_incident_id": incident_id,
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                "channel": "vless",
+                "failure_samples": 3,
+                "bad_for_seconds": 180,
+                "observed_at": "2026-07-27T12:15:00+00:00",
+                "source_hashes": {"service_row": "hash"},
+                "source_scope": {
+                    "source_channel": "vless",
+                    "affected_scope_count": 2,
+                    "affected_scope_fingerprint": "scope_current",
+                    "observed_at": "2026-07-27T12:15:00+00:00",
+                },
+            }
+            (event_dir / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8"
+            )
+            (state_dir / "users.registry").write_text(
+                "ip=10.0.0.2 current=vless enabled=1\n"
+                "ip=10.0.0.3 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            incident_key = planner._passive_incident_projection_key(incident_id)
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {incident_key: {
+                    "incident_key": incident_key,
+                    "incident_id": incident_id,
+                    "source_incident_id": incident_id,
+                    "current_source_scope": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "baseline_observed_at": "2026-07-27T12:00:00+00:00",
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": "scope_current",
+                    },
+                }},
+                "passive_event_consumptions": {
+                    event["event_id"]: {"consumed_at": "2026-07-27T12:00:00+00:00"},
+                },
+            }), encoding="utf-8")
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--consume-passive-events-only",
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(root / "missing-policy.json"),
+                "--org-policy-file", str(root / "missing-org-policy.json"),
+            ])
+            result = self.autoswitch.consume_passive_events_only(args)
+            state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
+            repaired = state["incidents"][incident_key]["current_source_scope"]
+        self.assertEqual(result["result"]["reason"], "consumed_scope_repair")
+        self.assertEqual(repaired["status"], "ACCOUNTED")
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_passive_consumer_does_not_materialize_unbound_expiry_as_incident(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

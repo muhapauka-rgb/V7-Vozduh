@@ -14659,7 +14659,53 @@ class AutoswitchPlanner:
         if consumption_cache_compacted:
             consumed = retained_consumptions
             state["passive_event_consumptions"] = consumed
-        new_events = [row for row in events if str(row["event_id"]) not in consumed]
+        def consumed_event_requires_scope_repair(event: dict[str, Any]) -> bool:
+            """Allow one owner-backed scope repair through an exact-once event.
+
+            Matrix deliberately reuses a deterministic revalidation ID while
+            its live compact scope is unchanged.  If an older consumption
+            leaves the existing L3 projection explicitly broken, a later
+            Matrix snapshot under that same ID must still be able to repair
+            the projection.  This is not a second event lifecycle: it is a
+            strictly newer snapshot from the existing Matrix owner, limited
+            to compact current-state accounting and incapable of authorizing
+            Candidate, Packet, lease or apply.
+            """
+            source_incident_id = str(event.get("source_incident_id") or "")
+            source_scope = event.get("source_scope")
+            if not source_incident_id or not isinstance(source_scope, dict):
+                return False
+            incoming_observed_at = str(
+                source_scope.get("observed_at") or event.get("observed_at") or ""
+            )
+            incident_key = self._passive_incident_projection_key(source_incident_id)
+            existing = state.get("incidents", {}).get(incident_key)
+            if not isinstance(existing, dict):
+                return False
+            current_scope = existing.get("current_source_scope")
+            if not isinstance(current_scope, dict):
+                current_scope = existing.get("scope_accounting")
+            if not isinstance(current_scope, dict):
+                return False
+            return (
+                str(current_scope.get("status") or "")
+                == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
+                and parse_ts(incoming_observed_at)
+                > parse_ts(str(current_scope.get("baseline_observed_at") or ""))
+            )
+
+        scope_repair_event_ids = {
+            str(row["event_id"])
+            for row in events
+            if str(row["event_id"]) in consumed
+            and consumed_event_requires_scope_repair(row)
+        }
+        new_events = [
+            row
+            for row in events
+            if str(row["event_id"]) not in consumed
+            or str(row["event_id"]) in scope_repair_event_ids
+        ]
         if not new_events:
             # A Matrix cycle can consume its passive observation before it
             # performs a bounded governed action.  The action's immutable
@@ -14947,7 +14993,7 @@ class AutoswitchPlanner:
         )
         return {
             "active": True,
-            "reason": "consumed",
+            "reason": "consumed_scope_repair" if scope_repair_event_ids else "consumed",
             "event_ids": sorted(str(row["event_id"]) for row in new_events),
             "source_incident_ids": sorted(grouped),
             "records": {"outcome": len(outcome_rows), "decision_trace": len(decision_rows), "learning": len(trust_rows), "closure": len(closure_rows)},

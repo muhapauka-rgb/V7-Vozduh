@@ -5324,6 +5324,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertIn("rollback_failed", proof["blockers"])
         self.assertEqual(proof["verified_success_count"], 0)
         self.assertEqual(proof["verification_failures"][0]["user_ip"], "10.7.0.18")
+        self.assertEqual(
+            proof["verification_failure_reasons"],
+            ["required_service_verify_failed"],
+        )
 
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()

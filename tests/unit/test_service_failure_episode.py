@@ -3464,6 +3464,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "child_transaction_status": "STOP_SAFE",
                     "child_stop_reason": "route_visibility_not_confirmed",
                     "proof_blockers": ["route_visibility_not_confirmed"],
+                    "verification_failure_count": 1,
+                    "verification_failure_reasons": ["route_verify_failed"],
+                    "rollback_failure_count": 0,
                     "raw_child_payload": {"must-not-project": True},
                 },
             },
@@ -3474,6 +3477,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             diagnostic["child_stop_reason"],
             "route_visibility_not_confirmed",
+        )
+        self.assertEqual(
+            diagnostic["verification_failure_reasons"],
+            ["route_verify_failed"],
         )
         self.assertNotIn("raw_child_payload", diagnostic)
 

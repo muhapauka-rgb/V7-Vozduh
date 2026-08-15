@@ -2544,7 +2544,8 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
                 "apply_command_ok", "apply_returncode", "apply_timed_out",
                 "child_final_verdict", "child_transaction_status",
                 "child_stop_reason", "child_stop_detail", "proof_blockers",
-                "capability_production_proven",
+                "verification_failure_count", "verification_failure_reasons",
+                "rollback_failure_count", "capability_production_proven",
             )
             if downstream.get(key) not in (None, "", [], {})
             or key in {"apply_command_ok", "apply_timed_out"}
@@ -3497,6 +3498,14 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
             "verify_rc": row.get("verify_rc"),
             "from": str(row.get("from") or ""),
             "to": str(row.get("to") or ""),
+            "reason": str(
+                row.get("verification_failure_reason")
+                or (
+                    "required_service_verify_failed"
+                    if row.get("service_verify_rc") not in (None, 0)
+                    else "route_verify_failed"
+                )
+            ),
         }
         for row in rows
         if not row_verified(row)
@@ -3533,6 +3542,12 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
         "verified_success_count": len(verified_successes),
         "verified_successes": verified_successes,
         "verification_failures": verification_failures,
+        "verification_failure_reasons": sorted(
+            {
+                str(row.get("reason") or "unknown_verification_failure")
+                for row in verification_failures
+            }
+        ),
         "rollback_failures": rollback_failures,
         "apply_returncode": apply_run.get("returncode"),
         "apply_ok": bool(apply_run.get("ok")),
@@ -6002,6 +6017,16 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "proof_blockers": list(
             production_proof_quality.get("blockers") or []
         )[:12],
+        "verification_failure_count": len(
+            production_proof_quality.get("verification_failures") or []
+        ),
+        "verification_failure_reasons": list(
+            production_proof_quality.get("verification_failure_reasons")
+            or []
+        )[:12],
+        "rollback_failure_count": len(
+            production_proof_quality.get("rollback_failures") or []
+        ),
         "capability_production_proven": bool(
             capability_state.get("production_proven")
         ),

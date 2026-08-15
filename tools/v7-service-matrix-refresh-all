@@ -1161,6 +1161,16 @@ def run_bounded_delegated_service_failure_action(
         if campaign_binding.get("active")
         else policy_max_users
     )
+    ordinary_execution = (
+        ordinary_incident_actionable and not campaign_binding.get("active")
+    )
+    if ordinary_execution:
+        axes = operator_execution.standing_delegated_policy_runtime_axes(contract)
+        requested_max_users = min(
+            requested_max_users,
+            int(axes.get("ordinary_production_runtime_max") or 0),
+            4,
+        )
     command = [
         executor,
         "--execute-bounded-delegated-transaction",
@@ -1177,6 +1187,8 @@ def run_bounded_delegated_service_failure_action(
         "--compact-transaction-receipt",
         "--pretty",
     ]
+    if ordinary_execution:
+        command.append("--ordinary-service-failure-only")
     if campaign_binding.get("active"):
         command.extend([
             "--controlled-certification-campaign-request-id",

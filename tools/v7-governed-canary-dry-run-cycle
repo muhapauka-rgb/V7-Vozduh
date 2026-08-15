@@ -4615,9 +4615,25 @@ def service_failure_obligation_execution_binding(
         and str(row.get("source_incident_id") or "") == expected_incident_id
     ]
     consumption = consumptions[-1] if consumptions else {}
-    if not consumption:
+    direct_l3_handoff = False
+    l3 = read_json(state_dir / "l3-runtime-state.json", {})
+    for record in (l3.get("incidents") or {}).values() if isinstance(l3, dict) else []:
+        if not isinstance(record, dict):
+            continue
+        direct = record.get("direct_execution_handoff") or {}
+        current = record.get("current_source_scope") or {}
+        if (
+            record.get("incident_id") == expected_incident_id
+            and direct.get("status") == "READY"
+            and direct.get("automation_obligation_id") == expected_obligation_id
+            and current.get("status") == "ACCOUNTED"
+            and current.get("affected_scope_fingerprint") == expected_scope_fingerprint
+        ):
+            direct_l3_handoff = True
+            break
+    if not consumption and not direct_l3_handoff:
         blockers.append("service_failure_obligation_omp_consumption_missing")
-    else:
+    elif consumption:
         if str(consumption.get("closure_state") or "") != "OMP_CONSUMED":
             blockers.append("service_failure_obligation_not_omp_consumed")
         if bool(consumption.get("runtime_mutation_performed")):
@@ -4667,6 +4683,7 @@ def service_failure_obligation_execution_binding(
         "schema_version": "v7.service-failure-causal-binding.v1",
         "status": "BOUND" if not blockers else "STOP_SAFE",
         "ok": not blockers,
+        "direct_l3_handoff": direct_l3_handoff,
         "blockers": sorted(set(blockers)),
         "automation_obligation_id": expected_obligation_id,
         "omp_consumption_id": str(consumption.get("object_id") or ""),
@@ -5117,6 +5134,31 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             requested_max_users=requested_max_users,
             authorized_l3_budget=authorized_budget,
         )
+
+    if bool(getattr(args, "ordinary_service_failure_only", False)):
+        selected_rows = selected_moves_from_planner_payload(plan)
+        users = {
+            str(row.get("ip") or ""): row
+            for row in read_registry(state_dir / "users.registry")
+        }
+        certification_selected = [
+            row["user"] for row in selected_rows
+            if bool_value((users.get(str(row.get("user") or "")) or {}).get("certification_user"))
+        ]
+        if (
+            not selected_rows
+            or len(selected_rows) > 4
+            or len(selected_rows) > requested_max_users
+            or certification_selected
+        ):
+            return transaction_stop(
+                "ordinary_service_failure_pre_packet_scope_invalid",
+                selected_count=len(selected_rows),
+                certification_selected_count=len(certification_selected),
+                candidate_created=False,
+                packet_created=False,
+                lease_created=False,
+            )
 
     transition_started_ns = time.monotonic_ns()
     transition = operator_execution_pipeline.l3_production_validation_runtime_action_transition(plan, max_users=requested_max_users)
@@ -12252,6 +12294,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--expected-service-failure-obligation-id", default="")
     parser.add_argument("--expected-service-failure-incident-id", default="")
     parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
+    parser.add_argument("--ordinary-service-failure-only", action="store_true")
     parser.add_argument(
         "--controlled-certification-campaign-request-id",
         default="",

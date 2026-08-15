@@ -5624,7 +5624,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "affected_scope_count": 2, "protected_scope_count": 0,
                 "unresolved_scope_count": 2,
                 "explicitly_excluded_or_recovered_scope_count": 0,
-                "affected_scope_fingerprint": "b" * 64,
+                "affected_scope_fingerprint": "a" * 64,
             }
             accounted = {**broken, "status": "ACCOUNTED", "affected_scope_fingerprint": "a" * 64}
             (state_dir / "l3-runtime-state.json").write_text(json.dumps({

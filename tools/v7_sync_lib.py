@@ -6923,6 +6923,12 @@ def service_failure_active_incident_scope_projection(
             or not str(scope.get("affected_scope_fingerprint") or "")
             or bool(scope.get("raw_user_list_stored"))
         ):
+            # The scoped Matrix caller may encounter historical duplicates
+            # with the same compact fingerprint. Keep scanning for the
+            # owner-backed ACCOUNTED projection; if none exists, preserve the
+            # original fail-closed result.
+            if expected_scope_fingerprint:
+                continue
             return {}
         cumulative = record.get("incident_cumulative_scope") if isinstance(record.get("incident_cumulative_scope"), dict) else {}
         return {

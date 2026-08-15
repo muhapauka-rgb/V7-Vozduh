@@ -127,14 +127,18 @@ echo "V7_TIMING_ROUTE_WRITE_CLOCK=$V7_ROUTE_WRITE_CLOCK"
 echo "V7_TIMING_ROUTE_WRITE_MS=$V7_ROUTE_WRITE_MS"
 
 now=$(date +%s)
-cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE
+if ! cat > "$STATE_DIR/user-${USER_IP}.assign" <<STATE
 egress=$EGRESS
 last_switch=$now
 fail_count=0
 STATE
+then
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_ASSIGNMENT_STATE_WRITE_FAILED"
+  exit 1
+fi
 
 tmp="${REG}.tmp.$$"
-awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
+if ! awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
   $0 ~ "^ip=" ip " " {
     if ($0 ~ / current=[^ ]+/) sub(/ current=[^ ]+/, " current=" egress)
     else $0 = $0 " current=" egress
@@ -146,8 +150,16 @@ awk -v ip="$USER_IP" -v egress="$EGRESS" -v table="$table" '
     next
   }
   { print }
-' "$REG" > "$tmp"
-mv "$tmp" "$REG"
+' "$REG" > "$tmp"; then
+  rm -f "$tmp" || true
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_REGISTRY_PREPARE_FAILED"
+  exit 1
+fi
+if ! mv "$tmp" "$REG"; then
+  rm -f "$tmp" || true
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_REGISTRY_COMMIT_FAILED"
+  exit 1
+fi
 
 if command -v v7-audit-log >/dev/null 2>&1; then
   v7-audit-log "user_switch" "users" "ip=$USER_IP from=$FROM_EGRESS to=$EGRESS table=$table dev=$dev breaker_generation=$CONTROL_GENERATION" >/dev/null 2>&1 || true
@@ -157,6 +169,14 @@ if command -v v7-switch-log >/dev/null 2>&1; then
 fi
 
 echo "=== ROUTE ==="
-ip route get 8.8.8.8 from "$USER_IP" iif wg0
+if ! route_observation="$(ip route get 8.8.8.8 from "$USER_IP" iif wg0 2>&1)"; then
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_POST_APPLY_OBSERVATION_FAILED"
+  exit 1
+fi
+printf '%s\n' "$route_observation"
 echo "=== STATE ==="
-cat "$STATE_DIR/user-${USER_IP}.assign"
+if ! assignment_observation="$(cat "$STATE_DIR/user-${USER_IP}.assign" 2>&1)"; then
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_POST_APPLY_STATE_OBSERVATION_FAILED"
+  exit 1
+fi
+printf '%s\n' "$assignment_observation"

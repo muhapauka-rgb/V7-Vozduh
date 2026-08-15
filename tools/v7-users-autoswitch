@@ -4248,11 +4248,41 @@ class AutoswitchPlanner:
         # as a one-time repair generation even when the live fingerprint did
         # not change, so the existing outcome reconciler can classify prior
         # feedback against the restored denominator.
+        # A prior projection can have the correct ordinary fingerprint but
+        # have lost the Matrix partition metadata.  In that shape a later
+        # route reconciliation sees certification members as ordinary and
+        # permanently produces an unbalanced denominator.  The current
+        # Matrix event already owns the partition; reuse it once for this
+        # broken compact projection even when its observation timestamp is
+        # equal to the stored baseline.  This is still reconciliation only:
+        # it neither creates an execution object nor authorizes a move.
+        partition_metadata_missing = bool(
+            scope_classification != "LEGACY_UNPARTITIONED"
+            and (
+                str(existing_scope.get("scope_classification") or "")
+                != scope_classification
+                or to_int(
+                    existing_scope.get("controlled_certification_scope_count"),
+                    -1,
+                )
+                != max(
+                    0,
+                    to_int(
+                        controlled_certification_scope.get("affected_scope_count"),
+                        0,
+                    ),
+                )
+            )
+        )
         scope_repair = bool(
             existing_scope
             and str(existing_scope.get("status") or "")
             == "INCIDENT_SCOPE_ACCOUNTING_BROKEN"
-            and parse_ts(incoming_scope_observed_at) > parse_ts(prior_scope_observed_at)
+            and (
+                parse_ts(incoming_scope_observed_at)
+                > parse_ts(prior_scope_observed_at)
+                or partition_metadata_missing
+            )
         )
         if source_scope_count >= 0 and source_scope_fingerprint and (
             not existing_scope or scope_rotation or scope_repair
@@ -4908,8 +4938,26 @@ class AutoswitchPlanner:
                 if feedback_id:
                     excluded_pointers.add(feedback_id)
 
+        scope_classification = str(
+            existing_scope.get("scope_classification") or "LEGACY_UNPARTITIONED"
+        )
+        # A partitioned Matrix baseline owns the ordinary cohort.  Controlled
+        # certification identities remain a separate existing owner and must
+        # not be added back into the ordinary denominator merely because they
+        # share the failed source channel.  Legacy all-user baselines retain
+        # their historical behavior above.
+        current_source_users = (
+            live_ordinary_users_on_source
+            if scope_classification in {
+                "MIXED_ORDINARY_AND_CERTIFICATION",
+                "ORDINARY_PRODUCTION_ONLY",
+                "CERTIFICATION_ONLY",
+            }
+            else live_users_on_source
+        )
         unresolved_users = {
             user for user, current in live_current.items() if current == source_channel
+            and user in current_source_users
         } if live_registry_available else set()
         # Categories are disjoint by construction: a user on source is
         # unresolved; a matching target is protected; another live route is
@@ -4986,6 +5034,19 @@ class AutoswitchPlanner:
             "accounted_scope_count": accounted,
             "live_registry_available": live_registry_available,
             "raw_user_list_stored": False,
+            "scope_classification": scope_classification,
+            "controlled_certification_scope_count": max(
+                0,
+                to_int(
+                    existing_scope.get("controlled_certification_scope_count"),
+                    0,
+                ),
+            ),
+            "controlled_certification_scope_fingerprint": str(
+                existing_scope.get("controlled_certification_scope_fingerprint")
+                or ""
+            ),
+            "ordinary_customer_reclassification_allowed": False,
             "scope_membership_law": (
                 "CURRENT_ROUTE_SOURCE_SCOPE_EMPTY_PROTECTION_INTENT_CLOSURE"
                 if current_route_scope_empty

@@ -272,6 +272,39 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
         self.assertEqual(result["protected_scope_lineage_pointers"], ["execfb_verified"])
 
+    def test_partitioned_ordinary_scope_excludes_controlled_members_from_unresolved(self):
+        """Existing Matrix partition metadata remains the ordinary boundary."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "ip=10.7.0.2 enabled=1 current=source\n"
+                "ip=10.7.0.3 enabled=1 current=source certification_user=1\n"
+                "ip=10.7.0.4 enabled=1 current=source certification_user=1\n",
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.args = SimpleNamespace()
+            result = planner._reconcile_incident_scope_accounting(
+                existing={
+                    "source_incident_id": "sfinc_partitioned",
+                    "channel": "source", "incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "baseline_event_id": "evt_partitioned",
+                        "affected_scope_count": 1,
+                        "affected_scope_fingerprint": "ordinary-only",
+                        "scope_classification": "MIXED_ORDINARY_AND_CERTIFICATION",
+                        "controlled_certification_scope_count": 2,
+                    },
+                },
+                execution_rows=[],
+            )
+        self.assertEqual(result["status"], "ACCOUNTED")
+        self.assertEqual(result["unresolved_scope_count"], 1)
+        self.assertEqual(result["affected_scope_count"], 1)
+        self.assertEqual(result["controlled_certification_scope_count"], 2)
+
     def test_scope_reconciliation_reuses_one_registry_snapshot_per_invocation(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

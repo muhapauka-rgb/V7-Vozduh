@@ -4219,7 +4219,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
     def test_direct_l3_handoff_does_not_wait_for_omp_before_executor(self):
         """A validated fallback projection is a Runtime handoff, not an OMP wait."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
-        direct_read = source.index("service_failure_direct_execution_handoff(state_dir=state_dir)")
+        direct_read = source.index("service_failure_direct_execution_handoff(")
         advisory_gate = source.index('if direct_service_failure_obligation:')
         direct_status = source.index('"NOT_REQUIRED_DIRECT_L3_HANDOFF_READY"')
         executor_call = source.index(
@@ -4241,7 +4241,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
     def test_no_omp_fallback_exists_before_runtime_executor(self):
         """Runtime may use fresh or L3 evidence, never an OMP receipt fallback."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
-        direct_read = source.index("service_failure_direct_execution_handoff(state_dir=state_dir)")
+        direct_read = source.index("service_failure_direct_execution_handoff(")
         executor_call = source.index(
             'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
         )

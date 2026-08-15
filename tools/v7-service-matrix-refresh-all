@@ -4130,8 +4130,22 @@ def main() -> int:
     # background cost ahead of an eligible client move.  If it is absent or
     # ambiguous, retain the existing advisory producer and its fail-closed
     # semantics unchanged.
+    active_sources = (
+        source_scope.get("active_sources")
+        if isinstance(source_scope.get("active_sources"), list)
+        else []
+    )
+    # Only a single ordinary active source may narrow the existing direct L3
+    # reader.  Multiple active sources retain its established fail-closed
+    # behavior.  Matrix owns both fields; no user identity or new projection
+    # is introduced here.
+    direct_source = active_sources[0] if len(active_sources) == 1 and isinstance(active_sources[0], dict) else {}
     payload["service_failure_direct_execution_handoff"] = (
-        service_failure_direct_execution_handoff(state_dir=state_dir)
+        service_failure_direct_execution_handoff(
+            state_dir=state_dir,
+            source_incident_id=str(direct_source.get("source_incident_id") or ""),
+            source_scope_fingerprint=str(direct_source.get("source_scope_fingerprint") or ""),
+        )
     )
     direct_service_failure_obligation = (
         (payload.get("service_failure_direct_execution_handoff") or {}).get("obligation")

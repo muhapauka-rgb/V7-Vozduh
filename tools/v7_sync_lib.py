@@ -7128,7 +7128,11 @@ def service_failure_automation_consumed_execution_handoff(
 
 
 def service_failure_direct_execution_handoff(
-    *, root: Path = ROOT, state_dir: Optional[Path] = None,
+    *,
+    root: Path = ROOT,
+    state_dir: Optional[Path] = None,
+    source_incident_id: str = "",
+    source_scope_fingerprint: str = "",
 ) -> dict[str, Any]:
     """Read a compact existing-L3 handoff without consulting an OMP receipt.
 
@@ -7153,12 +7157,40 @@ def service_failure_direct_execution_handoff(
         and isinstance(record.get("direct_execution_handoff"), dict)
         and str((record.get("direct_execution_handoff") or {}).get("status") or "") == "READY"
     ]
+    # An unscoped reader intentionally remains fail-closed when historical
+    # open incidents coexist.  The existing Matrix owner can supply the one
+    # current active source identity, however; use that owner-backed fact to
+    # select the matching direct projection before any advisory history scan.
+    # No new handoff/state is created and the scope fingerprint prevents a
+    # same-channel historical record from becoming the current decision.
+    expected_incident_id = str(source_incident_id or "")
+    expected_scope_fingerprint = str(source_scope_fingerprint or "")
+    if expected_incident_id or expected_scope_fingerprint:
+        candidates = [
+            candidate
+            for candidate in candidates
+            if (
+                (not expected_incident_id or str((candidate[2] or {}).get("source_incident_id") or "") == expected_incident_id)
+                and (
+                    not expected_scope_fingerprint
+                    or str(
+                        ((candidate[1].get("current_source_scope") or {})
+                        if isinstance(candidate[1].get("current_source_scope"), dict)
+                        else {}).get("affected_scope_fingerprint") or ""
+                    ) == expected_scope_fingerprint
+                )
+            )
+        ]
     if len(candidates) != 1:
         return {
             "schema_version": "v7.service-failure-direct-execution-handoff.v1",
             "owner": "existing closure-records + l3-runtime-state owners",
             "final_verdict": "NO_CURRENT_DIRECT_HANDOFF",
-            "reason": "direct_handoff_candidate_ambiguous_or_absent",
+            "reason": (
+                "current_source_direct_handoff_missing_or_ambiguous"
+                if expected_incident_id or expected_scope_fingerprint
+                else "direct_handoff_candidate_ambiguous_or_absent"
+            ),
             "candidate_count": len(candidates),
             "runtime_mutation_performed": False,
             "new_registry_created": False,

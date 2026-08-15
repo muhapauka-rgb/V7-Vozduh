@@ -95,6 +95,25 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_INTERFACE_UNAVAILABLE", result.stdout)
         self.assertNotIn("Cannot find device", result.stdout)
 
+    def test_missing_egress_interface_is_safe_and_classified_before_route_replace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            lib = root / "v7-egress-lib"
+            lib.write_text(
+                lib.read_text(encoding="utf-8").replace(
+                    "v7_egress_interface(){ printf 'tun0\\n'; }",
+                    "v7_egress_interface(){ return 0; }",
+                ),
+                encoding="utf-8",
+            )
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+            calls = ip_log.read_text(encoding="utf-8") if ip_log.exists() else ""
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_INTERFACE_MISSING", result.stdout)
+        self.assertNotIn("route replace", calls)
+
     def test_owner_switch_preserves_certification_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

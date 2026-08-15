@@ -47,6 +47,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             self.tool.route_writer_failure_code("", 1),
             "ROUTE_WRITER_OUTPUT_UNAVAILABLE",
         )
+        self.assertEqual(
+            self.tool.route_writer_failure_code(
+                "V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_INTERFACE_MISSING\n", 1
+            ),
+            "ROUTE_WRITER_ROUTE_EGRESS_INTERFACE_MISSING",
+        )
 
     def write_fixture(
         self,

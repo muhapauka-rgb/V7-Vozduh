@@ -17,15 +17,15 @@ if command -v v7_load_node_env >/dev/null 2>&1; then
 fi
 
 if [ -z "$USER_IP" ] || [ -z "$EGRESS" ]; then
-  echo "Usage: v7-user-switch <user_ip> <egress-id>"
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_INPUT_INVALID"
   exit 1
 fi
-v7_safe_ip "$USER_IP" || { echo "unsafe user ip: $USER_IP"; exit 1; }
-v7_safe_id "$EGRESS" || { echo "unsafe egress id: $EGRESS"; exit 1; }
+v7_safe_ip "$USER_IP" || { echo "V7_ROUTE_WRITE_FAILURE=ROUTE_INPUT_INVALID"; exit 1; }
+v7_safe_id "$EGRESS" || { echo "V7_ROUTE_WRITE_FAILURE=ROUTE_INPUT_INVALID"; exit 1; }
 
 line=$(grep "ip=$USER_IP " "$REG" || true)
 if [ -z "$line" ]; then
-  echo "user not found: $USER_IP"
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_USER_ASSIGNMENT_MISSING"
   exit 1
 fi
 
@@ -33,19 +33,19 @@ ip="$(v7_kv_get "$line" ip)"
 current="$(v7_kv_get "$line" current)"
 table="$(v7_kv_get "$line" table)"
 enabled="$(v7_kv_get "$line" enabled)"
-[[ "$table" =~ ^[0-9]+$ ]] || { echo "unsafe routing table in registry: $table"; exit 1; }
+[[ "$table" =~ ^[0-9]+$ ]] || { echo "V7_ROUTE_WRITE_FAILURE=ROUTE_TABLE_INVALID"; exit 1; }
 FROM_EGRESS="${current:-unknown}"
 
 if ! command -v v7_egress_exists >/dev/null 2>&1 || ! v7_egress_exists "$EGRESS"; then
-  echo "unknown egress: $EGRESS"
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_UNKNOWN"
   exit 1
 fi
 if ! v7_egress_enabled "$EGRESS"; then
-  echo "egress disabled: $EGRESS"
+  echo "V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_DISABLED"
   exit 1
 fi
 dev="$(v7_egress_interface "$EGRESS" || true)"
-[ -n "$dev" ] || { echo "egress has no interface: $EGRESS"; exit 1; }
+[ -n "$dev" ] || { echo "V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_INTERFACE_MISSING"; exit 1; }
 
 CONTROL_GENERATION="${V7_EXECUTION_CONTROL_GENERATION:-}"
 MUTATION_KIND="${V7_EXECUTION_MUTATION_KIND:-}"

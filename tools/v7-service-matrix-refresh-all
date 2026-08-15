@@ -3837,6 +3837,42 @@ def direct_service_failure_handoff_for_scope(
     return handoff, obligation
 
 
+def ordinary_direct_handoff_ready_for_passive_deferral(
+    *,
+    event_only: bool,
+    source_scope: dict[str, Any],
+    obligation: dict[str, Any],
+    skip_passive_consumer: bool,
+) -> bool:
+    """Allow an exact ordinary handoff to precede unrelated certification tail.
+
+    `requires_scope_reconciliation` is intentionally global: a separate
+    certification-only source still needs its durable passive terminal.  It is
+    not, by itself, a dependency of an identity-bound ordinary L3 handoff.
+    The existing executor remains the final selected-identity/Packet fence.
+    """
+    active_sources = (
+        source_scope.get("active_sources")
+        if isinstance(source_scope.get("active_sources"), list)
+        else []
+    )
+    direct_source = (
+        active_sources[0]
+        if len(active_sources) == 1 and isinstance(active_sources[0], dict)
+        else {}
+    )
+    return bool(
+        event_only
+        and obligation
+        and str(obligation.get("stop_safe_classification") or "")
+        == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        and int(obligation.get("bounded_recommendation_users") or 0) > 0
+        and str(direct_source.get("scope_classification") or "")
+        in {"ORDINARY_ONLY", "MIXED_ORDINARY_AND_CERTIFICATION"}
+        and not skip_passive_consumer
+    )
+
+
 def should_defer_certification_tail(
     *,
     event_only: bool,
@@ -4207,20 +4243,13 @@ def main() -> int:
             source_scope=source_scope,
         )
     )
-    defer_passive_consumer_until_after_direct_execution = bool(
-        event_only
-        and direct_service_failure_obligation
-        and str(
-            direct_service_failure_obligation.get("stop_safe_classification") or ""
-        ) == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
-        and int(
-            direct_service_failure_obligation.get("bounded_recommendation_users") or 0
-        ) > 0
-        and str(
-            direct_service_failure_obligation.get("runtime_scope_context") or ""
-        ) == "ORDINARY_PRODUCTION_SERVICE_FAILURE"
-        and not source_scope.get("requires_scope_reconciliation")
-        and not args.skip_passive_consumer
+    defer_passive_consumer_until_after_direct_execution = (
+        ordinary_direct_handoff_ready_for_passive_deferral(
+            event_only=event_only,
+            source_scope=source_scope,
+            obligation=direct_service_failure_obligation,
+            skip_passive_consumer=bool(args.skip_passive_consumer),
+        )
     )
     if args.skip_passive_consumer:
         payload["passive_event_consumer"] = {

@@ -4347,14 +4347,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
     def test_ready_direct_l3_handoff_defers_passive_reconciliation_until_after_executor(self):
         """An exact existing L3 handoff keeps passive history outside the hot path."""
+        obligation = {
+            "stop_safe_classification": "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED",
+            "bounded_recommendation_users": 1,
+        }
+        mixed_scope_with_unrelated_certification_tail = {
+            "active_sources": [{
+                "scope_classification": "MIXED_ORDINARY_AND_CERTIFICATION",
+            }],
+            "requires_scope_reconciliation": True,
+        }
+        self.assertTrue(self.refresh.ordinary_direct_handoff_ready_for_passive_deferral(
+            event_only=True,
+            source_scope=mixed_scope_with_unrelated_certification_tail,
+            obligation=obligation,
+            skip_passive_consumer=False,
+        ))
+        self.assertFalse(self.refresh.ordinary_direct_handoff_ready_for_passive_deferral(
+            event_only=True,
+            source_scope={"active_sources": [{"scope_classification": "CERTIFICATION_ONLY"}]},
+            obligation=obligation,
+            skip_passive_consumer=False,
+        ))
         source = REFRESH_TOOL.read_text(encoding="utf-8")
-        readiness = source.index("defer_passive_consumer_until_after_direct_execution = bool(")
-        ordinary_classification = source.index(
-            '== "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"', readiness
-        )
-        ordinary_scope = source.index(
-            '== "ORDINARY_PRODUCTION_SERVICE_FAILURE"', ordinary_classification
-        )
+        readiness = source.index("ordinary_direct_handoff_ready_for_passive_deferral(")
         deferred = source.index('"DEFERRED_UNTIL_AFTER_DIRECT_EXECUTION"', readiness)
         executor_call = source.index(
             'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
@@ -4366,9 +4382,6 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             'payload["service_failure_post_action_passive_consumer"] = (', executor_call
         )
         self.assertLess(readiness, deferred)
-        self.assertLess(readiness, ordinary_classification)
-        self.assertLess(ordinary_classification, ordinary_scope)
-        self.assertLess(ordinary_scope, deferred)
         self.assertLess(deferred, executor_call)
         self.assertLess(executor_call, post_executor_consumer)
         self.assertLess(post_executor_consumer, post_action_projection)

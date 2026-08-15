@@ -5630,7 +5630,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             (state_dir / "l3-runtime-state.json").write_text(json.dumps({
                 "incidents": {
                     "historical": {"source_incident_id": "sfinc_current", "current_source_scope": broken},
-                    "current": {"source_incident_id": "sfinc_current", "current_source_scope": accounted},
+                    "current": {
+                        "source_incident_id": "sfinc_historical_alias",
+                        "incident_id": "sfinc_current",
+                        "current_source_scope": accounted,
+                    },
                 },
             }), encoding="utf-8")
             result = self.sync.service_failure_active_incident_scope_projection(

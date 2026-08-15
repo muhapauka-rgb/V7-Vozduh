@@ -6896,7 +6896,10 @@ def service_failure_active_incident_scope_projection(
     for record in incidents.values():
         if not isinstance(record, dict):
             continue
-        if str(record.get("source_incident_id") or record.get("incident_id") or "") != source_incident_id:
+        if source_incident_id not in {
+            str(record.get("source_incident_id") or ""),
+            str(record.get("incident_id") or ""),
+        }:
             continue
         # The L3 owner now carries two intentionally non-interchangeable
         # projections.  CPS consumes only the current-source denominator;

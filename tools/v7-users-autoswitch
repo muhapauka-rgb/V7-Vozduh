@@ -5306,6 +5306,14 @@ class AutoswitchPlanner:
         state = self._load_l3_runtime_state()
         incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
         rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        # This consumer's exact packet/feedback contract is defined only by
+        # immutable execution-outcome records.  Keep the full append-only
+        # ledger with its existing owner, but avoid re-scanning unrelated
+        # passive decision/outcome history for every incident projection.
+        execution_outcome_rows = [
+            row for row in rows
+            if str(row.get("schema_version") or "") == "v7.execution-outcome-record.v1"
+        ]
         record_passive_reconciliation_span(
             "passive_reconciliation_l3_and_execution_ledger_load",
             ledger_load_started_ns,
@@ -5318,9 +5326,7 @@ class AutoswitchPlanner:
         consumed = 0
         rejected: list[str] = []
         feedback_ingest_started_ns = time.monotonic_ns()
-        for row in rows:
-            if str(row.get("schema_version") or "") != "v7.execution-outcome-record.v1":
-                continue
+        for row in execution_outcome_rows:
             binding = self._effective_service_failure_causal_binding(row)
             if not binding:
                 continue
@@ -5361,12 +5367,12 @@ class AutoswitchPlanner:
             existing_scope = existing.get("current_source_scope") if isinstance(existing.get("current_source_scope"), dict) else (existing.get("scope_accounting") if isinstance(existing.get("scope_accounting"), dict) else {})
             scope_accounting = self._reconcile_incident_scope_accounting(
                 existing=existing,
-                execution_rows=rows,
+                execution_rows=execution_outcome_rows,
                 reconciliation_cache=reconciliation_cache,
             )
             cumulative_scope = self._reconcile_incident_cumulative_scope(
                 existing=existing,
-                execution_rows=rows,
+                execution_rows=execution_outcome_rows,
                 current_source_scope=scope_accounting or existing_scope,
                 reconciliation_cache=reconciliation_cache,
             )
@@ -5461,7 +5467,7 @@ class AutoswitchPlanner:
                 continue
             scope_accounting = self._reconcile_incident_scope_accounting(
                 existing=record,
-                execution_rows=rows,
+                execution_rows=execution_outcome_rows,
                 reconciliation_cache=reconciliation_cache,
             )
             if not scope_accounting:
@@ -5471,7 +5477,7 @@ class AutoswitchPlanner:
                 "current_source_scope": scope_accounting,
                 "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(
                     existing=record,
-                    execution_rows=rows,
+                    execution_rows=execution_outcome_rows,
                     current_source_scope=scope_accounting,
                     reconciliation_cache=reconciliation_cache,
                 ),
@@ -5533,7 +5539,7 @@ class AutoswitchPlanner:
                 # rewrite merely to freeze a closure already established here.
                 terminal_scope_accounting = self._reconcile_incident_scope_accounting(
                     existing={**record, **desired_scope_fields},
-                    execution_rows=rows,
+                    execution_rows=execution_outcome_rows,
                     reconciliation_cache=reconciliation_cache,
                 )
                 if terminal_scope_accounting:
@@ -5542,7 +5548,7 @@ class AutoswitchPlanner:
                         "current_source_scope": terminal_scope_accounting,
                         "incident_cumulative_scope": self._reconcile_incident_cumulative_scope(
                             existing={**record, **desired_scope_fields},
-                            execution_rows=rows,
+                            execution_rows=execution_outcome_rows,
                             current_source_scope=terminal_scope_accounting,
                             reconciliation_cache=reconciliation_cache,
                         ),

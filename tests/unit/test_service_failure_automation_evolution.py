@@ -3821,7 +3821,13 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "source_channel": "vless",
                 },
             }
-            (state_dir / "execution-events.jsonl").write_text(json.dumps(outcome) + "\n", encoding="utf-8")
+            (state_dir / "execution-events.jsonl").write_text(
+                json.dumps({
+                    "schema_version": "v7.passive-production-event-decision-trace.v1",
+                    "event_id": "unrelated-passive-history",
+                }) + "\n" + json.dumps(outcome) + "\n",
+                encoding="utf-8",
+            )
             planner = object.__new__(self.autoswitch.AutoswitchPlanner)
             planner.state_dir = state_dir
             planner.l3_runtime_state_file = state_dir / "l3-runtime-state.json"

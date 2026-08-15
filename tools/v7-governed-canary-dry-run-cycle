@@ -764,14 +764,16 @@ def run_l3_production_validation_plan(
     target: str = "",
     campaign_request_id: str = "",
     campaign_request_hash: str = "",
-    pre_planner_refresh_command: str = "v7-intelligence-snapshot-refresh",
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
+        # The current snapshot bundle already has its own source-hash and
+        # freshness gate.  Writing a new engineering snapshot before every
+        # ordinary service-failure decision placed a slow, contended producer
+        # on the client-switching path.  Reuse the existing read-only gate;
+        # stale or mismatched inputs remain STOP_SAFE inside the Planner.
         "--pre-planner-refresh",
-        "write",
-        "--pre-planner-refresh-command",
-        pre_planner_refresh_command,
+        "off",
         "--emergency-failover-autonomy",
         "--mode",
         "guarded",
@@ -5186,7 +5188,6 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 or ""
             )
         ),
-        pre_planner_refresh_command=str(args.pre_planner_refresh_command or "v7-intelligence-snapshot-refresh"),
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",

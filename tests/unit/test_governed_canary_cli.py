@@ -4888,6 +4888,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "--service-matrix-lock-timeout-sec"
         )
         self.assertEqual(captured["command"][lock_index + 1], "5")
+        refresh_index = captured["command"].index("--pre-planner-refresh")
+        self.assertEqual(captured["command"][refresh_index + 1], "off")
+        self.assertNotIn("--pre-planner-refresh-command", captured["command"])
 
     def test_compact_transaction_result_retains_bounded_planner_diagnosis(self):
         module = load_cli_module()

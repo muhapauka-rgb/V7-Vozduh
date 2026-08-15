@@ -7230,7 +7230,6 @@ def service_failure_direct_execution_handoff(
             "runtime_mutation_performed": False,
             "new_registry_created": False,
         }
-    direct_scope = direct.get("current_source_scope") if isinstance(direct.get("current_source_scope"), dict) else {}
     obligation_scope = obligation.get("current_source_scope") if isinstance(obligation.get("current_source_scope"), dict) else {}
     current_scope = service_failure_active_incident_scope_projection(
         identity["source_incident_id"], state_dir=resolved_state_dir,
@@ -7241,9 +7240,13 @@ def service_failure_direct_execution_handoff(
         int(current_scope.get("unresolved_scope_count") or 0) > 0,
         str(current_scope.get("channel_incident_state") or "OPEN") != "RECOVERED",
         bool(expected_scope_fingerprint),
-        str(direct_scope.get("affected_scope_fingerprint") or "") == expected_scope_fingerprint,
         str(current_scope.get("affected_scope_fingerprint") or "") == expected_scope_fingerprint,
     ))
+    # ``direct_execution_handoff.current_source_scope`` is a receipt cache,
+    # not a scope owner. It can legitimately lag a strictly newer Matrix/L3
+    # reconciliation. The exact closure obligation and current L3 projection
+    # above are the canonical pair; requiring a third historical copy to
+    # match would put advisory history back in front of a client.
     if not scope_valid or str(direct.get("next_action") or "") != "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN":
         return {
             "schema_version": "v7.service-failure-direct-execution-handoff.v1",

@@ -5568,6 +5568,52 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(scoped["final_verdict"], "READY", scoped)
         self.assertEqual(scoped["obligation"]["automation_obligation_id"], "sfaob_current")
 
+    def test_l3_direct_handoff_uses_canonical_scope_when_receipt_copy_is_stale(self):
+        """A stale handoff cache cannot override matching L3 and closure truth."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            scope = {
+                "status": "ACCOUNTED", "affected_scope_count": 2,
+                "protected_scope_count": 0, "unresolved_scope_count": 2,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "s" * 64,
+            }
+            obligation = {
+                "object_type": "service_failure_automation_obligation",
+                "automation_obligation_id": "sfaob_current",
+                "closure_state": "READY_FOR_OMP_CONSUMPTION",
+                "automation_consumption_fingerprint": "f" * 64,
+                "source_incident_id": "sfinc_current",
+                "situation_id": "sit_current", "decision_trace_id": "dec_current",
+                "current_source_scope": scope,
+            }
+            (state_dir / "closure-records.jsonl").write_text(
+                json.dumps(obligation) + "\n", encoding="utf-8"
+            )
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {"current": {
+                    "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                    "incident_id": "sfinc_current", "incident_state": "OPEN",
+                    "channel_incident_state": "OPEN", "current_source_scope": scope,
+                    "direct_execution_handoff": {
+                        "status": "READY",
+                        "automation_obligation_id": "sfaob_current",
+                        "automation_consumption_fingerprint": "f" * 64,
+                        "source_incident_id": "sfinc_current",
+                        "situation_id": "sit_current", "decision_trace_id": "dec_current",
+                        "current_source_scope": {**scope, "affected_scope_fingerprint": "x" * 64},
+                        "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                    },
+                }},
+            }), encoding="utf-8")
+            result = self.sync.service_failure_direct_execution_handoff(
+                state_dir=state_dir,
+                source_incident_id="sfinc_current",
+                source_scope_fingerprint="s" * 64,
+            )
+        self.assertEqual(result["final_verdict"], "READY", result)
+
     def test_omp_frontier_prefers_live_accounted_scope_over_newer_zero_scope_terminal(self):
         """A historical no-scope terminal cannot starve the current incident."""
         with tempfile.TemporaryDirectory() as tmp:

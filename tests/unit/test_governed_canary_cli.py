@@ -4889,6 +4889,26 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(captured["command"][lock_index + 1], "5")
 
+    def test_compact_transaction_result_retains_bounded_planner_diagnosis(self):
+        module = load_cli_module()
+        compact = module.compact_transaction_result({
+            "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+            "transaction_status": "STOP_SAFE",
+            "stop_reason": "l3_production_validation_plan_unavailable",
+            "planner_plan_availability": {
+                "ok": False,
+                "returncode": 2,
+                "stderr_tail": "no eligible decision",
+                "unbounded_child_dump": "must-not-project",
+            },
+        })
+
+        diagnosis = compact["planner_plan_availability"]
+        self.assertFalse(diagnosis["ok"])
+        self.assertEqual(diagnosis["returncode"], 2)
+        self.assertEqual(diagnosis["stderr_tail"], "no eligible decision")
+        self.assertNotIn("unbounded_child_dump", diagnosis)
+
     def test_jsonl_family_uses_bounded_tail_and_preserves_rotation_order(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

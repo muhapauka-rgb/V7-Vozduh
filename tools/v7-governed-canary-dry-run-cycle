@@ -2424,6 +2424,23 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
     ):
         if key in result:
             receipt[key] = result.get(key)
+    planner_plan_availability = result.get("planner_plan_availability")
+    planner_plan_availability = (
+        planner_plan_availability
+        if isinstance(planner_plan_availability, dict)
+        else {}
+    )
+    compact_planner_plan_availability = {
+        key: planner_plan_availability.get(key)
+        for key in ("ok", "returncode", "error", "stderr_tail", "stdout_tail")
+        if key in planner_plan_availability
+        and (
+            planner_plan_availability.get(key) not in (None, "", [], {})
+            or key == "ok"
+        )
+    }
+    if compact_planner_plan_availability:
+        receipt["planner_plan_availability"] = compact_planner_plan_availability
     downstream = result.get("downstream_proof_diagnostic")
     if isinstance(downstream, dict) and downstream:
         receipt["downstream_proof_diagnostic"] = {

@@ -6875,7 +6875,7 @@ def service_failure_automation_state_dir(*, root: Path = ROOT, state_dir: Option
 
 
 def service_failure_active_incident_scope_projection(
-    source_incident_id: str, *, state_dir: Path,
+    source_incident_id: str, *, state_dir: Path, source_scope_fingerprint: str = "",
 ) -> dict[str, Any]:
     """Read the existing L3 compact scope projection for one incident.
 
@@ -6892,6 +6892,7 @@ def service_failure_active_incident_scope_projection(
     except (OSError, ValueError):
         return {}
     incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    expected_scope_fingerprint = str(source_scope_fingerprint or "")
     for record in incidents.values():
         if not isinstance(record, dict):
             continue
@@ -6906,6 +6907,12 @@ def service_failure_active_incident_scope_projection(
             if isinstance(record.get("current_source_scope"), dict)
             else (record.get("scope_accounting") if isinstance(record.get("scope_accounting"), dict) else {})
         )
+        if (
+            expected_scope_fingerprint
+            and str(scope.get("affected_scope_fingerprint") or "")
+            != expected_scope_fingerprint
+        ):
+            continue
         affected = int(scope.get("affected_scope_count") or 0)
         protected = int(scope.get("protected_scope_count") or 0)
         unresolved = int(scope.get("unresolved_scope_count") or 0)
@@ -7232,7 +7239,9 @@ def service_failure_direct_execution_handoff(
         }
     obligation_scope = obligation.get("current_source_scope") if isinstance(obligation.get("current_source_scope"), dict) else {}
     current_scope = service_failure_active_incident_scope_projection(
-        identity["source_incident_id"], state_dir=resolved_state_dir,
+        identity["source_incident_id"],
+        state_dir=resolved_state_dir,
+        source_scope_fingerprint=expected_scope_fingerprint,
     )
     expected_scope_fingerprint = str(obligation_scope.get("affected_scope_fingerprint") or "")
     scope_valid = all((

@@ -5614,6 +5614,31 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
         self.assertEqual(result["final_verdict"], "READY", result)
 
+    def test_l3_scope_reader_filters_historical_duplicate_by_matrix_fingerprint(self):
+        """An exact Matrix fingerprint skips an older broken duplicate."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp) / "state"
+            state_dir.mkdir()
+            broken = {
+                "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                "affected_scope_count": 2, "protected_scope_count": 0,
+                "unresolved_scope_count": 2,
+                "explicitly_excluded_or_recovered_scope_count": 0,
+                "affected_scope_fingerprint": "b" * 64,
+            }
+            accounted = {**broken, "status": "ACCOUNTED", "affected_scope_fingerprint": "a" * 64}
+            (state_dir / "l3-runtime-state.json").write_text(json.dumps({
+                "incidents": {
+                    "historical": {"source_incident_id": "sfinc_current", "current_source_scope": broken},
+                    "current": {"source_incident_id": "sfinc_current", "current_source_scope": accounted},
+                },
+            }), encoding="utf-8")
+            result = self.sync.service_failure_active_incident_scope_projection(
+                "sfinc_current", state_dir=state_dir, source_scope_fingerprint="a" * 64,
+            )
+        self.assertEqual(result["status"], "ACCOUNTED")
+        self.assertEqual(result["affected_scope_fingerprint"], "a" * 64)
+
     def test_omp_frontier_prefers_live_accounted_scope_over_newer_zero_scope_terminal(self):
         """A historical no-scope terminal cannot starve the current incident."""
         with tempfile.TemporaryDirectory() as tmp:

@@ -3095,6 +3095,7 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
             "final_verdict", "status", "next_output", "legal_terminal",
             "receipt_id", "obligation_id", "frontier_id", "packet_id",
             "feedback_id", "outcome_id", "transaction_status", "stop_reason",
+            "stop_detail", "error",
             "blockers", "stage", "baseline_reset_verified",
             "target_bound_trial", "target_bound_trial_target",
             "campaign_next_stage", "completion_kind",

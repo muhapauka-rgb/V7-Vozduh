@@ -3434,6 +3434,23 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(scope["certification_selected_count"], 1)
         self.assertNotIn("selected_identities", scope)
 
+    def test_matrix_projection_retains_bounded_packet_stop_error(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "l3_packet_materialization_failed",
+                "error": "existing_packet_owner_rejected_incomplete_scope",
+                "raw_packet": {"must-not-project": True},
+            },
+        })["consumer_result"]
+
+        self.assertEqual(
+            projected["error"],
+            "existing_packet_owner_rejected_incomplete_scope",
+        )
+        self.assertNotIn("raw_packet", projected)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -2056,6 +2056,34 @@ def read_jsonl(
     return rows[-tail_limit:] if tail_limit > 0 else rows
 
 
+def read_jsonl_exact_schema(path: Path, schema_version: str) -> tuple[list[dict[str, Any]], bool]:
+    """Stream one immutable JSONL owner and materialize only one exact schema.
+
+    The complete file remains the evidence owner and every matching line is
+    still decoded in file order.  The cheap textual prefilter merely avoids
+    JSON-decoding unrelated append-only history whose schema cannot satisfy
+    this caller's contract; the parsed equality check remains authoritative.
+    """
+    rows: list[dict[str, Any]] = []
+    active = False
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                if line.strip():
+                    active = True
+                if schema_version not in line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(row, dict) and str(row.get("schema_version") or "") == schema_version:
+                    rows.append(row)
+    except (FileNotFoundError, OSError):
+        return rows, active
+    return rows, active
+
+
 def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
@@ -5311,7 +5339,10 @@ class AutoswitchPlanner:
         )
         incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
         execution_ledger_load_started_ns = time.monotonic_ns()
-        rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        execution_outcome_rows, ledger_active = read_jsonl_exact_schema(
+            self.state_dir / "execution-events.jsonl",
+            "v7.execution-outcome-record.v1",
+        )
         record_passive_reconciliation_span(
             "passive_reconciliation_execution_ledger_load",
             execution_ledger_load_started_ns,
@@ -5320,10 +5351,6 @@ class AutoswitchPlanner:
         # immutable execution-outcome records.  Keep the full append-only
         # ledger with its existing owner, but avoid re-scanning unrelated
         # passive decision/outcome history for every incident projection.
-        execution_outcome_rows = [
-            row for row in rows
-            if str(row.get("schema_version") or "") == "v7.execution-outcome-record.v1"
-        ]
         record_passive_reconciliation_span(
             "passive_reconciliation_l3_and_execution_ledger_load",
             ledger_load_started_ns,
@@ -5605,7 +5632,7 @@ class AutoswitchPlanner:
         )
         return {
             "schema_version": "v7.service-failure-execution-outcome-reconciliation.v1",
-            "active": bool(rows),
+            "active": ledger_active,
             "consumed_records": consumed,
             "changed_records": changed,
             "rejected_records": sorted(set(rejected)),

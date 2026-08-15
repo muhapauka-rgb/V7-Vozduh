@@ -2114,6 +2114,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             )
         self.assertEqual([row["event_id"] for row in result], ["evt_4", "evt_5"])
 
+    def test_jsonl_exact_schema_reader_keeps_complete_matching_lineage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "execution-events.jsonl"
+            rows = [
+                {"schema_version": "v7.passive-production-event-decision-trace.v1", "id": "passive"},
+                {"schema_version": "v7.execution-outcome-record.v1", "feedback_id": "first"},
+                {"schema_version": "v7.other.v1", "note": "v7.execution-outcome-record.v1"},
+                {"schema_version": "v7.execution-outcome-record.v1", "feedback_id": "last"},
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            result, active = self.autoswitch.read_jsonl_exact_schema(
+                path, "v7.execution-outcome-record.v1"
+            )
+        self.assertTrue(active)
+        self.assertEqual([row["feedback_id"] for row in result], ["first", "last"])
+
     def test_newer_owner_backed_scope_rotates_current_denominator_only(self):
         """A newer revalidation replaces only current scope, never Outcome history."""
         planner = object.__new__(self.autoswitch.AutoswitchPlanner)

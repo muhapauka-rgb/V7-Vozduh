@@ -5897,12 +5897,26 @@ def validate_approvals(packet, errors, *, now=None):
                         + field
                         + "_invalid"
                     )
-        elif (
-            authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
-            or as_int(authority.get("max_users_per_transaction"), 0)
-            != authorized_max_users
-        ):
-            errors.append("delegated_policy_blast_radius_invalid")
+        else:
+            transaction_users = as_int(
+                authority.get("max_users_per_transaction"), 0
+            )
+            # The standing policy's ``max_users_per_action`` is an upper
+            # bound, not a requirement to consume its entire blast radius.
+            # A fresh ordinary service-failure cohort may therefore use a
+            # smaller already-qualified tier (for example 4 under the active
+            # tier-48 contract).  It must still name the exact existing
+            # service-failure action class and may never exceed that ceiling.
+            transaction_action_class = SERVICE_FAILURE_DELEGATED_ACTION_CLASSES.get(
+                transaction_users, ""
+            )
+            if (
+                authorized_max_users not in SERVICE_FAILURE_DELEGATED_ACTION_CLASSES
+                or transaction_users < 1
+                or transaction_users > authorized_max_users
+                or action_class != transaction_action_class
+            ):
+                errors.append("delegated_policy_blast_radius_invalid")
         if as_int(authority.get("max_concurrent_transactions"), 0) != 1:
             errors.append("delegated_policy_concurrency_invalid")
         if authority.get("candidate_identity") != "FRESH_ONLY":

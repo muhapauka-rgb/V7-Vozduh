@@ -242,6 +242,18 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         )
         self.assertEqual(service_errors, [])
 
+        narrowed_service_failure = copy.deepcopy(service_failure)
+        narrowed_service_failure["delegated_policy_authority"][
+            "max_users_per_transaction"
+        ] = 4
+        narrowed_service_errors = []
+        operator_execution.validate_approvals(
+            narrowed_service_failure,
+            narrowed_service_errors,
+            now=now + timedelta(seconds=1),
+        )
+        self.assertEqual(narrowed_service_errors, [])
+
         widened = copy.deepcopy(packet)
         widened["delegated_policy_authority"][
             "max_users_per_transaction"

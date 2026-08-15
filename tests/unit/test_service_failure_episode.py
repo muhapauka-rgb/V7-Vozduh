@@ -42,6 +42,28 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
 
+    def test_active_ordinary_stop_safe_defers_certification_tail(self):
+        active_scope = {"active": True}
+        stop_safe = {
+            "status": "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
+            "action_completed": False,
+        }
+        self.assertTrue(self.refresh.should_defer_certification_tail(
+            event_only=False,
+            current_scope=active_scope,
+            bounded_action=stop_safe,
+        ))
+        self.assertFalse(self.refresh.should_defer_certification_tail(
+            event_only=False,
+            current_scope={"active": False},
+            bounded_action=stop_safe,
+        ))
+        self.assertFalse(self.refresh.should_defer_certification_tail(
+            event_only=False,
+            current_scope=active_scope,
+            bounded_action={"status": "ACTION_COMPLETED", "action_completed": True},
+        ))
+
     def test_ct_m0f_standing_matrix_consumer_resets_then_reenters(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

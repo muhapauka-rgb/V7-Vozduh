@@ -3691,6 +3691,34 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     }
 
 
+def should_defer_certification_tail(
+    *,
+    event_only: bool,
+    current_scope: dict[str, Any],
+    bounded_action: dict[str, Any],
+) -> bool:
+    """Keep non-actionable certification work out of an active ordinary drain.
+
+    Availability-first, controlled-topology, and CT-M0F are existing
+    certification lanes. They cannot make a current ordinary incident
+    actionable after the governed action has already failed closed, and they
+    must not delay the next Matrix observation while ordinary users remain on
+    the failed source. Their durable frontier and explicit existing-owner
+    re-entry remain intact; this helper merely controls synchronous placement.
+    """
+    if event_only or not bool(current_scope.get("active")):
+        return False
+    statuses = {
+        "STOP_SAFE_CURRENT_INCIDENT_NOT_ACTIONABLE",
+        "STOP_SAFE_CURRENT_SOURCE_SCOPE_EMPTY",
+        "STOP_SAFE_NO_CURRENT_SERVICE_FAILURE_OBLIGATION",
+    }
+    return (
+        str(bounded_action.get("status") or "") in statuses
+        and not bool(bounded_action.get("action_completed"))
+    )
+
+
 def sha256_json(payload: Any) -> str:
     return hashlib.sha256(json.dumps(payload, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
@@ -4226,6 +4254,15 @@ def main() -> int:
             payload["service_failure_omp_consumer"][
                 "receipt_deferred_until_after_fresh_execution"
             ] = True
+        certification_tail_deferred = should_defer_certification_tail(
+            event_only=event_only,
+            current_scope=(
+                payload.get("current_failed_source_scope")
+                if isinstance(payload.get("current_failed_source_scope"), dict)
+                else {}
+            ),
+            bounded_action=bounded_action,
+        )
         # Controlled-topology preparation belongs to the separate CT-M0F
         # certification lane.  An event-only consumer must first exhaust the
         # current service-failure action path; otherwise every fast failure can
@@ -4238,9 +4275,13 @@ def main() -> int:
                 "ok": True,
                 "runtime_mutation_performed": False,
                 "users_moved": 0,
-                "reason": "event_only_service_failure_consumer_preserves_hot_path",
+                "reason": (
+                    "event_only_service_failure_consumer_preserves_hot_path"
+                    if event_only else
+                    "active_ordinary_scope_stop_safe_preserves_next_matrix_observation"
+                ),
             }
-            if event_only
+            if event_only or certification_tail_deferred
             else consume_approved_controlled_source_topology(
                 str(args.passive_consumer),
                 state_dir=state_dir,
@@ -4255,6 +4296,7 @@ def main() -> int:
         }
         if (
             not event_only
+            and not certification_tail_deferred
             and
             bounded_action.get("status") in availability_fallback_statuses
             and not bounded_action.get("action_completed")
@@ -4286,6 +4328,7 @@ def main() -> int:
         )
         if (
             not event_only
+            and not certification_tail_deferred
             and
             bounded_action.get("status") in availability_fallback_statuses
             and not bounded_action.get("action_completed")
@@ -4311,7 +4354,11 @@ def main() -> int:
             )
             else {}
         )
-        if not event_only and topology_action.get("action_completed"):
+        if (
+            not event_only
+            and not certification_tail_deferred
+            and topology_action.get("action_completed")
+        ):
             payload[
                 "availability_first_pre_topology_action"
             ] = availability_action
@@ -4332,7 +4379,7 @@ def main() -> int:
             availability_action = payload[
                 "availability_first_standing_policy_action"
             ]
-        if not event_only and not (
+        if not event_only and not certification_tail_deferred and not (
             bounded_action.get("action_completed")
             or availability_action.get("action_completed")
             or topology_action.get("action_completed")

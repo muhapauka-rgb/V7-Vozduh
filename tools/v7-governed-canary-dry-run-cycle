@@ -2503,8 +2503,14 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
             for key in (
                 "contract_id", "contract_hash", "max_users_per_action",
                 "max_concurrent_transactions", "action_class", "expires_at",
+                "ok", "blockers", "authority_audit_verified",
+                "self_expansion_allowed",
             )
-            if policy_binding.get(key) not in (None, "", [], {})
+            if key in policy_binding
+            and (
+                policy_binding.get(key) not in (None, "", [], {})
+                or key in {"ok", "authority_audit_verified", "self_expansion_allowed"}
+            )
         }
         campaign_binding = policy_binding.get(
             "controlled_certification_campaign_binding"

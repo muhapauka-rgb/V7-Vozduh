@@ -4631,6 +4631,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
             },
             "standing_delegated_policy_binding": {
                 "contract_id": "sdpc_unit",
+                "ok": False,
+                "blockers": ["standing_policy_action_class_not_allowed"],
+                "authority_audit_verified": True,
+                "self_expansion_allowed": False,
                 "controlled_certification_campaign_binding": {
                     "required": True,
                     "ok": True,
@@ -4676,6 +4680,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "controlled_certification_campaign_binding"
             ]["stage"],
             5,
+        )
+        self.assertFalse(receipt["standing_delegated_policy_binding"]["ok"])
+        self.assertEqual(
+            receipt["standing_delegated_policy_binding"]["blockers"],
+            ["standing_policy_action_class_not_allowed"],
+        )
+        self.assertTrue(
+            receipt["standing_delegated_policy_binding"]["authority_audit_verified"]
+        )
+        self.assertFalse(
+            receipt["standing_delegated_policy_binding"]["self_expansion_allowed"]
         )
         self.assertTrue(
             receipt["l3_learning_closure"][

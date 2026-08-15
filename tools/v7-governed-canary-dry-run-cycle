@@ -1028,6 +1028,83 @@ def selected_moves_from_planner_payload(payload: dict[str, Any]) -> list[dict[st
     return moves
 
 
+def bind_ordinary_service_failure_selection(
+    plan: dict[str, Any],
+    *,
+    users_by_ip: dict[str, dict[str, Any]],
+    source: str,
+    max_users: int,
+) -> dict[str, Any]:
+    """Bind a small ordinary cohort to decisions already made by Planner.
+
+    This is deliberately not a second decision maker: it preserves the
+    Planner's target and ordering, but prevents a historical approved-plan
+    lock from broadening a fresh ordinary service-failure transaction. Packet,
+    lease, barrier and all later safety checks still consume the resulting
+    plan and may independently stop it.
+    """
+    source = str(source or "")
+    max_users = max(0, min(int(max_users or 0), 4))
+    blockers: list[str] = []
+    if not source:
+        blockers.append("ordinary_service_failure_source_missing")
+    if max_users <= 0:
+        blockers.append("ordinary_service_failure_max_users_invalid")
+    candidates = [
+        row
+        for row in selected_moves_from_planner_payload(plan)
+        if str(row.get("from") or "") == source
+        and not bool_value(
+            (users_by_ip.get(str(row.get("user") or "")) or {}).get(
+                "certification_user"
+            )
+        )
+    ]
+    selected = candidates[:max_users]
+    if not selected:
+        blockers.append("ordinary_service_failure_planner_has_no_ordinary_candidate")
+    if blockers:
+        return {
+            "ok": False,
+            "status": "STOP_SAFE",
+            "blockers": sorted(set(blockers)),
+            "planner_candidate_count": len(candidates),
+            "selected_count": 0,
+        }
+
+    bound = copy.deepcopy(plan)
+    bound["selected_moves"] = [
+        {
+            "user_ip": str(row.get("user") or ""),
+            "current_egress": str(row.get("from") or ""),
+            "recommended_egress": str(row.get("to") or ""),
+            "action": "switch",
+            "move_type": "failover",
+            "confidence": row.get("confidence", 0.0),
+            "risk": row.get("risk", 0.0),
+            "recommendation_hash": row.get("recommendation_hash", ""),
+        }
+        for row in selected
+    ]
+    summary = bound.get("summary") if isinstance(bound.get("summary"), dict) else {}
+    summary.update({
+        "selected_moves": len(selected),
+        "selected_move_count": len(selected),
+        "execution_mode": "ordinary_service_failure_planner_bound",
+    })
+    bound["summary"] = summary
+    return {
+        "ok": True,
+        "status": "BOUND",
+        "plan": bound,
+        "planner_candidate_count": len(candidates),
+        "selected_count": len(selected),
+        "certification_selected_count": 0,
+        "selection_owner": "tools/v7-users-autoswitch",
+        "selection_rule": "existing_planner_order_source_exact_ordinary_only",
+    }
+
+
 def merge_planner_moves_into_surface(
     surface: dict[str, Any],
     moves: list[dict[str, Any]],
@@ -5206,11 +5283,31 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         )
 
     if bool(getattr(args, "ordinary_service_failure_only", False)):
-        selected_rows = selected_moves_from_planner_payload(plan)
         users = {
             str(row.get("ip") or ""): row
             for row in read_registry(state_dir / "users.registry")
         }
+        ordinary_selection_binding = bind_ordinary_service_failure_selection(
+            plan,
+            users_by_ip=users,
+            source=str(args.approved_source or ""),
+            max_users=requested_max_users,
+        )
+        if ordinary_selection_binding.get("ok") is not True:
+            return transaction_stop(
+                "ordinary_service_failure_selection_binding_invalid",
+                ordinary_selection_binding=ordinary_selection_binding,
+                candidate_created=False,
+                packet_created=False,
+                lease_created=False,
+            )
+        plan = (
+            ordinary_selection_binding.get("plan")
+            if isinstance(ordinary_selection_binding.get("plan"), dict)
+            else {}
+        )
+        l3_plan_run["payload"] = plan
+        selected_rows = selected_moves_from_planner_payload(plan)
         certification_selected = [
             row["user"] for row in selected_rows
             if bool_value((users.get(str(row.get("user") or "")) or {}).get("certification_user"))

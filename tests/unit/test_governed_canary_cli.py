@@ -4927,6 +4927,32 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(scope["certification_selected_count"], 1)
         self.assertNotIn("selected_identities", scope)
 
+    def test_ordinary_service_failure_binding_keeps_planner_order_and_excludes_certification(self):
+        module = load_cli_module()
+        bound = module.bind_ordinary_service_failure_selection(
+            {
+                "selected_moves": [
+                    {"user": "10.0.0.2", "from": "failed", "to": "target-a"},
+                    {"user": "10.0.0.3", "from": "failed", "to": "target-b"},
+                    {"user": "10.0.0.4", "from": "failed", "to": "target-c"},
+                    {"user": "10.0.0.5", "from": "other", "to": "target-d"},
+                    {"user": "10.0.0.6", "from": "failed", "to": "target-e"},
+                    {"user": "10.0.0.7", "from": "failed", "to": "target-f"},
+                ],
+            },
+            users_by_ip={"10.0.0.3": {"certification_user": True}},
+            source="failed",
+            max_users=4,
+        )
+
+        self.assertTrue(bound["ok"])
+        selected = bound["plan"]["selected_moves"]
+        self.assertEqual(
+            [row["user_ip"] for row in selected],
+            ["10.0.0.2", "10.0.0.4", "10.0.0.6", "10.0.0.7"],
+        )
+        self.assertEqual(bound["plan"]["summary"]["selected_move_count"], 4)
+
     def test_jsonl_family_uses_bounded_tail_and_preserves_rotation_order(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

@@ -3188,6 +3188,33 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(spans[0]["stage"], "advisory_l3_and_closure_history_load")
         self.assertNotIn("started_monotonic_ns", spans[0])
 
+    def test_matrix_projection_retains_bounded_cohort_policy_stop_reason(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "standing_delegated_cohort_policy_binding_invalid",
+                "standing_delegated_policy_binding": {
+                    "ok": False,
+                    "blockers": ["standing_policy_action_class_not_allowed"],
+                    "max_users_per_action": 4,
+                    "max_concurrent_transactions": 1,
+                    "action_class": "SERVICE_FAILURE_COHORT_4",
+                    "authority_audit_verified": True,
+                    "self_expansion_allowed": False,
+                    "full_contract": "must-not-project",
+                },
+            },
+        })["consumer_result"]
+
+        binding = projected["standing_delegated_policy_binding"]
+        self.assertFalse(binding["ok"])
+        self.assertEqual(
+            binding["blockers"],
+            ["standing_policy_action_class_not_allowed"],
+        )
+        self.assertNotIn("full_contract", binding)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

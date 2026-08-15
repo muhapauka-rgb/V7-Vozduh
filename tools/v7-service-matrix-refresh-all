@@ -3186,6 +3186,35 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
                 if isinstance(predicate, dict)
             },
         }
+    # The governed executor already emits a compact terminal cohort-policy
+    # binding.  Retain its bounded reason here too: Matrix owns this lifecycle
+    # projection, while the full Packet/lease and execution evidence remains
+    # with the existing specialized owners.  Without this pointer a normal
+    # STOP_SAFE terminal is reduced to a name, forcing a later investigation
+    # to replay or infer a policy gate that was already proven.
+    cohort_binding = result.get("standing_delegated_policy_binding")
+    cohort_binding = cohort_binding if isinstance(cohort_binding, dict) else {}
+    compact_cohort_binding = {
+        key: cohort_binding.get(key)
+        for key in (
+            "ok",
+            "blockers",
+            "max_users_per_action",
+            "max_concurrent_transactions",
+            "action_class",
+            "authority_audit_verified",
+            "self_expansion_allowed",
+        )
+        if key in cohort_binding
+        and (
+            cohort_binding.get(key) not in (None, "", [], {})
+            or key in {"ok", "authority_audit_verified", "self_expansion_allowed"}
+        )
+    }
+    if compact_cohort_binding:
+        compact_result["standing_delegated_policy_binding"] = (
+            compact_cohort_binding
+        )
     for key in (
         "performance_benchmark",
         "campaign_stage_credit",

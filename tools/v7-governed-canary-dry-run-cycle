@@ -3496,6 +3496,17 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
         except (TypeError, ValueError):
             return True
 
+    def route_apply_failure_reason(row: dict[str, Any]) -> str:
+        output = str(row.get("output") or "")
+        match = re.search(
+            r"^V7_ROUTE_WRITE_FAILURE=([A-Z0-9_]+)$",
+            output,
+            flags=re.MULTILINE,
+        )
+        if match:
+            return f"route_writer_{match.group(1).lower()}"
+        return "route_writer_apply_failed"
+
     if not apply_run.get("ok"):
         blockers.append("autoswitch_apply_command_failed")
     if not apply_result.get("applied"):
@@ -3504,7 +3515,7 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
         blockers.append("verification_results_missing")
 
     route_apply_failures = [
-        {"reason": "route_writer_apply_failed"}
+        {"reason": route_apply_failure_reason(row)}
         for row in rows
         if row_apply_failed(row)
     ]

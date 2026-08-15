@@ -92,11 +92,38 @@ fi
 "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
 
 echo "[V7] user $USER_IP -> $EGRESS / table $table / dev $dev"
-read -r V7_ROUTE_WRITE_STARTED _ < /proc/uptime
-ip route replace default dev "$dev" table "$table"
-read -r V7_ROUTE_WRITE_COMPLETED _ < /proc/uptime
+if [ -r /proc/uptime ]; then
+  read -r V7_ROUTE_WRITE_STARTED _ < /proc/uptime
+  V7_ROUTE_WRITE_CLOCK="linux_monotonic_uptime"
+else
+  # Production uses Linux monotonic uptime.  The fallback keeps the existing
+  # writer testable on non-Linux development hosts without changing a Linux
+  # route mutation or its timing source.
+  V7_ROUTE_WRITE_STARTED="$(date +%s)"
+  V7_ROUTE_WRITE_CLOCK="posix_epoch_seconds_fallback"
+fi
+if ! route_write_error="$(ip route replace default dev "$dev" table "$table" 2>&1)"; then
+  # Keep the route writer's failure observable by its existing consumers without
+  # leaking the raw kernel text (which can contain local topology details).
+  # This does not alter the mutation, rollback, or authority contract: it only
+  # replaces an otherwise opaque non-zero subprocess result with a stable code.
+  case "$route_write_error" in
+    *"Cannot find device"*) route_write_failure="ROUTE_INTERFACE_UNAVAILABLE" ;;
+    *"Network is unreachable"*) route_write_failure="ROUTE_TARGET_UNREACHABLE" ;;
+    *"Operation not permitted"*|*"Permission denied"*) route_write_failure="ROUTE_WRITE_PERMISSION_DENIED" ;;
+    *"Invalid argument"*) route_write_failure="ROUTE_TABLE_WRITE_INVALID" ;;
+    *) route_write_failure="ROUTE_TABLE_WRITE_FAILED" ;;
+  esac
+  echo "V7_ROUTE_WRITE_FAILURE=$route_write_failure"
+  exit 1
+fi
+if [ -r /proc/uptime ]; then
+  read -r V7_ROUTE_WRITE_COMPLETED _ < /proc/uptime
+else
+  V7_ROUTE_WRITE_COMPLETED="$(date +%s)"
+fi
 V7_ROUTE_WRITE_MS=$(awk -v start="$V7_ROUTE_WRITE_STARTED" -v end="$V7_ROUTE_WRITE_COMPLETED" 'BEGIN { printf "%.3f", (end-start)*1000 }')
-echo "V7_TIMING_ROUTE_WRITE_CLOCK=linux_monotonic_uptime"
+echo "V7_TIMING_ROUTE_WRITE_CLOCK=$V7_ROUTE_WRITE_CLOCK"
 echo "V7_TIMING_ROUTE_WRITE_MS=$V7_ROUTE_WRITE_MS"
 
 now=$(date +%s)

@@ -5376,6 +5376,28 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(proof["verification_failures"], [])
         self.assertEqual(proof["route_apply_failure_reasons"], ["route_writer_apply_failed"])
 
+    def test_l3_production_proof_projects_safe_route_writer_failure_reason(self):
+        module = load_cli_module()
+        proof = module.l3_production_validation_proof_quality(
+            {"ok": True, "returncode": 0},
+            {
+                "apply_result": {
+                    "applied": True,
+                    "results": [{
+                        "user_ip": "10.7.0.18",
+                        "rc": 2,
+                        "output": "V7_ROUTE_WRITE_FAILURE=ROUTE_INTERFACE_UNAVAILABLE\n",
+                    }],
+                },
+                "operation": {},
+            },
+        )
+
+        self.assertEqual(
+            proof["route_apply_failure_reasons"],
+            ["route_writer_route_interface_unavailable"],
+        )
+
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()
         captured = {}

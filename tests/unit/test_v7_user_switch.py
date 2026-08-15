@@ -69,6 +69,32 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
 
+    def test_route_write_failure_is_safe_and_classified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, _ip_log = self.fixture(root)
+            failing_ip = root / "bin" / "ip"
+            failing_ip.write_text(
+                "#!/bin/sh\necho 'Cannot find device \"tun0\"' >&2\nexit 2\n",
+                encoding="utf-8",
+            )
+            failing_ip.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+            })
+            result = subprocess.run([str(SCRIPT), "10.7.0.2", "vless"], env=env, text=True, capture_output=True)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("V7_ROUTE_WRITE_FAILURE=ROUTE_INTERFACE_UNAVAILABLE", result.stdout)
+        self.assertNotIn("Cannot find device", result.stdout)
+
     def test_owner_switch_preserves_certification_metadata(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

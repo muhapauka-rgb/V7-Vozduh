@@ -3391,6 +3391,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertNotIn("full_contract", binding)
 
+    def test_matrix_projection_retains_bounded_planner_plan_diagnosis(self):
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "final_verdict": "GOVERNED_TRANSACTION_STOPPED",
+                "transaction_status": "STOP_SAFE",
+                "stop_reason": "l3_production_validation_plan_unavailable",
+                "planner_plan_availability": {
+                    "ok": False,
+                    "returncode": 2,
+                    "stderr_tail": "source has no eligible ordinary decision",
+                    "raw_child_response": "must-not-project",
+                },
+            },
+        })["consumer_result"]
+
+        diagnosis = projected["planner_plan_availability"]
+        self.assertFalse(diagnosis["ok"])
+        self.assertEqual(diagnosis["returncode"], 2)
+        self.assertEqual(
+            diagnosis["stderr_tail"],
+            "source has no eligible ordinary decision",
+        )
+        self.assertNotIn("raw_child_response", diagnosis)
+
     def test_matrix_recovers_partial_apply_from_append_only_event_after_summary_advances(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

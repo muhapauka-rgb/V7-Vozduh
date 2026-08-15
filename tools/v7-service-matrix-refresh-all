@@ -3227,6 +3227,29 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         compact_result["standing_delegated_policy_binding"] = (
             compact_cohort_binding
         )
+    # A Planner subprocess that returns no plan is a terminal pre-Packet
+    # condition. Keep its already bounded diagnostic in the existing Matrix
+    # receipt; this avoids re-running the expensive Planner merely to learn
+    # whether it failed, timed out or returned an empty result.
+    planner_plan_availability = result.get("planner_plan_availability")
+    planner_plan_availability = (
+        planner_plan_availability
+        if isinstance(planner_plan_availability, dict)
+        else {}
+    )
+    compact_planner_plan_availability = {
+        key: planner_plan_availability.get(key)
+        for key in ("ok", "returncode", "error", "stderr_tail", "stdout_tail")
+        if key in planner_plan_availability
+        and (
+            planner_plan_availability.get(key) not in (None, "", [], {})
+            or key == "ok"
+        )
+    }
+    if compact_planner_plan_availability:
+        compact_result["planner_plan_availability"] = (
+            compact_planner_plan_availability
+        )
     for key in (
         "performance_benchmark",
         "campaign_stage_credit",

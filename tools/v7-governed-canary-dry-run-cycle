@@ -5006,7 +5006,30 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     )
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
     if not plan:
-        return transaction_stop("l3_production_validation_plan_unavailable", l3_plan_run=l3_plan_run)
+        # The Matrix projection deliberately cannot retain an entire child
+        # process response.  Preserve only the bounded terminal diagnosis so
+        # a fail-closed planner result is actionable without replaying the
+        # same expensive subprocess or creating a second evidence owner.
+        planner_plan_availability = {
+            "ok": bool(l3_plan_run.get("ok")),
+        }
+        for key in ("returncode", "error", "stderr_tail", "stdout_tail"):
+            value = l3_plan_run.get(key)
+            if value in (None, "", [], {}):
+                continue
+            # Matrix is a logical lifecycle projection, not a child-process
+            # dump.  Six hundred characters is enough to retain a concrete
+            # re-entry reason while bounding the recurring receipt.
+            planner_plan_availability[key] = (
+                str(value)[-600:]
+                if key.endswith("_tail")
+                else value
+            )
+        return transaction_stop(
+            "l3_production_validation_plan_unavailable",
+            l3_plan_run=l3_plan_run,
+            planner_plan_availability=planner_plan_availability,
+        )
     planner_binding_started_ns = time.monotonic_ns()
     availability_selection_binding: dict[str, Any] = {}
     ct_m0f_standing_selection_binding: dict[str, Any] = {}

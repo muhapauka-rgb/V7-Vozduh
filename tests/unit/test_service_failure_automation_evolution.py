@@ -5549,7 +5549,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                         "situation_id": obligation["situation_id"],
                         "decision_trace_id": obligation["decision_trace_id"],
                         "current_source_scope": scope,
-                        "next_action": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+                        "next_action": "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
                     },
                 }
             (state_dir / "closure-records.jsonl").write_text(

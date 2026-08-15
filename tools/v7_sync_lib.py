@@ -7247,7 +7247,19 @@ def service_failure_direct_execution_handoff(
     # reconciliation. The exact closure obligation and current L3 projection
     # above are the canonical pair; requiring a third historical copy to
     # match would put advisory history back in front of a client.
-    if not scope_valid or str(direct.get("next_action") or "") != "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN":
+    # A scoped caller is itself the current Matrix re-entry proof. Its exact
+    # source identity plus the canonical L3/closure pair makes an old receipt
+    # successor advisory-only. The unscoped compatibility reader retains the
+    # stricter historical successor requirement.
+    scoped_current_source = bool(
+        expected_incident_id or expected_scope_fingerprint
+    )
+    successor_valid = (
+        str(direct.get("next_action") or "")
+        == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+        or scoped_current_source
+    )
+    if not scope_valid or not successor_valid:
         return {
             "schema_version": "v7.service-failure-direct-execution-handoff.v1",
             "owner": "existing closure-records + l3-runtime-state owners",

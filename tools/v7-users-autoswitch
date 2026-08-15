@@ -14470,11 +14470,20 @@ class AutoswitchPlanner:
         No Candidate, Packet, lease, routing mutation, Authority or L7/L8
         credit can result from this passive step.
         """
+        recorder = getattr(self, "_passive_performance_recorder", None)
+
+        def record_passive_substep(stage: str, started_ns: int) -> None:
+            if callable(recorder):
+                recorder(stage, started_ns)
+
         path = self.event_dir / "service-failure-events.jsonl"
+        source_window_started_ns = time.monotonic_ns()
         source_rows = read_jsonl(path, tail_limit=2000, tail_max_bytes=16_000_000)
+        record_passive_substep("passive_event_source_window_load", source_window_started_ns)
         persistence_samples = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
         persistence_window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))
         event_by_id: dict[str, dict[str, Any]] = {}
+        source_classification_started_ns = time.monotonic_ns()
         for row in source_rows:
             event_id = str(row.get("event_id") or "")
             provenance = str(row.get("event_provenance") or row.get("provenance") or "")
@@ -14508,10 +14517,13 @@ class AutoswitchPlanner:
                 # more than once. The existing immutable event owner remains
                 # untouched; the consumer canonicalizes by registry-owned ID.
                 event_by_id[event_id] = row
+        record_passive_substep("passive_event_window_classification", source_classification_started_ns)
         events = list(event_by_id.values())
         if not events:
             return {"active": False, "reason": "no_passive_capture_event", "records": {}}
+        l3_projection_started_ns = time.monotonic_ns()
         state = self._load_l3_runtime_state()
+        record_passive_substep("passive_current_l3_projection_load", l3_projection_started_ns)
         consumed = state.setdefault("passive_event_consumptions", {})
         if not isinstance(consumed, dict):
             consumed = {}
@@ -14548,7 +14560,12 @@ class AutoswitchPlanner:
             # current L3 state and may publish newer outcome facts.
             if consumption_cache_compacted:
                 self._write_l3_runtime_state(state)
+            idempotent_reconciliation_started_ns = time.monotonic_ns()
             scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+            record_passive_substep(
+                "passive_idempotent_scope_reconciliation",
+                idempotent_reconciliation_started_ns,
+            )
             return {
                 "active": True,
                 "reason": "already_consumed_idempotent",
@@ -14566,6 +14583,7 @@ class AutoswitchPlanner:
             group_id = str(event.get("source_incident_id") or event.get("event_id") or "")
             grouped.setdefault(group_id, []).append(event)
         omp_frontiers: list[dict[str, Any]] = []
+        event_projection_started_ns = time.monotonic_ns()
         for group_id, group_events in sorted(grouped.items()):
             # A source incident may contain a terminal expiry/recovery and a
             # later revalidation in the same consumption batch.  Terminal
@@ -14795,15 +14813,23 @@ class AutoswitchPlanner:
                 "owner": "OMP_EXISTING_PRODUCT_ENGINEERING_FRONTIER",
                 "execution_authority_granted": False,
             })
+        record_passive_substep("passive_new_event_projection", event_projection_started_ns)
+        durable_receipt_started_ns = time.monotonic_ns()
         append_jsonl(self.state_dir / "execution-events.jsonl", decision_rows + outcome_rows)
         append_jsonl(self.state_dir / "runtime-trust.jsonl", trust_rows)
         append_jsonl(self.state_dir / "closure-records.jsonl", closure_rows)
         self._write_l3_runtime_state(state)
+        record_passive_substep("passive_durable_receipt_append", durable_receipt_started_ns)
         # A passive observation may carry an older Matrix source snapshot.
         # Before handing it to any downstream consumer, restore the compact
         # current-source projection from the existing live-route owner.  This
         # is read-model reconciliation only; it cannot make an action.
+        post_consumption_reconciliation_started_ns = time.monotonic_ns()
         scope_reconciliation = self.reconcile_service_failure_execution_outcomes()
+        record_passive_substep(
+            "passive_post_consumption_scope_reconciliation",
+            post_consumption_reconciliation_started_ns,
+        )
         return {
             "active": True,
             "reason": "consumed",
@@ -17329,6 +17355,7 @@ def consume_passive_events_only(args: argparse.Namespace) -> dict[str, Any]:
     planner.state_dir = Path(args.state_dir)
     planner.event_dir = Path(args.event_dir)
     planner.l3_runtime_state_file = planner.state_dir / "l3-runtime-state.json"
+    planner._passive_performance_recorder = record_passive_span
     l3_load_started_ns = time.monotonic_ns()
     planner.l3_runtime_state = planner._load_l3_runtime_state()
     record_passive_span("passive_l3_current_state_load", l3_load_started_ns)

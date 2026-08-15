@@ -1939,6 +1939,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 [
                     "passive_l3_current_state_load",
                     "passive_policy_and_signal_inputs",
+                    "passive_event_source_window_load",
+                    "passive_event_window_classification",
+                    "passive_current_l3_projection_load",
+                    "passive_new_event_projection",
+                    "passive_durable_receipt_append",
+                    "passive_post_consumption_scope_reconciliation",
                     "passive_exact_once_event_consumption",
                 ],
             )
@@ -2034,6 +2040,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             state = json.loads((state_dir / "l3-runtime-state.json").read_text(encoding="utf-8"))
             record = next(item for item in state["incidents"].values() if item.get("incident_id") == incident_id)
         self.assertEqual(second["result"]["reason"], "already_consumed_idempotent")
+        self.assertIn(
+            "passive_idempotent_scope_reconciliation",
+            [row["stage"] for row in second["performance_timeline"]["spans"]],
+        )
         self.assertEqual(second["result"]["scope_reconciliation"]["consumed_records"], 1)
         self.assertEqual(third["result"]["scope_reconciliation"]["changed_records"], 0)
         self.assertEqual(record["last_execution_feedback_id"], outcome["feedback_id"])

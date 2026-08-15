@@ -1240,8 +1240,6 @@ def update_matrix(
                 service_id: {
                     "episode_id": str(merged.get("failure_episode_id") or ""),
                     "family": str(merged.get("failure_family") or ""),
-                    "observed_at": str(merged.get("last_failure_at") or ""),
-                    "samples": int(merged.get("failure_samples") or 0),
                 }
                 for service_id, merged in sorted(revalidation_rows)
             }

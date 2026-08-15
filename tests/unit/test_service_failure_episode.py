@@ -1558,13 +1558,22 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 matrix_file, "vless", "tun0", {"youtube": second}, 1,
                 event_dir=event_dir, persistence_samples=1,
             )
+            third = dict(first, tested_at="2026-07-27T03:02:00+00:00")
+            self.matrix.update_matrix(
+                matrix_file, "vless", "tun0", {"youtube": third}, 1,
+                event_dir=event_dir, persistence_samples=1,
+            )
             events = [
                 json.loads(line)
                 for line in (event_dir / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
             ]
             self.assertEqual(
                 [row["event_type"] for row in events],
-                ["SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED"],
+                [
+                    "SERVICE_FAILURE_OBSERVED",
+                    "SERVICE_FAILURE_REVALIDATED",
+                    "SERVICE_FAILURE_REVALIDATED",
+                ],
             )
             revalidated = events[-1]
             self.assertEqual(revalidated["evidence_class"], "PROBE_OBSERVED_PRODUCTION_EVENT")
@@ -1572,6 +1581,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             self.assertFalse(revalidated["natural_production_credit"])
             self.assertEqual(revalidated["correlated_services"], ["youtube"])
             self.assertTrue(revalidated["observation_generation"].startswith("sfrev_"))
+            self.assertEqual(events[-2]["event_id"], events[-1]["event_id"])
 
     def test_matrix_revalidation_captures_compact_source_scope_without_raw_users(self):
         with tempfile.TemporaryDirectory() as tmp:

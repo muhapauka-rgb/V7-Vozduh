@@ -3466,6 +3466,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "proof_blockers": ["route_visibility_not_confirmed"],
                     "verification_failure_count": 1,
                     "verification_failure_reasons": ["route_verify_failed"],
+                    "route_verification_failure_categories": ["TABLE_DEFAULT_MISMATCH"],
                     "rollback_failure_count": 0,
                     "raw_child_payload": {"must-not-project": True},
                 },
@@ -3481,6 +3482,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(
             diagnostic["verification_failure_reasons"],
             ["route_verify_failed"],
+        )
+        self.assertEqual(
+            diagnostic["route_verification_failure_categories"],
+            ["TABLE_DEFAULT_MISMATCH"],
         )
         self.assertNotIn("raw_child_payload", diagnostic)
 

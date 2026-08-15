@@ -2545,6 +2545,7 @@ def compact_transaction_result(result: dict[str, Any]) -> dict[str, Any]:
                 "child_final_verdict", "child_transaction_status",
                 "child_stop_reason", "child_stop_detail", "proof_blockers",
                 "verification_failure_count", "verification_failure_reasons",
+                "route_verification_failure_categories",
                 "rollback_failure_count", "capability_production_proven",
             )
             if downstream.get(key) not in (None, "", [], {})
@@ -3506,6 +3507,13 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
                     else "route_verify_failed"
                 )
             ),
+            "route_verification_failure_categories": sorted(
+                {
+                    str(category)
+                    for category in (row.get("route_verification_failure_categories") or [])
+                    if re.fullmatch(r"[A-Z0-9_-]+", str(category))
+                }
+            )[:8],
         }
         for row in rows
         if not row_verified(row)
@@ -3548,6 +3556,13 @@ def l3_production_validation_proof_quality(apply_run: dict[str, Any], apply_payl
                 for row in verification_failures
             }
         ),
+        "route_verification_failure_categories": sorted(
+            {
+                str(category)
+                for row in verification_failures
+                for category in (row.get("route_verification_failure_categories") or [])
+            }
+        )[:8],
         "rollback_failures": rollback_failures,
         "apply_returncode": apply_run.get("returncode"),
         "apply_ok": bool(apply_run.get("ok")),
@@ -6024,6 +6039,10 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             production_proof_quality.get("verification_failure_reasons")
             or []
         )[:12],
+        "route_verification_failure_categories": list(
+            production_proof_quality.get("route_verification_failure_categories")
+            or []
+        )[:8],
         "rollback_failure_count": len(
             production_proof_quality.get("rollback_failures") or []
         ),

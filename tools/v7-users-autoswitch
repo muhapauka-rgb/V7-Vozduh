@@ -14434,6 +14434,15 @@ class AutoswitchPlanner:
                 row["route_verification_scope"] = "selected_user" if scoped_route_verification else "global"
                 if scoped_route_verification:
                     row["route_verification_expected_egress"] = target
+                    category_match = re.search(
+                        r"^V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=([A-Z0-9_,-]+)$",
+                        str(verify.stdout or ""),
+                        flags=re.MULTILINE,
+                    )
+                    if category_match:
+                        row["route_verification_failure_categories"] = sorted(
+                            set(category_match.group(1).split(","))
+                        )[:8]
                 row["route_visibility_timing"] = route_visibility_span
                 service_verify = None
                 if verify.returncode == 0 and emergency_mode:
@@ -16730,18 +16739,24 @@ class AutoswitchPlanner:
     def _verify_user_route(self, user_ip: str, expected_egress: str = "") -> subprocess.CompletedProcess[str]:
         argv = ["v7-users-autoswitch", "--verify-user-route", user_ip]
         lines = ["===== V7 SCOPED USER ROUTE REALITY CHECK =====", now_iso(), f"user_ip={user_ip}"]
+        # Codes identify only failed routing invariants. The verification owner
+        # retains raw command output; callers retain no user identity here.
+        failure_categories: list[str] = []
         if not SAFE_IP_RE.match(user_ip):
             lines.append(f"FAIL: unsafe user ip: {user_ip}")
+            lines.append("V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=INVALID_USER_IP")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
         users = {user.ip: user for user in self._load_users()}
         user = users.get(user_ip)
         if not user or not user.enabled:
             lines.append(f"FAIL: user={user_ip} not found or disabled")
+            lines.append("V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=USER_UNAVAILABLE")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
         expected_id = str(expected_egress or user.current)
         egress = self._load_egress().get(expected_id)
         if not egress or not egress.interface:
             lines.append(f"FAIL: user={user_ip} unknown egress={expected_id}")
+            lines.append("V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=EXPECTED_EGRESS_UNAVAILABLE")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
         assign_path = self.state_dir / f"user-{user_ip}.assign"
         assign_egress = ""
@@ -16785,6 +16800,7 @@ class AutoswitchPlanner:
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             lines.append(f"FAIL: route verification command failed: {exc}")
+            lines.append("V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=ROUTE_COMMAND_UNAVAILABLE")
             return subprocess.CompletedProcess(argv, 1, stdout="\n".join(lines) + "\n")
         expected_rule_fragments = (
             f"from {user.ip} lookup {user.table}",
@@ -16797,22 +16813,31 @@ class AutoswitchPlanner:
             lines.append(f"OK: user={user.ip} policy rule selects table {user.table}")
         else:
             route_rc = 1
+            failure_categories.append("POLICY_RULE_MISSING")
             lines.append(f"FAIL: user={user.ip} policy rule does not select table {user.table}")
         lines.append(f"table_route={table_route.stdout.strip()}")
         if f"default dev {egress.interface}" in table_route.stdout:
             lines.append(f"OK: user={user.ip} table={user.table} default dev {egress.interface}")
         else:
             route_rc = 1
+            failure_categories.append("TABLE_DEFAULT_MISMATCH")
             lines.append(f"FAIL: user={user.ip} table={user.table} does not default to {egress.interface}")
         lines.append(f"route_get={route_get.stdout.strip()}")
         if f"dev {egress.interface}" in route_get.stdout:
             lines.append(f"OK: user={user.ip} route_get uses {egress.interface}")
         elif "dev ens3" in route_get.stdout:
             route_rc = 1
+            failure_categories.append("ROUTE_GET_PUBLIC_LEAK")
             lines.append(f"FAIL: user={user.ip} route_get leaks to public ens3")
         else:
             route_rc = 1
+            failure_categories.append("ROUTE_GET_UNEXPECTED")
             lines.append(f"FAIL: user={user.ip} route_get unexpected")
+        if failure_categories:
+            lines.append(
+                "V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES="
+                + ",".join(sorted(set(failure_categories)))
+            )
         lines.append("V7_SCOPED_USER_ROUTE_CHECK=" + ("OK" if route_rc == 0 else "FAIL"))
         return subprocess.CompletedProcess(argv, route_rc, stdout="\n".join(lines) + "\n")
 

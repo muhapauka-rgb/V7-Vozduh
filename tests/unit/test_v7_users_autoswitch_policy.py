@@ -1489,6 +1489,30 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("policy rule selects table 100", result.stdout)
         self.assertIn("V7_SCOPED_USER_ROUTE_CHECK=OK", result.stdout)
 
+    def test_scoped_route_verification_emits_safe_failure_categories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="1")
+            planner = self.tool.AutoswitchPlanner(self.args_for(root))
+
+            def fake_run(cmd, **kwargs):
+                if cmd[:3] == ["ip", "rule", "show"]:
+                    return subprocess.CompletedProcess(cmd, 0, stdout="")
+                if cmd[:4] == ["ip", "route", "show", "table"]:
+                    return subprocess.CompletedProcess(cmd, 0, stdout="default dev wrong0\n")
+                if cmd[:4] == ["ip", "route", "get", "8.8.8.8"]:
+                    return subprocess.CompletedProcess(cmd, 0, stdout="8.8.8.8 dev ens3\n")
+                return subprocess.CompletedProcess(cmd, 1, stdout="unexpected command\n")
+
+            with mock.patch.object(self.tool.subprocess, "run", side_effect=fake_run):
+                result = planner._verify_user_route("10.0.0.2", expected_egress="vless")
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=POLICY_RULE_MISSING,ROUTE_GET_PUBLIC_LEAK,TABLE_DEFAULT_MISMATCH",
+            result.stdout,
+        )
+
     def test_ct_m0f_cutover_consumer_fails_before_probe_without_full_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -5281,8 +5305,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     )
                 return subprocess.CompletedProcess(
                     ["v7-users-autoswitch", "--verify-user-route", user_ip],
-                    0,
-                    stdout="scoped verify ok\n",
+                    1,
+                    stdout=(
+                        "scoped verify failed\n"
+                        "V7_SCOPED_USER_ROUTE_FAILURE_CATEGORIES=TABLE_DEFAULT_MISMATCH\n"
+                    ),
                 )
 
             planner._verify_routes = fake_verify_routes
@@ -5301,6 +5328,10 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         row = result["results"][0]
         self.assertEqual(row["route_verification_scope"], "selected_user")
         self.assertEqual(row["route_verification_expected_egress"], move["recommended_egress"])
+        self.assertEqual(
+            row["route_verification_failure_categories"],
+            ["TABLE_DEFAULT_MISMATCH"],
+        )
 
     def test_global_route_verification_failure_does_not_quarantine_target(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -5329,6 +5329,30 @@ class GovernedCanaryCliTest(unittest.TestCase):
             ["required_service_verify_failed"],
         )
 
+    def test_l3_production_proof_projects_safe_route_failure_category(self):
+        module = load_cli_module()
+        proof = module.l3_production_validation_proof_quality(
+            {"ok": True, "returncode": 0},
+            {
+                "apply_result": {
+                    "applied": True,
+                    "results": [{
+                        "user_ip": "10.7.0.18",
+                        "verify_rc": 1,
+                        "route_verification_failure_categories": [
+                            "ROUTE_GET_PUBLIC_LEAK", "invalid category"
+                        ],
+                    }],
+                },
+                "operation": {},
+            },
+        )
+
+        self.assertEqual(
+            proof["route_verification_failure_categories"],
+            ["ROUTE_GET_PUBLIC_LEAK"],
+        )
+
     def test_run_autoswitch_apply_uses_batch_aware_timeout(self):
         module = load_cli_module()
         captured = {}

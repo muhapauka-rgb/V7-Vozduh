@@ -4345,6 +4345,34 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )[0]
         self.assertNotIn("run_service_failure_omp_consumer(", direct_branch)
 
+    def test_ready_direct_l3_handoff_defers_passive_reconciliation_until_after_executor(self):
+        """An exact existing L3 handoff keeps passive history outside the hot path."""
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        readiness = source.index("defer_passive_consumer_until_after_direct_execution = bool(")
+        ordinary_classification = source.index(
+            '== "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"', readiness
+        )
+        ordinary_scope = source.index(
+            '== "ORDINARY_PRODUCTION_SERVICE_FAILURE"', ordinary_classification
+        )
+        deferred = source.index('"DEFERRED_UNTIL_AFTER_DIRECT_EXECUTION"', readiness)
+        executor_call = source.index(
+            'payload["bounded_delegated_service_failure_action"] = run_bounded_delegated_service_failure_action('
+        )
+        post_executor_consumer = source.index(
+            'if defer_passive_consumer_until_after_direct_execution:', executor_call
+        )
+        post_action_projection = source.index(
+            'payload["service_failure_post_action_passive_consumer"] = (', executor_call
+        )
+        self.assertLess(readiness, deferred)
+        self.assertLess(readiness, ordinary_classification)
+        self.assertLess(ordinary_classification, ordinary_scope)
+        self.assertLess(ordinary_scope, deferred)
+        self.assertLess(deferred, executor_call)
+        self.assertLess(executor_call, post_executor_consumer)
+        self.assertLess(post_executor_consumer, post_action_projection)
+
     def test_no_omp_fallback_exists_before_runtime_executor(self):
         """Runtime may use fresh or L3 evidence, never an OMP receipt fallback."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")

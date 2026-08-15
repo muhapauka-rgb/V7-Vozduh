@@ -3805,6 +3805,38 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     }
 
 
+def direct_service_failure_handoff_for_scope(
+    *, state_dir: Path, source_scope: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read one already-durable direct L3 handoff for the current Matrix scope.
+
+    This is a reader over existing Matrix/L3/closure owners. It does not
+    materialize a new incident or relax the exact source/scope identity check.
+    """
+    active_sources = (
+        source_scope.get("active_sources")
+        if isinstance(source_scope.get("active_sources"), list)
+        else []
+    )
+    direct_source = (
+        active_sources[0]
+        if len(active_sources) == 1 and isinstance(active_sources[0], dict)
+        else {}
+    )
+    handoff = service_failure_direct_execution_handoff(
+        state_dir=state_dir,
+        source_incident_id=str(direct_source.get("source_incident_id") or ""),
+        source_scope_fingerprint=str(direct_source.get("source_scope_fingerprint") or ""),
+    )
+    obligation = (
+        handoff.get("obligation")
+        if handoff.get("final_verdict") == "READY"
+        and isinstance(handoff.get("obligation"), dict)
+        else {}
+    )
+    return handoff, obligation
+
+
 def should_defer_certification_tail(
     *,
     event_only: bool,
@@ -4164,6 +4196,32 @@ def main() -> int:
         "execution_forbidden": True,
         "natural_production_credit": False,
     }
+    # Reuse an already materialized exact L3 handoff before passive
+    # reconciliation. A new or ambiguous incident retains the original
+    # passive-first path, so no fast path can invent a Candidate or bypass
+    # current-scope reconciliation.
+    source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+    direct_handoff, direct_service_failure_obligation = (
+        direct_service_failure_handoff_for_scope(
+            state_dir=state_dir,
+            source_scope=source_scope,
+        )
+    )
+    defer_passive_consumer_until_after_direct_execution = bool(
+        event_only
+        and direct_service_failure_obligation
+        and str(
+            direct_service_failure_obligation.get("stop_safe_classification") or ""
+        ) == "STOP_SAFE_FRESH_EVENT_REVALIDATION_REQUIRED"
+        and int(
+            direct_service_failure_obligation.get("bounded_recommendation_users") or 0
+        ) > 0
+        and str(
+            direct_service_failure_obligation.get("runtime_scope_context") or ""
+        ) == "ORDINARY_PRODUCTION_SERVICE_FAILURE"
+        and not source_scope.get("requires_scope_reconciliation")
+        and not args.skip_passive_consumer
+    )
     if args.skip_passive_consumer:
         payload["passive_event_consumer"] = {
             "schema_version": "v7.passive-consumer-liveness.v1",
@@ -4176,6 +4234,14 @@ def main() -> int:
                 "exact_missing_artifact": "passive consumer terminal",
                 "forbidden_effects": "NONE",
             },
+        }
+    elif defer_passive_consumer_until_after_direct_execution:
+        payload["passive_event_consumer"] = {
+            "schema_version": "v7.passive-consumer-liveness.v1",
+            "status": "DEFERRED_UNTIL_AFTER_DIRECT_EXECUTION",
+            "ok": True,
+            "reason": "existing_matrix_l3_closure_handoff_is_exact_and_ready",
+            "runtime_mutation_performed": False,
         }
     else:
         payload["passive_event_consumer"] = run_passive_consumer(
@@ -4200,7 +4266,16 @@ def main() -> int:
     # advisory planning when no failed source presently owns a user scope.
     # This prevents a source with zero users from turning a 4-second sentinel
     # revalidation stream into repeated expensive work.
-    source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+    if not defer_passive_consumer_until_after_direct_execution:
+        # Passive reconciliation may have materialized the first current L3
+        # handoff. Re-read only through the same existing Matrix/L3 owners.
+        source_scope = current_failed_source_scope(Path(args.event_dir), state_dir)
+        direct_handoff, direct_service_failure_obligation = (
+            direct_service_failure_handoff_for_scope(
+                state_dir=state_dir,
+                source_scope=source_scope,
+            )
+        )
     payload["current_failed_source_scope"] = source_scope
     if event_only and not source_scope["active"] and not source_scope.get("requires_scope_reconciliation"):
         payload["next_output"] = source_scope["decision"]
@@ -4215,28 +4290,7 @@ def main() -> int:
     # background cost ahead of an eligible client move.  If it is absent or
     # ambiguous, retain the existing advisory producer and its fail-closed
     # semantics unchanged.
-    active_sources = (
-        source_scope.get("active_sources")
-        if isinstance(source_scope.get("active_sources"), list)
-        else []
-    )
-    # Only a single ordinary active source may narrow the existing direct L3
-    # reader.  Multiple active sources retain its established fail-closed
-    # behavior.  Matrix owns both fields; no user identity or new projection
-    # is introduced here.
-    direct_source = active_sources[0] if len(active_sources) == 1 and isinstance(active_sources[0], dict) else {}
-    payload["service_failure_direct_execution_handoff"] = (
-        service_failure_direct_execution_handoff(
-            state_dir=state_dir,
-            source_incident_id=str(direct_source.get("source_incident_id") or ""),
-            source_scope_fingerprint=str(direct_source.get("source_scope_fingerprint") or ""),
-        )
-    )
-    direct_service_failure_obligation = (
-        (payload.get("service_failure_direct_execution_handoff") or {}).get("obligation")
-        if (payload.get("service_failure_direct_execution_handoff") or {}).get("final_verdict") == "READY"
-        else {}
-    )
+    payload["service_failure_direct_execution_handoff"] = direct_handoff
     if direct_service_failure_obligation:
         payload["service_failure_automation_advisory"] = {
             "schema_version": "v7.service-failure-automation-advisory-liveness.v1",
@@ -4372,6 +4426,20 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
+        if defer_passive_consumer_until_after_direct_execution:
+            # This is the same existing consumer which previously ran before
+            # the direct handoff. Its durable history/state reconciliation now
+            # follows the bounded outcome instead of charging the measured
+            # 8–14 seconds to a client already covered by an exact handoff.
+            payload["passive_event_consumer"] = run_passive_consumer(
+                str(args.passive_consumer),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                timeout_sec=int(args.passive_consumer_timeout_sec),
+            )
+            payload["passive_event_consumer"][
+                "deferred_until_after_direct_execution"
+            ] = True
         if defer_omp_receipt_until_after_fresh_execution:
             # Preserve the existing receipt exactly once, but do it after the
             # fresh governed attempt.  It cannot change the already supplied
@@ -4542,11 +4610,15 @@ def main() -> int:
             # the same existing consumer once more before asking OMP to
             # select the successor.  This is reconciliation only: it cannot
             # create a Candidate/Packet/lease or mutate routing.
-            payload["service_failure_post_action_passive_consumer"] = run_passive_consumer(
-                str(args.passive_consumer),
-                state_dir=state_dir,
-                event_dir=Path(args.event_dir),
-                timeout_sec=int(args.passive_consumer_timeout_sec),
+            payload["service_failure_post_action_passive_consumer"] = (
+                payload["passive_event_consumer"]
+                if defer_passive_consumer_until_after_direct_execution
+                else run_passive_consumer(
+                    str(args.passive_consumer),
+                    state_dir=state_dir,
+                    event_dir=Path(args.event_dir),
+                    timeout_sec=int(args.passive_consumer_timeout_sec),
+                )
             )
             payload["service_failure_post_action_omp_consumer"] = run_service_failure_omp_consumer(
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 30,

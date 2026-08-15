@@ -1944,6 +1944,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "passive_current_l3_projection_load",
                     "passive_new_event_projection",
                     "passive_durable_receipt_append",
+                    "passive_reconciliation_l3_projection_load",
+                    "passive_reconciliation_execution_ledger_load",
                     "passive_reconciliation_l3_and_execution_ledger_load",
                     "passive_reconciliation_feedback_ingest",
                     "passive_reconciliation_all_incident_scope_refresh",

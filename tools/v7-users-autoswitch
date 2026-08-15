@@ -5303,9 +5303,19 @@ class AutoswitchPlanner:
                 recorder(stage, started_ns)
 
         ledger_load_started_ns = time.monotonic_ns()
+        l3_projection_load_started_ns = time.monotonic_ns()
         state = self._load_l3_runtime_state()
+        record_passive_reconciliation_span(
+            "passive_reconciliation_l3_projection_load",
+            l3_projection_load_started_ns,
+        )
         incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+        execution_ledger_load_started_ns = time.monotonic_ns()
         rows = read_jsonl(self.state_dir / "execution-events.jsonl")
+        record_passive_reconciliation_span(
+            "passive_reconciliation_execution_ledger_load",
+            execution_ledger_load_started_ns,
+        )
         # This consumer's exact packet/feedback contract is defined only by
         # immutable execution-outcome records.  Keep the full append-only
         # ledger with its existing owner, but avoid re-scanning unrelated

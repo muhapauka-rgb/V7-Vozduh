@@ -64,9 +64,16 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                     "current_egress": "vless",
                     "recommended_egress": "awg0",
                     "reason": ["healthy_target"],
-                    "capacity_decision": {
-                        "projected_load": {"users": 1, "hard_limit": 10},
-                    },
+                    # This is the exact shape emitted by ``plan().decisions``:
+                    # capacity belongs to the chosen candidate, not the wrapper
+                    # decision row.  The advisory must preserve that existing
+                    # projection without recalculating capacity or target choice.
+                    "candidates": [{
+                        "egress": "awg0",
+                        "capacity_decision": {
+                            "projected_load": {"users": 1, "hard_limit": 10},
+                        },
+                    }],
                 }],
             }
             first = planner.materialize_service_failure_automation_advisory(plan)

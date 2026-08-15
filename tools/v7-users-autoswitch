@@ -764,6 +764,36 @@ def build_service_failure_adaptive_cohort_contract(
     }
 
 
+def planner_movable_rows_with_selected_capacity(
+    decisions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Carry an existing selected-candidate capacity projection to its move row.
+
+    ``plan()`` deliberately keeps candidate evidence nested under each user
+    decision.  The bounded cohort contract consumes a movement-shaped row, so
+    this adapter preserves the Planner's exact selected-target capacity without
+    recalculating capacity, selecting a target, or changing an admission.
+    """
+    movable: list[dict[str, Any]] = []
+    for row in decisions:
+        target = str(row.get("recommended_egress") or "")
+        if not target or target == str(row.get("current_egress") or ""):
+            continue
+        movable_row = dict(row)
+        if not isinstance(row.get("capacity_decision"), dict):
+            for candidate in row.get("candidates") or []:
+                if not isinstance(candidate, dict):
+                    continue
+                if str(candidate.get("egress") or "") != target:
+                    continue
+                candidate_capacity = candidate.get("capacity_decision")
+                if isinstance(candidate_capacity, dict):
+                    movable_row["capacity_decision"] = candidate_capacity
+                break
+        movable.append(movable_row)
+    return movable
+
+
 PASSIVE_EVENT_PROVENANCE_CONTRACT = {
     "OPERATOR_INDUCED": {
         "evidence_class": "OPERATOR_INDUCED_PRODUCTION_EVENT",
@@ -14965,11 +14995,7 @@ class AutoswitchPlanner:
                 "recovery or expiry is already a legal no-action terminal",
                 "NONE",
             )
-        movable = [
-            row for row in decisions
-            if str(row.get("recommended_egress") or "")
-            and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
-        ]
+        movable = planner_movable_rows_with_selected_capacity(decisions)
         if not movable:
             return (
                 "STOP_SAFE_NO_SAFE_TARGET",
@@ -15245,11 +15271,7 @@ class AutoswitchPlanner:
             )
         else:
             classification, reason, product_frontier = self._service_failure_stop_safe_classification(closure, decisions)
-        movable = [
-            row for row in decisions
-            if str(row.get("recommended_egress") or "")
-            and str(row.get("recommended_egress") or "") != str(row.get("current_egress") or "")
-        ]
+        movable = planner_movable_rows_with_selected_capacity(decisions)
         authority_policy = getattr(self, "authority_budget_policy", {})
         authority_safe_cohort = max(0, to_int(
             authority_policy.get("current_allowed_user_budget") if isinstance(authority_policy, dict) else 0,

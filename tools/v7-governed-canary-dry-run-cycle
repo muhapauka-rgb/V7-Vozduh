@@ -4130,6 +4130,9 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
     )
     policy = validation.get("policy") if isinstance(validation.get("policy"), dict) else {}
     requested_max_users = int(getattr(args, "max_users", 0) or 0)
+    ordinary_service_failure_only = bool(
+        getattr(args, "ordinary_service_failure_only", False)
+    )
     availability_mode = bool(
         getattr(args, "execute_availability_first_standing_stage", False)
         or getattr(args, "_availability_first_stage_request", None)
@@ -4153,7 +4156,7 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
     ), {})
     controlled_source = bool_value(
         source_row.get("controlled_certification_source")
-    )
+    ) and not ordinary_service_failure_only
     campaign_binding: dict[str, Any] = {
         "required": controlled_source,
         "ok": not controlled_source,
@@ -4370,6 +4373,7 @@ def standing_delegated_cohort_execution_binding(args: argparse.Namespace) -> dic
             (
                 (controlled_source and campaign_binding.get("ok"))
                 or certification_only_availability_subset
+                or ordinary_service_failure_only
             )
             and 0 < requested_max_users
             <= int(policy.get("max_users_per_action") or 0)

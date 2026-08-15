@@ -15722,6 +15722,15 @@ class AutoswitchPlanner:
                 "active": False,
                 "reason": "current_obligation_semantics_already_materialized",
                 "obligation_id": obligation_id,
+                # The existing durable obligation already has the exact
+                # current semantic projection.  Return it to the caller so
+                # the Runtime can revalidate that same contract directly;
+                # returning only its ID forced a false
+                # NO_CURRENT_SERVICE_FAILURE_OBLIGATION and made the next
+                # timer repeat advisory work.  This neither appends another
+                # obligation nor treats an OMP receipt as Runtime authority.
+                "obligation": previous_obligation,
+                "existing_obligation_reused": True,
                 "outcome_reconciliation": outcome_reconciliation,
                 "pre_obligation_scope_reconciliation": pre_obligation_scope_reconciliation,
                 "forbidden_effects": {"runtime_apply": False, "routing_mutation": False, "user_movement": 0, "authority_change": False},

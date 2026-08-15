@@ -4624,6 +4624,11 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(
             unchanged["reason"], "current_obligation_semantics_already_materialized",
         )
+        self.assertTrue(unchanged["existing_obligation_reused"])
+        self.assertEqual(
+            unchanged["obligation"]["automation_obligation_id"],
+            obligation["automation_obligation_id"],
+        )
 
     def test_policy_reconciliation_preserves_active_incident_drain_and_projects_tiers(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -21636,6 +21636,7 @@ def html_page_v2():
             </div>
             <div class="wizard-actions"><button class="primary" onclick="addV2ChannelFromConfig()">Добавить канал</button></div>
             <div id="v2EgressDraftResult" class="add-channel-result is-empty"></div>
+            <div class="table-shell" id="v2EgressDrafts"></div>
           </div>
         </div>
       </article>

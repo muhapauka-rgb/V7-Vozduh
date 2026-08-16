@@ -20767,10 +20767,39 @@ def controlled_source_topology_diagnostic(
     drafts = _controlled_source_draft_candidates(
         Path(args.egress_drafts_dir)
     )
+    # A consumed topology reservation is an exact-once predecessor, not a
+    # reusable draft candidate.  Retrying it hides other already-owned,
+    # independent drafts and turns a completed provision into a selection
+    # loop.  Keep this derived from the existing audit + registry owners: a
+    # released source is eligible again only after its reservation marker is
+    # actually gone.
+    consumed_reserved_source_ids = {
+        str(record.get("source_id") or "")
+        for record in audit_records
+        if (
+            record.get("record_type")
+            == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
+            and str(record.get("source_id") or "")
+            and str(
+                (registry_by_id.get(str(record.get("source_id") or ""), {})).get(
+                    "controlled_source_reservation_id"
+                )
+                or ""
+            )
+        )
+    }
+    consumed_reserved_draft_ids = sorted(
+        str(row.get("draft_id") or "")
+        for row in drafts
+        if str(row.get("pool_egress_id") or "")
+        in consumed_reserved_source_ids
+    )
     ready_drafts = [
         row for row in drafts
         if row.get("ready_for_guarded_disabled_pool_preflight")
         and str(row.get("draft_id") or "") not in declined_drafts
+        and str(row.get("pool_egress_id") or "")
+        not in consumed_reserved_source_ids
     ]
     ready_drafts.sort(
         key=lambda row: (
@@ -21664,6 +21693,7 @@ def controlled_source_topology_diagnostic(
             "campaign_capable_draft_count": len(
                 campaign_capable_drafts
             ),
+            "consumed_reserved_draft_ids": consumed_reserved_draft_ids,
             "hard_capacity_two_blocks_5_10_25_48": bool(
                 validation_profile != "ct-m0f-one-user"
                 and ready_drafts

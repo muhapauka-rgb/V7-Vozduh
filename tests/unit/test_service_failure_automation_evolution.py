@@ -1555,6 +1555,102 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertTrue(result["authority_package"]["actionable"])
         self.assertEqual(result["forbidden_effects"]["user_movement"], 0)
 
+    def test_ct_m0f_diagnostic_skips_consumed_reserved_draft(self):
+        """An exact-once reserved source must not conceal another ready draft."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            state_dir.joinpath("users.registry").write_text(
+                "ip=10.7.0.102 enabled=1 current=source "
+                "certification_user=1 certification_group=ctm0f\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("egress.registry").write_text(
+                "id=source protocol=amneziawg type=interface interface=wg0 enabled=1\n"
+                "id=consumed protocol=amneziawg type=interface interface=wg1 enabled=1 "
+                "controlled_source_reservation_id=ctres_exact\n",
+                encoding="utf-8",
+            )
+            policy_path = root / "policy.json"
+            policy_path.write_text(json.dumps({
+                operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": "ctm0fsdpc_" + "b" * 24,
+                    "contract_hash": "b" * 64,
+                    "expires_at": "2099-01-01T00:00:00+00:00",
+                    "authority_decision": {
+                        "request_id": "ctm0fsdpauth_r1_" + "c" * 24,
+                        "request_hash": "c" * 64,
+                    },
+                },
+            }), encoding="utf-8")
+            args = self.autoswitch.build_arg_parser().parse_args([
+                "--state-dir", str(state_dir),
+                "--egress-drafts-dir", str(root / "drafts"),
+                "--policy-file", str(policy_path),
+                "--controlled-source-validation-profile", "ct-m0f-one-user",
+            ])
+            consumed = {
+                "record_type": (
+                    operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
+                ),
+                "source_id": "consumed",
+            }
+            drafts = [
+                {
+                    "draft_id": "consumed-draft",
+                    "pool_egress_id": "consumed",
+                    "hard_capacity": 2,
+                    "one_identity_trial_capacity": 1,
+                    "ready_for_guarded_disabled_pool_preflight": True,
+                },
+                {
+                    "draft_id": "fresh-draft",
+                    "pool_egress_id": "fresh",
+                    "hard_capacity": 2,
+                    "one_identity_trial_capacity": 1,
+                    "ready_for_guarded_disabled_pool_preflight": True,
+                },
+            ]
+            with (
+                mock.patch.object(
+                    self.autoswitch,
+                    "controlled_campaign_target_selection_diagnostic",
+                    return_value={"campaign": {"source_id": "source", "current_stage": 48}, "targets": []},
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_draft_candidates",
+                    return_value=drafts,
+                ),
+                mock.patch.object(
+                    self.autoswitch,
+                    "_controlled_source_reservation_owner_capability",
+                    return_value={"status": "READY", "owner": "tools/v7-egress-set-state"},
+                ),
+                mock.patch.object(
+                    self.autoswitch.operator_execution,
+                    "validate_ct_m0f_standing_validation_policy",
+                    return_value={"ok": True},
+                ),
+                mock.patch.object(
+                    self.autoswitch.operator_execution,
+                    "read_live_execution_lineage_records",
+                    return_value=[consumed],
+                ),
+            ):
+                result = self.autoswitch.controlled_source_topology_diagnostic(args)
+
+        self.assertEqual(
+            result["options"]["option_2_dedicated_source"]["selected_draft"]["draft_id"],
+            "fresh-draft",
+        )
+        self.assertEqual(
+            result["POST_TRIAL_CONTROLLED_TOPOLOGY_DECISION_DIAGNOSTIC"]
+            ["dedicated_draft_selection_cause"]["consumed_reserved_draft_ids"],
+            ["consumed-draft"],
+        )
+
     def test_ct_m0f_one_user_profile_normalizes_missing_shared_stage_allocation(self):
         """A partial capacity projection is a safe no-allocation result, not a crash."""
         with tempfile.TemporaryDirectory() as tmp:

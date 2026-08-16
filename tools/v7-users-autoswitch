@@ -20773,6 +20773,11 @@ def controlled_source_topology_diagnostic(
     # loop.  Keep this derived from the existing audit + registry owners: a
     # released source is eligible again only after its reservation marker is
     # actually gone.
+    consumed_reservation_marker_keys = (
+        "execution_reservation_id",
+        "controlled_source_reservation_id",
+        "reservation_id",
+    )
     consumed_reserved_source_ids = {
         str(record.get("source_id") or "")
         for record in audit_records
@@ -20780,11 +20785,14 @@ def controlled_source_topology_diagnostic(
             record.get("record_type")
             == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
             and str(record.get("source_id") or "")
-            and str(
-                (registry_by_id.get(str(record.get("source_id") or ""), {})).get(
-                    "controlled_source_reservation_id"
+            and any(
+                str(
+                    registry_by_id.get(
+                        str(record.get("source_id") or ""), {}
+                    ).get(marker_key)
+                    or ""
                 )
-                or ""
+                for marker_key in consumed_reservation_marker_keys
             )
         )
     }

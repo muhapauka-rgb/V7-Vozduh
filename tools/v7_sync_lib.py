@@ -24630,6 +24630,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-service-matrix-refresh.service",
+        "local_path": "systemd/v7-service-matrix-refresh.service",
+        "remote_path": "/etc/systemd/system/v7-service-matrix-refresh.service",
+        "mode": "0644",
+        "service": "v7-service-matrix-refresh.service",
+    },
+    {
         "name": "v7-service-matrix-test",
         "local_path": "tools/v7-service-matrix-test",
         "remote_path": "/usr/local/bin/v7-service-matrix-test",

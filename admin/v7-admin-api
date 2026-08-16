@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import html
 import base64
+import argparse
 import csv
 import hashlib
 import hmac
@@ -16,6 +17,7 @@ import shutil
 import socket
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -8722,6 +8724,104 @@ def egress_draft_runtime_provision(draft_id, actor):
         "pool_state": "disabled",
         "next_step": metadata["next_step"],
     }, None
+
+
+def controlled_source_draft_lifecycle_prepare(draft_id, actor):
+    """Prepare an exact approved controlled draft, disabled only."""
+    draft_id = safe_draft_id(draft_id)
+    if not draft_id:
+        return None, {"error": "invalid_draft_id"}
+    draft_dir = egress_draft_path(draft_id)
+    metadata = read_json(draft_dir / "metadata.json", {}) if draft_dir else {}
+    if not metadata:
+        return None, {"error": "draft_not_found"}
+    pool_ready = metadata.get("pool_action") == "added_disabled"
+    profile_ready = metadata.get("runtime_profile_status") == "READY"
+    if pool_ready and profile_ready:
+        return {
+            "status": "ALREADY_PREPARED_EXACT", "draft_id": draft_id,
+            "egress": safe_egress_id(metadata.get("pool_egress_id", "")),
+            "runtime_enabled": False, "users_moved": False,
+            "routes_changed": False, "services_restarted": False,
+        }, None
+    if pool_ready:
+        provision, error = egress_draft_runtime_provision(draft_id, actor)
+        if error:
+            return None, error
+        return {
+            "status": "PREPARED_DISABLED", "draft_id": draft_id,
+            "egress": provision.get("egress", ""), "provision": provision,
+            "runtime_enabled": False, "users_moved": False,
+            "routes_changed": False, "services_restarted": False,
+        }, None
+    if profile_ready:
+        return None, {"error": "runtime_ready_without_disabled_pool_lifecycle"}
+    pool, error = egress_draft_pool_apply(draft_id, actor)
+    if error:
+        return None, error
+    provision, error = egress_draft_runtime_provision(draft_id, actor)
+    if error:
+        return None, {
+            "error": "runtime_provision_after_disabled_pool_failed", "pool": pool,
+            "detail": error, "safe_partial_state": "added_disabled_no_users_or_routes_changed",
+        }
+    return {
+        "status": "PREPARED_DISABLED", "draft_id": draft_id,
+        "egress": provision.get("egress", ""), "pool": pool, "provision": provision,
+        "runtime_enabled": False, "users_moved": False,
+        "routes_changed": False, "services_restarted": False,
+    }, None
+
+
+def controlled_source_draft_lifecycle_cli(argv):
+    """Exact-authority CLI composition of existing authenticated Admin actions."""
+    parser = argparse.ArgumentParser(description="Prepare one approved controlled draft disabled.")
+    parser.add_argument("--prepare-approved-controlled-source-draft", action="store_true")
+    parser.add_argument("--draft-id", required=True)
+    parser.add_argument("--authority-request-id", required=True)
+    parser.add_argument("--authority-request-hash", required=True)
+    parser.add_argument("--confirm", required=True)
+    parser.add_argument("--actor", default="controlled-source-topology-owner")
+    args = parser.parse_args(argv)
+    if args.confirm != "PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":
+        print(json.dumps({"status": "STOP_SAFE", "error": "exact_confirmation_required"}, sort_keys=True))
+        return 2
+    if not re.fullmatch(r"[a-z0-9_]{8,160}", args.authority_request_id) or not re.fullmatch(r"[0-9a-f]{64}", args.authority_request_hash):
+        print(json.dumps({"status": "STOP_SAFE", "error": "invalid_authority_identity"}, sort_keys=True))
+        return 2
+    diagnostic_run = run_action([
+        "v7-users-autoswitch", "--controlled-source-topology-diagnostic",
+        "--controlled-source-validation-profile", "ct-m0f-one-user",
+    ], args.actor, timeout=180)
+    try:
+        diagnostic = json.loads(str(diagnostic_run.get("output") or ""))
+    except (TypeError, ValueError):
+        diagnostic = {}
+    lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
+    manifest = ((diagnostic.get("production_preflight") or {}).get("manifest") or {})
+    blockers = []
+    if diagnostic_run.get("rc") != 0 or diagnostic.get("status") != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY":
+        blockers.append("controlled_source_preflight_not_ready")
+    if lifecycle.get("status") != "APPROVED" or lifecycle.get("matching_current_preflight") is not True:
+        blockers.append("controlled_source_exact_approval_not_current")
+    if lifecycle.get("request_id") != args.authority_request_id or lifecycle.get("request_hash") != args.authority_request_hash:
+        blockers.append("authority_request_mismatch")
+    if lifecycle.get("decision") != "APPROVE_PROVISION_DEDICATED_CONTROLLED_CERTIFICATION_SOURCE":
+        blockers.append("authority_decision_not_topology_provision")
+    if manifest.get("selected_source_or_draft") != args.draft_id:
+        blockers.append("approved_draft_scope_mismatch")
+    if manifest.get("expected_ordinary_assignment_delta") != "NONE" or manifest.get("expected_ordinary_route_delta") != "NONE":
+        blockers.append("ordinary_customer_delta_not_none")
+    if blockers:
+        print(json.dumps({"status": "STOP_SAFE", "blockers": sorted(set(blockers)), "runtime_enabled": False, "users_moved": 0, "routes_changed": False}, sort_keys=True))
+        return 2
+    result, error = controlled_source_draft_lifecycle_prepare(args.draft_id, args.actor)
+    if error:
+        print(json.dumps({"status": "STOP_SAFE", "error": error, "runtime_enabled": False, "users_moved": 0, "routes_changed": False}, sort_keys=True, default=str))
+        return 2
+    audit_admin(args.actor, "admin_action_controlled_source_draft_lifecycle_prepare", f"draft_id={args.draft_id} authority_request_id={args.authority_request_id} status={result.get('status')}", object_type="egress_draft", object_id=args.draft_id, result=result.get("status", "UNKNOWN"), severity="warning")
+    print(json.dumps({**result, "authority_request_id": args.authority_request_id, "authority_request_hash": args.authority_request_hash, "authority_checked": True}, sort_keys=True, default=str))
+    return 0
 
 
 def egress_channel_add_stage(stages, stage_id, status, detail=""):
@@ -41007,4 +41107,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--prepare-approved-controlled-source-draft" in sys.argv[1:]:
+        raise SystemExit(controlled_source_draft_lifecycle_cli(sys.argv[1:]))
     main()

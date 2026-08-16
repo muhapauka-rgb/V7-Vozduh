@@ -8479,6 +8479,27 @@ class AutoswitchPlanner:
             "--out-dir", str(self.intelligence_snapshot_root),
             "--quality-summary-file", str(Path(self.args.quality_summary_file)),
         ]
+        # The snapshot owner already has a bounded current-state projection.
+        # Reuse it only where this Planner invocation is itself bounded: the
+        # read-only observe lifecycle or an exact one-user apply.  Historical
+        # evidence stays in its canonical stores; it is not reread in full
+        # before an otherwise current decision.
+        current_state_window = (
+            mode == "write"
+            and (
+                str(getattr(self.args, "mode", "") or "") == "observe"
+                or (
+                    bool_value(getattr(self.args, "apply", False))
+                    and bool(str(getattr(self.args, "user", "") or "").strip())
+                    and to_int(getattr(self.args, "max_selected_moves", 0), 0) == 1
+                )
+            )
+        )
+        if current_state_window:
+            cmd.append("--current-state-window")
+            current_state_user = str(getattr(self.args, "user", "") or "").strip()
+            if current_state_user:
+                cmd.extend(["--current-state-user", current_state_user])
         if mode == "dry-run":
             cmd.append("--dry-run")
         timeout = max(1, to_int(getattr(self.args, "pre_planner_refresh_timeout_sec", 20), 20))
@@ -8488,6 +8509,8 @@ class AutoswitchPlanner:
             "action": "refresh_snapshots" if mode == "write" else "validate_refresh_without_write",
             "decision": "refresh_before_planner",
             "next_state": "load_refreshed_snapshots" if mode == "write" else "load_existing_snapshots_after_validation",
+            "history_window": "CURRENT_STATE_BOUNDED" if current_state_window else "EXTENDED_EVIDENCE",
+            "candidate_scope": "EXACT_USER" if current_state_window and str(getattr(self.args, "user", "") or "").strip() else "ALL_ENABLED_USERS",
         })
         try:
             proc = subprocess.run(

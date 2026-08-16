@@ -1930,6 +1930,117 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             validation["errors"],
         )
 
+    def test_released_controlled_source_topology_request_is_invalidated_exactly_once(self):
+        """A released one-use source request can only re-enter via a fresh request."""
+        manifest = {
+            "selected_option": "OPTION_1_REBIND_EXISTING_EMPTY_EGRESS",
+            "existing_source": "source",
+            "selected_source_or_draft": "vless",
+            "trial_identity": "10.7.0.16",
+            "trial_identity_count": 1,
+            "identity_set_fingerprint": "b" * 64,
+            "expected_assignment_delta": "10.7.0.16:source->vless",
+            "expected_ordinary_assignment_delta": "NONE",
+            "expected_ordinary_route_delta": "NONE",
+            "capacity_reservation": 1,
+            "max_concurrent_transactions": 1,
+            "reservation_owner": "tools/v7-egress-set-state",
+            "verification": "fresh Matrix baseline + current route",
+            "rollback": "restore exact source binding and release reservation",
+            "failure_mechanism": "existing controlled certification guard",
+            "lease_and_expiry_required": True,
+            "packet_required_before_effect": True,
+            "restore_barrier_required_before_effect": True,
+        }
+        manifest["manifest_hash"] = operator_execution.sha256_json(manifest)
+        request = operator_execution.build_controlled_source_topology_authority_request({
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "mission": "CONTROLLED_SOURCE_RESELECTION_PROVISIONING_AND_SLICE_FEASIBILITY_V1",
+            "exact_action": "REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+            "manifest": manifest,
+            "current_campaign_request_id": "cpsauth_existing",
+            "current_campaign_request_hash": "a" * 64,
+            "supersedes_source_binding_only": True,
+            "tier48_capability_or_campaign_reapproval": False,
+            "ordinary_customer_involvement": False,
+            "self_expansion_allowed": False,
+            "forbidden_effects": ["ordinary_user_movement"],
+            "reentry_condition": "exact independent decision",
+        })
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-execution-audit.jsonl"
+            operator_execution.register_controlled_source_topology_authority_request(
+                request, audit_store=audit,
+            )
+            operator_execution.record_controlled_source_topology_authority_decision(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                decision="APPROVE_REBIND_CONTROLLED_CERTIFICATION_SOURCE",
+                actor_id="test-independent-authority",
+                audit_store=audit,
+            )
+            operator_execution.append_record(audit, {
+                "record_type": operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE,
+                "authority_request_id": request["request_id"],
+                "authority_request_hash": request["request_hash"],
+                "source_id": "vless",
+            })
+            snapshot = {
+                "source_id": "vless",
+                "source_exists": True,
+                "reservation_absent": True,
+                "controlled_source_markers_absent": True,
+                "assigned_user_count": 0,
+            }
+            snapshot["snapshot_fingerprint"] = operator_execution.sha256_json(snapshot)
+            first = operator_execution.invalidate_released_controlled_source_topology_request(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                source_id="vless",
+                release_snapshot=snapshot,
+                audit_store=audit,
+            )
+            second = operator_execution.invalidate_released_controlled_source_topology_request(
+                request_id=request["request_id"],
+                request_hash=request["request_hash"],
+                source_id="vless",
+                release_snapshot=snapshot,
+                audit_store=audit,
+            )
+            status = operator_execution.controlled_source_topology_authority_status(
+                operator_execution.read_audit_records(audit),
+            )
+            with self.assertRaisesRegex(
+                operator_execution.PacketError,
+                "controlled_source_topology_request_superseded_stale_preflight",
+            ):
+                operator_execution.controlled_source_topology_request_from_audit(
+                    request["request_id"], request["request_hash"], audit_store=audit,
+                )
+        self.assertEqual(first["status"], "INVALIDATED_RELEASED_PREDECESSOR")
+        self.assertEqual(second["status"], "ALREADY_INVALIDATED_EXACT")
+        self.assertEqual(status["status"], "SUPERSEDED_STALE_PREFLIGHT")
+
+    def test_released_topology_request_rejects_incomplete_release_snapshot(self):
+        with self.assertRaisesRegex(
+            operator_execution.PacketError,
+            "controlled_source_topology_release_snapshot_invalid",
+        ):
+            operator_execution.invalidate_released_controlled_source_topology_request(
+                request_id="cstopauth_r1_test",
+                request_hash="a" * 64,
+                source_id="vless",
+                release_snapshot={
+                    "source_id": "vless",
+                    "source_exists": True,
+                    "reservation_absent": True,
+                    "controlled_source_markers_absent": True,
+                    "assigned_user_count": 1,
+                    "snapshot_fingerprint": "x",
+                },
+                audit_store=Path(tempfile.gettempdir()) / "missing-audit.jsonl",
+            )
+
     def test_approved_topology_provision_reserves_existing_source_exact_once(self):
         """An approved provision reserves one existing empty source only."""
         with tempfile.TemporaryDirectory() as tmp:

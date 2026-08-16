@@ -17488,6 +17488,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--reconcile-released-controlled-source-topology",
+        action="store_true",
+        help=(
+            "Append an existing-owner invalidation only when a previously consumed "
+            "controlled source is currently empty and unreserved. Never reserves, "
+            "creates an identity, or enters Packet/lease/routing."
+        ),
+    )
+    parser.add_argument(
         "--controlled-source-validation-profile",
         choices=("campaign", "ct-m0f-one-user"),
         default="campaign",
@@ -19890,6 +19899,45 @@ def consume_approved_controlled_source_topology(args: argparse.Namespace) -> dic
     }
 
 
+def reconcile_released_controlled_source_topology(args: argparse.Namespace) -> dict[str, Any]:
+    """Record a strict release-to-fresh-request boundary through the same owner."""
+    diagnostic_args = copy.copy(args)
+    diagnostic_args.controlled_source_validation_profile = "ct-m0f-one-user"
+    diagnostic = controlled_source_topology_diagnostic(diagnostic_args)
+    lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
+    manifest = (diagnostic.get("production_preflight") or {}).get("manifest") or {}
+    draft_id = str(manifest.get("selected_source_or_draft") or "")
+    drafts = {str(row.get("draft_id") or ""): row for row in _controlled_source_draft_candidates(Path(args.egress_drafts_dir))}
+    source_id = str((drafts.get(draft_id) or {}).get("pool_egress_id") or "")
+    registry_rows = parse_registry(Path(args.state_dir) / "egress.registry")
+    source_rows = [row for row in registry_rows if str(row.get("id") or "") == source_id]
+    users = [row for row in parse_registry(Path(args.state_dir) / "users.registry") if bool_value(row.get("enabled", "1"))]
+    source = source_rows[0] if len(source_rows) == 1 else {}
+    reservation_keys = ("execution_reservation_id", "controlled_source_reservation_id", "reservation_id")
+    marker_keys = ("controlled_certification_source", "execution_reserved", "canary_reserved", "reservation_owner", "certification_group")
+    snapshot = {
+        "source_id": source_id,
+        "source_exists": len(source_rows) == 1,
+        "reservation_absent": not any(str(source.get(key) or "").strip() for key in reservation_keys),
+        "controlled_source_markers_absent": not any(bool_value(source.get(key)) if key != "reservation_owner" and key != "certification_group" else str(source.get(key) or "").strip() for key in marker_keys),
+        "assigned_user_count": sum(1 for row in users if str(row.get("current") or "") == source_id),
+    }
+    snapshot["snapshot_fingerprint"] = sha256_json(snapshot)
+    if lifecycle.get("status") != "APPROVED" or not source_id:
+        return {"schema_version": "v7.controlled-source-topology-release-reconciliation.v1", "status": "STOP_SAFE_PREDECESSOR_REQUIRED", "ok": False, "blockers": ["exact_approved_topology_request_required"], "runtime_mutation_performed": False, "users_moved": 0}
+    try:
+        result = operator_execution.invalidate_released_controlled_source_topology_request(
+            request_id=str(lifecycle.get("request_id") or ""),
+            request_hash=str(lifecycle.get("request_hash") or ""),
+            source_id=source_id,
+            release_snapshot=snapshot,
+            audit_store=Path(args.action_class_audit_store),
+        )
+    except operator_execution.PacketError as exc:
+        return {"schema_version": "v7.controlled-source-topology-release-reconciliation.v1", "status": "STOP_SAFE_PREDECESSOR_REQUIRED", "ok": False, "blockers": [str(exc)], "source_id": source_id, "runtime_mutation_performed": False, "users_moved": 0}
+    return {"schema_version": "v7.controlled-source-topology-release-reconciliation.v1", "status": result.get("status"), "ok": True, "source_id": source_id, "invalidation_id": result.get("invalidation_id"), "audit_write": bool(result.get("audit_write")), "runtime_mutation_performed": False, "routing_mutation": False, "users_moved": 0, "candidate_created": False, "packet_created": False, "lease_created": False}
+
+
 def controlled_source_topology_diagnostic(
     args: argparse.Namespace,
 ) -> dict[str, Any]:
@@ -20930,6 +20978,7 @@ def controlled_source_topology_diagnostic(
         and str(registered_request.get("current_campaign_request_hash") or "")
         == str(campaign.get("request_hash") or "")
         and registered_request.get("authority_basis") == ct_m0f_basis
+        and topology_authority_status.get("status") != "SUPERSEDED_STALE_PREFLIGHT"
     )
     authority_package = (
         {
@@ -24117,6 +24166,10 @@ def main() -> int:
         return 0 if result.get("status") == "PASS" else 2
     if args.consume_approved_controlled_source_topology:
         result = consume_approved_controlled_source_topology(args)
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
+    if args.reconcile_released_controlled_source_topology:
+        result = reconcile_released_controlled_source_topology(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("ok") else 2
     if args.controlled_source_topology_diagnostic:

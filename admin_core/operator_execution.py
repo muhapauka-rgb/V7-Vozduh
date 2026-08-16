@@ -3937,6 +3937,92 @@ def register_controlled_source_topology_authority_request(
     }
 
 
+def invalidate_released_controlled_source_topology_request(
+    *,
+    request_id,
+    request_hash,
+    source_id,
+    release_snapshot,
+    audit_store=None,
+    now=None,
+):
+    """Close one consumed topology request after its source was owner-released.
+
+    This does not reserve, create, assign, or execute.  It only records that
+    the source has returned to an exact empty/unreserved state, making the old
+    one-use request permanently unavailable and permitting a later *fresh*
+    request through the same Authority owner.
+    """
+    now = now or utc_now()
+    source_id = str(source_id or "")
+    snapshot = release_snapshot if isinstance(release_snapshot, dict) else {}
+    required = {
+        "source_id": source_id,
+        "source_exists": True,
+        "reservation_absent": True,
+        "controlled_source_markers_absent": True,
+        "assigned_user_count": 0,
+        "snapshot_fingerprint": str(snapshot.get("snapshot_fingerprint") or ""),
+    }
+    if not source_id or not required["snapshot_fingerprint"]:
+        raise PacketError("controlled_source_topology_release_snapshot_invalid")
+    for key, expected in required.items():
+        if snapshot.get(key) != expected:
+            raise PacketError("controlled_source_topology_release_snapshot_invalid")
+    audit_store = Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_audit_records(audit_store)
+        invalidation_id = stable_id("cstopinv", {
+            "authority_request_id": str(request_id),
+            "authority_request_hash": str(request_hash),
+            "source_id": source_id,
+            "release_snapshot_fingerprint": required["snapshot_fingerprint"],
+            "reason": "OWNER_OBSERVED_RELEASED_RESERVATION_REENTRY",
+        })
+        existing = _controlled_source_topology_invalidation_records(records, request_id)
+        if existing:
+            exact = [row for row in existing if row.get("invalidation_id") == invalidation_id]
+            if len(existing) == 1 and len(exact) == 1:
+                return {"status": "ALREADY_INVALIDATED_EXACT", "invalidation_id": invalidation_id, "audit_write": False}
+            raise PacketError("controlled_source_topology_release_invalidation_conflict")
+        request = controlled_source_topology_request_from_audit(
+            request_id, request_hash, audit_store=audit_store, now=now,
+        )
+        decisions = _controlled_source_topology_decision_records(records, request_id)
+        provisions = [
+            row for row in records
+            if row.get("record_type") == CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
+            and str(row.get("authority_request_id") or "") == str(request_id)
+            and str(row.get("authority_request_hash") or "") == str(request_hash)
+            and str(row.get("source_id") or "") == source_id
+        ]
+        approved = [
+            row for row in decisions
+            if str(row.get("authority_request_hash") or "") == str(request_hash)
+            and str(row.get("decision") or "") == f"APPROVE_{request.get('exact_action') or ''}"
+        ]
+        if len(approved) != 1 or len(provisions) != 1:
+            raise PacketError("controlled_source_topology_release_predecessor_missing")
+        append_record(audit_store, {
+            "schema_version": "v7.controlled-source-topology-authority-invalidation.v1",
+            "record_type": CONTROLLED_SOURCE_TOPOLOGY_INVALIDATION_RECORD_TYPE,
+            "invalidation_id": invalidation_id,
+            "authority_request_id": str(request_id),
+            "authority_request_hash": str(request_hash),
+            "reason": "OWNER_OBSERVED_RELEASED_RESERVATION_REENTRY",
+            "source_id": source_id,
+            "release_snapshot_fingerprint": required["snapshot_fingerprint"],
+            "producer": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
+            "created_at": now.isoformat(),
+            "authority_decision": False,
+            "topology_materialized": False,
+            "runtime_apply": False,
+            "routing_mutation": False,
+            "users_moved": 0,
+        })
+    return {"status": "INVALIDATED_RELEASED_PREDECESSOR", "invalidation_id": invalidation_id, "audit_write": True}
+
+
 def controlled_source_topology_request_from_audit(
     request_id,
     request_hash,

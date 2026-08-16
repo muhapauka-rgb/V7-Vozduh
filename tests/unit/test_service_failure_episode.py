@@ -4453,6 +4453,47 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("service_failure_automation_consumed_execution_handoff(", pre_executor)
         self.assertNotIn("run_service_failure_omp_consumer(", pre_executor)
 
+    def test_runtime_hot_path_units_exclude_engineering_tail(self):
+        """Runtime units must not synchronously invoke OMP/reporting tails."""
+        source = REFRESH_TOOL.read_text(encoding="utf-8")
+        flag = source.index('"--runtime-hot-path-only"')
+        cert_exit = source.index(
+            "CERTIFICATION_SCOPE_DEFERRED_TO_EXISTING_CONTROLLED_OWNER",
+            flag,
+        )
+        action_exit = source.index(
+            "RUNTIME_HOT_PATH_ACTION_ATTEMPT_COMPLETE",
+            cert_exit,
+        )
+        post_action_omp = source.index(
+            'payload["service_failure_post_action_omp_consumer"]',
+            action_exit,
+        )
+        self.assertLess(flag, cert_exit)
+        self.assertLess(cert_exit, action_exit)
+        self.assertLess(action_exit, post_action_omp)
+        planner_unit = (ROOT / "systemd/drafts/v7-autoswitch-planner.service").read_text(
+            encoding="utf-8"
+        )
+        refresh_unit = (ROOT / "systemd/v7-service-matrix-refresh.service").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("--runtime-hot-path-only", planner_unit)
+        self.assertIn("--runtime-hot-path-only", refresh_unit)
+
+    def test_source_bounded_planning_filters_before_decision_construction(self):
+        """A source-bounded request must not score unrelated active users."""
+        source = AUTOSWITCH_TOOL.read_text(encoding="utf-8")
+        plan_start = source.index("    def plan(self) -> dict[str, Any]:")
+        decision_build = source.index("decisions = [self._decision_for_user(user) for user in active]", plan_start)
+        source_filter = source.index("if source_egress:", plan_start)
+        bounded_filter = source.index(
+            "if source_egress and requested_max_selected_moves > 0:",
+            source_filter,
+        )
+        self.assertLess(source_filter, decision_build)
+        self.assertLess(bounded_filter, decision_build)
+
 
 if __name__ == "__main__":
     unittest.main()

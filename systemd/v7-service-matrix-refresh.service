@@ -6,7 +6,10 @@ After=network-online.target
 [Service]
 Type=oneshot
 Environment=V7_ACTOR=service-matrix-refresh
-ExecStart=/usr/local/bin/v7-service-matrix-refresh-all
+# Detection plus the existing direct governed action path only. Engineering
+# receipts and controlled certification follow their existing owners outside
+# the synchronous Runtime invocation.
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --runtime-hot-path-only
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

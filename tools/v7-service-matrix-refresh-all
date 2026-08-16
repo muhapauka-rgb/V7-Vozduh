@@ -4132,6 +4132,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--runtime-hot-path-only",
+        action="store_true",
+        help=(
+            "Keep this Matrix invocation on the existing Runtime failure "
+            "path only: detection/current scope/direct governed action. "
+            "Passive, OMP, reporting and certification tails remain with "
+            "their existing non-synchronous owners."
+        ),
+    )
+    parser.add_argument(
         "--skip-passive-consumer",
         action="store_true",
         help="Diagnostic/test-only escape hatch; production lifecycle should keep the existing passive consumer connected.",
@@ -4251,6 +4261,36 @@ def main() -> int:
             skip_passive_consumer=bool(args.skip_passive_consumer),
         )
     )
+    # A known certification-only source is not an ordinary customer failure.
+    # Its controlled owner must retain its reservation/re-entry semantics, but
+    # it must not make the 30-second Runtime consumer replay passive/OMP work
+    # or attempt a prohibited ordinary Packet.  This is a compact read over
+    # existing Matrix + registry owners, not a new truth source.
+    if (
+        args.runtime_hot_path_only
+        and not source_scope.get("active")
+        and source_scope.get("certification_only_active_sources")
+    ):
+        payload["current_failed_source_scope"] = source_scope
+        payload["passive_event_consumer"] = {
+            "schema_version": "v7.passive-consumer-liveness.v1",
+            "status": "DEFERRED_TO_EXISTING_CONTROLLED_OWNER",
+            "ok": True,
+            "reason": "certification_only_scope_has_no_ordinary_runtime_action",
+            "runtime_mutation_performed": False,
+        }
+        payload["service_failure_omp_consumer"] = {
+            "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
+            "status": "DEFERRED_OUTSIDE_RUNTIME_HOT_PATH",
+            "ok": True,
+            "reason": "certification_only_scope_is_not_an_ordinary_runtime_handoff",
+        }
+        payload["next_output"] = "CERTIFICATION_SCOPE_DEFERRED_TO_EXISTING_CONTROLLED_OWNER"
+        compact_payload = compact_refresh_projection(payload)
+        write_json_atomic(summary_file, compact_payload)
+        append_event(Path(args.event_dir), payload)
+        print(json.dumps(compact_payload, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0
     if args.skip_passive_consumer:
         payload["passive_event_consumer"] = {
             "schema_version": "v7.passive-consumer-liveness.v1",
@@ -4455,6 +4495,25 @@ def main() -> int:
             timeout_sec=int(args.passive_consumer_timeout_sec) + 180,
         )
         bounded_action = payload["bounded_delegated_service_failure_action"]
+        if args.runtime_hot_path_only:
+            # Candidate/Packet/lease/barrier/apply stay entirely with the
+            # existing governed executor above.  Everything below is
+            # Engineering/controlled-tail work and must never extend the
+            # synchronous Runtime invocation after that attempt.
+            payload["runtime_hot_path_completion"] = {
+                "status": "DIRECT_ACTION_ATTEMPT_COMPLETE",
+                "runtime_mutation_performed": bool(
+                    bounded_action.get("runtime_mutation_performed")
+                ),
+                "users_moved": int(bounded_action.get("users_moved") or 0),
+                "engineering_tail": "DEFERRED_OUTSIDE_RUNTIME_HOT_PATH",
+            }
+            payload["next_output"] = "RUNTIME_HOT_PATH_ACTION_ATTEMPT_COMPLETE"
+            compact_payload = compact_refresh_projection(payload)
+            write_json_atomic(summary_file, compact_payload)
+            append_event(Path(args.event_dir), payload)
+            print(json.dumps(compact_payload, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 0
         if defer_passive_consumer_until_after_direct_execution:
             # This is the same existing consumer which previously ran before
             # the direct handoff. Its durable history/state reconciliation now

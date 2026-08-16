@@ -11149,11 +11149,29 @@ class AutoswitchPlanner:
         }
 
     def plan(self) -> dict[str, Any]:
-        active = self._active_users()
-        decisions = [self._decision_for_user(user) for user in active if not self.args.user or user.ip == self.args.user]
         enabled = bool_value(self.switch_policy.get("autoswitch_enabled"))
         target_egress = str(self.args.target_egress or "").strip()
         source_egress = str(getattr(self.args, "source_egress", "") or "").strip()
+        requested_max_selected_moves = to_int(
+            getattr(self.args, "max_selected_moves", 0), 0
+        )
+        active = self._active_users()
+        # A bounded source-specific failover must not score every unrelated
+        # customer before it can construct the first eligible Candidate.  The
+        # source, user and requested cap are existing planner inputs; applying
+        # them before decision construction preserves target selection and all
+        # Packet/lease/barrier gates while keeping unrelated cohorts out of
+        # the Runtime hot path.
+        if source_egress:
+            active = [
+                user for user in active
+                if str(user.current or "") == source_egress
+            ]
+        if self.args.user:
+            active = [user for user in active if user.ip == self.args.user]
+        if source_egress and requested_max_selected_moves > 0:
+            active = active[:requested_max_selected_moves]
+        decisions = [self._decision_for_user(user) for user in active]
         selection_source = decisions
         if source_egress:
             selection_source = [
@@ -11214,7 +11232,7 @@ class AutoswitchPlanner:
         )
         selected = self._select_moves(selection_source, incident_source_context=incident_source_continuity) if enabled else []
         selected_after_policy_count = len(selected)
-        max_selected_moves = to_int(getattr(self.args, "max_selected_moves", 0), 0)
+        max_selected_moves = requested_max_selected_moves
         blast_radius_cap_applied = False
         if max_selected_moves > 0 and len(selected) > max_selected_moves:
             selected = selected[:max_selected_moves]

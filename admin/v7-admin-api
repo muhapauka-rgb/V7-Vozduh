@@ -8789,18 +8789,28 @@ def controlled_source_draft_lifecycle_cli(argv):
     if not re.fullmatch(r"[a-z0-9_]{8,160}", args.authority_request_id) or not re.fullmatch(r"[0-9a-f]{64}", args.authority_request_hash):
         print(json.dumps({"status": "STOP_SAFE", "error": "invalid_authority_identity"}, sort_keys=True))
         return 2
-    diagnostic_run = run_action([
-        "v7-users-autoswitch", "--controlled-source-topology-diagnostic",
-        "--controlled-source-validation-profile", "ct-m0f-one-user",
-    ], args.actor, timeout=180)
     try:
-        diagnostic = json.loads(str(diagnostic_run.get("output") or ""))
-    except (TypeError, ValueError):
+        diagnostic_proc = subprocess.run(
+            [
+                "v7-users-autoswitch", "--controlled-source-topology-diagnostic",
+                "--controlled-source-validation-profile", "ct-m0f-one-user",
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=180,
+            check=False,
+            env={**os.environ, "V7_ACTOR": args.actor},
+        )
+        diagnostic_rc = diagnostic_proc.returncode
+        diagnostic = json.loads(diagnostic_proc.stdout or "")
+    except (OSError, subprocess.TimeoutExpired, TypeError, ValueError):
+        diagnostic_rc = 127
         diagnostic = {}
     lifecycle = diagnostic.get("authority_lifecycle") if isinstance(diagnostic.get("authority_lifecycle"), dict) else {}
     manifest = ((diagnostic.get("production_preflight") or {}).get("manifest") or {})
     blockers = []
-    if diagnostic_run.get("rc") != 0 or diagnostic.get("status") != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY":
+    if diagnostic_rc != 0 or diagnostic.get("status") != "CONTROLLED_SOURCE_TOPOLOGY_PRODUCTION_PREFLIGHT_READY":
         blockers.append("controlled_source_preflight_not_ready")
     if lifecycle.get("status") != "APPROVED" or lifecycle.get("matching_current_preflight") is not True:
         blockers.append("controlled_source_exact_approval_not_current")

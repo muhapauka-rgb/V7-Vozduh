@@ -1569,7 +1569,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             state_dir.joinpath("egress.registry").write_text(
                 "id=source protocol=amneziawg type=interface interface=wg0 enabled=1\n"
                 "id=consumed protocol=amneziawg type=interface interface=wg1 enabled=1 "
-                "reservation_id=ctres_exact\n",
+                "controlled_certification_source=1 certification_group=ctm0f\n",
                 encoding="utf-8",
             )
             policy_path = root / "policy.json"

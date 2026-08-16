@@ -20785,14 +20785,21 @@ def controlled_source_topology_diagnostic(
             record.get("record_type")
             == operator_execution.CONTROLLED_SOURCE_TOPOLOGY_PROVISION_RECORD_TYPE
             and str(record.get("source_id") or "")
-            and any(
-                str(
+            and (
+                any(
+                    str(
+                        registry_by_id.get(
+                            str(record.get("source_id") or ""), {}
+                        ).get(marker_key)
+                        or ""
+                    )
+                    for marker_key in consumed_reservation_marker_keys
+                )
+                or bool_value(
                     registry_by_id.get(
                         str(record.get("source_id") or ""), {}
-                    ).get(marker_key)
-                    or ""
+                    ).get("controlled_certification_source")
                 )
-                for marker_key in consumed_reservation_marker_keys
             )
         )
     }

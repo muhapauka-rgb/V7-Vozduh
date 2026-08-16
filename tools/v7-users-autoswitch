@@ -2383,6 +2383,7 @@ def ct_m0f_active_service_failure_binding_projection(
     source_id: str,
     *,
     event_dir: Optional[Path] = None,
+    evidence_cache: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Read the one current passive incident binding for a CT-M0F source.
 
@@ -2392,6 +2393,10 @@ def ct_m0f_active_service_failure_binding_projection(
     deliberately controlled source continues to use its already separate
     controlled-condition lineage.
     """
+    # Callers that compare several candidate sources may share this ephemeral
+    # invocation cache.  It is never persisted and does not become a second
+    # L3/Matrix owner; it only prevents rereading the same immutable inputs.
+    cache = evidence_cache if isinstance(evidence_cache, dict) else {}
     state_path = Path(state_dir) / "l3-runtime-state.json"
     if not state_path.exists():
         return {
@@ -2400,11 +2405,17 @@ def ct_m0f_active_service_failure_binding_projection(
             "requires_binding": False,
             "read_only": True,
         }
-    state = read_json(state_path, {})
+    state = cache.get("l3_state")
+    if not isinstance(state, dict):
+        state = read_json(state_path, {})
+        cache["l3_state"] = state
     incidents = state.get("incidents") if isinstance(state.get("incidents"), dict) else {}
+    users = cache.get("users")
+    if not isinstance(users, list):
+        users = parse_registry(Path(state_dir) / "users.registry")
+        cache["users"] = users
     live_source_users = sorted({
-        str(row.get("ip") or "")
-        for row in parse_registry(Path(state_dir) / "users.registry")
+        str(row.get("ip") or "") for row in users
         if str(row.get("ip") or "")
         and bool_value(row.get("enabled", "1"))
         and str(row.get("current") or "") == str(source_id or "")
@@ -2494,7 +2505,10 @@ def ct_m0f_active_service_failure_binding_projection(
         # select the newest *consumed* projection only when every contender
         # describes the same source generation and same current scope.  A
         # different generation or scope remains fail-closed ambiguity.
-        closure_rows = read_jsonl(state_dir / "closure-records.jsonl")
+        closure_rows = cache.get("closure_rows")
+        if not isinstance(closure_rows, list):
+            closure_rows = read_jsonl(state_dir / "closure-records.jsonl")
+            cache["closure_rows"] = closure_rows
         consumed_pairs = {
             (
                 str(row.get("automation_obligation_id") or ""),
@@ -2654,7 +2668,11 @@ def ct_m0f_active_service_failure_binding_projection(
     if event_dir is not None:
         fresh_event_status = "MISSING"
         now = datetime.now(timezone.utc)
-        for event in reversed(read_jsonl(Path(event_dir) / "service-failure-events.jsonl")):
+        event_rows = cache.get("service_failure_events")
+        if not isinstance(event_rows, list):
+            event_rows = read_jsonl(Path(event_dir) / "service-failure-events.jsonl")
+            cache["service_failure_events"] = event_rows
+        for event in reversed(event_rows):
             if str(event.get("event_type") or "") not in {
                 "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
             }:
@@ -23559,6 +23577,7 @@ def ct_m0f_standing_source_selection_only(
     state_dir = Path(args.state_dir)
     users = parse_registry(state_dir / "users.registry")
     egress_rows = parse_registry(state_dir / "egress.registry")
+    binding_evidence_cache: dict[str, Any] = {"users": users}
     projections = [
         row
         for row in (pool.get("active_source_projections") or [])
@@ -23678,6 +23697,7 @@ def ct_m0f_standing_source_selection_only(
             event_dir=Path(
                 getattr(args, "event_dir", "") or state_dir / "events"
             ),
+            evidence_cache=binding_evidence_cache,
         )
         # A genuine live incident may retain a larger unresolved cohort: the
         # transaction remains one user, while the incident owner supplies the
@@ -23811,81 +23831,12 @@ def ct_m0f_standing_source_selection_only(
         and availability_scope.get("shared_target_fault_injection_allowed")
         is False
     )
-    target_diagnostic = (
-        controlled_campaign_target_selection_diagnostic(args)
-        if policy_file is not None
-        else {"targets": []}
-    )
+    # Target admission is expensive and cannot make an unbound source or an
+    # ambiguous identity executable.  Defer it until the existing L3/source
+    # gates have selected an exact one-user predecessor below.
+    target_diagnostic = {"targets": [], "selection": {}}
     shared_targets = []
     controlled_contract_targets = []
-    for row in target_diagnostic.get("targets") or []:
-        if not isinstance(row, dict):
-            continue
-        target_id = str(row.get("target_id") or "")
-        availability = (
-            row.get("shared_target_availability")
-            if isinstance(row.get("shared_target_availability"), dict)
-            else {}
-        )
-        capacity = row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
-        if (
-            target_id
-            and bool((row.get("health") or {}).get("ok"))
-            and bool(row.get("ordinary_planner_eligible"))
-            and bool(row.get("shared_target_technically_eligible"))
-            and str(availability.get("state") or "") == "HEALTHY"
-            and availability.get("policy_boundary") == "NONE"
-            and int(capacity.get("target_safe_additional_capacity") or 0) >= 1
-            and bool(row.get("verification_supported"))
-            and bool(row.get("rollback_containment_supported"))
-        ):
-            shared_targets.append(row)
-        # An isolated EXECUTION_ONLY destination is not an ordinary Planner
-        # target by design.  It is nevertheless a lawful CT-M0F destination
-        # when the *existing* target owner has classified it as a controlled
-        # rebind target and the current standing action class admits one
-        # certification-only assignment.  Requiring ordinary-planner
-        # eligibility here created a circular predecessor: the target
-        # diagnostic admitted the target, while the CT-M0F consumer discarded
-        # it before Candidate/Packet preparation.  Preserve every live gate;
-        # this only consumes the already-owned controlled-target disposition.
-        controlled_contract_admissible = (
-            target_id
-            and bool(row.get("controlled_rebind_eligible"))
-            and bool(row.get("controlled_only_contract"))
-            and str(row.get("role") or "").upper() == "EXECUTION_ONLY"
-            and str(row.get("reservation_owner") or "")
-            == "operator_execution_governance"
-            and bool(row.get("shared_target_technically_eligible"))
-            and str(availability.get("state") or "") == "HEALTHY"
-            and availability.get("policy_boundary") == "NONE"
-            and bool((row.get("health") or {}).get("ok"))
-            and bool(row.get("current_stage_feasible"))
-            and int(capacity.get("target_safe_additional_capacity") or 0) >= 1
-            and bool(row.get("verification_supported"))
-            and bool(row.get("rollback_containment_supported"))
-        )
-        if controlled_contract_admissible:
-            controlled_contract_targets.append(row)
-    shared_targets.sort(
-        key=lambda row: (
-            -int(((row.get("capacity") or {}).get(
-                "target_safe_additional_capacity"
-            ) or 0)),
-            str(row.get("target_id") or ""),
-        )
-    )
-    diagnostic_selected_target = str(
-        (target_diagnostic.get("selection") or {}).get("selected_target_id")
-        or ""
-    )
-    controlled_contract_targets.sort(
-        key=lambda row: (
-            0 if str(row.get("target_id") or "") == diagnostic_selected_target else 1,
-            int(row.get("selected_target_rank") or 999999),
-            str(row.get("target_id") or ""),
-        )
-    )
     selection_mode = (
         "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
         if failed_ready
@@ -23910,6 +23861,7 @@ def ct_m0f_standing_source_selection_only(
             event_dir=Path(
                 getattr(args, "event_dir", "") or state_dir / "events"
             ),
+            evidence_cache=binding_evidence_cache,
         )
         if selected_source and not bool(selected.get("controlled_condition_active"))
         else {
@@ -23954,6 +23906,53 @@ def ct_m0f_standing_source_selection_only(
         selected_user_row = baseline_users[0] if baseline_users else {}
         selected_target_projection = baseline
     selected_user = str(selected_user_row.get("ip") or "")
+    if selected_source and selected_user and policy_file is not None:
+        target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+        diagnostic_selected_target = str(
+            (target_diagnostic.get("selection") or {}).get("selected_target_id")
+            or ""
+        )
+        for row in target_diagnostic.get("targets") or []:
+            if not isinstance(row, dict):
+                continue
+            target_id = str(row.get("target_id") or "")
+            availability = row.get("shared_target_availability") if isinstance(
+                row.get("shared_target_availability"), dict
+            ) else {}
+            capacity = row.get("capacity") if isinstance(row.get("capacity"), dict) else {}
+            common_ready = (
+                target_id
+                and bool((row.get("health") or {}).get("ok"))
+                and bool(row.get("shared_target_technically_eligible"))
+                and str(availability.get("state") or "") == "HEALTHY"
+                and availability.get("policy_boundary") == "NONE"
+                and int(capacity.get("target_safe_additional_capacity") or 0) >= 1
+                and bool(row.get("verification_supported"))
+                and bool(row.get("rollback_containment_supported"))
+            )
+            if common_ready and bool(row.get("ordinary_planner_eligible")):
+                shared_targets.append(row)
+            if (
+                common_ready
+                and bool(row.get("controlled_rebind_eligible"))
+                and bool(row.get("controlled_only_contract"))
+                and str(row.get("role") or "").upper() == "EXECUTION_ONLY"
+                and str(row.get("reservation_owner") or "")
+                == "operator_execution_governance"
+                and bool(row.get("current_stage_feasible"))
+            ):
+                controlled_contract_targets.append(row)
+        shared_targets.sort(key=lambda row: (
+            -int(((row.get("capacity") or {}).get(
+                "target_safe_additional_capacity"
+            ) or 0)),
+            str(row.get("target_id") or ""),
+        ))
+        controlled_contract_targets.sort(key=lambda row: (
+            0 if str(row.get("target_id") or "") == diagnostic_selected_target else 1,
+            int(row.get("selected_target_rank") or 999999),
+            str(row.get("target_id") or ""),
+        ))
     selected_target = str(selected_target_projection.get("source_id") or "")
     isolated_target_admitted = bool(
         selected_target

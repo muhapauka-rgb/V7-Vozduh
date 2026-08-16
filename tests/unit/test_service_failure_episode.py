@@ -584,6 +584,60 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(result["requires_binding"])
         self.assertEqual(result["status"], "NO_ACTIVE_SERVICE_FAILURE_BINDING")
 
+    def test_ct_m0f_binding_reuses_ephemeral_current_owner_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "l3-runtime-state.json").write_text(
+                json.dumps({"incidents": {}}), encoding="utf-8"
+            )
+            cache = {"l3_state": {"incidents": {}}, "users": []}
+            with mock.patch.object(
+                self.autoswitch,
+                "read_json",
+                side_effect=AssertionError("must reuse supplied L3 projection"),
+            ), mock.patch.object(
+                self.autoswitch,
+                "parse_registry",
+                side_effect=AssertionError("must reuse supplied users projection"),
+            ):
+                result = self.autoswitch.ct_m0f_active_service_failure_binding_projection(
+                    state, "vless", evidence_cache=cache,
+                )
+        self.assertEqual(result["status"], "NO_ACTIVE_SERVICE_FAILURE_BINDING")
+
+    def test_ct_m0f_selector_does_not_scan_targets_before_exact_source_binding(self):
+        args = SimpleNamespace(state_dir="/unused", policy_file="/unused")
+        pool = {"active_source_projections": [{
+            "source_id": "unbound",
+            "enabled_certification_users_on_source": 1,
+            "enabled_non_certification_users_on_source": 0,
+            "source_isolated_for_controlled_failure": True,
+            "baseline_health": {"ok": False},
+        }]}
+        with mock.patch.object(
+            self.autoswitch,
+            "controlled_certification_pool_status",
+            return_value=pool,
+        ), mock.patch.object(
+            self.autoswitch,
+            "parse_registry",
+            return_value=[],
+        ), mock.patch.object(
+            self.autoswitch,
+            "ct_m0f_active_service_failure_binding_projection",
+            return_value={"ok": False, "requires_binding": True},
+        ), mock.patch.object(
+            self.autoswitch,
+            "controlled_campaign_target_selection_diagnostic",
+            side_effect=AssertionError("target scan must wait for exact source binding"),
+        ):
+            result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+        self.assertFalse(result["ok"])
+        self.assertIn(
+            "no_healthy_isolated_controlled_source_with_group_aligned_certification_identity",
+            result["blockers"],
+        )
+
     def test_ct_m0f_standing_source_selection_rejects_ordinary_only_target(self):
         pool = {
             "active_source_projections": [{

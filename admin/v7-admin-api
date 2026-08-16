@@ -36769,6 +36769,13 @@ PersistentKeepalive = 25
       try {
         const session = await api('/api/session');
         csrf = session.csrf || '';
+        const initialRoute = parseAdminRoute();
+        if (initialRoute.tab === 'channels' && initialRoute.workspace === 'onboarding') {
+          // The saved-draft lifecycle has its own lightweight owner endpoint.
+          // Do not hold that operator workflow behind the full overview fan-out.
+          applyAdminRoute({persist:true, history:'replace'});
+          return;
+        }
         applyOverviewData(await api('/api/overview'), {render:true, traffic:true});
         loadOperatorDecisionSurface(true);
         loadTrustSurfaces();

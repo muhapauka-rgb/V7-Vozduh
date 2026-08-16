@@ -2373,6 +2373,38 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 ):
                     self.assertEqual(module.main(args), 0)
 
+    def test_one_user_substrate_preflight_never_calls_provisioner(self):
+        module = load_cli_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text("id=1\nenabled=1\n", encoding="utf-8")
+            (state / "users.registry").write_text("", encoding="utf-8")
+            leases = root / "leases.registry"
+            leases.write_text("", encoding="utf-8")
+            args = argparse.Namespace(
+                operator_execution_audit_store=str(root / "audit.jsonl"),
+                controlled_certification_substrate_request_id="cpsauth_r1_test",
+                controlled_certification_substrate_request_hash="a" * 64,
+                confirm_controlled_certification_substrate_provisioning="",
+                ipam_leases_file=str(leases),
+                identity_provisioner="v7-user-create-from-ipam",
+                egress_state_owner="v7-egress-set-state",
+            )
+            binding = {"ok": True, "blockers": [], "decision_id": "cpsdec_test", "source_id": "1", "scope": {
+                "profile": operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE,
+                "target_total_certification_identities": 1,
+                "max_new_certification_identities": 1,
+                "identity_strategy": "PROVISION_INCREMENTAL_DELTA",
+                "campaign_stages": [1], "automatic_stage_progression": False,
+            }}
+            with mock.patch.object(module, "approved_controlled_certification_substrate_binding", return_value=binding), mock.patch.object(module.subprocess, "run") as run:
+                result = module.provision_approved_controlled_certification_substrate(args, state_dir=state, audit_dir=root)
+            self.assertEqual(result["final_verdict"], "CONTROLLED_CERTIFICATION_SUBSTRATE_PREFLIGHT_READY")
+            self.assertEqual(result["identities_to_create"], 1)
+            run.assert_not_called()
+
     def test_controlled_cleanup_admits_only_exact_certification_pre_state(self):
         module = load_cli_module()
         selected = module.controlled_certification_cleanup_selection(

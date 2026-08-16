@@ -1836,8 +1836,14 @@ def approved_controlled_certification_substrate_binding(
         blockers.append("controlled_substrate_ordinary_customer_scope_forbidden")
     if int(scope.get("max_concurrent_transactions") or 0) != 1:
         blockers.append("controlled_substrate_concurrency_not_one")
-    if list(scope.get("campaign_stages") or []) != [5, 10, 25, 48]:
+    expected_stages = [1] if (
+        str(scope.get("profile") or "")
+        == operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+    ) else [5, 10, 25, 48]
+    if list(scope.get("campaign_stages") or []) != expected_stages:
         blockers.append("controlled_substrate_campaign_stages_changed")
+    if bool(scope.get("automatic_stage_progression")) != (expected_stages != [1]):
+        blockers.append("controlled_substrate_progression_changed")
     return {
         "schema_version": "v7.controlled-certification-substrate-binding.v1",
         "ok": not blockers,
@@ -1919,17 +1925,19 @@ def provision_approved_controlled_certification_substrate(
         )
     source = str(binding.get("source_id") or "")
     scope = binding.get("scope") if isinstance(binding.get("scope"), dict) else {}
+    profile = str(scope.get("profile") or "TIER48_CONTROLLED_CAMPAIGN")
+    one_user = profile == operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
     target_total = int(scope.get("target_total_certification_identities") or 0)
     max_new = int(scope.get("max_new_certification_identities") or 0)
     identity_strategy = str(scope.get("identity_strategy") or "")
     reuse_existing_pool = identity_strategy == "REUSE_EXISTING_VALID_POOL"
     if (
-        target_total != 48
+        target_total != (1 if one_user else 48)
         or (
             reuse_existing_pool and max_new != 0
         )
         or (
-            not reuse_existing_pool and max_new != 48
+            not reuse_existing_pool and max_new != (1 if one_user else 48)
         )
     ):
         return transaction_stop(
@@ -1937,8 +1945,14 @@ def provision_approved_controlled_certification_substrate(
             target_total=target_total,
             max_new=max_new,
         )
-    name_prefix = f"cert-t48-{request_hash[:8]}-"
-    group = f"t48-{request_hash[:12]}"
+    name_prefix = (
+        f"cert-ctm0f-{request_hash[:8]}-"
+        if one_user else f"cert-t48-{request_hash[:8]}-"
+    )
+    group = (
+        f"ctm0f-{request_hash[:12]}"
+        if one_user else f"t48-{request_hash[:12]}"
+    )
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", source):
         return transaction_stop("controlled_substrate_source_id_unsafe")
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", group):

@@ -129,6 +129,10 @@ CONTROLLED_CERTIFICATION_SUBSTRATE_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL = (
     "APPROVE_CONTROLLED_CERTIFICATION_SUBSTRATE_AND_CAMPAIGN"
 )
+CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE = "TIER48_CONTROLLED_CAMPAIGN"
+CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE = (
+    "CT_M0F_ONE_USER_SUBSTRATE"
+)
 CT_M0F_CONTROLLED_VALIDATION_REQUEST_SCHEMA = (
     "v7.ct-m0f-controlled-validation-engineering-authority-request.v1"
 )
@@ -2552,6 +2556,7 @@ def build_controlled_certification_substrate_authority_request(
     current_policy_contract_id,
     current_policy_contract_hash,
     target_total=48,
+    profile=CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE,
     controlled_target_id="",
     controlled_target_admission=None,
     now=None,
@@ -2566,7 +2571,13 @@ def build_controlled_certification_substrate_authority_request(
     """
     now = now or utc_now()
     pool = current_pool_status if isinstance(current_pool_status, dict) else {}
-    target_total = max(0, as_int(target_total, 0))
+    profile = str(profile or CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE)
+    if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE:
+        # This is a setup-only, one-identity substrate.  Packet/lease/apply
+        # remain separately admitted by the existing CT-M0F validation owner.
+        target_total = 1
+    else:
+        target_total = max(0, as_int(target_total, 0))
     current_total = max(0, as_int(pool.get("total_enabled_certification_users"), 0))
     current_on_source = max(
         0,
@@ -2594,8 +2605,13 @@ def build_controlled_certification_substrate_authority_request(
         "decision_set": [CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL, "DECLINE"],
         "issuing_owner_required": CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER,
         "active_program": str(active_program or ""),
-        "mission": "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION",
+        "mission": (
+            "V7_HOT_PATH_CT_M0F_ONE_USER_CONTROLLED_SUBSTRATE"
+            if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+            else "V7_SERVICE_FAILURE_T48_M8_CONTROLLED_POOL_RECONCILIATION"
+        ),
         "scope": {
+            "profile": profile,
             "target_total_certification_identities": target_total,
             "max_new_certification_identities": (
                 0 if reuse_existing_pool else required_incremental_identities
@@ -2617,9 +2633,17 @@ def build_controlled_certification_substrate_authority_request(
                 else "EXISTING_PLANNER_SAFE_TARGET"
             ),
             "single_controlled_source_required": True,
-            "campaign_stages": [5, 10, 25, 48],
+            "campaign_stages": (
+                [1]
+                if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+                else [5, 10, 25, 48]
+            ),
             "max_concurrent_transactions": 1,
-            "automatic_stage_progression": True,
+            "automatic_stage_progression": (
+                False
+                if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+                else True
+            ),
             "self_expansion_allowed": False,
         },
         "current_owner_backed_state": {
@@ -2671,18 +2695,17 @@ def build_controlled_certification_substrate_authority_request(
                 "exact_action": "mark certification-only and assign to the exact controlled source",
                 "independent_admission_required": True,
             },
-            {
+            *([] if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE else [{
                 "id": "CONTROLLED_SOURCE_CONDITION",
                 "owner": "existing v7-egress-set-state + Controlled Production owner",
                 "exact_action": "materialize and restore one bounded controlled failure per stage",
                 "independent_admission_required": True,
-            },
-            {
+            }, {
                 "id": "PROGRESSIVE_CAMPAIGN_EXECUTION",
                 "owner": "existing Matrix/Packet/lease/cohort transaction owners",
                 "exact_action": "execute 5 -> 10 -> 25 -> 48 with fresh gates and reset between stages",
                 "independent_admission_required": True,
-            },
+            }]),
         ],
         "subscope_law": {
             "approval_is_non_transitive": True,
@@ -2691,15 +2714,24 @@ def build_controlled_certification_substrate_authority_request(
             "setup_and_cleanup_are_not_evidence": True,
         },
         "per_stage_reset_law": {
-            "sequence": [
-                "stage_outcome",
-                "source_restoration",
-                "certification_identity_baseline_restoration",
-                "assignment_verification",
-                "new_incident_generation",
-                "fresh_controlled_condition",
-                "next_stage",
-            ],
+            "sequence": (
+                [
+                    "identity_provisioning",
+                    "certification_classification_and_assignment",
+                    "identity_baseline_verification",
+                    "separate_ct_m0f_validation_admission",
+                ]
+                if profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+                else [
+                    "stage_outcome",
+                    "source_restoration",
+                    "certification_identity_baseline_restoration",
+                    "assignment_verification",
+                    "new_incident_generation",
+                    "fresh_controlled_condition",
+                    "next_stage",
+                ]
+            ),
             "fresh_candidate_packet_lease_required": True,
             "packet_reuse_forbidden": True,
         },
@@ -2729,8 +2761,9 @@ def build_controlled_certification_substrate_authority_request(
         ],
         "reentry_condition": (
             "exact Authority decision admits or declines every coordinated subscope; "
-            "on approval, the existing provisioning and Controlled Production owners "
-            "revalidate the current registries before any write"
+            "on approval, the existing provisioning owner revalidates current "
+            "registries before any write; CT-M0F Packet/lease/apply requires its "
+            "separate existing one-use admission"
         ),
     }
     request_hash = controlled_certification_substrate_request_hash(request)
@@ -2776,7 +2809,14 @@ def validate_controlled_certification_substrate_authority_request(
     if request.get("issuing_owner_required") != CURRENT_ACTION_CLASS_CONTRACT_ISSUING_OWNER:
         errors.append("controlled_certification_substrate_owner_invalid")
     scope = request.get("scope") if isinstance(request.get("scope"), dict) else {}
-    if as_int(scope.get("target_total_certification_identities"), 0) != 48:
+    profile = str(scope.get("profile") or CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE)
+    one_user = profile == CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+    if profile not in {
+        CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE,
+        CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE,
+    }:
+        errors.append("controlled_certification_substrate_profile_invalid")
+    if as_int(scope.get("target_total_certification_identities"), 0) != (1 if one_user else 48):
         errors.append("controlled_certification_substrate_target_invalid")
     max_new = as_int(scope.get("max_new_certification_identities"), -1)
     identity_strategy = str(scope.get("identity_strategy") or "")
@@ -2786,18 +2826,20 @@ def validate_controlled_certification_substrate_authority_request(
                 "controlled_certification_substrate_reuse_creation_ceiling_invalid"
             )
     elif identity_strategy == "PROVISION_INCREMENTAL_DELTA":
-        if max_new < 0 or max_new > 48:
+        if max_new < 0 or max_new > (1 if one_user else 48):
             errors.append(
                 "controlled_certification_substrate_creation_ceiling_invalid"
             )
-    elif max_new != 48:
+    elif max_new != (1 if one_user else 48):
         # Backward-compatible validation for requests emitted before the
         # explicit incremental/reuse strategy was introduced.
         errors.append("controlled_certification_substrate_creation_ceiling_invalid")
     if scope.get("certification_only") is not True or scope.get("ordinary_customer_involvement") is not False:
         errors.append("controlled_certification_substrate_identity_scope_invalid")
-    if scope.get("campaign_stages") != [5, 10, 25, 48]:
+    if scope.get("campaign_stages") != ([1] if one_user else [5, 10, 25, 48]):
         errors.append("controlled_certification_substrate_campaign_invalid")
+    if scope.get("automatic_stage_progression") is not (False if one_user else True):
+        errors.append("controlled_certification_substrate_progression_invalid")
     if as_int(scope.get("max_concurrent_transactions"), 0) != 1:
         errors.append("controlled_certification_substrate_concurrency_invalid")
     controlled_target_id = str(scope.get("controlled_target_id") or "")
@@ -2833,9 +2875,13 @@ def validate_controlled_certification_substrate_authority_request(
                 "controlled_certification_execution_only_target_contract_invalid"
             )
     subscopes = request.get("coordinated_subscopes")
+    required_subscopes = (
+        {"IDENTITY_PROVISIONING", "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT"}
+        if one_user else set(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES)
+    )
     if not isinstance(subscopes, list) or {
         str(row.get("id") or "") for row in subscopes if isinstance(row, dict)
-    } != set(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES):
+    } != required_subscopes:
         errors.append("controlled_certification_substrate_subscopes_invalid")
     law = request.get("subscope_law") if isinstance(request.get("subscope_law"), dict) else {}
     if (
@@ -3040,13 +3086,7 @@ def record_controlled_certification_substrate_authority_decision(
             "controlled_certification_substrate_authority_actor_missing"
         )
     admitted = sorted(set(str(item) for item in (admitted_subscopes or [])))
-    expected = sorted(CONTROLLED_CERTIFICATION_SUBSTRATE_SUBSCOPES)
-    if decision == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL:
-        if admitted != expected:
-            raise PacketError(
-                "controlled_certification_substrate_approval_subscopes_incomplete"
-            )
-    elif admitted:
+    if decision != CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL and admitted:
         raise PacketError(
             "controlled_certification_substrate_decline_admits_subscopes"
         )
@@ -3098,6 +3138,15 @@ def record_controlled_certification_substrate_authority_decision(
             audit_store=audit_store,
             now=now,
         )
+        expected = sorted(
+            str(row.get("id") or "")
+            for row in (request.get("coordinated_subscopes") or [])
+            if isinstance(row, dict)
+        )
+        if decision == CONTROLLED_CERTIFICATION_SUBSTRATE_APPROVAL and admitted != expected:
+            raise PacketError(
+                "controlled_certification_substrate_approval_subscopes_incomplete"
+            )
         validation = validate_controlled_certification_substrate_authority_request(
             request,
             decision=decision,

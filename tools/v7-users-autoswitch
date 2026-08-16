@@ -17526,6 +17526,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--controlled-certification-substrate-profile",
+        choices=("tier48-campaign", "ct-m0f-one-user"),
+        default="tier48-campaign",
+        help=(
+            "Use the existing Tier-48 campaign contract by default; CT-M0F is "
+            "setup-only for exactly one certification identity."
+        ),
+    )
+    parser.add_argument(
         "--prepare-ct-m0f-controlled-validation-authority-request",
         action="store_true",
         help=(
@@ -22735,6 +22744,11 @@ def controlled_certification_substrate_authority_request_only(
             ],
         }
 
+    profile = str(
+        getattr(args, "controlled_certification_substrate_profile", "tier48-campaign")
+        or "tier48-campaign"
+    )
+    one_user = profile == "ct-m0f-one-user"
     policy_root = read_json(Path(args.policy_file), {})
     policy_root = policy_root if isinstance(policy_root, dict) else {}
     contract = policy_root.get("delegated_autonomy_policy")
@@ -22814,8 +22828,11 @@ def controlled_certification_substrate_authority_request_only(
     blockers = []
     if not validation.get("ok"):
         blockers.extend(validation.get("errors") or ["standing_policy_invalid"])
-    if int((validation.get("policy") or {}).get("max_users_per_action") or 0) != 48:
+    policy_limit = int((validation.get("policy") or {}).get("max_users_per_action") or 0)
+    if not one_user and policy_limit != 48:
         blockers.append("tier48_standing_policy_required")
+    if one_user and policy_limit < 1:
+        blockers.append("standing_policy_one_user_floor_required")
     if not source_id:
         blockers.append(
             "healthy_isolated_controlled_source_or_existing_candidate_required"
@@ -22859,6 +22876,11 @@ def controlled_certification_substrate_authority_request_only(
         current_pool_status=pool,
         current_policy_contract_id=str(contract.get("contract_id") or ""),
         current_policy_contract_hash=str(contract.get("contract_hash") or ""),
+        profile=(
+            operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE
+            if one_user
+            else operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_TIER48_PROFILE
+        ),
         controlled_target_id=controlled_target_id,
         controlled_target_admission={
             **controlled_target,

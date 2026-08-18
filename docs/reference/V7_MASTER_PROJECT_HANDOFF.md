@@ -4,7 +4,7 @@ Status: `CANONICAL_ENTRY_POINT`
 
 Handoff state: `CURRENT_SYNCHRONIZED_FOR_SEAMLESS_NEW_CHAT_CONTINUATION`
 
-Last synchronized: `2026-08-13`
+Last synchronized: `2026-08-18`
 
 Live volatile state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0
 
@@ -17,6 +17,72 @@ live state differ. Engineering Reports are historical evidence only.
 
 Do not create another handoff, parallel roadmap, Program, Runtime, Planner, queue,
 scheduler, Authority, or truth source merely to continue from this document.
+
+## 0. Current Continuation Snapshot — 2026-08-18
+
+This is a dated continuation pointer, not a second live-state owner. Read CPS
+Section 0 first; then revalidate the live VLESS facts below before any mutation.
+
+### Immediate product frontier
+
+The immediate objective is a genuine, bounded automatic move of one **enabled
+managed** user from a failed source to an existing healthy target through the
+existing path:
+
+```text
+Planner -> Packet -> lease -> restore barrier -> apply -> verify
+```
+
+OMP, reports, learning, replay, analytics and certification history are not part
+of the client-switching KPI or a synchronous dependency of that path.
+
+### VLESS lane: current verified state
+
+Read-only verification on `2026-08-18` established the following:
+
+- VLESS is an existing `controlled-certification` source, not an ordinary
+  production-assignment pool.
+- Its active eligible-user count is zero: the only assigned certification record
+  is disabled. The Admin channel view independently reports zero users.
+- Its controlled-source reservation is expired.
+- The existing governed preflight returned `STOP_SAFE` without writing a
+  Candidate, Packet, lease, route, restore barrier or user movement.
+
+Therefore **do not** directly edit registry rows, reclassify a disabled record as
+a live user, create a duplicate channel, or reuse an old Packet/lease/Authority
+decision. Those operations would manufacture a test condition rather than perform
+automatic failover for an actual client.
+
+### Exact legal terminal and re-entry
+
+Current lane-local terminal:
+
+`STOP_SAFE_NO_ELIGIBLE_LIVE_VLESS_USER`
+
+Exact next owner-backed frontier:
+
+`EXISTING_CONTROLLED_CERTIFICATION_OWNER_FRESH_PREPARATION_AUTHORITY`
+
+The existing controlled-certification owner must first supply a fresh valid
+lifecycle: one enabled managed identity plus a non-expired exact reservation.
+Only then may the existing Planner select a healthy target and execute the
+one-user transaction. This prerequisite is a state/Authority boundary, not a
+reason to add a new owner, Runtime, Planner, queue, registry or truth source.
+
+Engineering evidence for this snapshot is local-only:
+
+`/private/tmp/v7-hot-path-reports-local/V7_VLESS_AUTOMATIC_FAILOVER_ELIGIBILITY_REPORT_2026-08-18_1135_MSK.md`
+
+### New-chat entry sequence
+
+1. Read `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0.
+2. Read this Section 0 and the local Engineering Report above.
+3. Run the existing read-only governed preflight to revalidate the exact current
+   VLESS eligibility; never infer it from a previous report.
+4. If the controlled owner has produced the fresh lifecycle, continue through
+   the existing bounded transaction owners only. Otherwise preserve the terminal
+   and work on independent admitted engineering tracks; do not wait by adding
+   audit machinery.
 
 ## 1. Project Purpose
 

@@ -103,6 +103,14 @@ RS7_NON_RUNTIME_SCOPE_CLASSIFICATIONS = {
     "ENGINEERING_PLANE",
 }
 
+RS6_FINAL_EVIDENCE_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md"
+)
+RS6_STALE_FRONTIER_TERMINAL = (
+    "RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES"
+)
+
 
 def _is_rs_read_only_admission_frontier(live: dict[str, str]) -> bool:
     """Recognize the existing RS0-RS6 CPS frontier before generic OMP selection."""
@@ -133,6 +141,56 @@ def _is_rs7_physical_admission_frontier(live: dict[str, str]) -> bool:
         value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
         value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
     ))
+
+
+def rs6_stale_frontier_reconciliation_assessment(
+    cps_text: str, report_text: str, omp_text: str,
+) -> dict[str, Any]:
+    """Classify the one proven RS6 action-without-owner lifecycle defect."""
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    evidence = {
+        "exact_rs6_frontier": _is_rs_read_only_admission_frontier(live),
+        "handler_absence_proven": (
+            "The source contains no separate executable handler for the literal action"
+            in report_text
+            and "`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`" in report_text
+        ),
+        "runtime_responsibilities_dispositioned": (
+            "Current RS6 decision after targeted closures" in report_text
+            and "are `KEEP_RUNTIME`; only the seven dated autoswitch" in report_text
+        ),
+        "bounded_physical_shrink_consumed": (
+            "## Executed physical shrink — dated autoswitch backups" in report_text
+            and "dated autoswitch backup executables in `/usr/local/bin` | 7 | 0" in report_text
+            and "files deleted | 0 | 0 | 0" in report_text
+        ),
+        "rollback_and_residue_proven": (
+            "all seven archive checksums match" in report_text
+            and "no dated backup residue remains in `/usr/local/bin`" in report_text
+            and "The active canonical binary is intentionally not part of the rollback set"
+            in report_text
+        ),
+        "contract_allows_terminal_reconciliation": (
+            "RS6_STALE_FRONTIER_RECONCILIATION_RULE" in omp_text
+            and RS6_STALE_FRONTIER_TERMINAL in omp_text
+        ),
+    }
+    ready = all(evidence.values())
+    return {
+        "schema": "v7.rs6-stale-frontier-reconciliation-assessment.v1",
+        "final_verdict": "PASS" if ready else "STOP_SAFE",
+        "blocker_classification": (
+            "RS6_CONTRACT_NAMES_AN_ACTION_WITH_NO_VALID_IMPLEMENTATION_OWNER"
+            if ready else "RS6_EXACT_RESIDUAL_REMAINS_AND_EXISTING_OWNER_CAN_EXECUTE"
+        ),
+        "rs6_terminal": RS6_STALE_FRONTIER_TERMINAL if ready else "NONE",
+        "evidence": evidence,
+        "errors": [] if ready else sorted(key for key, value in evidence.items() if not value),
+    }
 
 NORMALIZED_CPS_LIVE_STATE = {
     "active_program": "ROUTING_DIGITAL_TWIN_POLYGON_MASTER_PROGRAM",
@@ -21153,6 +21211,201 @@ def reconcile_active_standing_delegated_policy_to_cps(
     }
 
 
+def reconcile_rs6_stale_frontier_to_existing_successor(
+    *, root: Path = ROOT, persist_cps: bool = False,
+) -> dict[str, Any]:
+    """Consume the stale RS6 action through the existing CPS atomic writer."""
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    report_path = root / RS6_FINAL_EVIDENCE_REPORT
+    omp_path = root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        report_text = report_path.read_text(encoding="utf-8")
+        omp_text = omp_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7.rs6-stale-frontier-reconciliation.v1",
+            "final_verdict": "STOP_SAFE",
+            "blocker_classification": "RS6_EXACT_RESIDUAL_REMAINS_AND_EXISTING_OWNER_CAN_EXECUTE",
+            "errors": [f"rs6_reconciliation_input_unavailable:{exc}"],
+        }
+    assessment = rs6_stale_frontier_reconciliation_assessment(
+        cps_text, report_text, omp_text,
+    )
+    if assessment["final_verdict"] != "PASS":
+        return {
+            **assessment,
+            "schema": "v7.rs6-stale-frontier-reconciliation.v1",
+            "program_terminal": "RS6_STALE_FRONTIER_NOT_CONSUMED",
+        }
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    unresolved_text = _plain_live_value(live, "CURRENT_VLESS_UNRESOLVED_SCOPE")
+    try:
+        unresolved = int(unresolved_text or "0")
+    except ValueError:
+        unresolved = -1
+    matrix_consumer = _plain_live_value(
+        live, "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER",
+    )
+    if unresolved <= 0 or matrix_consumer != "tools/v7-service-matrix-refresh-all":
+        return {
+            **assessment,
+            "schema": "v7.rs6-stale-frontier-reconciliation.v1",
+            "final_verdict": "STOP_SAFE",
+            "program_terminal": "RS6_TERMINAL_PROVEN_SUCCESSOR_NOT_OWNER_BACKED",
+            "errors": ["active_service_failure_successor_not_current_or_not_owner_backed"],
+        }
+
+    next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
+    transition_material = {
+        "from_generation": _plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        "from_mission": _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID"),
+        "rs6_terminal": RS6_STALE_FRONTIER_TERMINAL,
+        "next_action": next_action,
+        "next_consumer": matrix_consumer,
+        "unresolved_scope": unresolved,
+    }
+    fingerprint = hashlib.sha256(json.dumps(
+        transition_material, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    previous_terminal_id = state["latest_terminal_mission_id"]
+    previous_terminal_report = state["latest_terminal_mission_report"]
+    rs6_mission_id = _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID")
+    state.update({
+        "active_program": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "current_stop_condition": "NONE",
+        "current_active_scope": "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN",
+        "current_safe_next_action": (
+            "CONTINUE THE SAME OPEN VLESS INCIDENT THROUGH THE EXISTING FRESH MATRIX "
+            "REVALIDATION PATH; PRESERVE INDEPENDENT V5.3 ADMISSION BOUNDARY"
+        ),
+        "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+        "current_state_generation": f"cpsgen_RS6_TERMINAL_{fingerprint[:12].upper()}",
+        "current_transition_id": "V7_RS6_STALE_FRONTIER_TO_SERVICE_FAILURE_SUCCESSOR_V1",
+        "current_next_action_id": next_action,
+        "current_program_stage": "SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN",
+        "current_program_execution_frontier": next_action,
+        "current_execution_frontier": next_action,
+        "continuation_decision": "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN",
+        "program_terminal_state": "NONE_ACTIVE_INCIDENT_DRAIN_SUCCESSOR_READY",
+        "program_terminal_class": "NONE",
+        "transaction_terminal_class": "RS6_STALE_FRONTIER_CONSUMED_SUCCESSOR_ACTIVATED",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "TRUE",
+        "next_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3,
+        "current_execution_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3,
+        "current_execution_mission_state": "ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR",
+        "current_mission_role": "ACTIVE_MISSION",
+        "current_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3,
+        "current_run_nonce": f"rs6terminal_{fingerprint[:24]}",
+        "current_mission_state": "ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR",
+        "current_mission_report": RS6_FINAL_EVIDENCE_REPORT,
+        "latest_terminal_mission_id": rs6_mission_id,
+        "latest_terminal_mission_state": RS6_STALE_FRONTIER_TERMINAL,
+        "latest_terminal_mission_report": RS6_FINAL_EVIDENCE_REPORT,
+        "latest_terminal_run_nonce": _plain_live_value(live, "CURRENT_RUN_NONCE"),
+        "latest_terminal_mission_started_at": _plain_live_value(
+            live, "LATEST_TERMINAL_MISSION_STARTED_AT",
+        ),
+        "previous_terminal_mission_id": previous_terminal_id,
+        "previous_terminal_mission_report": previous_terminal_report,
+        # These three fields are the established OMP functional-footprint
+        # projection, not the lifecycle label of the newly active incident.
+        # Preserve the values derived by that existing validator.
+        "aep_phase6_status": "REAL_WORLD_LIMIT",
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
+        "program_frontier_input": (
+            f"RS6 terminal {RS6_STALE_FRONTIER_TERMINAL} consumed; "
+            f"active VLESS unresolved scope={unresolved}"
+        ),
+        "program_frontier_owner": matrix_consumer,
+        "program_frontier_expected_output": (
+            "fresh Matrix observation -> existing incident consumer -> next owner-backed output"
+        ),
+        "smallest_existing_next_action": next_action,
+        "wip_smallest_existing_next_action_id": next_action,
+        "wip_smallest_existing_next_action": next_action,
+        "wip_current_primary_stop": "NONE",
+        "wip_authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES",
+        "authority_required_now": "NO_INSIDE_ACTIVE_STANDING_POLICY_AND_LIVE_GATES",
+        "last_responsible_link": (
+            "RS6 final evidence -> existing CPS atomic reconciliation -> "
+            "existing Matrix incident consumer"
+        ),
+        "omp_continuation_pointer": (
+            "Continue through the existing active Service Failure Matrix consumer; "
+            "V5.3 remains registration-only until exact OMP/CPS admission"
+        ),
+        "continuation_stop_reason": (
+            "RS6_STALE_NON_EXECUTABLE_FRONTIER_CONSUMED; "
+            "ACTIVE_SERVICE_FAILURE_SUCCESSOR_RESTORED"
+        ),
+        "automatic_continue_omp_result": "RS6_STALE_FRONTIER_CONSUMED_SUCCESSOR_ACTIVATED",
+        "no_progress_fingerprint": fingerprint,
+        "continuation_iteration": str(int(state.get("continuation_iteration") or "0") + 1),
+        "state_captured": utc_now(),
+        "source_summary": (
+            "RS6 evidence classified every live Runtime responsibility, physically archived seven "
+            "dated autoswitch backups with rollback and zero residue, and proved the literal CPS "
+            "action had no executable owner; the existing atomic CPS owner consumed that stale "
+            "projection and restored the existing Matrix incident successor."
+        ),
+    })
+    section0_overrides = {
+        "PRIMARY_ENGINEERING_FRONTIER": "`SERVICE_FAILURE_AUTOMATION_ACTIVE_INCIDENT_DRAIN`",
+        "PRIMARY_ENGINEERING_NEXT_ACTION": f"`{next_action}`",
+        "CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER": f"`{matrix_consumer}`",
+        "CURRENT_SERVICE_FAILURE_REENTRY_CONDITION": (
+            "`enabled v7-service-matrix-refresh.timer performs fresh observation and consumes "
+            "the durable active-incident successor`"
+        ),
+        "INCIDENT_FRONTIER": f"`{next_action}`",
+    }
+    atomic = (
+        atomic_reconcile_cps(
+            cps_path,
+            state=state,
+            request_external_wake=False,
+            expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+            section0_field_overrides=section0_overrides,
+        )
+        if persist_cps else {
+            "ok": True,
+            "status": "SIMULATED_ATOMIC_UPDATE",
+            "post_write_reread": "PASS",
+        }
+    )
+    update_ok = atomic.get("ok") is True and atomic.get("post_write_reread") == "PASS"
+    return {
+        **assessment,
+        "schema": "v7.rs6-stale-frontier-reconciliation.v1",
+        "final_verdict": "PASS" if update_ok else "STOP_SAFE",
+        "program_terminal": "RS6_STALE_FRONTIER_CONSUMED_SUCCESSOR_ACTIVATED",
+        "from_mission_id": rs6_mission_id,
+        "next_mission_id": SERVICE_FAILURE_AUTOMATION_CAUSAL_M3,
+        "next_output": next_action,
+        "real_caller": "continue_omp_engineering_control_loop",
+        "real_consumer": matrix_consumer,
+        "behavior_change": "STALE_RS6_PREEMPTION_REMOVED_EXISTING_SUCCESSOR_RESTORED",
+        "atomic_update": atomic,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "production_maturity_impact": "NO_CHANGE",
+        "errors": [] if update_ok else atomic.get("errors") or ["atomic_cps_rs6_terminal_failed"],
+    }
+
+
 def continue_omp_engineering_control_loop(
     *,
     root: Path = ROOT,
@@ -21268,9 +21521,38 @@ def continue_omp_engineering_control_loop(
         # A CPS-admitted RS0-RS6 read-only phase is already the smallest
         # existing engineering frontier.  Generic Polygon/product selection
         # cannot consume unrelated work before its exact phase owner does.
-        # This acknowledgement intentionally performs no CPS write, including
-        # when a caller asks to persist the generic Continue OMP result.
+        # The only exception is the narrowly evidenced RS6 stale-frontier
+        # repair below: it consumes no product work and uses the existing
+        # atomic CPS owner to replace a literal action whose missing handler
+        # and completed bounded residue are both proved by the canonical
+        # contract and final RS6 evidence.
         if _is_rs_read_only_admission_frontier(live):
+            if _plain_live_value(live, "CURRENT_PROGRAM_STAGE") == "RS6_RUNTIME_PACKAGE_MINIMIZATION":
+                reconciliation = reconcile_rs6_stale_frontier_to_existing_successor(
+                    root=root, persist_cps=persist_cps,
+                )
+                if reconciliation.get("final_verdict") == "PASS":
+                    return {
+                        **reconciliation,
+                        "trigger": "Continue OMP",
+                        "entrypoint": (
+                            "tools/v7-truth-check --continue-omp "
+                            "--continue-omp-persist-cps --json"
+                        ),
+                        "priority_decision": "RS6_STALE_NON_EXECUTABLE_FRONTIER_RECONCILED",
+                        "exact_next_operator_command": reconciliation.get("next_output"),
+                        "exact_next_automatic_action": reconciliation.get("next_output"),
+                        "transitions": [{
+                            "transaction_terminal": (
+                                "RS6_STALE_FRONTIER_CONSUMED_SUCCESSOR_ACTIVATED"
+                            ),
+                            "mission_id": reconciliation.get("from_mission_id"),
+                            "next_mission_id": reconciliation.get("next_mission_id"),
+                            "next_output": reconciliation.get("next_output"),
+                            "no_user_prompt": True,
+                        }],
+                        "internal_iteration_count": 1,
+                    }
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
                 "final_verdict": "PASS",

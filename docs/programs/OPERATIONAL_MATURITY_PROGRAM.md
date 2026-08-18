@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.78`
+Version: `4.80`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -14,15 +14,70 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
+Latest consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md` (`RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES`).
+Current active Mission report: `docs/reports/engineering/2026-08-18_141724_rs6_stale_frontier_lifecycle_reconciliation.md` (`CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION`; `ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR`).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Previous consumed report: `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` (`STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED`).
+Previous consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md` (`CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED`).
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.80 adds `RS6_STALE_FRONTIER_RECONCILIATION_RULE` inside the existing OMP
+continuation and CPS atomic-reconciliation owners. It applies only when the
+exact RS6 CPS Mission is `PREPARED_NOT_ACTIVE`, the literal
+`EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION` action has no executable source
+handler, and accepted final RS6 evidence proves all observed Runtime
+responsibilities have owner-backed final dispositions, the one bounded
+physical shrink was executed with rollback and zero executable-path residue,
+and no unconsumed current removal candidate remains. That evidence terminal is
+`RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES`: minimality
+means every retained Runtime responsibility is justified and the proven
+residue was removed, not that live product/safety components must be deleted.
+The existing atomic CPS writer may then consume only the stale action
+projection, preserve the RS6 Mission as terminal history and restore the
+already owner-backed current successor. Missing evidence, an actual remaining
+candidate, identity drift or a non-owner-backed successor remains
+`STOP_SAFE`. This rule creates no RS6 executor, scheduler, owner, Runtime,
+truth source or permission to start V5.3 without exact OMP/CPS admission.
+
+V4.79 registers `V7 MATRIX / HEALTH DETECTION OPTIMIZATION` as one temporary
+bounded Engineering workstream inside the existing Service Failure Automation
+Evolution Program. It contributes to the broader failover/recovery latency
+objective through the distinct `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL
+CONFIRMED FAILURE EVENT` segment; CT-M0F remains a separate controlled-
+validation/latency lane and neither lane is a Runtime or completion dependency
+of the other. Existing `NO_UNNECESSARY_WAITING`, parallel-frontier and dynamic
+Mission-compression arbitration keeps Authority, controlled-substrate,
+external-owner and Natural-L8 blockers lane-local while independent safe
+Matrix Engineering work remains READY. Evidence classes cannot be
+cross-credited and no controlled action may be manufactured. V4.79 consumes the completed
+read-only `V7_FAILURE_DETECTION_AND_HEALTH_MODEL_OPTIMIZATION_V1` verdict and
+names `V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1` as the first
+unadmitted Candidate. Registration does not replace the current CPS frontier:
+`NOT_ADMITTED` is registration-time history, while live disposition is read
+only from CPS. The existing BDP/OMP admission and CPS atomic Mission-identity
+owner must produce `MISSION_EXECUTION_ALLOWED`. After admission, the standard Mission Completion
+Evidence Gate owns implementation, validation, consumer migration, residue,
+before/after latency, deploy/observation and successor closure. Its terminal
+requires one Matrix truth/event owner, measured fast/deep and probe-economy
+closure, canonical knowledge extraction, CPS successor advancement and active
+OMP-reference retirement before `ARCHIVED_HISTORICAL`. No Matrix writer,
+health truth, Planner, Runtime, watcher, daemon, queue, registry, Authority or
+parallel lifecycle is created.
+Its Phase C contract compares infrastructure-health and commercial routing/
+SD-WAN/multi-WAN mechanisms, but can close only after each material row is
+consumed as `REUSE`, `ADAPT` or `REJECT` by the existing Phase D/E/F/H owners.
+Detailed vendor evidence remains one Mission report; Program/OMP retain only
+requirements, terminal and successor semantics.
+Model B remains a strong standing hypothesis, not a final implementation
+decision. Existing OMP admission must preserve the V5.3 order `A/B/C/D -> E
+target decision -> F/G validation -> H implementation plan`; the first Matrix
+candidate cannot become execution-eligible before
+`V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` and exact first-residual
+confirmation are consumed by CPS.
 
 V4.72 removes the invalid per-generation human approval loop from CT-M0F by
 extending only the existing operator-execution standing-policy/audit owner.
@@ -8097,7 +8152,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Resolved current next action: `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`
 Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":1,"awg0":7,"awg3":7,"openvpn-1779388847-d2ad7c":1,"vless":33,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -9085,12 +9140,12 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION`
+Resolved current next action: `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN`
 Current terminal report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
-Latest consumed report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md`
-Current active Mission report: `docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md`
+Latest consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`
+Current active Mission report: `docs/reports/engineering/2026-08-18_141724_rs6_stale_frontier_lifecycle_reconciliation.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
-Previous consumed report: `docs/reports/engineering/2026-08-02_141500_stage_25_exact_receipt_and_fastest_safe_path.md`
+Previous consumed report: `docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`
 
 Current volatile state lives in:

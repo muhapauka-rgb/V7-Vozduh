@@ -66,6 +66,7 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
         text = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
         mission_id = "TEST_RS7_PHYSICAL_MISSION"
         for key, value in (
+            ("ACTIVE_PROGRAM", self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID),
             ("CURRENT_NEXT_ACTION_ID", "EXECUTE_TEST_RS7_PHYSICAL_MISSION"),
             ("CURRENT_PROGRAM_STAGE", "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION"),
             ("CURRENT_PROGRAM_EXECUTION_FRONTIER", f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}"),
@@ -85,11 +86,22 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
     def rs6_read_only_cps(self):
         text = (ROOT / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text()
         for key, value in (
+            ("ACTIVE_PROGRAM", self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID),
             ("CURRENT_NEXT_ACTION_ID", "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION"),
             ("CURRENT_PROGRAM_STAGE", "RS6_RUNTIME_PACKAGE_MINIMIZATION"),
             ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
             ("CURRENT_EXECUTION_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
             ("CURRENT_EXECUTION_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+            ("CURRENT_MISSION_ROLE", "ACTIVE_MISSION"),
+            ("CURRENT_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+            ("CURRENT_RUN_NONCE", "rs0_65CB2232971BC224D937140C"),
+            ("CURRENT_MISSION_REPORT", "docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md"),
+            ("LATEST_TERMINAL_MISSION_ID", "V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1"),
+            ("LATEST_TERMINAL_MISSION_STATE", "CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED"),
+            ("LATEST_TERMINAL_MISSION_REPORT", "docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md"),
+            ("CURRENT_COMPLETION_CONTRACT", "ANALYSIS_COMPLETION"),
+            ("CURRENT_COMPLETION_VERDICT", "RS6_RUNTIME_PACKAGE_MINIMIZATION_PREPARED_NOT_ACTIVE"),
         ):
             text = self.lib._replace_section_field(text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", key, f"`{value}`")
         return text
@@ -265,22 +277,20 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
             self.assertEqual(cps_path.read_text(), before)
 
     def test_34_current_rs_frontier_has_its_own_exact_owner_projection(self):
-        result = self.lib.program_execution_reconciliation(
-            self.lib.load_program_execution_sources(ROOT), root=ROOT,
-        )
+        result = self.reconcile(cps=self.rs6_read_only_cps())
         rs = next(
             row for row in result["program_inventory"]
             if row["program_id"] == self.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID
         )
         self.assertEqual(rs["portfolio_state"], "ACTIVE_WITH_DURABLE_SUCCESSOR")
-        self.assertEqual(rs["current_mission"], "EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1")
-        self.assertEqual(rs["next_consumer"], "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER")
+        self.assertEqual(rs["current_mission"], "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION")
+        self.assertEqual(rs["next_consumer"], "EXISTING_RS_READ_ONLY_PHASE_OWNER")
         self.assertEqual(
             rs["reentry_condition"],
-            "EXECUTE_V7_SYNC_LIB_UNUSED_LOCAL_HELPER_REMOVAL_V1 through the exact existing RS phase owner",
+            "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION through the exact existing RS phase owner",
         )
         omp = next(row for row in result["program_inventory"] if row["program_id"] == "OMP")
-        self.assertEqual(omp["next_consumer"], "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER")
+        self.assertEqual(omp["next_consumer"], "EXISTING_RS_READ_ONLY_PHASE_OWNER")
 
     def test_35_rs7_physical_frontier_preempts_generic_omp_without_persisting(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -313,6 +323,65 @@ NEXT_ACTION = WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES
         self.assertEqual(
             rows["OMP"]["next_consumer"],
             "EXISTING_RS7_PHYSICAL_MISSION_LIFECYCLE_OWNER",
+        )
+
+    def test_37_rs6_stale_frontier_is_classified_from_terminal_evidence(self):
+        result = self.lib.rs6_stale_frontier_reconciliation_assessment(
+            self.rs6_read_only_cps(),
+            (ROOT / self.lib.RS6_FINAL_EVIDENCE_REPORT).read_text(),
+            (ROOT / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text(),
+        )
+        self.assertEqual(result["final_verdict"], "PASS")
+        self.assertEqual(
+            result["blocker_classification"],
+            "RS6_CONTRACT_NAMES_AN_ACTION_WITH_NO_VALID_IMPLEMENTATION_OWNER",
+        )
+        self.assertEqual(
+            result["rs6_terminal"],
+            "RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES",
+        )
+
+    def test_38_existing_atomic_owner_replaces_stale_rs6_with_matrix_successor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+            omp_path = root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+            report_path = root / self.lib.RS6_FINAL_EVIDENCE_REPORT
+            cps_path.parent.mkdir(parents=True)
+            report_path.parent.mkdir(parents=True)
+            cps_path.write_text(self.rs6_read_only_cps())
+            omp_path.write_text(
+                (ROOT / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md").read_text()
+            )
+            report_path.write_text(
+                (ROOT / self.lib.RS6_FINAL_EVIDENCE_REPORT).read_text()
+            )
+
+            result = self.lib.continue_omp_engineering_control_loop(
+                root=root, persist_cps=True,
+            )
+            after = cps_path.read_text()
+
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(
+            result["priority_decision"],
+            "RS6_STALE_NON_EXECUTABLE_FRONTIER_RECONCILED",
+        )
+        self.assertEqual(
+            result["real_consumer"], "tools/v7-service-matrix-refresh-all",
+        )
+        self.assertIn(
+            "| `CURRENT_NEXT_ACTION_ID` | `CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN` |",
+            after,
+        )
+        self.assertIn(
+            "| `LATEST_TERMINAL_MISSION_STATE` | "
+            "`RUNTIME_PACKAGE_MINIMAL_PASS_WITH_OWNER_BACKED_KEEP_BOUNDARIES` |",
+            after,
+        )
+        self.assertNotIn(
+            "| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION` |",
+            after,
         )
 
 

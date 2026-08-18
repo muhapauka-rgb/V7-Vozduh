@@ -22,6 +22,36 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
     def setUpClass(cls):
         cls.lib = load_lib()
         cls.cps = CPS.read_text(encoding="utf-8")
+        for key, value in (
+            ("ACTIVE_PROGRAM", cls.lib.RESPONSIBILITY_REALIGNMENT_PROGRAM_ID),
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION"),
+            ("CURRENT_PROGRAM_STAGE", "RS6_RUNTIME_PACKAGE_MINIMIZATION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_EXECUTION_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+            ("CURRENT_MISSION_ROLE", "ACTIVE_MISSION"),
+            ("CURRENT_MISSION_ID", "V7_OMP_BDP_65CB2232971BC224D937140C_V1"),
+            ("CURRENT_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+            ("CURRENT_RUN_NONCE", "rs0_65CB2232971BC224D937140C"),
+            ("CURRENT_MISSION_REPORT", "docs/reports/engineering/2026-08-13_470000_v7_rs5_management_plane_separation.md"),
+            ("LATEST_TERMINAL_MISSION_ID", "V7_CONSTANT_TIME_COHORT_FAILOVER_M0_CURRENT_OWNER_DATAPLANE_AND_O_N_COST_RECONCILIATION_V1"),
+            ("LATEST_TERMINAL_MISSION_STATE", "CURRENT_DATAPLANE_CLASS_INDIRECTION_FEASIBILITY_AND_MINIMAL_IMPLEMENTATION_FRONTIER_CONSUMED"),
+            ("LATEST_TERMINAL_MISSION_REPORT", "docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md"),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("CONTINUATION_DECISION", "CONTINUE_PROGRAM_FRONTIER"),
+            ("PROGRAM_TERMINAL_CLASS", "NONE"),
+            ("AUTHORITY_REQUIRED_NOW", "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE"),
+            ("CURRENT_COMPLETION_CONTRACT", "ANALYSIS_COMPLETION"),
+            ("CURRENT_COMPLETION_VERDICT", "RS6_RUNTIME_PACKAGE_MINIMIZATION_PREPARED_NOT_ACTIVE"),
+        ):
+            cls.cps = cls.lib._replace_section_field(
+                cls.cps,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+                key,
+                f"`{value}`",
+            )
 
     @staticmethod
     def packet(**overrides):
@@ -93,6 +123,12 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
             "current_program_stage": "RS7_PHYSICAL_SIMPLIFICATION_EXECUTION",
             "current_program_execution_frontier": f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}",
             "current_execution_frontier": f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}",
+            "current_stop_condition": "NONE",
+            "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+            "program_terminal_class": "NONE",
+            "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+            "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+            "wip_current_primary_stop": "REAL_WORLD_LIMIT",
             "program_frontier_input": "RS6 scoped residual isolation PASS for one bounded Management Plane Mission",
             "program_frontier_owner": "EXISTING_OMP_CPS_ATOMIC_RECONCILIATION_OWNER",
             "program_frontier_expected_output": "MISSION_EXECUTION_ALLOWED -> bounded implementation -> validation -> residue closure",
@@ -104,6 +140,8 @@ class Rs7CpsLifecycleBindingTest(unittest.TestCase):
             "current_run_nonce": "rs7_admin_wrapper_f5b31a66f633",
             "current_mission_state": "MISSION_ADMITTED",
             "current_mission_report": "docs/reports/engineering/2026-08-14_160000_admin_operator_read_model_cps_admission_report.md",
+            "previous_terminal_mission_id": "FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1",
+            "previous_terminal_mission_report": "docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md",
             "current_completion_contract": "IMPLEMENTATION_COMPLETION",
             "current_completion_verdict": "MISSION_ADMITTED",
             "transaction_terminal_class": "RS7_BOUNDED_MISSION_ADMITTED",

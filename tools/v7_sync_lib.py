@@ -18412,6 +18412,10 @@ def reconcile_service_failure_external_authority_boundary(
         ),
         "state_captured": utc_now(),
     })
+    # The top-level engineering labels are scheduling projections too. Keep
+    # them aligned with the selected current scope so a closed incident cannot
+    # continue to appear as the primary stage after its product successor wins.
+    state["current_program_stage"] = state["current_active_scope"]
     atomic = atomic_reconcile_cps(
         cps_path,
         state=state,
@@ -21051,6 +21055,10 @@ def reconcile_active_standing_delegated_policy_to_cps(
         ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
         section0_field_overrides={
+            "PRIMARY_ENGINEERING_FRONTIER": (
+                f"`{state['current_active_scope']}`"
+            ),
+            "PRIMARY_ENGINEERING_NEXT_ACTION": f"`{primary_next_action}`",
             "CURRENT_AUTHORITY_REQUEST_STATUS": (
                 "`AWAITING_INDEPENDENT_AUTHORITY_DECISION`"
                 if pending_controlled_topology_policy else

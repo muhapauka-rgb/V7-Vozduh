@@ -5207,6 +5207,14 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 updated_live["CURRENT_VLESS_SCOPE_PROJECTION_STATUS"].strip("`"),
                 "PASS_AUTHORITATIVE_NO_OPEN_CURRENT_VLESS_INCIDENT",
             )
+            self.assertEqual(
+                updated_live["PRIMARY_ENGINEERING_FRONTIER"].strip("`"),
+                "SERVICE_FAILURE_AUTOMATION_STANDING_DELEGATED_POLICY_ACTIVE",
+            )
+            self.assertEqual(
+                updated_live["PRIMARY_ENGINEERING_NEXT_ACTION"].strip("`"),
+                "V7_SERVICE_FAILURE_AUTOMATION_FRESH_EVENT_REVALIDATION",
+            )
             self.assertTrue(
                 result["action_class_reuse_projection"][
                     "current_incident_projection_authoritative"

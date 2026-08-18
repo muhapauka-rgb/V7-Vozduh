@@ -857,7 +857,11 @@ def read_active_standing_policy_runtime_status(
         "ssh", target, "/usr/local/bin/v7-users-autoswitch",
         "--standing-delegated-policy-status",
     ]
-    result = runner(command, ROOT_DIR, 30)
+    # The status owner performs fresh Matrix/registry reconciliation before
+    # emitting JSON and can legitimately exceed 30 seconds on production.
+    # Keep this bridge bounded, but do not turn a healthy owner response into
+    # a transport-only STOP_SAFE before its normal refresh window completes.
+    result = runner(command, ROOT_DIR, 90)
     raw = command_output(result)
     try:
         status = json.loads(raw)

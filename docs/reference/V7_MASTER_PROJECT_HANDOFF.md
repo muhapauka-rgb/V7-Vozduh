@@ -1,514 +1,712 @@
-# V7 Master Project Handoff
+# V7 Vozduh — Master Project Handoff
 
-Status: `CANONICAL_ENTRY_POINT`
+**Status:** `CURRENT_HANDOFF_REFERENCE`
+**Purpose:** self-contained working memory for a new engineering context, not a short report. It deliberately preserves enough causal history that a new agent need not reconstruct this project from chats.
+**Reconstructed:** 2026-08-18
+**Architecture owner:** `docs/reference/V7_CANONICAL_REFERENCE.md`
+**Topology owner:** `docs/reference/SYSTEM_MAP.md`
+**Volatile current-state owner:** `docs/programs/V7_CURRENT_PROGRAM_STATE.md` (CPS)
+**Evidence rule:** reports are historical evidence; they are not live Runtime truth.
 
-Handoff state: `CURRENT_SYNCHRONIZED_FOR_SEAMLESS_NEW_CHAT_CONTINUATION`
+## Read this first
 
-Last synchronized: `2026-08-18`
+This document explains V7 and the reason for its current shape. It is not a
+new Runtime, Planner, queue, registry, Authority, or source of truth. Before
+any action, read CPS Section 0 and verify the exact current successor.
 
-Live volatile state owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0
-
-Active Program contract: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`
-
-This is the single handoff/context document for a new ChatGPT/Codex context. It is
-not a second current-state owner. Any current value below is either a dated snapshot
-or a pointer to its canonical owner. CPS Section 0 wins whenever this document and
-live state differ. Engineering Reports are historical evidence only.
-
-Do not create another handoff, parallel roadmap, Program, Runtime, Planner, queue,
-scheduler, Authority, or truth source merely to continue from this document.
-
-## 0. Current Continuation Snapshot — 2026-08-18
-
-This is a dated continuation pointer, not a second live-state owner. Read CPS
-Section 0 first; then revalidate the live VLESS facts below before any mutation.
-
-### Immediate product frontier
-
-The immediate objective is a genuine, bounded automatic move of one **enabled
-managed** user from a failed source to an existing healthy target through the
-existing path:
+Resolution order:
 
 ```text
-Planner -> Packet -> lease -> restore barrier -> apply -> verify
+Current CPS for volatile state
+  > Canonical Reference for durable meaning
+  > SYSTEM_MAP for owner topology
+  > fresh owner-backed Runtime observation
+  > Engineering reports and historical evidence
+  > this handoff
 ```
 
-OMP, reports, learning, replay, analytics and certification history are not part
-of the client-switching KPI or a synchronous dependency of that path.
+Facts are marked **CURRENT**, **HISTORICAL**, **SUPERSEDED**, or **PENDING
+PROOF**. A report, test, commit, deployment, screenshot, or graph is never by
+itself proof of a caller, consumer, Runtime effect, production effect, or
+Authority grant.
 
-### VLESS lane: current verified state
+---
 
-Read-only verification on `2026-08-18` established the following:
+# 1. Project essence
 
-- VLESS is an existing `controlled-certification` source, not an ordinary
-  production-assignment pool.
-- Its active eligible-user count is zero: the only assigned certification record
-  is disabled. The Admin channel view independently reports zero users.
-- Its controlled-source reservation is expired.
-- The existing governed preflight returned `STOP_SAFE` without writing a
-  Candidate, Packet, lease, route, restore barrier or user movement.
-
-Therefore **do not** directly edit registry rows, reclassify a disabled record as
-a live user, create a duplicate channel, or reuse an old Packet/lease/Authority
-decision. Those operations would manufacture a test condition rather than perform
-automatic failover for an actual client.
-
-### Exact legal terminal and re-entry
-
-Current lane-local terminal:
-
-`STOP_SAFE_NO_ELIGIBLE_LIVE_VLESS_USER`
-
-Exact next owner-backed frontier:
-
-`EXISTING_CONTROLLED_CERTIFICATION_OWNER_FRESH_PREPARATION_AUTHORITY`
-
-The existing controlled-certification owner must first supply a fresh valid
-lifecycle: one enabled managed identity plus a non-expired exact reservation.
-Only then may the existing Planner select a healthy target and execute the
-one-user transaction. This prerequisite is a state/Authority boundary, not a
-reason to add a new owner, Runtime, Planner, queue, registry or truth source.
-
-Engineering evidence for this snapshot is local-only:
-
-`/private/tmp/v7-hot-path-reports-local/V7_VLESS_AUTOMATIC_FAILOVER_ELIGIBILITY_REPORT_2026-08-18_1135_MSK.md`
-
-### New-chat entry sequence
-
-1. Read `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0.
-2. Read this Section 0 and the local Engineering Report above.
-3. Run the existing read-only governed preflight to revalidate the exact current
-   VLESS eligibility; never infer it from a previous report.
-4. If the controlled owner has produced the fresh lifecycle, continue through
-   the existing bounded transaction owners only. Otherwise preserve the terminal
-   and work on independent admitted engineering tracks; do not wait by adding
-   audit machinery.
-
-## 1. Project Purpose
-
-V7 is a unified VPN/routing control plane. It accepts users through a stable entry,
-uses multiple egress/channel types, detects failure, degradation and recovery,
-selects a lawful healthy target, performs bounded failover, verifies kernel routing
-and target-bound payload, and preserves capacity, freshness, stability, anti-flap,
-rollback and Authority semantics.
-
-Long-term scale target: at least `10,000` users and `50` egresses, with an
-architecture that can continue to scale beyond those bounds.
-
-The fundamental product contract is:
+V7 Vozduh is a multi-egress Internet/VPN routing system. A client has one
+stable ingress, while V7 selects among independent egress channels. It keeps a
+sticky assignment while a channel is healthy, detects a real loss of
+usability, selects a healthy lawful target for only the affected users, changes
+routing safely, and verifies that traffic actually recovered.
 
 ```text
-FAILED_OR_UNUSABLE_SOURCE
-  -> current affected users/cohort
-  -> current lawful healthy targets
-  -> target selection
-  -> bounded route change
-  -> kernel visibility
-  -> exact target-bound payload verification
-  -> traffic recovery
+BAD / UNUSABLE CHANNEL
+  -> FAST CONFIRMED FAILURE
+  -> AFFECTED USERS
+  -> HEALTHY, LAWFUL TARGET
+  -> SAFE SWITCH
+  -> VERIFIED CLIENT TRAFFIC RECOVERY
 ```
 
-Tests, reports, deploys, certification labels and maturity percentages do not prove
-this contract. Completion requires a real producer, non-test caller, consumer,
-verified behavior change and product effect, or an explicit lawful terminal.
+The egress families historically used by V7 include VLESS Reality / sing-box,
+AmneziaWG, WireGuard, OpenVPN, and Direct/RU where relevant. A live TCP socket
+or ping is not enough to call a channel healthy: V7 needs current service,
+routing, capacity, policy, and safety evidence appropriate to the action.
 
-## 2. Truth and Owner Order
+The principal product KPI is:
 
-Use this order to resolve context:
+```text
+T0 FAILURE CONFIRMED -> T11 CLIENT TRAFFIC RECOVERED
+```
 
-1. this handoff for purpose, decisions and startup routing;
-2. CPS Section 0 for volatile current state and exact successor;
-3. active Program for execution and completion contracts;
-4. OMP for engineering/development-plane laws;
-5. Canonical Reference for durable product truth;
-6. SYSTEM_MAP for owner topology;
-7. Canonical Architecture Knowledge for accepted historical architecture knowledge;
-8. Engineering Reports only as dated evidence.
+It is **not** the time to create reports, OMP receipts, learning records, or
+historical evidence. Those may consume the result after the switch.
 
-Canonical owners:
+---
 
-| Concern | Owner |
+# 2. Product philosophy and non-negotiables
+
+| Law | Practical meaning |
 | --- | --- |
-| Live volatile state | `docs/programs/V7_CURRENT_PROGRAM_STATE.md`, Section 0 |
-| Active Reset contract | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
-| Engineering orchestration laws | `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` |
-| Durable product truth | `docs/reference/V7_CANONICAL_REFERENCE.md` |
-| Owner topology | `docs/reference/SYSTEM_MAP.md` |
-| Locked historical architecture knowledge | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| Historical evidence | `docs/reports/engineering/` |
+| Stability before movement | A healthy sticky assignment is retained; a nominally better target is not a reason to churn. |
+| Fail closed | Unknown, stale, conflicting, or incomplete facts cannot cause a blind route mutation. |
+| No flap | Hard failure, soft degradation, recovery, cooldown, user freeze, target block and pair-reversal are distinct controls. Recovery is deliberately slower than failure. |
+| One owner | Every durable responsibility has one existing owner; hidden duplicate truth is forbidden. |
+| Evidence of real effect | Code/tests/reports/deployments are insufficient without actual caller, consumer and outcome evidence. |
+| Engineering outside Runtime | OMP, reports, Polygon, replay, learning, campaigns and audits cannot synchronously gate a live switch. |
+| Controlled is not natural | Controlled L7 evidence is useful but cannot be presented as natural L8 production evidence. |
+| Do not wait unnecessarily | A blocked external proof does not pause an independent safe and admitted work item. |
 
-## 3. Current Architectural Reality
+Packet, lease, restore barrier, rollback, verification and Authority are not
+bureaucratic layers. They prevent stale actions, duplicate/concurrent movement,
+unsafe partial changes, wrong targets, unrecoverable state, and uncontrolled
+blast radius. Simplification removes redundant work **around** them; it does
+not delete a safety contract just because it has multiple steps.
 
-Accepted evidence: `docs/reports/engineering/2026-08-13_083000_v7_routing_failover_reality_audit_and_architecture_verdict.md`.
+---
 
-The production-path audit established:
+# 3. Scale and product target
 
-| Metric | Accepted result |
-| --- | --- |
-| Successful forward path | approximately `58.761588 s` |
-| Kernel route mutation plus visibility | approximately `0.878 s` |
-| No-action lifecycle | approximately `288.9-321.9 s` |
-| Direct executable surface | approximately `41,821 LOC` |
-| Reachable routing/safety/governance surface | approximately `85,859 LOC` |
-| Producer-consumer hops before kernel apply | at least `9` |
-| State surfaces read before apply | at least `17` |
-| Durable writes before apply | at least `6` |
-| Current per-user writer | `O(N)` registry rewrite behavior |
+The primary future-scale target is **10k+ users / 50+ egresses**. Larger
+claims require fresh owner-backed proof.
 
-Accepted verdict:
+Implications:
 
-`ROUTING_REALITY_AUDIT_CONSUMED_VERDICT_B_MINIMAL_CORE_BESIDE_LEGACY_RECOMMENDED`
+1. Health processing must scale by egress and role, never by all users per
+   sample.
+2. Routing state must use semantic classes/buckets where applicable, not an
+   O(N) per-user rewrite for a channel event.
+3. Work per decision is bounded to the affected cohort and action class.
+4. The hot path must not scan the full historical universe to answer a current
+   question.
+5. Target freshness, capacity, policy, Authority, rollback and verification
+   remain necessary even for a small cohort.
 
-Linux/kernel route mutation is not the dominant bottleneck. The dominant cost and
-failure surface is orchestration, governance, historical reconciliation, broad
-probing and evidence machinery synchronously surrounding the route change.
+---
 
-## 4. Current Strategic Decision
+# 4. Architecture planes
 
-Endless incremental enlargement of the legacy routing hot path is not the final
-architecture strategy. The approved direction is:
+| Plane | Responsibility | Main existing components | May do | Must not do |
+| --- | --- | --- | --- | --- |
+| **Management Plane** | Guarded operator and Admin interfaces. | `admin/v7-admin-api`, `admin_core.operator_views`, diagnostic views. | Present state; call an already guarded operator workflow. | Select a live target, bypass auth/RBAC/CSRF/safe-mode, or write routes. |
+| **Control Plane** | Health, source scope, policy, capacity, admission, decision semantics, recovery and Authority inputs. | Matrix/service-health, L3 projection, Planner/policy/assignment/capacity owners. | Produce fresh decision facts. | Own forwarding or make reports into Runtime truth. |
+| **Data Plane** | Narrow forwarding apply, kernel state, visibility and verification. | `admin_core/routing_core.py`, `v7-routing-sync`, nft maps, fwmark rules, class route tables. | Apply an already lawful bounded decision and verify it. | Run OMP/history/learning/campaigns or a parallel planner. |
+| **Engineering Plane** | OMP, CPS lifecycle, reports, Polygon, research, replay, learning, audits and certification. | OMP, CPS reconciliation, report owners, Polygon. | Observe outcomes asynchronously and improve the system. | Be a synchronous prerequisite for live forwarding or self-grant Authority. |
 
-```text
-FREEZE LEGACY HOT PATH
-  -> full System Reset
-  -> audit Programs / OMP / owners / code / state surfaces
-  -> determine why intended behavior did not become product behavior
-  -> preserve useful contracts and evidence
-  -> design Minimal Routing Core
-  -> effect-free shadow
-  -> certification user
-  -> one ordinary user
-  -> bounded cohorts
-  -> Core primary
-  -> legacy retirement and physical system shrink
-```
-
-This is not a big-bang rewrite. Legacy V7 remains the production routing fallback,
-control plane and evidence/acceptance corpus until migration is independently proven.
-
-Program-level rule:
-
-`LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH`
-
-Allowed legacy changes are limited to critical production fixes, safety/security
-fixes, migration-required fixes, migration comparison instrumentation, and proven
-deduplication/simplification required for safe migration. New legacy routing
-capabilities are forbidden.
-
-## 5. Active Program
-
-Program ID: `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1`
-
-Program file: `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`
-
-The Program is the primary engineering frontier through the existing OMP/CPS
-lifecycle. Its status and exact phase must always be read from CPS Section 0 and the
-Program owner; this handoff must not invent a later state.
-
-### Current-state snapshot
-
-Snapshot read on `2026-08-13` from CPS Section 0, whose recorded capture timestamp is
-`2026-08-09T10:08:46+00:00`:
-
-| Field | Snapshot value |
-| --- | --- |
-| Current primary Program | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` |
-| Current phase | `RESET-M0` |
-| Exact successor | `EXECUTE_RESET_M0_FULL_PROGRAM_PORTFOLIO_AUDIT_AND_FREEZE_RECONCILIATION` |
-| Current stop | `NONE` |
-| External input required | `FALSE` |
-| Current production Runtime | `LEGACY_V7_RUNTIME_UNCHANGED` |
-| Routing Core implementation | `NOT_IMPLEMENTED; RESET-M3/M4 NOT REACHED` |
-| Authority | existing legacy Authority unchanged; no Core Authority granted |
-| Migration effects | `NONE` |
-
-On any later read, replace this snapshot mentally with fresh CPS Section 0.
-
-## 6. Reset Phase Structure
-
-| Phase | Purpose |
-| --- | --- |
-| `RESET-M0` | System Reality / Program Intent / Product Contract Audit |
-| `RESET-M0B` | Code Reality and Complexity Audit |
-| `RESET-M0C` | Duplication / Dead Code / Legacy Surface Audit |
-| `RESET-M1` | Program Portfolio Disposition |
-| `RESET-M1B` | OMP / Development-System Failure Analysis |
-| `RESET-M2` | Truth Owner and State Surface Collapse |
-| `RESET-M3` | V7 vNext Architecture, Minimal Routing Core Contract and Negative Contract |
-| `RESET-M4` | Effect-Free Shadow Core and Complexity Gate |
-| `RESET-M5` | Decision Equivalence and Polygon Validation |
-| `RESET-M6` | Certification User and One Ordinary User Production Proof |
-| `RESET-M7` | Bounded Cohort / Constant-Time Architecture |
-| `RESET-M8` | Core Primary Promotion |
-| `RESET-M9` | Legacy Retirement / System Shrink / Program Cleanup |
-
-These are phases of the existing Program, not separate Programs.
-
-## 7. Central Reset Question
-
-`WHY_DID_V7_FAIL_TO_REALIZE_ITS_OWN_PRODUCT_CONTRACT?`
-
-Reset must establish, with owner-backed evidence:
-
-- why Programs or Capabilities could be implemented, completed or certified while
-  the fundamental routing contract remained slow or ineffective;
-- where Intent stopped becoming real behavior;
-- where outputs lacked consumers or consumers failed to change behavior;
-- where local completion left parent/product intent open;
-- where governance, OMP, reports and tests created local progress without product
-  progress;
-- where repeated `Reuse Existing Owner` expanded oversized coupled owners;
-- whether `Architecture Closed by Default` concealed a systemic architecture defect;
-- whether Capability/WIP/Future Dependency protections preserved failed structures;
-- why Intent Gap, Mission Completion and Behavior Enforcement did not stop this
-  outcome earlier.
-
-## 8. Program Portfolio Disposition
-
-Every existing or current-looking Program receives exactly one disposition:
-
-- `KEEP_PERMANENT`
-- `KEEP_AS_ACCEPTANCE_CONTRACT`
-- `MERGE`
-- `COMPLETE_AND_CLOSE`
-- `LEGACY_ONLY`
-- `REDESIGN`
-- `REMOVE`
-
-Do not copy an entire Program into vNext merely because some contracts are useful.
-For example, CT-M0F latency/Time/SLO contracts may remain acceptance contracts while
-legacy-specific orchestration becomes `LEGACY_ONLY` or `REDESIGN`.
-
-## 9. OMP Role and Audit
-
-OMP remains the development-plane orchestrator. Its correct future responsibility is:
-
-- identify what does not work;
-- identify the necessary engineering change and existing owner;
-- define verification and safe deployment;
-- prove Engineering Intent closure;
-- produce the next development frontier.
-
-OMP must not synchronously decide which egress should receive user X during a live
-routing event. That belongs to Routing Core.
-
-`RESET-M1B` must audit OMP assumptions including `Architecture Closed by Default`,
-historical architecture-complete claims, Planner/runtime redesign restrictions,
-Capability Maturity Protection, Engineering Work In Progress Protection, and
-Approved Future Dependency Protection. Owner-backed Reset evidence may supersede a
-legacy development assumption only through `RESET_OMP_CONTRACT_CONFLICT`. Actual
-safety, Authority, rollback, verification and production-mutation boundaries remain
-mandatory.
-
-## 10. Target V7 vNext Architecture
-
-### Routing Core / Data Plane
+Allowed dependency:
 
 ```text
-OBSERVE -> STATE -> PLAN -> APPLY -> VERIFY
+Control fresh facts -> bounded decision -> Data apply -> kernel/user verification
+Engineering <- asynchronous outcome/evidence
 ```
 
-Target budget:
-
-- approximately `5-7` focused modules;
-- approximately `2,500-5,000 LOC`;
-- preferably one long-lived Runtime process unless evidence proves a better model;
-- `3-5` compact state surfaces;
-- no OMP, reports, Learning, Replay or Maturity in the pre-apply path;
-- no broad historical reconciliation;
-- no full Matrix refresh when a compatible fresh receipt exists;
-- avoid Python/process startup chains between decision and apply;
-- first production target `<3 s`;
-- prepared warm path target `<1 s`.
-
-### Control Plane
-
-The control plane owns policy and Authority envelopes, identity, health/capacity,
-freshness, blast radius, cooldown, anti-flap and rollback/recovery constraints.
-
-### Engineering Plane
-
-OMP, Polygon, reports, Learning, Replay, Production Maturity and certification
-history consume Runtime outcomes asynchronously.
-
-Permanent boundary:
-
-`ENGINEERING_PLANE_MUST_NOT_BE_REQUIRED_SYNCHRONOUS_ROUTING_HOT_PATH`
-
-### Legacy V7
-
-Legacy remains a policy/evidence source, acceptance corpus, migration comparison
-input and bounded exception/fallback path until retirement. It is evidence, not an
-unconditional oracle.
-
-## 11. Routing Core Negative Contract
-
-Future Routing Core must not synchronously:
-
-- call OMP or progress CPS Programs;
-- generate Engineering Reports;
-- execute Polygon, Learning or Replay;
-- calculate Production Maturity;
-- reconcile historical incidents or broad certification history;
-- execute broad inventory/Matrix refresh when a fresh compatible receipt exists;
-- execute engineering campaigns;
-- spawn long Planner subprocess chains;
-- generate expanded post-action evidence before traffic recovery.
-
-The default placement for any new capability is outside Core. Admission into the
-hot path requires proof that post-apply/asynchronous execution cannot preserve safety.
-
-## 12. Complexity and System Shrink
-
-`FILE_SIZE_IS_A_SIGNAL_NOT_A_VERDICT`.
-
-Large elements receive a semantic disposition based on responsibility, coupling,
-callers and lifecycle:
-
-- `KEEP_COHESIVE`
-- `SPLIT_BY_RESPONSIBILITY`
-- `MERGE_DUPLICATE_RESPONSIBILITY`
-- `EXTRACT_LEGACY_BOUNDARY`
-- `REMOVE_DEAD_CODE`
-- `REWRITE_WITH_CORE`
-- `REVIEW_AFTER_MIGRATION`
-
-Mechanical splitting without semantic complexity reduction is forbidden.
-
-Permanent simplification law:
-
-`MINIMUM_SYSTEM_SURFACE_WITH_FULL_FUNCTION_PRESERVATION`
-
-Preferred order: `REUSE -> MERGE -> SIMPLIFY -> REMOVE -> EXTEND`.
-
-Each Reset phase records `BEFORE / AFTER / DELTA` for production LOC, routing
-hot-path LOC, Core LOC, runtime modules/owners/processes/timers, state surfaces,
-pre-apply hops and durable writes, lock domains and critical-path subprocesses.
-System shrink is a Program success dimension, not cosmetic cleanup.
-
-## 13. CT-M0F Disposition
-
-CT-M0F is retained as knowledge/evidence and acceptance contract, not as the future
-architecture:
-
-- retain latency definitions and Time-owner spans;
-- retain meaningful controlled-sample rules;
-- retain initial `p95 <= 3 s`, no valid sample `>5 s`, and prepared `<1 s` gates;
-- remote client/device/application recovery remains deferred without a client agent
-  and does not block server-controlled Core engineering;
-- do not enlarge the frozen legacy hot path with CT-M0F execution machinery.
-
-## 14. Historical Lessons To Preserve
-
-The following are accepted historical lessons, not templates that must be copied:
-
-- a 4-second Telegram sentinel bridge produced canonical service-failure events;
-- the ordinary consumer is `v7-autoswitch-planner.timer/service`;
-- `v7-users-autoswitch.timer` is an intentionally inactive legacy apply path;
-- a duplicate legacy Planner was removed from the critical path;
-- CT-M0F certification fallback was separated from ordinary event-only failover;
-- revision-aware active-incident obligation consumption was repaired;
-- source-scope-zero reconciliation was repaired generically.
-
-These repairs demonstrate the orchestration complexity supporting Reset.
-
-## 15. Migration Safety and Authority
-
-Migration sequence:
+Forbidden dependency:
 
 ```text
-Legacy authority
-  -> Shadow Core with zero effects
-  -> classified decision comparison
-  -> certification user
-  -> one ordinary user
-  -> bounded cohort
-  -> Core primary
-  -> legacy hot-path retirement
+failure -> OMP / reports / history / learning / campaign -> routing
 ```
 
-For every legacy/Core divergence classify `LEGACY_CORRECT`, `CORE_CORRECT`,
-`BOTH_LEGAL`, `BOTH_WRONG`, or `INSUFFICIENT_EVIDENCE` using current policy,
-product truth and owner-backed evidence.
+`FINAL_ARCHITECTURE_MAP` is a decision/onboarding projection. It is not a new
+CPS, Runtime state store, owner, or Authority source. `SYSTEM_MAP` owns its
+compact current topology.
 
-`NEW_CORE_EARNS_AUTHORITY_THROUGH_EVIDENCE`.
+---
 
-Core does not inherit production Authority merely because it is smaller, faster or
-passes tests. No Runtime, routing, user, Authority or migration effect exists before
-the corresponding Program phase and independent gates admit it.
+# 5. Routing Core Reset — why it happened
 
-## 16. RESET-M9 Retirement Goal
+## Historical legacy reality
 
-After Core-primary promotion, every legacy file, function, module, CLI, service,
-timer, state surface, owner, Program and reconciliation path receives exactly one of:
+| Historical measure | Observation | Consequence |
+| --- | ---: | --- |
+| Successful governed forward path | ~58.76 s | Too slow for a failure response. |
+| Kernel mutation plus visibility | ~0.878 s | Kernel apply was not the primary bottleneck. |
+| No-action lifecycle | ~289–322 s | Even no-move work accumulated excessive orchestration. |
+| Direct executable surface | ~41.8k LOC | Too much mutable logic sat close to routing. |
+| Reachable routing/safety/governance surface | ~85.9k LOC | Excess surface amplified ownership and latency risk. |
+| Pre-apply producer/consumer hops | >=9 | Too many synchronous handoffs before apply. |
+| Pre-apply state surfaces | >=17 | Reconciliation/staleness risk grew with every surface. |
+| Durable writes before apply | >=6 | Coordination work dominated a narrow operation. |
+| Historical routing pattern | O(N) user-registry/routing work where applicable | Not compatible with future scale. |
 
-- `STILL_REQUIRED`
-- `LEGACY_EXCEPTION_REQUIRED`
-- `MERGE`
-- `DELETE`
+### Causal verdict
 
-Retirement is not complete when unused code merely becomes uncalled. Track LOC,
-files, owners, processes, timers, state surfaces, hops and duplicate responsibilities
-physically removed while retaining required historical evidence.
+```text
+legacy routing was slow
+  -> measurement proved kernel apply was fast
+  -> orchestration, governance, history and repeated reconciliation were slow
+  -> introduce a minimal Routing Core beside legacy
+  -> migrate only through evidence and freeze legacy capability growth
+  -> make class routing primary
+  -> optimise above Data Plane without deleting necessary safety
+```
 
-## 17. OMP Continuation and Reports
+The durable laws are:
 
-- Internal safe work must not require repeated manual `Continue` messages.
-- A side repair must return to its parent Mission.
-- A temporary external condition is not automatically an operator boundary.
-- A no-progress loop is an engineering defect.
-- Only irreducible external, Authority or safety input may return control.
-- Reset must not autonomously resume frozen legacy capability growth.
+```text
+LEGACY_V7_ROUTING_HOT_PATH = FROZEN_FOR_CAPABILITY_GROWTH
+NEW_CORE_EARNS_AUTHORITY_THROUGH_EVIDENCE
+```
 
-After every meaningful audit, implementation, verification, test, deploy,
-certification or investigation, create one concise report in
-`docs/reports/engineering/`. Reports are historical evidence only; durable knowledge
-must be promoted to its canonical owner.
+**CURRENT:** Reset M0–M10 are complete according to CPS and Canonical
+Reference. Old text claiming RESET-M0 was next is **SUPERSEDED**; never reopen
+the Reset sequence without an exact invalidation trigger.
 
-## 18. NEW_CHAT_STARTUP_SEQUENCE
+---
+
+# 6. Core-primary current architecture
+
+The primary data-plane boundary is intentionally narrow:
+
+```text
+Assignment + exact Policy/Authority facts
+  -> Routing Core decision representation
+  -> v7-routing-sync
+  -> nft class map / fwmark rule / class route table
+  -> kernel visibility and route verification
+```
+
+`admin_core/routing_core.py` represents bounded Core semantics;
+`/usr/local/bin/v7-routing-sync` is the class-routing apply/restart owner. nft
+membership provides address-to-class indexing. It is not one routing decision
+per user.
+
+| Primary routing object class | Before | After | Delta |
+| --- | ---: | ---: | ---: |
+| Individualized/class routing objects | 248 | 12 | -236 (-95.2%) |
+
+The retained 124-member nft map is required membership indexing, not 124 route
+tables or decisions. A class target switch remains one bounded class-table
+update.
+
+**CURRENT production authority:**
+
+```text
+CORE_PRIMARY_FOR_124_COMPATIBLE_PRODUCTION_USERS_WITH_EXACT_LEGACY_FALLBACK
+```
+
+The governed `v7-users-autoswitch` / `v7-user-switch` / Packet / lease /
+barrier chain is a bounded fallback/Authority exception. It cannot regain
+parallel continuous primary routing authority without new evidence and legal
+promotion.
+
+---
+
+# 7. Current failover hot path
+
+The intended synchronous product chain is:
+
+```text
+FAILURE SIGNAL
+  -> canonical current health/source event
+  -> current affected scope
+  -> ordinary-only bounded selection where applicable
+  -> Candidate
+  -> Packet
+  -> lease
+  -> restore barrier
+  -> route apply
+  -> route visibility
+  -> selected-user / required-route verification
+  -> service verification
+  -> CLIENT TRAFFIC RECOVERED
+  -> minimal durable terminal
+```
+
+| Stage | Owner role | Why it exists |
+| --- | --- | --- |
+| Matrix failure episode | Existing Matrix health/event owner | Converts confirmed failure into one canonical current fact. |
+| Current affected scope | Existing L3/current-scope owner | Bounds users; prevents a global scan/move. |
+| Candidate | Existing policy/Planner owner | Binds source, target, cohort, policy and fresh facts. |
+| Packet | Existing governed execution owner | Freezes exact scoped intent; blocks widening/staleness. |
+| Lease | Existing lease owner | Prevents duplicate/concurrent execution. |
+| Restore barrier | Existing recovery owner | Fences apply and preserves recoverability. |
+| Apply | Routing Core or explicit governed writer | One lawful mutation boundary. |
+| Verification | Existing route/service/user verification owners | Proves traffic effect rather than process exit. |
+| Minimal terminal | Existing lifecycle owner | Records outcome without turning history into a prerequisite. |
+
+Outside the KPI:
+
+```text
+OMP receipt, reports, history, learning, replay, analytics,
+campaigns, certification tail, extended evidence projections
+```
+
+These are asynchronous consumers. They may not select, authorise, gate, or
+delay a fresh Runtime switch.
+
+---
+
+# 8. Failure detection and health architecture
+
+## Current verified reality
+
+| Check | Cadence / trigger | Current owner/output | Role |
+| --- | --- | --- | --- |
+| Telegram fast sentinel | every 4 s; 1 s timeout; 14 s sustained-failure threshold | Existing Matrix input/event owner | Fast Telegram-specific confirmation input, not route writer. |
+| Full service Matrix | every 15 min plus up to 60 s random delay | Matrix current state and passive event capture | Deep diagnosis, service quality and broad current state. |
+| Per-egress service test | Matrix invokes `v7-service-matrix-test`, 14 services | Atomic Matrix row update | Protocol/application reachability. |
+| Target health/capacity | Existing Matrix, quality and capacity owners | Planner admission input | Lawful target selection, not source detector. |
+
+The full Matrix currently iterates enabled egresses serially. Within an egress,
+services already run bounded-parallel (maximum eight workers). Recent production
+receipts for seven egresses measured **54.314–80.153 s wall**, ~7–8 s CPU and
+~100 MiB peak RSS; the slowest egress took ~17–19 s. The long wall/low CPU
+ratio and near-sum of egress times prove network waits and serial egress
+traversal, not a need for uncontrolled inner parallelism.
+
+## Fast + deep target model — PENDING IMPLEMENTATION
+
+```text
+existing fast protocol-specific source signal
+  -> existing Matrix confirmation and canonical failure episode
+  -> current affected ordinary scope
+  -> existing decision/execution path
+
+full Matrix, quality/capacity detail, OMP, reports, learning, replay
+  -> existing asynchronous owners
+```
+
+No second Matrix, watcher, daemon, queue, Planner, state store, event type or
+route writer is warranted. The next bounded admission is:
+
+```text
+V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1
+```
+
+It must prove an existing minimal service subset and role-scoped egress set,
+single Matrix writer, current source/target truth, persistence/anti-flap,
+stale-evidence fail-closed behavior and full-Matrix fallback.
+
+## Health semantics
+
+Logical admission is:
+
+```text
+UNKNOWN -> PROBING -> HEALTHY -> DEGRADED -> UNUSABLE -> RECOVERING -> HEALTHY
+```
+
+It is a non-stored `EGRESS_ADMISSION_STATE` projection from fresh transport,
+required-service, traffic-quality and capacity facts.
+
+| State | Meaning | Consequence |
+| --- | --- | --- |
+| `WORKING` / `HEALTHY` | Fresh relevant evidence supports use. | Candidate may consider it only if policy/capacity/Authority also pass. |
+| `DEGRADED` | Partial or service-specific warning. | Not itself an automatic ordinary move. |
+| `NOT_WORKING` / `UNUSABLE` | Hard failure meets existing persistence rules. | May publish a canonical Matrix episode. |
+| `UNKNOWN` | Missing/stale/conflicting/timed-out evidence. | Fail closed; never invent a failure. |
+| `RECOVERING` | Improved evidence under recovery safeguards. | Needs existing recovery/anti-flap admission before reuse. |
+
+---
+
+# 9. Hot-path accelerations already implemented
+
+This table preserves causal history. Measurement is historical unless a fresh
+owner revalidates it; do not repeat closed audits ceremonially.
+
+| Problem -> observation | Change | Why safe | Result/status |
+| --- | --- | --- | --- |
+| Full passive-event history read before bounded work. | Bounded event-ledger tail reading and existing consumption compaction. | Same newest logical window; exact re-entry retained. | Execution ledger ~3439 -> ~158 ms (-95.4%); L3+ledger ~3822 -> ~251 ms (-93.4%). Implemented/deployed. |
+| L3 retained history grew; stale in-memory data could overwrite reconciled state. | Persist compaction before reconciliation; bounded passive source window. | No new state/owner; reconciliation sees current L3. | L3 27.27 -> 10.43 MiB (-61.8%); consumptions 37,783 -> 1,997 (-94.7%). Implemented/deployed. |
+| Repeated all-incident and parent reconciliation. | Current-state/outcome filtering and retained-history compaction. | Required safety rechecks retained. | All-incident refresh ~8307 -> ~292 ms (-96.5%); parent reconciliation ~10912 -> ~3278 ms (-70%). |
+| Advisory planning repeated a scope check without consumer. | Remove proven redundant entry recheck; retain post-plan safety checks. | Exact consumer proof; not a planner bypass. | Removed ~12 s span; retained post-plan recheck ~9.489 s. |
+| OMP/certification work mixed with Runtime predecessor. | Direct-L3-first, passive-reconciliation deferral, receipt-bound OMP decoupling. | OMP still consumes outcome asynchronously. | Event-only consumer moved from historic ~70–91 s / ~1–1.5 GiB to ~0.9–1.8 s / ~100 MiB where hot-path-only applies. |
+| Mixed ordinary/certification scope. | Accounting repair, scope generation/revalidation, selection fence and bounded ordinary cohort. | Certification cannot leak to generic path. | Current proven bound is max 4 where current policy supports it. |
+| Redundant pre-Planner refresh. | Removed only from direct path. | Existing decision/target checks remain. | Bounded exact-user snapshot near ~173 ms where evidenced. |
+| Writer/verifier ambiguity. | Bounded failure classification. | Writer and verification owners unchanged. | Better STOP_SAFE diagnosis; no claimed move. |
+
+These results do **not** prove a fresh ordinary `T0 -> T11` receipt. Recent
+observed source scopes were not actionable ordinary work; no synthetic user
+movement was fabricated.
+
+---
+
+# 10. Governed execution safety model
+
+```text
+Candidate -> Packet -> lease -> restore barrier -> apply -> verify -> rollback/closure
+```
+
+| Contract | Prevents | Simplification rule |
+| --- | --- | --- |
+| Candidate | Wrong source/target/cohort or stale policy facts. | Remove duplicate discovery, never make an ad hoc target selector. |
+| Packet | Later branch widening/reinterpreting action. | Keep immutable exact intent. |
+| Lease | Concurrent/replayed movement. | Avoid redundant pre-work; retain mutual exclusion. |
+| Restore barrier | Unsafe interleaving or partial recovery. | Keep fencing while moving noncritical history outside. |
+| Apply | Multiple route writers. | One existing writer for the action class. |
+| Verification | Command exit falsely treated as traffic recovery. | Verify kernel path and required user/service outcome. |
+| Rollback/closure | Stranded client or hidden partial failure. | Keep recovery/terminal consumer; reports remain post-action. |
+| Authority | Engineering convenience expands action class/blast radius. | Never self-issued by code, OMP, Polygon, or report. |
+
+---
+
+# 11. Ordinary users versus certification scope
+
+| Class | Meaning | Lawful use |
+| --- | --- | --- |
+| **Ordinary** | Real customer assignment eligible for the defined automatic action class. | Product failover and client-recovery KPI once all owners pass. |
+| **Certification** | Controlled engineering identity/scenario. | Controlled L7 proof via existing controlled-production and Authority owners. |
+
+A source can contain both. The ordinary denominator counts ordinary identities
+only. A controlled marker does not globally relabel all historical scope.
+Before Packet, the fence must show:
+
+```text
+selected identity is ordinary for this action class
+  OR explicitly approved controlled certification
+```
+
+If a generic ordinary selection contains certification, it stops safe before
+Packet. The max-four ordinary bound is not a general licence to move four
+arbitrary users.
+
+## CURRENT VLESS eligibility, 2026-08-18
+
+Fresh owner-backed observation found VLESS is a controlled-certification source,
+not an ordinary assignment pool. Its sole assigned identity is disabled, Admin
+showed zero users, and its controlled reservation is expired. The existing
+governed preflight correctly returned:
+
+```text
+STOP_SAFE_NO_ELIGIBLE_LIVE_VLESS_USER
+```
+
+No Packet, lease, barrier, route, user movement or Authority change occurred.
+The required predecessor is a fresh existing controlled-source lifecycle with
+an enabled managed identity, unexpired exact reservation and independent
+Authority approval. Direct registry editing/revival would create synthetic
+assignment and is forbidden.
+
+### SUPERSEDED VLESS conflict
+
+CPS captured on 2026-08-14 includes an older VLESS line with `affected=40`.
+Fresh 2026-08-18 Runtime observation is certification-only with zero enabled
+eligible users. Do not average the two. The old line is
+`SUPERSEDED_OR_REVALIDATION_REQUIRED` for present VLESS eligibility until CPS
+publishes a coherent fresh projection.
+
+---
+
+# 12. Polygon and controlled L7
+
+Polygon is an Engineering Plane scenario selector and controlled validation
+corpus. It is not a Runtime executor, truth source, Packet/lease/barrier owner,
+failure detector or Authority issuer.
+
+```text
+Polygon scenario selection
+  -> existing Controlled Production owner
+  -> independent Authority decision
+  -> fresh Matrix/current state
+  -> Candidate -> Packet -> lease -> barrier -> apply -> verify
+  -> controlled receipt plus rollback/restoration where required
+```
+
+`L7 controlled != L8 natural`. A consumed natural exact-once incident cannot
+be replayed as fresh production movement. Do not repair a bad source merely to
+manufacture a timing proof. Current controlled work must follow the latest
+controlled owner’s exact blocker/successor, including one-user substrate,
+shared failure-domain and duplicate-domain constraints.
+
+---
+
+# 13. No-unnecessary-waiting
+
+Natural L8 absence does not prevent read-only profiling, lawful controlled L7,
+replay/emulation labelled non-natural, tests, or independent bounded code work.
+It never permits fake natural evidence, reuse of consumed incidents, moving an
+ordinary customer only for timing proof, self-approved Authority, scope
+expansion, or bypassing unknown ownership. A real wait is legal only when no
+independent safe frontier remains.
+
+---
+
+# 14. Responsibility map
+
+| Cluster | Current owner/component | Input -> output | Mutation | Plane | Why it exists |
+| --- | --- | --- | --- | --- |
+| Fast signal | `tools/v7-telegram-sentinel` | TCP observations -> Matrix input | Matrix path only | Control | Fast Telegram evidence; never route writer. |
+| Matrix health | `v7-service-matrix-refresh-all` / `v7-service-matrix-test` | probes -> Matrix/events | Matrix state under existing lock | Control | Canonical health/current failure fact. |
+| Current scope | L3/runtime projection owner | event -> bounded scope | L3 projection | Control | Prevents global user selection. |
+| Decision | Existing Planner/policy/assignment owners | scope/health -> Candidate/stop | owner-defined decision state | Control | Lawful source-target-action binding. |
+| Routing Core | `admin_core/routing_core.py` | class decision -> Core plan | representation | Data | Narrow class routing semantics. |
+| Route writer | `v7-routing-sync` | Core apply -> nft/ip/kernel | yes | Data | Single primary class-routing writer. |
+| Governed fallback | autoswitch/user-switch/operator execution | action -> Packet/lease/barrier/apply | yes, exact contract | Control/Data exception | Retains governed safety/fallback. |
+| Verification | route/service/user owners | apply -> outcome | terminal evidence as owned | Data/Control | Proves real effect. |
+| Admin | `admin/v7-admin-api`, views owners | query/action -> operator response | guarded only | Management | Interface, not routing authority. |
+| Controlled source | existing controlled-cert owner | scenario -> controlled eligibility | controlled lifecycle | Engineering/Control | Lawful L7 substrate. |
+| Polygon | existing Polygon owner | corpus -> scenario selection | no direct runtime mutation | Engineering | Controlled proof, not execution. |
+| OMP | OMP program owner | evidence/programs -> engineering lifecycle | no route authority | Engineering | Continuation/simplification discipline. |
+| CPS | `V7_CURRENT_PROGRAM_STATE.md` | legal transition -> volatile frontier | state projection | Engineering | Single volatile program-state owner. |
+| Canonical docs | Canonical Reference / SYSTEM_MAP | conclusions -> durable meaning/topology | docs only | Engineering | Permanent architecture knowledge. |
+| Reports | report owners | evidence -> historical record | no Runtime authority | Engineering | Provenance only. |
+
+---
+
+# 15. State ownership map
+
+| State | Writer | Reader | Purpose | Hot path | Historical status |
+| --- | --- | --- | --- | --- | --- |
+| Matrix current state/service episodes | Matrix owner | policy/scope/Planner | Fresh health/failure | required source fact | current plus receipts |
+| L3 projection | L3/autoswitch owner | direct handoff/decision | current affected scope/lifecycle | current scope only | compacted retained history |
+| Service-failure ledger | event owner | bounded consumers | event/re-entry provenance | bounded tail only | historical retained |
+| Execution events/outcomes | execution owner | closure/learning | outcome lineage | minimal terminal | historical retained |
+| Closure records | closure owner | re-entry/learning | completion/re-entry | not generic precondition | historical retained |
+| Routing/kernel state | Data writer/kernel | verifiers | actual forwarding | apply/verify | operational |
+| Registry/assignment | registry owner | policy/Planner/Admin | identity/stickiness | input only | durable current |
+| Packet/lease/barrier | governed owners | apply/rollback | exact action/fencing | governed action | receipts retained |
+| CPS | current-state owner | OMP/engineering | volatile frontier | never routing fact | older snapshots historical |
+| References/reports | document owners | engineers | durable/history knowledge | never runtime state | reference/evidence |
+
+Current state answers a present decision. Immutable history answers why and
+supports exact re-entry. Evidence completeness never requires copying all
+history into a current hot-path document.
+
+---
+
+# 16. Evidence and truth hierarchy
+
+1. **Fresh Runtime observation** — actual present process/state under its owner.
+2. **CPS** — active programme/frontier/successor.
+3. **Canonical Reference** — durable architectural meaning.
+4. **SYSTEM_MAP** — owner topology.
+5. **Engineering reports** — historical evidence and before/after results.
+6. **Generated graph** — navigation only, never caller/state/effect proof.
+
+Before reuse, an existing owner must classify an object as:
+
+```text
+VALID | REVALIDATION_REQUIRED | HISTORICAL | SUPERSEDED | RETIRED | NOT_APPLICABLE_WITH_REASON
+```
+
+Knowledge maturity does not grant execution Authority. A deployed hash does
+not prove runtime consumption. Polygon evidence does not become Natural L8.
+
+---
+
+# 17. Mission, OMP and CPS model
+
+```text
+candidate discovery
+  -> existing-owner admission
+  -> CPS atomic projection where required
+  -> MISSION_EXECUTION_ALLOWED
+  -> implementation
+  -> validation
+  -> consumer migration and residue closure
+  -> BEFORE / AFTER / DELTA
+  -> safe deploy when applicable
+  -> controlled or production observation
+  -> Engineering Report
+  -> exact successor
+```
+
+An admitted Mission proceeds through its full internal lifecycle without
+returning after every micro-step. Stop only at real safety, Product Contract,
+Authority, ownership, missing-evidence or exact external-dependency boundary.
+
+Unrelated residuals do not globally freeze a bounded Mission. Each residual is
+classified:
+
+```text
+RELATED_TO_MISSION -> block
+ORTHOGONAL_TO_MISSION -> continue only with isolation proof
+```
+
+This does not claim the predecessor phase complete and does not bypass CPS.
+OMP orchestrates Engineering work; it is not a production switch process.
+
+---
+
+# 18. Reuse-first and simplification laws
+
+```text
+SEARCH EXISTING
+  -> REUSE
+  -> MERGE
+  -> SIMPLIFY
+  -> MOVE
+  -> REMOVE DUPLICATE
+  -> CREATE ONLY IF A PROVEN GAP REMAINS
+```
+
+Controlling rules include:
+
+- `EXISTING_CAPABILITY_DISCOVERY_BEFORE_IMPLEMENTATION`;
+- `AUDIT_ONCE_UNLESS_EXACT_INVALIDATION_TRIGGER`;
+- `END_TO_END_MIGRATION_CLOSURE`:
+  `CURRENT -> TARGET -> TRANSITION -> NEW CONSUMER -> VALIDATION -> OLD PATH CLOSED`;
+- `NO_REMOVAL_WITHOUT_CONSUMER_AND_RESIDUE_PROOF`;
+- `NO_UNDISPOSITIONED_ORPHANED_SURFACE`;
+- `PRESERVE_REQUIRED_BEHAVIOR_NOT_LEGACY_STRUCTURE`;
+- `FILE_SIZE_IS_A_SIGNAL_NOT_A_VERDICT`;
+- risk-proportional evidence depth;
+- `REPORT_DEPTH_WITHOUT_REPORT_BLOAT`;
+- physical removal is distinct from logical Runtime exclusion;
+- meaningful changes record files/functions/dependencies/state/runtime/routing
+  before/after/delta.
+
+No generic split of `v7_sync_lib.py`, broad autoswitch rewrite, Core v2,
+parallel Planner, health truth, queue, or worker is justified by size or taste.
+It needs an existing-owner gap and admitted real consumer proof.
+
+---
+
+# 19. Completed work that is not the current frontier
+
+| Work | Status | Do not restart because |
+| --- | --- | --- |
+| Reset M0–M10 / Core-primary migration | Complete in CPS/Canonical Reference | Reuse final architecture; reopen only on exact invalidation. |
+| Evidence-repository retention cleanup | Done; optional future cleanup | Retention must not replace system optimisation. |
+| Admin transparent wrapper collapse | Done | Useful Mission proof, no direct failover-latency result. |
+| Small Admin wrapper removals | Done where consumer proof passed | Not a generic deletion campaign. |
+| Broad `v7_sync_lib.py` split | Not generically admitted | Size/mixed history alone do not justify it. |
+| Broad autoswitch rewrite | Not admitted | Needs measured migration proof. |
+| Legacy package deletion | Later only after consumer migration | Runtime exclusion is not deletion. |
+
+---
+
+# 20. Known test/fixture debt
+
+Some historical service-failure suites encode old CPS/frontier assumptions.
+They can fail unchanged against a baseline. Classify failures precisely:
+
+| Failure | Treatment |
+| --- | --- |
+| Violates current behavior or Mission contract | Regression blocker. Stop/repair/revert. |
+| Expects a superseded CPS state and reproduces unchanged on baseline | Record as historical fixture debt; keep focused target validation. |
+| Reveals unknown caller, writer, consumer, safety or Authority edge | Real blocker until owner-backed resolution. |
+
+Never blanket-waive failures, but never turn a stale unrelated fixture into an
+infinite block on a proven bounded change.
+
+---
+
+# 21. Current performance board
+
+| Segment | Historical/current measurement | Status | Next work |
+| --- | --- | --- | --- |
+| Telegram detection | 4 s cadence + 14 s threshold + 1 s probe | Fast signal only for Telegram | Preserve confirmation; measure lawful event. |
+| Generic / Google / VLESS detection | full Matrix 15 min + random delay, then serial 54–80 s sweep | Principal detection frontier | Fast source/target Matrix admission. |
+| Event-only consumer | historic ~70–91 s/~1–1.5 GiB; hot-only ~0.9–1.8 s/~100 MiB | Major downstream improvement | Re-measure on fresh ordinary action. |
+| Passive history | large full scans -> bounded/compacted | Improved | Reuse. |
+| Certification advisory | 57–63 s; prepared decision ~23 s plus materialization | Slow but non-actionable work | Do not generic-bypass without lineage proof. |
+| Current-state snapshot | near ~173 ms where evidenced | Improved segment | Include in full receipt. |
+| Candidate / Packet / lease / barrier | existing safety chain, no fresh eligible VLESS action | Pending proof | Observe only lawful fresh action. |
+| Route apply/visibility | historical kernel ~0.878 s; Core primary | Current architecture, fresh receipt pending | Measure selected action. |
+| User/service verification | product-required | pending eligible action | Pending proof | Observe selected action. |
+| Background finalization | old lifecycle could be minutes | separated where hot-only applies | Outside KPI | Keep asynchronous. |
+
+No generic programme percentage is a latency proof. A real result is a fresh
+segment-by-segment `T0 -> T11` receipt.
+
+---
+
+# 22. Do not do
+
+- Do not put OMP, reports, history, learning, replay, campaign or analytics
+  into the synchronous switching path.
+- Do not create another Core, Planner, Matrix, health truth, queue, worker,
+  registry or Runtime merely to defer work.
+- Do not use controlled certification users as ordinary users.
+- Do not call current Matrix certification-only status terminal closure for all
+  historic incidents.
+- Do not repair a bad egress to manufacture a performance proof.
+- Do not replay consumed natural events as new production movement.
+- Do not bypass Admin/auth/CSRF/RBAC/safe-mode/Authority or safe deploy owners.
+- Do not count a report/commit/test/deploy as Runtime completion.
+- Do not treat logical Runtime exclusion as physical file deletion.
+- Do not wait for natural evidence while independent controlled/read-only work
+  is legally ready.
+
+---
+
+# 23. New-context startup procedure
 
 1. Read this handoff.
-2. Read CPS Section 0 for the fresh volatile state and exact successor.
-3. Read `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md`.
-4. Read only the OMP rules relevant to the current Reset phase.
-5. Read Canonical Reference and SYSTEM_MAP only as needed to resolve owners/truth.
-6. Reuse valid audit knowledge; do not repeat audits without an invalidation trigger.
-7. Do not continue CT-M0F legacy optimization unless Reset explicitly routes it.
-8. Do not implement Routing Core before RESET-M3/M4 contracts permit it.
-9. Continue from the exact current Reset successor in CPS.
-10. Preserve legacy production safety while migration is incomplete.
+2. Read CPS Section 0: capture active programme, stage, successor, Mission and
+   generation.
+3. Read Canonical Reference and SYSTEM_MAP for the scope.
+4. Verify freshest owner-backed Runtime observation; do not use old reports as
+   live state.
+5. Find exact invalidation triggers; reuse already closed evidence otherwise.
+6. State `CURRENT FACTUAL STATE`, `CURRENT BLOCKER`, `NEXT EXECUTABLE ACTION`,
+   owner, re-entry condition and needed evidence.
+7. Execute an admitted scope through closure; otherwise do only the smallest
+   required admission/reconciliation.
+8. Save one compact Engineering Report after meaningful work; update an
+   existing canonical owner only when durable meaning changed; compute next
+   frontier.
 
-For the `2026-08-13` snapshot, the next action is RESET-M0 only:
+---
 
-`EXECUTE_RESET_M0_FULL_PROGRAM_PORTFOLIO_AUDIT_AND_FREEZE_RECONCILIATION`
+# 24. Current active programme, blockers and next action
 
-It is an audit/disposition phase. It must not mutate routing, users, Runtime,
-Authority, migration state or implement Core.
+This is a startup summary, **not a substitute for live CPS/runtime checks**.
 
-## 19. DO_NOT_REDISCOVER
+```ini
+ACTIVE_PROGRAM = V7_RESPONSIBILITY_REALIGNMENT_AND_SYSTEM_SIMPLIFICATION_PROGRAM_V1
+CURRENT_STAGE = RS6_RUNTIME_PACKAGE_MINIMIZATION
+CURRENT_CPS_SUCCESSOR = EXECUTE_RS6_RUNTIME_PACKAGE_MINIMIZATION
+CURRENT_CPS_FRONTIER = ADMITTED_READY_READ_ONLY:V7_OMP_BDP_65CB2232971BC224D937140C_V1
+ACTIVE_MISSION = V7_OMP_BDP_65CB2232971BC224D937140C_V1
+MISSION_STATE = ADMITTED_READY_READ_ONLY (CPS snapshot 2026-08-14; revalidate)
 
-Accepted facts unless owner-backed invalidation is proven:
+CURRENT_PRODUCT_FRONTIER = lawful acceleration of FAILURE CONFIRMED -> CLIENT TRAFFIC RECOVERED
+CURRENT_RUNTIME_BLOCKER = generic/Google/VLESS detection still depends on 15-minute full Matrix cadence plus serial egress probing
+CURRENT_EXTERNAL_BLOCKER = VLESS has zero enabled eligible live user and expired controlled reservation; fresh existing lifecycle plus independent Authority are required
+CURRENT_VLESS_ELIGIBILITY = STOP_SAFE_NO_ELIGIBLE_LIVE_VLESS_USER
+CURRENT_VLESS_CPS_40_USER_CLAIM = SUPERSEDED_OR_REVALIDATION_REQUIRED
 
-- routing reality audit verdict is Variant B: Minimal Core beside legacy;
-- the accepted complexity findings are `58.761588 s` forward, `0.878 s` kernel plus
-  visibility, `288.9-321.9 s` no-action, `41,821/85,859 LOC`, at least 9 pre-apply
-  hops, 17 state surfaces and 6 durable writes, plus an `O(N)` writer;
-- the legacy routing hot path is frozen for capability growth;
-- `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM_V1` is the active primary
-  engineering Program;
-- the target is a small `OBSERVE -> STATE -> PLAN -> APPLY -> VERIFY` Core;
-- migration is incremental, not big-bang;
-- OMP and the Engineering Plane stay outside routine routing hot path;
-- complexity reduction and physical system shrink are completion requirements;
-- no Routing Core has yet been implemented or granted production Authority.
+NEXT_EXECUTABLE_ACTION = V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1
+NEXT_ACTION_OWNER = existing Matrix/service-health and source/target eligibility owners
+PARALLEL_READY_ACTIONS = independent RS6 read-only or Engineering/Management work only after owner/conflict check
+NATURAL_EVIDENCE_PENDING = fresh lawful ordinary L8 failure-to-client-recovery receipt; never manufacture it
+CONTROLLED_EVIDENCE_STATE = controlled L7 only through existing Controlled Production owner plus independent Authority; current VLESS lane remains STOP_SAFE
+```
 
-## 20. Handoff Completion Check
+The next action is admission only. It must prove the existing Matrix owner can
+use a minimal protocol-specific service subset for active ordinary sources and
+eligible targets, while preserving one Matrix writer, existing failure event,
+persistence/anti-flap, stale fail-closed behavior, no O(N user) loop and full
+Matrix fallback. If not, stop safe with exact missing owner/evidence and
+re-entry condition; do not build a second health system.
 
-A new context reading this handoff, CPS Section 0 and the active Reset Program can
-determine the product purpose, the legacy architecture failure, preserved production
-boundaries, frozen scope, target architecture, OMP role, current phase, exact next
-action, forbidden actions and accepted non-repeatable knowledge.
+---
 
-Handoff terminal:
+# 25. Provenance
 
-`V7_MASTER_PROJECT_HANDOFF = CURRENT_SYNCHRONIZED_FOR_SEAMLESS_NEW_CHAT_CONTINUATION`
+This handoff synthesizes rather than copies:
+
+- `docs/reference/V7_CANONICAL_REFERENCE.md` — durable meaning/truth hierarchy;
+- `docs/reference/SYSTEM_MAP.md` — planes and owner topology;
+- `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` — locked knowledge;
+- `docs/programs/V7_CURRENT_PROGRAM_STATE.md` — live CPS snapshot;
+- `docs/programs/OPERATIONAL_MATURITY_PROGRAM.md` — OMP/admission/simplification laws;
+- Reset program and `V7_SYSTEM_RESET_CONSOLIDATED_3_PRODUCTION_MIGRATION_AND_COMPLETION.md` — Core causal history and 248 -> 12 measured routing-object shrink;
+- hot-path baseline, cost-tree and current-state-compaction reports — observed
+  latency, OMP separation and deployed reductions;
+- local 2026-08-18 VLESS eligibility and detection/health optimisation evidence.
+
+When sources have different current-looking claims, this document labels old
+claims `SUPERSEDED` or `REVALIDATION_REQUIRED` rather than averaging them.

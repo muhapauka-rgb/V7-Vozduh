@@ -18794,6 +18794,10 @@ def _service_failure_action_class_reuse_projection(
         row for row in (causal.get("open_incident_projections") or [])
         if isinstance(row, dict)
     ]
+    vless_open_incidents = [
+        row for row in open_incidents
+        if str(row.get("source_channel") or "").casefold() == "vless"
+    ]
     cps_incident_id = _plain_live_value(live, "CURRENT_VLESS_INCIDENT_ID")
     matching_incidents = [
         row for row in open_incidents
@@ -18810,6 +18814,15 @@ def _service_failure_action_class_reuse_projection(
         and current_incident
         and str(current_incident.get("next_required_consumer") or "")
         and str(current_incident.get("reentry_condition") or "")
+    )
+    # A PASS from the causal owner with no open VLESS projection is positive
+    # evidence of an empty current incident set. It must supersede any stale
+    # CPS scope just as an explicit open/drained incident projection does.
+    incident_projection_empty_authoritative = bool(
+        causal_verdict == "PASS" and not vless_open_incidents
+    )
+    incident_projection_authoritative = bool(
+        incident_projection_valid or incident_projection_empty_authoritative
     )
     portfolio = program_execution_reconciliation(
         load_program_execution_sources(canonical_root), root=canonical_root,
@@ -19113,7 +19126,7 @@ def _service_failure_action_class_reuse_projection(
             "`ACTIVE_WITH_DURABLE_MATRIX_SUCCESSOR`"
             if incident_projection_valid and int(current_incident.get("unresolved_scope_count") or 0) > 0
             else "`CURRENT_SOURCE_SCOPE_EMPTY`"
-            if incident_projection_valid else
+            if incident_projection_authoritative else
             "`RECOVERY_RECONCILIATION_REQUIRED`"
         ),
         "PROGRAM_PORTFOLIO_RECONCILIATION_STATUS": f"`{str(portfolio.get('program_portfolio_reconciliation_status') or 'STOP_SAFE')}`",
@@ -19168,6 +19181,44 @@ def _service_failure_action_class_reuse_projection(
             "CURRENT_VLESS_SCOPE_PROJECTION_OWNER": "`tools/v7-users-autoswitch.service_failure_causal_integrity_status`",
             "CURRENT_VLESS_SCOPE_PROJECTION_STATUS": "`PASS_CURRENT_ROUTE_AND_CUMULATIVE_LINEAGE_RECONCILED`",
         })
+    elif incident_projection_empty_authoritative:
+        projection.update({
+            "INCIDENT_FRONTIER": "`CURRENT_SOURCE_SCOPE_EMPTY`",
+            "CURRENT_VLESS_SERVICE_INCIDENT": (
+                "`NO_OPEN_CURRENT_VLESS_INCIDENT; current route-backed scope "
+                "affected=0, protected=0, unresolved=0, excluded_or_recovered=0; "
+                "historical lineage remains owned by L3 Runtime`"
+            ),
+            "CURRENT_VLESS_SERVICE_INCIDENT_TERMINAL": (
+                "`CURRENT_SOURCE_SCOPE_EMPTY; no current ordinary actionable users; "
+                "a new owner-backed non-empty VLESS source incident owns reentry`"
+            ),
+            "CURRENT_VLESS_INCIDENT_ID": "`NONE_OPEN`",
+            "CURRENT_VLESS_INCIDENT_GENERATION": "`NONE_OPEN`",
+            "CURRENT_VLESS_AFFECTED_SCOPE": "`0`",
+            "CURRENT_VLESS_PROTECTED_SCOPE": "`0`",
+            "CURRENT_VLESS_UNRESOLVED_SCOPE": "`0`",
+            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE": "`0`",
+            "CURRENT_VLESS_AFFECTED_SCOPE_FINGERPRINT": "`NOT_APPLICABLE`",
+            "CURRENT_VLESS_PROTECTED_SCOPE_FINGERPRINT": "`NOT_APPLICABLE`",
+            "CURRENT_VLESS_UNRESOLVED_SCOPE_FINGERPRINT": "`NOT_APPLICABLE`",
+            "CURRENT_VLESS_EXCLUDED_OR_RECOVERED_SCOPE_FINGERPRINT": "`NOT_APPLICABLE`",
+            "CURRENT_VLESS_LAST_EXECUTION_FEEDBACK_ID": "`NONE`",
+            "CURRENT_VLESS_LAST_OUTCOME_ID": "`NONE`",
+            "CURRENT_VLESS_LAST_LEARNING_ID": "`NONE`",
+            "CURRENT_VLESS_LAST_PACKET_ID": "`NONE`",
+            "CURRENT_VLESS_NEXT_REQUIRED_CONSUMER": "`tools/v7-service-matrix-refresh-all`",
+            "CURRENT_VLESS_REENTRY_CONDITION": (
+                "`new owner-backed VLESS service incident with non-empty current "
+                "ordinary route-backed source scope`"
+            ),
+            "CURRENT_VLESS_SCOPE_PROJECTION_OWNER": (
+                "`tools/v7-users-autoswitch.service_failure_causal_integrity_status`"
+            ),
+            "CURRENT_VLESS_SCOPE_PROJECTION_STATUS": (
+                "`PASS_AUTHORITATIVE_NO_OPEN_CURRENT_VLESS_INCIDENT`"
+            ),
+        })
     return projection, {
         "schema": "v7.service-failure-action-class-reuse-projection.v2",
         "owner": "admin_core.autonomy_trust_acceleration.build_historical_blast_radius_evidence",
@@ -19201,12 +19252,19 @@ def _service_failure_action_class_reuse_projection(
         "controlled_certification_pool": controlled_pool,
         "current_incident": current_incident,
         "current_incident_projection_valid": incident_projection_valid,
+        "current_incident_projection_empty_authoritative": (
+            incident_projection_empty_authoritative
+        ),
+        "current_incident_projection_authoritative": (
+            incident_projection_authoritative
+        ),
         "incident_frontier": (
             "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
             if incident_projection_valid
             and int(current_incident.get("unresolved_scope_count") or 0) > 0
             else "CURRENT_SOURCE_SCOPE_EMPTY"
-            if incident_projection_valid else _plain_live_value(live, "INCIDENT_FRONTIER")
+            if incident_projection_authoritative
+            else _plain_live_value(live, "INCIDENT_FRONTIER")
         ),
         "authority_expansion": False,
         "runtime_activation_change": False,
@@ -19466,16 +19524,19 @@ def reconcile_active_standing_delegated_policy_to_cps(
     runtime_incident_projection_valid = bool(
         reuse_projection.get("current_incident_projection_valid")
     )
+    runtime_incident_projection_authoritative = bool(
+        reuse_projection.get("current_incident_projection_authoritative")
+    )
     runtime_active_incident_drain = bool(
         runtime_incident_projection_valid
         and _status_int(runtime_incident.get("unresolved_scope_count")) > 0
     )
-    # When the live causal owner supplies a valid projection it supersedes the
-    # older CPS scope.  Falling back to stale CPS only when Runtime lacks a
-    # valid projection prevents a fully drained incident from remaining open.
+    # An authoritative empty incident set is a valid owner-backed projection,
+    # not missing data. Only fall back to CPS when the causal owner itself is
+    # unavailable or invalid.
     active_incident_drain = (
         runtime_active_incident_drain
-        if runtime_incident_projection_valid else active_incident_drain
+        if runtime_incident_projection_authoritative else active_incident_drain
     )
     controlled_pool = (
         status.get("controlled_certification_pool")

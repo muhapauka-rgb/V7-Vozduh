@@ -4804,7 +4804,6 @@ class AutoswitchPlanner:
             live_users_on_source
             and not live_ordinary_users_on_source
             and live_users_on_source.issubset(live_certification_users)
-            and len(live_users_on_source) + preserved_protected == baseline_count
         )
         if legacy_unpartitioned_scope and certification_only_live_scope:
             exclusion_pointer = "controlled-certification-scope:" + sha256_json({

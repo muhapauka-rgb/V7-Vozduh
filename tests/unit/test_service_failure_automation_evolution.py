@@ -272,6 +272,41 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 2)
         self.assertEqual(result["protected_scope_lineage_pointers"], ["execfb_verified"])
 
+    def test_legacy_historical_denominator_does_not_keep_certification_only_scope_actionable(self):
+        """Current ordinary scope wins even when old all-user history was larger."""
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            (state_dir / "users.registry").write_text(
+                "".join(
+                    f"ip=10.7.0.{index} enabled=1 current=source certification_user=1\n"
+                    for index in range(2, 13)
+                ),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.autoswitch.AutoswitchPlanner)
+            planner.state_dir = state_dir
+            planner.args = SimpleNamespace()
+            result = planner._reconcile_incident_scope_accounting(
+                existing={
+                    "source_incident_id": "sfinc_legacy_larger_history",
+                    "channel": "source", "incident_state": "OPEN",
+                    "scope_accounting": {
+                        "status": "INCIDENT_SCOPE_ACCOUNTING_BROKEN",
+                        "baseline_event_id": "evt_legacy_larger_history",
+                        "affected_scope_count": 24,
+                        "affected_scope_fingerprint": "legacy-all-assigned",
+                        "protected_scope_count": 0,
+                    },
+                },
+                execution_rows=[],
+            )
+        self.assertEqual(result["status"], "ACCOUNTED")
+        self.assertEqual(result["scope_classification"], "CERTIFICATION_ONLY")
+        self.assertEqual(result["affected_scope_count"], 24)
+        self.assertEqual(result["controlled_certification_scope_count"], 11)
+        self.assertEqual(result["unresolved_scope_count"], 0)
+        self.assertEqual(result["explicitly_excluded_or_recovered_scope_count"], 24)
+
     def test_partitioned_ordinary_scope_excludes_controlled_members_from_unresolved(self):
         """Existing Matrix partition metadata remains the ordinary boundary."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -5068,7 +5103,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "NOT_TERMINAL; existing Matrix owner retains the continuing incident and exact durable successor",
             )
 
-    def test_policy_reconciliation_consumes_exact_pending_tier4_transition_and_closes_empty_scope(self):
+    def test_policy_reconciliation_authoritative_empty_runtime_scope_supersedes_stale_cps(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
@@ -5117,26 +5152,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
                 "service_failure_causal_integrity": {
                     "schema_version": "v7.service-failure-causal-integrity-status.v1",
                     "final_verdict": "PASS", "invalid_states": [],
-                    "open_incident_projections": [{
-                        "incident_id": live["CURRENT_VLESS_INCIDENT_ID"].strip("`"),
-                        "incident_generation": "generation-runtime-drained",
-                        "source_channel": "vless",
-                        "incident_state": "SOURCE_SCOPE_EMPTY",
-                        "affected_scope_count": 0,
-                        "protected_scope_count": 0,
-                        "unresolved_scope_count": 0,
-                        "explicitly_excluded_or_recovered_scope_count": 0,
-                        "affected_scope_fingerprint": "affected-empty",
-                        "protected_scope_fingerprint": "protected-empty",
-                        "unresolved_scope_fingerprint": "unresolved-empty",
-                        "explicitly_excluded_or_recovered_scope_fingerprint": "excluded-empty",
-                        "last_execution_feedback_id": "execfb_last",
-                        "last_outcome_id": "outcome_last",
-                        "last_learning_id": "learning_last",
-                        "last_packet_id": "packet_last",
-                        "next_required_consumer": "tools/v7-service-matrix-refresh-all",
-                        "reentry_condition": "fresh Matrix observation",
-                    }],
+                    "open_incident_projections": [],
                 },
             }
             result = self.sync.reconcile_active_standing_delegated_policy_to_cps(
@@ -5183,6 +5199,18 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             )
             self.assertEqual(
                 updated_live["CURRENT_VLESS_UNRESOLVED_SCOPE"].strip("`"), "0",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_VLESS_INCIDENT_ID"].strip("`"), "NONE_OPEN",
+            )
+            self.assertEqual(
+                updated_live["CURRENT_VLESS_SCOPE_PROJECTION_STATUS"].strip("`"),
+                "PASS_AUTHORITATIVE_NO_OPEN_CURRENT_VLESS_INCIDENT",
+            )
+            self.assertTrue(
+                result["action_class_reuse_projection"][
+                    "current_incident_projection_authoritative"
+                ]
             )
             self.assertEqual(
                 result["action_class_reuse_projection"]["legal_terminal"],

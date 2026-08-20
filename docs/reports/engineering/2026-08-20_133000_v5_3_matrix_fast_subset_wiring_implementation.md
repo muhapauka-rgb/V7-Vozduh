@@ -96,3 +96,11 @@ this Mission; it remains the next bounded consumer-wiring residual.
 - Production `v7_sync_lib.py` SHA-256 before durable post-check addition:
   `18a91430bdf9be5fa295d573973bca1c75f5fb32c620ba8ee0368ef36a008573`.
 - Safe-deploy convergence: `PASS`, blockers `[]`, GitHub `GITHUB_ALIGNED`.
+- Durable post-check commit: `edd97966fae89e49ea90042d431e5d427e36276a`.
+- Final deploy: `deploy-z8-14-Updatesystem-edd9796-20260820T135059`.
+- Final production `v7_sync_lib.py` SHA-256:
+  `5cd13a1ea44f0a356750b65ab23e239b9428efd2efb8a226e28ad4e13a81b1ae`.
+- Final safe-deploy verdict: `PASS`; blockers `[]`; its mandatory
+  `v7-service-matrix-refresh-all` post-check passed, otherwise the remote
+  transaction would have terminated non-zero and the deploy verdict could not
+  be `PASS`.

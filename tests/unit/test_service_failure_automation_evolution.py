@@ -1,12 +1,16 @@
 import argparse
+import contextlib
 import hashlib
+import http.server
 import importlib.machinery
 import importlib.util
+import io
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -16,6 +20,7 @@ from admin_core import operator_execution
 
 
 ROOT = Path(__file__).resolve().parents[2]
+MATRIX_TOOL = ROOT / "tools" / "v7-service-matrix-test"
 
 
 def load_module(name: str, path: Path):
@@ -33,6 +38,7 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         cls.autoswitch = load_module("v7_users_autoswitch_automation", ROOT / "tools" / "v7-users-autoswitch")
         cls.sync = load_module("v7_sync_lib_automation", ROOT / "tools" / "v7_sync_lib.py")
         cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
+        cls.refresh = load_module("v7_service_matrix_refresh_automation", ROOT / "tools" / "v7-service-matrix-refresh-all")
 
     def test_stop_safe_is_materialized_once_with_bounded_shadow(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -207,6 +213,121 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertIn("--matrix-observation-only", calls[1])
         self.assertFalse(result["routing_mutation_performed"])
         self.assertEqual(result["users_moved"], 0)
+
+    def test_polygon_caller_chain_writes_short_then_full_canonical_matrix_without_action(self):
+        class ControlledResponse(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):  # noqa: N802 - required by BaseHTTPRequestHandler
+                self.send_response(204)
+                self.end_headers()
+
+            def log_message(self, _format, *_args):
+                return
+
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), ControlledResponse)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state_dir = root / "state"
+                event_dir = root / "events"
+                state_dir.mkdir()
+                event_dir.mkdir()
+                (state_dir / "egress.registry").write_text(
+                    "id=vless interface=lo0 enabled=1 state=enabled\n"
+                    "id=awg0 interface=lo0 enabled=1 state=enabled\n",
+                    encoding="utf-8",
+                )
+                catalog = {
+                    service_id: {
+                        "label": str(meta.get("label") or service_id),
+                        "url": f"http://127.0.0.1:{server.server_port}/{service_id}",
+                        "classes": tuple(meta.get("classes") or ()),
+                    }
+                    for service_id, meta in self.matrix.SERVICE_CATALOG.items()
+                    if service_id != "telegram"
+                }
+                catalog["telegram"] = {
+                    "label": "Telegram controlled TCP",
+                    "kind": "telegram_tcp",
+                    "classes": tuple(self.matrix.SERVICE_CATALOG["telegram"].get("classes") or ()),
+                }
+                endpoints = (("127.0.0.1", server.server_port, True),) * 3
+
+                def matrix_run_one(egress, timeout, _checker, state, services=""):
+                    argv = [
+                        str(MATRIX_TOOL), egress, "all", "--state-dir", str(state),
+                        "--event-dir", str(event_dir), "--interface", "lo0",
+                        "--timeout", str(timeout),
+                    ]
+                    if services:
+                        argv.extend(["--services", services])
+                    output = io.StringIO()
+                    with mock.patch.object(self.matrix, "SERVICE_CATALOG", catalog), \
+                         mock.patch.object(self.matrix, "TELEGRAM_ENDPOINTS", endpoints), \
+                         mock.patch.object(self.matrix, "bind_to_device", return_value=""), \
+                         mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output):
+                        self.assertEqual(self.matrix.main(), 0)
+                    payload = json.loads(output.getvalue())
+                    return {
+                        "egress": egress,
+                        "status": payload["status"],
+                        "ok": payload["status"] in {"OK", "WARN"},
+                        "rc": 0,
+                        "ok_count": payload["ok_count"],
+                        "total": payload["total"],
+                        "service_matrix_lock": payload["service_matrix_lock"],
+                        "service_results": {
+                            service: {"ok": bool(row.get("ok")), "status": str(row.get("status") or "UNKNOWN")}
+                            for service, row in payload["results"].items()
+                        },
+                    }
+
+                def refresh_process(command, **_kwargs):
+                    output = io.StringIO()
+                    with mock.patch.object(self.refresh, "run_one", side_effect=matrix_run_one), \
+                         mock.patch.object(sys, "argv", command), contextlib.redirect_stdout(output):
+                        rc = self.refresh.main()
+                    return subprocess.CompletedProcess(command, rc, stdout=output.getvalue())
+
+                plan = {
+                    "decisions": [{
+                        "current_egress": "vless",
+                        "recommended_egress": "awg0",
+                        "important_services": ["telegram", "google", "google_auth"],
+                    }],
+                }
+                selection = self.autoswitch.matrix_comparative_probe_selection(
+                    plan,
+                    {"status": "PREPARED_CLASS_DECISION_FRESH", "current_invalidators": {"planner_generation": "polygon"}},
+                )
+                args = argparse.Namespace(
+                    state_dir=str(state_dir), event_dir=str(event_dir),
+                    matrix_comparative_timeout_sec=30,
+                )
+                subprocess_proxy = type("ControlledSubprocess", (), {
+                    "run": staticmethod(refresh_process),
+                    "PIPE": subprocess.PIPE,
+                    "STDOUT": subprocess.STDOUT,
+                    "TimeoutExpired": subprocess.TimeoutExpired,
+                })
+                with mock.patch.object(self.autoswitch, "subprocess", subprocess_proxy):
+                    result = self.autoswitch.run_matrix_comparative_preflight(selection, args)
+
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(result["measurements"]["short_executed_checks"], 6)
+                self.assertEqual(result["measurements"]["full_executed_checks"], 28)
+                self.assertTrue(result["full_matrix_is_final_canonical_observation"])
+                self.assertFalse(result["routing_mutation_performed"])
+                self.assertEqual(result["users_moved"], 0)
+                matrix = json.loads((state_dir / "service-matrix.json").read_text(encoding="utf-8"))
+                self.assertEqual(set(matrix["items"]), {"vless", "awg0"})
+                self.assertTrue(all(len(matrix["items"][egress]["services"]) == 14 for egress in matrix["items"]))
+                self.assertFalse(any(event_dir.iterdir()))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     def test_stale_planner_selection_fails_closed_before_matrix_probe(self):
         selection = self.autoswitch.matrix_comparative_probe_selection(

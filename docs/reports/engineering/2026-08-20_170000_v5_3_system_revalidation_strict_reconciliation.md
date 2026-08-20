@@ -92,3 +92,71 @@ required. They are not collapsed into one generic HTTP signal.
 | Capacity/unsuitable target | Planner capacity/reservation/policy/route gates | target exclusion | owner mapping complete |
 | Stale/unknown/conflicting truth | freshness and path-generation checks | fail closed or full reverify | precedence graph pending |
 | Post-switch no recovery | route/kernel verification and outcome/rollback | verification failure blocks/quarantines/rolls back | controlled timeline pending |
+
+## Decision-influence graph — pass 1
+
+```text
+Matrix HTTP/TCP + Telegram sentinel
+ -> service-matrix.json / canonical event
+ -> freshness + persistence classifier
+ -> SOURCE_CONFIRMATION / TARGET_EXCLUSION
+
+quality compact + stability projection
+ -> compact 1h/current facts
+ -> Planner quality gate
+ -> TARGET_EXCLUSION or RANKING_MODIFIER
+
+capacity/reserve + policy/role + current route scope
+ -> Planner candidate gates
+ -> TARGET_EXCLUSION / APPLY_ELIGIBILITY
+
+path fingerprint + exact user route/kernel verification
+ -> full reverify or governed verifier
+ -> POST_SWITCH_VERIFICATION / ROLLBACK_GATE
+
+recovery receipts + current route truth
+ -> passive reconciliation
+ -> RECOVERY_GATE
+```
+
+`SOURCE_FAILURE_CONTRACT`: source Matrix evidence plus persistence and current
+affected scope; quality/history cannot substitute for the confirmed failure.
+Unknown or stale required service truth is fail-closed.
+
+`TARGET_READINESS_CONTRACT`: fresh path/service evidence, enabled/eligible
+role, policy/reservation, capacity/reserve, quality/stability and no safety
+quarantine. A healthy Matrix row cannot substitute for capacity or exact role.
+
+`RECOVERY_READMISSION_CONTRACT`: newer exact recovery receipts matched to the
+same egress generation plus current route truth. A historical success or an
+unrelated service recovery is forbidden substitution.
+
+`POST_SWITCH_RECOVERY_CONTRACT`: exact user policy-table/kernel route plus
+governed service verification/outcome. Matrix path evidence alone is forbidden
+as a user-traffic success claim.
+
+## Controlled evidence pass 1
+
+Eight isolated tests passed in `1.655s`: exact service-subset validation,
+probe-before-lock ordering, Matrix merge-lock scope and all five quality
+compactor lifecycle-lock cases. Classification: `DETERMINISTIC_REPLAY_MEASURED`
+for lock/ownership behavior, not a production latency value. The tests prove
+that network probes are not serialized behind the Matrix writer and that the
+quality writer respects the same lifecycle lock; they do not measure external
+endpoint duration, production CPU/RSS, or live timer cadence.
+
+## Primary-source commercial benchmark — field pass 1
+
+| Platform/mechanism | Documented mechanism | Current V7 equivalent / disposition | Architecture consequence |
+| --- | --- | --- | --- |
+| Envoy active health + outlier detection | active checks and passive error/timeout/reset ejection can coexist; degraded differs from ejected | Matrix active probes + sentinel/passive event bridge; `ADAPT` the separation, not Envoy defaults | fast suspicion may accelerate confirmation but cannot become a second truth owner |
+| HAProxy checks | normal, transition and down intervals; `fall`/`rise`; active and passive checks; health check duration visible | Matrix persistence and recovery receipts are equivalent in intent but lack role-state timing measurements; `ADAPT` measurement, no copied intervals | retain asymmetric failure/recovery and publish actual duration before numeric cadence change |
+| Google Cloud health checks | protocol-aware probes, sequential success/failure thresholds, eligibility for new traffic | Matrix service classes + Planner target gates; `REUSE` the protocol/threshold/eligibility separation | service reachability does not prove client policy-table path |
+| FRR/Cisco BFD | transport liveness detects loss by negotiated interval × multiplier | interface/transport signals are only a fast suspicion layer; `REJECT` direct BFD-default adoption | V7 needs service/target/route proof beyond tunnel liveness |
+| Cisco IP SLA + object tracking | tracked reachability/route/interface state is consumed by PBR route choice | existing Planner consumes distinct Matrix, route, capacity and role outputs; `REUSE` producer-to-consumer topology | preserve one explicit consumer boundary; no report-driven route action |
+| FortiGate Performance SLA | active/passive/prefer-passive measures latency, jitter, loss; multiple checks avoid a single-server conclusion; failed SLA removes route eligibility | quality compact + Matrix multi-service evidence; `ADAPT` failure-domain review and measured quality placement | quality may exclude/re-rank target; cannot alone force source rescue |
+| MikroTik gateway check/recursive route/BFD | gateway result is a nexthop fact consumed by route selection; periodic ICMP/ARP and BFD options are distinct | V7 path/route facts remain separate from Matrix service facts; `REUSE` separation | do not promote gateway reachability into complete Internet/service health |
+
+Primary URLs: Envoy health checking and outlier docs; HAProxy health-check docs;
+Google Cloud Load Balancing health-check concepts; FRR BFD; Cisco BFD and IP
+SLA object tracking; Fortinet Link Health Monitor; MikroTik IP Routing/BFD.

@@ -389,3 +389,253 @@ the seven required measures and either consume Candidate C or retain A.
 Status remains `ACTIVE_MISSION_REOPENED; NO_ARCHITECTURE_TERMINAL;
 NO_AUTOMATIC_FAST_CONSUMER`. No Program, CPS, routing or client state was
 changed by this Mission work.
+
+## Controlled Matrix comparison through the existing Polygon boundary
+
+The existing Matrix CLI was exercised in a disposable local state directory
+against an ephemeral controlled HTTP/TCP response surface. It used the real
+Matrix selection, parallel-probe, persistence and atomic-writer code. The
+test has no production state directory, production endpoint, route, user,
+policy or Runtime dependency. macOS does not expose the Linux-only TCP
+interface-binding socket option; the isolated TCP socket binding was therefore
+explicitly bypassed **only in the test**, while HTTP still used the local
+loopback interface. This is controlled functional and cost evidence, not an
+egress-path certification.
+
+| Variant | Result | Selected / successful checks | probe span | write span | CPU | Decision equivalence |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Full Matrix | `OK` | 14 / 14 | `41.284 ms` | `6.946 ms` | `39.261 ms` | healthy / no failure |
+| Exact `telegram,google,google_auth` | `OK` | 3 / 3 | `9.793 ms` | `6.549 ms` | `11.750 ms` | same healthy / no failure |
+
+In this healthy controlled case, the probe critical path was `76.3%` shorter,
+selected work was `78.6%` lower and measured process CPU was `70.1%` lower.
+The atomic write remains close to constant. The test is retained as
+`tests/unit/test_v5_3_matrix_controlled_comparison.py`; it asserts the exact
+14-versus-3 count, all-healthy outputs and use of the existing Matrix CLI
+entrypoint. A matching isolated all-failure case was already measured above.
+Together they prove selection and outcome equivalence only for controlled
+all-healthy and all-failed conditions; mixed, stale and conflicting truth is
+covered by Polygon safety scenarios and still requires full fallback.
+
+## Complete internal mechanism cards
+
+The cards below are the internal Health/Test/Stability inventory. `unknown`
+means deliberately unmeasured rather than assumed. All data paths are existing
+owners; no card creates a new state surface.
+
+| ID / role | Owner; producer -> stored state -> consumer | Trigger, cadence and freshness | What it proves / does not prove | Effect, placement and cost/risk |
+| --- | --- | --- | --- | --- |
+| `HC-01` source/target | Matrix HTTP checker: `run_curl_check` -> `service-matrix.json` -> Planner service gate | Matrix timer 15 min + up to 60 s jitter; 3–30 s probe timeout, default 8 s; fresh/stale/expired at 900/3600/7200 s | path-bound HTTP reachability for one service; does **not** prove a client route, capacity or every service class | persistent required failure excludes a source/target; up to 8 probes parallel, then one serial write; measured Matrix CPU/wall above; false negative if service set is incomplete |
+| `HC-02` source/target | Matrix Telegram TCP checker -> Telegram Matrix row -> Planner Telegram gate | Matrix cadence; endpoint timeout 1–4 s; all required endpoint samples needed | Telegram transport reachability through the path; does **not** prove generic web reachability or user route | required Telegram failure blocks relevant target/source; endpoint fan-out parallel; duplicate signal may overlap sentinel |
+| `HC-03` source/target | Matrix path fingerprint -> Matrix row -> reuse/full verifier | each Matrix observation; bounded component commands up to 5 s | path and egress identity generation equality; does **not** prove an individual policy-table route | mismatch forces full re-verification; component reads parallel; cost is bounded command fan-out, CPU/RAM not separately measured |
+| `HC-04` source | Telegram sentinel -> same Matrix row/event -> existing Matrix consumer | 4 s timer, 1 s accuracy; 2 s endpoint timeout; persistence threshold handed to Matrix | fast Telegram suspicion, then a canonical Matrix observation; does **not** own a separate incident or a switch | may accelerate confirmation only; probes parallel, Matrix merge serial; false positive is contained by persistence/fallback |
+| `HC-05` source/recovery | Matrix episode builder -> Matrix row plus event JSONL -> passive consumer/Planner | every Matrix/sentinel write; 3 samples or 180 s; recovery requires newer matching observation | continuity, persistence, source incident and recovery identity; does **not** prove a target is ready | creates canonical failure/recovery event only after threshold; serial atomic write; duplicate suppression prevents repeated incident starts |
+| `HC-06` source/engineering | `v7-service-matrix-refresh-all` -> compact refresh summary/event -> passive and governed consumers | active system timer; full normally, exact subset only when an existing caller requests it | existing caller has completed a Matrix lifecycle; does **not** grant a candidate or authority | selects existing probe rows and preserves full fallback; orchestrator cost includes children and consumers, separately unmeasured |
+| `HC-07` target | quality compactor -> `egress-quality-summary.json` and bounded ring -> Planner quality gate | 5 min timer, 30 s accuracy; max 2,000 ring items; quality freshness policy 900 s | bounded latency/loss/jitter/stability projection; does **not** prove an immediate source failure | excludes or ranks target; writer shares lifecycle lock and is deferred from hot action path; CPU/RAM unknown |
+| `HC-08` target | Planner load/capacity reader -> current load summary -> candidate gates | request-time read; policy reserve 15%, hard/soft bounds configured | target has capacity/reserve under current policy; does **not** prove service reachability | target exclusion only; no network probe; stale/incorrect load can be fail-closed rather than inferred from Matrix |
+| `HC-09` target | Planner role, organization and reservation gates -> candidate -> governed executor | request-time, exact current policy/state | role, policy, reservation and safety eligibility; does **not** prove Matrix health | target exclusion/admission; serial after snapshot; no independent state writer |
+| `HC-10` all decision roles | Planner service freshness/classification -> candidate gate | 900/3600/7200 s evidence bands; revalidation budget 5 s | whether a Matrix fact is usable; does **not** turn stale success into healthy state | blocks unknown/stale/conflicting evidence and requests bounded recheck; cheap read, no network unless existing revalidation applies |
+| `HC-11` source | current failed-source scope -> bounded Matrix/event projection -> direct handoff/Planner | event-driven read after Matrix publication | present affected source scope; does **not** select a target | prevents no-user/zero-scope reaction; bounded event tail read; raw user history prohibited |
+| `HC-12` post-switch | user route/kernel verifier -> governed outcome/rollback record -> recovery consumer | only after candidate and governed apply; verification timeout 5 s in emergency policy | exact client policy-table/kernel route and outcome; does **not** prove a whole egress healthy | verifies, rolls back or quarantines; necessarily serial; cost is action-specific and not a Matrix probe cost |
+| `HC-13` recovery | exact recovery receipts + current route truth -> recovery/re-admission owner | after newer same-generation healthy Matrix result | an incident may be reconciled/re-admitted; does **not** accept historical success | passive/deep only; exact receipt matching serial; false positive risk is contained by generation matching |
+| `HC-14` engineering | Polygon scenario corpus -> Planner/invariant oracle -> OMP scenario consumer | explicit bounded request; deterministic replay | safety rules under controlled failure/capacity/stale-data cases; does **not** prove production latency or grant production credit | engineering-only, all mutation effects forbidden; bounded local CPU/RAM are not production measurements |
+| `HC-15` diagnostic | 30 s health/state summary loop -> diagnostic projections -> operators/other existing readers | 30 s loop | aggregate process/interface/history diagnostic context; does **not** substitute for Matrix path fact | diagnostic/background only; never a direct failover authority; detailed cost unknown |
+
+Cross-card storage and duplication rules: `service-matrix.json` is the only
+service/path fact; Matrix event JSONL is the only failure-episode history;
+quality summary/ring is the bounded stability projection; Planner candidate,
+Packet and outcome owners are separate. Telegram sentinel must write through
+`HC-02/HC-05`, never alongside them. Fast reads are `HC-01/02/03/08/09/10/11`;
+precomputed reads are `HC-05/07`; deep/passive work is `HC-13`; Polygon and
+the health loop are engineering/diagnostic only.
+
+## Complete failure taxonomy and action law
+
+| Failure class | First signal -> confirmation | Decider and allowed result | Forbidden shortcut | Recovery condition |
+| --- | --- | --- | --- | --- |
+| Process/interface/tunnel absent | runtime/interface state or Matrix `NOT_STARTED` -> fresh Matrix/path observation | existing Matrix/Planner may exclude affected egress | interface presence alone is not Internet health | fresh same-generation path/service observation |
+| Tunnel alive, no Internet | Matrix HTTP/TCP service failure -> persistence | Matrix failure episode, then source action path if scope exists | do not treat tunnel state as recovery | required service/path row recovers with current identity |
+| DNS failure | required HTTP probe failure/diagnostic detail -> relevant service/persistence confirmation | Matrix/Planner source or target block | do not infer from an unrelated TCP success | fresh required-service success |
+| Single service failure | one service row -> service/role relevance and persistence | degradation penalty or block according to required role | no blanket egress failure from non-required service | same service, same generation, newer success |
+| Partial censorship/access | service-class rows -> required profile confirmation | route-class-specific target/source effect | do not replace profile evidence with generic `healthy=true` | profile-required rows return healthy |
+| Telegram transport loss | sentinel or Matrix TCP -> Matrix persistence | canonical Matrix event and relevant target/source block | sentinel cannot switch clients directly | newer Telegram Matrix recovery receipt |
+| Latency/loss/jitter degradation | compactor bounded projection -> quality threshold/freshness | ranking/exclusion of target | quality cannot trigger source rescue alone | fresh compact quality passes threshold |
+| Capacity/saturation | load/reserve fact -> Planner load gate | target exclusion | successful Matrix row cannot override capacity | current reserve/load passes policy |
+| Role/policy/reservation mismatch | Planner current state -> role/org/reservation gate | target exclusion | Matrix cannot make a forbidden role eligible | current policy and reservation match |
+| Flapping | episode continuity/persistence/cooldown -> Planner gate | suppress repeated actions | one sample may not remove route | sustained recovery plus cooldown/receipt law |
+| Stale data | freshness classifier -> bounded revalidation or block | fail closed / full recheck | old success cannot admit target | current evidence within 900 s |
+| Unknown/conflicting data | missing or mismatched generation/fingerprint -> block | fail closed / full reverify | selecting a "best guess" target | coherent current generation across required facts |
+| Recent recovery | recovery receipt -> current route truth | passive readmission only | historical recovery cannot reopen channel | newer exact-generation receipt and route truth |
+| Post-switch failure | user route/kernel verifier -> governed outcome/rollback | rollback, quarantine or stop-safe | Matrix success cannot claim client recovered | exact client route and traffic verification passes |
+
+## Cadence and bottleneck classification
+
+| Mechanism | Current cadence reason | Evidence class | Bottleneck finding / safe optimization law |
+| --- | --- | --- | --- |
+| Full Matrix | 15 min + jitter | historical safety baseline; live timer proven, real run timing absent | broad probe span is reducible only when an existing exact selector is lawful; retain full fallback |
+| Telegram sentinel | 4 s | explicit fast-suspicion safety requirement | rapid signal already separate from full Matrix; never add a second decision owner |
+| Matrix persistence | 3 samples or 180 s | anti-flap safety requirement | not safely removable; optimise observation before threshold, not the threshold itself |
+| Matrix writer | atomic serial merge | consistency requirement | write span is near constant in controlled runs; do not parallelize state mutation |
+| Quality compactor | 5 min | bounded history/precompute requirement | keep out of immediate action path; do not scan raw history |
+| Health loop | 30 s | diagnostic historical cadence | no proof it belongs in a failover hot path; retain diagnostic-only classification |
+| Planner freshness | request-time read, 900/3600/7200 s | safety requirement | cheap gate; stale data requires block/recheck, not caching extension |
+| Route verification | after governed candidate/apply | safety requirement | serial by causality; cannot be replaced by Matrix and cannot move before target decision |
+
+Measured bottlenecks are now: Matrix network-probe fan-out is the only
+demonstrated reducible segment; durable Matrix merge is small/constant in both
+all-failure and all-healthy isolated runs; fresh evidence/capacity/policy gates
+are bounded reads; raw history and OMP tails are already deferred. Production
+CPU/RAM and real endpoint latency remain unknown, deliberately not estimated.
+
+## Internal gap register
+
+| Gap | Current behaviour and impact | Evidence / risk | Candidate solution, not yet a decision |
+| --- | --- | --- | --- |
+| G1: per-run production timing absent | compact Runtime summary omits child probe timings and counts | prevents a production speed claim | expose a bounded redacted existing-owner timing projection, without a new store |
+| G2: mixed service outcomes not yet Matrix-compared in controlled Polygon | healthy and all-failed cases agree; partial role-specific equivalence is not yet exercised | a subset could omit a decisive required class if selection law is wrong | controlled Matrix cases for required-service failure, methodology-limited HTTP and stale generation |
+| G3: cadence rationale partly historical | full Matrix 15 min is configured, but no measured production distribution explains its value | changing cadence blindly risks detection delay or load | measure through existing Matrix output before any numeric change |
+| G4: non-Matrix CPU/RAM unknown | quality, Planner and verifier have no comparable live resource sample | cannot rank their optimisation value honestly | bounded read-only observation through their existing outputs |
+| G5: Polygon stale expectation drift | two selective-invalidation fixtures expect superseded continuation/dependency sets | prevents declaring the entire Polygon test collection green | reconcile test contracts separately; no Runtime/Matrix effect |
+
+The smallest remaining internal Atlas action is `G2`: add controlled Matrix
+cases for partial required-service failure, HTTP methodology limit and stale
+generation, prove that short/full selection either agrees or lawfully falls
+back to full Matrix, then update this report and recompute whether the internal
+Atlas is complete enough for the external-comparison phase.
+
+## Controlled Matrix decision-equivalence completion
+
+`G2` is now closed through the existing Matrix CLI test surface and existing
+Polygon stale-telemetry scenario. The controlled Matrix cases are intentionally
+one-observation cases: they prove classification and preservation of the
+correct decisive row, while `HC-05` remains solely responsible for persistence.
+
+| Controlled case | Full Matrix | Exact subset | Correct common decision |
+| --- | --- | --- | --- |
+| all required services healthy | `OK`, 14/14 | `OK`, 3/3 | healthy observation; no failure |
+| `google` required service returns 503 once | `WARN`, retained `google=FAIL` | `WARN`, retained `google=FAIL` | no immediate action; await 3 samples or 180 s persistence |
+| `google_auth` returns 403 methodology limit | `HTTP_LIMITED`, `ok=true` | `HTTP_LIMITED`, `ok=true` | reachable-but-limited observation; do not manufacture a failure episode |
+| stale/unknown telemetry | existing Polygon `STALE_TELEMETRY_MUTATION_DENIAL=PASS` | no selection allowed | `STOP_SAFE`; full re-verification only through existing owner |
+
+The new focused suite (`5/5 PASS`) verifies all three Matrix cases plus the
+existing subset validation and HTTP-methodology rule. It confirms that a short
+selection does not weaken one-sample persistence, turn an HTTP limitation into
+a failure, or bypass stale-data denial. It is still deliberately unable to
+claim real remote endpoint latency, production interface binding, production
+CPU/RAM or automatic FAST consumption.
+
+Internal Atlas readiness is therefore `READY_FOR_MATURE_COMMERCIAL_BENCHMARK`
+for the design/comparison phase: all discovered decision-relevant mechanism
+families, owners, consumers, failure classes, source/target/recovery/post-
+switch boundaries, timing/cadence/parallelism placement and controlled Matrix
+equivalence cases are now recorded. `G1`, `G3`, `G4` and `G5` remain measured
+or test-contract residuals for later implementation/deploy evidence; none
+requires waiting for a natural event and none permits FAST enablement.
+
+Next frontier: perform the mature-platform comparison against this fixed
+internal baseline, then return to a single weighted architecture decision. No
+runtime change, automatic FAST consumer or client movement is admitted by this
+transition.
+
+## Mature-platform benchmark — verification against the complete Atlas
+
+This pass is a design comparison, not a transfer of vendor defaults.  It used
+only the vendors' primary technical documentation and asks one question of
+each mechanism: which existing V7 owner should retain the equivalent fact and
+where must V7 reject a superficially similar shortcut?
+
+| Pattern verified from mature platforms | Existing V7 equivalent | Decision for V7 |
+| --- | --- | --- |
+| Envoy combines active HTTP/gRPC/L3-L4 checks with passive outlier evidence, configurable success/failure thresholds, an identity check and a distinct degraded state. It also documents caching when many probes could burden a service. | `HC-01`/`HC-02` active Matrix rows, `HC-04` passive Telegram suspicion, `HC-03` path identity and `HC-05` persistence. | `ADAPT`: keep active and passive evidence separate until Matrix makes one canonical row/event; keep identity and a degraded/methodology-limited result distinct from a failure episode. No new fast owner or cache is justified. |
+| HAProxy keeps probing after a server is removed and restores it only after the success threshold; it separates normal, transition and down intervals and supports checks across multiple endpoints. | `HC-05` persistence/recovery plus the existing full Matrix comparator. | `REUSE`: asymmetric failure/recovery is already present. The controlled `503` test proves one sample remains a warning. Do not copy a numeric interval before V7 measures its own live distribution. |
+| Google Cloud computes backend state from separately configurable consecutive probe results, makes health state govern new-request eligibility, and supports protocol-specific probes. | Matrix service classes plus `HC-10` freshness and `HC-08/09` target admission. | `REUSE`: probe result, eligibility and traffic action must remain separate. A healthy Matrix row cannot itself prove a client route or authorize movement. |
+| FRR BFD and RouterOS BFD/check-gateway deliberately model peer/next-hop liveness; their detection time is negotiated interval times multiplier. RouterOS keeps next-hop state separate from the route and recommends multiple monitored hosts to reduce a single-host conclusion. | interface/path signal and `HC-03` identity, separate from service and user-route facts. | `REJECT` as a complete-health decision: liveness can be a fast suspicion only. `ADAPT` the explicit failure-domain rule: no one gateway/service result may stand in for a profile or user route. |
+| Cisco IP SLA/Object Tracking consumes a tracked measurement in routing policy, rather than treating a raw probe as a route mutation. | Matrix -> current source scope -> existing Planner -> governed verifier. | `REUSE`: preserve the explicit producer-to-consumer boundary. A report, probe or sentinel cannot become a direct route command. |
+| FortiGate SD-WAN separates active, passive and prefer-passive measurement; records latency, jitter and loss; uses multiple check servers; applies failure/recovery thresholds; then removes only a failed member from eligibility. | `HC-07` quality/stability, `HC-01/02` service facts, and `HC-08/09` candidate gates. | `ADAPT`: V7's quality history stays a target filter/ranker and V7 retains multi-service/failure-domain confirmation. It must not turn quality alone into source rescue. |
+
+Primary sources: [Envoy health checking](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking),
+[HAProxy health checks](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/reliability/health-checks/),
+[Google Cloud health-check concepts](https://cloud.google.com/load-balancing/docs/health-check-concepts),
+[FRR BFD](https://docs.frrouting.org/en/stable-7.5/bfd.html),
+[Cisco IP SLA object tracking](https://www.cisco.com/c/en/us/support/docs/ip/service-level-agreements-sla/15114-ipslatrack.html),
+[FortiGate Link Health Monitor](https://docs.fortinet.com/document/fortigate/latest/administration-guide/580649/link-health-monitor),
+[MikroTik IP Routing](https://help.mikrotik.com/docs/spaces/ROS/pages/328084/IP%2BRouting) and
+[MikroTik BFD](https://help.mikrotik.com/docs/spaces/ROS/pages/331612210/routing%2Bbfd).
+
+The comparison closes no numerical V7 cadence or threshold: those remain V7
+evidence questions, not imported vendor settings.  It confirms the internal
+Atlas architecture rather than adding a missing mechanism.
+
+## Weighted system decision — ready for existing OMP consumption
+
+The full-Matrix baseline is still the safe fallback, but it is not the best
+normal reaction once an existing caller has an exact affected source, exact
+candidate egresses and the known minimum profile-service set.  The controlled
+comparison shows the only measured saving is the probe fan-out.  All other
+decision gates retain their existing order and owners.
+
+| Alternative | Safety and meaning | Measured work | Operational decision |
+| --- | --- | --- | --- |
+| A — full Matrix for every reaction | safe; broad diagnostic coverage; no selector use | 14 services; `41.284 ms` controlled healthy probe span | retain as baseline, comparison and automatic fallback |
+| B — exact source/target plus profile subset, then full Matrix on uncertainty or mismatch | preserves Matrix state, persistence, freshness, Planner and verifier; tested against healthy, one required failure and HTTP limitation | 3 services; `9.793 ms`; 76.3% shorter controlled probe span, 78.6% fewer selected checks and 70.1% less local process CPU | selected core architecture |
+| C — existing passive protocol signal escalates only into B | adds earlier suspicion but no truth, incident, candidate or execution owner | no separate Matrix probe claim; its cost is intentionally not added to B | selected only as B's existing optional producer bridge |
+
+**System decision:** `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`, subject to the
+existing system-level consumer.  The implementation is not an autonomous
+FAST schedule: it is the smallest existing Matrix refresh call with exact
+`--egresses` and `--services`, made only by an already-authoritative source /
+target selection caller.  It must retain these hard laws:
+
+1. empty selection remains the full Matrix;
+2. missing, stale, identity-mismatched or conflicting facts deny selection;
+3. a short/full disagreement triggers the full Matrix and records its reason;
+4. one sample still cannot create a failure action; and
+5. Matrix neither chooses a target nor moves a client.
+
+The existing `tools/v7-service-matrix-refresh-all` already exposes exactly
+that bounded call shape and reports `BOUNDED_EXACT_SUBSET_REFRESH`; the
+existing `tools/v7-service-matrix-test` owns duplicate rejection, bounded
+parallel probing and the sole durable Matrix merge.  There is currently no
+admitted automatic role-aware caller, which is correct while the CPS hold is
+in force.
+
+## Current reconciliation and exact continuation
+
+`tools/v7-truth-check --all --json` initially found a real document-level
+contradiction: OMP's active-Mission report pointer still named the superseded
+fast-subset implementation report.  The OMP pointer was minimally corrected
+to the CPS-owned active Atlas report, without changing CPS, Runtime, Matrix,
+routes or users.  The same full check now returns `CPS consistency PASS`,
+`local PASS` and `Runtime PASS`.  The only remaining whole-check blocker is
+independent GitHub verification (`github_remote_unreadable` / missing remote
+branch view), not an Atlas or Polygon blocker; no remote publication was
+attempted.
+
+The wider OMP fixture bundle then exposed one additional historical-test
+assumption: its synthetic RS6 case silently inherited today's empty live
+incident, so it could no longer prove the historical owner-backed successor
+it claims to exercise.  The fixture now supplies its own explicit non-empty
+scope and its existing Matrix consumer.  This is test isolation, not a
+Runtime change.  Final focused evidence: 3 controlled full/subset Matrix
+cases + 2 existing Matrix laws + 43 OMP reconciliation cases = **48/48 PASS**.
+The prior stale-fixture residual `G5` is closed; the only remaining Atlas
+measurement residuals are `G1` production per-run timing, `G3` live cadence
+distribution and `G4` non-Matrix resource cost.  None permits automatic FAST
+enablement or needs a natural external event to be represented faithfully.
+
+One caller-level defect was also found and repaired: the existing `Continue
+OMP` entrypoint recognised the old V5.3 decision Mission but did not recognise
+the current system-level Atlas Mission before falling through to a generic
+historical product frontier.  The repaired order now acknowledges the active
+Atlas first, returns its existing consumer and preserves all forbidden effects.
+The new regression test proves this exact precedence.  The final focused run
+is **49/49 PASS**, and a live read-only `Continue OMP` now returns
+`ACTIVE_V5_3_SYSTEM_REVALIDATION_PREEMPTS_GENERIC_OMP`, with zero Runtime,
+route, user, authority or production-maturity effect.
+
+The exact current frontier remains the admitted read-only Atlas.  Its next
+consumer must atomically consume this weighted result through the existing
+OMP/CPS lifecycle before `V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`
+can be admitted.  Until then the deployment stays exactly as it is: opt-in
+selectors available, full Matrix fallback active, automatic FAST role consumer
+held, and no client movement.

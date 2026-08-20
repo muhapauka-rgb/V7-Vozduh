@@ -22268,6 +22268,7 @@ def continue_omp_engineering_control_loop(
             _plain_live_value(live, "CURRENT_EXECUTION_MISSION_STATE")
             == "PREPARED_NOT_ACTIVE",
         ))
+        v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
         if active_incident_drain:
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
@@ -22296,6 +22297,50 @@ def continue_omp_engineering_control_loop(
                     "user_movement": False, "packet_execution": False,
                     "restore_barrier_write": False, "rollback_apply": False,
                     "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
+        # The system-level Atlas supersedes the earlier Phase C/D/E read-only
+        # Mission.  It must be acknowledged before generic product/Polygon
+        # selection, otherwise a harmless-looking Continue OMP invocation can
+        # report an unrelated historical frontier while the CPS-owned Atlas is
+        # still active.  This is an effect-free routing decision only.
+        if v5_3_system_revalidation_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "NONE_V5_3_SYSTEM_REVALIDATION_MISSION_READY",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "ACTIVE_V5_3_SYSTEM_REVALIDATION_PREEMPTS_GENERIC_OMP",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_V5_3_SYSTEM_REVALIDATION_OWNER",
+                "exact_next_operator_command": current_next_action,
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": "V5_3_SYSTEM_REVALIDATION_MISSION_ACKNOWLEDGED",
+                    "mission_id": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "CURRENT_V5_3_SYSTEM_REVALIDATION_MISSION_ROUTED",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
                 },
                 "errors": [],
             }

@@ -102,6 +102,12 @@ class OmpProgramExecutionReconciliationTest(unittest.TestCase):
             ("LATEST_TERMINAL_MISSION_REPORT", "docs/reports/engineering/2026-08-04_180004_ct_m0_current_owner_dataplane_cost_reconciliation.md"),
             ("CURRENT_COMPLETION_CONTRACT", "ANALYSIS_COMPLETION"),
             ("CURRENT_COMPLETION_VERDICT", "RS6_RUNTIME_PACKAGE_MINIMIZATION_PREPARED_NOT_ACTIVE"),
+            # This synthetic RS6 fixture exercises the one historical repair
+            # only when the successor was genuinely owner-backed.  Do not
+            # borrow today's live empty incident scope: that would make the
+            # old repair look available without its required Matrix consumer.
+            ("CURRENT_VLESS_UNRESOLVED_SCOPE", "1"),
+            ("CURRENT_SERVICE_FAILURE_NEXT_REQUIRED_CONSUMER", "tools/v7-service-matrix-refresh-all"),
         ):
             text = self.lib._replace_section_field(text, "## 0. Authoritative Live Current State", "## Authoritative Unfinished Capability Closure Registry", key, f"`{value}`")
         return text

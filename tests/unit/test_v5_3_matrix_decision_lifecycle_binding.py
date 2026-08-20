@@ -104,6 +104,20 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
         self.assertEqual(result["execution_authorization"], "MISSION_EXECUTION_ALLOWED")
         self.assertFalse(result["mutation_performed"])
 
+    def test_continue_omp_keeps_active_system_revalidation_ahead_of_generic_work(self):
+        result = self.lib.continue_omp_engineering_control_loop(root=ROOT)
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(
+            result["priority_decision"],
+            "ACTIVE_V5_3_SYSTEM_REVALIDATION_PREEMPTS_GENERIC_OMP",
+        )
+        self.assertEqual(
+            result["real_consumer"],
+            "EXISTING_V5_3_SYSTEM_REVALIDATION_OWNER",
+        )
+        self.assertFalse(result["forbidden_effects"]["runtime_mutation"])
+        self.assertFalse(result["forbidden_effects"]["routing_mutation"])
+
 
 if __name__ == "__main__":
     unittest.main()

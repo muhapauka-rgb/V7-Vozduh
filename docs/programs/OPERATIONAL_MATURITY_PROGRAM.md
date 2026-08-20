@@ -8172,7 +8172,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`
-Resolved contract state: CPS has consumed `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`, atomically admitted `V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`, and the existing lifecycle returned `MISSION_EXECUTION_ALLOWED`; Stage 48 remains lane-local blocked at `11<48`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS has atomically admitted `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` as the current read-only system-level revalidation Mission. The deployed opt-in exact selectors and full Matrix fallback are preserved; the automatic FAST role consumer remains held pending the weighted system-level decision. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9162,7 +9162,7 @@ Resolved current stop: `NONE`
 Resolved current next action: `EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`
 Current terminal report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
-Current active Mission report: `docs/reports/engineering/2026-08-20_133000_v5_3_matrix_fast_subset_wiring_implementation.md`
+Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`
 Authoritative transition input report: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md`

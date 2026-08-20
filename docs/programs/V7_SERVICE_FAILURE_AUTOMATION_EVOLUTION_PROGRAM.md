@@ -89,6 +89,27 @@ status. Any different current CPS successor continues to win.
 FAST and DEEP are two work placements under one Matrix truth. They must never
 produce competing health states or failure events.
 
+V5.3 optimizes the complete existing decision system, not only service-probe
+execution:
+
+```text
+V7 CHANNEL HEALTH / TEST / STABILITY / READINESS SYSTEM
+```
+
+Mandatory principle:
+
+```text
+SERVICE_MATRIX_TESTS_ARE_ONE_EVIDENCE_FAMILY_NOT_THE_WHOLE_HEALTH_SYSTEM
+```
+
+The scoped system includes every existing producer, current-state projection
+and consumer that can prove transport/interface/process liveness, Internet or
+DNS reachability, required-service and partial-service health, latency/loss/
+jitter degradation, persistence, flap/recovery state, target suitability,
+capacity/reserve, kernel/route correctness or post-switch client recovery.
+Runtime-critical, precomputed, diagnostic/background and Engineering-only
+work must remain explicitly separated.
+
 ### V5.3 lane independence and parallel-frontier rule
 
 Invariant:
@@ -135,11 +156,15 @@ proves a real residual with an existing owner.
 inside one bounded Mission:
 
 ```text
-PHASE A CURRENT V7 REALITY
--> PHASE B FAILURE / HEALTH SEMANTICS
--> PHASE C MATURE + COMMERCIAL MECHANISM BENCHMARK
--> PHASE D ROLE / STABILITY HEALTH MODEL
--> PHASE E TARGET ARCHITECTURE DECISION
+PHASE A CURRENT HEALTH / TEST / STABILITY ATLAS
+-> CURRENT DECISION INFLUENCE GRAPH
+-> CURRENT EXECUTION ORDER / LATENCY MAP
+-> PHASE B FAILURE / HEALTH SEMANTICS AND FOUR DECISION CONTRACTS
+-> CADENCE / TIMEOUT / PARALLELISM REVIEW
+-> STABILITY / HISTORY REVIEW
+-> PHASE C DEEP COMMERCIAL FIELD-BY-FIELD COMPARISON
+-> PHASE D MULTIPLE CONCRETE V7 CANDIDATE MODELS
+-> PHASE E WEIGHTED TARGET ARCHITECTURE DECISION
 -> PHASE F/G SCALE / PROBE ECONOMY / PARALLELISM VALIDATION
 -> PHASE H MIGRATION / IMPLEMENTATION PLAN
 -> BOUNDED IMPLEMENTATION MISSIONS
@@ -164,11 +189,160 @@ when an existing phase/report can preserve the decision, owner, consumer,
 evidence and re-entry condition. One admitted Mission produces one compact
 Engineering Report; intermediate microsteps remain evidence inside it.
 
+### V5.3 system-level Health/Test/Stability revalidation gate
+
+The consumed 2026-08-20 Phase C/D/E result remains historical valid evidence,
+but its architecture disposition is now:
+
+```text
+PROVISIONAL_ARCHITECTURE_DECISION_REQUIRES_SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_BEFORE_AUTOMATIC_FAST_CONSUMER_ENABLEMENT
+```
+
+Its commercial comparison is `INITIAL_MECHANISM_PATTERN_BENCHMARK`, not the
+complete field-by-field basis for detailed Health/Test/Stability architecture.
+The already deployed exact `--egresses` / `--services` selectors remain a
+safe inert/opt-in primitive and the empty-selector full Matrix behavior remains
+the fallback. No automatic role-aware source/target caller, production FAST
+schedule, new cadence or threshold is admitted by the previous decision.
+
+Compatibility and hold rule:
+
+```text
+EXISTING_FAST_SUBSET_PRIMITIVE = KEEP_DEPLOYED_OPT_IN
+AUTOMATIC_FAST_ROLE_CONSUMER = HOLD_PENDING_SYSTEM_LEVEL_REVALIDATION
+```
+
+Before any automatic FAST consumer enablement, the existing V5.3/OMP lifecycle
+must consume the bounded Engineering output
+`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`. This is an analysis output,
+not a new owner, store, Program, Mission, Runtime or source of truth. It must
+discover all real mechanisms by producer -> state -> consumer -> behavior,
+including but not limited to Matrix probes, Telegram sentinel, transport/
+interface/proxy and path-sanity checks, desired-state checks, current/5m/1h
+stability projections or equivalents, quality/benchmark latency-loss-jitter,
+capacity/reserve, passive failures/timeouts, incident persistence, anti-flap,
+cooldown, recovery/re-admission, target readiness, kernel/route verification,
+selected-user and post-switch verification, and path guard/recovery checks.
+
+Every discovered mechanism has one evidence record with these fields:
+
+```text
+MECHANISM_ID; OWNER; PRODUCER; INPUT; OUTPUT; WHAT_IT_PROVES;
+WHAT_IT_DOES_NOT_PROVE; SOURCE_TARGET_BOTH_OR_POST_SWITCH; TRIGGER; CADENCE;
+TIMEOUT; RETRY; PERSISTENCE; FAILURE_THRESHOLD; RECOVERY_THRESHOLD;
+SERIAL_OR_PARALLEL; PARALLEL_WITH_WHAT; LOCKS; NETWORK_COST; CPU_COST;
+WALL_COST; CURRENT_STATE_SURFACE; HISTORY_DEPENDENCY; FRESHNESS_RULE;
+DOWNSTREAM_CONSUMER; EXACT_DECISION_INFLUENCE; CAN_BLOCK_FAILOVER;
+CAN_BLOCK_TARGET_ADMISSION; CAN_BLOCK_RECOVERY; FALSE_POSITIVE_RISK;
+FALSE_NEGATIVE_RISK; DUPLICATES_OTHER_MECHANISM;
+FAST_PRECOMPUTED_DEEP_OR_ENGINEERING; REUSE_ADAPT_BACKGROUND_OR_REJECT;
+WRONG_DECISION_IF_REMOVED_FROM_SYNCHRONOUS_PATH
+```
+
+If the final field cannot name an exact wrong V7 decision, the mechanism is
+not automatically a synchronous hot-path requirement.
+
+The same gate must prove the actual decision-influence graph:
+
+```text
+TEST / SIGNAL -> CURRENT STATE -> CONSUMER -> DECISION EFFECT
+```
+
+Every edge is classified `REQUIRED`, `OPTIONAL`, `ADVISORY` or
+`DEFERRED_BACKGROUND`; distinct meanings must not collapse into a generic
+`healthy=true/false`. Required output:
+`CURRENT_V7_HEALTH_DECISION_INFLUENCE_GRAPH_PROVEN`.
+
+It must also prove current execution-order and latency maps for hard source
+failure, partial service failure, target preparation and recovery/re-entry:
+first observer, suspicion, confirmation, canonical event, target readiness,
+switch eligibility and post-switch verification. Each interval names owner,
+cadence, timeout, retry, serial/parallel work, persistence wait, current or
+historical read and blocking status. It explicitly identifies `SERIAL_WAIT`,
+`REDUNDANT_RECHECK`, `DUPLICATE_SIGNAL`, `SAME_FACT_DIFFERENT_OWNER`,
+`FULL_DEEP_CHECK_BEFORE_SIMPLE_DECISION`, `UNNECESSARY_HISTORY_READ`,
+`CADENCE_DOMINATES_LATENCY` and `TIMEOUT_DOMINATES_LATENCY`. Required output:
+`CURRENT_HEALTH_TEST_EXECUTION_ORDER_AND_LATENCY_GRAPH_PROVEN`.
+
+Cadence review is per mechanism and per role/state: healthy, degraded, failed,
+recovering, hot target and cold target. It distinguishes periodic from
+event-driven observation and measures normal, suspicion-confirmation, down and
+recovery cadence. Each cadence receives `KEEP`, `ADAPT`,
+`MEASURE_BEFORE_DECISION`, `BACKGROUND_ONLY` or
+`REMOVE_DUPLICATE_CADENCE` with an owner-backed measurable reason; vendor
+defaults are never copied as V7 settings.
+
+Parallelism review distinguishes `PARALLEL_OBSERVATION`, `PARALLEL_PROBING`,
+`SERIAL_STATE_COMMIT` and `SERIAL_DECISION`. Causality, locks, shared network
+resources, external endpoint pressure, writer constraints and correlated
+failure domains decide whether work may run concurrently. Required output:
+`HEALTH_TEST_DEPENDENCY_AND_PARALLELISM_MODEL_DECIDED`.
+
+Temporal evidence must remain separated as `IMMEDIATE_HEALTH`, `PERSISTENCE`,
+`RECENT_STABILITY`, `RECOVERY_PROBATION`, `MEDIUM_TERM_QUALITY`,
+`LONG_TERM_RELIABILITY` and `ENGINEERING_HISTORY`, with producer, store,
+consumer and exact source-failover/target-admission/ranking influence. Invariant:
+
+```text
+FAST_PATH_MUST_CONSUME_COMPACT_CURRENT_STABILITY_FACTS
+AND MUST_NOT_SYNCHRONOUSLY_RECONSTRUCT_STABILITY_FROM_RAW_HISTORY
+```
+
+The gate produces four separate fail-closed decision contracts with mandatory
+and optional evidence, cadence, freshness, thresholds, stability influence and
+timeout budget: `SOURCE_FAILURE_CONTRACT`, `TARGET_READINESS_CONTRACT`,
+`RECOVERY_READMISSION_CONTRACT` and `POST_SWITCH_RECOVERY_CONTRACT`. One
+generic health verdict cannot satisfy all four without exact consumer proof.
+
+The deeper commercial comparison reuses the existing official-source set:
+Envoy, HAProxy, Google Cloud, FRRouting/BFD, Cisco BFD/IP SLA/Object Tracking,
+FortiGate SD-WAN and MikroTik RouterOS; AWS remains conditional on an unresolved
+mechanism class. Each relevant mechanism is compared field-by-field using the
+Atlas fields plus active/passive state machine, hysteresis, degraded state,
+recent history, quality, source/target difference, eligibility propagation,
+parallelism, probe budget, scale and fail-closed behavior. Each row ends:
+
+```text
+COMMERCIAL MECHANISM -> CURRENT V7 EQUIVALENT
+-> V7 BETTER / WORSE -> GAP -> REUSE / ADAPT / REJECT
+-> MEASURABLE REASON
+```
+
+Atlas, decision graph, timing map and field comparison must produce at least
+three concrete evidence-derived V7 candidate models when materially distinct
+designs remain. Every candidate defines source, target, recovery and
+post-switch tests; cadence/timeouts/parallelism/persistence; failure/recovery
+thresholds; passive/stability/quality/capacity inputs; FAST/precomputed/DEEP
+placement; expected detection latency and false-positive/false-negative risk;
+probe cost at current, 50 and 1,000 egresses; complexity, owner reuse,
+migration risk and full-Matrix fallback.
+
+Architecture selection then uses the existing owner-backed decision method,
+not a new scoring engine. Critical gates are failure-detection latency, false
+failover, false healthy-target admission, recovery/flap safety and target
+freshness. High-weight gates are probe cost, 50/1,000-egress scale, complexity,
+existing-owner reuse and rollback/fallback; observability is medium. No critical
+UNKNOWN may remain without a bounded revalidation plan, and material timing or
+cadence assumptions must be measured or explicitly bounded. Required terminal:
+
+```text
+V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED
+```
+
+If the result confirms B+C, emit
+`MODEL_B_PLUS_C_REVALIDATED_WITH_SYSTEM_LEVEL_EVIDENCE`. A refinement changes
+only proven consumer/placement/cadence semantics compatible with existing
+owners. Rejection does not itself remove the harmless opt-in selectors. Until
+this terminal, production FAST scheduling, automatic role selection, new
+cadence/thresholds, automatic source/target invocation and weakening/removal
+of the full Matrix fallback are forbidden.
+
 #### Phase A — existing capability and current-reality map
 
-Phase A is a compact comparison baseline, not a new broad archaeology audit.
-Reuse every still-valid owner-backed result and inventory only the current
-facts needed by Phase C/E: every probe, service, protocol, egress role,
+Phase A is the bounded system Atlas required by the revalidation gate, not a
+new truth owner or unbounded archaeology audit. Reuse every still-valid
+owner-backed result and inventory every current decision-relevant mechanism:
+every probe, signal, state projection, service, protocol, egress role,
 cadence, timeout,
 retry, persistence/failure/recovery threshold, lock, writer, consumer, state
 surface, event producer, passive signal and target-readiness input. Measure
@@ -182,10 +356,10 @@ Every check receives exactly one or more product roles:
 must name the Runtime decision consumer, what breaks if it leaves the fast
 path, and whether a cheaper existing signal proves the same required fact.
 Probe duration alone is never a removal reason.
-Phase A stops at `CURRENT_V7_HEALTH_COMPARISON_BASELINE_SUFFICIENT` once current
-mechanisms, owners, consumers, FAST/background placement and measured costs
-are sufficient for external comparison; unrelated historical audits remain
-closed absent an exact invalidation.
+Phase A stops only when `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`,
+`CURRENT_V7_HEALTH_DECISION_INFLUENCE_GRAPH_PROVEN` and
+`CURRENT_HEALTH_TEST_EXECUTION_ORDER_AND_LATENCY_GRAPH_PROVEN` are consumed.
+Unrelated historical audits remain closed absent an exact invalidation.
 
 #### Phase B — failure model
 
@@ -353,6 +527,11 @@ owner/truth/Runtime and one exact successor or legal terminal. No separate
 vendor report series, new tracker or ceremonial organization count is allowed.
 A benchmark cannot create Authority, Model D or a second health system.
 
+The consumed 2026-08-20 comparison is retained as
+`INITIAL_MECHANISM_PATTERN_BENCHMARK`. The revalidation terminal additionally
+requires the field-by-field comparison contract defined above; paragraph-level
+vendor summaries alone cannot select detailed architecture.
+
 #### Phase D — role-aware health model
 
 Phase D synthesizes Phase A current reality, Phase B failure semantics and the
@@ -365,7 +544,8 @@ bounded hot-target readiness, slower cold/deep checks, accelerated degradation
 confirmation and conservative recovery admission are hypotheses until
 measured against existing owner, anti-flap, freshness and consumer contracts.
 
-The candidate must map `TRANSPORT_PATH_HEALTH`,
+Phase D must derive and compare materially distinct concrete candidates rather
+than immediately returning to Model B. Each candidate must map `TRANSPORT_PATH_HEALTH`,
 `SERVICE_APPLICATION_HEALTH`, `PASSIVE_RUNTIME_SIGNAL`,
 `TEMPORAL_STABILITY` and `TARGET_SUITABILITY` and state which facts are
 synchronous FAST, precomputed/current projections, DEEP/background or
@@ -376,7 +556,9 @@ recovery contract. Output:
 
 #### Phase E — target architecture decision
 
-Phase E is the first formal target-architecture selection gate. It consumes
+The 2026-08-20 Phase E decision remains a consumed provisional decision. The
+system-level Phase E revalidation is the final weighted architecture-selection
+gate. It consumes
 the terminals of Phase A, B, C and D and compares at least:
 
 1. `MODEL_A_CURRENT_IMPROVED_FULL_MATRIX`;
@@ -415,7 +597,7 @@ deep Matrix -> diagnostics, broad services, quality, capacity detail,
 
 #### Phase F — probe economy and scale
 
-Consumed Phase C/D/E decision (2026-08-20):
+Consumed provisional Phase C/D/E decision (2026-08-20):
 `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`. FAST and DEEP remain modes of the
 existing Matrix owner; passive evidence only escalates bounded confirmation.
 The exact first implementation residual is
@@ -425,6 +607,8 @@ owned by the retained candidate
 scale model, invalidation triggers and migration blueprint are historical
 evidence in
 `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`.
+This evidence does not authorize an automatic FAST role consumer until the
+system-level weighted decision terminal is consumed.
 
 Phase F validates the Phase E decision; it does not redesign by default.
 Publish measured `FAST_DETECTION_COST`, `HEALTH_PROBE_COST_PER_EGRESS`,
@@ -453,8 +637,10 @@ trigger.
 
 #### Phase H — migration, validation and shrink
 
-Phase H starts only after `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` and
-the relevant Phase F/G constraints are consumed. It is the implementation
+Phase H automatic-consumer work starts only after both
+`V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` and
+`V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED`
+and the relevant Phase F/G constraints are consumed. It is the implementation
 contract, not an architecture-selection surface. For each admitted change
 prove:
 
@@ -483,6 +669,11 @@ V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED
 AND FIRST_IMPLEMENTATION_RESIDUAL_CONFIRMED
 AND fresh CPS names the same exact Mission identity
 ```
+
+The Mission has since deployed only the fail-closed exact selector primitive.
+That completed portion is retained. Its automatic role-selection consumer
+portion is `HOLD_PENDING_SYSTEM_LEVEL_REVALIDATION` and cannot rely on the old
+Phase E terminal alone.
 
 If those gates still select it, it must first discover and reuse the tester's
 existing service-subset mechanism. It may admit an implementation only if
@@ -517,36 +708,49 @@ completion or one exact blocker without microstep prompts.
 This stage may emit `MATRIX_HEALTH_DETECTION_OPTIMIZATION_TERMINAL_COMPLETE`
 only when all of the following are consumed by existing owners:
 
-1. Matrix responsibilities/costs and the Phase A/B comparison baseline are
-   consumed without reopening unrelated archaeology.
-2. Phase C findings are consumed or rejected through Phase D/E; exactly one
+1. All existing Health/Test/Stability mechanisms are Atlas-classified with
+   owners, producers, consumers, costs and exact decision influence.
+2. Decision graph, execution-order/latency map, cadence/timeout/retry/
+   persistence rationale and serial/parallel dependencies are proven.
+3. Source failure, target readiness, recovery/re-admission and post-switch
+   recovery are separate fail-closed contracts.
+4. Immediate health, persistence, stability, recovery probation, quality,
+   reliability and Engineering history have explicit placement; raw history
+   is absent from the synchronous FAST path.
+5. Phase C field-by-field commercial findings are consumed through multiple
+   concrete candidates and the weighted Phase D/E gate; exactly one
    evidence-backed target architecture is formally decided, implementation
    matches it, and no benchmark is used as post-hoc justification.
-3. Exactly one canonical health/failure-event owner remains.
-4. FAST/DEEP, source/target and temporal stability/recovery semantics are
+6. Exactly one canonical health/failure-event owner remains.
+7. FAST/DEEP, source/target and temporal stability/recovery semantics are
    evidence-backed; active-source detection performs only the minimal bounded
    required work.
-5. Target readiness is sufficiently fresh or has one exact external blocker.
-6. Anti-flap and recovery semantics are preserved and verified.
-7. Stale, unknown and conflicting evidence fail closed.
-8. Unneeded synchronous work is deferred/removed after consumer proof.
-9. No competing health subsystem or Runtime dependency exists.
-10. Current-scale probe economy and at least 50-egress architecture pass; the
+8. Target readiness is sufficiently fresh or has one exact external blocker.
+9. Anti-flap, false-positive/false-negative and recovery behavior are not
+   degraded; stale, unknown and conflicting evidence fail closed.
+10. The existing selector primitive is classified `REUSE`, `ADAPT` or
+    `REJECT`; automatic FAST enablement follows only the new weighted terminal,
+    while the full Matrix fallback remains until equivalence/consumer proof.
+11. Unneeded synchronous work is deferred/removed after consumer proof and no
+    competing health subsystem or Runtime dependency exists.
+12. Current-scale probe economy and at least 50-egress architecture pass; the
     large-scale stress model is recorded and either preserves the Phase E
     architecture or its exact refinement is returned to and consumed by Phase E.
-11. Controlled failure-model validation is complete to the limit of existing
+13. Controlled failure-model validation is complete to the limit of existing
     owners, with residuals classified rather than hidden.
-12. `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE EVENT` is
+14. `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE EVENT` is
     measured segment by segment.
-13. A lawful ordinary event, when naturally available, relates detection to
+15. Before/after latency, probe count and decision equivalence are measured;
+    divergence automatically falls back to full Matrix with a durable reason.
+16. A lawful ordinary event, when naturally available, relates detection to
     T0-T11; Natural L8 absence cannot keep the Engineering stage open when all
     Engineering criteria are independently complete.
-14. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
+17. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
     `NOT_REQUIRED`, with owner and re-entry condition where applicable.
-15. CPS owns an exact successor outside this stage or a legal Program terminal.
-16. Durable changed knowledge is transferred to existing canonical owners.
-17. OMP has no active Matrix Optimization frontier.
-18. No Runtime consumer depends on this temporary stage or its reports.
+18. CPS owns an exact successor outside this stage or a legal Program terminal;
+    durable knowledge is transferred to existing canonical owners and the OMP
+    V5.3 frontier is retired under the existing contract.
+19. No Runtime consumer depends on this temporary stage or its reports.
 
 ### V5.3 retirement contract
 

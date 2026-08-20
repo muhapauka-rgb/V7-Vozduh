@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.80`
+Version: `4.81`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -14,8 +14,9 @@ Roadmaps, reports, ADRs, and reference files remain evidence and context. The co
 This program defines how V7 resolves the current system state, highest bottleneck, highest leverage action, normalized authority class, reality limit, next best action, authority evolution recommendation, and whether Codex may continue automatically. The authoritative volatile values produced by that resolution live in `docs/programs/V7_CURRENT_PROGRAM_STATE.md`.
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
-Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md` (`READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`; `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`).
-Current active Mission report: `docs/reports/engineering/2026-08-20_133000_v5_3_matrix_fast_subset_wiring_implementation.md` (`V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`; `MISSION_ADMITTED`).
+Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md` (`READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`; provisional `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`).
+Current active Mission report: `docs/reports/engineering/2026-08-20_133000_v5_3_matrix_fast_subset_wiring_implementation.md` (`V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`; `MISSION_ADMITTED`; selector primitive deployed, automatic FAST role consumer held).
+Current V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
 Current boundary evidence: `docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md` (`ENGINEERING_AUTHORITY_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY_REQUIRED`; not a terminal Mission report and not an Authority decision).
@@ -24,6 +25,17 @@ Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desire
 Authoritative transition input: `docs/reports/engineering/2026-07-11_225321_operation_scoped_binding_atomic_snapshot_closure_v3.md` (`V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`; `MISSION_IDENTITY_GUARD_AND_BINDING_STABILITY_CERTIFIED`).
 Latest bounded RS7 Mission report: `docs/reports/engineering/2026-08-14_163000_admin_operator_read_model_wrapper_collapse_execution.md` (`ADMIN_OPERATOR_READ_MODEL_WRAPPER_COLLAPSE_RUNTIME_CONSUMED`; wrappers and consumers physically collapsed, deployed and verified).
 Live continuation and the current bounded delegated policy state are owned only by CPS section 0 and its Authoritative Unfinished Capability Closure Registry.
+
+V4.81 adds no Program, Mission or execution owner. It preserves the deployed
+opt-in Matrix selector primitive, reclassifies the earlier Model B+C result as
+provisional for automatic-consumer enablement, and routes the still-admitted
+V5.3 Mission to the smallest safe read-only residual:
+`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`. Until the existing V5.3/OMP
+lifecycle consumes the system Atlas, decision-influence graph, execution-order
+and latency map, cadence/parallelism/history review, field-by-field commercial
+comparison, concrete alternatives and weighted decision terminal, automatic
+FAST role selection and scheduling remain on HOLD. The full Matrix fallback,
+Runtime behavior, routing, users and Authority remain unchanged.
 
 V4.80 adds `RS6_STALE_FRONTIER_RECONCILIATION_RULE` inside the existing OMP
 continuation and CPS atomic-reconciliation owners. It applies only when the
@@ -8152,7 +8164,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `IMPLEMENT_V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION`
+Resolved current next action: `EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`
 Resolved contract state: CPS has consumed `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`, atomically admitted `V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`, and the existing lifecycle returned `MISSION_EXECUTION_ALLOWED`; Stage 48 remains lane-local blocked at `11<48`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
@@ -9140,7 +9152,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `IMPLEMENT_V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION`
+Resolved current next action: `EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS`
 Current terminal report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_133000_v5_3_matrix_fast_subset_wiring_implementation.md`

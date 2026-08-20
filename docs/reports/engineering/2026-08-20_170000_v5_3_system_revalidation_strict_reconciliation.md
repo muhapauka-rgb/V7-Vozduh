@@ -160,3 +160,23 @@ endpoint duration, production CPU/RSS, or live timer cadence.
 Primary URLs: Envoy health checking and outlier docs; HAProxy health-check docs;
 Google Cloud Load Balancing health-check concepts; FRR BFD; Cisco BFD and IP
 SLA object tracking; Fortinet Link Health Monitor; MikroTik IP Routing/BFD.
+
+## Controlled measurement pass 2 — isolated non-production Matrix run
+
+The existing Matrix owner was invoked against a fresh temporary state directory
+and a deliberately nonexistent interface. No V7 Runtime state, route, client,
+or production Matrix file was read or written. Results are therefore
+`CONTROLLED_MEASURED`, not production availability evidence.
+
+| Variant | Exact services | Parallel probe/wall span | durable write span | process CPU | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Full | 14 | `50.699 ms` | `8.852 ms` | `46.886 ms` user+system | all probes correctly failed through isolated interface |
+| Exact subset | 3 | `12.729 ms` | `7.173 ms` | `16.131 ms` user+system | same safe failure class |
+
+The controlled probe-phase reduction was `74.9%`; selected probe count fell
+`78.6%`. The durable atomic merge is nearly constant, so it cannot be claimed
+as the source of the improvement. This result proves the existing selector and
+parallel Matrix owner can reduce bounded work; it does **not** prove live
+Internet latency, service health, production CPU/RSS, or a lawful automatic
+consumer. Re-entry for production timing is a fresh coherent existing Runtime
+observation, not a new measurement owner.

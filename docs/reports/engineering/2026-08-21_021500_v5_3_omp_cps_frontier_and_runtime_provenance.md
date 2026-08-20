@@ -60,6 +60,18 @@ latency блока нет доказанного минимального produc
 продолжение может идти через существующий Polygon и direct read-only Matrix
 owners; production apply остаётся запрещённым до отдельной provenance-сверки.
 
+## Re-entry gate checks
+
+На Polygon прошли `3/3` focused tests:
+
+- exact standing semantic binding для availability-first scope;
+- baseline reset через существующий scope owner без L3 incident;
+- fail-closed при identity mismatch.
+
+Следовательно, текущий STOP_SAFE — это не пропущенная локальная проверка
+selection logic. Он воспроизводится именно отсутствием production exact
+admission/context и Runtime provenance.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

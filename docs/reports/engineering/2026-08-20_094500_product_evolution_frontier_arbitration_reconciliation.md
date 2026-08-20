@@ -111,16 +111,22 @@ and runtime/local commit mismatch gates pending commit, push and safe deploy.
 - CPS before: `cpsgen_SFA_SDPC_285AF5FC6F4D_AVAILABILITY_STAGE_48`;
   successor `CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_STAGE_48`;
   stale primary incident labels and sequence input `unresolved=40`.
-- CPS after: `cpsgen_SFA_V53_DECISION_<FRESH_OWNER_FINGERPRINT>`;
+- CPS after: `cpsgen_SFA_V53_DECISION_5ECFBB08DE7BDF52`;
   `ADMITTED_READY_READ_ONLY:V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1`;
   Stage 48 automatic re-entry retained by existing owners.
 - `eba15915`: its top-level label alignment was useful but label-only and
   nonblocking for arbitration; its misplaced neighboring-handler assignment
-  was corrected locally. The new arbitration behavior itself requires source
-  deployment before the production-installed consumer can observe it.
+  was corrected. The arbitration repair was published as commit
+  `c3c39ad7b2ae5a5a6214a0ab9306e36ae57e66bb` and production-installed as
+  `deploy-z8-14-Updatesystem-c3c39ad-20260820T100946`; the manifest changed
+  only `tools/v7_sync_lib.py` and required no Admin restart.
 - Canonical Reference / SYSTEM_MAP: `NONE`; no durable architecture or owner
   topology changed.
-- Runtime / Production / user / Authority effects: `NONE / NONE / 0 / NONE`.
+- Runtime effect: the existing engineering consumer now runs the repaired
+  arbitration source; postflight local/GitHub/runtime convergence is
+  `FULLY_ALIGNED`, blockers `[]`.
+- Routing / ordinary production / user / Authority effects:
+  `NONE / NONE / 0 / NONE`.
 
 Re-audit on a material controlled cohort/source/target/capacity/policy
 fingerprint change, a V5.3 Phase C/D/E terminal, a new material incident, or a

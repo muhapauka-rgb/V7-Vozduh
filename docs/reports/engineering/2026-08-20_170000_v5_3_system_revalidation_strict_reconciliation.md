@@ -801,3 +801,51 @@ Sources: [Envoy health checking](https://www.envoyproxy.io/docs/envoy/latest/int
 [FortiGate passive WAN health measurement](https://docs.fortinet.com/document/fortigate/latest/administration-guide/208103/passive-wan-health-measurement),
 [FortiGate link-monitor reference](https://docs.fortinet.com/document/fortigate/7.4.10/cli-reference/320711343/config-system-link-monitor),
 and [MikroTik WAN backup](https://help.mikrotik.com/docs/spaces/ROS/pages/26476608/Failover%2BWAN%2BBackup).
+
+## Independent candidate-direction audit — 2026-08-20
+
+The three directions in the preceding next step were rechecked against the
+current Program rather than assumed correct. They are not an arbitrary choice:
+the Program requires that the final Phase-E comparison include these three
+models. No fourth direction is lawful or useful unless measurement proves all
+three insufficient without adding another health truth or Runtime ecosystem.
+
+| Required candidate | Correct meaning for this Mission | What would make it an invalid candidate |
+| --- | --- | --- |
+| `MODEL_A_CURRENT_IMPROVED_FULL_MATRIX` | The existing full Matrix remains the normal confirmation path, with the existing freshness, persistence, quality, capacity, route verification and recovery gates. It is the safety and cost baseline, not a discarded legacy implementation. | Calling it a control case without testing source, target, recovery and post-switch behaviour; removing the full fallback. |
+| `MODEL_B_FAST_PLUS_DEEP_UNDER_EXISTING_MATRIX_OWNER` | An already-authoritative caller supplies exact affected source/eligible targets and required profile services; the existing Matrix performs only the bounded confirmation, retains the canonical write and falls back to full Matrix on empty, stale, unknown, identity-mismatched or conflicting input. DEEP remains diagnostic, quality, capacity and history work under existing owners. | A new fast owner, raw-history scan in the immediate path, manual server choice, or short check deciding a client move. |
+| `MODEL_C_EXISTING_SIGNAL_ESCALATION_THROUGH_MATRIX_OWNER` | An existing passive/protocol signal may create only timely suspicion and request Model-B/Matrix confirmation. It remains separately comparable at first so that its detection benefit and false-escalation cost can be measured. After proof it may be merged into B, never promoted to a second event or switching system. | Passive signal directly declaring a failure, choosing a target, or bypassing Matrix persistence, freshness, Planner and verifier gates. |
+
+### Audit result
+
+The directions are therefore **correct, necessary and sufficiently distinct
+for comparison**, with two safeguards:
+
+1. Model C is an escalation *mode*, not a competing routing model. It is kept
+   separate only until the measurement says whether it improves Model B safely.
+2. Model B+C is not selected in advance. The older `B+C` statement remains
+   historical/provisional and cannot decide implementation or automatic FAST
+   admission.
+
+The previous exact-next-action wording is superseded by this complete one:
+
+```text
+For each of A, B and C, use only existing Matrix, quality, recovery, Planner,
+verifier and Polygon owners to define all seven roles: ACTIVE_SOURCE,
+ELIGIBLE_HOT_TARGET, COLD_UNUSED_TARGET, DEGRADED, UNUSABLE, RECOVERING and
+ENGINEERING_CERTIFICATION_ONLY. Map transport, service, passive, stability and
+target-suitability evidence to FAST, compact precomputed, DEEP or
+engineering-only placement. State source, target, recovery and post-switch
+contracts; cadence/timeout/parallelism/persistence; failure/recovery
+thresholds; stale/unknown/conflict/full-fallback handling; expected detection
+latency and false-positive/false-negative risk; probe cost at current, 50 and
+1,000 egresses; owner reuse, migration risk and rollback.
+
+Then run only the existing Polygon/controlled-Matrix cases that distinguish A,
+B and C: conflicting evidence, correlated failure domain, stale/unknown denial,
+target readiness, recovery flap and bounded scale. No Runtime, route, client,
+timer or automatic FAST-consumer change is admitted by this comparison.
+```
+
+This audit changed no system behaviour. It only corrects the candidate
+evaluation contract before any architecture decision.

@@ -2397,6 +2397,7 @@ def delegated_policy_live_state_consistency(
     v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
     v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
+    v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2573,7 +2574,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2587,7 +2588,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2606,7 +2607,7 @@ def delegated_policy_live_state_consistency(
         )
         and (
             reset_program_frontier or rs0_read_only_frontier
-            or v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or rs7_physical_admission_frontier
+            or v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or rs7_physical_admission_frontier
             or f"`{next_action}`" in sequence_one
         )
     )
@@ -2818,6 +2819,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 or _is_v5_3_read_only_frontier(live)
                 or _is_v5_3_implementation_frontier(live)
                 or _is_v5_3_system_revalidation_frontier(live)
+                or _is_v5_3_phase_g_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6715,6 +6717,11 @@ V5_3_MATRIX_FIRST_IMPLEMENTATION_MISSION_ID = (
 V5_3_SYSTEM_REVALIDATION_MISSION_ID = (
     "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"
 )
+V5_3_SYSTEM_REVALIDATION_DECISION_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-20_225000_v5_3_system_level_weighted_architecture_decision.md"
+)
+V5_3_PHASE_G_ACTION = "EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON"
 V5_3_ARBITRATION_REPORT = (
     "docs/reports/engineering/"
     "2026-08-20_094500_product_evolution_frontier_arbitration_reconciliation.md"
@@ -6782,6 +6789,23 @@ def _is_v5_3_system_revalidation_frontier(live: dict[str, str]) -> bool:
         value("CURRENT_EXECUTION_MISSION_ID") == mission_id,
         value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
         value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+    ))
+
+
+def _is_v5_3_phase_g_frontier(live: dict[str, str]) -> bool:
+    """Recognize the existing controlled-Polygon successor of the Atlas."""
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == V5_3_PHASE_G_ACTION,
+        value("CURRENT_EXECUTION_FRONTIER") == V5_3_PHASE_G_ACTION,
+        value("CURRENT_EXECUTION_MISSION_ID") == V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_CONSUMED",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+        value("V5_3_SYSTEM_LEVEL_REVALIDATION_GATE") == "CONSUMED",
+        value("V5_3_AUTOMATIC_FAST_CONSUMER_STATUS")
+        == "HOLD_PENDING_PHASE_F_G_CONSTRAINTS_AND_EXPLICIT_PHASE_H_ADMISSION",
     ))
 
 
@@ -7007,6 +7031,147 @@ def v5_3_system_revalidation_mission_lifecycle_binding(
         "authority_impact": "NONE",
         "final_verdict": "PASS" if not unique else "STOP_SAFE",
         "errors": unique,
+    }
+
+
+def reconcile_v5_3_system_revalidation_decision_to_cps(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume the bounded system-level V5.3 decision through the CPS owner.
+
+    This is deliberately an extension of the existing atomic CPS consumer, not
+    a health/runtime owner.  It verifies the exact local decision record and
+    projects only the next read-only Polygon frontier.  In particular, it
+    cannot enable FAST, alter cadence, invoke Matrix, route, or move users.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    report_path = root / V5_3_SYSTEM_REVALIDATION_DECISION_REPORT
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        report = report_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7-v5-3-system-revalidation-decision-consumption/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"v5_3_system_decision_input_unreadable:{exc}"],
+        }
+    binding = v5_3_system_revalidation_mission_lifecycle_binding(
+        cps_text, requested_state="MISSION_EXECUTION_ALLOWED", root=root,
+    )
+    required_report_tokens = (
+        "# V5.3 Matrix health — system-level weighted architecture decision",
+        "TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT",
+        "the existing full Matrix remains the live detection and switching baseline",
+        "no automatic FAST switch",
+        "Only after that durable terminal is consumed",
+    )
+    errors = list(binding.get("errors") or [])
+    errors.extend(
+        f"v5_3_system_decision_report_missing:{token}"
+        for token in required_report_tokens if token not in report
+    )
+    if errors:
+        return {
+            "schema": "v7-v5-3-system-revalidation-decision-consumption/v1",
+            "final_verdict": "STOP_SAFE",
+            "binding": binding,
+            "errors": sorted(set(errors)),
+        }
+    report_sha256 = hashlib.sha256(report.encode("utf-8")).hexdigest()
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "state_captured": utc_now(),
+        "current_state_generation": f"cpsgen_SFA_V53_SYSTEM_DECISION_{report_sha256[:12].upper()}",
+        "current_transition_id": "V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1",
+        "current_active_scope": "V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_VALIDATION",
+        "current_safe_next_action": (
+            "EXECUTE V5.3 Phase G controlled Polygon caps 1, 2 and 4; "
+            "retain full Matrix fallback and automatic FAST HOLD"
+        ),
+        "current_next_action_id": V5_3_PHASE_G_ACTION,
+        "current_program_execution_frontier": V5_3_PHASE_G_ACTION,
+        "current_execution_frontier": V5_3_PHASE_G_ACTION,
+        "current_execution_mission_state": "MISSION_CONSUMED",
+        "current_mission_state": "MISSION_CONSUMED",
+        "current_completion_contract": "ANALYSIS_COMPLETION",
+        "current_completion_verdict": "MISSION_CONSUMED",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_class": "NONE",
+        "program_terminal_state": "NONE_V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_PHASE_G_REQUIRED",
+        "transaction_terminal_class": "V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "TRUE",
+        "next_mission_id": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+        "wip_current_primary_stop": "NONE",
+        "wip_smallest_existing_next_action_id": V5_3_PHASE_G_ACTION,
+        "wip_smallest_existing_next_action": V5_3_PHASE_G_ACTION,
+        "smallest_existing_next_action": V5_3_PHASE_G_ACTION,
+        "source_summary": (
+            "The existing OMP/CPS atomic consumer accepted the exact V5.3 system-level "
+            "weighted decision. Full Matrix remains the live fallback and automatic FAST "
+            "remains held; only the existing controlled Polygon is next, to measure bounded "
+            "cross-egress concurrency caps."
+        ),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "V5_3_SYSTEM_LEVEL_REVALIDATION_GATE": "`CONSUMED`",
+            "V5_3_SYSTEM_LEVEL_DECISION": "`TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT`",
+            "V5_3_SYSTEM_LEVEL_DECISION_REPORT": f"`{V5_3_SYSTEM_REVALIDATION_DECISION_REPORT}`",
+            "V5_3_SYSTEM_LEVEL_DECISION_REPORT_SHA256": f"`{report_sha256}`",
+            "V5_3_AUTOMATIC_FAST_CONSUMER_STATUS": "`HOLD_PENDING_PHASE_F_G_CONSTRAINTS_AND_EXPLICIT_PHASE_H_ADMISSION`",
+            "V5_3_FAST_SUBSET_PRIMITIVE_STATUS": "`KEEP_DEPLOYED_OPT_IN_SHADOW_COMPARISON_ONLY`",
+            "V5_3_PREVIOUS_MODEL_B_PLUS_C_STATUS": "`SUPERSEDED_BY_SYSTEM_LEVEL_REFINED_EXISTING_OWNER_VARIANT; NOT_RUNTIME_FAST_AUTHORITY`",
+        },
+    )
+    omp_pointer = (
+        atomic_reconcile_omp_current_pointer_from_cps(root=root)
+        if atomic.get("ok") is True
+        else {
+            "ok": False,
+            "status": "OMP_POINTER_NOT_ATTEMPTED_CPS_RECONCILIATION_FAILED",
+            "errors": atomic.get("errors") or [],
+        }
+    )
+    ok = atomic.get("ok") is True and omp_pointer.get("ok") is True
+    return {
+        "schema": "v7-v5-3-system-revalidation-decision-consumption/v1",
+        "final_verdict": "PASS" if ok else "STOP_SAFE",
+        "program_terminal": "V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED" if ok else "NONE",
+        "decision": "TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT",
+        "decision_report": str(report_path),
+        "decision_report_sha256": report_sha256,
+        "real_caller": "tools/v7-truth-check --reconcile-v5-3-system-revalidation-decision",
+        "real_consumer": "existing OMP/CPS atomic reconciliation owner",
+        "next_output": V5_3_PHASE_G_ACTION,
+        "atomic_update": atomic,
+        "omp_pointer_update": omp_pointer,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "forbidden_effects": {
+            "runtime_mutation": False,
+            "routing_mutation": False,
+            "user_movement": False,
+            "automatic_fast_enablement": False,
+        },
+        "errors": [] if ok else (
+            atomic.get("errors") or omp_pointer.get("errors")
+            or ["atomic_cps_or_omp_decision_projection_failed"]
+        ),
     }
 
 
@@ -22269,6 +22434,7 @@ def continue_omp_engineering_control_loop(
             == "PREPARED_NOT_ACTIVE",
         ))
         v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
+        v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
         if active_incident_drain:
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
@@ -22341,6 +22507,46 @@ def continue_omp_engineering_control_loop(
                     "rollback_apply": False,
                     "authority_expansion": False,
                     "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
+        if v5_3_phase_g_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "V5_3_SYSTEM_DECISION_CONSUMED_PHASE_G_REQUIRED",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --omp-scenario-execution --json",
+                "priority_decision": "V5_3_PHASE_G_PREEMPTS_GENERIC_OMP",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_FUTURE_SCALE_POLYGON_OWNER",
+                "exact_next_operator_command": V5_3_PHASE_G_ACTION,
+                "exact_next_automatic_action": V5_3_PHASE_G_ACTION,
+                "transitions": [{
+                    "transaction_terminal": "V5_3_SYSTEM_DECISION_CONSUMED_PHASE_G_ACKNOWLEDGED",
+                    "mission_id": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+                    "next_output": V5_3_PHASE_G_ACTION,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "V5_3_PHASE_G_CONTROLLED_POLYGON_RETAINED_FOR_EXISTING_OWNER",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
+                    "automatic_fast_enablement": False,
                 },
                 "errors": [],
             }
@@ -24569,6 +24775,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             **calls,
             "errors": [],
         }
+    if _is_v5_3_phase_g_frontier(live):
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "V5_3_SYSTEM_DECISION_CONSUMED_PHASE_G_CONTROLLED_POLYGON_REQUIRED",
+            "current_completion_contract": "ANALYSIS_COMPLETION",
+            "current_completion_verdict": "MISSION_CONSUMED",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
     errors: list[str] = []
     for field, value in expected.items():
         if live.get(field, "").strip("`") != value:
@@ -24948,6 +25169,7 @@ def cps_live_state_consistency(
     v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
     v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
+    v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
@@ -25000,7 +25222,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
-            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE")
+            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

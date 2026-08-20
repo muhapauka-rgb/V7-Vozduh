@@ -25,6 +25,14 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
         for key, value in (
             ("CURRENT_STATE_GENERATION", "cpsgen_SFA_V53_DECISION_TEST"),
             ("CURRENT_PROGRAM_STAGE", "V5_3_MATRIX_HEALTH_OPTIMIZATION"),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_MISSION_ID", "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_MISSION_ID", "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS"),
+            ("V5_3_AUTOMATIC_FAST_CONSUMER_STATUS", "HOLD_PENDING_SYSTEM_LEVEL_REVALIDATION"),
             ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1"),
             ("CURRENT_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1"),
             ("CURRENT_EXECUTION_MISSION_ID", "V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1"),
@@ -40,9 +48,28 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
                 key,
                 f"`{value}`",
             )
+        cls.decision_cps = cls.cps
+        # Restore the present Atlas admission for its own tests.
+        for key, value in (
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_FRONTIER", "ADMITTED_READY_READ_ONLY:V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_MISSION_ID", "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_EXECUTION_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_MISSION_ID", "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"),
+            ("CURRENT_MISSION_STATE", "MISSION_ADMITTED"),
+            ("CURRENT_NEXT_ACTION_ID", "EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS"),
+            ("V5_3_AUTOMATIC_FAST_CONSUMER_STATUS", "HOLD_PENDING_SYSTEM_LEVEL_REVALIDATION"),
+        ):
+            cls.cps = cls.lib._replace_section_field(
+                cls.cps,
+                "## 0. Authoritative Live Current State",
+                "## Authoritative Unfinished Capability Closure Registry",
+                key,
+                f"`{value}`",
+            )
 
     def admitted_state(self):
-        state = self.lib._normalized_state_from_live_cps(self.cps)
+        state = self.lib._normalized_state_from_live_cps(self.decision_cps)
         state.update({
             "state_captured": "2026-08-20T08:00:00+00:00",
             "current_state_generation": "cpsgen_SFA_V53_ADMITTED_TEST",
@@ -56,13 +83,13 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
         return state
 
     def test_prepared_mission_requires_atomic_cps_admission(self):
-        result = self.lib.v5_3_matrix_decision_mission_lifecycle_binding(self.cps)
+        result = self.lib.v5_3_matrix_decision_mission_lifecycle_binding(self.decision_cps)
         self.assertEqual(result["final_verdict"], "PASS")
         self.assertEqual(result["execution_authorization"], "PENDING_CPS_ADMISSION")
 
     def test_prepared_state_cannot_issue_execution_authorization(self):
         result = self.lib.v5_3_matrix_decision_mission_lifecycle_binding(
-            self.cps, requested_state="MISSION_EXECUTION_ALLOWED",
+            self.decision_cps, requested_state="MISSION_EXECUTION_ALLOWED",
         )
         self.assertEqual(result["final_verdict"], "STOP_SAFE")
         self.assertIn("v5_3_cps_admission_state_missing", result["errors"])
@@ -70,7 +97,7 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
     def test_atomic_admission_allows_read_only_execution(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "V7_CURRENT_PROGRAM_STATE.md"
-            path.write_text(self.cps, encoding="utf-8")
+            path.write_text(self.decision_cps, encoding="utf-8")
             result = self.lib.atomic_reconcile_cps(
                 path,
                 state=self.admitted_state(),
@@ -96,16 +123,56 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
         self.assertFalse(result["mutation_performed"])
 
     def test_current_system_revalidation_mission_is_execution_allowed(self):
-        current = CPS.read_text(encoding="utf-8")
         result = self.lib.v5_3_system_revalidation_mission_lifecycle_binding(
-            current, requested_state="MISSION_EXECUTION_ALLOWED", root=ROOT,
+            self.cps, requested_state="MISSION_EXECUTION_ALLOWED", root=ROOT,
         )
         self.assertEqual(result["final_verdict"], "PASS", result)
         self.assertEqual(result["execution_authorization"], "MISSION_EXECUTION_ALLOWED")
         self.assertFalse(result["mutation_performed"])
 
+    def test_system_level_decision_is_atomically_consumed_and_keeps_fast_held(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs/programs").mkdir(parents=True)
+            (root / "docs/reports/engineering").mkdir(parents=True)
+            (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").write_text(
+                self.cps, encoding="utf-8",
+            )
+            (root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md").write_text(
+                (ROOT / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (root / self.lib.V5_3_SYSTEM_REVALIDATION_DECISION_REPORT).write_text(
+                (ROOT / self.lib.V5_3_SYSTEM_REVALIDATION_DECISION_REPORT).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            result = self.lib.reconcile_v5_3_system_revalidation_decision_to_cps(root=root)
+            self.assertEqual(result["final_verdict"], "PASS", result)
+            self.assertEqual(
+                result["program_terminal"],
+                "V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED",
+            )
+            self.assertFalse(result["forbidden_effects"]["automatic_fast_enablement"])
+            updated = (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").read_text(encoding="utf-8")
+            self.assertIn("V5_3_SYSTEM_LEVEL_REVALIDATION_GATE` | `CONSUMED`", updated)
+            self.assertIn("HOLD_PENDING_PHASE_F_G_CONSTRAINTS", updated)
+            self.assertIn(self.lib.V5_3_PHASE_G_ACTION, updated)
+            continuation = self.lib.continue_omp_engineering_control_loop(root=root)
+            self.assertEqual(continuation["final_verdict"], "PASS", continuation)
+            self.assertEqual(
+                continuation["priority_decision"],
+                "V5_3_PHASE_G_PREEMPTS_GENERIC_OMP",
+            )
+            self.assertFalse(continuation["forbidden_effects"]["automatic_fast_enablement"])
+
     def test_continue_omp_keeps_active_system_revalidation_ahead_of_generic_work(self):
-        result = self.lib.continue_omp_engineering_control_loop(root=ROOT)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs/programs").mkdir(parents=True)
+            (root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md").write_text(
+                self.cps, encoding="utf-8",
+            )
+            result = self.lib.continue_omp_engineering_control_loop(root=root)
         self.assertEqual(result["final_verdict"], "PASS", result)
         self.assertEqual(
             result["priority_decision"],

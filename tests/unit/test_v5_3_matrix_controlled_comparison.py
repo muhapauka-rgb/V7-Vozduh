@@ -5,6 +5,7 @@ ephemeral response surface.  It changes no V7 Runtime state, routes or users.
 """
 
 import contextlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import http.server
 import importlib.machinery
 import importlib.util
@@ -13,6 +14,7 @@ import json
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -161,3 +163,53 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
         self.assertTrue(full["results"]["google_auth"]["ok"])
         self.assertTrue(subset["results"]["google_auth"]["ok"])
         self.assertEqual(full["status"], subset["status"])
+
+    def test_phase_g_cross_egress_caps_preserve_single_writer_and_do_not_claim_speedup(self):
+        """Exercise caps 1/2/4 through the existing Matrix durable writer."""
+        observations = {"google": {
+            "label": "Google controlled", "ok": True, "status": "OK",
+            "severity": "OK", "tested_at": self.matrix.now_iso(),
+            "elapsed_sec": 0.001, "reason": "controlled healthy observation", "error": "",
+        }}
+        timings = {}
+        for cap in (1, 2, 4):
+            with self.subTest(cap=cap), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                matrix_file = root / "state" / "service-matrix.json"
+                active_writes = 0
+                peak_writes = 0
+                guard = threading.Lock()
+                original_write = self.matrix.write_json_atomic
+
+                def delayed_write(path, data):
+                    nonlocal active_writes, peak_writes
+                    with guard:
+                        active_writes += 1
+                        peak_writes = max(peak_writes, active_writes)
+                    try:
+                        time.sleep(0.02)
+                        original_write(path, data)
+                    finally:
+                        with guard:
+                            active_writes -= 1
+
+                started = time.monotonic()
+                with mock.patch.object(self.matrix, "write_json_atomic", side_effect=delayed_write):
+                    def update(index):
+                        return self.matrix.update_matrix(
+                            matrix_file, f"polygon-egress-{index}", "lo0", observations, 3,
+                            event_dir=root / "events", state_dir=root / "state",
+                        )
+                    with ThreadPoolExecutor(max_workers=cap) as pool:
+                        futures = [pool.submit(update, index) for index in range(8)]
+                        results = [future.result() for future in as_completed(futures)]
+                timings[cap] = time.monotonic() - started
+                self.assertEqual(peak_writes, 1)
+                self.assertEqual(len(results), 8)
+                matrix = json.loads(matrix_file.read_text(encoding="utf-8"))
+                self.assertEqual(len(matrix["items"]), 8)
+                self.assertFalse((root / "events" / "service-failure-events.jsonl").exists())
+        # The delayed canonical write dominates every cap. This is a controlled
+        # no-speedup result, never evidence for production parallelism.
+        self.assertGreaterEqual(timings[2], timings[1] * 0.75)
+        self.assertGreaterEqual(timings[4], timings[1] * 0.75)

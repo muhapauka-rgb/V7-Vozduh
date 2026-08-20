@@ -72,6 +72,11 @@ owners; production apply остаётся запрещённым до отдел
 selection logic. Он воспроизводится именно отсутствием production exact
 admission/context и Runtime provenance.
 
+Дополнительный bounded Polygon scope check: `4/4 PASS` — authority/runtime
+bounds ограничивают cohort, zero-authority остаётся shadow без stage credit,
+soft quality miss отделяется от hard failure, а hard/insufficient truth
+закрывается fail-closed.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

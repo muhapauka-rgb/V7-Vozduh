@@ -1187,6 +1187,12 @@ runtime file, unit, route, Matrix endpoint, client or service was changed in
 production. This is an external verification boundary, not permission to
 bypass the deploy guard.
 
+The implementation was then committed locally as `8859041e`
+(`v7: add planner matrix comparison shadow`). A second safe-deploy preflight
+confirmed that the workspace is clean and the three expected Runtime artifacts
+are the only deploy delta, but it remains `NO-GO` for the same independent
+GitHub-read failure. No deploy was attempted after that refusal.
+
 ### Residual and exact next action
 
 Plan position: **step 5 of 6 — implementation and Polygon proof complete;
@@ -1195,9 +1201,9 @@ safe publication/deploy verification blocked externally.**
 Exact next action:
 
 ```text
-Commit this bounded existing-owner change; when independent GitHub branch
-verification is reachable, rerun v7-safe-deploy with its required confirmation,
-then inspect the installed timer command, installed binary hashes and the first
-comparison receipt. Only after agreement/fallback observations exist may Phase
-E recalculate B/C evidence; the full Matrix remains the live fallback.
+When independent GitHub branch verification is reachable, rerun v7-safe-deploy
+with its required confirmation, then inspect the installed timer command,
+installed binary hashes and the first comparison receipt. Only after
+agreement/fallback observations exist may Phase E recalculate B/C evidence;
+the full Matrix remains the live fallback.
 ```

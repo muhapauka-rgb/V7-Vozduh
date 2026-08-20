@@ -37,6 +37,7 @@ def load_matrix_module():
 
 class _HealthyResponse(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 - required BaseHTTPRequestHandler name
+        time.sleep(float(getattr(self.server, "delay_seconds", 0.0)))
         service_id = self.path.strip("/")
         if service_id in self.server.failed_services:
             self.send_response(503)
@@ -57,6 +58,7 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
         cls.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _HealthyResponse)
         cls.server.failed_services = set()
         cls.server.limited_services = set()
+        cls.server.delay_seconds = 0.0
         cls.port = int(cls.server.server_port)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -213,3 +215,76 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
         # no-speedup result, never evidence for production parallelism.
         self.assertGreaterEqual(timings[2], timings[1] * 0.75)
         self.assertGreaterEqual(timings[4], timings[1] * 0.75)
+
+    def test_phase_g_complete_probe_portion_has_bounded_cross_egress_speedup_only_in_polygon(self):
+        """Measure the existing full probe path under caps 1/2/4, in isolation."""
+        catalog = {
+            service_id: {
+                "label": str(meta.get("label") or service_id),
+                "url": f"http://127.0.0.1:{self.port}/{service_id}",
+                "classes": tuple(meta.get("classes") or ()),
+            }
+            for service_id, meta in self.matrix.SERVICE_CATALOG.items()
+            if service_id != "telegram"
+        }
+        catalog["telegram"] = {
+            "label": "Telegram controlled TCP", "kind": "telegram_tcp",
+            "classes": tuple(self.matrix.SERVICE_CATALOG["telegram"].get("classes") or ()),
+        }
+        timings = {}
+        self.server.delay_seconds = 0.025
+        endpoints = (("127.0.0.1", self.port, True),) * 3
+        try:
+            with mock.patch.object(self.matrix, "SERVICE_CATALOG", catalog), mock.patch.object(
+                self.matrix, "TELEGRAM_ENDPOINTS", endpoints
+            ), mock.patch.object(self.matrix, "bind_to_device", return_value=""):
+                for cap in (1, 2, 4):
+                    with self.subTest(cap=cap), tempfile.TemporaryDirectory() as tmp:
+                        root = Path(tmp)
+                        matrix_file = root / "state" / "service-matrix.json"
+                        selected = list(self.matrix.SERVICE_CATALOG)
+                        active_egresses = 0
+                        peak_egresses = 0
+                        guard = threading.Lock()
+
+                        def probe_egress(index):
+                            nonlocal active_egresses, peak_egresses
+                            with guard:
+                                active_egresses += 1
+                                peak_egresses = max(peak_egresses, active_egresses)
+                            try:
+                                with ThreadPoolExecutor(max_workers=8) as pool:
+                                    futures = {
+                                        pool.submit(self.matrix.run_service, service, "lo0", 3): service
+                                        for service in selected
+                                    }
+                                    results = {future_service: future.result() for future, future_service in (
+                                        (future, futures[future]) for future in as_completed(futures)
+                                    )}
+                                matrix, _lock = self.matrix.update_matrix(
+                                    matrix_file, f"polygon-full-{index}", "lo0", results, 3,
+                                    event_dir=root / "events", state_dir=root / "state",
+                                )
+                                return matrix["items"][f"polygon-full-{index}"]
+                            finally:
+                                with guard:
+                                    active_egresses -= 1
+
+                        started = time.monotonic()
+                        with ThreadPoolExecutor(max_workers=cap) as pool:
+                            rows = [future.result() for future in as_completed(
+                                [pool.submit(probe_egress, index) for index in range(8)]
+                            )]
+                        timings[cap] = time.monotonic() - started
+                        self.assertEqual(peak_egresses, cap)
+                        self.assertTrue(all(row["status"] == "OK" and row["total"] == 14 for row in rows))
+                        self.assertFalse((root / "events" / "service-failure-events.jsonl").exists())
+        finally:
+            self.server.delay_seconds = 0.0
+        # This certifies only the controlled, latency-injected probe portion.
+        # It is neither a production timing claim nor automatic-cap admission.
+        print("phase_g_complete_probe_timings_seconds=" + json.dumps(
+            {str(cap): round(value, 6) for cap, value in timings.items()},
+            sort_keys=True,
+        ))
+        self.assertTrue(all(value > 0 for value in timings.values()))

@@ -77,6 +77,25 @@ bounds ограничивают cohort, zero-authority остаётся shadow �
 soft quality miss отделяется от hard failure, а hard/insufficient truth
 закрывается fail-closed.
 
+## Реальный caller short/full пути
+
+Production unit действительно запускает существующий caller:
+
+```text
+v7-service-matrix-refresh.timer
+  → v7-service-matrix-refresh.service
+  → v7-service-matrix-refresh-all --runtime-hot-path-only --matrix-comparative-preflight
+  → v7-users-autoswitch --consume-service-failure-automation-only
+  → existing short Matrix → unchanged full Matrix comparison
+```
+
+Но для текущего `CERTIFICATION_ONLY` source branch refresh owner намеренно
+завершает обработку до advisory comparison (`DEFERRED_TO_EXISTING_CONTROLLED_OWNER`),
+потому что там нет ordinary user scope. Поэтому текущий live vless цикл
+подтверждает Matrix и STOP_SAFE, но не является доказательством short/full
+latency именно для ordinary failover. Это проверено synthetic caller chain и
+не требует менять production ветку.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

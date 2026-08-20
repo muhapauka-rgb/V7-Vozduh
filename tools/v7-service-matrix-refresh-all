@@ -2922,9 +2922,17 @@ def run_passive_consumer(
     return result
 
 
-def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict[str, Any]:
+def run_one(
+    egress_id: str,
+    timeout: int,
+    checker: str,
+    state_dir: Path,
+    services: str = "",
+) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
+    if str(services or "").strip():
+        cmd.extend(["--services", str(services).strip()])
     try:
         proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14)
     except subprocess.TimeoutExpired as exc:
@@ -2960,6 +2968,30 @@ def run_one(egress_id: str, timeout: int, checker: str, state_dir: Path) -> dict
             else {}
         ),
     }
+
+
+def select_probe_rows(
+    rows: list[dict[str, str]], exact_egresses: str,
+) -> tuple[list[dict[str, str]], list[str]]:
+    """Resolve an exact enabled subset without creating another registry."""
+    requested = sorted(set(
+        item.strip() for item in str(exact_egresses or "").split(",") if item.strip()
+    ))
+    if any(not SAFE_EGRESS_RE.fullmatch(item) for item in requested):
+        raise ValueError("invalid_exact_egress_subset")
+    enabled_by_id = {
+        str(row.get("id") or ""): row
+        for row in rows
+        if bool_value(row.get("enabled"), default=True) and str(row.get("id") or "")
+    }
+    missing = sorted(set(requested) - set(enabled_by_id))
+    if missing:
+        raise ValueError("exact_egress_subset_not_enabled:" + ",".join(missing))
+    return (
+        [enabled_by_id[item] for item in requested] if requested
+        else list(enabled_by_id.values()),
+        requested,
+    )
 
 
 def run_service_failure_automation_advisory(
@@ -4149,6 +4181,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument(
+        "--egresses",
+        default="",
+        help=(
+            "Exact comma-separated enabled egress subset. Empty preserves the "
+            "existing full refresh; unknown identities fail closed."
+        ),
+    )
+    parser.add_argument(
+        "--services",
+        default="",
+        help=(
+            "Exact comma-separated service subset forwarded to the existing "
+            "v7-service-matrix-test owner. Empty preserves all services."
+        ),
+    )
+    parser.add_argument(
         "--event-provenance",
         choices=("OPERATOR_INDUCED", "OBSERVED_EXTERNAL_UNATTRIBUTED"),
         default="",
@@ -4170,14 +4218,33 @@ def main() -> int:
     started = time.time()
     state_dir = Path(args.state_dir)
     event_only = bool(args.consume_existing_service_failure_events_only)
-    rows = [row for row in parse_registry(state_dir / "egress.registry") if bool_value(row.get("enabled"), default=True)]
+    registry_rows = parse_registry(state_dir / "egress.registry")
+    try:
+        rows, requested_egresses = select_probe_rows(registry_rows, args.egresses)
+    except ValueError as exc:
+        detail = str(exc)
+        error, _, missing = detail.partition(":")
+        payload = {"error": error}
+        if missing:
+            payload["missing_egresses"] = missing.split(",")
+        print(json.dumps(payload, ensure_ascii=False))
+        return 2
+    service_subset = str(args.services or "").strip()
+    if event_only and (requested_egresses or service_subset):
+        print(json.dumps({
+            "error": "probe_subset_invalid_in_event_consumption_only_mode",
+        }, ensure_ascii=False))
+        return 2
     # Probes are read/network work.  They must not hold the shared Matrix
     # writer lock; every existing ``v7-service-matrix-test`` invocation takes
     # that lock only for its own atomic durable update.  This preserves writer
     # serialization while allowing the fast failure producer to publish during
     # a long full refresh.
     results = ([] if event_only else [
-        run_one(row["id"], max(3, min(int(args.timeout), 30)), args.checker, state_dir)
+        run_one(
+            row["id"], max(3, min(int(args.timeout), 30)), args.checker,
+            state_dir, service_subset,
+        )
         for row in rows
     ])
     writer_locks = [
@@ -4216,7 +4283,17 @@ def main() -> int:
             "runtime_behavior_changed": False,
             "users_moved": False,
         },
-        "mode": "EXISTING_EVENT_CONSUMPTION_ONLY" if event_only else "FULL_MATRIX_REFRESH",
+        "mode": (
+            "EXISTING_EVENT_CONSUMPTION_ONLY" if event_only
+            else "BOUNDED_EXACT_SUBSET_REFRESH" if requested_egresses or service_subset
+            else "FULL_MATRIX_REFRESH"
+        ),
+        "probe_selection": {
+            "egresses": requested_egresses or [str(row.get("id") or "") for row in rows],
+            "services": [item.strip() for item in service_subset.split(",") if item.strip()] or ["all"],
+            "role_selection_owner": "EXTERNAL_EXISTING_MATRIX_CALLER",
+            "full_matrix_fallback_preserved": True,
+        },
     }
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():

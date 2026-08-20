@@ -415,6 +415,17 @@ deep Matrix -> diagnostics, broad services, quality, capacity detail,
 
 #### Phase F — probe economy and scale
 
+Consumed Phase C/D/E decision (2026-08-20):
+`TARGET_ARCHITECTURE_MODEL_B_PLUS_C`. FAST and DEEP remain modes of the
+existing Matrix owner; passive evidence only escalates bounded confirmation.
+The exact first implementation residual is
+`CONNECT_EXISTING_EXACT_SERVICE_SUBSET_AND_EXACT_EGRESS_SELECTION_TO_REFRESH_ALL_FAST_SOURCE_TARGET_PATH`,
+owned by the retained candidate
+`V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`. Detailed benchmark,
+scale model, invalidation triggers and migration blueprint are historical
+evidence in
+`docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`.
+
 Phase F validates the Phase E decision; it does not redesign by default.
 Publish measured `FAST_DETECTION_COST`, `HEALTH_PROBE_COST_PER_EGRESS`,
 `TARGET_READINESS_COST`, `DEEP_MATRIX_COST`, `TOTAL_NETWORK_PROBE_BUDGET`,

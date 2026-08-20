@@ -35,6 +35,36 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertTrue(result["service_matrix_lock"]["held"])
         self.assertNotIn("env", run.call_args.kwargs)
 
+    def test_exact_service_subset_is_forwarded_to_existing_checker(self):
+        with mock.patch.object(
+            tool.subprocess,
+            "run",
+            return_value=subprocess.CompletedProcess(
+                ["checker"], 0, stdout=json.dumps({"status": "OK"}),
+            ),
+        ) as run:
+            result = tool.run_one(
+                "source", 3, "checker", Path("/state"), "google,telegram",
+            )
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            run.call_args.args[0][-2:], ["--services", "google,telegram"],
+        )
+
+    def test_exact_egress_subset_reuses_enabled_registry_and_fails_closed(self):
+        rows = [
+            {"id": "hot", "enabled": "1"},
+            {"id": "cold", "enabled": "1"},
+            {"id": "off", "enabled": "0"},
+        ]
+        selected, requested = tool.select_probe_rows(rows, "hot")
+        self.assertEqual([row["id"] for row in selected], ["hot"])
+        self.assertEqual(requested, ["hot"])
+        with self.assertRaisesRegex(ValueError, "exact_egress_subset_not_enabled:off"):
+            tool.select_probe_rows(rows, "off")
+        with self.assertRaisesRegex(ValueError, "invalid_exact_egress_subset"):
+            tool.select_probe_rows(rows, "bad/egress")
+
     def test_recovered_vless_history_is_captured_once_by_canonical_channel(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

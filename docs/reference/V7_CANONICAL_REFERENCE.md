@@ -1938,6 +1938,22 @@ Related ADR: `docs/decisions/ADR-FUTURE-EVIDENCE-INDEX-AND-FRESHNESS-MODEL.md`.
 - Evidence reuse law: Fresh Matrix evidence may be inherited only after exact path, egress/config, service-set and identity-generation equality. The user movement path must separately prove current assignment plus Linux policy-table/route binding. Any missing, stale, mismatched or contradictory dimension fails closed into the existing full Matrix verifier. Capacity and policy admission remain fresh live gates and are not inherited from Matrix.
 - Probe classes: `google` is `CHANNEL_HEALTH_REQUIRED`; `telegram` is `EGRESS_PATH_REQUIRED`; `google_auth`, `youtube`, `apple`, `instagram`, `whatsapp`, `facebook`, `spotify`, `soundcloud`, `chatgpt`, `openai_auth`, `claude`, and `anthropic` are `CHANNEL_PROFILE_REQUIRED`. None is `USER_BINDING_REQUIRED`; none may be removed merely because another HTTP probe passes.
 - Known caveats: Service Matrix is diagnostic/background automation, not a standalone business action. Manual refresh is allowed only through existing safe actions. First-level channel Services should track primary user-facing services; hidden endpoint checks such as auth/API companion endpoints remain supporting diagnostics unless they become explicit planner blockers. A declared expected egress identity is fingerprinted without storing the raw address; a runtime-observed public-IP probe is not added to the per-user critical path.
+
+### Matrix health target architecture
+
+The V5.3 Phase C/D/E decision selects `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`:
+FAST and DEEP remain modes of the existing Matrix owner, while legally
+consumable passive signals may accelerate bounded Matrix confirmation but do
+not become a second health/event system. FAST is role-aware: active-source
+health answers whether assigned ordinary users require rescue; hot-target
+readiness separately requires fresh path/service evidence plus existing
+stability, quality, capacity, policy, reserve and role facts. Cold targets and
+the complete 14-service set remain DEEP/background and the full Matrix remains
+the safe fallback. Recovery is more conservative than failure, and stale,
+unknown or conflicting target evidence fails closed. Existing background
+history/quality owners may project compact current stability; FAST must never
+scan raw history. The Matrix writer/state/event owner, Planner/routing owners,
+Authority boundaries and user-movement path are unchanged.
 - Related reports / ADRs: `docs/operator_actions/OPERATOR_ACTIONS_AUTOMATION_REALITY_AUDIT.md`, `docs/operator_actions/CHANNEL_AUTOMATION_2_OPERATOR_SURFACE_SIMPLIFICATION_REPORT.md`, `UX_4_CHANNEL_DRAWER_REBUILD_SPECIFICATION_REPORT.md`.
 - Last verified commit: `73524669`.
 

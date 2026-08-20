@@ -82,7 +82,6 @@ class OmpLiveStatePointerConsistencyTest(unittest.TestCase):
         drift = self.omp.replace(
             f"Current active Mission report: `{report}`",
             "Current active Mission report: `docs/reports/engineering/stale.md`",
-            1,
         )
         self.assertEqual(self.validate(drift)["omp_report_pointer_consistency"], "FAIL")
 

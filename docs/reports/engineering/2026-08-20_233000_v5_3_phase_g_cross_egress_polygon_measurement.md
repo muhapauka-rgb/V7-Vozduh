@@ -16,16 +16,17 @@ to the outer cross-egress traversal. All 112 service observations were
 healthy, all eight Matrix rows were written, no failure event was produced,
 and no Runtime, route, user or Authority effect occurred.
 
-| Cap | Complete controlled probe traversal | Change vs cap 1 | Interpretation |
-| ---: | ---: | ---: | --- |
-| 1 | 0.838884 s | baseline | safe serial baseline |
-| 2 | 0.640213 s | 23.7% lower | bounded Polygon candidate only |
-| 4 | 0.982904 s | 17.2% higher | reject for this controlled profile |
+| Run | Cap 1 | Cap 2 | Cap 4 | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| A | 0.838884 s | 0.640213 s | 0.982904 s | cap 2 is 23.7% lower than serial; cap 4 is worse |
+| B | 0.855855 s | 0.648959 s | 0.746633 s | cap 2 is 24.2% lower than serial; cap 4 remains 15.1% slower than cap 2 |
 
-The same Polygon suite separately held the existing Matrix atomic writer at
-one writer under every cap. Eight healthy egress rows were preserved with no
-failure-event file. Consequently cap 2 is the only measured candidate; it is
-not a production setting or FAST-consumer authority.
+Cap 2 was consistently lower than serial in both controlled runs. Cap 4 varied
+relative to serial but was slower than cap 2 in both runs (15.1–53.5%), so it
+is rejected as a default. The same Polygon suite separately held the existing
+Matrix atomic writer at one writer under every cap. Eight healthy egress rows
+were preserved with no failure-event file. Consequently cap 2 is the only
+measured candidate; it is not a production setting or FAST-consumer authority.
 
 ## What this proves and what it does not
 
@@ -33,7 +34,8 @@ Proved in the controlled polygon:
 
 - cap 2 can reduce the complete latency-injected probe portion relative to
   serial traversal for this exact eight-egress/14-service profile;
-- cap 4 is worse in the same profile, so it is not a default;
+- cap 4 is less efficient than cap 2 in both runs and has unstable benefit
+  versus serial, so it is not a default;
 - the existing canonical Matrix writer remains single-writer under all caps;
 - no test caused an event, route change, client movement or production effect.
 
@@ -47,7 +49,13 @@ Not proved:
 
 ## Evidence
 
-`tests.unit.test_v5_3_matrix_controlled_comparison`: `5/5 PASS`.
+`tests.unit.test_v5_3_matrix_controlled_comparison`: `6/6 PASS`.
+
+The continuation run added a cap-2 two-egress transient-failure/recovery
+check. A one-sample required-service failure was `WARN` on both egresses, did
+not create an incident event, and the next healthy observation restored `OK`
+on both egresses. This preserves the existing persistence and recovery rules;
+it does not prove persistent-failure or production behavior.
 
 The cap measurement is implemented as an extension of the existing controlled
 Matrix Polygon suite. It invokes the existing `run_service` and

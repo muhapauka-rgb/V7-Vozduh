@@ -288,3 +288,53 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
             sort_keys=True,
         ))
         self.assertTrue(all(value > 0 for value in timings.values()))
+
+    def test_phase_g_cap_two_preserves_first_failure_and_recovery_semantics(self):
+        """A cap must not turn one transient observation into an incident."""
+        catalog = {
+            service_id: {
+                "label": str(meta.get("label") or service_id),
+                "url": f"http://127.0.0.1:{self.port}/{service_id}",
+                "classes": tuple(meta.get("classes") or ()),
+            }
+            for service_id, meta in self.matrix.SERVICE_CATALOG.items()
+            if service_id != "telegram"
+        }
+        catalog["telegram"] = {
+            "label": "Telegram controlled TCP", "kind": "telegram_tcp",
+            "classes": tuple(self.matrix.SERVICE_CATALOG["telegram"].get("classes") or ()),
+        }
+        endpoints = (("127.0.0.1", self.port, True),) * 3
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
+            self.matrix, "SERVICE_CATALOG", catalog
+        ), mock.patch.object(self.matrix, "TELEGRAM_ENDPOINTS", endpoints), mock.patch.object(
+            self.matrix, "bind_to_device", return_value=""
+        ):
+            root = Path(tmp)
+            matrix_file = root / "state" / "service-matrix.json"
+
+            def observe(egress):
+                services = list(self.matrix.SERVICE_CATALOG)
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    futures = {
+                        pool.submit(self.matrix.run_service, service, "lo0", 3): service
+                        for service in services
+                    }
+                    results = {futures[future]: future.result() for future in as_completed(futures)}
+                matrix, _lock = self.matrix.update_matrix(
+                    matrix_file, egress, "lo0", results, 3,
+                    event_dir=root / "events", state_dir=root / "state",
+                )
+                return matrix["items"][egress]
+
+            self.server.failed_services = {"google"}
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                failed_rows = list(pool.map(observe, ("polygon-failure-a", "polygon-failure-b")))
+            self.assertTrue(all(row["status"] == "WARN" for row in failed_rows))
+            self.assertFalse((root / "events" / "service-failure-events.jsonl").exists())
+
+            self.server.failed_services = set()
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                recovered_rows = list(pool.map(observe, ("polygon-failure-a", "polygon-failure-b")))
+            self.assertTrue(all(row["status"] == "OK" for row in recovered_rows))
+            self.assertFalse((root / "events" / "service-failure-events.jsonl").exists())

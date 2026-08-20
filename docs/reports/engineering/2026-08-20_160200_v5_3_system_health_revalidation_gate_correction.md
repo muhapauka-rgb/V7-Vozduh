@@ -128,6 +128,16 @@ Validation:
   drift; no production or Program safety gate was weakened to make it pass.
 - `git diff --check`: `PASS`.
 
+Publication and final truth:
+
+- correction commit: `2c9a792c5b8d818169aa980d6f70723e3a665d02`;
+- canonical branch: `Updatesystem`; GitHub remote commit matched;
+- final `v7-truth-check --all`: `PASS`, blockers `[]`, CPS `PASS`,
+  `FULLY_ALIGNED`;
+- production remains at executable commit
+  `edd97966fae89e49ea90042d431e5d427e36276a`; the reported difference is
+  correctly classified `documentation-only`, so deploy is not required.
+
 Re-audit before automatic enablement is mandatory when the Atlas and weighted
 decision terminal are available, or earlier if a production caller for the
 selectors appears, full-Matrix fallback changes, cadence/threshold semantics

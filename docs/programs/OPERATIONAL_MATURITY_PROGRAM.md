@@ -8171,8 +8171,8 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON`
-Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
+Resolved contract state: CPS proves `ACTIVE_OWNER_BACKED_STANDING_POLICY`; campaign identities=52; locations={"amneziawg-exec-20260528-10-8-1-14":5,"awg0":21,"awg3":11,"openvpn-1779388847-d2ad7c":1,"vless":11,"wireguard-1779454504-c43409":3}; controlled production proven max=0; completed stages=NONE; next stage=5; the exact live successor is `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9159,7 +9159,7 @@ Authoritative owner: `docs/programs/V7_CURRENT_PROGRAM_STATE.md`
 Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
-Resolved current next action: `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON`
+Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
 Current terminal report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`

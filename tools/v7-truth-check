@@ -1187,6 +1187,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reconcile-external-authority-boundary", action="store_true", help="Atomically restore the exact existing external-Authority CPS projection after a proven automatic-successor precedence defect; never issues policy or executes an action.")
     parser.add_argument("--reconcile-active-standing-delegated-policy", action="store_true", help="Read the existing production policy/audit status and atomically replace a stale CPS Authority-request projection; never issues a contract or executes an action.")
     parser.add_argument("--reconcile-v5-3-system-revalidation-decision", action="store_true", help="Atomically consume the exact V5.3 system-level architecture decision into CPS; retains full Matrix fallback and FAST hold.")
+    parser.add_argument("--reconcile-v5-3-phase-g-to-t0-t11", action="store_true", help="Atomically consume the completed V5.3 Phase-G no-parallelism result into CPS and activate the existing T0-T11 latency-evidence track; no Runtime effect.")
     parser.add_argument("--continue-omp-change", action="append", default=None, help="Owner-backed dependency identity used for selective invalidation certification.")
     parser.add_argument("--continue-omp-persist-cps", action="store_true", help="Atomically persist each bounded Continue OMP transition to CPS.")
     parser.add_argument("--continue-omp-iterations", type=int, default=sync_lib.OMP_CONTINUATION_MAX_ITERATIONS)
@@ -1497,6 +1498,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
         else:
             print(f"v5_3_system_revalidation_decision={result.get('final_verdict', 'STOP_SAFE')}")
+            print(f"next_output={result.get('next_output', 'NONE')}")
+        return 0 if result.get("final_verdict") == "PASS" else 2
+    if args.reconcile_v5_3_phase_g_to_t0_t11:
+        result = sync_lib.reconcile_v5_3_phase_g_to_t0_t11_latency_track(
+            root=fsse_scenario_root(),
+        )
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            print(f"v5_3_phase_g_to_t0_t11={result.get('final_verdict', 'STOP_SAFE')}")
             print(f"next_output={result.get('next_output', 'NONE')}")
         return 0 if result.get("final_verdict") == "PASS" else 2
     if args.consume_service_failure_automation_only:

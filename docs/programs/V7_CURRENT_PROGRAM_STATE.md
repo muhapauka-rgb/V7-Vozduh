@@ -2,18 +2,18 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-20T19:26:46+00:00
+State captured: 2026-08-20T20:58:08+00:00
 Latest terminal Mission: `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1`
 Latest terminal Mission state: `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
 Authoritative transition input Mission: `V7_OMP_BINDING_ATOMIC_SNAPSHOT_AND_MISSION_IDENTITY_GUARD_V3`
-Source: The existing OMP/CPS atomic consumer accepted the exact V5.3 system-level weighted decision. Full Matrix remains the live fallback and automatic FAST remains held; only the existing controlled Polygon is next, to measure bounded cross-egress concurrency caps.
+Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G Polygon result: no cross-egress parallelism is admitted. Full Matrix remains the live baseline, subset remains shadow-only, automatic FAST remains held, and the existing V5.3 T0-T11 latency track is next.
 
 ## 0. Authoritative Live Current State
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-20T19:26:46+00:00`
+Captured: `2026-08-20T20:58:08+00:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -40,30 +40,30 @@ This section is the single live volatile current-state surface. Older production
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
-| `CURRENT_ACTIVE_SCOPE` | `V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_VALIDATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `EXECUTE V5.3 Phase G controlled Polygon caps 1, 2 and 4; retain full Matrix fallback and automatic FAST HOLD` |
+| `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Continue the existing V5.3 T0-T11 latency-evidence track: reuse the static/Polygon map, preserve Runtime-unknown facts, and obtain only lawful read-only existing-owner timing evidence.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_SYSTEM_DECISION_AB9E7C037471` |
-| `CURRENT_TRANSITION_ID` | `V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
+| `CURRENT_TRANSITION_ID` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `CURRENT_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_PHASE_G_REQUIRED` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_T0_T11_LATENCY_OPTIMIZATION_REQUIRED` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
-| `TRANSACTION_TERMINAL_CLASS` | `V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED` |
+| `TRANSACTION_TERMINAL_CLASS` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED` |
 | `PROGRAM_TERMINAL_CLASS` | `NONE` |
-| `NEXT_MISSION_FORMED` | `TRUE` |
-| `NEXT_MISSION_ID` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
+| `NEXT_MISSION_FORMED` | `FALSE` |
+| `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `86` |
 | `CONTINUATION_STOP_REASON` | `SYSTEM HEALTH/TEST/STABILITY ATLAS ADMITTED; AUTOMATIC FAST ROLE CONSUMER HELD UNTIL DOMINANT SYSTEM-LEVEL WEIGHTED TERMINAL` |
@@ -170,7 +170,7 @@ This section is the single live volatile current-state surface. Older production
 | `PHASE_6_FINAL_REPORT` | `docs/reports/engineering/2026-07-17_021500_phase6_multi_lane_certification_and_phase7_engineering_evolution_closure.md` |
 | `MISSION_COMPLETION_EVIDENCE_GATE` | `ACTIVE_V1` |
 | `CURRENT_COMPLETION_CONTRACT` | `ANALYSIS_COMPLETION` |
-| `CURRENT_COMPLETION_VERDICT` | `MISSION_CONSUMED` |
+| `CURRENT_COMPLETION_VERDICT` | `PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE` |
 | `FSSE_STATUS` | `FSSE_04_AUTONOMOUS_ENGINEERING_LOOP_CERTIFIED` |
 | `FSSE_00_EXTERNAL_REENTRY_STATUS` | `FULL_INDEPENDENT_BACKGROUND_AUTOMATION_PRODUCTION_CERTIFIED` |
 | `FSSE_00_BLOCKS_FSSE_01` | `FALSE` |
@@ -647,13 +647,20 @@ This section is the single live volatile current-state surface. Older production
 | `CT_M0F_VALIDATION_REQUEST_REPORT` | docs/reports/engineering/2026-08-06_090548_ct_m0f_standing_validation_policy_deploy_and_request_boundary.md |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_SCHEMA` | v7.constant-time-failover-performance-ledger.v1 |
 | `CONSTANT_TIME_PERFORMANCE_LEDGER_STATUS` | EXISTING_TIME_OWNER_BOUND_TO_RUNTIME_NESTED_SPANS_AND_HIDDEN_O_N_COUNTERS |
-| `V5_3_AUTOMATIC_FAST_CONSUMER_STATUS` | `HOLD_PENDING_PHASE_F_G_CONSTRAINTS_AND_EXPLICIT_PHASE_H_ADMISSION` |
+| `V5_3_AUTOMATIC_FAST_CONSUMER_STATUS` | `HOLD_PENDING_EXPLICIT_PHASE_H_ADMISSION` |
 | `V5_3_FAST_SUBSET_PRIMITIVE_STATUS` | `KEEP_DEPLOYED_OPT_IN_SHADOW_COMPARISON_ONLY` |
 | `V5_3_PREVIOUS_MODEL_B_PLUS_C_STATUS` | `SUPERSEDED_BY_SYSTEM_LEVEL_REFINED_EXISTING_OWNER_VARIANT; NOT_RUNTIME_FAST_AUTHORITY` |
 | `V5_3_SYSTEM_LEVEL_REVALIDATION_GATE` | `CONSUMED` |
 | `V5_3_SYSTEM_LEVEL_DECISION` | `TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT` |
 | `V5_3_SYSTEM_LEVEL_DECISION_REPORT` | `docs/reports/engineering/2026-08-20_225000_v5_3_system_level_weighted_architecture_decision.md` |
 | `V5_3_SYSTEM_LEVEL_DECISION_REPORT_SHA256` | `ab9e7c037471d8e1352dcdb7e5f67189f5c582563a8a63b3404465524488df06` |
+| `V5_3_PHASE_G_CROSS_EGRESS_PARALLELISM` | `NO_CROSS_EGRESS_PARALLELISM_ADMITTED` |
+| `V5_3_PHASE_G_IMPLEMENTATION_STATUS` | `REJECTED_NO_RUNTIME_ADMISSION` |
+| `V5_3_PHASE_G_REPORT` | `docs/reports/engineering/2026-08-20_233000_v5_3_phase_g_cross_egress_polygon_measurement.md` |
+| `V5_3_PHASE_G_REPORT_SHA256` | `4043dd01cdf292524f8262154b50030c97e009b1f4955b89e805f5f41db6dc83` |
+| `V5_3_T0_T11_LATENCY_REPORT` | `docs/reports/engineering/2026-08-20_235500_v5_3_t0_t11_latency_trace_and_safe_optimization_register.md` |
+| `V5_3_T0_T11_LATENCY_REPORT_SHA256` | `3cfad49442c98d98bce24c5ca1f8d96042f5d3fe4951de36a724f004a4cb0880` |
+| `V5_3_T0_T11_LATENCY_TRACK` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 ## Authoritative Unfinished Capability Closure Registry
 
@@ -665,7 +672,7 @@ Scheduler Consumer: `OMP`
 
 Generated From: existing canonical owners only
 
-Generated At: `2026-08-20T19:26:46+00:00`
+Generated At: `2026-08-20T20:58:08+00:00`
 
 Runtime Authority: `NONE`
 
@@ -678,9 +685,9 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_SYSTEM_DECISION_AB9E7C037471` |
-| `CURRENT_TRANSITION_ID` | `V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1` |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
+| `CURRENT_TRANSITION_ID` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
 | `COMPLETE_OR_LOCKED_CAPABILITIES` | `13` |
@@ -700,7 +707,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
 | `OMP_CONTINUATION_POINTER` | The capacity-2 draft is rejected as a bootstrap-only dead end. The same existing owners reenter automatically after a full-campaign target resource is owner-backed and observed. |
-| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
 
@@ -709,9 +716,9 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_SYSTEM_DECISION_AB9E7C037471` |
-| `current_transition_id` | `V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1` |
-| `smallest_existing_next_action_id` | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` |
+| `current_state_generation` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
+| `current_transition_id` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
+| `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
 | `latest_terminal_mission_id` | `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1` |
@@ -728,7 +735,7 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | `last_responsible_link` | existing V5.3 Program contract -> BDP/OMP admission -> CPS read-only Mission -> Phase C/D/E evidence consumer |
 | `responsible_owners` | Existing `admin_core/operator_execution.py` Authority owner, Service Matrix lifecycle, autoswitch, bounded executor, feedback, Learning, CPS and OMP consumers |
 | `protected_objects` | Accepted U01 SUCCESS evidence; existing Learning owner contracts; CAP-U02/U05/U06 WAITING evidence and reentry conditions |
-| `smallest_existing_next_action` | EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON |
+| `smallest_existing_next_action` | V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION |
 | `binding_stability` | `CERTIFIED` |
 | `completion_condition` | Learning closes only after dependencies, Engineering Intent, consumer verification, evidence consumption and CPS propagation pass |
 
@@ -796,7 +803,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_SYSTEM_DECISION_AB9E7C037471`; `V5_3_SYSTEM_LEVEL_WEIGHTED_DECISION_CONSUMED_V1` | existing opt-in selectors retained; system-level Atlas admitted; automatic role consumer held | `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | complete Health/Test/Stability Atlas -> weighted system decision -> explicit FAST consumer eligibility or retained full fallback |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2`; `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` | existing opt-in selectors retained; system-level Atlas admitted; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | complete Health/Test/Stability Atlas -> weighted system decision -> explicit FAST consumer eligibility or retained full fallback |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |
@@ -864,7 +871,7 @@ This graph reuses the existing capability registry, Engineering Chain links and 
 | `CAP-CON-03` | Authority Evolution % | capability surfaces `74/68`; Production Maturity category `15` | Authority owner + Production Maturity | do not merge different measures; owner revalidation |
 | `CAP-CON-04` | Observability % | CPS/OMP surfaces `67/63/35` | Observability owners + OMP | preserve; owner revalidation |
 | `CAP-CON-05` | Decision Explainability % | CPS/OMP surfaces `39/32/25` | OMP + decision surfaces | preserve; owner revalidation |
-| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON`; no mutation is authorized |
+| `CAP-CON-06` | Controlled Run responsibility | Completed U01 evidence preserves the exact two-user serial repair and final OPEN as historical outcome context | CPS/OMP current state | current program terminal is `NONE`; current stop is `NONE`; U01 `OPERATIONAL_AUTHORITY` context is `SUPERSEDED/HISTORICAL` and non-reusable; current next action is `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`; no mutation is authorized |
 | `CAP-CON-07` | Backlog completion vs capability closure | Backlog `34/34 COMPLETE`; many items are `DONE_READ_ONLY` | OMP Capability Management | backlog complete is historical implementation-scope closure only; capability rows remain unfinished |
 | `CAP-CON-08` | old current-looking OMP/CPS phases and packets | A3/A4/A5/RT2/Phase 4 historical sections | CPS section 0 | preserve `HISTORICAL_OR_CAPABILITY_CONTEXT`; never schedule from them |
 

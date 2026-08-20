@@ -2398,6 +2398,7 @@ def delegated_policy_live_state_consistency(
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
     v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
     v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
+    v5_3_t0_t11_latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2574,7 +2575,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2588,7 +2589,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2607,7 +2608,7 @@ def delegated_policy_live_state_consistency(
         )
         and (
             reset_program_frontier or rs0_read_only_frontier
-            or v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or rs7_physical_admission_frontier
+            or v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier or rs7_physical_admission_frontier
             or f"`{next_action}`" in sequence_one
         )
     )
@@ -2618,6 +2619,7 @@ def delegated_policy_live_state_consistency(
     cap_consistent = bool(
         reset_program_frontier
         or rs0_read_only_frontier
+        or v5_3_t0_t11_latency_track_frontier
         or
         active_capability
         and (
@@ -2820,6 +2822,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 or _is_v5_3_implementation_frontier(live)
                 or _is_v5_3_system_revalidation_frontier(live)
                 or _is_v5_3_phase_g_frontier(live)
+                or _is_v5_3_t0_t11_latency_track_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6721,7 +6724,22 @@ V5_3_SYSTEM_REVALIDATION_DECISION_REPORT = (
     "docs/reports/engineering/"
     "2026-08-20_225000_v5_3_system_level_weighted_architecture_decision.md"
 )
+V5_3_SYSTEM_REVALIDATION_MISSION_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md"
+)
 V5_3_PHASE_G_ACTION = "EXECUTE_V5_3_PHASE_G_BOUNDED_EGRESS_PARALLELISM_CONTROLLED_POLYGON"
+V5_3_PHASE_G_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-20_233000_v5_3_phase_g_cross_egress_polygon_measurement.md"
+)
+V5_3_T0_T11_LATENCY_TRACK_ACTION = (
+    "V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION"
+)
+V5_3_T0_T11_LATENCY_TRACK_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-20_235500_v5_3_t0_t11_latency_trace_and_safe_optimization_register.md"
+)
 V5_3_ARBITRATION_REPORT = (
     "docs/reports/engineering/"
     "2026-08-20_094500_product_evolution_frontier_arbitration_reconciliation.md"
@@ -6806,6 +6824,30 @@ def _is_v5_3_phase_g_frontier(live: dict[str, str]) -> bool:
         value("V5_3_SYSTEM_LEVEL_REVALIDATION_GATE") == "CONSUMED",
         value("V5_3_AUTOMATIC_FAST_CONSUMER_STATUS")
         == "HOLD_PENDING_PHASE_F_G_CONSTRAINTS_AND_EXPLICIT_PHASE_H_ADMISSION",
+    ))
+
+
+def _is_v5_3_t0_t11_latency_track_frontier(live: dict[str, str]) -> bool:
+    """Recognize the existing V5.3 latency-evidence track after Phase G.
+
+    The track is a Program workstream, not a new Mission or Runtime owner.
+    Keeping the consumed Atlas Mission identity is intentional: the existing
+    OMP/CPS lifecycle remains the only volatile-state authority.
+    """
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+        value("CURRENT_ACTIVE_SCOPE") == "V5_3_T0_T11_LATENCY_OPTIMIZATION",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER") == V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        value("CURRENT_EXECUTION_FRONTIER") == V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        value("CURRENT_EXECUTION_MISSION_ID") == V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_CONSUMED",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+        value("V5_3_PHASE_G_CROSS_EGRESS_PARALLELISM")
+        == "NO_CROSS_EGRESS_PARALLELISM_ADMITTED",
+        value("V5_3_AUTOMATIC_FAST_CONSUMER_STATUS")
+        == "HOLD_PENDING_EXPLICIT_PHASE_H_ADMISSION",
     ))
 
 
@@ -7171,6 +7213,192 @@ def reconcile_v5_3_system_revalidation_decision_to_cps(
         "errors": [] if ok else (
             atomic.get("errors") or omp_pointer.get("errors")
             or ["atomic_cps_or_omp_decision_projection_failed"]
+        ),
+    }
+
+
+def reconcile_v5_3_phase_g_to_t0_t11_latency_track(
+    *, root: Path = ROOT,
+) -> dict[str, Any]:
+    """Consume the completed Phase-G Polygon result through existing OMP/CPS.
+
+    This is a narrow extension of the existing atomic reconciliation owner. It
+    consumes only the already-recorded no-parallelism conclusion, retains the
+    Full Matrix and FAST hold, and selects the existing V5.3 T0--T11 Program
+    track. It never runs Matrix, changes Runtime cadence, routes, policy,
+    users, or Authority.
+    """
+    cps_path = root / "docs/programs/V7_CURRENT_PROGRAM_STATE.md"
+    program_path = root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    phase_g_report_path = root / V5_3_PHASE_G_REPORT
+    latency_report_path = root / V5_3_T0_T11_LATENCY_TRACK_REPORT
+    try:
+        cps_text = cps_path.read_text(encoding="utf-8")
+        program = program_path.read_text(encoding="utf-8")
+        phase_g_report = phase_g_report_path.read_text(encoding="utf-8")
+        latency_report = latency_report_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "schema": "v7-v5-3-phase-g-to-t0-t11-consumption/v1",
+            "final_verdict": "STOP_SAFE",
+            "errors": [f"v5_3_phase_g_consumption_input_unreadable:{exc}"],
+        }
+
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    errors: list[str] = []
+    phase_g_frontier = _is_v5_3_phase_g_frontier(live)
+    latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
+    if not (phase_g_frontier or latency_track_frontier):
+        errors.append("v5_3_phase_g_cps_frontier_not_active")
+    required_program_tokens = (
+        "V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION",
+        "CURRENT_T0_T11_LATENCY_MAP",
+        "PROBLEM_TO_PATTERN_MAPPING",
+        "TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT",
+    )
+    required_phase_g_report_tokens = (
+        "PASS; NO_CROSS_EGRESS_PARALLELISM_ADMITTED",
+        "caps `1`, `2`, `4`",
+        "existing canonical Matrix writer remains single-writer",
+        "no Runtime, route, user or Authority effect occurred",
+        "Consume the Phase-G no-parallelism result",
+    )
+    required_latency_report_tokens = (
+        "# V5.3: трассировка времени T0–T11 и безопасный реестр ускорений",
+        "## Карта процесса T0–T11",
+        "## Семь сценариев и минимально достаточное доказательство",
+        "## Реестр возможностей ускорения (без изменения реализации)",
+    )
+    errors.extend(
+        f"v5_3_phase_g_program_requirement_missing:{token}"
+        for token in required_program_tokens if token not in program
+    )
+    errors.extend(
+        f"v5_3_phase_g_report_requirement_missing:{token}"
+        for token in required_phase_g_report_tokens if token not in phase_g_report
+    )
+    errors.extend(
+        f"v5_3_t0_t11_track_evidence_missing:{token}"
+        for token in required_latency_report_tokens if token not in latency_report
+    )
+    if errors:
+        return {
+            "schema": "v7-v5-3-phase-g-to-t0-t11-consumption/v1",
+            "final_verdict": "STOP_SAFE",
+            "binding_owner": "existing OMP/CPS atomic reconciliation owner",
+            "errors": sorted(set(errors)),
+        }
+
+    phase_g_report_sha256 = hashlib.sha256(phase_g_report.encode("utf-8")).hexdigest()
+    latency_report_sha256 = hashlib.sha256(latency_report.encode("utf-8")).hexdigest()
+    state = _normalized_state_from_live_cps(cps_text)
+    state.update({
+        "state_captured": utc_now(),
+        "current_state_generation": (
+            f"cpsgen_SFA_V53_PHASE_G_TO_T0_T11_{phase_g_report_sha256[:12].upper()}"
+        ),
+        "current_transition_id": "V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1",
+        "current_active_scope": "V5_3_T0_T11_LATENCY_OPTIMIZATION",
+        "current_safe_next_action": (
+            "Continue the existing V5.3 T0-T11 latency-evidence track: reuse the "
+            "static/Polygon map, preserve Runtime-unknown facts, and obtain only "
+            "lawful read-only existing-owner timing evidence."
+        ),
+        "current_next_action_id": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "current_program_execution_frontier": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "current_execution_frontier": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "current_execution_mission_state": "MISSION_CONSUMED",
+        "current_mission_state": "MISSION_CONSUMED",
+        # The latency track is not a new Mission. Preserve the existing Atlas
+        # Mission report that carries its ID/nonce identity header; the track
+        # evidence is recorded in dedicated V5.3 fields below.
+        "current_mission_report": V5_3_SYSTEM_REVALIDATION_MISSION_REPORT,
+        "current_completion_contract": "ANALYSIS_COMPLETION",
+        "current_completion_verdict": "PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE",
+        "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+        "program_terminal_class": "NONE",
+        "program_terminal_state": "NONE_V5_3_T0_T11_LATENCY_OPTIMIZATION_REQUIRED",
+        "transaction_terminal_class": "V5_3_PHASE_G_NO_PARALLELISM_CONSUMED",
+        "omp_continuation_required": "TRUE",
+        "external_input_required": "FALSE",
+        "external_input_type": "NONE",
+        "next_mission_formed": "FALSE",
+        "next_mission_id": "NONE_PROGRAM_TRACK_ONLY",
+        "wip_current_primary_stop": "NONE",
+        "wip_smallest_existing_next_action_id": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "wip_smallest_existing_next_action": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "smallest_existing_next_action": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "source_summary": (
+            "The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G "
+            "Polygon result: no cross-egress parallelism is admitted. Full Matrix remains "
+            "the live baseline, subset remains shadow-only, automatic FAST remains held, "
+            "and the existing V5.3 T0-T11 latency track is next."
+        ),
+    })
+    atomic = atomic_reconcile_cps(
+        cps_path,
+        state=state,
+        request_external_wake=False,
+        expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
+        section0_field_overrides={
+            "V5_3_PHASE_G_CROSS_EGRESS_PARALLELISM": "`NO_CROSS_EGRESS_PARALLELISM_ADMITTED`",
+            "V5_3_PHASE_G_REPORT": f"`{V5_3_PHASE_G_REPORT}`",
+            "V5_3_PHASE_G_REPORT_SHA256": f"`{phase_g_report_sha256}`",
+            "V5_3_PHASE_G_IMPLEMENTATION_STATUS": "`REJECTED_NO_RUNTIME_ADMISSION`",
+            "V5_3_T0_T11_LATENCY_TRACK": f"`{V5_3_T0_T11_LATENCY_TRACK_ACTION}`",
+            "V5_3_T0_T11_LATENCY_REPORT": f"`{V5_3_T0_T11_LATENCY_TRACK_REPORT}`",
+            "V5_3_T0_T11_LATENCY_REPORT_SHA256": f"`{latency_report_sha256}`",
+            "V5_3_AUTOMATIC_FAST_CONSUMER_STATUS": "`HOLD_PENDING_EXPLICIT_PHASE_H_ADMISSION`",
+            "V5_3_FAST_SUBSET_PRIMITIVE_STATUS": "`KEEP_DEPLOYED_OPT_IN_SHADOW_COMPARISON_ONLY`",
+        },
+    )
+    omp_pointer = (
+        atomic_reconcile_omp_current_pointer_from_cps(root=root)
+        if atomic.get("ok") is True
+        else {
+            "ok": False,
+            "status": "OMP_POINTER_NOT_ATTEMPTED_CPS_RECONCILIATION_FAILED",
+            "errors": atomic.get("errors") or [],
+        }
+    )
+    ok = atomic.get("ok") is True and omp_pointer.get("ok") is True
+    return {
+        "schema": "v7-v5-3-phase-g-to-t0-t11-consumption/v1",
+        "final_verdict": "PASS" if ok else "STOP_SAFE",
+        "program_terminal": (
+            "V5_3_PHASE_G_NO_CROSS_EGRESS_PARALLELISM_CONSUMED"
+            if ok else "NONE"
+        ),
+        "phase_g_decision": "NO_CROSS_EGRESS_PARALLELISM_ADMITTED",
+        "phase_g_report": str(phase_g_report_path),
+        "phase_g_report_sha256": phase_g_report_sha256,
+        "latency_track": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "latency_track_report": str(latency_report_path),
+        "latency_track_report_sha256": latency_report_sha256,
+        "real_caller": "tools/v7-truth-check --reconcile-v5-3-phase-g-to-t0-t11",
+        "real_consumer": "existing OMP/CPS atomic reconciliation owner",
+        "next_output": V5_3_T0_T11_LATENCY_TRACK_ACTION,
+        "atomic_update": atomic,
+        "omp_pointer_update": omp_pointer,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "routing_impact": "NONE",
+        "user_movement": 0,
+        "authority_impact": "NONE",
+        "forbidden_effects": {
+            "runtime_mutation": False,
+            "routing_mutation": False,
+            "user_movement": False,
+            "automatic_fast_enablement": False,
+            "matrix_cadence_change": False,
+        },
+        "errors": [] if ok else (
+            atomic.get("errors") or omp_pointer.get("errors")
+            or ["atomic_cps_or_omp_phase_g_projection_failed"]
         ),
     }
 
@@ -22435,6 +22663,7 @@ def continue_omp_engineering_control_loop(
         ))
         v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
         v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
+        v5_3_t0_t11_latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
         if active_incident_drain:
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
@@ -22531,6 +22760,46 @@ def continue_omp_engineering_control_loop(
                 }],
                 "internal_iteration_count": 1,
                 "behavior_change": "V5_3_PHASE_G_CONTROLLED_POLYGON_RETAINED_FOR_EXISTING_OWNER",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
+                    "automatic_fast_enablement": False,
+                },
+                "errors": [],
+            }
+        if v5_3_t0_t11_latency_track_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "NONE_V5_3_T0_T11_LATENCY_OPTIMIZATION_TRACK_ACTIVE",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": "V5_3_T0_T11_LATENCY_TRACK_PREEMPTS_GENERIC_OMP",
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_V5_3_HEALTH_TEST_STABILITY_OWNERS",
+                "exact_next_operator_command": current_next_action,
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": "V5_3_PHASE_G_CONSUMED_T0_T11_TRACK_ACKNOWLEDGED",
+                    "mission_id": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "V5_3_T0_T11_LATENCY_EVIDENCE_TRACK_RETAINED_FOR_EXISTING_OWNERS",
                 "runtime_impact": "NONE",
                 "production_impact": "NONE",
                 "routing_impact": "NONE",
@@ -24375,6 +24644,7 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     external_type = values["EXTERNAL_INPUT_TYPE"]
     next_action = live.get("CURRENT_NEXT_ACTION_ID", "").strip("`")
     mission_state = live.get("CURRENT_MISSION_STATE", "").strip("`")
+    v5_3_t0_t11_program_track = _is_v5_3_t0_t11_latency_track_frontier(live)
     bounded_program_terminal = program_terminal == "BOUNDED_INVOCATION_BUDGET_REACHED"
     if continuation not in {"TRUE", "FALSE"}:
         errors.append("omp_continuation_required_invalid")
@@ -24389,7 +24659,10 @@ def omp_self_continuation_consistency(cps_text: str) -> dict[str, Any]:
     if continuation == "TRUE":
         if external != "FALSE" or program_terminal not in {"NONE", "BOUNDED_INVOCATION_BUDGET_REACHED"}:
             errors.append("omp_continuation_program_terminal_conflict")
-        if next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"}:
+        if (
+            not v5_3_t0_t11_program_track
+            and (next_formed != "TRUE" or values["NEXT_MISSION_ID"] in {"", "NONE"})
+        ):
             errors.append("omp_next_mission_not_formed")
         if bounded_program_terminal and next_action != "CONTINUE_OMP":
             errors.append("omp_bounded_terminal_exact_continuation_missing")
@@ -24790,6 +25063,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             **calls,
             "errors": [],
         }
+    if _is_v5_3_t0_t11_latency_track_frontier(live):
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "V5_3_PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE",
+            "current_completion_contract": "ANALYSIS_COMPLETION",
+            "current_completion_verdict": "PHASE_G_CONSUMED_T0_T11_TRACK_ACTIVE",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
     errors: list[str] = []
     for field, value in expected.items():
         if live.get(field, "").strip("`") != value:
@@ -25170,6 +25458,7 @@ def cps_live_state_consistency(
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
     v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
     v5_3_phase_g_frontier = _is_v5_3_phase_g_frontier(live)
+    v5_3_t0_t11_latency_track_frontier = _is_v5_3_t0_t11_latency_track_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
@@ -25222,7 +25511,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
-            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier) and wip_stop == "NONE")
+            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or v5_3_phase_g_frontier or v5_3_t0_t11_latency_track_frontier) and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

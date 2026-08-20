@@ -633,9 +633,171 @@ is **49/49 PASS**, and a live read-only `Continue OMP` now returns
 `ACTIVE_V5_3_SYSTEM_REVALIDATION_PREEMPTS_GENERIC_OMP`, with zero Runtime,
 route, user, authority or production-maturity effect.
 
+## Publication and Runtime verification
+
+Commit `a6abfa14` (`v7: retain active health atlas in omp`) was independently
+verified on the canonical `Updatesystem` remote branch and deployed through
+the existing `v7-safe-deploy` allowlist.  Deployment refreshed only the
+approved `v7_sync_lib.py` Runtime support module; it did not start the
+autoswitch scheduler, alter a route or move a user.  Fresh full truth check:
+GitHub `PASS`, local `PASS`, Runtime `RUNTIME_ALIGNED`, Runtime deploy commit
+`a6abfa140bc411dbfd58898b5cf1da9018181d5a`, no blockers.  A post-deploy
+read-only `Continue OMP` returned the Atlas as the real consumer and all
+forbidden effects remained `false`.
+
 The exact current frontier remains the admitted read-only Atlas.  Its next
 consumer must atomically consume this weighted result through the existing
 OMP/CPS lifecycle before `V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`
 can be admitted.  Until then the deployment stays exactly as it is: opt-in
 selectors available, full Matrix fallback active, automatic FAST role consumer
 held, and no client movement.
+
+## Correction and deep mature-platform benchmark — 2026-08-20
+
+### Status correction
+
+The short vendor tables above are retained as `INITIAL_MECHANISM_PATTERN_BENCHMARK`
+only.  They were useful discovery evidence, but were not a uniform lifecycle
+comparison.  Therefore neither the earlier heading *"Commercial comparison —
+completed field mapping"* nor the earlier provisional `B+C` weighted result
+may be consumed as a Phase C or Phase E terminal.  This correction is material:
+the comparison had not yet tested every platform against the same questions
+about cadence, stale evidence, passive escalation, failure domains, quality
+and decision placement.
+
+This section is the strict replacement benchmark.  It uses primary vendor
+documentation only. `NOT_DOCUMENTED` means precisely that the cited primary
+documentation does not define the field; it is not an inference that the
+product lacks the mechanism.  Vendor defaults are context, never V7 settings.
+No Runtime code, Matrix state, OMP/CPS state, client, route, schedule or
+automatic consumer was changed.
+
+### Comparison contract and source dispositions
+
+Every row below is measured against the same lifecycle:
+
+```text
+observation -> suspicion -> confirmation -> current state
+-> eligibility consequence -> recovery confirmation/re-admission
+-> compact stability/quality projection -> existing decision consumer
+```
+
+| Primary reference / mechanism | Disposition | Why it remains in the strict comparison |
+| --- | --- | --- |
+| Envoy active health, outlier detection and health filter | `RESULT_REUSED_VALID` | active/passive, immediate drain, degraded state, identity, event history and probe-economy pattern |
+| HAProxy health and passive checks | `RESULT_REUSED_VALID` | explicit normal/transition/down cadence, failure/recovery asymmetry, multi-endpoint and passive error threshold |
+| Google Cloud Load Balancing health checks | `RESULT_REUSED_VALID` | independent prober, protocol checks, state threshold and new-connection eligibility pattern |
+| FRRouting BFD | `RESULT_REUSED_VALID` | exact bounded transport-liveness model and route-protocol consumer separation |
+| Cisco IP SLA / Object Tracking / BFD | `RESULT_REUSED_VALID` | measurement -> tracked object -> route consumer pattern; not an application-health architecture |
+| FortiGate Link Health / SD-WAN passive measurement | `RESULT_REUSED_VALID` | active/passive/prefer-passive, quality, re-entry and per-member eligibility pattern |
+| MikroTik gateway checks / recursive failover / BFD | `RESULT_REUSED_VALID` | gateway fact, two-timeout rule, route consumer and multiple-host failure-domain pattern |
+| AWS ELB/NLB, Juniper and other vendors | `BENCHMARK_NOT_REQUIRED_DUPLICATE_PATTERN` | no named uncovered V7 decision remains after the seven mandatory mechanism classes; adding brands would not make the comparison deeper |
+
+### Uniform field matrix: signal, cadence and state
+
+| Platform / mechanism | Signal and failure domain | Healthy / suspect / down / recovery cadence | Failure and recovery confirmation | Passive escalation, degraded and conflict semantics | Freshness / unknown semantics in source |
+| --- | --- | --- | --- | --- |
+| Envoy | HTTP, gRPC, L3/L4 and service identity per upstream member | check interval is configurable; separate state-specific cadence is `NOT_DOCUMENTED` on the overview page | configurable failures-to-unhealthy and successes-to-healthy; immediate failure header can drain an active-checked host | outlier detection is passive; degraded is a separate response state; active/passive conflict resolution is `NOT_DOCUMENTED` | cache gives deliberately eventual rather than per-request current view; explicit stale/unknown lease is `NOT_DOCUMENTED` |
+| HAProxy | TCP/HTTP; multiple endpoints may form one check and either failure fails it | normal `inter`, transitional `fastinter`, down `downinter`; defaults to `2s` for `inter` | `fall` failures remove from rotation; `rise` successes restore; defaults shown are 3 and 2 | observes live L4/L7 errors with `error-limit`/`on-error`; active checks continue when down and perform recovery confirmation | explicit age/unknown lease is `NOT_DOCUMENTED` |
+| Google Cloud | protocol-specific backend probe, implemented by multiple dedicated probers | shared check interval and timeout, default 5s; state-specific accelerated cadence is `NOT_DOCUMENTED` | separately configurable sequential healthy and unhealthy thresholds; defaults 2/2 | passive error signal, degraded tier and active/passive arbitration are `NOT_DOCUMENTED` | probe result is current managed backend state; source does not define a consumer-visible stale/unknown lease |
+| FRR BFD | peer/session transport liveness only, not an application service | negotiated/control interval; fixed status-specific cadence is not the BFD model | remote transmit interval × detection multiplier; default example is 300ms × 3 = 900ms | BFD passive mode avoids initiating packets until peer control traffic; no service degraded or passive application error concept | current BFD peer status and counters; no service-evidence freshness model |
+| Cisco IP SLA + Object Tracking | scheduled reachability/response measurement consumed by a tracking object and route policy | operation frequency/timeout are configured; role-state cadence is `NOT_DOCUMENTED` in the cited configuration guide | tracked object changes state from measurement; generic application recovery/stale model is `NOT_DOCUMENTED` | no comparable passive application escalation in this mechanism | tracker is current derived state; explicit stale lease is `NOT_DOCUMENTED` |
+| FortiGate SD-WAN | active probes or live TCP-session measurement; application/path-specific quality may differ on same link | active interval configurable; passive uses live traffic; `prefer-passive` activates probes after three minutes without traffic | `failtime` failed replies and `recoverytime` successful replies; documented defaults are 5/5 in the link monitor reference | active, passive and prefer-passive modes; passive measures latency/jitter/loss from real traffic; quality breach affects that member | passive metric timestamp exists operationally; a universal unknown/stale failover rule is `NOT_DOCUMENTED` |
+| MikroTik RouterOS | gateway ARP/ICMP/BFD; recursive monitored hosts distinguish next-hop availability from route choice | ICMP/ARP gateway check every 10s, 10s timeout | two timeouts make the gateway unreachable; reply resets counter; BFD has its own negotiated detector | no passive application-error escalation in the gateway checker | gateway reachability is current next-hop fact; stale application evidence is outside mechanism scope |
+
+### Uniform field matrix: decision placement, quality, budget and scale
+
+| Platform / mechanism | Eligibility and routing consequence | Quality/history / partial degradation | Probe economy, parallelism and scale | Synchronous versus precomputed | Exact V7 comparison decision and invalidation trigger |
+| --- | --- | --- | --- | --- |
+| Envoy | unhealthy host is excluded from load balancing; immediate failure can exclude it | explicit degraded state and health event log; no route-policy history model | cached pass-through is recommended for a large mesh to avoid overwhelming the service; exact concurrency budget is `NOT_DOCUMENTED` | health state is precomputed per upstream member and consumed by load balancing | `ADAPT`: preserve Matrix active rows plus passive suspicion, identity and methodology-limited/degraded distinction. **Invalidate** if one Matrix service row is ever allowed to imply source rescue or target admission by itself. |
+| HAProxy | thresholded state removes/restores a server in rotation | transition/down state plus active recovery; passive live errors need traffic | multi-endpoint one-check composition; primary tutorial gives no fleet-size formula or bounded worker budget | ongoing health state controls rotation, rather than a synchronous full check at each request | `ADAPT`: measure role-state cadence before any V7 timing change; retain persistence/recovery. **Invalidate** if a cadence proposal has no live V7 duration, load and false-state evidence. |
+| Google Cloud | healthy backend may receive new connections; unhealthy is ineligible, existing connection not immediately terminated | detailed healthy/unhealthy/timeout/draining states; history/ranking is out of scope | redundant probers; check setting is shared by backend service; source does not publish a V7-comparable per-tenant budget | managed backend health is precomputed; connection decision consumes it | `REUSE`: Matrix signal, target eligibility and user movement remain three distinct consumers. **Invalidate** if “healthy” is used as proof of a client route or capacity. |
+| FRR BFD | routing protocol can consume session loss; it is not a service routing decision | no latency/jitter/loss or service history | subsecond control traffic configurable; passive mode can reduce needless initiation; no V7-size model | peer status is precomputed and consumed by BGP/routing daemon | `REJECT` as a service-health verdict; `REUSE` only as a bounded transport suspicion input. **Invalidate** if V7 treats link liveness as application or target-readiness proof. |
+| Cisco IP SLA + Object Tracking | tracked status, rather than raw probe, controls static-route installation/withdrawal | response-time threshold exists; rich application quality/ranking is out of scope | operator-defined frequency/timeout; no universal fleet-scale model in cited source | scheduled measurement produces tracked state; route consumes the tracker | `REUSE`: preserve `Matrix -> existing state -> Planner/verifier`, never probe -> route mutation. **Invalidate** if a producer gains a direct route-apply path. |
+| FortiGate SD-WAN | removes only the affected member from SD-WAN eligibility and re-admits after recovery | latency/jitter/loss and per-application passive metrics; partial degradation can choose a different member | passive reduces active probe traffic; prefer-passive has an explicit idle fallback; exact cross-fleet concurrency ceiling is `NOT_DOCUMENTED` | measurement produces member/SLA state then policy chooses members | `ADAPT`: existing quality/stability remains target filter/ranker; use existing Matrix/quality owners only. **Invalidate** if quality alone causes source rescue, or one application metric represents all services. |
+| MikroTik RouterOS | gateway result affects a next-hop; route priority/failover then consumes that fact | multiple monitored hosts reduce single-host conclusion; no quality-history ranking | periodic per-gateway probes and BFD; no documented 10/100/1000 scale budget | gateway state is maintained separately from route selection | `REUSE`: retain path, service and user-route as distinct facts; require independent target confirmation. **Invalidate** if a single gateway or monitor host decides profile-wide health. |
+
+### What the benchmark actually establishes
+
+1. **The system is not only testing Matrix services.**  Mature designs split
+   at least four evidence families: transport/gateway liveness; service
+   reachability; passive real-traffic errors; and quality/stability history.
+   V7 already has owners for each family (`HC-01..HC-10`); their conclusions
+   must remain separate until the existing Matrix/Planner chain consumes them.
+
+2. **Stability is not background noise.**  HAProxy and Google use asymmetric
+   failure/recovery confirmation. FortiGate uses both confirmation and a
+   quality history. MikroTik's multiple monitored hosts prevent one external
+   target from deciding a whole path. V7's existing persistence, recovery,
+   freshness and quality owners are therefore confirmed in principle, but
+   their production distributions are still unmeasured.
+
+3. **Passive evidence is an accelerator, not a replacement for proof.**
+   Envoy/HAProxy/FortiGate use traffic-derived evidence, but only within a
+   bounded state/eligibility model. In V7, the existing sentinel/passive
+   producer can create suspicion; it cannot create a second truth, choose a
+   server, or switch a client.
+
+4. **A short check must consume precomputed current facts.**  Every relevant
+   platform separates ongoing observation from the later routing/load-balancing
+   decision. V7 must not reconstruct raw history synchronously in a FAST path.
+   Its existing compact Matrix, quality and recovery projections are the only
+   lawful input surface.
+
+5. **No vendor source supplies a safe V7 number.**  Intervals from milliseconds
+   to minutes reflect radically different topology, probe count, traffic and
+   failure domains. They prove the *need to measure differentiated cadence*,
+   not a right to copy a `2s`, `5s`, `10s` or BFD timer into V7.
+
+### Strict V7 gap ledger and Phase-C consumption status
+
+| Required comparison field | Result against the complete V7 Atlas | Existing owner / disposition | Required evidence before any architecture decision |
+| --- | --- | --- | --- |
+| Service, channel and route layers | separated in V7; no new mechanism proven | Matrix, path/route verifier, Planner — `REUSE` | preserve three distinct proofs in each candidate |
+| Failure/recovery threshold and hysteresis | V7 has persistence/recovery rules, but not role-state production distributions | Matrix/recovery owner — `ADAPT` measurement only | G1/G3 timing, false-state and flap distribution |
+| Healthy/suspect/down/recovering cadence | current global cadence known; role-specific adaptive law not measured | existing timer/Matrix owner — `TARGETED_GAP_RESEARCH_REQUIRED` | controlled and real scheduled-run cost for source, hot target, cold target and recovering roles |
+| Passive escalation | a lawful producer exists; scope, age and conflict contract need explicit candidate comparison | existing sentinel/Matrix bridge — `ADAPT` | receipt provenance, expiry and conflict fallback test; no new event owner |
+| Degraded and conflicting evidence | methodology-limited outcome exists; complete multi-signal degraded contract not yet selected | existing Matrix/quality owners — `TARGETED_GAP_RESEARCH_REQUIRED` | candidate must say deny, retain, or full-fallback for every conflict |
+| Freshness/unknown/stale | V7's deny gates are stricter than documented vendor overviews | Matrix freshness owner — `REUSE` | retain no-failover-on-unknown test in every candidate |
+| Multiple targets/failure domains | service and candidate gating exist; quantified correlation policy remains a design residual | Matrix/quality/Planner — `ADAPT` | explicit independent-monitor/failure-domain test matrix |
+| Quality/history affects eligibility versus ranking | current quality owner exists; safe immediate-admission use must be chosen | quality/Planner owners — `TARGETED_GAP_RESEARCH_REQUIRED` | prove quality is filter/ranker and never sole source-failure trigger |
+| Probe budget, bounded parallelism, 10/100/1000 scale | bounded parallelism exists; no V7 model at those sizes | Matrix owner — `TARGETED_GAP_RESEARCH_REQUIRED` | Phase F cost model: checks, critical path, lock wait, CPU/RSS, errors, timeout pressure |
+| Precomputed versus synchronous work | architecture supports it; candidate assignment is not yet made | existing Matrix/history/quality owners — `ADAPT` | map each input to FAST, compact current projection, DEEP, or engineering-only |
+| Source failure, target readiness, recovery and post-switch verification | owners are already distinct | Matrix, Planner, verifier/recovery — `REUSE` | every candidate must preserve all four consumer contracts |
+
+**Phase C conclusion:** mandatory platform and mechanism coverage is now
+strict and field-by-field; the earlier claim of completed comparison is
+corrected.  But `MATURE_HEALTH_AND_COMMERCIAL_ROUTING_MECHANISM_COMPARISON_CONSUMED`
+is **not** emitted yet, because the benchmark has identified unresolved V7
+measurement/candidate-consumption fields above.  This is not an external wait:
+they can be exercised through the existing Polygon and controlled Matrix
+boundaries.  The full Matrix remains the safe fallback and the automatic FAST
+consumer remains held.
+
+### Exact next step in the whole plan
+
+Plan position: **Phase C source evidence is complete; Phase C consumption and
+Phase D are next; Phase E architecture selection and Phase F scale validation
+remain after them.**
+
+The exact smallest executable next action is:
+
+```text
+Using the existing Matrix, quality, recovery, Planner and Polygon owners,
+derive three concrete role-aware candidates (A current improved full Matrix,
+B fast-plus-deep under Matrix, C existing passive signal escalates through
+Matrix). For each, map source/hot-target/cold-target/degraded/recovering roles,
+state age/conflict/full-fallback behavior, and assign every input to FAST,
+compact precomputed, DEEP or engineering-only. Then exercise the conflict,
+failure-domain and bounded-scale cases on Polygon; do not change Runtime,
+route, client or automatic FAST admission.
+```
+
+Sources: [Envoy health checking](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking),
+[HAProxy health checks](https://www.haproxy.com/documentation/haproxy-configuration-tutorials/reliability/health-checks/),
+[Google Cloud health-check concepts](https://cloud.google.com/load-balancing/docs/health-check-concepts),
+[FRRouting BFD](https://docs.frrouting.org/en/stable-7.5/bfd.html),
+[Cisco reliable static routing using Object Tracking](https://www.cisco.com/c/en/us/td/docs/ios/dial/configuration/guide/15_0s/dia_15_0s_book/dia_rel_stc_rtg_bckup.pdf),
+[FortiGate passive WAN health measurement](https://docs.fortinet.com/document/fortigate/latest/administration-guide/208103/passive-wan-health-measurement),
+[FortiGate link-monitor reference](https://docs.fortinet.com/document/fortigate/7.4.10/cli-reference/320711343/config-system-link-monitor),
+and [MikroTik WAN backup](https://help.mikrotik.com/docs/spaces/ROS/pages/26476608/Failover%2BWAN%2BBackup).

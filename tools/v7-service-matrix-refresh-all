@@ -2967,6 +2967,14 @@ def run_one(
             if isinstance(parsed.get("service_matrix_lock"), dict)
             else {}
         ),
+        "service_results": {
+            str(service): {
+                "ok": bool(row.get("ok")),
+                "status": str(row.get("status") or "UNKNOWN"),
+            }
+            for service, row in (parsed.get("results") or {}).items()
+            if isinstance(row, dict)
+        },
     }
 
 
@@ -3000,6 +3008,7 @@ def run_service_failure_automation_advisory(
     state_dir: Path,
     event_dir: Path,
     timeout_sec: int = 45,
+    matrix_comparative_preflight: bool = False,
 ) -> dict[str, Any]:
     """Invoke the existing autoswitch owner in bounded advisory-only mode."""
     command = [
@@ -3010,6 +3019,8 @@ def run_service_failure_automation_advisory(
         "--event-dir",
         str(event_dir),
     ]
+    if matrix_comparative_preflight:
+        command.append("--matrix-comparative-preflight")
     started_at = now_iso()
     try:
         proc = subprocess.run(
@@ -4156,6 +4167,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-service-failure-omp-consumer", action="store_true")
     parser.add_argument("--skip-bounded-delegated-service-failure-action", action="store_true")
     parser.add_argument(
+        "--matrix-comparative-preflight",
+        action="store_true",
+        help="Ask the existing advisory Planner for bounded Matrix subset/full comparison; it never applies routing.",
+    )
+    parser.add_argument(
         "--consume-existing-service-failure-events-only",
         action="store_true",
         help=(
@@ -4180,6 +4196,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
+    parser.add_argument(
+        "--matrix-observation-only",
+        action="store_true",
+        help="Run only existing Matrix probes and canonical Matrix writes; do not emit events or invoke consumers.",
+    )
     parser.add_argument(
         "--egresses",
         default="",
@@ -4295,6 +4316,18 @@ def main() -> int:
             "full_matrix_fallback_preserved": True,
         },
     }
+    if args.matrix_observation_only:
+        payload["mode"] = "MATRIX_OBSERVATION_ONLY"
+        payload["observation_only"] = {
+            "owner": "tools/v7-service-matrix-refresh-all",
+            "canonical_matrix_write_preserved": True,
+            "passive_event_emitted": False,
+            "downstream_consumer_invoked": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
         print(json.dumps({"error": "operator_induced_event_trigger_reference_required"}, ensure_ascii=False))
@@ -4462,6 +4495,7 @@ def main() -> int:
             # already durable current obligation can reach the existing OMP
             # receipt consumer.
             timeout_sec=max(90, int(args.passive_consumer_timeout_sec) + 15),
+            matrix_comparative_preflight=bool(args.matrix_comparative_preflight),
         )
     advisory_result = (
         (payload.get("service_failure_automation_advisory") or {}).get("consumer_result") or {}

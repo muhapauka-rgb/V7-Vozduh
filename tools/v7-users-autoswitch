@@ -556,6 +556,201 @@ def validate_prepared_class_decision_projection(
     }
 
 
+def matrix_comparative_probe_selection(
+    plan: dict[str, Any], prepared_freshness: dict[str, Any]
+) -> dict[str, Any]:
+    """Project exact Planner-selected Matrix scope for a shadow comparison.
+
+    This reuses the already computed Planner decision. It creates no target,
+    role registry, queue or durable health state. Stale, incomplete or
+    contradictory input is rejected rather than widened by this caller.
+    """
+    if str(prepared_freshness.get("status") or "") != "PREPARED_CLASS_DECISION_FRESH":
+        return {
+            "status": "STOP_SAFE_MATRIX_COMPARISON_PREPARED_DECISION_NOT_FRESH",
+            "ok": False,
+            "reason": "prepared_decision_not_fresh",
+        }
+    selected = []
+    for row in (plan.get("decisions") or []):
+        if not isinstance(row, dict):
+            continue
+        source = str(row.get("current_egress") or "")
+        target = str(row.get("recommended_egress") or "")
+        services = normalize_service_ids(row.get("important_services") or [])
+        if source and target and source != target and services:
+            selected.append({"source": source, "target": target, "services": services})
+    if not selected:
+        return {
+            "status": "STOP_SAFE_MATRIX_COMPARISON_NO_EXISTING_PLANNER_SELECTION",
+            "ok": False,
+            "reason": "no_exact_source_target_service_selection",
+        }
+    sources = sorted({row["source"] for row in selected})
+    targets = sorted({row["target"] for row in selected})
+    if len(sources) != 1:
+        return {
+            "status": "STOP_SAFE_MATRIX_COMPARISON_MULTIPLE_ACTIVE_SOURCES",
+            "ok": False,
+            "reason": "active_source_not_exact",
+            "active_sources": sources,
+        }
+    services = sorted({service for row in selected for service in row["services"]})
+    semantic = {
+        "active_source": sources[0],
+        "eligible_planner_targets": targets,
+        "required_services": services,
+        "planner_generation": str(
+            (prepared_freshness.get("current_invalidators") or {}).get("planner_generation")
+            or ""
+        ),
+    }
+    return {
+        "schema_version": "v7.matrix-comparative-probe-selection.v1",
+        "status": "EXACT_EXISTING_PLANNER_MATRIX_SELECTION",
+        "ok": True,
+        **semantic,
+        "egresses": sorted(set(sources + targets)),
+        "selection_fingerprint": sha256_json(semantic),
+        "selection_owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        "manual_server_selection": False,
+        "new_owner_created": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
+def _matrix_observation_refresh(*, command: list[str], timeout_sec: int) -> dict[str, Any]:
+    started_ns = time.monotonic_ns()
+    try:
+        proc = subprocess.run(
+            command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            check=False, timeout=timeout_sec,
+        )
+        try:
+            payload = json.loads(proc.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+        return {
+            "ok": proc.returncode == 0 and isinstance(payload, dict),
+            "returncode": proc.returncode,
+            "payload": payload if isinstance(payload, dict) else {},
+            "output_tail": (proc.stdout or "")[-2000:],
+            "duration_ms": round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3),
+        }
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "ok": False, "returncode": 1, "payload": {}, "error": str(exc),
+            "duration_ms": round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3),
+        }
+
+
+def _required_service_verdicts(
+    refresh: dict[str, Any], *, egresses: list[str], services: list[str]
+) -> tuple[dict[str, dict[str, dict[str, Any]]], list[str]]:
+    payload = refresh.get("payload") if isinstance(refresh.get("payload"), dict) else {}
+    rows = payload.get("results") if isinstance(payload.get("results"), list) else []
+    by_egress = {
+        str(row.get("egress") or ""): row
+        for row in rows if isinstance(row, dict) and str(row.get("egress") or "")
+    }
+    verdicts: dict[str, dict[str, dict[str, Any]]] = {}
+    missing: list[str] = []
+    for egress in egresses:
+        result = by_egress.get(egress) or {}
+        result_services = result.get("service_results") if isinstance(result.get("service_results"), dict) else {}
+        verdicts[egress] = {}
+        for service in services:
+            item = result_services.get(service)
+            if not isinstance(item, dict):
+                missing.append(f"{egress}:{service}:missing")
+                continue
+            verdicts[egress][service] = {
+                "ok": bool(item.get("ok")),
+                "status": str(item.get("status") or "UNKNOWN"),
+            }
+    return verdicts, missing
+
+
+def run_matrix_comparative_preflight(
+    selection: dict[str, Any], args: argparse.Namespace
+) -> dict[str, Any]:
+    """Run an exact Matrix subset then the unchanged full Matrix as shadow.
+
+    Both calls use the existing Matrix writer in observation-only mode. The
+    full result runs the complete service catalogue for the same
+    Planner-selected source/targets and is the final canonical observation;
+    the subset never permits a route action or user move.
+    """
+    if not selection.get("ok"):
+        return {
+            "schema_version": "v7.matrix-fast-full-comparison.v1",
+            "status": str(selection.get("status") or "STOP_SAFE_SELECTION_REQUIRED"),
+            "ok": False, "selection": selection, "full_matrix_fallback_used": True,
+            "fallback_reasons": [str(selection.get("reason") or "selection_invalid")],
+            "routing_mutation_performed": False, "users_moved": 0,
+        }
+    state_dir = str(getattr(args, "state_dir", "") or "")
+    event_dir = str(getattr(args, "event_dir", "") or "")
+    timeout = max(30, min(180, to_int(getattr(args, "matrix_comparative_timeout_sec", 120), 120)))
+    base = [
+        "v7-service-matrix-refresh-all", "--state-dir", state_dir,
+        "--event-dir", event_dir, "--matrix-observation-only",
+    ]
+    short = _matrix_observation_refresh(
+        command=base + [
+            "--egresses", ",".join(selection["egresses"]),
+            "--services", ",".join(selection["required_services"]),
+        ], timeout_sec=timeout,
+    )
+    # Always execute the unchanged baseline, including after a failed or
+    # incomplete exact observation.
+    full = _matrix_observation_refresh(
+        command=base + ["--egresses", ",".join(selection["egresses"])],
+        timeout_sec=timeout,
+    )
+    short_verdicts, short_missing = _required_service_verdicts(
+        short, egresses=selection["egresses"], services=selection["required_services"]
+    )
+    full_verdicts, full_missing = _required_service_verdicts(
+        full, egresses=selection["egresses"], services=selection["required_services"]
+    )
+    fallback_reasons = []
+    if not short.get("ok"):
+        fallback_reasons.append("short_matrix_observation_failed")
+    if not full.get("ok"):
+        fallback_reasons.append("full_matrix_observation_failed")
+    fallback_reasons.extend(short_missing)
+    fallback_reasons.extend(full_missing)
+    if short_verdicts != full_verdicts:
+        fallback_reasons.append("required_service_verdict_disagreement")
+    short_payload = short.get("payload") if isinstance(short.get("payload"), dict) else {}
+    full_payload = full.get("payload") if isinstance(full.get("payload"), dict) else {}
+    short_checks = sum(to_int(row.get("total"), 0) for row in short_payload.get("results", []) if isinstance(row, dict))
+    full_checks = sum(to_int(row.get("total"), 0) for row in full_payload.get("results", []) if isinstance(row, dict))
+    short_ms = float(short.get("duration_ms") or 0)
+    full_ms = float(full.get("duration_ms") or 0)
+    return {
+        "schema_version": "v7.matrix-fast-full-comparison.v1",
+        "status": "MATRIX_FAST_FULL_AGREEMENT" if not fallback_reasons else "MATRIX_FULL_FALLBACK_RETAINED",
+        "ok": not fallback_reasons,
+        "selection": selection,
+        "required_service_verdicts": {"short": short_verdicts, "full": full_verdicts},
+        "measurements": {
+            "short_duration_ms": short.get("duration_ms"), "full_duration_ms": full.get("duration_ms"),
+            "short_executed_checks": short_checks, "full_executed_checks": full_checks,
+            "elapsed_reduction_pct": round((1 - short_ms / full_ms) * 100, 1) if full_ms > 0 else None,
+            "check_reduction_pct": round((1 - short_checks / full_checks) * 100, 1) if full_checks > 0 else None,
+            "short_errors": 0 if short.get("ok") else 1, "full_errors": 0 if full.get("ok") else 1,
+        },
+        "full_matrix_fallback_used": True,
+        "fallback_reasons": sorted(set(fallback_reasons)),
+        "full_matrix_is_final_canonical_observation": True,
+        "runtime_mutation_performed": False, "routing_mutation_performed": False,
+        "users_moved": 0, "candidate_created": False, "packet_created": False, "lease_created": False,
+    }
+
+
 def build_service_failure_adaptive_cohort_contract(
     movable: list[dict[str, Any]],
     *,
@@ -17471,6 +17666,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--matrix-comparative-preflight",
+        action="store_true",
+        help=(
+            "Within the existing advisory-only consumer, compare the exact "
+            "Planner-selected Matrix subset with the existing full Matrix."
+        ),
+    )
+    parser.add_argument("--matrix-comparative-timeout-sec", type=int, default=120)
+    parser.add_argument(
         "--reconcile-passive-causal-projections-only",
         action="store_true",
         help=(
@@ -17778,6 +17982,21 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         owner="existing prepared-class decision owner",
         parent="service_failure_advisory",
     )
+    matrix_comparative_preflight = {
+        "status": "NOT_REQUESTED", "ok": True,
+        "routing_mutation_performed": False, "users_moved": 0,
+    }
+    if bool_value(getattr(args, "matrix_comparative_preflight", False)):
+        selection = matrix_comparative_probe_selection(plan, prepared_freshness)
+        comparison_started_ns = time.monotonic_ns()
+        matrix_comparative_preflight = run_matrix_comparative_preflight(selection, args)
+        planner._record_performance_span(
+            "advisory_existing_matrix_subset_full_comparison",
+            comparison_started_ns,
+            owner="tools/v7-service-matrix-refresh-all",
+            parent="service_failure_advisory",
+            status="PASS" if matrix_comparative_preflight.get("ok") else "STOP_SAFE",
+        )
     result = planner.materialize_service_failure_automation_advisory(plan)
     execution_outcome_reconciliation = (
         result.get("pre_obligation_scope_reconciliation")
@@ -17794,6 +18013,7 @@ def consume_service_failure_automation_only(args: argparse.Namespace) -> dict[st
         "result": result,
         "prepared_class_decisions": prepared_class_decisions,
         "prepared_class_decision_freshness": prepared_freshness,
+        "matrix_comparative_preflight": matrix_comparative_preflight,
         "execution_outcome_reconciliation": execution_outcome_reconciliation,
         "bounded_closure_reconciliation": bounded_closure_reconciliation,
         "performance_timeline": planner.performance_timeline(),

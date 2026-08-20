@@ -9,7 +9,7 @@ Environment=V7_ACTOR=service-matrix-refresh
 # Detection plus the existing direct governed action path only. Engineering
 # receipts and controlled certification follow their existing owners outside
 # the synchronous Runtime invocation.
-ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --runtime-hot-path-only
+ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --runtime-hot-path-only --matrix-comparative-preflight
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

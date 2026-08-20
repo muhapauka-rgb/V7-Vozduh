@@ -1,6 +1,10 @@
+import contextlib
 import importlib.machinery
 import importlib.util
+import io
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -41,6 +45,64 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(selected, ["telegram", "google"])
         with self.assertRaisesRegex(ValueError, "invalid_service_subset"):
             self.matrix.exact_services_to_run("all", "telegram,unknown")
+
+    def test_matrix_observation_only_stops_before_event_and_downstream_consumers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            (state_dir / "egress.registry").write_text(
+                "id=vless interface=tun0 enabled=1 state=enabled\n",
+                encoding="utf-8",
+            )
+            argv = [
+                str(REFRESH_TOOL), "--state-dir", str(state_dir),
+                "--event-dir", str(root / "events"),
+                "--matrix-observation-only", "--egresses", "vless",
+                "--services", "telegram",
+            ]
+            output = io.StringIO()
+            observed_calls = []
+
+            def fake_run_one(*_args, **_kwargs):
+                observed_calls.append(True)
+                return {
+                    "egress": "vless", "status": "OK", "ok": True,
+                    "total": 1, "service_results": {
+                        "telegram": {"ok": True, "status": "OK"},
+                    },
+                    "service_matrix_lock": {"held": True},
+                }
+
+            with mock.patch.object(self.refresh, "run_one", side_effect=fake_run_one), \
+                 mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(len(observed_calls), 1)
+        self.assertEqual(payload["mode"], "MATRIX_OBSERVATION_ONLY")
+        self.assertTrue(payload["observation_only"]["canonical_matrix_write_preserved"])
+        self.assertFalse(payload["observation_only"]["downstream_consumer_invoked"])
+        self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
+
+    def test_matrix_runtime_caller_passes_comparison_only_to_existing_advisory_owner(self):
+        command = []
+
+        def fake_run(argv, **_kwargs):
+            command.extend(argv)
+            return subprocess.CompletedProcess(argv, 0, stdout=json.dumps({"ok": True}))
+
+        with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+            result = self.refresh.run_service_failure_automation_advisory(
+                "existing-autoswitch", state_dir=Path("/polygon/state"),
+                event_dir=Path("/polygon/events"), matrix_comparative_preflight=True,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(command[0], "existing-autoswitch")
+        self.assertIn("--consume-service-failure-automation-only", command)
+        self.assertIn("--matrix-comparative-preflight", command)
+        self.assertNotIn("--apply", command)
 
     def test_active_ordinary_stop_safe_defers_certification_tail(self):
         active_scope = {"active": True}

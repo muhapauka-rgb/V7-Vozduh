@@ -1095,3 +1095,109 @@ comparison are complete; Phase-D candidates and safe Polygon constraints are
 complete; Phase-E has reached a genuine fail-closed evidence boundary.**
 Phase F scale validation and any B/C implementation remain downstream of the
 missing Phase-E decision. The live system remains unchanged and safe under A.
+
+## Existing Planner-to-Matrix bounded comparison implementation — 2026-08-20
+
+### Authority, scope and decision
+
+The user explicitly authorized the previously missing bounded caller path. The
+implementation consequently extends only the existing owners:
+
+`v7-service-matrix-refresh.timer` ->
+`v7-service-matrix-refresh-all` ->
+existing advisory-only `v7-users-autoswitch` Planner ->
+existing `v7-service-matrix-refresh-all` Matrix writer.
+
+It creates no owner, Runtime, Planner, queue, watcher, registry, state file or
+source of truth. The Planner supplies only its already-computed exact active
+source, eligible target set and required services. The Matrix remains the
+sole durable health writer. The comparison creates no Candidate, Packet,
+lease, route mutation or user move.
+
+This supersedes the earlier blocker
+`BLOCKER_V53_ADMITTED_ROLE_AWARE_CALLER_AND_COMPARATIVE_TELEMETRY_ABSENT` for
+the **shadow-comparison implementation**. It does not claim a live measured
+production distribution before a successful deploy and a later ordinary
+observation.
+
+### Implemented flow and safeguards
+
+1. The existing Matrix timer now asks its existing advisory-only Planner
+   consumer for the comparison only after the normal Matrix lifecycle reaches
+   that advisory branch. No new schedule was installed.
+2. The existing Planner projection accepts only one exact active source, its
+   own selected targets and the exact required service set. No selection,
+   target ranking or service list is supplied manually.
+3. Missing, stale, incomplete or multiple-source Planner input stops the
+   comparison safely before any probe.
+4. The existing Matrix owner runs the short check for exactly those
+   source/target channels and required services, in observation-only mode.
+   It still performs its ordinary canonical Matrix writes, but emits no event
+   and invokes no downstream action from this measurement call.
+5. It immediately runs the unchanged full service catalogue for the same
+   selected channels. That full result is the final canonical observation.
+6. The comparison records duration, number of executed service checks,
+   service-by-service agreement, errors and fallback reasons. Full is always
+   retained; a failed, missing or disagreeing short result cannot lead to a
+   client switch.
+
+The full scheduled Matrix sweep remains enabled as the production baseline.
+The new comparison is deliberately a safe shadow measurement, not an
+automatic FAST switching admission.
+
+### Changed files
+
+| File | Change |
+| --- | --- |
+| `tools/v7-users-autoswitch` | Existing Planner now projects exact eligible source/target/service scope, fails closed on invalid input, invokes the existing Matrix short/full observation comparison and returns the compact measurements. |
+| `tools/v7-service-matrix-refresh-all` | Existing Matrix refresh can run an observation-only probe/write, retains exact per-service verdicts for comparison, and forwards the comparison flag only to its existing advisory owner. |
+| `systemd/v7-service-matrix-refresh.service` | Existing timer invocation enables the advisory comparison; no new timer or unit was added. |
+| focused unit tests | Cover Planner-owned selection, stale denial, short/full call ordering and metrics, observation-only no-consumer behavior, and no `--apply` propagation. |
+
+### Verification and measured Polygon result
+
+| Check | Result | What it proves |
+| --- | --- | --- |
+| Focused new tests (4) | `PASS` | Existing Planner selection drives short then full Matrix; stale selection performs no probe; observation-only stops before events/consumers; the existing caller passes no apply flag. |
+| Existing controlled Matrix Polygon (3) | `PASS` | Full 14-service and exact 3-service checks agree on healthy path, required-service failure and HTTP-limited methodology result. It binds only a local temporary `127.0.0.1` server and changes no V7 route or client. |
+| Python syntax and diff validation | `PASS` | Both changed executables compile; no whitespace/error defect in the patch. |
+| `tools/v7-truth-check --continue-omp --json` | `PASS` | Current Mission/caller/consumer remain recognized and all forbidden route, Runtime, Authority, packet and user effects are false. |
+
+The existing controlled Matrix timing measurement remains the only valid
+performance number until deploy: full `14` selected services took `41.284 ms`
+versus exact `3` in `9.793 ms` on the controlled healthy path — `76.3%` less
+probe span and `78.6%` fewer selected checks. These are Polygon measurements,
+not a production latency claim. The new caller now records the equivalent
+short/full fields at Runtime once safely deployed.
+
+Two broader historical fixture tests were also rerun and still fail before or
+outside this change: one expected an old target-stop reason and one has a
+current-state functional-footprint mismatch. Neither failure touches Matrix
+selection, service verdicts, the comparison caller or its no-mutation law; no
+test was weakened or skipped.
+
+### Deployment and Runtime observation
+
+`tools/v7-safe-deploy --json` validated the deploy allowlist but returned
+`NO-GO` with `github_truth_check_failed`: its independent GitHub read was
+unavailable (`github_remote_unreadable` and
+`canonical_branch_missing_on_remote`). It also correctly treats the uncommitted
+runtime-critical changes as blocking until a local commit exists. Therefore no
+runtime file, unit, route, Matrix endpoint, client or service was changed in
+production. This is an external verification boundary, not permission to
+bypass the deploy guard.
+
+### Residual and exact next action
+
+Plan position: **step 5 of 6 — implementation and Polygon proof complete;
+safe publication/deploy verification blocked externally.**
+
+Exact next action:
+
+```text
+Commit this bounded existing-owner change; when independent GitHub branch
+verification is reachable, rerun v7-safe-deploy with its required confirmation,
+then inspect the installed timer command, installed binary hashes and the first
+comparison receipt. Only after agreement/fallback observations exist may Phase
+E recalculate B/C evidence; the full Matrix remains the live fallback.
+```

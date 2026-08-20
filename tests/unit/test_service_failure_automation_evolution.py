@@ -136,6 +136,88 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         planner.reconcile_service_failure_execution_outcomes.assert_not_called()
         planner.materialize_service_failure_automation_advisory.assert_called_once_with({"decisions": []})
 
+    def test_existing_planner_selection_drives_subset_then_full_matrix_comparison(self):
+        plan = {
+            "decisions": [
+                {
+                    "current_egress": "vless",
+                    "recommended_egress": "1",
+                    "important_services": ["telegram", "google"],
+                },
+                {
+                    "current_egress": "vless",
+                    "recommended_egress": "2",
+                    "important_services": ["telegram"],
+                },
+            ],
+        }
+        freshness = {
+            "status": "PREPARED_CLASS_DECISION_FRESH",
+            "current_invalidators": {"planner_generation": "planner-gen"},
+        }
+        selection = self.autoswitch.matrix_comparative_probe_selection(plan, freshness)
+        self.assertTrue(selection["ok"])
+        self.assertEqual(selection["active_source"], "vless")
+        self.assertEqual(selection["eligible_planner_targets"], ["1", "2"])
+        self.assertEqual(selection["egresses"], ["1", "2", "vless"])
+        self.assertFalse(selection["manual_server_selection"])
+
+        def payload(total_per_egress):
+            return {
+                "results": [
+                    {
+                        "egress": egress,
+                        "total": total_per_egress,
+                        "service_results": {
+                            "telegram": {"ok": True, "status": "OK"},
+                            "google": {"ok": True, "status": "OK"},
+                        },
+                    }
+                    for egress in ("1", "2", "vless")
+                ],
+            }
+
+        calls = []
+
+        def fake_run(command, **_kwargs):
+            calls.append(command)
+            selected = "--services" in command
+            return subprocess.CompletedProcess(
+                command, 0, stdout=json.dumps(payload(2 if selected else 14))
+            )
+
+        args = argparse.Namespace(
+            state_dir="/polygon/state", event_dir="/polygon/events",
+            matrix_comparative_timeout_sec=30,
+        )
+        with mock.patch.object(self.autoswitch.subprocess, "run", side_effect=fake_run):
+            result = self.autoswitch.run_matrix_comparative_preflight(selection, args)
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["status"], "MATRIX_FAST_FULL_AGREEMENT")
+        self.assertTrue(result["full_matrix_fallback_used"])
+        self.assertEqual(result["measurements"]["short_executed_checks"], 6)
+        self.assertEqual(result["measurements"]["full_executed_checks"], 42)
+        self.assertEqual(len(calls), 2)
+        self.assertIn("--egresses", calls[0])
+        self.assertIn("--services", calls[0])
+        self.assertIn("--egresses", calls[1])
+        self.assertNotIn("--services", calls[1])
+        self.assertIn("--matrix-observation-only", calls[0])
+        self.assertIn("--matrix-observation-only", calls[1])
+        self.assertFalse(result["routing_mutation_performed"])
+        self.assertEqual(result["users_moved"], 0)
+
+    def test_stale_planner_selection_fails_closed_before_matrix_probe(self):
+        selection = self.autoswitch.matrix_comparative_probe_selection(
+            {"decisions": []}, {"status": "PREPARED_CLASS_DECISION_STALE"}
+        )
+        self.assertFalse(selection["ok"])
+        self.assertEqual(
+            selection["status"],
+            "STOP_SAFE_MATRIX_COMPARISON_PREPARED_DECISION_NOT_FRESH",
+        )
+
     def test_certification_only_source_scope_never_enters_ordinary_failover(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

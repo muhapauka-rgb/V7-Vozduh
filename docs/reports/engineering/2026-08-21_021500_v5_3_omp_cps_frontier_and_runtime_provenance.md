@@ -45,6 +45,21 @@ binaries совпадают, а локальное рабочее дерево �
 - Polygon lane остаётся допустимым для дальнейшего измерения без ожидания
   natural failure.
 
+## Проверка минимального diff
+
+Сравнение `0d8729a109dcc5b9a9a6bea689ec053311c01869..HEAD` не содержит
+изменений в `tools/v7-service-matrix-*`, `tools/v7-users-autoswitch`,
+`admin_core`, `systemd` или runtime-конфигурации. Расхождение затрагивает
+`tools/v7-truth-check` (`22` добавленных строк) и `tools/v7_sync_lib.py`
+(`516/5` строк), а также Program/reports/tests. Поэтому для текущего Matrix
+latency блока нет доказанного минимального production deploy diff: live Matrix
+бинарии уже согласованы, а остальной local HEAD нельзя накатывать целиком
+только ради снятия формального commit mismatch.
+
+Это закрывает проверку deploy scope без deploy. Следующее измерительное
+продолжение может идти через существующий Polygon и direct read-only Matrix
+owners; production apply остаётся запрещённым до отдельной provenance-сверки.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

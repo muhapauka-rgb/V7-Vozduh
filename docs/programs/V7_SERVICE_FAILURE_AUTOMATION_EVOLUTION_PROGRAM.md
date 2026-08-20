@@ -44,6 +44,78 @@ RECOVERED`. This workstream additionally owns the Engineering measurement
 residual `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE
 EVENT`; it does not redefine T0 or move report/OMP time into Runtime.
 
+### V5.3 integrated T0–T11 latency-optimization track
+
+`V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` is a bounded track
+inside this V5.3 workstream, not a Program, Mission, owner, architecture,
+implementation, state surface or Runtime actor. Its question is deliberately
+wider than “can Matrix run probes faster?”:
+
+```text
+EXTERNAL FAILURE OCCURS
+-> FIRST OBSERVABLE SIGNAL
+-> CANONICAL CONFIRMED FAILURE
+-> SAFE DECISION
+-> CLIENT TRAFFIC RECOVERED
+```
+
+The product result remains the existing measured `T0 FAILURE CONFIRMED -> T11
+CLIENT TRAFFIC RECOVERED` KPI. Where an independently attributable external
+failure boundary is available, the track also maps `T0 FAILURE OCCURRED ->
+T11`; where it is not observable, it must say `UNKNOWN`, use the first
+observable signal as the engineering boundary, and never manufacture a live
+failure merely to fill the clock. Report/OMP/history/certification tail time
+is excluded from both clocks.
+
+This track corrects the order of future V5.3 work. It does **not** revoke the
+consumed guard decision `TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT`,
+change the current CPS frontier, reopen the completed Atlas/benchmark, or
+admit FAST. The full Matrix live baseline, subset shadow comparison and
+automatic FAST hold remain in force. The current CPS/OMP owner alone decides
+whether a later residual becomes an admitted Mission.
+
+#### Latency track sequence and terminals
+
+The following gates replace any interpretation that V5.3 should select a FAST
+model merely because a benchmark or a candidate exists. They are ordered
+evidence inside the existing V5.3 phases; they do not create twelve Missions.
+Existing Phase A–H labels remain the implementation-facing sections below.
+
+| Gate | Required output | Existing V5.3 phase/consumer | Terminal |
+| --- | --- | --- | --- |
+| L1 | Current T0–T11 map: owner, code path, input/output, wait, timeout, retry, persistence, lock, serial/parallel, blocker, placement and measurement status for every span | Phase A → Phase B/E | `CURRENT_T0_T11_LATENCY_MAP` |
+| L2 | Seven-class latency matrix: full channel, tunnel-up/Internet-down, Telegram-only, critical-service, quality, recovery and false failure | Phase B → Phase E/F/H | `FAILURE_CLASS_LATENCY_MATRIX` |
+| L3 | Detection vs confirmation vs decision vs action responsibility for every signal | Phase A/B → Planner/Matrix consumers | `SIGNAL_RESPONSIBILITY_MODEL` |
+| L4 | Test role matrix: failure confirmation, target readiness, quality ranking, recovery, post-switch verification and deep diagnostic | Phase A/B → Phase F/H | `TEST_ROLE_MATRIX` |
+| L5 | Root latency contributors A–G: cadence, execution, persistence, freshness, target readiness, ordering and verification | Phase A/B → Phase E | `TOP_T0_T11_LATENCY_CONTRIBUTORS` |
+| L6 | Safe optimization register with expected gain, risk, existing owner, test safety, rollback and architecture-decision need | Phase E/F/H | `LATENCY_OPTIMIZATION_REGISTER` |
+| L7 | Map each proved V7 problem to a mature-system mechanism; retain or reject duplicate vendor research | Phase C → Phase D/E | `PROBLEM_TO_PATTERN_MAPPING` |
+| L8 | Compare Model A/B/C and role-aware refinements only against the proved contributors and choose/retain one evidence-backed architecture | Phase D/E | existing `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` |
+| L9 | Controlled Polygon validation of hard failure, Telegram, partial service, stale data, recovery, flapping and capacity with before/after delta | Phase F/G → OMP/CPS | `CONTROLLED_LATENCY_VALIDATION_CONSUMED` |
+| L10 | Scale validation at 7, 50, 100 and 1,000 egresses: probe count, latency, CPU, RAM, locks and network pressure | Phase F/G → Phase E invalidation or Phase H | `LATENCY_SCALE_VALIDATION_CONSUMED` |
+| L11 | Minimal implementation only after a proved root cause, chosen solution, safety proof and baseline; lifecycle is shadow → controlled → production | Phase H → existing owners | normal existing OMP implementation terminal |
+| L12 | Before/after proof of client-recovery effect, decision equivalence and safety | existing consumers → CPS | `T0_T11_BEFORE_AFTER_PROOF_CONSUMED` |
+
+L1–L6 may reuse the compact report
+`docs/reports/engineering/2026-08-20_235500_v5_3_t0_t11_latency_trace_and_safe_optimization_register.md` only to the extent its evidence is marked static, Polygon or Runtime-unknown. A later Runtime observation must extend the existing evidence/owner-backed report rather than silently promote static timing to production fact. No gate is complete merely because a document names it.
+
+The problem-to-pattern rule is mandatory:
+
+```text
+PROVED V7 LATENCY/SAFETY PROBLEM
+-> MATCHED MATURE-SYSTEM MECHANISM
+-> EXISTING V7 OWNER AND MEASURABLE HYPOTHESIS
+-> REUSE / ADAPT / REJECT
+-> ARCHITECTURE DECISION ONLY IF A MATERIAL GAP REMAINS
+```
+
+Examples are directional, not implementation authority: slow failure
+confirmation may justify examining BFD, object tracking or HAProxy fall/rise;
+false switching may justify hysteresis and recovery thresholds; quality
+degradation may justify Performance-SLA patterns; probe cost may justify
+Envoy-style health placement. A commercial mechanism never becomes a V7
+candidate before L5 identifies the matching V7 problem.
+
 The read-only Mission `V7_FAILURE_DETECTION_AND_HEALTH_MODEL_OPTIMIZATION_V1`
 is consumed as discovery/design evidence from commit `643077b4`. Its verdict
 is `RECOMMEND_MODEL_B_FAST_PLUS_DEEP_USING_EXISTING_MATRIX_OWNER`. Repeating
@@ -156,20 +228,27 @@ proves a real residual with an existing owner.
 inside one bounded Mission:
 
 ```text
-PHASE A CURRENT HEALTH / TEST / STABILITY ATLAS
--> CURRENT DECISION INFLUENCE GRAPH
--> CURRENT EXECUTION ORDER / LATENCY MAP
--> PHASE B FAILURE / HEALTH SEMANTICS AND FOUR DECISION CONTRACTS
--> CADENCE / TIMEOUT / PARALLELISM REVIEW
--> STABILITY / HISTORY REVIEW
--> PHASE C DEEP COMMERCIAL FIELD-BY-FIELD COMPARISON
--> PHASE D MULTIPLE CONCRETE V7 CANDIDATE MODELS
--> PHASE E WEIGHTED TARGET ARCHITECTURE DECISION
--> PHASE F/G SCALE / PROBE ECONOMY / PARALLELISM VALIDATION
--> PHASE H MIGRATION / IMPLEMENTATION PLAN
--> BOUNDED IMPLEMENTATION MISSIONS
--> BEFORE / AFTER / DELTA
+CURRENT REALITY / ATLAS
+-> L1 T0-T11 CURRENT LATENCY MAP
+-> L2 FAILURE-CLASS LATENCY MATRIX
+-> L3 SIGNAL RESPONSIBILITY MODEL
+-> L4 TEST ROLE MATRIX
+-> L5 PROVED ROOT LATENCY CONTRIBUTORS
+-> L6 SAFE OPTIMIZATION REGISTER
+-> L7 PROBLEM-TO-PATTERN COMMERCIAL COMPARISON
+-> L8 PHASE D/E CANDIDATES AND ARCHITECTURE DECISION
+-> L9 CONTROLLED VALIDATION
+-> L10 SCALE / PROBE ECONOMY / PARALLELISM VALIDATION
+-> L11 PHASE H MINIMAL IMPLEMENTATION, IF ADMITTED
+-> L12 BEFORE / AFTER / CLIENT-RECOVERY PROOF
 ```
+
+Phase A/B retain their Atlas and health-semantics obligations; Phase C is the
+L7 problem-to-pattern consumer; Phase D/E are L8; Phase F/G are L9/L10; and
+Phase H is L11. This mapping preserves current section owners and terminal
+names, while making the causal order unambiguous. The current CPS may still
+have an already-admitted Phase F/G controlled residual; this Program text does
+not cancel, advance or replace it.
 
 Forbidden:
 
@@ -180,7 +259,9 @@ PRESELECT IMPLEMENTATION -> IMPLEMENT -> USE BENCHMARK AS POST-HOC CONFIRMATION
 Required:
 
 ```text
-UNDERSTAND -> BENCHMARK -> COMPARE -> CHOOSE -> IMPLEMENT -> MEASURE
+UNDERSTAND CURRENT T0-T11 PATH -> IDENTIFY ROOT CAUSE
+-> REGISTER SAFE OPTIONS -> MATCH PROVED PROBLEM TO PATTERN
+-> COMPARE -> CHOOSE -> CONTROLLED VALIDATE -> SCALE -> IMPLEMENT -> MEASURE
 ```
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
@@ -425,11 +506,14 @@ the exact existing owner and recovery rule for every material failure class.
 
 #### Phase C — mature-system benchmark
 
-This benchmark has two complementary layers and compares mechanisms, not
-companies or product portfolios. Program text owns only requirements,
-terminal and consumers; detailed source evidence and comparison rows belong
-to one compact Engineering Report for the exact admitted Mission. Vendor
-defaults are contextual evidence, never V7 settings. Only official
+Phase C is L7: it answers a proved V5.3 latency or safety problem with a
+matching mature-system pattern. It must not begin as a generic search for the
+best FAST model, and it must not repeat the consumed benchmark without a new
+invalidator. This benchmark has two complementary layers and compares
+mechanisms, not companies or product portfolios. Program text owns only
+requirements, terminal and consumers; detailed source evidence and comparison
+rows belong to one compact Engineering Report for the exact admitted Mission.
+Vendor defaults are contextual evidence, never V7 settings. Only official
 documentation, architecture/configuration/reference manuals and primary
 technical papers qualify.
 
@@ -541,7 +625,7 @@ an implementation Candidate by itself.
 Required consumer chain:
 
 ```text
-MATURE-SYSTEM MECHANISM -> V7 COMPARISON
+PROVED V7 PROBLEM -> MATURE-SYSTEM MECHANISM -> V7 COMPARISON
 -> REUSE / ADAPT / REJECT -> EXISTING OWNER
 -> MEASURABLE HYPOTHESIS OR REJECTION REASON
 -> PHASE D / E / F / H CONSUMPTION
@@ -555,7 +639,7 @@ propagation, or is rejected as unnecessary complexity. Phase C output must be
 consumed by Phase D and Phase E before the target architecture is selected;
 descriptive vendor coverage alone cannot reach the Phase C terminal.
 
-Phase C terminal:
+Phase C terminal (the L7 `PROBLEM_TO_PATTERN_MAPPING` must be attached):
 
 ```text
 MATURE_HEALTH_AND_COMMERCIAL_ROUTING_MECHANISM_COMPARISON_CONSUMED
@@ -787,17 +871,27 @@ only when all of the following are consumed by existing owners:
     owners, with residuals classified rather than hidden.
 15. `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE EVENT` is
     measured segment by segment.
-16. Before/after latency, probe count and decision equivalence are measured;
-    divergence automatically falls back to full Matrix with a durable reason.
-17. A lawful ordinary event, when naturally available, relates detection to
+16. `CURRENT_T0_T11_LATENCY_MAP`, `FAILURE_CLASS_LATENCY_MATRIX`,
+    `SIGNAL_RESPONSIBILITY_MODEL`, `TEST_ROLE_MATRIX` and
+    `TOP_T0_T11_LATENCY_CONTRIBUTORS` distinguish measured Runtime facts from
+    static, Polygon and unknown evidence. The external failure-occurrence
+    boundary is never fabricated when production provenance is unavailable.
+17. `LATENCY_OPTIMIZATION_REGISTER` and `PROBLEM_TO_PATTERN_MAPPING` link
+    every proposed optimization to one proved delay/safety problem, an
+    existing owner, expected gain, risk, rollback and a `REUSE`/`ADAPT`/
+    `REJECT` disposition before architecture selection or implementation.
+18. Before/after client-recovery latency, probe count, decision equivalence
+    and safety are measured; divergence automatically falls back to full
+    Matrix with a durable reason.
+19. A lawful ordinary event, when naturally available, relates detection to
     T0-T11; Natural L8 absence cannot keep the Engineering stage open when all
     Engineering criteria are independently complete.
-18. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
+20. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
     `NOT_REQUIRED`, with owner and re-entry condition where applicable.
-19. CPS owns an exact successor outside this stage or a legal Program terminal;
+21. CPS owns an exact successor outside this stage or a legal Program terminal;
     durable knowledge is transferred to existing canonical owners and the OMP
     V5.3 frontier is retired under the existing contract.
-20. No Runtime consumer depends on this temporary stage or its reports.
+22. No Runtime consumer depends on this temporary stage or its reports.
 
 ### V5.3 retirement contract
 

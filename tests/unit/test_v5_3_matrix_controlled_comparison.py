@@ -11,6 +11,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import resource
 import sys
 import tempfile
 import threading
@@ -37,15 +38,24 @@ def load_matrix_module():
 
 class _HealthyResponse(http.server.BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 - required BaseHTTPRequestHandler name
-        time.sleep(float(getattr(self.server, "delay_seconds", 0.0)))
-        service_id = self.path.strip("/")
-        if service_id in self.server.failed_services:
-            self.send_response(503)
-        elif service_id in self.server.limited_services:
-            self.send_response(403)
-        else:
-            self.send_response(204)
-        self.end_headers()
+        with self.server.request_guard:
+            self.server.active_requests += 1
+            self.server.peak_requests = max(
+                self.server.peak_requests, self.server.active_requests,
+            )
+        try:
+            time.sleep(float(getattr(self.server, "delay_seconds", 0.0)))
+            service_id = self.path.strip("/")
+            if service_id in self.server.failed_services:
+                self.send_response(503)
+            elif service_id in self.server.limited_services:
+                self.send_response(403)
+            else:
+                self.send_response(204)
+            self.end_headers()
+        finally:
+            with self.server.request_guard:
+                self.server.active_requests -= 1
 
     def log_message(self, _format, *_args):
         return
@@ -59,6 +69,9 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
         cls.server.failed_services = set()
         cls.server.limited_services = set()
         cls.server.delay_seconds = 0.0
+        cls.server.request_guard = threading.Lock()
+        cls.server.active_requests = 0
+        cls.server.peak_requests = 0
         cls.port = int(cls.server.server_port)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -246,6 +259,7 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
                         active_egresses = 0
                         peak_egresses = 0
                         guard = threading.Lock()
+                        self.server.peak_requests = 0
 
                         def probe_egress(index):
                             nonlocal active_egresses, peak_egresses
@@ -270,12 +284,20 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
                                 with guard:
                                     active_egresses -= 1
 
+                        usage_before = resource.getrusage(resource.RUSAGE_SELF)
                         started = time.monotonic()
                         with ThreadPoolExecutor(max_workers=cap) as pool:
                             rows = [future.result() for future in as_completed(
                                 [pool.submit(probe_egress, index) for index in range(8)]
                             )]
-                        timings[cap] = time.monotonic() - started
+                        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+                        timings[cap] = {
+                            "elapsed_seconds": time.monotonic() - started,
+                            "user_cpu_ms": (usage_after.ru_utime - usage_before.ru_utime) * 1000.0,
+                            "system_cpu_ms": (usage_after.ru_stime - usage_before.ru_stime) * 1000.0,
+                            "peak_rss_kib": usage_after.ru_maxrss // 1024,
+                            "peak_local_requests": self.server.peak_requests,
+                        }
                         self.assertEqual(peak_egresses, cap)
                         self.assertTrue(all(row["status"] == "OK" and row["total"] == 14 for row in rows))
                         self.assertFalse((root / "events" / "service-failure-events.jsonl").exists())
@@ -284,10 +306,16 @@ class V53MatrixControlledComparisonTest(unittest.TestCase):
         # This certifies only the controlled, latency-injected probe portion.
         # It is neither a production timing claim nor automatic-cap admission.
         print("phase_g_complete_probe_timings_seconds=" + json.dumps(
-            {str(cap): round(value, 6) for cap, value in timings.items()},
+            {
+                str(cap): {
+                    key: round(value, 6) if isinstance(value, float) else value
+                    for key, value in measurement.items()
+                }
+                for cap, measurement in timings.items()
+            },
             sort_keys=True,
         ))
-        self.assertTrue(all(value > 0 for value in timings.values()))
+        self.assertTrue(all(value["elapsed_seconds"] > 0 for value in timings.values()))
 
     def test_phase_g_cap_two_preserves_first_failure_and_recovery_semantics(self):
         """A cap must not turn one transient observation into an incident."""

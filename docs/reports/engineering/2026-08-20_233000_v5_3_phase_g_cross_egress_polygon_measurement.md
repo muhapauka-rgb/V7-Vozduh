@@ -7,7 +7,7 @@ production scheduling, routes, users, cadence or automatic FAST eligibility.
 
 ## Result
 
-`PARTIAL_PASS; NO_PRODUCTION_PARALLELISM_ADMITTED`
+`PASS; NO_CROSS_EGRESS_PARALLELISM_ADMITTED`
 
 Eight isolated egresses each ran the existing 14-service Matrix path against a
 temporary local response surface with a bounded 25 ms per-HTTP-response delay.
@@ -20,30 +20,34 @@ and no Runtime, route, user or Authority effect occurred.
 | --- | ---: | ---: | ---: | --- |
 | A | 0.838884 s | 0.640213 s | 0.982904 s | cap 2 is 23.7% lower than serial; cap 4 is worse |
 | B | 0.855855 s | 0.648959 s | 0.746633 s | cap 2 is 24.2% lower than serial; cap 4 remains 15.1% slower than cap 2 |
+| C | 0.839652 s | 0.941068 s | 0.972804 s | both concurrent caps are slower than serial |
 
-Cap 2 was consistently lower than serial in both controlled runs. Cap 4 varied
-relative to serial but was slower than cap 2 in both runs (15.1–53.5%), so it
-is rejected as a default. The same Polygon suite separately held the existing
-Matrix atomic writer at one writer under every cap. Eight healthy egress rows
-were preserved with no failure-event file. Consequently cap 2 is the only
-measured candidate; it is not a production setting or FAST-consumer authority.
+The cap-2 result did not reproduce in the third controlled run. Cap 4 was
+similarly unstable and never beat cap 2. The same Polygon suite held the
+existing Matrix atomic writer at one writer under every cap. Eight healthy
+egress rows were preserved with no failure-event file. The only evidence-based
+decision is therefore to retain serial cross-egress traversal.
+
+In Run C, the existing process surfaces recorded: cap 1 / 2 / 4 peak local
+request pressure `8 / 15 / 21`, peak RSS `27,744 / 29,440 / 29,680 KiB`, and
+CPU `383 / 425 / 544 ms` (user plus system). These are Polygon-host numbers,
+not production resource claims, but they confirm that higher caps add pressure
+without a reproducible latency benefit.
 
 ## What this proves and what it does not
 
 Proved in the controlled polygon:
 
-- cap 2 can reduce the complete latency-injected probe portion relative to
-  serial traversal for this exact eight-egress/14-service profile;
-- cap 4 is less efficient than cap 2 in both runs and has unstable benefit
-  versus serial, so it is not a default;
+- an isolated run can make cap 2 appear faster, but that benefit is not
+  reproducible across the same controlled profile;
+- cap 4 adds more pressure and has no reproducible benefit;
 - the existing canonical Matrix writer remains single-writer under all caps;
 - no test caused an event, route change, client movement or production effect.
 
 Not proved:
 
 - production endpoint latency or production time saving;
-- CPU/RSS, external-service pressure, interface/SOCKS/process isolation, or
-  failure-domain suitability at cap 2;
+- production endpoint, interface/SOCKS/process or failure-domain suitability;
 - permission to add a scheduler, alter the deployed timer, enable automatic
   FAST, or weaken the full-Matrix fallback.
 
@@ -65,9 +69,8 @@ permission; no production host was contacted.
 
 ## Exact next action
 
-Remain in the existing Phase-G frontier and measure cap 2 under failure,
-timeout and recovery profiles while recording CPU/RSS and total external probe
-pressure through existing Matrix timing/resource surfaces. If any lock,
-freshness, failure-domain, resource or external-pressure gate fails, retain
-serial traversal. Only a complete Phase-G evidence set may be consumed; even
-then Phase H separately controls any Runtime admission.
+Consume the Phase-G no-parallelism result through the existing OMP/CPS atomic
+owner. Then Phase H records that no Runtime implementation is admitted: the
+full Matrix and its serial cross-egress traversal remain live, the subset is a
+shadow comparison, and automatic FAST remains held. No scheduler, timer or
+production cap is permitted.

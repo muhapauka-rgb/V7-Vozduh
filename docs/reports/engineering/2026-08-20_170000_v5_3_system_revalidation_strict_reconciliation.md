@@ -849,3 +849,44 @@ timer or automatic FAST-consumer change is admitted by this comparison.
 
 This audit changed no system behaviour. It only corrects the candidate
 evaluation contract before any architecture decision.
+
+## Role-aware adaptive-health proposal — correct disposition
+
+The proposed role-aware model is a valuable addition to the evaluation, but it
+must **not** be registered as a fourth independent architecture now.  The
+current Program already makes this the required Phase-D question: differentiated
+work for active source, eligible hot target, cold unused target, degraded,
+unusable and recovering states, derived from existing owners.  Its Phase-E
+law permits a separate `MODEL_D` only after measurements prove that A, B and C
+are insufficient and no new health truth or Runtime ecosystem is introduced.
+
+It is therefore admitted here as `ROLE_AWARE_ADAPTIVE_POLICY_HYPOTHESIS`, an
+evaluation dimension applied consistently to A, B and C:
+
+| Role | Existing evidence and consumer boundary | Permitted hypothesis to test | Non-negotiable denial / fallback |
+| --- | --- | --- | --- |
+| `ACTIVE_SOURCE` | existing Matrix required-service rows, path signal and lawful passive/sentinel producer -> Matrix -> current source scope | C may create fast suspicion; B may make bounded required-service confirmation before deeper diagnostic work | one signal/sample never rescues or moves a user; unknown/conflict triggers existing full confirmation |
+| `ELIGIBLE_HOT_TARGET` | Matrix/path identity + Planner freshness, role, capacity/reserve, quality and policy gates | frequent bounded readiness confirmation may be cheaper than full-wide checks | stale, unknown, identity-mismatched, capacity/policy-failed or conflicting target is ineligible; full Matrix fallback remains |
+| `COLD_UNUSED_TARGET` | existing Matrix broad/deep state, compact quality/history and Planner candidate path | lower-rate deep observation; only an existing candidate demand may request an accelerated fresh readiness refresh | historical cold success never promotes it to hot/eligible without current existing-gate confirmation |
+| `DEGRADED` / `UNUSABLE` | Matrix methodology-limited/service state, quality compact and persistence owner | intensified confirmation can distinguish transient quality loss from persistent unusability; quality may lower target rank/exclude it | quality alone never declares source failure or initiates rescue; conflicting evidence denies fast selection |
+| `RECOVERING` | existing recovery receipts, Matrix generation and Planner/reconciliation rules | asymmetric re-admission: repeated success, stability/quality probation and current target gates before preferred use | a single recovery response or old-generation receipt cannot restore preferred eligibility |
+
+The real comparison is consequently:
+
+```text
+A: current full-Matrix baseline, including its existing role gates
+B: bounded Matrix FAST plus DEEP, tested both with and without role-aware cadence
+C: existing passive/protocol suspicion escalating only through B/Matrix
+
+If (and only if) role-aware B/C is measurably safer or cheaper at current, 50
+and 1,000 egresses, it becomes a documented
+TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT for Phase E. It is not a
+new owner, role-state store, scheduler, watcher, queue or direct switch path.
+```
+
+This adds the proposal's central value — different depth/cadence/recovery
+treatment by role — while retaining the mandatory A/B/C comparison and the
+law that an adaptive cadence must be measured, bounded, stale-safe and
+implemented only through existing owners. No implementation, Runtime, route,
+client, timer or automatic FAST-consumer change is authorized by this
+classification.

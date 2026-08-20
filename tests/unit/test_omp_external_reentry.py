@@ -292,6 +292,69 @@ class OmpExternalReentryTest(unittest.TestCase):
         self.assertEqual(result["exact_next_automatic_action"], frontier)
         self.assertFalse(any(result["forbidden_effects"].values()))
 
+    def test_product_evolution_arbitration_counterfactuals(self):
+        arbitrate = self.lib.service_failure_product_evolution_arbitration
+        scenarios = (
+            # Stage 48 READY + V5.3 READY.
+            ({"incident_active": False, "stage_48_open": True,
+              "stage_48_executable_now": True, "v5_3_admission_ready": True},
+             "STAGE_48_CONTROLLED_PRODUCTION"),
+            # Stage 48 BLOCKED_EXTERNAL + V5.3 READY.
+            ({"incident_active": False, "stage_48_open": True,
+              "stage_48_executable_now": False, "v5_3_admission_ready": True},
+             "V5_3_MATRIX_HEALTH_OPTIMIZATION"),
+            # Stage 48 WAITING_AUTHORITY + V5.3 READY uses the same lane-local law.
+            ({"incident_active": False, "stage_48_open": True,
+              "stage_48_executable_now": False, "v5_3_admission_ready": True},
+             "V5_3_MATRIX_HEALTH_OPTIMIZATION"),
+            # A material current incident retains safety priority.
+            ({"incident_active": True, "stage_48_open": True,
+              "stage_48_executable_now": True, "v5_3_admission_ready": True},
+             "INCIDENT_FRONTIER"),
+            # Both Product Evolution lanes blocked.
+            ({"incident_active": False, "stage_48_open": True,
+              "stage_48_executable_now": False, "v5_3_admission_ready": False},
+             "STAGE_48_BLOCKED_LEGAL_WAIT"),
+            # Inactive for one generation, then owner predicates recover.
+            ({"incident_active": False, "stage_48_open": True,
+              "stage_48_executable_now": True, "v5_3_admission_ready": False},
+             "STAGE_48_CONTROLLED_PRODUCTION"),
+        )
+        for inputs, expected in scenarios:
+            with self.subTest(inputs=inputs):
+                result = arbitrate(**inputs)
+                self.assertEqual(result["selected_frontier"], expected)
+                if inputs["stage_48_open"]:
+                    self.assertEqual(
+                        result["stage_48_preservation"],
+                        "EXISTING_AUDIT_RECEIPTS_PLUS_FRESH_MATRIX_RECOMPUTATION",
+                    )
+
+    def test_v5_3_read_only_frontier_routes_to_existing_owner(self):
+        for field, value in (
+            ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),
+            ("CURRENT_NEXT_ACTION_ID", self.lib.V5_3_MATRIX_DECISION_ACTION),
+            ("CURRENT_PROGRAM_EXECUTION_FRONTIER",
+             f"ADMITTED_READY_READ_ONLY:{self.lib.V5_3_MATRIX_DECISION_MISSION_ID}"),
+            ("CURRENT_EXECUTION_MISSION_ID", self.lib.V5_3_MATRIX_DECISION_MISSION_ID),
+            ("CURRENT_EXECUTION_MISSION_STATE", "PREPARED_NOT_ACTIVE"),
+            ("CURRENT_STOP_CONDITION", "NONE"),
+            ("EXTERNAL_INPUT_REQUIRED", "FALSE"),
+        ):
+            self.replace_live(field, value)
+        result = self.lib.continue_omp_engineering_control_loop(
+            root=self.root, persist_cps=True,
+        )
+        self.assertEqual(result["final_verdict"], "PASS", result)
+        self.assertEqual(
+            result["priority_decision"],
+            "BLOCKED_CONTROLLED_LANE_YIELDS_TO_INDEPENDENT_READY_ENGINEERING",
+        )
+        self.assertEqual(
+            result["real_consumer"], "EXISTING_V5_3_PHASE_C_D_E_READ_ONLY_OWNER",
+        )
+        self.assertFalse(any(result["forbidden_effects"].values()))
+
     def test_matrix_owned_incident_drain_does_not_schedule_another_codex_wake(self):
         for field, value in (
             ("ACTIVE_PROGRAM", self.lib.SERVICE_FAILURE_AUTOMATION_PROGRAM_ID),

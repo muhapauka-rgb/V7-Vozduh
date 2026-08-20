@@ -1190,7 +1190,7 @@ def omp_live_state_consistency(cps_text: str, omp_text: str) -> dict[str, Any]:
     report_pointer_ok = bool(
         cps_report
         and omp_report == cps_report
-        and (cps_report in omp_text[:3000] or active_mission_pointer and cps_report in omp_text)
+        and cps_report in omp_text
     )
     if not pointer_ok:
         contradictions.append("omp_current_pointer_mismatch")
@@ -2394,6 +2394,7 @@ def delegated_policy_live_state_consistency(
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
         and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
+    v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2570,6 +2571,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
+            or v5_3_read_only_frontier and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2583,6 +2585,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
+            or v5_3_read_only_frontier and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2599,7 +2602,11 @@ def delegated_policy_live_state_consistency(
             independent_program_frontier
             or wip.get("smallest_existing_next_action_id", "").strip("`") == next_action
         )
-        and (reset_program_frontier or rs0_read_only_frontier or rs7_physical_admission_frontier or f"`{next_action}`" in sequence_one)
+        and (
+            reset_program_frontier or rs0_read_only_frontier
+            or v5_3_read_only_frontier or rs7_physical_admission_frontier
+            or f"`{next_action}`" in sequence_one
+        )
     )
     if not next_consistent:
         contradictions.append("delegated_policy_cps_next_action_divergence")
@@ -2806,6 +2813,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                     and live.get("CURRENT_PROGRAM_EXECUTION_FRONTIER", "").strip("`").startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
                     and live.get("CURRENT_PROGRAM_STAGE", "").strip("`") in RS_READ_ONLY_STAGE_TERMINALS
                 )
+                or _is_v5_3_read_only_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6695,6 +6703,12 @@ def _plain_live_value(live: dict[str, str], key: str) -> str:
 
 
 SERVICE_FAILURE_AUTOMATION_PROGRAM_ID = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1"
+V5_3_MATRIX_DECISION_MISSION_ID = "V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1"
+V5_3_MATRIX_DECISION_ACTION = "EXECUTE_V5_3_MATRIX_HEALTH_PHASE_C_D_E_DECISION"
+V5_3_ARBITRATION_REPORT = (
+    "docs/reports/engineering/"
+    "2026-08-20_094500_product_evolution_frontier_arbitration_reconciliation.md"
+)
 CONTROLLED_CERTIFICATION_SAFE_PROGRAM_FRONTIERS = frozenset({
     "CONTROLLED_SERVICE_FAILURE_CERTIFICATION_PLAN_AND_SAFE_COHORT_REQUIRED",
     "V7_SERVICE_FAILURE_T48_M10_AUTHORITY_AND_RUNTIME_RECOMMENDATION_RECONCILIATION",
@@ -6716,6 +6730,109 @@ def _is_controlled_certification_safe_frontier(value: str) -> bool:
             frontier,
         )
     )
+
+
+def _is_v5_3_read_only_frontier(live: dict[str, str]) -> bool:
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
+        == f"ADMITTED_READY_READ_ONLY:{V5_3_MATRIX_DECISION_MISSION_ID}",
+        value("CURRENT_EXECUTION_MISSION_ID") == V5_3_MATRIX_DECISION_MISSION_ID,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "PREPARED_NOT_ACTIVE",
+    ))
+
+
+def v5_3_matrix_decision_admission_readiness(*, root: Path = ROOT) -> dict[str, Any]:
+    """Prove the registered read-only V5.3 decision residual is admission-ready.
+
+    The implementation candidate remains gated by the Phase-E terminal.  This
+    check admits only the bounded Phase C/D/E evidence-and-decision Mission and
+    deliberately derives readiness from the current Program/OMP contracts,
+    never from a historical report status.
+    """
+    program_path = root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    omp_path = root / "docs/programs/OPERATIONAL_MATURITY_PROGRAM.md"
+    try:
+        program = program_path.read_text(encoding="utf-8")
+        omp = omp_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "ready": False,
+            "mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+            "missing_predecessors": [f"canonical_contract_unreadable:{exc}"],
+        }
+    required_program = {
+        "registered_workstream": "Contract status: `REGISTERED_BOUNDED_WORKSTREAM`",
+        "decision_order": "`V5_3_DECISION_ORDERING_LAW`",
+        "phase_c_terminal": "MATURE_HEALTH_AND_COMMERCIAL_ROUTING_MECHANISM_COMPARISON_CONSUMED",
+        "phase_d_terminal": "V7_ROLE_AND_STABILITY_HEALTH_MODEL_CANDIDATE_CONSUMED_BY_PHASE_E",
+        "phase_e_terminal": "`V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`",
+        "lane_independence": "MATRIX_HEALTH_OPTIMIZATION_PROGRESS_MUST_NOT_DEPEND_ON_CT_M0F_CONTROLLED_SUBSTRATE_OR_NATURAL_L8_WHILE_INDEPENDENT_ENGINEERING_WORK_IS_READY",
+        "terminal_contract": "### V5.3 terminal definition",
+        "retirement_contract": "### V5.3 retirement contract",
+    }
+    required_omp = {
+        "omp_registration": "V4.79 registers `V7 MATRIX / HEALTH DETECTION OPTIMIZATION`",
+        "admission_owner": "existing BDP/OMP admission and CPS atomic Mission-identity",
+        "no_unnecessary_waiting": "`NO_UNNECESSARY_WAITING`",
+    }
+    missing = [
+        name for name, token in required_program.items() if token not in program
+    ] + [
+        name for name, token in required_omp.items() if token not in omp
+    ]
+    return {
+        "ready": not missing,
+        "mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+        "action": V5_3_MATRIX_DECISION_ACTION,
+        "mission_scope": "READ_ONLY_PHASE_C_D_E_EVIDENCE_AND_ARCHITECTURE_DECISION",
+        "implementation_candidate": "V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1",
+        "implementation_candidate_ready": False,
+        "implementation_missing_predecessor": "V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED_AND_FIRST_IMPLEMENTATION_RESIDUAL_CONFIRMED",
+        "missing_predecessors": missing,
+        "runtime_impact": "NONE",
+        "production_impact": "NONE",
+        "authority_impact": "NONE",
+    }
+
+
+def service_failure_product_evolution_arbitration(
+    *,
+    incident_active: bool,
+    stage_48_open: bool,
+    stage_48_executable_now: bool,
+    v5_3_admission_ready: bool,
+) -> dict[str, str]:
+    """Select one active successor while retaining owner-recomputable lanes."""
+    if incident_active:
+        selected = "INCIDENT_FRONTIER"
+        reason = "MATERIAL_CURRENT_INCIDENT_SAFETY_PRIORITY"
+    elif stage_48_open and stage_48_executable_now:
+        selected = "STAGE_48_CONTROLLED_PRODUCTION"
+        reason = "EXECUTABLE_CONTROLLED_PRODUCTION_FRONTIER"
+    elif v5_3_admission_ready:
+        selected = "V5_3_MATRIX_HEALTH_OPTIMIZATION"
+        reason = (
+            "STAGE_48_LANE_LOCAL_BLOCKED_INDEPENDENT_READ_ONLY_ENGINEERING_READY"
+            if stage_48_open else
+            "INDEPENDENT_READ_ONLY_ENGINEERING_READY"
+        )
+    elif stage_48_open:
+        selected = "STAGE_48_BLOCKED_LEGAL_WAIT"
+        reason = "NO_INDEPENDENT_READY_FRONTIER"
+    else:
+        selected = "LEGAL_WAIT"
+        reason = "NO_READY_PRODUCT_EVOLUTION_FRONTIER"
+    return {
+        "selected_frontier": selected,
+        "priority_reason": reason,
+        "stage_48_preservation": (
+            "EXISTING_AUDIT_RECEIPTS_PLUS_FRESH_MATRIX_RECOMPUTATION"
+            if stage_48_open else "NOT_OPEN"
+        ),
+    }
 SERVICE_FAILURE_AUTOMATION_M1 = "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_M1_DURABLE_INCIDENT_FRONTIER_AND_OMP_CONSUMER_V1"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M2 = "CAUSAL_M2_ATOMIC_TRANSITION_AND_RECEIPT_LINKAGE"
 SERVICE_FAILURE_AUTOMATION_CAUSAL_M3 = "CAUSAL_M3_ACTIVE_INCIDENT_REVALIDATION"
@@ -9408,6 +9525,7 @@ def bdp_development_impulse_handoff(
     engineering_state: dict[str, Any],
     *,
     existing_candidates: Optional[Iterable[Any]] = None,
+    mission_id: str = "",
 ) -> dict[str, Any]:
     """Route one bounded owner-backed BDP gap to OMP, or return legal no-action."""
     errors: list[str] = []
@@ -9555,7 +9673,7 @@ def bdp_development_impulse_handoff(
             "errors": [],
         }
 
-    admission = omp_candidate_admission_decision(candidate)
+    admission = omp_candidate_admission_decision(candidate, mission_id=mission_id)
     return {
         "schema": "v7-omp-bdp-development-impulse-handoff/v1",
         "handoff_status": "CANDIDATE_CONSUMED_BY_OMP" if admission["final_verdict"] == "PASS" else "STOP_SAFE",
@@ -18412,10 +18530,6 @@ def reconcile_service_failure_external_authority_boundary(
         ),
         "state_captured": utc_now(),
     })
-    # The top-level engineering labels are scheduling projections too. Keep
-    # them aligned with the selected current scope so a closed incident cannot
-    # continue to appear as the primary stage after its product successor wins.
-    state["current_program_stage"] = state["current_active_scope"]
     atomic = atomic_reconcile_cps(
         cps_path,
         state=state,
@@ -19934,6 +20048,89 @@ def reconcile_active_standing_delegated_policy_to_cps(
         and controlled_campaign.get("completed") is True
         and controlled_campaign_proven_max == 48
     )
+    availability_campaign_open = availability_campaign_active
+    availability_campaign_execution_ready = bool(
+        availability_campaign_open
+        and (
+            availability_campaign_next_stage != 48
+            or controlled_pool_max >= availability_campaign_next_stage
+        )
+    )
+    v5_3_readiness = v5_3_matrix_decision_admission_readiness(root=root)
+    v5_3_admission = bdp_development_impulse_handoff(
+        {
+            "state_generation": _plain_live_value(live, "CURRENT_STATE_GENERATION"),
+            "discovery_economy_decision": "DISCOVERY_NOT_REQUIRED_REUSE_EVIDENCE",
+            "real_world_limit_intents": 0,
+            "engineering_gaps": [{
+                "primary_class": "ENGINEERING_DECISION_GAP",
+                "secondary_classes": ["MATRIX_HEALTH", "FAILURE_DETECTION_LATENCY"],
+                "execution_depth": "READ_ONLY_ARCHITECTURE_DECISION",
+                "engineering_intent": "CONSUME_V5_3_PHASE_C_D_E_IN_ORDER",
+                "current_reality": "V5_3_REGISTERED_MODEL_B_LEADING_NOT_FINAL",
+                "expected_reality": "ONE_OWNER_BACKED_TARGET_ARCHITECTURE_DECISION",
+                "engineering_chain": "PROGRAM->BDP->OMP->CPS->PHASE_C_D_E_CONSUMERS",
+                "engineering_chain_segment": "PHASE_C_D_E_DECISION",
+                "behaviour_instance": "V5_3_MATRIX_HEALTH_DECISION_ORDERING",
+                "behaviour": "READ_ONLY_RESEARCH_COMPARISON_AND_ARCHITECTURE_DECISION",
+                "automation_logic": "EXISTING_OMP_ADMISSION_AND_CPS_ATOMIC_PROJECTION",
+                "automation_break": "REGISTERED_FRONTIER_NOT_INCLUDED_IN_ARBITRATION",
+                "existing_rule": "NO_UNNECESSARY_WAITING_AND_PARALLEL_FRONTIER",
+                "current_outcome": "BLOCKED_STAGE_48_PREEMPTS_INDEPENDENT_ENGINEERING",
+                "expected_outcome": "V5_3_READ_ONLY_DECISION_MISSION_PREPARED",
+                "intent_closure_state": "AUTOMATION_BREAK",
+                "owner": "EXISTING_MATRIX_PROGRAM_AND_OMP_ADMISSION_OWNERS",
+                "producer": "V5_3_PROGRAM_DECISION_ORDERING_CONTRACT",
+                "consumer": "V5_3_PHASE_C_D_E_EXISTING_OWNERS",
+                "evidence": "CURRENT_PROGRAM_AND_OMP_CONTRACTS",
+                "implementation_scope": "READ_ONLY_PHASE_C_D_E_ONLY",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "dependencies": "EXISTING_CONTRACTS_READY",
+                "verification": "ORDERING_OWNER_CONSUMER_AND_NO_EFFECT_GATES",
+                "verification_context": "SOURCE_AND_CPS",
+                "rollback": "ATOMIC_CPS_PREIMAGE_RESTORE",
+                "authority": "NONE",
+                "authority_context": "NO_PRODUCTION_OR_RUNTIME_EFFECT",
+                "terminal_path": "V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED",
+                "implementation_readiness": "IMPLEMENTATION_READY",
+                "omp_consumer": "OMP_CANDIDATE_ADMISSION",
+                "codex_readiness": "READY",
+                "new_owner_required": False,
+                "new_architecture_required": False,
+            }],
+        },
+        mission_id=V5_3_MATRIX_DECISION_MISSION_ID,
+    )
+    v5_3_readiness["admission"] = v5_3_admission
+    v5_3_readiness["ready"] = bool(
+        v5_3_readiness.get("ready")
+        and v5_3_admission.get("final_verdict") == "PASS"
+        and v5_3_admission.get("admission_decision") == "MISSION_ACCEPTED"
+        and (v5_3_admission.get("admission") or {}).get("mission_id")
+        == V5_3_MATRIX_DECISION_MISSION_ID
+    )
+    v5_3_current = _is_v5_3_read_only_frontier(live)
+    product_arbitration = service_failure_product_evolution_arbitration(
+        incident_active=active_incident_drain,
+        stage_48_open=availability_campaign_open,
+        stage_48_executable_now=availability_campaign_execution_ready,
+        v5_3_admission_ready=bool(
+            (availability_campaign_next_stage == 48 or v5_3_current)
+            and v5_3_readiness.get("ready")
+        ),
+    )
+    availability_campaign_active = (
+        product_arbitration["selected_frontier"]
+        == "STAGE_48_CONTROLLED_PRODUCTION"
+    )
+    availability_campaign_blocked = bool(
+        availability_campaign_open and not availability_campaign_execution_ready
+    )
+    v5_3_selected = (
+        product_arbitration["selected_frontier"]
+        == "V5_3_MATRIX_HEALTH_OPTIMIZATION"
+    )
     if active_incident_drain:
         primary_next_action = "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
         primary_stop = "NONE"
@@ -19958,6 +20155,15 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "CONSUMED_1_2_5_10_25_48"
         )
         primary_stop = "PROGRAM_TERMINAL"
+    elif v5_3_selected:
+        primary_next_action = V5_3_MATRIX_DECISION_ACTION
+        primary_stop = "NONE"
+    elif availability_campaign_blocked:
+        primary_next_action = (
+            "WAITING_OWNER_EVENT:CONTINUE_AVAILABILITY_FIRST_CONTROLLED_"
+            f"PRODUCTION_STAGE_{availability_campaign_next_stage}"
+        )
+        primary_stop = "CONTROLLED_SUBSTRATE_BLOCKED"
     elif controlled_source_topology_authority_required:
         primary_next_action = (
             "ENGINEERING_AUTHORITY_"
@@ -20057,6 +20263,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
         or controlled_target_engineering_repair
         or controlled_source_topology_authority_approved
         or (m8_pool_ready and not m8_approved_source_baseline_blocked)
+        or v5_3_selected
     )
     state = _normalized_state_from_live_cps(cps_text)
     state.update({
@@ -20181,6 +20388,11 @@ def reconcile_active_standing_delegated_policy_to_cps(
             "DO NOT REUSE ANY HISTORICAL EXECUTION IDENTITY"
         ),
         "current_scope_class": "SERVICE_FAILURE_AUTOMATION_EVOLUTION",
+        # Preserve the established OMP functional-footprint projection while
+        # this owner changes only the active Service-Failure successor.
+        "aep_phase6_status": "REAL_WORLD_LIMIT",
+        "current_completion_contract": "AUTOMATION_COMPLETION",
+        "current_completion_verdict": "COMPLETE_CONSUMED",
         "current_state_generation": (
             f"cpsgen_SFA_SDPC_{contract_hash[:12].upper()}_"
             f"{'DRAIN' if active_incident_drain else f'AVAILABILITY_STAGE_{availability_campaign_next_stage}' if availability_campaign_active else 'AVAILABILITY_COMPLETE' if availability_campaign_complete else 'TOPOLOGY_STANDING_AUTHORITY' if pending_controlled_topology_policy else 'SOURCE_TOPOLOGY_AUTHORITY' if controlled_source_topology_authority_required else 'SOURCE_TOPOLOGY_PACKET_PREFLIGHT' if controlled_source_topology_authority_approved else 'TOPOLOGY_AVAILABILITY_FIRST_AUTHORITY' if controlled_topology_availability_first_authority else 'TOPOLOGY_FULL_PATH_EXTERNAL' if controlled_topology_full_path_external else 'TOPOLOGY_DISTINCT_TARGET_REVALIDATION' if controlled_topology_shared_target_revalidation else 'M8_SOURCE_BASELINE_BLOCKED' if m8_approved_source_baseline_blocked else 'M8_SOURCE_INVALID' if m8_approved_source_invalid else 'M8_SUBSTRATE_APPROVED' if m8_substrate_approved else 'M8_EXACT_AUTHORITY' if m8_exact_authority_boundary else 'M8_POOL' if m8_pool_boundary else 'TARGET_ENGINEERING_REPAIR' if controlled_target_engineering_repair else 'TARGET_REBIND_AUTHORITY' if controlled_target_rebind_authority_boundary else 'TARGET_LIVE_OWNER_BOUNDARY' if controlled_target_live_owner_boundary else 'M10_RECONCILE' if m10_campaign_complete else f'M9_STAGE_{controlled_campaign_next_stage}' if m9_campaign_active else 'M8_READY' if m8_pool_ready else 'WAIT'}"
@@ -21042,6 +21254,103 @@ def reconcile_active_standing_delegated_policy_to_cps(
         }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
         "state_captured": utc_now(),
     })
+    if v5_3_selected:
+        blocked_stage_action = (
+            "CONTINUE_AVAILABILITY_FIRST_CONTROLLED_PRODUCTION_"
+            f"STAGE_{availability_campaign_next_stage}"
+        )
+        decision_fingerprint = hashlib.sha256(json.dumps({
+            "program_version": "5.3",
+            "mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+            "stage_48_action": blocked_stage_action,
+            "stage_48_completed": availability_campaign.get("completed_stages") or [],
+            "stage_48_receipts": availability_campaign.get("receipt_ids") or [],
+            "stage_48_source_capacity": controlled_pool_max,
+            "stage_48_required_scope": availability_campaign_next_stage,
+            "controlled_pool_fingerprint": controlled_pool.get("fingerprint") or "",
+            "contract_hash": contract_hash,
+        }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        state.update({
+            "current_active_scope": "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+            "current_safe_next_action": (
+                "EXECUTE ONLY THE READ-ONLY V5.3 PHASE C/D/E EVIDENCE AND "
+                "ARCHITECTURE-DECISION MISSION THROUGH EXISTING OMP OWNERS; "
+                "KEEP STAGE 48 RECEIPTS AND RECOMPUTE IT AUTOMATICALLY WHEN "
+                f"ONE ISOLATED CONTROLLED SOURCE REACHES {availability_campaign_next_stage} "
+                "CURRENT CERTIFICATION IDENTITIES AND ALL LIVE GATES PASS"
+            ),
+            "current_state_generation": (
+                f"cpsgen_SFA_V53_DECISION_{decision_fingerprint[:16].upper()}"
+            ),
+            "current_transition_id": (
+                "SERVICE_FAILURE_PRODUCT_EVOLUTION_PARALLEL_FRONTIER_"
+                "ARBITRATION_RECONCILED_V1"
+            ),
+            "current_next_action_id": V5_3_MATRIX_DECISION_ACTION,
+            "current_program_execution_frontier": (
+                f"ADMITTED_READY_READ_ONLY:{V5_3_MATRIX_DECISION_MISSION_ID}"
+            ),
+            "current_execution_frontier": (
+                f"ADMITTED_READY_READ_ONLY:{V5_3_MATRIX_DECISION_MISSION_ID}"
+            ),
+            "current_execution_mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+            "current_execution_mission_state": "PREPARED_NOT_ACTIVE",
+            "current_mission_role": "ACTIVE_MISSION",
+            "current_mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+            "current_run_nonce": "v53arb_product_evolution_v1",
+            "current_mission_state": "PREPARED_NOT_ACTIVE",
+            "current_mission_report": V5_3_ARBITRATION_REPORT,
+            "continuation_decision": "CONTINUE_PROGRAM_FRONTIER",
+            "program_terminal_state": "NONE_V5_3_READ_ONLY_DECISION_MISSION_READY",
+            "program_terminal_class": "NONE",
+            "omp_continuation_required": "TRUE",
+            "external_input_required": "FALSE",
+            "external_input_type": "NONE",
+            "next_mission_formed": "TRUE",
+            "next_mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+            "continuation_stop_reason": (
+                "STAGE 48 IS LANE-LOCAL BLOCKED BY CURRENT CONTROLLED SOURCE "
+                f"COHORT {controlled_pool_max}<{availability_campaign_next_stage}; "
+                "THE INDEPENDENT READ-ONLY V5.3 PHASE C/D/E MISSION IS READY"
+            ),
+            "authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+            "wip_authority_required_now": "NO_INSIDE_EXISTING_ENGINEERING_PROGRAM_SCOPE",
+            "wip_current_primary_stop": "NONE",
+            "wip_smallest_existing_next_action_id": V5_3_MATRIX_DECISION_ACTION,
+            "wip_smallest_existing_next_action": V5_3_MATRIX_DECISION_ACTION,
+            "smallest_existing_next_action": V5_3_MATRIX_DECISION_ACTION,
+            "last_responsible_link": (
+                "existing V5.3 Program contract -> BDP/OMP admission -> CPS "
+                "read-only Mission -> Phase C/D/E evidence consumer"
+            ),
+            "program_frontier_input": (
+                "fresh production incident scope=0; availability-first stages "
+                "1,2,5,10,25 consumed; Stage 48 current isolated controlled "
+                f"source cohort={controlled_pool_max}<48; V5.3 Program and OMP "
+                "read-only decision contracts current"
+            ),
+            "program_frontier_owner": "existing OMP admission and Matrix Program owners",
+            "program_frontier_expected_output": (
+                "Phase C comparison -> Phase D role/stability model -> Phase E "
+                "one target architecture decision; no Runtime or production effect"
+            ),
+            "no_progress_fingerprint": decision_fingerprint,
+        })
+    # The top-level engineering labels are scheduling projections too. Keep
+    # them aligned with the selected current scope so a closed incident cannot
+    # continue to appear as the primary stage after its product successor wins.
+    state["current_program_stage"] = state["current_active_scope"]
+    v5_3_section_overrides = ({
+        "PRODUCT_EVOLUTION_FRONTIER": f"`{V5_3_MATRIX_DECISION_ACTION}`",
+        "AUTOMATIC_REENTRY_CONDITION": (
+            "`existing Matrix/registry/quality/capacity generation proves one "
+            f"isolated controlled source has at least {availability_campaign_next_stage} "
+            "current certification identities and all live Stage-48 gates pass; "
+            "the same owner deterministically recomputes Stage 48 without an "
+            "operator or Codex message`"
+        ),
+        "NEXT_CONSUMER": "`EXISTING_V5_3_PHASE_C_D_E_READ_ONLY_OWNER`",
+    } if v5_3_selected else {})
     atomic = atomic_reconcile_cps(
         cps_path,
         state=state,
@@ -21052,6 +21361,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
             or controlled_target_engineering_repair
             or controlled_source_topology_authority_approved
             or (m8_pool_ready and not m8_approved_source_baseline_blocked)
+            or v5_3_selected
         ),
         expected_generation=_plain_live_value(live, "CURRENT_STATE_GENERATION"),
         section0_field_overrides={
@@ -21207,6 +21517,7 @@ def reconcile_active_standing_delegated_policy_to_cps(
                 f"`{controlled_substrate_reentry}`"
             ),
             **tier_projection,
+            **v5_3_section_overrides,
         },
     )
     omp_pointer = (
@@ -21680,6 +21991,17 @@ def continue_omp_engineering_control_loop(
             and _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
             == current_next_action
         )
+        v5_3_read_only_frontier = all((
+            _plain_live_value(live, "ACTIVE_PROGRAM")
+            == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+            current_next_action == V5_3_MATRIX_DECISION_ACTION,
+            _plain_live_value(live, "CURRENT_PROGRAM_EXECUTION_FRONTIER")
+            == f"ADMITTED_READY_READ_ONLY:{V5_3_MATRIX_DECISION_MISSION_ID}",
+            _plain_live_value(live, "CURRENT_EXECUTION_MISSION_ID")
+            == V5_3_MATRIX_DECISION_MISSION_ID,
+            _plain_live_value(live, "CURRENT_EXECUTION_MISSION_STATE")
+            == "PREPARED_NOT_ACTIVE",
+        ))
         if active_incident_drain:
             return {
                 "schema": "v7.omp-continue-engineering-loop.v1",
@@ -21708,6 +22030,47 @@ def continue_omp_engineering_control_loop(
                     "user_movement": False, "packet_execution": False,
                     "restore_barrier_write": False, "rollback_apply": False,
                     "authority_expansion": False, "production_maturity_credit": False,
+                },
+                "errors": [],
+            }
+        if v5_3_read_only_frontier:
+            return {
+                "schema": "v7.omp-continue-engineering-loop.v1",
+                "final_verdict": "PASS",
+                "program_terminal": "NONE_V5_3_READ_ONLY_DECISION_MISSION_READY",
+                "terminal_class": "NONE",
+                "trigger": "Continue OMP",
+                "entrypoint": "tools/v7-truth-check --continue-omp --json",
+                "priority_decision": (
+                    "BLOCKED_CONTROLLED_LANE_YIELDS_TO_INDEPENDENT_READY_ENGINEERING"
+                ),
+                "real_caller": "continue_omp_engineering_control_loop",
+                "real_consumer": "EXISTING_V5_3_PHASE_C_D_E_READ_ONLY_OWNER",
+                "exact_next_operator_command": current_next_action,
+                "exact_next_automatic_action": current_next_action,
+                "transitions": [{
+                    "transaction_terminal": "V5_3_READ_ONLY_MISSION_ACKNOWLEDGED",
+                    "mission_id": V5_3_MATRIX_DECISION_MISSION_ID,
+                    "next_output": current_next_action,
+                    "no_user_prompt": True,
+                }],
+                "internal_iteration_count": 1,
+                "behavior_change": "V5_3_READ_ONLY_DECISION_MISSION_ROUTED",
+                "runtime_impact": "NONE",
+                "production_impact": "NONE",
+                "routing_impact": "NONE",
+                "user_movement": 0,
+                "authority_impact": "NONE",
+                "production_maturity_impact": "NO_CHANGE",
+                "forbidden_effects": {
+                    "runtime_mutation": False,
+                    "routing_mutation": False,
+                    "user_movement": False,
+                    "packet_execution": False,
+                    "restore_barrier_write": False,
+                    "rollback_apply": False,
+                    "authority_expansion": False,
+                    "production_maturity_credit": False,
                 },
                 "errors": [],
             }
@@ -24212,6 +24575,7 @@ def cps_live_state_consistency(
         and program_frontier.startswith("ADMITTED_READY_READ_ONLY:V7_OMP_BDP_")
         and rs_read_only_stage in RS_READ_ONLY_STAGE_TERMINALS
     )
+    v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
@@ -24264,6 +24628,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
+            and not (v5_3_read_only_frontier and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

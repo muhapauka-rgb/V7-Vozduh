@@ -890,3 +890,208 @@ law that an adaptive cadence must be measured, bounded, stale-safe and
 implemented only through existing owners. No implementation, Runtime, route,
 client, timer or automatic FAST-consumer change is authorized by this
 classification.
+
+## Phase D — concrete A/B/C candidate construction and Polygon evidence
+
+### Admission and evidence boundary
+
+Fresh `tools/v7-truth-check --continue-omp --json` returned `PASS` with
+`ACTIVE_V5_3_SYSTEM_REVALIDATION_PREEMPTS_GENERIC_OMP`: the real caller remains
+the existing `continue_omp_engineering_control_loop`, the real consumer is the
+existing V5.3 system-revalidation owner, and every forbidden Runtime, route,
+packet, Authority and user effect was `false`. This pass is therefore lawful
+read-only Phase-D design/engineering evidence, not a change in behaviour.
+
+The candidates below use only the already-inventoried Matrix, sentinel,
+quality, recovery, Planner and verifier owners. They are deliberately concrete
+enough to compare but are **not** an implementation decision or a new state
+machine. `ROLE_AWARE_ADAPTIVE_POLICY_HYPOTHESIS` is an evaluation dimension,
+not Candidate D.
+
+### Candidate cards
+
+| Field | A — improved full Matrix | B — FAST plus DEEP under Matrix | C — existing signal escalates through Matrix |
+| --- | --- | --- | --- |
+| Core path | Every relevant egress receives the existing full 14-service Matrix observation; existing Planner consumes current facts only afterwards. | An already-authoritative source/target caller names an exact egress set and required service subset; existing Matrix creates the only canonical observation and then existing Planner gates it. | Existing passive/protocol evidence creates suspicion only; it requests B's bounded Matrix confirmation, never a direct state, target or route action. |
+| `ACTIVE_SOURCE` | full scheduled observation plus existing persistence and passive bridge. | minimum required service subset + existing path/freshness contract; deep full Matrix is diagnostic or fallback. | C may shorten time-to-suspicion; B remains the confirmation and persistence owner. |
+| `ELIGIBLE_HOT_TARGET` | full Matrix plus current identity, capacity, policy, quality and stability gates. | bounded readiness set plus the same non-Matrix gates; short result alone is never sufficient. | unchanged from B; passive source evidence does not promote a target. |
+| `COLD_UNUSED_TARGET` | same full observation as every other egress. | existing deep/broad observation; if an existing caller makes it a candidate, it receives a fresh bounded readiness refresh before becoming hot. | no independent cold-target effect. |
+| `DEGRADED` / `RECOVERING` | existing persistence, quality and recovery receipts decide; broad cadence remains baseline. | role-aware policy may intensify *confirmation* while degraded and impose recovery probation; numerical cadence is intentionally unset pending V7 data. | can only accelerate a source-suspicion response; it cannot bypass degraded/recovery safeguards. |
+| Evidence placement | Matrix observation is broad; compact quality/history and recovery remain precomputed/deferred; route verification remains post-candidate. | FAST: minimal Matrix/service/path confirmation and fresh compact gates. DEEP: full Matrix diagnostics, quality/history and recovery reconciliation. | FAST signal is a producer only; all durable state and decision evidence stays in B/Matrix/Planner. |
+| Failure/recovery law | 3 samples or 180s persistence; existing cooldown and fresh-state denial. | exactly the same persistence, stale/unknown denial and recovery rules; faster probe selection cannot lower any threshold. | signal never counts as a persistence sample by itself. |
+| Fallback | current safe baseline. | empty/unknown/stale/identity-mismatched/conflicting selection, failed target gates or short/full disagreement -> existing full Matrix and recorded reason. | all C uncertainty -> B then the same full fallback; C unavailable leaves A/B behaviour intact. |
+| Owner and complexity result | `REUSE`; no new owner, lowest design risk, highest broad probe cost. | `ADAPT`; existing selector and Matrix only, but caller/role proof and full equivalence are required. | `ADAPT` only as B's existing producer bridge; no new event, scheduler, queue or direct route path. |
+
+All three preserve four separate fail-closed contracts: source failure, target
+readiness, recovery/re-admission and post-switch recovery. A generic “healthy”
+answer satisfies none of those contracts alone.
+
+### Probe-cost model — factual bounds, not invented cadence
+
+Let `E` be egress count, `F=14` the existing full Matrix service catalogue,
+`R` the exact required subset (controlled evidence has `R=3`; a profile may
+need more), `A` active sources, `H` eligible hot targets, `COLD` cold targets,
+and `x` the number of an existing passive-signal escalations in a period.
+
+| Variant | Per broad sweep / event-bound attempt | Current 7 egresses | 50 egresses | 100 egresses | 1,000 egresses |
+| --- | --- | ---: | ---: | ---: | ---: |
+| A broad Matrix | `F × E` service attempts per broad sweep | 98 | 700 | 1,400 | 14,000 |
+| B bounded confirmation | `R × (A + H)` per exact attempt; `F × E` only on mandatory fallback; `F × COLD` belongs to the separately scheduled deep sweep | depends on actual owner-backed roles; no role count is assumed | same | same | same |
+| C signal escalation | existing sentinel/passive cost, unchanged, plus `x × B`; zero direct Matrix action without an existing signal | depends on observed `x` | same | same | same |
+| Role-aware policy | same formulas, with only already-authorized role/candidate facts selecting B or deep work | no numeric cadence claimed | no numeric cadence claimed | intermediate model required | stress model required |
+
+The controlled one-egress invocation measured 14 full versus 3 exact selected
+services: `41.284 ms` versus `9.793 ms` probe span, 76.3% shorter in that
+isolated healthy case. That establishes a per-attempt selection benefit, not a
+production cadence or a promise of the same percentage at a fleet scale. The
+formula exposes the genuine scale choice: A scales with every egress on every
+broad sweep; B/C scale with a bounded current source/target set plus retained
+deep observation. A new cadence or role inventory cannot be invented to make
+the formula look favourable.
+
+### Existing Polygon evidence exercised for the candidate constraints
+
+The following existing high-fidelity Polygon scenarios were run through the
+real Planner, replay, existing OMP consumer and no-mutation boundary. Each
+individual scenario result was `PASS`; each batch returned
+`BOUNDED_CONTINUATION` because the wider Future-Scale frontier is intentionally
+still open. Every forbidden effect remained false.
+
+| Scenario | Candidate constraint proved | Scale / result boundary |
+| --- | --- | --- |
+| `PHASE6V3_SERVICE_DEGRADATION_HEALTHY_AGGREGATE` | partial service degradation remains visible even if a coarser channel view is healthy; supports B's required-service distinction | existing high-fidelity real-code scenario; `PASS` |
+| `PHASE6V3_RECOVERY_SERVICE_QUALITY_SPLIT` | recovery cannot bypass quality, anti-flap, preview and safety gates; supports conservative recovering role | 2,000 users / 40 channels; `PASS`; representative scoring/replay 3.155s in this controlled run |
+| `PHASE6V3_MIXED_GENERATION_LEASE_EXPIRATION` | mixed-generation or expired input denies the action; supports every candidate's stale/conflict fallback | existing high-fidelity real-code scenario; `PASS` |
+| `PHASE6V4_RECOVERY_OSCILLATION_CAPACITY_PRESSURE` | recovery oscillation under capacity pressure remains held by anti-flap; supports degraded/recovering separation | 5,000 users / 100 channels; `PASS` |
+| `PHASE6V3_DECISION_TRACE_VOLUME_10K_100` | capacity, blast radius, normalized OMP consumption and deterministic replay remain bounded at the large Polygon point | 10,000 users / 100 channels; `PASS`; replay/scoring 20.599s, peak process RSS 747,664 KiB |
+
+The 10k/100 result is **Polygon scale evidence only**. It explicitly does not
+claim hardware-equivalent production performance, production probe latency or
+natural failure representativeness. macOS lacks the existing Linux namespace
+owner, and historical owner-backed outcome comparison is unavailable. These
+limitations neither fabricate a production result nor authorize a route/user
+test.
+
+### Phase-D status and exact continuation
+
+This pass closes the avoidable ambiguity about candidate directions: A is the
+full safe baseline, B is the bounded-confirmation proposal, and C is its
+existing early-suspicion bridge. The role-aware proposal is now correctly
+embedded as a measurable policy dimension. It does **not** close Phase D or
+select B/C: no owner-backed role census, live role-specific cadence
+distribution, short/full production comparison, or measured 50/1,000 Matrix
+probe budget exists yet.
+
+Exact next action, still within this Mission and without waiting for a natural
+incident:
+
+```text
+Use the existing controlled Matrix entrypoint and Polygon owner to construct a
+parameterized role-census test matrix at 7, 50, 100 and 1,000 egresses. It must
+vary only existing-owner input facts (active source count, eligible hot target
+count, cold count, degraded/recovering flags, stale/conflict and fallback),
+calculate the A/B/C formulas and assert the four fail-closed contracts. If the
+existing owner cannot express this without a new role-state owner or parallel
+simulation truth, record that exact boundary and retain A as fallback; do not
+introduce a new scheduler or Runtime.
+```
+
+### Execution of the exact-next-action boundary
+
+The existing owners were traced before attempting any synthetic role assignment:
+
+1. The deployed scheduled runtime invocation is
+   `v7-service-matrix-refresh-all --runtime-hot-path-only`; it supplies neither
+   `--egresses` nor `--services`, so it is Candidate-A full observation.
+2. `v7-service-matrix-refresh-all` accepts an exact subset, but explicitly
+   declares `role_selection_owner=EXTERNAL_EXISTING_MATRIX_CALLER`. It performs
+   no role discovery and must not choose a source, hot target or cold target.
+3. The existing Polygon can materialize `channel_class` fixture data and run
+   the real Planner at 2k/40, 5k/100 and 10k/100, but those fixture roles are
+   Engineering evidence. They are not an owner-backed Runtime role census and
+   cannot be written back as Matrix/Planner truth.
+
+Consequently, constructing an executable 7/50/100/1000 role-census Matrix run
+now would require manually assigning roles or adding a role-state producer.
+Both violate the Mission's no-manual-selection/no-new-owner law. The boundary
+is therefore real, not a wait for a natural event:
+
+```text
+BOUNDARY_V53_ROLE_AWARE_RUNTIME_CALLER_NOT_ADMITTED
+
+Needed before a candidate-specific Runtime comparison:
+one Phase-E-decided, existing-owner-backed caller contract that supplies an
+exact source and eligible target set to the already-deployed Matrix selector.
+
+Forbidden response:
+creating a scheduler, watcher, role registry, synthetic Runtime truth or a
+manual server list merely to make B/C/D appear measurable.
+```
+
+This consumes all lawful Polygon and controlled-Matrix evidence currently
+available to Phase D. It leaves the full Matrix as the live safe fallback and
+keeps `NO_ARCHITECTURE_TERMINAL; NO_AUTOMATIC_FAST_CONSUMER` unchanged. The
+next legal work is a **read-only Phase-E gate**: score A/B/C with the evidence
+above, mark every missing critical metric explicitly, and either retain A or
+return one exact existing-owner contract residual. It must not implement B/C
+or form Model D before that gate.
+
+## Read-only Phase-E gate — evidence-weighted result
+
+This is the existing Program decision method, not a new scoring engine. A
+critical gate is `PASS` only where the candidate has evidence; `CONDITIONAL`
+means the proven shared guard exists but the candidate-specific invocation is
+not admitted; `UNKNOWN_WITH_BOUND` names the exact re-entry rather than
+silently awarding a point.
+
+| Required gate | A — full Matrix | B — bounded Matrix | C — signal -> B/Matrix | Evidence and consequence |
+| --- | --- | --- | --- | --- |
+| Failure-detection latency | `CONDITIONAL`: configured broad cadence is known, current live distribution is not | `UNKNOWN_WITH_BOUND`: isolated 14->3 invocation is faster, but no admitted caller measures end-to-end detection | `UNKNOWN_WITH_BOUND`: sentinel cadence is configured, but signal-to-confirmation distribution is not measured | no candidate may claim production detection improvement; `BOUNDARY_V53_ROLE_AWARE_RUNTIME_CALLER_NOT_ADMITTED` is the re-entry |
+| False failover | `PASS` | `CONDITIONAL` | `CONDITIONAL` | existing persistence, Planner, governed verifier and zero-mutation Polygon scenarios remain in force; B/C lack a candidate-specific Runtime call to prove it end-to-end |
+| False healthy-target admission | `PASS` | `CONDITIONAL` | `CONDITIONAL` | freshness, identity, capacity, policy, quality and reserve remain existing hard gates; no short result or signal admits a target alone |
+| Recovery and flap safety | `PASS` | `CONDITIONAL` | `CONDITIONAL` | recovery-quality split and recovery-oscillation Polygon scenarios pass; B/C must retain exact same receipts and probation |
+| Fresh/unknown/conflicting data | `PASS` | `CONDITIONAL` | `CONDITIONAL` | stale telemetry and mixed-generation Polygon evidence deny action; B/C's required full fallback is defined but not Runtime-exercised |
+| Probe cost | `PASS_BASELINE`: 14×E broad attempts | `CONDITIONAL_BENEFIT`: controlled 3/14 exact subset; role counts unknown | `CONDITIONAL_BENEFIT`: only when an existing signal exists, then pays B | A has known upper formula; B/C have no lawful owner-backed role census or event-rate distribution |
+| 50 / 1,000 egress scale | `PASS_FORMULA`, but broad cost is 700 / 14,000 attempts per sweep | `UNKNOWN_WITH_BOUND` | `UNKNOWN_WITH_BOUND` | 10k/100 Polygon proves Planner/capacity safety, not Matrix role-cadence/probe rate at 50/1,000 |
+| Owner reuse, complexity and fallback | `PASS` | `CONDITIONAL` | `CONDITIONAL` | selector, Matrix, sentinel and fallback already exist; the missing caller contract forbids activating B/C by inference |
+| Observability | `CONDITIONAL` | `UNKNOWN_WITH_BOUND` | `UNKNOWN_WITH_BOUND` | existing compact output lacks comparable short/full timer/probe timeline and signal-to-decision trace |
+
+### Gate decision
+
+`TARGET_ARCHITECTURE_MODEL_A` remains the **live operating baseline only**:
+the full Matrix is the sole currently admitted normal Runtime path and fallback.
+This is not an architecture-selection terminal and does not reject B/C. B and
+C retain a measured local probe-work hypothesis and valid existing primitives,
+but cannot pass the critical end-to-end latency, role-scale and observability
+gates while their source/target caller is absent.
+
+Therefore the required terminal
+`V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED`
+and Phase-E `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` are deliberately
+**not emitted**. Selecting B/C anyway would turn unknown role data into a
+production decision; selecting a new Model D would violate the same boundary.
+
+### Exact blocker, owner and next legal action
+
+```text
+BLOCKER_V53_ADMITTED_ROLE_AWARE_CALLER_AND_COMPARATIVE_TELEMETRY_ABSENT
+
+Existing owner needed: Matrix refresh plus existing Planner/source-target
+selection and its governed verifier.
+
+Missing contract: one Phase-E-approved existing-caller path which may supply
+an exact source and candidate target set to the already-deployed selectors,
+and emit bounded short/full timing, selected-check count, fallback reason,
+freshness/conflict result and post-decision outcome observation.
+
+Why this cannot be manufactured on Polygon: Polygon can prove Planner and
+safety invariants, but it must not create Runtime role truth or a real Matrix
+timer/endpoint distribution. A new caller, role registry, schedule or observer
+would be a materially new architecture before Phase E decides it.
+```
+
+Plan position after this execution: **Phase A/B Atlas and Phase-C source
+comparison are complete; Phase-D candidates and safe Polygon constraints are
+complete; Phase-E has reached a genuine fail-closed evidence boundary.**
+Phase F scale validation and any B/C implementation remain downstream of the
+missing Phase-E decision. The live system remains unchanged and safe under A.

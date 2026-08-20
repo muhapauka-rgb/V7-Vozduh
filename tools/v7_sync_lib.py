@@ -25565,6 +25565,19 @@ APPROVED_DEPLOY_FILES = [
         "remote_path": "/usr/local/bin/v7-service-matrix-refresh-all",
         "mode": "0755",
         "service": None,
+        "post_deploy_check": {
+            "argv": [
+                "--egresses",
+                "definitely-not-an-egress",
+                "--services",
+                "google,telegram",
+            ],
+            "expected_returncode": 2,
+            "expected_json": {
+                "error": "exact_egress_subset_not_enabled",
+                "missing_egresses": ["definitely-not-an-egress"],
+            },
+        },
     },
     {
         "name": "v7-service-matrix-refresh.service",

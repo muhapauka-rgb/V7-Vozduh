@@ -330,6 +330,39 @@ The focused V5.3 owner/lock/quality tests pass. The broader selected run is
 remain. They were neither skipped nor altered and do not change the Matrix
 catalogue, lock, persistence or deployed-caller observations.
 
+## Polygon controlled evidence — no passive wait
+
+Following the explicit request not to wait for a natural incident, the existing
+read-only Polygon entrypoint (`tools/v7-truth-check --omp-scenario-execution`)
+was invoked through its real Planner, invariant oracle and OMP result consumer.
+It completed all four relevant controlled cases:
+
+| Polygon case | Result | What was proved | Forbidden effects |
+| --- | --- | --- | --- |
+| `SINGLE_CHANNEL_FAILURE` | `PASS` | a hard channel failure retains route-reachability, blast-radius and legal-terminal invariants | all false; preview only |
+| `STALE_TELEMETRY_MUTATION_DENIAL` | `PASS`, legal `STOP_SAFE` | stale/unknown data is denied rather than turned into a move | all false; preview only |
+| `CORRELATED_CHANNEL_GROUP_FAILURE` | `PASS` | correlated failures retain containment and capacity limits | all false; preview only |
+| `CAPACITY_BOUNDARY` | `PASS` | no eligible user is left without a safe route and no authority is expanded | all false; preview only |
+
+Every case was consumed by the existing `OMP_PROGRAM_EXECUTION_RECONCILIATION`
+consumer. The direct Scenario Results identify the real Planner as their
+decision owner and declare `ENGINEERING_SCENARIO_EVIDENCE`; they explicitly
+forbid production mutation, routing mutation, user movement, packet execution,
+rollback apply, restore-barrier writes, Authority expansion and production
+maturity credit. Thus Polygon replaces the avoidable wait for a safety-class
+test, not the requirement for an honest Matrix timing measurement.
+
+The Polygon corpus/harness suite was also exercised. Its principal isolation,
+invariant, replay and forbidden-effect tests pass. Two existing selective-
+invalidation expectation failures remain: the live dependency compiler now
+also includes `PHASE6V4_PARTIAL_APPLY_CIRCUIT_BREAKER` beside the older expected
+`LEASE_CONFLICT`, and its current continuation points to `PARTIAL_PARTITION`
+where the old fixture expects `NONE`. These are a stale Polygon test-contract
+expectation versus current dependency/continuation behaviour; no test was
+weakened and no Matrix, route or client effect follows from them. They block an
+unqualified claim of full Polygon-suite green, but not the four successful
+direct controlled Scenario Results above.
+
 ## Exact current blocker and re-entry
 
 `BLOCKER_V53_PRODUCTION_COMPARATIVE_MATRIX_TELEMETRY_ABSENT` is critical to the
@@ -342,7 +375,8 @@ production subset run would write Matrix state/events merely to obtain a
 benchmark. Consequently, the required production comparison of elapsed time,
 executed check count, error/load and short/full decision agreement cannot be
 stated truthfully. The isolated run is deliberately insufficient for that
-claim.
+claim. Polygon closes the avoidable controlled safety-evidence wait; it cannot
+and must not fabricate a production Matrix duration or a service response.
 
 Existing owner for re-entry: `tools/v7-service-matrix-refresh-all` and its
 existing Matrix writer, observed through the existing `tools/v7-truth-check`

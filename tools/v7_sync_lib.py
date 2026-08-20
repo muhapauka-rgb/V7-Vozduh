@@ -2396,6 +2396,7 @@ def delegated_policy_live_state_consistency(
     )
     v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
+    v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     availability_first_frontier = bool(re.fullmatch(
@@ -2572,7 +2573,7 @@ def delegated_policy_live_state_consistency(
             or external_owner_terminal
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE"
         )
         and (
             not independent_program_frontier
@@ -2586,7 +2587,7 @@ def delegated_policy_live_state_consistency(
             or safe_reentry_frontier
             or reset_program_frontier
             or rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
-            or (v5_3_read_only_frontier or v5_3_implementation_frontier) and wip_stop == "NONE"
+            or (v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE"
             or rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"}
             or "REAL_WORLD_LIMIT" in wip_stop and "REAL_WORLD_LIMIT" in cap_stop
         )
@@ -2605,7 +2606,7 @@ def delegated_policy_live_state_consistency(
         )
         and (
             reset_program_frontier or rs0_read_only_frontier
-            or v5_3_read_only_frontier or v5_3_implementation_frontier or rs7_physical_admission_frontier
+            or v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier or rs7_physical_admission_frontier
             or f"`{next_action}`" in sequence_one
         )
     )
@@ -2816,6 +2817,7 @@ def capability_dependency_consistency(cps_text: str) -> dict[str, Any]:
                 )
                 or _is_v5_3_read_only_frontier(live)
                 or _is_v5_3_implementation_frontier(live)
+                or _is_v5_3_system_revalidation_frontier(live)
                 or _is_rs7_physical_admission_frontier(live)
             )
             else
@@ -6710,6 +6712,9 @@ V5_3_MATRIX_DECISION_ACTION = "EXECUTE_V5_3_MATRIX_HEALTH_PHASE_C_D_E_DECISION"
 V5_3_MATRIX_FIRST_IMPLEMENTATION_MISSION_ID = (
     "V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1"
 )
+V5_3_SYSTEM_REVALIDATION_MISSION_ID = (
+    "V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1"
+)
 V5_3_ARBITRATION_REPORT = (
     "docs/reports/engineering/"
     "2026-08-20_094500_product_evolution_frontier_arbitration_reconciliation.md"
@@ -6759,6 +6764,21 @@ def _is_v5_3_implementation_frontier(live: dict[str, str]) -> bool:
         value("CURRENT_PROGRAM_STAGE") == "V5_3_MATRIX_HEALTH_OPTIMIZATION",
         value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
         == f"ADMITTED_READY_FOR_IMPLEMENTATION:{mission_id}",
+        value("CURRENT_EXECUTION_MISSION_ID") == mission_id,
+        value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
+        value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
+    ))
+
+
+def _is_v5_3_system_revalidation_frontier(live: dict[str, str]) -> bool:
+    """Recognize the existing V5.3 system-level read-only continuation."""
+    value = lambda key: str(live.get(key) or "").strip().strip("`")
+    mission_id = V5_3_SYSTEM_REVALIDATION_MISSION_ID
+    return all((
+        value("ACTIVE_PROGRAM") == SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        value("CURRENT_PROGRAM_STAGE") == "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+        value("CURRENT_PROGRAM_EXECUTION_FRONTIER")
+        == f"ADMITTED_READY_READ_ONLY:{mission_id}",
         value("CURRENT_EXECUTION_MISSION_ID") == mission_id,
         value("CURRENT_EXECUTION_MISSION_STATE") == "MISSION_ADMITTED",
         value("CURRENT_MISSION_ROLE") == "ACTIVE_MISSION",
@@ -6909,6 +6929,76 @@ def v5_3_matrix_implementation_mission_lifecycle_binding(
             if requested == "MISSION_EXECUTION_ALLOWED" and not unique
             else "PENDING_EXECUTION_AUTHORIZATION"
             if requested == "MISSION_ADMITTED" and not unique
+            else "NONE"
+        ),
+        "mutation_performed": False,
+        "runtime_impact": "NONE_ADMISSION_ONLY",
+        "production_impact": "NONE_ADMISSION_ONLY",
+        "authority_impact": "NONE",
+        "final_verdict": "PASS" if not unique else "STOP_SAFE",
+        "errors": unique,
+    }
+
+
+def v5_3_system_revalidation_mission_lifecycle_binding(
+    cps_text: str,
+    *,
+    requested_state: str = "MISSION_EXECUTION_ALLOWED",
+    root: Path = ROOT,
+) -> dict[str, Any]:
+    """Authorize the compact V5.3 system Health/Test/Stability review.
+
+    This is a pure specialization of the existing OMP/CPS lifecycle owner. It
+    neither starts probes nor changes Runtime, policy, routes or users.
+    """
+    requested = str(requested_state or "").strip().upper()
+    errors: list[str] = []
+    if requested not in {"MISSION_PREPARED", "MISSION_ADMITTED", "MISSION_EXECUTION_ALLOWED"}:
+        errors.append("v5_3_system_revalidation_lifecycle_state_invalid")
+    program_path = root / "docs/programs/V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM.md"
+    try:
+        program = program_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        program = ""
+        errors.append(f"v5_3_system_revalidation_program_unreadable:{exc}")
+    for token in (
+        "SERVICE_MATRIX_TESTS_ARE_ONE_EVIDENCE_FAMILY_NOT_THE_WHOLE_HEALTH_SYSTEM",
+        "AUTOMATIC_FAST_CONSUMER_ELIGIBILITY",
+        "V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED",
+        "OLD_OR_PROVISIONAL_PHASE_E_TERMINAL_MUST_NOT_UNLOCK_RUNTIME_CONSUMER_AFTER_SYSTEM_LEVEL_GATE_EXISTS",
+        "DECISION_CRITICAL_CADENCE_TIMEOUT_RETRY_PERSISTENCE_AND_SERIAL_WAIT",
+    ):
+        if token not in program:
+            errors.append(f"v5_3_system_revalidation_program_requirement_missing:{token}")
+
+    live = _markdown_field_table(_markdown_section(
+        cps_text,
+        "## 0. Authoritative Live Current State",
+        "## Authoritative Unfinished Capability Closure Registry",
+    ))
+    expected_frontier = f"ADMITTED_READY_READ_ONLY:{V5_3_SYSTEM_REVALIDATION_MISSION_ID}"
+    for field, expected in {
+        "ACTIVE_PROGRAM": SERVICE_FAILURE_AUTOMATION_PROGRAM_ID,
+        "CURRENT_PROGRAM_STAGE": "V5_3_MATRIX_HEALTH_OPTIMIZATION",
+        "CURRENT_PROGRAM_EXECUTION_FRONTIER": expected_frontier,
+        "CURRENT_EXECUTION_MISSION_ID": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+        "CURRENT_EXECUTION_MISSION_STATE": "MISSION_ADMITTED",
+        "CURRENT_MISSION_ROLE": "ACTIVE_MISSION",
+        "V5_3_AUTOMATIC_FAST_CONSUMER_STATUS": "HOLD_PENDING_SYSTEM_LEVEL_REVALIDATION",
+    }.items():
+        if _plain_live_value(live, field) != expected:
+            errors.append(f"v5_3_system_revalidation_cps_mismatch:{field}")
+    unique = sorted(set(errors))
+    return {
+        "schema": "v7-v5-3-system-revalidation-mission-lifecycle-binding/v1",
+        "binding_owner": "existing BDP/OMP admission and CPS atomic Mission-identity owners",
+        "mission_id": V5_3_SYSTEM_REVALIDATION_MISSION_ID,
+        "requested_state": requested or "NONE",
+        "execution_authorization": (
+            "MISSION_EXECUTION_ALLOWED"
+            if requested == "MISSION_EXECUTION_ALLOWED" and not unique
+            else "PENDING_EXECUTION_AUTHORIZATION"
+            if requested in {"MISSION_PREPARED", "MISSION_ADMITTED"} and not unique
             else "NONE"
         ),
         "mutation_performed": False,
@@ -24419,6 +24509,21 @@ def omp_functional_footprint_consistency(cps_text: str, *, root: Path = ROOT) ->
             **calls,
             "errors": [],
         }
+    if _is_v5_3_system_revalidation_frontier(live):
+        return {
+            "schema": "v7-omp-functional-footprint-consistency/v1",
+            "final_verdict": "PASS",
+            "program_reconciliation_footprint_class": live.get("PROGRAM_RECONCILIATION_FOOTPRINT_CLASS", "").strip("`"),
+            "omp_automation_level": live.get("OMP_AUTOMATION_LEVEL", "").strip("`"),
+            "heartbeat_status": heartbeat_status,
+            "automation_enabled": heartbeat_active,
+            "mission_completion_evidence_gate_status": "V5_3_SYSTEM_REVALIDATION_MISSION_ADMITTED",
+            "current_completion_contract": "ANALYSIS_COMPLETION",
+            "current_completion_verdict": "MISSION_ADMITTED",
+            "completion_gate": {},
+            **calls,
+            "errors": [],
+        }
     errors: list[str] = []
     for field, value in expected.items():
         if live.get(field, "").strip("`") != value:
@@ -24797,6 +24902,7 @@ def cps_live_state_consistency(
     )
     v5_3_read_only_frontier = _is_v5_3_read_only_frontier(live)
     v5_3_implementation_frontier = _is_v5_3_implementation_frontier(live)
+    v5_3_system_revalidation_frontier = _is_v5_3_system_revalidation_frontier(live)
     rs7_physical_admission_frontier = _is_rs7_physical_admission_frontier(live)
     active_incident_drain_frontier = program_frontier == "CONTINUE_ACTIVE_INCIDENT_REVALIDATION_AND_DRAIN"
     controlled_certification_safe_frontier = (
@@ -24849,7 +24955,7 @@ def cps_live_state_consistency(
             and not engineering_authority_terminal
             and not safe_reentry_frontier
             and not (rs0_read_only_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
-            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier) and wip_stop == "NONE")
+            and not ((v5_3_read_only_frontier or v5_3_implementation_frontier or v5_3_system_revalidation_frontier) and wip_stop == "NONE")
             and not (rs7_physical_admission_frontier and wip_stop in {"REAL_WORLD_LIMIT", "RESET_PROGRAM_TERMINAL"})
             and "REAL_WORLD_LIMIT" not in wip_stop
         )

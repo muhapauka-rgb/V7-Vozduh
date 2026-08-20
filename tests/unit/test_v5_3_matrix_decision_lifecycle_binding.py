@@ -86,9 +86,18 @@ class V53MatrixDecisionLifecycleBindingTest(unittest.TestCase):
             self.assertEqual(binding["execution_authorization"], "MISSION_EXECUTION_ALLOWED")
             self.assertFalse(binding["mutation_performed"])
 
-    def test_current_implementation_mission_is_execution_allowed(self):
+    def test_superseded_implementation_mission_cannot_bypass_system_gate(self):
         current = CPS.read_text(encoding="utf-8")
         result = self.lib.v5_3_matrix_implementation_mission_lifecycle_binding(
+            current, requested_state="MISSION_EXECUTION_ALLOWED", root=ROOT,
+        )
+        self.assertEqual(result["final_verdict"], "STOP_SAFE", result)
+        self.assertEqual(result["execution_authorization"], "NONE")
+        self.assertFalse(result["mutation_performed"])
+
+    def test_current_system_revalidation_mission_is_execution_allowed(self):
+        current = CPS.read_text(encoding="utf-8")
+        result = self.lib.v5_3_system_revalidation_mission_lifecycle_binding(
             current, requested_state="MISSION_EXECUTION_ALLOWED", root=ROOT,
         )
         self.assertEqual(result["final_verdict"], "PASS", result)

@@ -3,7 +3,7 @@
 Status: `ACTIVE; RESET PROGRAM TERMINAL CONSUMED`
 Program: `V7.OMP.FINAL.PRODUCTION_PROGRAM`
 Created: 2026-06-25
-Version: `4.81`
+Version: `4.82`
 V2.1 baseline reference commit: `7687d506a4a14bf6aed39aa15efd00462b96d980`
 Runtime architecture certification commit: `39c46ed379ff4a2ccadb84a49a0dd9dcd2de579b`
 
@@ -15,7 +15,7 @@ This program defines how V7 resolves the current system state, highest bottlenec
 
 Latest admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md` (`R1_V6_REPAIR_GENERATION_PREFLIGHT_READY_AND_ONE_USE_TRANSACTION_ADMITTED`).
 Latest consumed report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md` (`READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`; provisional `TARGET_ARCHITECTURE_MODEL_B_PLUS_C`).
-Current active Mission report: `docs/reports/engineering/2026-08-20_133000_v5_3_matrix_fast_subset_wiring_implementation.md` (`V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`; `MISSION_ADMITTED`; selector primitive deployed, automatic FAST role consumer held).
+Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md` (`V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1`; admitted system-level revalidation; automatic FAST role consumer held).
 Current V5.3 contract-correction report: `docs/reports/engineering/2026-08-20_160200_v5_3_system_health_revalidation_gate_correction.md` (`SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_GATE_REQUIRED`; no new Mission or Runtime effect).
 Latest Reset terminal report: `docs/reports/engineering/2026-08-13_350000_reset_m10_runtime_simplification_and_final_architecture.md` (`RESET_M10_POST_RESET_SYSTEM_SHRINK_AND_RUNTIME_SIMPLIFICATION_PASS`; final Reset Program terminal restored).
 Latest RT2 contract extension report: `docs/reports/engineering/2026-08-13_380000_rt2_deep_simplification_and_automatic_internet_operation_contract.md` (`RT2_DEEP_SIMPLIFICATION_AUTOMATIC_INTERNET_CONTRACT_READY_NOT_ADMITTED`).
@@ -36,6 +36,13 @@ and latency map, cadence/parallelism/history review, field-by-field commercial
 comparison, concrete alternatives and weighted decision terminal, automatic
 FAST role selection and scheduling remain on HOLD. The full Matrix fallback,
 Runtime behavior, routing, users and Authority remain unchanged.
+
+V4.82 applies the existing dynamic Mission-compression lifecycle to that
+already registered system-level residual. It gives the dominant weighted
+revalidation terminal precedence over the historical Phase-E terminal and
+requires observed or controlled timing evidence where safe measurement is
+executable. It creates no new Program, owner, Runtime mechanism, truth source
+or automatic consumer.
 
 V4.80 adds `RS6_STALE_FRONTIER_RECONCILIATION_RULE` inside the existing OMP
 continuation and CPS atomic-reconciliation owners. It applies only when the

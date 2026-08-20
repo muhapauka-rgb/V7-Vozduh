@@ -198,6 +198,29 @@ but its architecture disposition is now:
 PROVISIONAL_ARCHITECTURE_DECISION_REQUIRES_SYSTEM_LEVEL_HEALTH_TEST_STABILITY_REVALIDATION_BEFORE_AUTOMATIC_FAST_CONSUMER_ENABLEMENT
 ```
 
+Terminal-precedence law:
+
+```text
+V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED
+= PHASE_E_INTERNAL_ARCHITECTURE_DECISION
+
+PHASE_E_DECISION
+-> SYSTEM_LEVEL_EVIDENCE_WEIGHTED_REVALIDATION
+-> AUTOMATIC_CONSUMER_ELIGIBILITY
+
+AUTOMATIC_FAST_CONSUMER_ELIGIBILITY
+REQUIRES
+V7_HEALTH_TEST_STABILITY_TARGET_ARCHITECTURE_EVIDENCE_WEIGHTED_DECISION_CONSUMED
+```
+
+`V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` may remain an input to Phase
+F/G/H analysis, but is neither a Runtime-admission terminal nor sufficient
+authority for automatic FAST consumer enablement. Invariant:
+
+```text
+OLD_OR_PROVISIONAL_PHASE_E_TERMINAL_MUST_NOT_UNLOCK_RUNTIME_CONSUMER_AFTER_SYSTEM_LEVEL_GATE_EXISTS
+```
+
 Its commercial comparison is `INITIAL_MECHANISM_PATTERN_BENCHMARK`, not the
 complete field-by-field basis for detailed Health/Test/Stability architecture.
 The already deployed exact `--egresses` / `--services` selectors remain a
@@ -271,6 +294,25 @@ recovery cadence. Each cadence receives `KEEP`, `ADAPT`,
 `MEASURE_BEFORE_DECISION`, `BACKGROUND_ONLY` or
 `REMOVE_DUPLICATE_CADENCE` with an owner-backed measurable reason; vendor
 defaults are never copied as V7 settings.
+
+For every decision-critical mechanism:
+
+```text
+DECISION_CRITICAL_CADENCE_TIMEOUT_RETRY_PERSISTENCE_AND_SERIAL_WAIT
+MUST_USE_OBSERVED_OR_CONTROLLED_MEASUREMENT_WHERE_EXECUTABLE
+NOT_SOURCE_CODE_DEFAULTS_ALONE
+```
+
+Static configuration/source inspection is discovery and intended-behavior
+evidence only, except when an executable measurement substrate is unavailable.
+The Atlas and timing map then record `CONFIGURED_CADENCE`, `OBSERVED_CADENCE`,
+`CONFIGURED_TIMEOUT`, `OBSERVED_ATTEMPT_TIME`, `RETRY_COUNT`,
+`PERSISTENCE_WAIT`, `LOCK_WAIT`, `SERIAL_PREDECESSOR_WAIT`, `CONSUMER_DELAY`
+and `EFFECTIVE_DECISION_CONTRIBUTION`, classifying each as
+`OBSERVED_CONFIRMED`, `CONTROLLED_MEASURED`, `STATIC_ONLY_EXACT_BLOCKER` or
+`NOT_DECISION_CRITICAL`. A static-only blocker names its unavailable substrate
+and exact re-entry condition. `SOURCE_CODE_SAYS_FAST -> HOT_PATH_FAST` is
+forbidden without safe executable observation or controlled measurement.
 
 Parallelism review distinguishes `PARALLEL_OBSERVATION`, `PARALLEL_PROBING`,
 `SERIAL_STATE_COMMIT` and `SERIAL_DECISION`. Causality, locks, shared network
@@ -582,7 +624,9 @@ commercial evidence. A refinement records its exact delta from the original
 Model B; every rejected vendor mechanism records why it is unsuitable. The
 required terminal is `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`. No
 architecture-committing Runtime implementation Mission may start before that
-terminal is consumed. The standing hypothesis remains:
+internal Phase-E terminal is consumed. Automatic FAST consumer eligibility
+additionally requires the dominant system-level weighted terminal above. The
+standing hypothesis remains:
 
 ```text
 existing protocol-specific/passive signal
@@ -728,29 +772,32 @@ only when all of the following are consumed by existing owners:
 8. Target readiness is sufficiently fresh or has one exact external blocker.
 9. Anti-flap, false-positive/false-negative and recovery behavior are not
    degraded; stale, unknown and conflicting evidence fail closed.
-10. The existing selector primitive is classified `REUSE`, `ADAPT` or
-    `REJECT`; automatic FAST enablement follows only the new weighted terminal,
-    while the full Matrix fallback remains until equivalence/consumer proof.
-11. Unneeded synchronous work is deferred/removed after consumer proof and no
+10. Decision-critical configured values are distinguished from observed and
+    effective lifecycle values; source defaults alone never establish hot-path
+    latency where safe observation or controlled measurement is executable.
+11. The existing selector primitive is classified `REUSE`, `ADAPT` or
+   `REJECT`; automatic FAST enablement follows only the new weighted terminal,
+   while the full Matrix fallback remains until equivalence/consumer proof.
+12. Unneeded synchronous work is deferred/removed after consumer proof and no
     competing health subsystem or Runtime dependency exists.
-12. Current-scale probe economy and at least 50-egress architecture pass; the
+13. Current-scale probe economy and at least 50-egress architecture pass; the
     large-scale stress model is recorded and either preserves the Phase E
     architecture or its exact refinement is returned to and consumed by Phase E.
-13. Controlled failure-model validation is complete to the limit of existing
+14. Controlled failure-model validation is complete to the limit of existing
     owners, with residuals classified rather than hidden.
-14. `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE EVENT` is
+15. `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE EVENT` is
     measured segment by segment.
-15. Before/after latency, probe count and decision equivalence are measured;
+16. Before/after latency, probe count and decision equivalence are measured;
     divergence automatically falls back to full Matrix with a durable reason.
-16. A lawful ordinary event, when naturally available, relates detection to
+17. A lawful ordinary event, when naturally available, relates detection to
     T0-T11; Natural L8 absence cannot keep the Engineering stage open when all
     Engineering criteria are independently complete.
-17. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
+18. Every leftover is `DONE`, `FUTURE_OPTIONAL`, `EXTERNAL_BLOCKED` or
     `NOT_REQUIRED`, with owner and re-entry condition where applicable.
-18. CPS owns an exact successor outside this stage or a legal Program terminal;
+19. CPS owns an exact successor outside this stage or a legal Program terminal;
     durable knowledge is transferred to existing canonical owners and the OMP
     V5.3 frontier is retired under the existing contract.
-19. No Runtime consumer depends on this temporary stage or its reports.
+20. No Runtime consumer depends on this temporary stage or its reports.
 
 ### V5.3 retirement contract
 

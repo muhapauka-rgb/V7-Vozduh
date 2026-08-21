@@ -425,7 +425,11 @@ Stage F consumed the controlled before/after delta; its record is
 `docs/reports/engineering/2026-08-21_102900_v5_3_stage_f_before_after_t0_t11_proof.md`.
 Stage G reached its lawful production boundary; its record is
 `docs/reports/engineering/2026-08-21_103000_v5_3_stage_g_production_boundary_and_closure.md`.
-The selected architecture and controlled proof are complete, but production
+The selected architecture then passed the bounded causal-latency revalidation
+in `docs/reports/engineering/2026-08-21_142954_v5_3_stage_e_latency_causal_revalidation.md`
+with terminal `B_PLUS_C_LATENCY_CAUSAL_PROOF_PASS`. That terminal proves the
+timing/safety conditions in the deterministic Polygon model only; it does not
+enable the automatic FAST consumer or grant production maturity. Production
 T0→T11 closure remains `STOP_SAFE` until a natural ordinary failure or a
 coherent exact Runtime/action context exists. Controlled gain must remain
 separate from production gain, and no client may be moved artificially. This
@@ -893,6 +897,32 @@ existing protocol-specific/passive signal
 deep Matrix -> diagnostics, broad services, quality, capacity detail,
                Learning and Engineering evidence
 ```
+
+#### Stage E latency-causal revalidation terminal
+
+The provisional B+C selection is consumed only after a same-matrix virtual-clock
+check separates the three clocks `FAILURE/FIRST OBSERVABLE -> T0`, `T0 -> T11`
+and `FAILURE -> T11`. The accepted terminal is:
+
+```text
+B_PLUS_C_LATENCY_CAUSAL_PROOF_PASS
+```
+
+The terminal is conditional on fresh, generation-coherent passive or
+bounded-fast evidence; a sufficient bounded subset for the failure role;
+current target readiness and policy; and an unchanged governed recovery path.
+Full DEEP remains asynchronous, fallback or mandatory for ambiguous roles.
+Partial degradation, stale/unknown/conflicting evidence, target unavailability
+and policy/capacity denial remain `STOP_SAFE`. Required-service failures without
+a passive signal retain the configured cadence and gain only the post-T0
+barrier reduction.
+
+The `50%` timing threshold and three-sample fast confirmation used in this gate
+are Engineering rule-change candidates, not production settings. Any
+implementation must first pass shadow and controlled Polygon execution in the
+existing Matrix owners, then be separately admitted by Phase H. Until that
+admission, `V5_3_AUTOMATIC_FAST_CONSUMER_STATUS` remains held and Full Matrix
+remains the live baseline.
 
 #### Phase F — Polygon and scale tournament input
 

@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Existing v7-health execution loop with deadline-isolated FAST phases.
+
+It is one foreground process owned by the existing ``v7-health.service``.  It
+persists no scheduler state, creates no timer, queue, worker, or second writer,
+and waits for every child it starts before proceeding to the next phase.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import signal
+import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from typing import Sequence
+
+
+DEFAULT_FAST = (
+    "/usr/local/bin/v7-egress-diagnose",
+    "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
+    "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
+    "--profile-service-failure-samples", "2",
+    "--profile-service-cooldown-sec", "60",
+)
+DEFAULT_LEGACY = (
+    ("history", "/usr/local/bin/v7-egress-history"),
+    ("stability", "/usr/local/bin/v7-egress-stability"),
+    ("load", "/usr/local/bin/v7-egress-load"),
+    ("state_merge", "/usr/local/bin/v7-state-merge"),
+    ("user_desired_state", "/usr/local/bin/v7-user-desired-state-save"),
+    ("state_json", "/usr/local/bin/v7-state-json-save"),
+)
+
+
+def monotonic_ns() -> int:
+    return time.monotonic_ns()
+
+
+def elapsed_ms(start_ns: int, end_ns: int) -> int:
+    return max(0, (end_ns - start_ns) // 1_000_000)
+
+
+def terminate_process_group(process: subprocess.Popen[bytes]) -> None:
+    """Terminate a bounded legacy child and every child it spawned."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=1)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+
+def run_command(command: Sequence[str], timeout_ms: int | None = None) -> tuple[str, int]:
+    process = subprocess.Popen(
+        list(command), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    try:
+        rc = process.wait(None if timeout_ms is None else max(0.001, timeout_ms / 1000))
+    except subprocess.TimeoutExpired:
+        terminate_process_group(process)
+        return "TIMEOUT", 0
+    return "COMPLETED", rc
+
+
+@dataclass
+class HealthLoop:
+    interval_ns: int
+    legacy_guard_ns: int
+    max_phases: int
+    fast_command: tuple[str, ...]
+    legacy_commands: tuple[tuple[str, str], ...]
+    legacy_cursor: int = 0
+
+    def run_fast(self) -> int:
+        _, rc = run_command(self.fast_command)
+        return rc
+
+    def run_legacy_until(self, deadline_ns: int) -> None:
+        """Spend only the current phase's remaining budget on legacy work."""
+        count = len(self.legacy_commands)
+        for _ in range(count):
+            remaining_ns = deadline_ns - monotonic_ns()
+            if remaining_ns <= self.legacy_guard_ns:
+                return
+            budget_ms = (remaining_ns - self.legacy_guard_ns) // 1_000_000
+            if budget_ms <= 0:
+                return
+            label, command = self.legacy_commands[self.legacy_cursor]
+            self.legacy_cursor = (self.legacy_cursor + 1) % count
+            status, rc = run_command((command,), int(budget_ms))
+            if status == "TIMEOUT":
+                print(f"V7_HEALTH_LEGACY_DEFERRED label={label} reason=DEADLINE_BUDGET_EXHAUSTED budget_ms={budget_ms}", flush=True)
+            elif rc == 0:
+                print(f"V7_HEALTH_LEGACY_COMPLETED label={label} budget_ms={budget_ms}", flush=True)
+            else:
+                print(f"V7_HEALTH_LEGACY_FAILED label={label} rc={rc} budget_ms={budget_ms}", flush=True)
+
+    def run(self) -> int:
+        planned_start_ns = monotonic_ns()
+        previous_actual_start_ns: int | None = None
+        phase = 0
+        while True:
+            wait_ns = planned_start_ns - monotonic_ns()
+            if wait_ns > 0:
+                time.sleep(wait_ns / 1_000_000_000)
+            actual_start_ns = monotonic_ns()
+            phase += 1
+            fast_rc = self.run_fast()
+            finish_ns = monotonic_ns()
+            intended_next_ns = planned_start_ns + self.interval_ns
+            jitter_ms = elapsed_ms(planned_start_ns, actual_start_ns)
+            start_to_start_ms = 0 if previous_actual_start_ns is None else elapsed_ms(previous_actual_start_ns, actual_start_ns)
+            overrun_ms = max(0, elapsed_ms(intended_next_ns, finish_ns))
+            print(
+                "V7_HEALTH_FAST_PHASE "
+                f"phase={phase} planned_start_ns={planned_start_ns} actual_start_ns={actual_start_ns} finish_ns={finish_ns} "
+                f"phase_start_jitter_ms={jitter_ms} start_to_start_ms={start_to_start_ms} "
+                f"pass_duration_ms={elapsed_ms(actual_start_ns, finish_ns)} deadline_overrun_ms={overrun_ms} "
+                f"deadline_miss={int(jitter_ms > 0)} fast_rc={fast_rc}",
+                flush=True,
+            )
+            previous_actual_start_ns = actual_start_ns
+            # Preserve absolute deadlines. A late phase starts the currently due
+            # phase immediately; no backlog or overlapping phase is created.
+            planned_start_ns = intended_next_ns
+            if self.max_phases and phase >= self.max_phases:
+                return 0
+            self.run_legacy_until(planned_start_ns)
+
+
+def parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fast-interval-ms", type=int, default=30_000)
+    parser.add_argument("--legacy-guard-ms", type=int, default=250)
+    parser.add_argument("--max-phases", type=int, default=0)
+    parser.add_argument("--controlled-fast-command")
+    parser.add_argument("--controlled-legacy-command", action="append", default=[])
+    args = parser.parse_args(argv)
+    if args.fast_interval_ms <= 0:
+        parser.error("--fast-interval-ms must be positive")
+    if not 0 <= args.legacy_guard_ms < args.fast_interval_ms:
+        parser.error("--legacy-guard-ms must be non-negative and below the interval")
+    if args.max_phases < 0:
+        parser.error("--max-phases must be non-negative")
+    if (args.controlled_fast_command or args.controlled_legacy_command) and not args.max_phases:
+        parser.error("controlled health commands require finite --max-phases")
+    return args
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.controlled_fast_command:
+        fast_command = (args.controlled_fast_command,)
+        legacy_commands = tuple((f"controlled_{index}", command) for index, command in enumerate(args.controlled_legacy_command))
+    else:
+        fast_command = DEFAULT_FAST
+        legacy_commands = DEFAULT_LEGACY
+    return HealthLoop(
+        interval_ns=args.fast_interval_ms * 1_000_000,
+        legacy_guard_ns=args.legacy_guard_ms * 1_000_000,
+        max_phases=args.max_phases,
+        fast_command=fast_command,
+        legacy_commands=legacy_commands,
+    ).run()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

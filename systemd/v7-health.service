@@ -6,7 +6,7 @@ After=network-online.target v7-routing-sync.service
 [Service]
 Type=simple
 Environment=V7_ACTOR=health
-ExecStart=/bin/bash -c 'while true; do v7-egress-history; v7-egress-stability; v7-egress-load; v7-egress-diagnose --profile-service-suspicion-command /usr/local/bin/v7-service-matrix-test --shadow-trigger-command /usr/local/bin/v7-service-matrix-refresh-all --profile-service-failure-samples 2 --profile-service-cooldown-sec 60; v7-state-merge; v7-user-desired-state-save; v7-state-json-save; sleep 30; done'
+ExecStart=/usr/local/bin/v7-health-loop
 Restart=always
 RestartSec=5
 Nice=10

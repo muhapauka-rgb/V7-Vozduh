@@ -26096,6 +26096,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-health-loop",
+        "local_path": "tools/runtime-support/v7-health-loop",
+        "remote_path": "/usr/local/bin/v7-health-loop",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-health.service",
         "local_path": "systemd/v7-health.service",
         "remote_path": "/etc/systemd/system/v7-health.service",

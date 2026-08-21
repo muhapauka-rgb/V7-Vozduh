@@ -496,6 +496,21 @@ or Failure->T0. The next bounded step is safe existing-owner FAST-phase
 publication and next-phase deadline isolation; it may not create a background
 orphan, second state surface, timer, queue or owner.
 
+That deadline-isolation implementation is recorded in
+`docs/reports/engineering/2026-08-22_001400_v5_3_health_fast_phase_deadline_isolation.md`.
+The existing health owner now has a single foreground monotonic-deadline loop:
+FAST runs first, while history/stability/load/state work receives only the
+remaining phase budget and is synchronously deferred if it would cross the
+next deadline.  There is no new scheduler, timer, owner, queue, writer or
+state surface; C8 remains controlled-only and Full fallback, Matrix writer
+serialization, production persistence and conservative recovery are unchanged.
+The source/Polygon lifecycle tests pass, but the full controlled C8
+`Failure -> T0 -> T11` chain is still unmeasured.  The terminal is now
+`FAST_HEALTH_LIFECYCLE_OPTIMIZATION_REQUIRED_WITH_EXACT_RESIDUAL`: run the
+accepted 1,000-contract C8 fixture for three deadline-isolated phases and
+connect two fresh same-scope failures to the existing controlled Matrix/T0-T11
+fixture.  No deploy or automatic FAST admission is allowed before that evidence.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

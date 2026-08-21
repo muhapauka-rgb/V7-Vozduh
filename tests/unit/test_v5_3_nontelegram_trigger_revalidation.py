@@ -65,8 +65,10 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         timer = self.read("systemd/v7-users-autoswitch.timer")
 
         self.assertIn("interface_down_or_missing", diagnose)
-        self.assertIn("v7-egress-diagnose", health)
-        self.assertIn("v7-state-merge", health)
+        health_loop = self.read("tools/runtime-support/v7-health-loop")
+        self.assertIn("v7-health-loop", health)
+        self.assertIn("v7-egress-diagnose", health_loop)
+        self.assertIn("v7-state-merge", health_loop)
         self.assertIn("--execute-l3-production-validation", caller)
         self.assertIn("v7-users-autoswitch.service", timer)
         self.assertIn('reason == "interface_down_or_missing"', autoswitch)

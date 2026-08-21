@@ -435,6 +435,11 @@ coherent exact Runtime/action context exists. Controlled gain must remain
 separate from production gain, and no client may be moved artificially. This
 ordering keeps the work on the switching-time objective and prevents a
 historical architecture decision from becoming confirmation bias.
+The subsequent fast-signal coverage block is recorded in
+`docs/reports/engineering/2026-08-21_144720_v5_3_fast_signal_coverage_owner_backed_partial.md`
+and ends `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram is covered by an existing
+sentinel/Matrix path, while the remaining active service/channel classes still
+need an owner-backed early trigger.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
@@ -923,6 +928,25 @@ implementation must first pass shadow and controlled Polygon execution in the
 existing Matrix owners, then be separately admitted by Phase H. Until that
 admission, `V5_3_AUTOMATIC_FAST_CONSUMER_STATUS` remains held and Full Matrix
 remains the live baseline.
+
+#### Stage E residual — fast-signal coverage terminal
+
+The next bounded residual consumed the frozen 16-class failure inventory and
+revalidated the real caller/owner/consumer path. Its consolidated report is
+`docs/reports/engineering/2026-08-21_144720_v5_3_fast_signal_coverage_owner_backed_partial.md`.
+Its terminal is:
+
+```text
+FAST_SIGNAL_COVERAGE_PARTIAL
+```
+
+The existing Telegram sentinel path is owner-backed and bounded. Generic
+channel, DNS, quality and required-service failures without a passive signal
+still enter through the ordinary Matrix cadence; the existing exact service
+subset and persistence primitives are available only after that trigger. The
+remaining work is one bounded residual for those uncovered classes, not a new
+generic audit. No production cadence, threshold, route or automatic FAST
+consumer is admitted by this terminal.
 
 #### Phase F — Polygon and scale tournament input
 

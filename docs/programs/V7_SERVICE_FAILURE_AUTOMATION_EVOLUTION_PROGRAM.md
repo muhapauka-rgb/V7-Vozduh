@@ -435,11 +435,16 @@ coherent exact Runtime/action context exists. Controlled gain must remain
 separate from production gain, and no client may be moved artificially. This
 ordering keeps the work on the switching-time objective and prevents a
 historical architecture decision from becoming confirmation bias.
-The subsequent fast-signal coverage block is recorded in
+The subsequent fast-signal coverage blocks are recorded in
 `docs/reports/engineering/2026-08-21_144720_v5_3_fast_signal_coverage_owner_backed_partial.md`
-and ends `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram is covered by an existing
-sentinel/Matrix path, while the remaining active service/channel classes still
-need an owner-backed early trigger.
+and
+`docs/reports/engineering/2026-08-21_152459_v5_3_nontelegram_trigger_revalidation_partial.md`.
+The latest terminal remains `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram and hard
+local channel/process failures have an existing bounded shadow signal through
+the Telegram sentinel or `v7-egress-diagnose` -> `v7-health` -> existing
+`v7-users-autoswitch`; application/service, DNS, Internet-behind-tunnel,
+quality and clean-recovery classes still need an owner-backed early trigger.
+This reclassification does not admit FAST, change cadence, or alter routes.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
@@ -940,9 +945,10 @@ Its terminal is:
 FAST_SIGNAL_COVERAGE_PARTIAL
 ```
 
-The existing Telegram sentinel path is owner-backed and bounded. Generic
-channel, DNS, quality and required-service failures without a passive signal
-still enter through the ordinary Matrix cadence; the existing exact service
+The existing Telegram sentinel path and the hard local diagnose path are
+owner-backed and bounded in shadow. Generic application/service, DNS,
+Internet-behind-tunnel, quality and clean-recovery failures without a passive
+signal still enter through the ordinary Matrix cadence; the exact service
 subset and persistence primitives are available only after that trigger. The
 remaining work is one bounded residual for those uncovered classes, not a new
 generic audit. No production cadence, threshold, route or automatic FAST

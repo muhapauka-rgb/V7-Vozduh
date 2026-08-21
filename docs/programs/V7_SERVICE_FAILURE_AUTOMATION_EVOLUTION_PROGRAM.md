@@ -516,6 +516,15 @@ boundary changed.  The exact remaining evidence is now the existing controlled
 Automatic FAST, deploy and ordinary-client movement remain held until that
 boundary is proven.
 
+The subsequent controlled-path and deployment-gate revalidation is recorded in
+`docs/reports/engineering/2026-08-22_005023_v5_3_controlled_path_revalidation_and_deploy_gate.md`.
+It reconfirms the existing synthetic governed chain, Matrix subset/full
+equivalence, two-sample producer-to-Matrix writing and safe executor boundary.
+It also reconciles the three CPS generation projections.  The remaining
+deployment gate is not an engineering inference: the verified local commits
+are not yet published and the Runtime reports an older deployed commit.  No
+deploy is admissible until that external version boundary converges.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

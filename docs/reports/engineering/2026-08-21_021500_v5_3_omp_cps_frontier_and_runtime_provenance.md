@@ -115,6 +115,18 @@ latency именно для ordinary failover. Это проверено synthet
 consumer, runtime caller передаёт comparison без apply, а ordinary STOP_SAFE
 не запускает certification tail раньше времени.
 
+## Проверка чистой Runtime-копией
+
+Для исключения влияния local HEAD создана временная detached-копия на commit
+`0d8729a1` и в ней повторён `--runtime-readonly`. Проверка всё равно дала
+`NO-GO`, но уже по другим причинам: `branch_mismatch`, `workspace_mismatch`,
+`runtime_snapshot_missing_required_commands`; snapshot этой старой копии
+указывает Runtime commit `67ee9965`, а не `0d8729a1`. Значит, простой checkout
+на ожидаемый commit не восстанавливает provenance: canonical workspace и
+runtime snapshot сами требуют согласованной revalidation.
+
+Временная рабочая директория удалена; production и основная ветка не менялись.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

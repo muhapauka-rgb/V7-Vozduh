@@ -67,10 +67,11 @@ observable signal as the engineering boundary, and never manufacture a live
 failure merely to fill the clock. Report/OMP/history/certification tail time
 is excluded from both clocks.
 
-This track corrects the order of future V5.3 work. It does **not** revoke the
-consumed guard decision `TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT`,
-change the current CPS frontier, reopen the completed Atlas/benchmark, or
-admit FAST. The full Matrix live baseline, subset shadow comparison and
+This track corrects the order of future V5.3 work. It does **not** change the
+current CPS frontier, reopen the completed Atlas/benchmark, or admit FAST. The
+previous `TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT` result is retained
+as a historical, evidence-backed **candidate**, not as the winner of the new
+comparison. The full Matrix live baseline, subset shadow comparison and
 automatic FAST hold remain in force. The current CPS/OMP owner alone decides
 whether a later residual becomes an admitted Mission.
 
@@ -90,9 +91,9 @@ Existing Phase A–H labels remain the implementation-facing sections below.
 | L5 | Root latency contributors A–G: cadence, execution, persistence, freshness, target readiness, ordering and verification | Phase A/B → Phase E | `TOP_T0_T11_LATENCY_CONTRIBUTORS` |
 | L6 | Safe optimization register with expected gain, risk, existing owner, test safety, rollback and architecture-decision need | Phase E/F/H | `LATENCY_OPTIMIZATION_REGISTER` |
 | L7 | Map each proved V7 problem to a mature-system mechanism; retain or reject duplicate vendor research | Phase C → Phase D/E | `PROBLEM_TO_PATTERN_MAPPING` |
-| L8 | Compare Model A/B/C and role-aware refinements only against the proved contributors and choose/retain one evidence-backed architecture | Phase D/E | existing `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED` |
-| L9 | Controlled Polygon validation of hard failure, Telegram, partial service, stale data, recovery, flapping and capacity with before/after delta | Phase F/G → OMP/CPS | `CONTROLLED_LATENCY_VALIDATION_CONSUMED` |
-| L10 | Scale validation at 7, 50, 100 and 1,000 egresses: probe count, latency, CPU, RAM, locks and network pressure | Phase F/G → Phase E invalidation or Phase H | `LATENCY_SCALE_VALIDATION_CONSUMED` |
+| L8 | Form materially distinct V7 candidate architectures from the proved contributors; no winner is selected at this gate | Phase D → Phase F/G/E | `V7_ARCHITECTURE_CANDIDATES_CONSUMED` |
+| L9 | Polygon tournament: run the same failure matrix for every candidate and capture T0→T11, probes, FP/FN, recovery, stale/conflict and safety deltas | Phase F/G → Phase E | `CONTROLLED_LATENCY_TOURNAMENT_CONSUMED` |
+| L10 | Scale tournament at 7, 50, 100 and 1,000 egresses: probe count, latency, CPU, RAM, locks, network pressure and complexity | Phase F/G → Phase E | `LATENCY_SCALE_TOURNAMENT_CONSUMED` |
 | L11 | Minimal implementation only after a proved root cause, chosen solution, safety proof and baseline; lifecycle is shadow → controlled → production | Phase H → existing owners | normal existing OMP implementation terminal |
 | L12 | Before/after proof of client-recovery effect, decision equivalence and safety | existing consumers → CPS | `T0_T11_BEFORE_AFTER_PROOF_CONSUMED` |
 
@@ -236,19 +237,21 @@ CURRENT REALITY / ATLAS
 -> L5 PROVED ROOT LATENCY CONTRIBUTORS
 -> L6 SAFE OPTIMIZATION REGISTER
 -> L7 PROBLEM-TO-PATTERN COMMERCIAL COMPARISON
--> L8 PHASE D/E CANDIDATES AND ARCHITECTURE DECISION
--> L9 CONTROLLED VALIDATION
--> L10 SCALE / PROBE ECONOMY / PARALLELISM VALIDATION
+-> L8 CANDIDATE ARCHITECTURES (NO WINNER)
+-> L9 POLYGON TOURNAMENT
+-> L10 SCALE / PROBE ECONOMY / PARALLELISM TOURNAMENT
+-> PHASE E ARCHITECTURE DECISION
 -> L11 PHASE H MINIMAL IMPLEMENTATION, IF ADMITTED
 -> L12 BEFORE / AFTER / CLIENT-RECOVERY PROOF
 ```
 
 Phase A/B retain their Atlas and health-semantics obligations; Phase C is the
-L7 problem-to-pattern consumer; Phase D/E are L8; Phase F/G are L9/L10; and
-Phase H is L11. This mapping preserves current section owners and terminal
-names, while making the causal order unambiguous. The current CPS may still
-have an already-admitted Phase F/G controlled residual; this Program text does
-not cancel, advance or replace it.
+L7 problem-to-pattern consumer; Phase D forms L8 candidates; Phase F/G provide
+the L9/L10 tournaments; Phase E makes the architecture decision only after
+those tournament outputs; and Phase H is L11. This mapping preserves current
+section owners and the existing Mission identity while making the causal order
+unambiguous. The current CPS may still have an already-admitted Phase F/G
+controlled residual; this Program text does not cancel, advance or replace it.
 
 Forbidden:
 
@@ -261,8 +264,31 @@ Required:
 ```text
 UNDERSTAND CURRENT T0-T11 PATH -> IDENTIFY ROOT CAUSE
 -> REGISTER SAFE OPTIONS -> MATCH PROVED PROBLEM TO PATTERN
--> COMPARE -> CHOOSE -> CONTROLLED VALIDATE -> SCALE -> IMPLEMENT -> MEASURE
+-> FORM CANDIDATES -> POLYGON TOURNAMENT -> SCALE TOURNAMENT
+-> CHOOSE -> IMPLEMENT -> BEFORE/AFTER -> MEASURE PRODUCTION EFFECT
 ```
+
+The canonical macro-order for this track is therefore:
+
+```text
+CURRENT V7 FACTS (baseline done enough)
+-> PROVEN BOTTLENECKS
+-> STRONGEST-SYSTEM PATTERNS
+-> V7 CANDIDATE ARCHITECTURES
+-> POLYGON TOURNAMENT + SCALE TOURNAMENT
+-> ARCHITECTURE DECISION
+-> IMPLEMENTATION
+-> T0->T11 BEFORE/AFTER
+-> CONTROLLED/PRODUCTION PROOF
+```
+
+The historical Phase E result is an input to the candidate set. Phase E emits
+the new architecture decision only after both tournament terminals are
+consumed. Production exact-action-context, scope and Runtime evidence are a
+later implementation/proof lane; a `STOP_SAFE` there must not block read-only
+bottleneck synthesis, candidate construction or Polygon/scale tournament.
+This reordering introduces no owner, Runtime, queue, registry, truth source,
+cadence change or client movement.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
@@ -680,12 +706,13 @@ stability history affects immediate admission and the asymmetric failure/
 recovery contract. Output:
 `V7_ROLE_AND_STABILITY_HEALTH_MODEL_CANDIDATE_CONSUMED_BY_PHASE_E`.
 
-#### Phase E — target architecture decision
+#### Phase E — target architecture decision (after tournaments)
 
-The 2026-08-20 Phase E decision remains a consumed provisional decision. The
-system-level Phase E revalidation is the final weighted architecture-selection
-gate. It consumes
-the terminals of Phase A, B, C and D and compares at least:
+The 2026-08-20 Phase E result is historical input to the candidate set, not a
+preselected winner. The system-level Phase E revalidation is the final weighted
+architecture-selection gate. It consumes the terminals of Phase A, B, C and D
+**plus** the L9 Polygon tournament and L10 scale tournament, then compares at
+least:
 
 1. `MODEL_A_CURRENT_IMPROVED_FULL_MATRIX`;
 2. `MODEL_B_FAST_PLUS_DEEP_UNDER_EXISTING_MATRIX_OWNER`;
@@ -703,14 +730,15 @@ TARGET_ARCHITECTURE_MODEL_A
 | MODEL_D_REQUIRES_MEASURED_GAP_ADMISSION
 ```
 
-If Model B wins, Phase E records why using V7 measurements and Phase C
+If Model B wins, Phase E records why using the V7 measurements and Phase C
 commercial evidence. A refinement records its exact delta from the original
-Model B; every rejected vendor mechanism records why it is unsuitable. The
-required terminal is `V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`. No
-architecture-committing Runtime implementation Mission may start before that
-internal Phase-E terminal is consumed. Automatic FAST consumer eligibility
-additionally requires the dominant system-level weighted terminal above. The
-standing hypothesis remains:
+Model B; every rejected candidate and vendor mechanism records why it is
+unsuitable. The required terminal is
+`V7_MATRIX_HEALTH_TARGET_ARCHITECTURE_DECIDED`. No architecture-committing
+Runtime implementation Mission may start before that post-tournament Phase-E
+terminal is consumed. Automatic FAST consumer eligibility additionally
+requires the dominant system-level weighted terminal above. The standing
+hypothesis remains:
 
 ```text
 existing protocol-specific/passive signal
@@ -723,36 +751,33 @@ deep Matrix -> diagnostics, broad services, quality, capacity detail,
                Learning and Engineering evidence
 ```
 
-#### Phase F — probe economy and scale
+#### Phase F — Polygon and scale tournament input
 
-Consumed provisional Phase C/D/E decision (2026-08-20):
-`TARGET_ARCHITECTURE_MODEL_B_PLUS_C`. FAST and DEEP remain modes of the
-existing Matrix owner; passive evidence only escalates bounded confirmation.
-The exact first implementation residual is
-`CONNECT_EXISTING_EXACT_SERVICE_SUBSET_AND_EXACT_EGRESS_SELECTION_TO_REFRESH_ALL_FAST_SOURCE_TARGET_PATH`,
-owned by the retained candidate
-`V7_MATRIX_FAST_SOURCE_AND_TARGET_PROBE_ADMISSION_V1`. Detailed benchmark,
-scale model, invalidation triggers and migration blueprint are historical
-evidence in
-`docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`.
-This evidence does not authorize an automatic FAST role consumer until the
-system-level weighted decision terminal is consumed.
+The previous `TARGET_ARCHITECTURE_MODEL_B_PLUS_C` and
+`TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT` results are candidate
+baselines only. FAST and DEEP remain modes of the existing Matrix owner;
+passive evidence only escalates bounded confirmation. The exact first
+implementation residual remains historical evidence in
+`docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`,
+not implementation authority.
 
-Phase F validates the Phase E decision; it does not redesign by default.
-Publish measured `FAST_DETECTION_COST`, `HEALTH_PROBE_COST_PER_EGRESS`,
+Phase F runs the pre-decision tournament. For every admitted candidate publish
+measured `FAST_DETECTION_COST`, `HEALTH_PROBE_COST_PER_EGRESS`,
 `TARGET_READINESS_COST`, `DEEP_MATRIX_COST`, `TOTAL_NETWORK_PROBE_BUDGET`,
-expected detection delay and worst-case timeout budget. Validate the current
+expected detection delay, worst-case timeout budget, complexity and safety.
+Use the same failure matrix for every candidate. Validate the current
 approximately seven-egress topology, model 50 egresses, use 100 where it adds
 an intermediate boundary, and stress-model 1,000 egresses. Cost scales by
 egress role/action class, never users. Parallel processes alone do not prove
 scalability; total probe volume and external service pressure remain bounded.
-If scale or budget evidence invalidates a material Phase E assumption, publish
-the exact invalidator and return to Phase E rather than silently redesigning.
+If scale, budget or safety evidence invalidates a candidate, record the exact
+invalidator and exclude or refine that candidate before the Phase E decision;
+do not silently redesign it.
 
-#### Phase G — bounded egress parallelism
+#### Phase G — bounded egress parallelism in the tournament
 
-Phase G validates the selected architecture's concurrency need and safety; it
-does not become an alternative architecture owner.
+Phase G measures each candidate's concurrency need and safety before the
+architecture decision; it does not become an alternative architecture owner.
 Evaluate serial cross-egress traversal only after the fast-subset result shows
 it remains a material bottleneck. Compare concurrency caps `1`, `2`, `4` and
 adaptive only through controlled measurement. Admission requires lock safety,
@@ -760,8 +785,8 @@ single-writer/atomic-write proof, CPU/RSS/network budgets, interface/SOCKS/
 process isolation, external-service pressure and failure-domain analysis.
 Existing bounded inner-service parallelism is reused and is not rewritten
 without its own invalidation.
-Any material contradiction returns to Phase E through its exact invalidation
-trigger.
+Any material contradiction records the exact invalidation trigger and returns
+to the candidate/tournament lane before Phase E emits a decision.
 
 #### Phase H — migration, validation and shrink
 

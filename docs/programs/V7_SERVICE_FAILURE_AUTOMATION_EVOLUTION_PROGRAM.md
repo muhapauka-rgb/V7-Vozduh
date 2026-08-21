@@ -525,6 +525,27 @@ deployment gate is not an engineering inference: the verified local commits
 are not yet published and the Runtime reports an older deployed commit.  No
 deploy is admissible until that external version boundary converges.
 
+#### V5.3 Runtime shadow deployment and controlled closure -- superseding residual
+
+The deployment boundary subsequently converged through the existing safe deploy
+owner.  The result is recorded in
+`docs/reports/engineering/2026-08-22_012000_v5_3_runtime_shadow_deploy_and_controlled_closure.md`.
+The existing foreground health owner is deployed and has two consecutive
+successful observation-only FAST phases (`9.588 s`, `9.951 s`) at a
+30-second start-to-start cadence, without deadline miss.  A stale runtime
+`v7-egress-diagnose` binary was the only deployment defect; the minimal repair
+added that already existing executable to the safe-deploy manifest, then
+published and deployed commit `e73aa888149b7cbb76701880bf4efc87e07dc510`.
+
+The existing controlled Matrix/full-subset, producer-to-Matrix and synthetic
+governed T0-T11 suites then passed (`139` tests).  Therefore the controlled
+`two same-scope failures -> Matrix -> T0 -> T11` engineering obligation is
+consumed.  FAST remains observation-only; Full Matrix remains canonical
+fallback; the Matrix planner is capture-only; no ordinary customer, route,
+Candidate, Packet, lease or execution record changed.  A future natural
+ordinary production comparison is an external observation lane, not an open
+engineering action and never permission to manufacture a move.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

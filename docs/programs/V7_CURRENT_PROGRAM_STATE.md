@@ -41,10 +41,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Within existing Matrix, governed-executor and synthetic-client owners, connect two fresh same-scope controlled failures to the existing Matrix -> T0 -> T11 fixture; retain observation-vs-action boundaries, Full fallback and no deploy.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Controlled Matrix -> T0 -> T11 evidence and Runtime shadow deployment are consumed. Retain the deployed observation-only FAST phase and Full Matrix fallback. Re-enter only when an existing owner supplies a fresh lawful ordinary failure with complete current action context; do not manufacture a customer move.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
-| `CURRENT_TRANSITION_ID` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_RUNTIME_SHADOW_E73AA888` |
+| `CURRENT_TRANSITION_ID` | `V5_3_RUNTIME_SHADOW_AND_CONTROLLED_T0_T11_CONSUMED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
@@ -56,7 +56,7 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_T0_T11_LATENCY_OPTIMIZATION_REQUIRED` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_ENGINEERING_LATENCY_OPTIMIZATION_CONSUMED_PRODUCTION_OBSERVATION_OPTIONAL` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
@@ -66,7 +66,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
 | `CONTINUATION_ITERATION` | `92` |
-| `CONTINUATION_STOP_REASON` | `CONTROLLED_MATRIX_TO_T0_TO_T11_POLYGON_EVIDENCE_REQUIRED_WITH_EXACT_RESIDUAL; SINGLE_FOREGROUND_MONOTONIC_DEADLINE_LOOP_AND_C8_1000_THREE_PHASE_PROOF_PASS; LEGACY_TAIL_IS_BOUNDED_OR_DEFERRED_WITH_NO_BACKGROUND_CHILDREN; TWO_FRESH_SAME_SCOPE_FAILURES_MUST_REACH_EXISTING_MATRIX_AND_GOVERNED_T0_TO_T11_FIXTURE; AUTOMATIC_FAST_AND_DEPLOY_REMAIN_HELD` |
+| `CONTINUATION_STOP_REASON` | `V5_3_ENGINEERING_EVIDENCE_CONSUMED: C8 three-phase Polygon, deployed foreground deadline loop, Runtime observation-only shadow and controlled Matrix -> governed T0-T11 proof pass. Automatic FAST remains held and Full Matrix remains fallback. Any further ordinary T0-T11 observation requires a fresh existing-owner natural context and is not manufactured.` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
 | `CURRENT_TIME_FORENSICS_REPORT` | `docs/reports/engineering/2026-08-04_155200_second_level_performance_closure_before_stage48.md` |
@@ -675,14 +675,17 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_FAST_C8_TOURNAMENT_REPORT_SHA256` | `9309a0d5ac713040fd12837a396beceeb67a8119ce4b4ea005e5c0edcf7254e2` |
 | `V5_3_FAST_C8_ONE_PASS_STATUS` | `CONTROLLED_C8_1000_ACTIVE_CONTRACTS_29_436S; P95_PER_CONTRACT_27_568S; C4_34_618S; C2_56_792S; C1_70_932S` |
 | `V5_3_FAST_C8_EXECUTION_BOUNDARY` | `PROBE_WORKERS_READ_ONLY_MAX_8; PARENT_MATRIX_CONSEQUENCES_SERIAL; ACTIVE_FAST_CONTRACT_SET_EPHEMERAL_ONLY` |
-| `V5_3_FAST_C8_EXACT_RESIDUAL` | `EXISTING_CONTROLLED_TWO_FRESH_SAME_SCOPE_FAILURES_TO_MATRIX_T0_T11_SYNTHETIC_CONNECTION` |
+| `V5_3_FAST_C8_EXACT_RESIDUAL` | `NONE_ENGINEERING; future ordinary-production observation requires fresh existing-owner context` |
 | `V5_3_FAST_C8_THREE_PHASE_REPORT` | `docs/reports/engineering/2026-08-22_004129_v5_3_c8_three_phase_deadline_polygon.md` |
 | `V5_3_FAST_C8_THREE_PHASE_REPORT_SHA256` | `4a40f2c65d3d1323cdd4f7b0b7c1bfb5a2a4e6b8e04e8e4adf867552ad60d760` |
 | `V5_3_FAST_C8_THREE_PHASE_STATUS` | `CONTROLLED_C8_1000_THREE_PHASE_PASS_19_441S_22_324S_22_030S; MAX_INFLIGHT_8; ZERO_RECEIVER_INVOCATIONS; NO_PROCESS_RETAINED; 56_FOCUSED_TESTS_PASS; NO_DEPLOY` |
-| `V5_3_FAST_DEADLINE_ISOLATION_TERMINAL` | `CONTROLLED_MATRIX_TO_T0_TO_T11_POLYGON_EVIDENCE_REQUIRED_WITH_EXACT_RESIDUAL` |
+| `V5_3_FAST_DEADLINE_ISOLATION_TERMINAL` | `RUNTIME_SHADOW_AND_CONTROLLED_MATRIX_T0_T11_EVIDENCE_CONSUMED` |
 | `V5_3_FAST_DEADLINE_ISOLATION_REPORT` | `docs/reports/engineering/2026-08-22_001400_v5_3_health_fast_phase_deadline_isolation.md` |
 | `V5_3_FAST_DEADLINE_ISOLATION_REPORT_SHA256` | `66750af7ed27a44e6006e839056467941808f8a4085ac31af258208b7a6f5e5c` |
-| `V5_3_FAST_DEADLINE_ISOLATION_STATUS` | `SINGLE_FOREGROUND_MONOTONIC_DEADLINE_LOOP; LEGACY_TAIL_BOUNDED_OR_DEFERRED; NO_NEW_OWNER_TIMER_QUEUE_OR_STATE; 56_FOCUSED_TESTS_PASS; NO_DEPLOY` |
+| `V5_3_FAST_DEADLINE_ISOLATION_STATUS` | `SINGLE_FOREGROUND_MONOTONIC_DEADLINE_LOOP DEPLOYED; LEGACY_TAIL_BOUNDED_OR_DEFERRED; no new owner/timer/queue/state; Runtime FAST phases 9.588s and 9.951s pass; Full fallback retained; users moved 0` |
+| `V5_3_RUNTIME_SHADOW_REPORT` | `docs/reports/engineering/2026-08-22_012000_v5_3_runtime_shadow_deploy_and_controlled_closure.md` |
+| `V5_3_RUNTIME_SHADOW_REPORT_SHA256` | `94c6817c1d7cfbfd529a08fa3f8665cd12736cc28d6af55f73994427f624ba04` |
+| `V5_3_RUNTIME_SHADOW_TERMINAL` | `CONTROLLED_ENGINEERING_CLOSURE_CONSUMED; FULL_MATRIX_FALLBACK_RETAINED; ORDINARY_PRODUCTION_OBSERVATION_OPTIONAL` |
 | `V5_3_ARCHITECTURE_REORDERING_REPORT` | `docs/reports/engineering/2026-08-21_095441_v5_3_program_reordering_and_architecture_revalidation.md` |
 | `V5_3_CONCRETE_MISSION_PLAN_REPORT` | `docs/reports/engineering/2026-08-21_095941_v5_3_concrete_mission_plan_integrated.md` |
 | `V5_3_BOTTLENECK_PATTERN_SYNTHESIS_REPORT` | `docs/reports/engineering/2026-08-21_100109_v5_3_bottleneck_to_mature_pattern_synthesis.md` |
@@ -722,8 +725,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
-| `CURRENT_TRANSITION_ID` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_RUNTIME_SHADOW_E73AA888` |
+| `CURRENT_TRANSITION_ID` | `V5_3_RUNTIME_SHADOW_AND_CONTROLLED_T0_T11_CONSUMED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -753,8 +756,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
-| `current_transition_id` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_RUNTIME_SHADOW_E73AA888` |
+| `current_transition_id` | `V5_3_RUNTIME_SHADOW_AND_CONTROLLED_T0_T11_CONSUMED_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
@@ -840,7 +843,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D`; `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` | Controlled C8 three-phase proof consumed; existing opt-in selectors retained; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | existing controlled Matrix -> T0 -> T11 fixture -> controlled deploy evidence -> before/after proof -> explicit FAST consumer eligibility or retained full fallback |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_RUNTIME_SHADOW_E73AA888`; `V5_3_RUNTIME_SHADOW_AND_CONTROLLED_T0_T11_CONSUMED_V1` | C8, controlled Matrix-to-T0-T11 proof and Runtime shadow deploy consumed; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | retained observation-only FAST -> Full fallback; only a future fresh ordinary owner context may re-enter governed production comparison |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

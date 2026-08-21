@@ -21,6 +21,10 @@ PROFILE_SERVICE_OBSERVATION_COUNT=0
 PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=0
 PROFILE_SERVICE_CONTRACT_COUNT=0
 PROFILE_SERVICE_ACTIVE_SOURCE_COUNT=0
+FAST_PRODUCER_CONCURRENCY="1"
+FAST_PRODUCER_MAX_INFLIGHT=0
+FAST_PRODUCER_STARTED_NS="0"
+FAST_PRODUCER_COMPLETION_MS=()
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -36,6 +40,10 @@ while [ "$#" -gt 0 ]; do
     --fast-producer-only)
       FAST_PRODUCER_ONLY="1"
       shift
+      ;;
+    --fast-producer-concurrency)
+      FAST_PRODUCER_CONCURRENCY="$2"
+      shift 2
       ;;
     --shadow-trigger-command)
       SHADOW_TRIGGER_COMMAND="$2"
@@ -125,6 +133,18 @@ if [ "$FAST_PRODUCER_ONLY" = "1" ] && { [ -z "$PROFILE_SERVICE_SUSPICION_COMMAND
   exit 2
 fi
 
+case "$FAST_PRODUCER_CONCURRENCY" in
+  ''|*[!0-9]*) echo "invalid --fast-producer-concurrency" >&2; exit 2 ;;
+esac
+if [ "$FAST_PRODUCER_CONCURRENCY" -lt 1 ] || [ "$FAST_PRODUCER_CONCURRENCY" -gt 8 ]; then
+  echo "--fast-producer-concurrency must be between 1 and 8" >&2
+  exit 2
+fi
+if [ "$FAST_PRODUCER_CONCURRENCY" -gt 1 ] && [ "$FAST_PRODUCER_ONLY" != "1" ]; then
+  echo "parallel FAST producer execution requires --fast-producer-only" >&2
+  exit 2
+fi
+
 for profile_shadow_value in "$PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES" "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC"; do
   case "$profile_shadow_value" in
     '') ;;
@@ -203,12 +223,12 @@ shadow_trigger_for_reason() {
 }
 
 build_active_profile_contracts() {
-  python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" <<'PY'
+  python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" "$REG" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-users_path, prefs_path = map(Path, sys.argv[1:])
+users_path, prefs_path, registry_path = map(Path, sys.argv[1:])
 try:
     users_lines = users_path.read_text(encoding="utf-8", errors="replace").splitlines()
 except OSError:
@@ -219,6 +239,23 @@ except Exception:
     prefs = {}
 if not isinstance(prefs, dict):
     prefs = {}
+try:
+    registry_lines = registry_path.read_text(encoding="utf-8", errors="replace").splitlines()
+except OSError:
+    registry_lines = []
+registry = {}
+for line in registry_lines:
+    fields = {}
+    for part in line.split():
+        if "=" in part:
+            key, value = part.split("=", 1)
+            fields[key.strip()] = value.strip()
+    source = str(fields.get("id") or "").strip()
+    if source:
+        registry[source] = (
+            str(fields.get("interface") or "").strip(),
+            str(fields.get("enabled", "1")).strip(),
+        )
 users_prefs = prefs.get("users") if isinstance(prefs.get("users"), dict) else {}
 active_sources = {}
 for line in users_lines:
@@ -261,7 +298,8 @@ for source, identities in sorted(active_sources.items()):
         # The first canonical profile is only an anchor for the existing
         # receiver.  The observation itself is deduplicated by source + exact
         # service contract, never by user count.
-        print(f"{source}\t{sorted(profiles)[0]}\t{','.join(services)}\t{len(profiles)}")
+        interface, enabled = registry.get(source, ("", "0"))
+        print(f"{source}\t{sorted(profiles)[0]}\t{','.join(services)}\t{len(profiles)}\t{interface}\t{enabled}")
 PY
 }
 
@@ -298,6 +336,7 @@ run_profile_service_probe() {
       --state-dir "$STATE_DIR" \
       --matrix-file "$probe_dir/service-matrix.json" \
       --event-dir "$probe_dir/events" \
+      --probe-observation-only \
       --failure-persistence-samples 1 \
       --failure-persistence-window-seconds 30 \
       --timeout 5 >"$probe_output" 2>/dev/null; then
@@ -308,6 +347,7 @@ run_profile_service_probe() {
   python3 - "$probe_output" "$probe_rc" "$services" <<'PY'
 import json
 import sys
+import time
 from pathlib import Path
 try:
     payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
@@ -347,6 +387,7 @@ print("|".join([
     ",".join(sorted(degraded)),
     ",".join(sorted(failed)),
     ",".join(sorted(set(unknown))),
+    str(time.time_ns()),
 ]))
 PY
   rm -rf "$probe_dir"
@@ -486,18 +527,33 @@ profile_service_suspicion_for_source() {
     [ -n "$profile_user" ] || continue
     [ -n "$services" ] || continue
     PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
-    probe="$(run_profile_service_probe "$source_id" "$services")"
-    IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services <<EOF
-$probe
-EOF
-    if [ -n "$dns_services" ]; then
-      dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
-    else
-      profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+    if [ "$FAST_PRODUCER_MAX_INFLIGHT" -lt 1 ]; then
+      FAST_PRODUCER_MAX_INFLIGHT=1
     fi
+    probe="$(run_profile_service_probe "$source_id" "$services")"
+    process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe"
   done <<EOF
 $rows
 EOF
+}
+
+process_profile_service_probe() {
+  source_id="$1"
+  profile_user="$2"
+  services="$3"
+  probe="$4"
+  IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services completion_ns <<EOF
+$probe
+EOF
+  if [ -n "$completion_ns" ] && [ "$completion_ns" -ge "$FAST_PRODUCER_STARTED_NS" ] 2>/dev/null; then
+    completion_ms=$(( (completion_ns - FAST_PRODUCER_STARTED_NS) / 1000000 ))
+    FAST_PRODUCER_COMPLETION_MS+=("$completion_ms")
+  fi
+  if [ -n "$dns_services" ]; then
+    dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+  else
+    profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+  fi
 }
 
 write_fast_producer_telemetry() {
@@ -505,6 +561,23 @@ write_fast_producer_telemetry() {
   printf 'fast_producer_distinct_contract_count=%s\n' "$PROFILE_SERVICE_CONTRACT_COUNT" >> "$TMP"
   printf 'fast_producer_observation_count=%s\n' "$PROFILE_SERVICE_OBSERVATION_COUNT" >> "$TMP"
   printf 'fast_producer_receiver_invocation_count=%s\n' "$PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT" >> "$TMP"
+  printf 'fast_producer_concurrency_cap=%s\n' "$FAST_PRODUCER_CONCURRENCY" >> "$TMP"
+  printf 'fast_producer_max_inflight=%s\n' "$FAST_PRODUCER_MAX_INFLIGHT" >> "$TMP"
+  completion_count="${#FAST_PRODUCER_COMPLETION_MS[@]}"
+  printf 'fast_producer_completed_contract_count=%s\n' "$completion_count" >> "$TMP"
+  if [ "$completion_count" -gt 0 ]; then
+    sorted_completion_ms="$(printf '%s\n' "${FAST_PRODUCER_COMPLETION_MS[@]}" | sort -n)"
+    first_completion_ms="$(printf '%s\n' "$sorted_completion_ms" | sed -n '1p')"
+    p50_index=$(( (completion_count + 1) / 2 ))
+    p95_index=$(( (completion_count * 95 + 99) / 100 ))
+    p50_completion_ms="$(printf '%s\n' "$sorted_completion_ms" | sed -n "${p50_index}p")"
+    p95_completion_ms="$(printf '%s\n' "$sorted_completion_ms" | sed -n "${p95_index}p")"
+    max_completion_ms="$(printf '%s\n' "$sorted_completion_ms" | sed -n "${completion_count}p")"
+    printf 'fast_producer_first_contract_result_ms=%s\n' "$first_completion_ms" >> "$TMP"
+    printf 'fast_producer_p50_contract_result_ms=%s\n' "$p50_completion_ms" >> "$TMP"
+    printf 'fast_producer_p95_contract_result_ms=%s\n' "$p95_completion_ms" >> "$TMP"
+    printf 'fast_producer_max_contract_result_ms=%s\n' "$max_completion_ms" >> "$TMP"
+  fi
 }
 
 get_field() {
@@ -657,29 +730,131 @@ diagnose_row() {
   shadow_trigger_for_reason "$id" "$reason" "$severity"
 }
 
-run_active_profile_suspicion_cycle() {
+build_ready_fast_contract_workset() {
+  # This is an immutable, per-process work list.  It is neither persisted nor a
+  # state/registry owner: canonical source/profile truth remains in the two
+  # existing state files used to build it.
   [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
   [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
   previous_source=""
-  while IFS=$'\t' read -r source_id _profile _services _profile_count; do
+  source_ready="0"
+  last_checked_iface=""
+  last_checked_iface_ready="0"
+  while IFS=$'\t' read -r source_id profile_user services _profile_count iface enabled; do
+    [ -n "$source_id" ] || continue
+    if [ "$source_id" != "$previous_source" ]; then
+      previous_source="$source_id"
+      source_ready="0"
+      enabled="${enabled:-1}"
+      [ "$enabled" = "1" ] || continue
+      [ -n "$iface" ] || continue
+      if [ "$iface" = "$last_checked_iface" ]; then
+        source_ready="$last_checked_iface_ready"
+      elif interface_up "$iface"; then
+        source_ready="1"
+        last_checked_iface="$iface"
+        last_checked_iface_ready="1"
+      else
+        last_checked_iface="$iface"
+        last_checked_iface_ready="0"
+      fi
+    fi
+    [ "$source_ready" = "1" ] || continue
+    printf '%s\t%s\t%s\n' "$source_id" "$profile_user" "$services"
+  done < "$PROFILE_CONTRACTS_FILE"
+}
+
+run_parallel_active_profile_suspicion_cycle() {
+  work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-contracts.XXXXXX")"
+  work_file="$work_dir/active-contract-set.tsv"
+  # The set is intentionally temporary and discarded before the owner returns.
+  build_ready_fast_contract_workset > "$work_file"
+
+  work_sources=()
+  work_profiles=()
+  work_services=()
+  while IFS=$'\t' read -r source_id profile_user services; do
+    [ -n "$source_id" ] || continue
+    [ -n "$profile_user" ] || continue
+    [ -n "$services" ] || continue
+    work_sources+=("$source_id")
+    work_profiles+=("$profile_user")
+    work_services+=("$services")
+  done < "$work_file"
+
+  total="${#work_sources[@]}"
+  [ "$total" -gt 0 ] || { rm -rf "$work_dir"; return 0; }
+  probe_pids=()
+  next_index=0
+  inflight=0
+  completed=0
+  while [ "$next_index" -lt "$total" ] || [ "$inflight" -gt 0 ]; do
+    while [ "$next_index" -lt "$total" ] && [ "$inflight" -lt "$FAST_PRODUCER_CONCURRENCY" ]; do
+      slot="$next_index"
+      printf '%s\t%s\t%s\n' "${work_sources[$slot]}" "${work_profiles[$slot]}" "${work_services[$slot]}" > "$work_dir/$slot.meta"
+      (
+        run_profile_service_probe "${work_sources[$slot]}" "${work_services[$slot]}" > "$work_dir/$slot.result"
+        touch "$work_dir/$slot.done"
+      ) &
+      probe_pids[$slot]="$!"
+      PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
+      inflight=$((inflight + 1))
+      if [ "$inflight" -gt "$FAST_PRODUCER_MAX_INFLIGHT" ]; then
+        FAST_PRODUCER_MAX_INFLIGHT="$inflight"
+      fi
+      next_index=$((next_index + 1))
+    done
+
+    made_progress="0"
+    for slot in "${!probe_pids[@]}"; do
+      [ -n "${probe_pids[$slot]:-}" ] || continue
+      [ -f "$work_dir/$slot.done" ] || continue
+      wait "${probe_pids[$slot]}" || true
+      IFS=$'\t' read -r source_id profile_user services < "$work_dir/$slot.meta"
+      probe="$(cat "$work_dir/$slot.result")"
+      # Only this parent processes trigger/state consequences.  Probe workers
+      # are read-only and cannot race the canonical writer or incident state.
+      process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe"
+      unset 'probe_pids[$slot]'
+      inflight=$((inflight - 1))
+      completed=$((completed + 1))
+      made_progress="1"
+    done
+    [ "$completed" -ge "$total" ] && break
+    if [ "$made_progress" = "0" ]; then
+      sleep 0.02
+    fi
+  done
+  rm -rf "$work_dir"
+}
+
+run_active_profile_suspicion_cycle() {
+  [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
+  [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
+  if [ "$FAST_PRODUCER_CONCURRENCY" -gt 1 ] 2>/dev/null; then
+    run_parallel_active_profile_suspicion_cycle
+    return 0
+  fi
+  previous_source=""
+  last_checked_iface=""
+  last_checked_iface_ready="0"
+  while IFS=$'\t' read -r source_id _profile _services _profile_count iface enabled; do
     [ -n "$source_id" ] || continue
     [ "$source_id" = "$previous_source" ] && continue
     previous_source="$source_id"
-    registry_line="$(awk -v source="$source_id" '
-      {
-        for (i = 1; i <= NF; i++) {
-          split($i, pair, "=")
-          if (pair[1] == "id" && pair[2] == source) { print; exit }
-        }
-      }
-    ' "$REG")"
-    [ -n "$registry_line" ] || continue
-    iface="$(get_field interface "$registry_line")"
-    enabled="$(get_field enabled "$registry_line")"
     enabled="${enabled:-1}"
     [ "$enabled" = "1" ] || continue
     [ -n "$iface" ] || continue
-    interface_up "$iface" || continue
+    if [ "$iface" = "$last_checked_iface" ]; then
+      [ "$last_checked_iface_ready" = "1" ] || continue
+    elif interface_up "$iface"; then
+      last_checked_iface="$iface"
+      last_checked_iface_ready="1"
+    else
+      last_checked_iface="$iface"
+      last_checked_iface_ready="0"
+      continue
+    fi
     profile_service_suspicion_for_source "$source_id"
   done < "$PROFILE_CONTRACTS_FILE"
 }
@@ -699,6 +874,9 @@ fi
 
 : > "$TMP"
 echo "updated=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$TMP"
+if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
+  FAST_PRODUCER_STARTED_NS="$(python3 -c 'import time; print(time.time_ns())')"
+fi
 
 if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
   echo "fast_producer_mode=CONTROLLED_OBSERVATION_ONLY" >> "$TMP"

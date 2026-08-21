@@ -606,6 +606,119 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 2)
             self.assertIn("requires profile suspicion command and explicit output", proc.stderr)
 
+    def test_controlled_fast_concurrency_is_bounded_and_preserves_all_contracts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(
+                root,
+                "id=wgfast protocol=wireguard interface=v7wg enabled=1\n"
+                "id=wgslow protocol=wireguard interface=v7wg enabled=1\n"
+                "id=wgthird protocol=wireguard interface=v7wg enabled=1\n",
+            )
+            (state / "users.registry").write_text(
+                "ip=profile-fast current=wgfast enabled=1\n"
+                "ip=profile-slow current=wgslow enabled=1\n"
+                "ip=profile-third current=wgthird enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {
+                    "profile-fast": {"services": ["google"]},
+                    "profile-slow": {"services": ["google"]},
+                    "profile-third": {"services": ["google"]},
+                },
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(
+                bin_dir,
+                "profile-checker",
+                "if [[ \"$1\" == \"wgslow\" ]]; then sleep 0.2; fi\n"
+                "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'\n",
+            )
+            self.write_command(bin_dir, "shadow-receiver", "exit 0\n")
+            output = root / "fast-parallel.state"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only", "--fast-producer-concurrency", "2",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = output.read_text(encoding="utf-8")
+            self.assertIn("fast_producer_observation_count=3", state_text)
+            self.assertIn("fast_producer_concurrency_cap=2", state_text)
+            self.assertIn("fast_producer_max_inflight=2", state_text)
+
+    def test_parallel_fast_concurrency_is_rejected_outside_controlled_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.base_state(root, "id=wgfast protocol=wireguard interface=v7wg enabled=1\n")
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--fast-producer-concurrency", "2",
+                "--profile-service-suspicion-command", "/bin/true",
+                "--shadow-trigger-command", "/bin/true",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("requires --fast-producer-only", proc.stderr)
+
+    def test_parallel_fast_result_streams_without_waiting_for_slow_unrelated_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(
+                root,
+                "id=wgslow protocol=wireguard interface=v7wg enabled=1\n"
+                "id=wgfail protocol=wireguard interface=v7wg enabled=1\n",
+            )
+            (state / "users.registry").write_text(
+                "ip=profile-slow current=wgslow enabled=1\n"
+                "ip=profile-fail current=wgfail enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "required_services": ["google"],
+                "users": {
+                    "profile-slow": {"services": ["google"]},
+                    "profile-fail": {"services": ["google"]},
+                },
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(
+                bin_dir,
+                "profile-checker",
+                "if [[ \"$1\" == \"wgslow\" ]]; then sleep 1; touch \"$SLOW_DONE\"; "
+                "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'; "
+                "else printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"}}}'; fi\n",
+            )
+            self.write_command(
+                bin_dir,
+                "shadow-receiver",
+                "if [[ -f \"$SLOW_DONE\" ]]; then echo after >> \"$RECEIVER_LOG\"; else echo before >> \"$RECEIVER_LOG\"; fi\n",
+            )
+            output = root / "fast-stream.state"
+            slow_done = root / "slow.done"
+            receiver_log = root / "receiver.log"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["SLOW_DONE"] = str(slow_done)
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only", "--fast-producer-concurrency", "2",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "1",
+                "--profile-service-cooldown-sec", "0",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(receiver_log.read_text(encoding="utf-8").strip(), "before")
+            self.assertIn("fast_producer_max_inflight=2", output.read_text(encoding="utf-8"))
+
     def test_failed_receiver_records_its_real_exit_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

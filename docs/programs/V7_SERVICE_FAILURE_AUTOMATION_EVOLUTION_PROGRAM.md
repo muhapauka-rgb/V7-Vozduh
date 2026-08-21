@@ -481,6 +481,21 @@ defaults unchanged. The exact next stage is an existing-owner bounded active
 cohort execution design and 7/50/100/1000 Polygon tournament. No controlled
 deploy or automatic FAST admission is permitted before that terminal passes.
 
+That tournament is recorded in
+`docs/reports/engineering/2026-08-21_210000_v5_3_bounded_fast_active_cohort_execution_tournament.md`.
+It implemented controlled C8 probe execution inside existing owners: an
+ephemeral active-source/exact-service work set, at most eight read-only probes,
+streamed per-contract completion, and serialized existing Matrix consequences.
+C8 is the smallest tested cap passing a one-pass 1,000-active-contract result
+(`29.436 s`, per-contract p95 `27.568 s`); C4/C2/C1 require
+`34.618/56.792/70.932 s`. This does not admit production FAST. The exact
+terminal is `PREDEPLOY_FAST_OPTIMIZATION_REQUIRED_WITH_EXACT_RESIDUAL` because
+the existing health service performs all work and its legacy tail before the
+next 30-second sleep: it does not yet prove timely second producer observation
+or Failure->T0. The next bounded step is safe existing-owner FAST-phase
+publication and next-phase deadline isolation; it may not create a background
+orphan, second state surface, timer, queue or owner.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

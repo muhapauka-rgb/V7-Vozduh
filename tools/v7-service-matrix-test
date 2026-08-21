@@ -1348,6 +1348,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Read and fingerprint the current probe path without probes or durable Matrix writes.",
     )
+    parser.add_argument(
+        "--probe-observation-only",
+        action="store_true",
+        help=(
+            "Run selected probes and return their results without an ephemeral "
+            "or canonical Matrix write; the caller must separately ask Matrix "
+            "for confirmation before any state transition."
+        ),
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -1414,39 +1423,60 @@ def main() -> int:
                     }
     probes_completed_ns = time.monotonic_ns()
     durable_write_started_ns = time.monotonic_ns()
-    try:
-        matrix, lock_info = update_matrix(
-            matrix_file,
-            egress_id,
-            iface,
-            results,
-            int(args.lock_timeout_sec),
-            event_dir=Path(args.event_dir),
-            persistence_samples=max(1, int(args.failure_persistence_samples or 3)),
-            persistence_window_seconds=max(1, int(args.failure_persistence_window_seconds or 180)),
-            egress_identity=identity,
-            state_dir=state_dir,
-        )
-    except TimeoutError:
-        print(json.dumps({
-            "action": "service_matrix_test",
-            "egress": egress_id,
-            "interface": iface,
-            "service": service,
-            "ok": False,
-            "status": "LOCK_TIMEOUT",
-            "matrix_file": str(matrix_file),
-            "service_matrix_lock": {
-                "held": False,
-                "path": str(matrix_file.with_name("service-matrix.lock")),
-                "timeout_sec": int(args.lock_timeout_sec),
-                "runtime_behavior_changed": False,
-                "users_moved": False,
-            },
-        }, ensure_ascii=False, indent=2 if args.pretty else None))
-        return 2
-    durable_write_completed_ns = time.monotonic_ns()
-    row = (matrix.get("items") or {}).get(egress_id, {})
+    if args.probe_observation_only:
+        # This is deliberately not a second Matrix writer.  The existing
+        # caller uses the result only for bounded suspicion and invokes the
+        # canonical Matrix receiver separately after its own repeat gate.
+        durable_write_completed_ns = durable_write_started_ns
+        row = {
+            "ok_count": sum(1 for result in results.values() if bool(result.get("ok"))),
+            "total": len(results),
+            "status": (
+                "OK" if results and all(bool(result.get("ok")) for result in results.values())
+                else ("WARN" if any(bool(result.get("ok")) for result in results.values()) else "FAIL")
+            ),
+        }
+        matrix = {"updated": now_iso()}
+        lock_info = {
+            "held": False,
+            "scope": "probe_observation_only_no_matrix_write",
+            "runtime_behavior_changed": False,
+            "users_moved": False,
+        }
+    else:
+        try:
+            matrix, lock_info = update_matrix(
+                matrix_file,
+                egress_id,
+                iface,
+                results,
+                int(args.lock_timeout_sec),
+                event_dir=Path(args.event_dir),
+                persistence_samples=max(1, int(args.failure_persistence_samples or 3)),
+                persistence_window_seconds=max(1, int(args.failure_persistence_window_seconds or 180)),
+                egress_identity=identity,
+                state_dir=state_dir,
+            )
+        except TimeoutError:
+            print(json.dumps({
+                "action": "service_matrix_test",
+                "egress": egress_id,
+                "interface": iface,
+                "service": service,
+                "ok": False,
+                "status": "LOCK_TIMEOUT",
+                "matrix_file": str(matrix_file),
+                "service_matrix_lock": {
+                    "held": False,
+                    "path": str(matrix_file.with_name("service-matrix.lock")),
+                    "timeout_sec": int(args.lock_timeout_sec),
+                    "runtime_behavior_changed": False,
+                    "users_moved": False,
+                },
+            }, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 2
+        durable_write_completed_ns = time.monotonic_ns()
+        row = (matrix.get("items") or {}).get(egress_id, {})
     payload = {
         "action": "service_matrix_test",
         "egress": egress_id,

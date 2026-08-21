@@ -118,6 +118,31 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "shadow_persistence_override_requires_observation_only_shadow_trigger",
         )
 
+    def test_probe_observation_only_does_not_create_a_second_matrix_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state_dir = root / "state"
+            state_dir.mkdir()
+            (state_dir / "egress.registry").write_text(
+                "id=wgfast interface=tun0 enabled=1\n", encoding="utf-8"
+            )
+            matrix_file = root / "ephemeral-matrix.json"
+            argv = [
+                str(MATRIX_TOOL), "wgfast", "all", "--services", "google",
+                "--state-dir", str(state_dir), "--matrix-file", str(matrix_file),
+                "--probe-observation-only",
+            ]
+            output = io.StringIO()
+            probe_result = {"ok": True, "status": "OK", "elapsed_sec": 0.001}
+            with mock.patch.object(self.matrix, "interface_live", return_value=True), \
+                 mock.patch.object(self.matrix, "run_service", return_value=probe_result), \
+                 mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output):
+                self.assertEqual(self.matrix.main(), 0)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["service_matrix_lock"]["scope"], "probe_observation_only_no_matrix_write")
+        self.assertFalse(matrix_file.exists())
+
     def test_matrix_runtime_caller_passes_comparison_only_to_existing_advisory_owner(self):
         command = []
 

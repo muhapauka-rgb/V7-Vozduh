@@ -6,6 +6,7 @@ OUT=""
 SHADOW_TRIGGER_COMMAND=""
 SHADOW_TRIGGER_EGRESS=""
 SHADOW_TRIGGER_SERVICES=""
+SHADOW_TRIGGER_PROFILE_USER=""
 SHADOW_TRIGGER_EVENT_DIR=""
 SHADOW_TRIGGER_COOLDOWN_SEC="60"
 
@@ -31,6 +32,10 @@ while [ "$#" -gt 0 ]; do
       SHADOW_TRIGGER_SERVICES="$2"
       shift 2
       ;;
+    --shadow-trigger-profile-user)
+      SHADOW_TRIGGER_PROFILE_USER="$2"
+      shift 2
+      ;;
     --shadow-trigger-event-dir)
       SHADOW_TRIGGER_EVENT_DIR="$2"
       shift 2
@@ -53,8 +58,8 @@ if [ -n "$SHADOW_TRIGGER_COMMAND" ]; then
       exit 2
       ;;
   esac
-  if [ -z "$SHADOW_TRIGGER_EGRESS" ] || [ -z "$SHADOW_TRIGGER_SERVICES" ]; then
-    echo "shadow trigger requires exact egress and services" >&2
+  if [ -z "$SHADOW_TRIGGER_EGRESS" ] || { [ -z "$SHADOW_TRIGGER_SERVICES" ] && [ -z "$SHADOW_TRIGGER_PROFILE_USER" ]; } || { [ -n "$SHADOW_TRIGGER_SERVICES" ] && [ -n "$SHADOW_TRIGGER_PROFILE_USER" ]; }; then
+    echo "shadow trigger requires exact egress and exactly one service source" >&2
     exit 2
   fi
 fi
@@ -97,11 +102,17 @@ shadow_trigger_for_reason() {
 
   trigger_id="v7st_$(printf '%s' "${id}|${trigger_class}|${reason}" | shasum -a 256 | awk '{print substr($1,1,24)}')"
   trigger_event_dir="${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"
+  trigger_service_args=()
+  if [ -n "$SHADOW_TRIGGER_PROFILE_USER" ]; then
+    trigger_service_args=(--shadow-trigger-profile-user "$SHADOW_TRIGGER_PROFILE_USER")
+  else
+    trigger_service_args=(--services "$SHADOW_TRIGGER_SERVICES")
+  fi
   if "$SHADOW_TRIGGER_COMMAND" \
       --state-dir "$STATE_DIR" \
       --event-dir "$trigger_event_dir" \
       --egresses "$id" \
-      --services "$SHADOW_TRIGGER_SERVICES" \
+      "${trigger_service_args[@]}" \
       --shadow-trigger-source "$id" \
       --shadow-trigger-class "$trigger_class" \
       --shadow-trigger-id "$trigger_id" \

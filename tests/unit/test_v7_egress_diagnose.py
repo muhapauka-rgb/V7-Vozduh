@@ -277,6 +277,82 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertEqual(set(services), {"google", "telegram"})
             self.assertTrue(all(isinstance(row, dict) for row in services.values()))
 
+    def test_current_source_suspicion_uses_existing_profile_service_subset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgprofile protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgprofile_code=000\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {
+                    "profile-a": {"services": ["telegram", "google"]},
+                    "profile-b": {"services": ["youtube"]},
+                }
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" > \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--shadow-trigger-egress", "wgprofile",
+                "--shadow-trigger-profile-user", "profile-a",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            args = receiver_log.read_text(encoding="utf-8")
+            self.assertIn("--shadow-trigger-profile-user profile-a", args)
+            self.assertNotIn("--services", args)
+
+    def test_profile_service_subset_requires_existing_nonempty_profile(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.base_state(root, "id=wgprofile protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "service-preferences.json").write_text(json.dumps({"users": {"empty": {"services": []}}}), encoding="utf-8")
+            proc = subprocess.run([
+                str(ROOT / "tools" / "v7-service-matrix-refresh-all"),
+                "--state-dir", str(state), "--egresses", "wgprofile",
+                "--shadow-trigger-source", "wgprofile",
+                "--shadow-trigger-class", "REQUIRED_SERVICE_FAILURE",
+                "--shadow-trigger-id", "test-profile-empty",
+                "--shadow-trigger-profile-user", "empty",
+                "--matrix-observation-only",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("profile_service_subset_missing_or_empty", proc.stdout)
+
+    def test_profile_service_subset_reaches_real_matrix_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgprofile protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgprofile_code=000\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"profile-a": {"services": ["telegram", "google"]}}
+            }), encoding="utf-8")
+            ip_count = root / "ip.count"
+            self.write_command(bin_dir, "ip", "count=$(cat \"$IP_COUNT\" 2>/dev/null || echo 0); count=$((count + 1)); echo \"$count\" > \"$IP_COUNT\"; if [ \"$count\" -eq 1 ]; then echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'; else exit 1; fi\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["IP_COUNT"] = str(ip_count)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state),
+                "--shadow-trigger-command", str(ROOT / "tools" / "v7-service-matrix-refresh-all"),
+                "--shadow-trigger-egress", "wgprofile",
+                "--shadow-trigger-profile-user", "profile-a",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            matrix = json.loads((state / "service-matrix.json").read_text(encoding="utf-8"))
+            self.assertEqual(set(matrix["items"]["wgprofile"]["services"]), {"google", "telegram"})
+
 
 if __name__ == "__main__":
     unittest.main()

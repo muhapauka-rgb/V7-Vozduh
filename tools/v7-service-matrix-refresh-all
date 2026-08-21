@@ -2985,6 +2985,7 @@ def build_shadow_trigger_contract(
     trigger_id: str,
     egresses: list[str],
     services: list[str],
+    profile_user: str = "",
 ) -> dict[str, Any]:
     """Describe one bounded owner-backed Matrix wake without adding a truth source.
 
@@ -3001,6 +3002,8 @@ def build_shadow_trigger_contract(
         "source_egress": source,
         "egresses": list(egresses),
         "services": list(services),
+        "profile_user": profile_user,
+        "profile_source": "state/service-preferences.json:users.<user>.services" if profile_user else "caller_exact_service_subset",
         "scope": "EXACT_CURRENT_SOURCE_AND_REQUIRED_SERVICE_SUBSET",
         "idempotent": True,
         "duplicate_suppression": "existing_matrix_episode_and_generation",
@@ -3013,6 +3016,25 @@ def build_shadow_trigger_contract(
         "users_moved": 0,
         "authority_expanded": False,
     }
+
+
+def resolve_profile_service_subset(state_dir: Path, profile_user: str) -> list[str]:
+    """Reuse the existing per-user service preference contract for a shadow wake."""
+    user = str(profile_user or "").strip()
+    if not user:
+        return []
+    prefs = read_json(state_dir / "service-preferences.json", {})
+    if not isinstance(prefs, dict):
+        return []
+    row = (prefs.get("users") or {}).get(user)
+    if not isinstance(row, dict):
+        return []
+    values = row.get("required_services") or row.get("services") or []
+    if isinstance(values, str):
+        values = [item.strip() for item in values.split(",") if item.strip()]
+    if not isinstance(values, list):
+        return []
+    return sorted({str(item).strip() for item in values if str(item).strip() and str(item).strip().lower() != "all"})
 
 
 def select_probe_rows(
@@ -4274,6 +4296,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Stable caller trigger identity used for duplicate suppression evidence.",
     )
     parser.add_argument(
+        "--shadow-trigger-profile-user",
+        default="",
+        help=(
+            "Existing service-preferences user identity whose exact services "
+            "form the shadow subset; mutually exclusive with --services."
+        ),
+    )
+    parser.add_argument(
         "--event-provenance",
         choices=("OPERATOR_INDUCED", "OBSERVED_EXTERNAL_UNATTRIBUTED"),
         default="",
@@ -4307,6 +4337,21 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False))
         return 2
     service_subset = str(args.services or "").strip()
+    profile_user = str(args.shadow_trigger_profile_user or "").strip()
+    if service_subset and profile_user:
+        print(json.dumps({
+            "error": "shadow_service_subset_sources_mutually_exclusive",
+        }, ensure_ascii=False))
+        return 2
+    if profile_user:
+        resolved_profile_services = resolve_profile_service_subset(state_dir, profile_user)
+        if not resolved_profile_services:
+            print(json.dumps({
+                "error": "profile_service_subset_missing_or_empty",
+                "profile_user": profile_user,
+            }, ensure_ascii=False))
+            return 2
+        service_subset = ",".join(resolved_profile_services)
     if event_only and (requested_egresses or service_subset):
         print(json.dumps({
             "error": "probe_subset_invalid_in_event_consumption_only_mode",
@@ -4354,6 +4399,7 @@ def main() -> int:
             trigger_id=trigger_id,
             egresses=requested_egresses,
             services=trigger_services,
+            profile_user=profile_user,
         )
     # Probes are read/network work.  They must not hold the shared Matrix
     # writer lock; every existing ``v7-service-matrix-test`` invocation takes

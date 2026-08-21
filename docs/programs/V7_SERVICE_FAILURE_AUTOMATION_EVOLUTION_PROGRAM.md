@@ -443,14 +443,19 @@ with the owner-side shadow-trigger implementation in
 `docs/reports/engineering/2026-08-21_154245_v5_3_service_path_shadow_trigger_implementation_partial.md`
 and the current-source producer implementation in
 `docs/reports/engineering/2026-08-21_162430_v5_3_current_source_suspicion_producer_partial.md`.
+The follow-up profile/service and DNS bounded implementation block is recorded
+in `docs/reports/engineering/2026-08-21_164300_v5_3_profile_service_dns_fast_suspicion_implementation_partial.md`.
 The latest terminal remains `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram and hard
 local channel/process failures have an existing bounded shadow signal through
 the Telegram sentinel or `v7-egress-diagnose` -> `v7-health` -> existing
 `v7-users-autoswitch`. The existing Matrix owner now also has a guarded,
 observation-only exact-source/exact-subset shadow-trigger contract, and
 `v7-egress-diagnose` can produce a bounded current-source suspicion for
-`TUNNEL_UP_INTERNET_DEAD`. Required-service, DNS, partial-censorship and
-multi-service producers are still not proven. Quality and recovery remain
+`TUNNEL_UP_INTERNET_DEAD`. The same existing Matrix owner now resolves a
+profile identity from `service-preferences.json` into an exact service subset
+for that shadow path; this is a binding/selection extension, not proof of an
+independent service-failure producer. Required-service, DNS, partial-censorship
+and multi-service producers are still not proven. Quality and recovery remain
 separate non-FAST groups. This reclassification does not admit FAST, change
 cadence, or alter routes.
 This reclassification does not admit FAST, change cadence, or alter routes.

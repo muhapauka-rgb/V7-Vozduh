@@ -9,6 +9,9 @@ SHADOW_TRIGGER_SERVICES=""
 SHADOW_TRIGGER_PROFILE_USER=""
 SHADOW_TRIGGER_EVENT_DIR=""
 SHADOW_TRIGGER_COOLDOWN_SEC="60"
+PROFILE_SERVICE_SUSPICION_COMMAND=""
+PROFILE_SERVICE_FAILURE_SAMPLES="2"
+PROFILE_SERVICE_COOLDOWN_SEC="60"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -44,6 +47,18 @@ while [ "$#" -gt 0 ]; do
       SHADOW_TRIGGER_COOLDOWN_SEC="$2"
       shift 2
       ;;
+    --profile-service-suspicion-command)
+      PROFILE_SERVICE_SUSPICION_COMMAND="$2"
+      shift 2
+      ;;
+    --profile-service-failure-samples)
+      PROFILE_SERVICE_FAILURE_SAMPLES="$2"
+      shift 2
+      ;;
+    --profile-service-cooldown-sec)
+      PROFILE_SERVICE_COOLDOWN_SEC="$2"
+      shift 2
+      ;;
     *)
       echo "unknown argument: $1" >&2
       exit 2
@@ -51,7 +66,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -n "$SHADOW_TRIGGER_COMMAND" ]; then
+if [ -n "$SHADOW_TRIGGER_COMMAND" ] && { [ -n "$SHADOW_TRIGGER_EGRESS" ] || [ -n "$SHADOW_TRIGGER_SERVICES" ] || [ -n "$SHADOW_TRIGGER_PROFILE_USER" ]; }; then
   case "$SHADOW_TRIGGER_COOLDOWN_SEC" in
     ''|*[!0-9]*)
       echo "invalid --shadow-trigger-cooldown-sec" >&2
@@ -60,6 +75,25 @@ if [ -n "$SHADOW_TRIGGER_COMMAND" ]; then
   esac
   if [ -z "$SHADOW_TRIGGER_EGRESS" ] || { [ -z "$SHADOW_TRIGGER_SERVICES" ] && [ -z "$SHADOW_TRIGGER_PROFILE_USER" ]; } || { [ -n "$SHADOW_TRIGGER_SERVICES" ] && [ -n "$SHADOW_TRIGGER_PROFILE_USER" ]; }; then
     echo "shadow trigger requires exact egress and exactly one service source" >&2
+    exit 2
+  fi
+fi
+
+if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
+  case "$PROFILE_SERVICE_FAILURE_SAMPLES" in
+    ''|*[!0-9]*)
+      echo "invalid --profile-service-failure-samples" >&2
+      exit 2
+      ;;
+  esac
+  case "$PROFILE_SERVICE_COOLDOWN_SEC" in
+    ''|*[!0-9]*)
+      echo "invalid --profile-service-cooldown-sec" >&2
+      exit 2
+      ;;
+  esac
+  if [ -z "$SHADOW_TRIGGER_COMMAND" ]; then
+    echo "profile service suspicion requires existing Matrix receiver" >&2
     exit 2
   fi
 fi
@@ -128,6 +162,282 @@ shadow_trigger_for_reason() {
   printf '%s_shadow_trigger_id=%s\n' "$id" "$trigger_id" >> "$TMP"
   printf '%s_shadow_trigger_epoch=%s\n' "$id" "$now_epoch" >> "$TMP"
   printf '%s_shadow_trigger_rc=%s\n' "$id" "$trigger_rc" >> "$TMP"
+}
+
+profile_rows_for_source() {
+  source_id="$1"
+  python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" "$source_id" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+users_path, prefs_path, source = map(Path, sys.argv[1:])
+source = str(source)
+try:
+    users_lines = users_path.read_text(encoding="utf-8", errors="replace").splitlines()
+except OSError:
+    users_lines = []
+try:
+    prefs = json.loads(prefs_path.read_text(encoding="utf-8"))
+except Exception:
+    prefs = {}
+if not isinstance(prefs, dict):
+    prefs = {}
+users_prefs = prefs.get("users") if isinstance(prefs.get("users"), dict) else {}
+rows = []
+for line in users_lines:
+    line = line.strip()
+    if not line or line.startswith("#"):
+        continue
+    fields = {}
+    for part in line.split():
+        if "=" in part:
+            key, value = part.split("=", 1)
+            fields[key.strip()] = value.strip()
+    if fields.get("current") != source or fields.get("enabled", "1").lower() in {"0", "false", "no"}:
+        continue
+    identity = str(fields.get("ip") or "").strip()
+    row = users_prefs.get(identity) if identity else None
+    if not isinstance(row, dict):
+        continue
+    values = row.get("required_services") or row.get("services") or []
+    if isinstance(values, str):
+        values = [item.strip() for item in values.split(",") if item.strip()]
+    if not isinstance(values, list):
+        continue
+    services = sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"})
+    if services:
+        rows.append((identity, ",".join(services)))
+if not rows:
+    values = prefs.get("required_services") or []
+    if isinstance(values, str):
+        values = [item.strip() for item in values.split(",") if item.strip()]
+    if isinstance(values, list):
+        services = sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"})
+        if services:
+            rows.append(("__GLOBAL__", ",".join(services)))
+for identity, services in sorted(set(rows)):
+    print(f"{identity}\t{services}")
+PY
+}
+
+required_service_ids() {
+  python3 - "$STATE_DIR/service-preferences.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+try:
+    value = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")).get("required_services", [])
+except Exception:
+    value = []
+if isinstance(value, str):
+    value = [item.strip() for item in value.split(",") if item.strip()]
+if isinstance(value, list):
+    print(",".join(sorted({str(item).strip() for item in value if str(item).strip()})))
+PY
+}
+
+run_profile_service_probe() {
+  source_id="$1"
+  services="$2"
+  probe_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-profile-probe.XXXXXX")"
+  probe_output="$probe_dir/result.json"
+  mkdir -p "$probe_dir/events"
+  if "$PROFILE_SERVICE_SUSPICION_COMMAND" "$source_id" all \
+      --services "$services" \
+      --state-dir "$STATE_DIR" \
+      --matrix-file "$probe_dir/service-matrix.json" \
+      --event-dir "$probe_dir/events" \
+      --failure-persistence-samples 1 \
+      --failure-persistence-window-seconds 30 \
+      --timeout 5 >"$probe_output" 2>/dev/null; then
+    probe_rc=0
+  else
+    probe_rc="$?"
+  fi
+  python3 - "$probe_output" "$probe_rc" "$services" <<'PY'
+import json
+import sys
+from pathlib import Path
+try:
+    payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+except Exception:
+    payload = {}
+results = payload.get("results") if isinstance(payload, dict) and isinstance(payload.get("results"), dict) else {}
+expected = [item.strip() for item in str(sys.argv[3] or "").split(",") if item.strip()]
+failed = []
+dns = []
+degraded = []
+unknown = []
+for service in expected:
+    if service not in results:
+        unknown.append(service)
+for service, row in results.items():
+    if not isinstance(row, dict):
+        continue
+    status = str(row.get("status") or "UNKNOWN").upper()
+    reason = str(row.get("reason") or row.get("error") or "").upper()
+    if status in {"UNKNOWN", "STALE", "CONFLICT"}:
+        unknown.append(str(service))
+    elif not bool(row.get("ok")) or status not in {"OK", "WARN"}:
+        failed.append(f"{service}:{status}")
+    if (
+        reason == "DNS_FAILURE"
+        or "DNS_FAILURE" in reason
+        or "COULD NOT RESOLVE" in reason
+        or "NAME RESOLUTION" in reason
+    ):
+        dns.append(str(service))
+    if status in {"DEGRADED", "DOWN_GRACE", "GRACE"}:
+        degraded.append(str(service))
+print("|".join([
+    "OK" if int(sys.argv[2] or 1) == 0 else "FAILED",
+    str(len(failed)),
+    ",".join(sorted(dns)),
+    ",".join(sorted(degraded)),
+    ",".join(sorted(failed)),
+    ",".join(sorted(set(unknown))),
+]))
+PY
+  rm -rf "$probe_dir"
+}
+
+profile_service_trigger() {
+  source_id="$1"
+  profile_user="$2"
+  services="$3"
+  failure_count="$4"
+  dns_services="$5"
+  degraded_services="$6"
+  failed_services="$7"
+  unknown_services="$8"
+  key_hash="$(printf '%s' "${source_id}|${profile_user}" | shasum -a 256 | awk '{print substr($1,1,16)}')"
+  state_key="${source_id}_profile_${key_hash}"
+  previous_count="$(previous_value "${state_key}_profile_failure_count")"
+  previous_count="${previous_count:-0}"
+  if [ "$failure_count" -gt 0 ] 2>/dev/null; then
+    current_count=$((previous_count + 1))
+  else
+    current_count=0
+  fi
+  printf '%s_profile_user=%s\n' "$state_key" "$profile_user" >> "$TMP"
+  printf '%s_profile_services=%s\n' "$state_key" "$services" >> "$TMP"
+  printf '%s_profile_failure_count=%s\n' "$state_key" "$current_count" >> "$TMP"
+  printf '%s_profile_failed_services=%s\n' "$state_key" "$failed_services" >> "$TMP"
+  printf '%s_profile_dns_services=%s\n' "$state_key" "$dns_services" >> "$TMP"
+  printf '%s_profile_degraded_services=%s\n' "$state_key" "$degraded_services" >> "$TMP"
+  printf '%s_profile_unknown_services=%s\n' "$state_key" "$unknown_services" >> "$TMP"
+  if [ -n "$unknown_services" ]; then
+    printf '%s_profile_trigger_status=STOP_SAFE_UNKNOWN\n' "$state_key" >> "$TMP"
+    printf '%s_profile_trigger_class=STALE_OR_UNKNOWN_STATE\n' "$state_key" >> "$TMP"
+    return 0
+  fi
+  [ "$failure_count" -gt 0 ] 2>/dev/null || return 0
+  if [ "$current_count" -lt "$PROFILE_SERVICE_FAILURE_SAMPLES" ] 2>/dev/null; then
+    printf '%s_profile_trigger_status=WAITING_REPEAT\n' "$state_key" >> "$TMP"
+    return 0
+  fi
+
+  trigger_class=""
+  producer_family="PROFILE_SERVICE_SUSPICION_PRODUCER"
+  if [ -n "$dns_services" ]; then
+    trigger_class="DNS_FAILURE"
+    producer_family="DNS_SUSPICION_PRODUCER"
+  elif [ "$(printf '%s' "$failed_services" | awk -F, '{print NF}')" -ge 2 ] 2>/dev/null; then
+    trigger_class="MULTI_SERVICE_FAILURE"
+  elif [ -n "$degraded_services" ]; then
+    trigger_class="PARTIAL_CENSORSHIP"
+  else
+    required_ids="$(required_service_ids)"
+    failed_ids="$(printf '%s' "$failed_services" | cut -d: -f1 | sed 's/,/\n/g')"
+    required_hit=""
+    while IFS= read -r failed_id; do
+      [ -n "$failed_id" ] || continue
+      case ",${required_ids}," in
+        *,${failed_id},*) required_hit=1; break ;;
+      esac
+    done <<EOF
+$failed_ids
+EOF
+    if [ -n "$required_hit" ] || [ "$profile_user" = "__GLOBAL__" ]; then
+      trigger_class="REQUIRED_SERVICE_FAILURE"
+    else
+      trigger_class="OTHER_PROFILE_REQUIRED_SERVICE_FAILURE"
+    fi
+  fi
+  [ -n "$trigger_class" ] || return 0
+  now_epoch="$(date +%s)"
+  previous_epoch="$(previous_value "${state_key}_profile_trigger_epoch")"
+  if [ -n "$previous_epoch" ] && [ "$previous_epoch" -ge $((now_epoch - PROFILE_SERVICE_COOLDOWN_SEC)) ] 2>/dev/null; then
+    printf '%s_profile_trigger_status=SUPPRESSED_COOLDOWN\n' "$state_key" >> "$TMP"
+    printf '%s_profile_trigger_family=%s\n' "$state_key" "$producer_family" >> "$TMP"
+    printf '%s_profile_trigger_class=%s\n' "$state_key" "$trigger_class" >> "$TMP"
+    return 0
+  fi
+  trigger_id="v7ps_$(printf '%s' "${source_id}|${profile_user}|${trigger_class}|${failed_services}" | shasum -a 256 | awk '{print substr($1,1,24)}')"
+  trigger_event_dir="${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"
+  trigger_service_args=()
+  if [ "$profile_user" = "__GLOBAL__" ]; then
+    trigger_service_args=(--services "$services")
+  else
+    trigger_service_args=(--shadow-trigger-profile-user "$profile_user")
+  fi
+  if "$SHADOW_TRIGGER_COMMAND" \
+      --state-dir "$STATE_DIR" \
+      --event-dir "$trigger_event_dir" \
+      --egresses "$source_id" \
+      "${trigger_service_args[@]}" \
+      --shadow-trigger-source "$source_id" \
+      --shadow-trigger-class "$trigger_class" \
+      --shadow-trigger-id "$trigger_id" \
+      --matrix-observation-only >/dev/null 2>&1; then
+    trigger_status="PASS"
+    trigger_rc="0"
+  else
+    trigger_status="FAILED"
+    trigger_rc="$?"
+  fi
+  printf '%s_profile_trigger_status=%s\n' "$state_key" "$trigger_status" >> "$TMP"
+  printf '%s_profile_trigger_family=%s\n' "$state_key" "$producer_family" >> "$TMP"
+  printf '%s_profile_trigger_class=%s\n' "$state_key" "$trigger_class" >> "$TMP"
+  printf '%s_profile_trigger_id=%s\n' "$state_key" "$trigger_id" >> "$TMP"
+  printf '%s_profile_trigger_epoch=%s\n' "$state_key" "$now_epoch" >> "$TMP"
+  printf '%s_profile_trigger_rc=%s\n' "$state_key" "$trigger_rc" >> "$TMP"
+}
+
+dns_suspicion_producer() {
+  source_id="$1"
+  profile_user="$2"
+  services="$3"
+  failure_count="$4"
+  dns_services="$5"
+  degraded_services="$6"
+  failed_services="$7"
+  unknown_services="$8"
+  [ -n "$dns_services" ] || return 0
+  profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+}
+
+profile_service_suspicion_for_source() {
+  source_id="$1"
+  [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
+  rows="$(profile_rows_for_source "$source_id")"
+  [ -n "$rows" ] || return 0
+  while IFS=$'\t' read -r profile_user services; do
+    [ -n "$profile_user" ] || continue
+    [ -n "$services" ] || continue
+    probe="$(run_profile_service_probe "$source_id" "$services")"
+    IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services <<EOF
+$probe
+EOF
+    if [ -n "$dns_services" ]; then
+      dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+    else
+      profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+    fi
+  done <<EOF
+$rows
+EOF
 }
 
 get_field() {
@@ -275,9 +585,12 @@ diagnose_row() {
   {
     printf '%s_diagnose_reason=%s\n' "$id" "$reason"
     printf '%s_diagnose_severity=%s\n' "$id" "$severity"
-    printf '%s_diagnose_detail=%s\n' "$id" "$detail"
+  printf '%s_diagnose_detail=%s\n' "$id" "$detail"
   } >> "$TMP"
   shadow_trigger_for_reason "$id" "$reason" "$severity"
+  if [ "$enabled" = "1" ] && [ "$severity" != "DISABLED" ] && interface_up "$iface"; then
+    profile_service_suspicion_for_source "$id"
+  fi
 }
 
 if [ ! -r "$REG" ]; then

@@ -1,5 +1,6 @@
 import os
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -352,6 +353,207 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             matrix = json.loads((state / "service-matrix.json").read_text(encoding="utf-8"))
             self.assertEqual(set(matrix["items"]["wgprofile"]["services"]), {"google", "telegram"})
+
+    def test_profile_service_producer_repeats_before_required_failure_wake(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgservice protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgservice_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text("ip=profile-a current=wgservice enabled=1\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "required_services": ["google"],
+                "users": {"profile-a": {"services": ["google", "telegram"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"},\"telegram\":{\"ok\":true,\"status\":\"OK\"}}}'\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            args = [
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "2",
+            ]
+            first = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            first_state = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_failure_count=1", first_state)
+            self.assertIn("profile_trigger_status=WAITING_REPEAT", first_state)
+            second = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            second_state = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_trigger_status=PASS", second_state)
+            self.assertIn("profile_trigger_class=REQUIRED_SERVICE_FAILURE", second_state)
+            receiver_args = receiver_log.read_text(encoding="utf-8")
+            self.assertIn("--shadow-trigger-profile-user profile-a", receiver_args)
+            self.assertIn("--shadow-trigger-class REQUIRED_SERVICE_FAILURE", receiver_args)
+
+    def test_dns_profile_producer_has_dns_specific_class_and_cooldown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgdns protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgdns_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text("ip=profile-dns current=wgdns enabled=1\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"profile-dns": {"services": ["google", "telegram"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"DNS_FAILURE\"},\"telegram\":{\"ok\":true,\"status\":\"OK\"}}}'\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            args = [
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "2",
+                "--profile-service-cooldown-sec", "600",
+            ]
+            for _ in range(3):
+                proc = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_trigger_family=DNS_SUSPICION_PRODUCER", state_text)
+            self.assertIn("profile_trigger_class=DNS_FAILURE", state_text)
+            self.assertIn("profile_trigger_status=SUPPRESSED_COOLDOWN", state_text)
+            self.assertEqual(len(receiver_log.read_text(encoding="utf-8").splitlines()), 1)
+
+    def test_profile_producer_reaches_actual_receiver_and_matrix_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgchain protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgchain_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text("ip=profile-chain current=wgchain enabled=1\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "required_services": ["google"],
+                "users": {"profile-chain": {"services": ["google"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(bin_dir, "curl", "printf '204 0.001 0.002\\n'\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"}}}'\n")
+            actual_receiver = root / "actual-receiver"
+            receiver_debug = root / "receiver-debug"
+            actual_receiver.write_text(
+                "#!/usr/bin/env bash\n" + shlex.quote(str(ROOT / "tools" / "v7-service-matrix-refresh-all")) + " \"$@\" >\"$RECEIVER_DEBUG\" 2>&1\nexit $?\n",
+                encoding="utf-8",
+            )
+            actual_receiver.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_DEBUG"] = str(receiver_debug)
+            args = [
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(actual_receiver),
+                "--profile-service-failure-samples", "2",
+            ]
+            first = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            second = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            second_state = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_trigger_status=PASS", second_state)
+            matrix = json.loads((state / "service-matrix.json").read_text(encoding="utf-8"))
+            self.assertEqual(set(matrix["items"]["wgchain"]["services"]), {"google"})
+
+    def test_profile_producer_handles_second_profile_multi_and_partial(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgprofiles protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgprofiles_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text(
+                "ip=profile-a current=wgprofiles enabled=1\n"
+                "ip=profile-b current=wgprofiles enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "required_services": ["google"],
+                "users": {
+                    "profile-a": {"services": ["google", "telegram"]},
+                    "profile-b": {"services": ["youtube"]},
+                },
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(
+                bin_dir,
+                "profile-checker",
+                "if [[ \"$*\" == *\"google,telegram\"* ]]; then "
+                "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"},\"telegram\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"}}}'; "
+                "else printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"youtube\":{\"ok\":false,\"status\":\"DEGRADED\",\"reason\":\"PARTIAL\"}}}'; fi\n",
+            )
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "1",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_trigger_class=MULTI_SERVICE_FAILURE", state_text)
+            self.assertIn("profile_trigger_class=PARTIAL_CENSORSHIP", state_text)
+            receiver_args = receiver_log.read_text(encoding="utf-8")
+            self.assertIn("--shadow-trigger-profile-user profile-a", receiver_args)
+            self.assertIn("--shadow-trigger-profile-user profile-b", receiver_args)
+            self.assertIn("--shadow-trigger-class MULTI_SERVICE_FAILURE", receiver_args)
+            self.assertIn("--shadow-trigger-class PARTIAL_CENSORSHIP", receiver_args)
+
+    def test_profile_producer_keeps_unknown_state_stop_safe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgunknown protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgunknown_code=000\n", encoding="utf-8")
+            (state / "users.registry").write_text("ip=profile-unknown current=wgunknown enabled=1\n", encoding="utf-8")
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {"profile-unknown": {"services": ["google"]}},
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"UNKNOWN\",\"results\":{\"google\":{\"ok\":false,\"status\":\"UNKNOWN\"}}}'\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state),
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "1",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("profile_trigger_status=STOP_SAFE_UNKNOWN", state_text)
+            self.assertIn("profile_trigger_class=STALE_OR_UNKNOWN_STATE", state_text)
+            self.assertFalse(receiver_log.exists())
 
 
 if __name__ == "__main__":

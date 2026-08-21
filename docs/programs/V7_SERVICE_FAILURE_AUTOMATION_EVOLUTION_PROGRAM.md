@@ -445,17 +445,22 @@ and the current-source producer implementation in
 `docs/reports/engineering/2026-08-21_162430_v5_3_current_source_suspicion_producer_partial.md`.
 The follow-up profile/service and DNS bounded implementation block is recorded
 in `docs/reports/engineering/2026-08-21_164300_v5_3_profile_service_dns_fast_suspicion_implementation_partial.md`.
-The latest terminal remains `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram and hard
+The consolidated producer implementation is recorded in
+`docs/reports/engineering/2026-08-21_171700_v5_3_profile_service_dns_suspicion_producers_consolidated.md`.
+The latest terminal is
+`ACTION_RELEVANT_FAST_SIGNAL_COVERAGE_PARTIAL_WITH_EXACT_RESIDUAL`: Telegram and hard
 local channel/process failures have an existing bounded shadow signal through
 the Telegram sentinel or `v7-egress-diagnose` -> `v7-health` -> existing
 `v7-users-autoswitch`. The existing Matrix owner now also has a guarded,
 observation-only exact-source/exact-subset shadow-trigger contract, and
 `v7-egress-diagnose` can produce a bounded current-source suspicion for
 `TUNNEL_UP_INTERNET_DEAD`. The same existing Matrix owner now resolves a
-profile identity from `service-preferences.json` into an exact service subset
-for that shadow path; this is a binding/selection extension, not proof of an
-independent service-failure producer. Required-service, DNS, partial-censorship
-and multi-service producers are still not proven. Quality and recovery remain
+profile identity from `service-preferences.json` into an exact service subset.
+The existing `v7-egress-diagnose` owner now provides bounded profile-service
+and DNS-specific suspicion producers for required-service, other-profile,
+partial-censorship and multi-service failures, with repeated evidence,
+unknown-state STOP_SAFE and duplicate cooldown. Production FAST admission,
+fresh Runtime proof and T0-T11 client recovery evidence remain pending. Quality and recovery remain
 separate non-FAST groups. This reclassification does not admit FAST, change
 cadence, or alter routes.
 This reclassification does not admit FAST, change cadence, or alter routes.
@@ -948,7 +953,7 @@ existing Matrix owners, then be separately admitted by Phase H. Until that
 admission, `V5_3_AUTOMATIC_FAST_CONSUMER_STATUS` remains held and Full Matrix
 remains the live baseline.
 
-#### Stage E residual — fast-signal coverage terminal
+#### Stage E residual — historical fast-signal coverage terminal
 
 The next bounded residual consumed the frozen 16-class failure inventory and
 revalidated the real caller/owner/consumer path. Its consolidated report is
@@ -970,6 +975,20 @@ suspicion class in shadow; required-service, DNS, partial-censorship and
 multi-service classes remain the bounded residual. This is not a new generic
 audit. No production cadence, threshold, route or automatic FAST consumer is
 admitted by this terminal.
+
+#### Current bounded producer implementation — superseding residual
+
+The consolidated implementation report is
+`docs/reports/engineering/2026-08-21_171700_v5_3_profile_service_dns_suspicion_producers_consolidated.md`.
+The existing `v7-egress-diagnose` owner now provides profile-service and
+DNS-specific suspicion producers for the five former residual classes. They
+use active `users.registry` assignments, canonical profile services,
+repeated-evidence gates, unknown-state STOP_SAFE, stable trigger IDs and
+cooldown, then call the existing profile-aware Matrix shadow receiver. The
+current terminal is
+`ACTION_RELEVANT_FAST_SIGNAL_COVERAGE_PARTIAL_WITH_EXACT_RESIDUAL` because
+production deploy/revalidation, automatic FAST admission and real T0→T11
+client-recovery evidence remain separate gates.
 
 #### Phase F — Polygon and scale tournament input
 

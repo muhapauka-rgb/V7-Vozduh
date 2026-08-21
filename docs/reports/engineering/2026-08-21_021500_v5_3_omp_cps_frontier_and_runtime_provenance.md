@@ -96,6 +96,20 @@ v7-service-matrix-refresh.timer
 latency именно для ordinary failover. Это проверено synthetic caller chain и
 не требует менять production ветку.
 
+### Bounded ordinary-scope caller timing
+
+В отдельном Polygon fixture существующий caller был запущен с одним source,
+одним target и тремя обязательными сервисами:
+
+| Вариант | Время | Проверки |
+|---|---:|---:|
+| Short | `67.306 ms` | `6` |
+| Full | `265.157 ms` | `28` |
+
+Результат: `MATRIX_FAST_FULL_AGREEMENT`, расхождений нет, full остаётся
+финальным canonical observation. Short уменьшил controlled время на `74.6%`
+и количество проверок на `78.6%`. `users_moved=0`, routing mutation отсутствует.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

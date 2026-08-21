@@ -290,6 +290,132 @@ bottleneck synthesis, candidate construction or Polygon/scale tournament.
 This reordering introduces no owner, Runtime, queue, registry, truth source,
 cadence change or client movement.
 
+### Concrete Mission execution plan (A–G)
+
+The following seven stages are the durable working plan for the existing
+`V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` track. They make the
+macro-order executable without creating seven Missions. Checks and reports are
+evidence inside the current stage; they are not reasons to stop between every
+microstep.
+
+#### Stage A — unified baseline and provenance
+
+Status: baseline is sufficient to begin Engineering synthesis; deploy-grade
+provenance remains open.
+
+Establish one table for CPS/OMP, Runtime snapshot and production version,
+Matrix timer/service/caller, the last full Matrix cycle, the complete T0–T11
+order, deployed selectors and the evidence class of every fact
+(`PRODUCTION`, `POLYGON`, `STATIC` or `UNKNOWN`). This stage separates a real
+Matrix bottleneck from a Runtime/provenance blocker. Polygon work may continue
+in parallel, but implementation and production claims cannot start until the
+relevant provenance gate is closed or one explicit external blocker is
+recorded.
+
+#### Stage B — mature-system synthesis and candidate formation
+
+The existing Envoy, HAProxy, Google Cloud, FRR/BFD, Cisco, Fortinet and
+MikroTik research is reused. Compare the same fields for active/passive
+checks, fall/rise thresholds, cadence, degraded/recovering states, hysteresis,
+freshness, quality, target readiness, route eligibility, history, probe budget,
+scale and measurement/state/decision separation. For every proven V7
+bottleneck record:
+
+```text
+mature mechanism -> reason -> existing V7 owner -> REUSE / ADAPT / REJECT
+-> falsifiable Polygon measurement
+```
+
+The historical architecture results remain candidates. This stage forms
+materially distinct A/B/C candidates and admits role-aware/adaptive behavior
+only if measurements prove a gap that A–C cannot cover. It does not choose the
+winner.
+
+#### Stage C — complete ordinary-failure path in Polygon
+
+Run the same governed path for every admitted candidate, first on one
+synthetic client and then on bounded ordinary-like scope:
+
+```text
+T0 failure
+-> Matrix/passive signal
+-> persistence/confirmation
+-> exact source
+-> exact eligible target
+-> required service subset
+-> full-Matrix comparison
+-> decision
+-> Candidate -> Packet -> Lease -> Barrier -> Apply
+-> route/service verification
+-> T11 client traffic recovery
+```
+
+Prove existing Planner source/target selection, ordinary versus
+certification-only scope, stale/unknown/conflict fail-closed behavior,
+short/full disagreement fallback, recovery/re-admission and mandatory
+post-switch verification. No route or client movement is performed merely to
+manufacture an event.
+
+#### Stage D — Polygon and scale tournament
+
+Use one failure matrix and one result schema across candidates and scales:
+
+| Scale | Required evidence |
+| --- | --- |
+| 7 egresses | current topology and full/short baseline |
+| 50 egresses | working architecture boundary |
+| 100 egresses | intermediate load boundary |
+| 1,000 egresses | stress model and saturation limits |
+
+Record T0–T11, full/short probe count, detection and recovery time,
+short/full agreement, false positives/negatives, stale/conflict behavior,
+target readiness, CPU/RAM, writer locks, network pressure, timeout budget,
+failure-domain isolation, complexity and safety. Cross-egress concurrency is
+an experimental dimension, not an assumed fix; Phase G evidence already
+rejects treating concurrency alone as an automatic optimization.
+
+#### Stage E — post-tournament architecture decision and minimal implementation
+
+Only after Stages B–D are consumed does Phase E choose one architecture and
+record why each other candidate and mature pattern was rejected. The first
+implementation residual may then be admitted:
+
+```text
+connect the existing exact service subset and exact egress selection
+to the existing refresh-all fast source/target path
+```
+
+Implementation proceeds `current -> shadow -> controlled synthetic -> bounded
+scope -> production-safe observation -> limited production application`, using
+existing owners, full Matrix fallback, rollback and no Authority expansion.
+Timers, thresholds and cadence are changed only when the tournament provides a
+measured reason and an explicit safety/rollback proof.
+
+#### Stage F — before/after T0–T11 proof
+
+Compare old and new with the same measurement method: T0–T11 latency, Matrix
+detection, decision and execution segments, probe count, short/full agreement,
+target readiness, false-positive/false-negative rate, CPU/RAM/network, writer
+contention, recovery correctness, actual client traffic recovery and rollback
+safety. Green tests alone are insufficient; a Polygon-only improvement remains
+an Engineering result until a lawful production observation proves otherwise.
+
+#### Stage G — production evidence and Mission closure
+
+Use only an existing natural ordinary failure if one occurs, or read-only
+production observation combined with controlled evidence. Never manufacture a
+production failure for a number. Close the Mission only when T0–T11,
+before/after, short/full equivalence, target readiness, client recovery,
+fallback preservation, residual classification and CPS/OMP consumption are all
+proven, with an exact successor or lawful terminal.
+
+Current position in this plan: **Stage A baseline/provenance is bounded and
+Stage B bottleneck-to-pattern synthesis is the active Engineering block**.
+Stage C ordinary-failure execution starts after the candidate set and common
+Polygon/scale tournament inputs are ready. This ordering keeps the work on the
+switching-time objective and prevents a historical architecture decision from
+becoming confirmation bias.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

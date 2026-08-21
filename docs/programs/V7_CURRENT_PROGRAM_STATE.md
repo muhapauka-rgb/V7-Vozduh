@@ -655,6 +655,7 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_SYSTEM_LEVEL_DECISION_REPORT` | `docs/reports/engineering/2026-08-20_225000_v5_3_system_level_weighted_architecture_decision.md` |
 | `V5_3_SYSTEM_LEVEL_DECISION_REPORT_SHA256` | `ab9e7c037471d8e1352dcdb7e5f67189f5c582563a8a63b3404465524488df06` |
 | `V5_3_ARCHITECTURE_REORDERING_REPORT` | `docs/reports/engineering/2026-08-21_095441_v5_3_program_reordering_and_architecture_revalidation.md` |
+| `V5_3_CONCRETE_MISSION_PLAN_REPORT` | `docs/reports/engineering/2026-08-21_095941_v5_3_concrete_mission_plan_integrated.md` |
 | `V5_3_PHASE_G_CROSS_EGRESS_PARALLELISM` | `NO_CROSS_EGRESS_PARALLELISM_ADMITTED` |
 | `V5_3_PHASE_G_IMPLEMENTATION_STATUS` | `REJECTED_NO_RUNTIME_ADMISSION` |
 | `V5_3_PHASE_G_REPORT` | `docs/reports/engineering/2026-08-20_233000_v5_3_phase_g_cross_egress_polygon_measurement.md` |

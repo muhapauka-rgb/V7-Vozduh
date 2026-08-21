@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-21T21:00:00+03:00
+State captured: 2026-08-22T00:41:29+03:00
 Latest terminal Mission: `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1`
 Latest terminal Mission state: `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-21T21:00:00+03:00`
+Captured: `2026-08-22T00:41:29+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -41,10 +41,10 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Within existing v7-health/v7-egress-diagnose/Matrix owners, run the accepted 1,000-contract C8 Polygon fixture for three deadline-isolated phases and connect two fresh same-scope failures through the existing controlled Matrix/T0-T11 fixture; retain observation-vs-action boundaries and do not deploy.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Within existing Matrix, governed-executor and synthetic-client owners, connect two fresh same-scope controlled failures to the existing Matrix -> T0 -> T11 fixture; retain observation-vs-action boundaries, Full fallback and no deploy.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_FAST_DEADLINE_ISOLATION_66750AF7` |
-| `CURRENT_TRANSITION_ID` | `V5_3_FAST_DEADLINE_ISOLATION_TO_CONTROLLED_C8_T0_T11_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
+| `CURRENT_TRANSITION_ID` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
@@ -65,7 +65,7 @@ This section is the single live volatile current-state surface. Older production
 | `NEXT_MISSION_FORMED` | `FALSE` |
 | `NEXT_MISSION_ID` | `NONE_PROGRAM_TRACK_ONLY` |
 | `PREMATURE_OPERATOR_RETURN` | `FALSE` |
-| `CONTINUATION_ITERATION` | `91` |
+| `CONTINUATION_ITERATION` | `92` |
 | `CONTINUATION_STOP_REASON` | `CONTROLLED_MATRIX_TO_T0_TO_T11_POLYGON_EVIDENCE_REQUIRED_WITH_EXACT_RESIDUAL; SINGLE_FOREGROUND_MONOTONIC_DEADLINE_LOOP_AND_C8_1000_THREE_PHASE_PROOF_PASS; LEGACY_TAIL_IS_BOUNDED_OR_DEFERRED_WITH_NO_BACKGROUND_CHILDREN; TWO_FRESH_SAME_SCOPE_FAILURES_MUST_REACH_EXISTING_MATRIX_AND_GOVERNED_T0_TO_T11_FIXTURE; AUTOMATIC_FAST_AND_DEPLOY_REMAIN_HELD` |
 | `CURRENT_TIME_FORENSICS_MISSION` | `FINAL_PERFORMANCE_CLOSURE_BEFORE_STAGE_48_V1` |
 | `CURRENT_TIME_FORENSICS_STATUS` | `PLANNER_PACKET_LEASE_APPLY_RESET_INTERNAL_CRITICAL_PATHS_PROVEN; FULL_GOVERNED_FORWARD_AND_RESET_FASTEST_SAFE_PATH_PROVEN; TIME_OPTIMIZATION_LOOP_PRODUCTION_RECONSUMED; STAGE_48_OPTIMIZED_RUNTIME_READY_REVALIDATED` |
@@ -722,8 +722,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
-| `CURRENT_TRANSITION_ID` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
+| `CURRENT_TRANSITION_ID` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -753,8 +753,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
-| `current_transition_id` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D` |
+| `current_transition_id` | `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
@@ -840,7 +840,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2`; `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` | Stages B–D consumed as controlled Engineering evidence; existing opt-in selectors retained; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | post-tournament weighted architecture decision -> exact implementation residual -> before/after proof -> explicit FAST consumer eligibility or retained full fallback |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_C8_THREE_PHASE_4A40F2C65D3D`; `V5_3_C8_THREE_PHASE_TO_CONTROLLED_MATRIX_T0_T11_V1` | Controlled C8 three-phase proof consumed; existing opt-in selectors retained; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | existing controlled Matrix -> T0 -> T11 fixture -> controlled deploy evidence -> before/after proof -> explicit FAST consumer eligibility or retained full fallback |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

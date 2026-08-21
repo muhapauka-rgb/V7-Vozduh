@@ -110,6 +110,11 @@ latency именно для ordinary failover. Это проверено synthet
 финальным canonical observation. Short уменьшил controlled время на `74.6%`
 и количество проверок на `78.6%`. `users_moved=0`, routing mutation отсутствует.
 
+Дополнительные caller/lifecycle guards: `4/4 PASS` — exact subset использует
+существующий probe owner, observation-only останавливается до downstream
+consumer, runtime caller передаёт comparison без apply, а ordinary STOP_SAFE
+не запускает certification tail раньше времени.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

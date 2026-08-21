@@ -3,6 +3,11 @@ set -euo pipefail
 
 STATE_DIR="/opt/v7/egress/state"
 OUT=""
+SHADOW_TRIGGER_COMMAND=""
+SHADOW_TRIGGER_EGRESS=""
+SHADOW_TRIGGER_SERVICES=""
+SHADOW_TRIGGER_EVENT_DIR=""
+SHADOW_TRIGGER_COOLDOWN_SEC="60"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -14,6 +19,26 @@ while [ "$#" -gt 0 ]; do
       OUT="$2"
       shift 2
       ;;
+    --shadow-trigger-command)
+      SHADOW_TRIGGER_COMMAND="$2"
+      shift 2
+      ;;
+    --shadow-trigger-egress)
+      SHADOW_TRIGGER_EGRESS="$2"
+      shift 2
+      ;;
+    --shadow-trigger-services)
+      SHADOW_TRIGGER_SERVICES="$2"
+      shift 2
+      ;;
+    --shadow-trigger-event-dir)
+      SHADOW_TRIGGER_EVENT_DIR="$2"
+      shift 2
+      ;;
+    --shadow-trigger-cooldown-sec)
+      SHADOW_TRIGGER_COOLDOWN_SEC="$2"
+      shift 2
+      ;;
     *)
       echo "unknown argument: $1" >&2
       exit 2
@@ -21,10 +46,78 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+if [ -n "$SHADOW_TRIGGER_COMMAND" ]; then
+  case "$SHADOW_TRIGGER_COOLDOWN_SEC" in
+    ''|*[!0-9]*)
+      echo "invalid --shadow-trigger-cooldown-sec" >&2
+      exit 2
+      ;;
+  esac
+  if [ -z "$SHADOW_TRIGGER_EGRESS" ] || [ -z "$SHADOW_TRIGGER_SERVICES" ]; then
+    echo "shadow trigger requires exact egress and services" >&2
+    exit 2
+  fi
+fi
+
 REG="${STATE_DIR}/egress.registry"
 SUM="${STATE_DIR}/summary.state"
 OUT="${OUT:-${STATE_DIR}/egress-diagnose.state}"
 TMP="${OUT}.tmp.$$"
+
+previous_value() {
+  key="$1"
+  grep "^${key}=" "$OUT" 2>/dev/null | tail -n1 | cut -d= -f2- || true
+}
+
+shadow_trigger_for_reason() {
+  id="$1"
+  reason="$2"
+  severity="$3"
+  [ -n "$SHADOW_TRIGGER_COMMAND" ] || return 0
+  [ "$id" = "$SHADOW_TRIGGER_EGRESS" ] || return 0
+  [ "$severity" = "FAIL" ] || return 0
+
+  trigger_class=""
+  case "$reason" in
+    curl_failed_and_handshake_stale|curl_failed_and_handshake_unsupported)
+      trigger_class="TUNNEL_UP_INTERNET_DEAD"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  now_epoch="$(date +%s)"
+  previous_epoch="$(previous_value "${id}_shadow_trigger_epoch")"
+  if [ -n "$previous_epoch" ] && [ "$previous_epoch" -ge $((now_epoch - SHADOW_TRIGGER_COOLDOWN_SEC)) ] 2>/dev/null; then
+    printf '%s_shadow_trigger_status=SUPPRESSED_COOLDOWN\n' "$id" >> "$TMP"
+    printf '%s_shadow_trigger_class=%s\n' "$id" "$trigger_class" >> "$TMP"
+    return 0
+  fi
+
+  trigger_id="v7st_$(printf '%s' "${id}|${trigger_class}|${reason}" | shasum -a 256 | awk '{print substr($1,1,24)}')"
+  trigger_event_dir="${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"
+  if "$SHADOW_TRIGGER_COMMAND" \
+      --state-dir "$STATE_DIR" \
+      --event-dir "$trigger_event_dir" \
+      --egresses "$id" \
+      --services "$SHADOW_TRIGGER_SERVICES" \
+      --shadow-trigger-source "$id" \
+      --shadow-trigger-class "$trigger_class" \
+      --shadow-trigger-id "$trigger_id" \
+      --matrix-observation-only >/dev/null 2>&1; then
+    trigger_status="PASS"
+    trigger_rc="0"
+  else
+    trigger_status="FAILED"
+    trigger_rc="$?"
+  fi
+  printf '%s_shadow_trigger_status=%s\n' "$id" "$trigger_status" >> "$TMP"
+  printf '%s_shadow_trigger_class=%s\n' "$id" "$trigger_class" >> "$TMP"
+  printf '%s_shadow_trigger_id=%s\n' "$id" "$trigger_id" >> "$TMP"
+  printf '%s_shadow_trigger_epoch=%s\n' "$id" "$now_epoch" >> "$TMP"
+  printf '%s_shadow_trigger_rc=%s\n' "$id" "$trigger_rc" >> "$TMP"
+}
 
 get_field() {
   key="$1"
@@ -173,6 +266,7 @@ diagnose_row() {
     printf '%s_diagnose_severity=%s\n' "$id" "$severity"
     printf '%s_diagnose_detail=%s\n' "$id" "$detail"
   } >> "$TMP"
+  shadow_trigger_for_reason "$id" "$reason" "$severity"
 }
 
 if [ ! -r "$REG" ]; then

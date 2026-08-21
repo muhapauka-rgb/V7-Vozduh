@@ -1,8 +1,7 @@
-"""Revalidate existing non-Matrix trigger surfaces for V5.3.
+"""Revalidate the V5.3 current-source producer and Matrix receiver contract.
 
-This is a read-only Polygon contract test.  It inspects the checked-in owner
-contracts and systemd wiring; it does not start services, probe production or
-move a client.
+All scenarios use temporary Polygon state or checked-in owner contracts; no
+production service, route or client is touched.
 """
 
 from __future__ import annotations
@@ -74,6 +73,8 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         self.assertIn('"confirmed_current_channel_failure"', autoswitch)
         self.assertIn('"source_object": "v7-state.json:egress[].diagnose_severity/diagnose_reason + users.registry assignment"', autoswitch)
         self.assertIn('"owner": "tools/v7-users-autoswitch"', autoswitch)
+        self.assertIn("--shadow-trigger-command", diagnose)
+        self.assertIn("TUNNEL_UP_INTERNET_DEAD", diagnose)
 
     def test_generic_service_and_quality_surfaces_have_no_early_trigger(self):
         matrix_timer = self.read("systemd/v7-service-matrix-refresh.timer")
@@ -150,28 +151,27 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         covered = {
             "HARD_CHANNEL_DOWN",
             "INTERFACE_OR_TUNNEL_PROCESS_ABSENT",
+            "TUNNEL_UP_INTERNET_DEAD",
             "TELEGRAM_PERSISTENT_FAILURE",
         }
+        degraded_only = {"LATENCY_LOSS_JITTER_DEGRADATION"}
+        recovery_only = {"CLEAN_RECOVERY", "FAIL_RECOVER_FAIL"}
         safety_only = {
             "TRANSIENT_FALSE_ALARM",
             "STALE_OR_UNKNOWN_STATE",
             "CONFLICTING_GENERATION",
             "TARGET_UNAVAILABLE",
             "CAPACITY_OR_POLICY_DENIAL",
-            "FAIL_RECOVER_FAIL",
         }
-        residual = set(FROZEN_CLASSES) - covered - safety_only
+        residual = set(FROZEN_CLASSES) - covered - degraded_only - recovery_only - safety_only
         self.assertEqual(
             residual,
             {
-                "TUNNEL_UP_INTERNET_DEAD",
                 "REQUIRED_SERVICE_FAILURE",
                 "OTHER_PROFILE_REQUIRED_SERVICE_FAILURE",
                 "DNS_FAILURE",
                 "PARTIAL_CENSORSHIP",
                 "MULTI_SERVICE_FAILURE",
-                "LATENCY_LOSS_JITTER_DEGRADATION",
-                "CLEAN_RECOVERY",
             },
         )
 

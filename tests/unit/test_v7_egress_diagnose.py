@@ -1,10 +1,12 @@
 import os
+import json
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import Optional
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,11 +19,12 @@ class V7EgressDiagnoseTest(unittest.TestCase):
         path.write_text("#!/usr/bin/env bash\n" + body, encoding="utf-8")
         path.chmod(0o755)
 
-    def run_tool(self, state: Path, bin_dir: Path) -> str:
+    def run_tool(self, state: Path, bin_dir: Path, extra_args: Optional[list[str]] = None) -> str:
         env = os.environ.copy()
         env["PATH"] = f"{bin_dir}:{env['PATH']}"
+        args = [str(TOOL), "--state-dir", str(state)] + list(extra_args or [])
         proc = subprocess.run(
-            [str(TOOL), "--state-dir", str(state)],
+            args,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -157,6 +160,122 @@ class V7EgressDiagnoseTest(unittest.TestCase):
 
             self.assertIn("wgdown_diagnose_severity=FAIL", out)
             self.assertIn("wgdown_diagnose_reason=interface_down_or_missing", out)
+
+    def test_current_source_suspicion_calls_existing_matrix_receiver_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgpath protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgpath_code=000\n", encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(
+                bin_dir,
+                "shadow-receiver",
+                "printf '%s\\n' \"$*\" > \"$RECEIVER_LOG\"\nexit 0\n",
+            )
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            proc = subprocess.run(
+                [
+                    str(TOOL), "--state-dir", str(state),
+                    "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                    "--shadow-trigger-egress", "wgpath",
+                    "--shadow-trigger-services", "google,telegram",
+                    "--shadow-trigger-event-dir", str(root / "events"),
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            out = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            args = receiver_log.read_text(encoding="utf-8")
+            self.assertIn("wgpath_shadow_trigger_status=PASS", out)
+            self.assertIn("wgpath_shadow_trigger_class=TUNNEL_UP_INTERNET_DEAD", out)
+            self.assertIn("--egresses wgpath", args)
+            self.assertIn("--services google,telegram", args)
+            self.assertIn("--shadow-trigger-source wgpath", args)
+            self.assertIn("--matrix-observation-only", args)
+
+    def test_current_source_suspicion_duplicate_is_suppressed_during_cooldown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgpath protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgpath_code=000\n", encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            receiver_log = root / "receiver.args"
+            self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["RECEIVER_LOG"] = str(receiver_log)
+            args = [
+                str(TOOL), "--state-dir", str(state),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--shadow-trigger-egress", "wgpath",
+                "--shadow-trigger-services", "google,telegram",
+                "--shadow-trigger-event-dir", str(root / "events"),
+                "--shadow-trigger-cooldown-sec", "600",
+            ]
+            first = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            second = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            out = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("wgpath_shadow_trigger_status=SUPPRESSED_COOLDOWN", out)
+            self.assertEqual(len(receiver_log.read_text(encoding="utf-8").splitlines()), 1)
+
+    def test_current_source_suspicion_reaches_real_matrix_writer_in_polygon(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgpath protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgpath_code=000\n", encoding="utf-8")
+            ip_count = root / "ip.count"
+            self.write_command(
+                bin_dir,
+                "ip",
+                "count=$(cat \"$IP_COUNT\" 2>/dev/null || echo 0); count=$((count + 1)); "
+                "echo \"$count\" > \"$IP_COUNT\"; "
+                "if [ \"$count\" -eq 1 ]; then echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'; else exit 1; fi\n",
+            )
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "awg", "exit 0\n")
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["IP_COUNT"] = str(ip_count)
+            proc = subprocess.run(
+                [
+                    str(TOOL), "--state-dir", str(state),
+                    "--shadow-trigger-command", str(ROOT / "tools" / "v7-service-matrix-refresh-all"),
+                    "--shadow-trigger-egress", "wgpath",
+                    "--shadow-trigger-services", "google,telegram",
+                    "--shadow-trigger-event-dir", str(root / "events"),
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            diagnose = (state / "egress-diagnose.state").read_text(encoding="utf-8")
+            self.assertIn("wgpath_shadow_trigger_status=PASS", diagnose)
+            matrix = json.loads((state / "service-matrix.json").read_text(encoding="utf-8"))
+            services = matrix["items"]["wgpath"]["services"]
+            self.assertEqual(set(services), {"google", "telegram"})
+            self.assertTrue(all(isinstance(row, dict) for row in services.values()))
 
 
 if __name__ == "__main__":

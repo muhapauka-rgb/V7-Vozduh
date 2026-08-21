@@ -438,12 +438,18 @@ historical architecture decision from becoming confirmation bias.
 The subsequent fast-signal coverage blocks are recorded in
 `docs/reports/engineering/2026-08-21_144720_v5_3_fast_signal_coverage_owner_backed_partial.md`
 and
-`docs/reports/engineering/2026-08-21_152459_v5_3_nontelegram_trigger_revalidation_partial.md`.
+`docs/reports/engineering/2026-08-21_152459_v5_3_nontelegram_trigger_revalidation_partial.md`,
+with the owner-side shadow-trigger implementation in
+`docs/reports/engineering/2026-08-21_154245_v5_3_service_path_shadow_trigger_implementation_partial.md`.
 The latest terminal remains `FAST_SIGNAL_COVERAGE_PARTIAL`: Telegram and hard
 local channel/process failures have an existing bounded shadow signal through
 the Telegram sentinel or `v7-egress-diagnose` -> `v7-health` -> existing
-`v7-users-autoswitch`; application/service, DNS, Internet-behind-tunnel,
-quality and clean-recovery classes still need an owner-backed early trigger.
+`v7-users-autoswitch`. The existing Matrix owner now also has a guarded,
+observation-only exact-source/exact-subset shadow-trigger contract; an upstream
+application/service, DNS, Internet-behind-tunnel, partial-censorship or
+multi-service suspicion producer is still not proven. Quality and
+clean-recovery remain separate non-FAST groups. This reclassification does not
+admit FAST, change cadence, or alter routes.
 This reclassification does not admit FAST, change cadence, or alter routes.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
@@ -949,7 +955,9 @@ The existing Telegram sentinel path and the hard local diagnose path are
 owner-backed and bounded in shadow. Generic application/service, DNS,
 Internet-behind-tunnel, quality and clean-recovery failures without a passive
 signal still enter through the ordinary Matrix cadence; the exact service
-subset and persistence primitives are available only after that trigger. The
+subset and persistence primitives are now exposed through a guarded
+observation-only exact-source/exact-subset contract in the existing Matrix
+owner, but no upstream non-Telegram suspicion producer is yet proven. The
 remaining work is one bounded residual for those uncovered classes, not a new
 generic audit. No production cadence, threshold, route or automatic FAST
 consumer is admitted by this terminal.

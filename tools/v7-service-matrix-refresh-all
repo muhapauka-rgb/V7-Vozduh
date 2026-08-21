@@ -2978,6 +2978,43 @@ def run_one(
     }
 
 
+def build_shadow_trigger_contract(
+    *,
+    source: str,
+    failure_class: str,
+    trigger_id: str,
+    egresses: list[str],
+    services: list[str],
+) -> dict[str, Any]:
+    """Describe one bounded owner-backed Matrix wake without adding a truth source.
+
+    The contract is deliberately observation-only.  An existing health/event
+    caller supplies the exact source, class and subset; this owner validates
+    that scope and the normal Matrix writer performs the probes.  No event,
+    Planner decision, Packet, lease or route action is created here.
+    """
+    return {
+        "schema_version": "v7.matrix-shadow-trigger-contract.v1",
+        "owner": "tools/v7-service-matrix-refresh-all",
+        "trigger_id": trigger_id,
+        "failure_class": failure_class,
+        "source_egress": source,
+        "egresses": list(egresses),
+        "services": list(services),
+        "scope": "EXACT_CURRENT_SOURCE_AND_REQUIRED_SERVICE_SUBSET",
+        "idempotent": True,
+        "duplicate_suppression": "existing_matrix_episode_and_generation",
+        "rate_bound": "one_explicit_shadow_invocation",
+        "canonical_writer": "tools/v7-service-matrix-test",
+        "observation_only": True,
+        "full_matrix_fallback_preserved": True,
+        "consumer_invoked": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+        "authority_expanded": False,
+    }
+
+
 def select_probe_rows(
     rows: list[dict[str, str]], exact_egresses: str,
 ) -> tuple[list[dict[str, str]], list[str]]:
@@ -4218,6 +4255,25 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--shadow-trigger-source",
+        default="",
+        help=(
+            "Explicit existing-caller source for one observation-only bounded "
+            "Matrix trigger. Requires --matrix-observation-only, --egresses "
+            "and --services; never enables production FAST."
+        ),
+    )
+    parser.add_argument(
+        "--shadow-trigger-class",
+        default="",
+        help="Failure class supplied by an existing caller for a shadow trigger.",
+    )
+    parser.add_argument(
+        "--shadow-trigger-id",
+        default="",
+        help="Stable caller trigger identity used for duplicate suppression evidence.",
+    )
+    parser.add_argument(
         "--event-provenance",
         choices=("OPERATOR_INDUCED", "OBSERVED_EXTERNAL_UNATTRIBUTED"),
         default="",
@@ -4256,6 +4312,49 @@ def main() -> int:
             "error": "probe_subset_invalid_in_event_consumption_only_mode",
         }, ensure_ascii=False))
         return 2
+    shadow_trigger_requested = any(
+        str(value or "").strip()
+        for value in (
+            args.shadow_trigger_source,
+            args.shadow_trigger_class,
+            args.shadow_trigger_id,
+        )
+    )
+    shadow_trigger: dict[str, Any] = {}
+    if shadow_trigger_requested:
+        trigger_source = str(args.shadow_trigger_source or "").strip()
+        trigger_class = str(args.shadow_trigger_class or "").strip()
+        trigger_id = str(args.shadow_trigger_id or "").strip()
+        trigger_services = [item.strip() for item in service_subset.split(",") if item.strip()]
+        if not args.matrix_observation_only:
+            print(json.dumps({
+                "error": "shadow_trigger_requires_matrix_observation_only",
+            }, ensure_ascii=False))
+            return 2
+        if len(requested_egresses) != 1 or not trigger_source or trigger_source != requested_egresses[0]:
+            print(json.dumps({
+                "error": "shadow_trigger_requires_exact_single_source",
+                "requested_egresses": requested_egresses,
+                "trigger_source": trigger_source,
+            }, ensure_ascii=False))
+            return 2
+        if not trigger_services or "all" in {item.lower() for item in trigger_services}:
+            print(json.dumps({
+                "error": "shadow_trigger_requires_exact_service_subset",
+            }, ensure_ascii=False))
+            return 2
+        if not trigger_class or not trigger_id:
+            print(json.dumps({
+                "error": "shadow_trigger_requires_class_and_id",
+            }, ensure_ascii=False))
+            return 2
+        shadow_trigger = build_shadow_trigger_contract(
+            source=trigger_source,
+            failure_class=trigger_class,
+            trigger_id=trigger_id,
+            egresses=requested_egresses,
+            services=trigger_services,
+        )
     # Probes are read/network work.  They must not hold the shared Matrix
     # writer lock; every existing ``v7-service-matrix-test`` invocation takes
     # that lock only for its own atomic durable update.  This preserves writer
@@ -4316,6 +4415,8 @@ def main() -> int:
             "full_matrix_fallback_preserved": True,
         },
     }
+    if shadow_trigger:
+        payload["shadow_trigger"] = shadow_trigger
     if args.matrix_observation_only:
         payload["mode"] = "MATRIX_OBSERVATION_ONLY"
         payload["observation_only"] = {

@@ -8,7 +8,12 @@ move a client.
 from __future__ import annotations
 
 import unittest
+import importlib.machinery
+import importlib.util
+import json
+import tempfile
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +40,17 @@ FROZEN_CLASSES = (
 
 
 class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_service_matrix_refresh_shadow_trigger",
+            str(ROOT / "tools/v7-service-matrix-refresh-all"),
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        cls.matrix_refresh = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(cls.matrix_refresh)
+
     def read(self, relative: str) -> str:
         return (ROOT / relative).read_text(encoding="utf-8")
 
@@ -68,6 +84,67 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         self.assertNotIn("--services", matrix_service)
         self.assertNotIn("systemctl start", quality)
         self.assertNotIn("wake_existing_matrix_consumer", quality)
+
+    def test_shadow_trigger_is_exact_owner_backed_and_observation_only(self):
+        contract = self.matrix_refresh.build_shadow_trigger_contract(
+            source="hot",
+            failure_class="REQUIRED_SERVICE_FAILURE",
+            trigger_id="polygon-trigger-001",
+            egresses=["hot"],
+            services=["google", "telegram"],
+        )
+        self.assertEqual(contract["owner"], "tools/v7-service-matrix-refresh-all")
+        self.assertEqual(contract["canonical_writer"], "tools/v7-service-matrix-test")
+        self.assertEqual(contract["scope"], "EXACT_CURRENT_SOURCE_AND_REQUIRED_SERVICE_SUBSET")
+        self.assertTrue(contract["idempotent"])
+        self.assertTrue(contract["observation_only"])
+        self.assertTrue(contract["full_matrix_fallback_preserved"])
+        self.assertFalse(contract["consumer_invoked"])
+        self.assertFalse(contract["routing_mutation_performed"])
+        self.assertEqual(contract["users_moved"], 0)
+
+    def test_shadow_trigger_cli_runs_exact_subset_without_consumer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text(
+                "id=hot enabled=1 state=enabled role=GLOBAL_FAST\n",
+                encoding="utf-8",
+            )
+            argv = [
+                "v7-service-matrix-refresh-all",
+                "--state-dir", str(state),
+                "--event-dir", str(root / "events"),
+                "--checker", "/bin/echo",
+                "--egresses", "hot",
+                "--services", "google,telegram",
+                "--shadow-trigger-source", "hot",
+                "--shadow-trigger-class", "REQUIRED_SERVICE_FAILURE",
+                "--shadow-trigger-id", "polygon-trigger-002",
+                "--matrix-observation-only",
+            ]
+            fake_result = {
+                "egress": "hot",
+                "status": "OK",
+                "ok": True,
+                "service_matrix_lock": {"held": False},
+                "service_results": {"google": {"ok": True, "status": "OK"}},
+            }
+            with mock.patch.object(self.matrix_refresh.subprocess, "run") as run:
+                run.return_value = mock.Mock(returncode=0, stdout="{}", stderr="")
+                with mock.patch.object(self.matrix_refresh, "run_one", return_value=fake_result):
+                    with mock.patch("sys.argv", argv):
+                        output = __import__("io").StringIO()
+                        with mock.patch("sys.stdout", output):
+                            rc = self.matrix_refresh.main()
+            self.assertEqual(rc, 0)
+            payload = json.loads(output.getvalue())
+            self.assertEqual(payload["mode"], "MATRIX_OBSERVATION_ONLY")
+            self.assertEqual(payload["shadow_trigger"]["source_egress"], "hot")
+            self.assertEqual(payload["shadow_trigger"]["services"], ["google", "telegram"])
+            self.assertFalse(payload["shadow_trigger"]["consumer_invoked"])
+            self.assertEqual(payload["observation_only"]["users_moved"], 0)
 
     def test_safe_coverage_and_exact_residual(self):
         covered = {

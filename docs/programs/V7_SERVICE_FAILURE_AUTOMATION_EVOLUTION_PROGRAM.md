@@ -409,15 +409,28 @@ before/after, short/full equivalence, target readiness, client recovery,
 fallback preservation, residual classification and CPS/OMP consumption are all
 proven, with an exact successor or lawful terminal.
 
-Current position in this plan: **Stage A baseline/provenance is bounded and
-Stage B bottleneck-to-pattern synthesis is consumed as an Engineering input**.
+Current position in this plan: **Stages A–D are consumed as Engineering
+evidence; Stage E post-tournament architecture decision is consumed**.
 Its durable output is
 `docs/reports/engineering/2026-08-21_100109_v5_3_bottleneck_to_mature_pattern_synthesis.md`.
-The next active block is Stage C: build the shared candidate failure-matrix
-input for the ordinary-failure T0–T11 path, then continue to the common
-Polygon/scale tournament before any architecture decision. This ordering keeps
-the work on the switching-time objective and prevents a historical
-architecture decision from becoming confirmation bias.
+The Stage C and D outputs are
+`docs/reports/engineering/2026-08-21_101349_v5_3_stage_c_candidate_failure_matrix_polygon.md`
+and
+`docs/reports/engineering/2026-08-21_101600_v5_3_stage_d_polygon_scale_tournament.md`.
+Stage E selected
+`TARGET_ARCHITECTURE_MODEL_B_PLUS_C_POST_TOURNAMENT_REVALIDATED`; its decision
+record is
+`docs/reports/engineering/2026-08-21_102100_v5_3_post_tournament_architecture_decision.md`.
+Stage F consumed the controlled before/after delta; its record is
+`docs/reports/engineering/2026-08-21_102900_v5_3_stage_f_before_after_t0_t11_proof.md`.
+Stage G reached its lawful production boundary; its record is
+`docs/reports/engineering/2026-08-21_103000_v5_3_stage_g_production_boundary_and_closure.md`.
+The selected architecture and controlled proof are complete, but production
+T0→T11 closure remains `STOP_SAFE` until a natural ordinary failure or a
+coherent exact Runtime/action context exists. Controlled gain must remain
+separate from production gain, and no client may be moved artificially. This
+ordering keeps the work on the switching-time objective and prevents a
+historical architecture decision from becoming confirmation bias.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
@@ -856,6 +869,7 @@ TARGET_ARCHITECTURE_MODEL_A
 | TARGET_ARCHITECTURE_MODEL_B
 | TARGET_ARCHITECTURE_MODEL_B_PLUS_C
 | TARGET_ARCHITECTURE_REFINED_EXISTING_OWNER_VARIANT
+| TARGET_ARCHITECTURE_MODEL_B_PLUS_C_POST_TOURNAMENT_REVALIDATED
 | MODEL_D_REQUIRES_MEASURED_GAP_ADMISSION
 ```
 

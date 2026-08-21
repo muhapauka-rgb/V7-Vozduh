@@ -26082,6 +26082,13 @@ APPROVED_DEPLOY_FILES = [
         "service": None,
     },
     {
+        "name": "v7-egress-diagnose",
+        "local_path": "tools/v7-egress-diagnose",
+        "remote_path": "/usr/local/bin/v7-egress-diagnose",
+        "mode": "0755",
+        "service": None,
+    },
+    {
         "name": "v7-mss-clamp-enable",
         "local_path": "tools/runtime-support/v7-mss-clamp-enable",
         "remote_path": "/usr/local/bin/v7-mss-clamp-enable",
@@ -26500,6 +26507,7 @@ RUNTIME_ENTRYPOINTS = (
     "tools/v7-intelligence-snapshot-refresh",
     "tools/v7-service-matrix-refresh-all",
     "tools/v7-service-matrix-test",
+    "tools/v7-egress-diagnose",
     "tools/v7-egress-quality-compact",
     "tools/v7-telegram-sentinel",
     "tools/v7-client-speed-api",

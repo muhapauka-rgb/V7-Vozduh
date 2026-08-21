@@ -12,6 +12,15 @@ SHADOW_TRIGGER_COOLDOWN_SEC="60"
 PROFILE_SERVICE_SUSPICION_COMMAND=""
 PROFILE_SERVICE_FAILURE_SAMPLES="2"
 PROFILE_SERVICE_COOLDOWN_SEC="60"
+PROFILE_CONTRACTS_FILE=""
+FAST_PRODUCER_ONLY="0"
+OUTPUT_EXPLICIT="0"
+PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES=""
+PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC=""
+PROFILE_SERVICE_OBSERVATION_COUNT=0
+PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=0
+PROFILE_SERVICE_CONTRACT_COUNT=0
+PROFILE_SERVICE_ACTIVE_SOURCE_COUNT=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -21,7 +30,12 @@ while [ "$#" -gt 0 ]; do
       ;;
     --output)
       OUT="$2"
+      OUTPUT_EXPLICIT="1"
       shift 2
+      ;;
+    --fast-producer-only)
+      FAST_PRODUCER_ONLY="1"
+      shift
       ;;
     --shadow-trigger-command)
       SHADOW_TRIGGER_COMMAND="$2"
@@ -57,6 +71,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --profile-service-cooldown-sec)
       PROFILE_SERVICE_COOLDOWN_SEC="$2"
+      shift 2
+      ;;
+    --profile-service-shadow-matrix-samples)
+      PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES="$2"
+      shift 2
+      ;;
+    --profile-service-shadow-matrix-window-sec)
+      PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC="$2"
       shift 2
       ;;
     *)
@@ -96,6 +118,22 @@ if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
     echo "profile service suspicion requires existing Matrix receiver" >&2
     exit 2
   fi
+fi
+
+if [ "$FAST_PRODUCER_ONLY" = "1" ] && { [ -z "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || [ "$OUTPUT_EXPLICIT" != "1" ]; }; then
+  echo "fast producer only requires profile suspicion command and explicit output" >&2
+  exit 2
+fi
+
+for profile_shadow_value in "$PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES" "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC"; do
+  case "$profile_shadow_value" in
+    '') ;;
+    *[!0-9]*) echo "invalid controlled Matrix persistence override" >&2; exit 2 ;;
+  esac
+done
+if { [ -n "$PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES" ] || [ -n "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC" ]; } && [ "$FAST_PRODUCER_ONLY" != "1" ]; then
+  echo "controlled Matrix persistence override requires --fast-producer-only" >&2
+  exit 2
 fi
 
 REG="${STATE_DIR}/egress.registry"
@@ -154,8 +192,8 @@ shadow_trigger_for_reason() {
     trigger_status="PASS"
     trigger_rc="0"
   else
-    trigger_status="FAILED"
     trigger_rc="$?"
+    trigger_status="FAILED"
   fi
   printf '%s_shadow_trigger_status=%s\n' "$id" "$trigger_status" >> "$TMP"
   printf '%s_shadow_trigger_class=%s\n' "$id" "$trigger_class" >> "$TMP"
@@ -164,15 +202,13 @@ shadow_trigger_for_reason() {
   printf '%s_shadow_trigger_rc=%s\n' "$id" "$trigger_rc" >> "$TMP"
 }
 
-profile_rows_for_source() {
-  source_id="$1"
-  python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" "$source_id" <<'PY'
+build_active_profile_contracts() {
+  python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-users_path, prefs_path, source = map(Path, sys.argv[1:])
-source = str(source)
+users_path, prefs_path = map(Path, sys.argv[1:])
 try:
     users_lines = users_path.read_text(encoding="utf-8", errors="replace").splitlines()
 except OSError:
@@ -184,7 +220,7 @@ except Exception:
 if not isinstance(prefs, dict):
     prefs = {}
 users_prefs = prefs.get("users") if isinstance(prefs.get("users"), dict) else {}
-rows = []
+active_sources = {}
 for line in users_lines:
     line = line.strip()
     if not line or line.startswith("#"):
@@ -194,31 +230,45 @@ for line in users_lines:
         if "=" in part:
             key, value = part.split("=", 1)
             fields[key.strip()] = value.strip()
-    if fields.get("current") != source or fields.get("enabled", "1").lower() in {"0", "false", "no"}:
+    source = str(fields.get("current") or "").strip()
+    if not source or fields.get("enabled", "1").lower() in {"0", "false", "no"}:
         continue
     identity = str(fields.get("ip") or "").strip()
-    row = users_prefs.get(identity) if identity else None
-    if not isinstance(row, dict):
-        continue
-    values = row.get("required_services") or row.get("services") or []
-    if isinstance(values, str):
-        values = [item.strip() for item in values.split(",") if item.strip()]
-    if not isinstance(values, list):
-        continue
-    services = sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"})
-    if services:
-        rows.append((identity, ",".join(services)))
-if not rows:
-    values = prefs.get("required_services") or []
-    if isinstance(values, str):
-        values = [item.strip() for item in values.split(",") if item.strip()]
-    if isinstance(values, list):
-        services = sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"})
+    active_sources.setdefault(source, set()).add(identity)
+
+global_values = prefs.get("required_services") or []
+if isinstance(global_values, str):
+    global_values = [item.strip() for item in global_values.split(",") if item.strip()]
+global_services = tuple(sorted({str(item).strip() for item in global_values if str(item).strip() and str(item).lower() != "all"})) if isinstance(global_values, list) else ()
+
+for source, identities in sorted(active_sources.items()):
+    contracts = {}
+    for identity in sorted(identities):
+        row = users_prefs.get(identity) if identity else None
+        if not isinstance(row, dict):
+            continue
+        values = row.get("required_services") or row.get("services") or []
+        if isinstance(values, str):
+            values = [item.strip() for item in values.split(",") if item.strip()]
+        if not isinstance(values, list):
+            continue
+        services = tuple(sorted({str(item).strip() for item in values if str(item).strip() and str(item).lower() != "all"}))
         if services:
-            rows.append(("__GLOBAL__", ",".join(services)))
-for identity, services in sorted(set(rows)):
-    print(f"{identity}\t{services}")
+            contracts.setdefault(services, set()).add(identity)
+    if not contracts and global_services:
+        contracts[global_services] = {"__GLOBAL__"}
+    for services, profiles in sorted(contracts.items()):
+        # The first canonical profile is only an anchor for the existing
+        # receiver.  The observation itself is deduplicated by source + exact
+        # service contract, never by user count.
+        print(f"{source}\t{sorted(profiles)[0]}\t{','.join(services)}\t{len(profiles)}")
 PY
+}
+
+profile_rows_for_source() {
+  source_id="$1"
+  [ -n "$PROFILE_CONTRACTS_FILE" ] && [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
+  awk -F '\t' -v source="$source_id" '$1 == source {print $2 "\t" $3}' "$PROFILE_CONTRACTS_FILE"
 }
 
 required_service_ids() {
@@ -368,7 +418,7 @@ EOF
   [ -n "$trigger_class" ] || return 0
   now_epoch="$(date +%s)"
   previous_epoch="$(previous_value "${state_key}_profile_trigger_epoch")"
-  if [ -n "$previous_epoch" ] && [ "$previous_epoch" -ge $((now_epoch - PROFILE_SERVICE_COOLDOWN_SEC)) ] 2>/dev/null; then
+  if [ "$PROFILE_SERVICE_COOLDOWN_SEC" -gt 0 ] 2>/dev/null && [ -n "$previous_epoch" ] && [ "$previous_epoch" -ge $((now_epoch - PROFILE_SERVICE_COOLDOWN_SEC)) ] 2>/dev/null; then
     printf '%s_profile_trigger_status=SUPPRESSED_COOLDOWN\n' "$state_key" >> "$TMP"
     printf '%s_profile_trigger_family=%s\n' "$state_key" "$producer_family" >> "$TMP"
     printf '%s_profile_trigger_class=%s\n' "$state_key" "$trigger_class" >> "$TMP"
@@ -382,6 +432,14 @@ EOF
   else
     trigger_service_args=(--shadow-trigger-profile-user "$profile_user")
   fi
+  trigger_persistence_args=()
+  if [ -n "$PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES" ]; then
+    trigger_persistence_args+=(--shadow-failure-persistence-samples "$PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES")
+  fi
+  if [ -n "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC" ]; then
+    trigger_persistence_args+=(--shadow-failure-persistence-window-seconds "$PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC")
+  fi
+  PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=$((PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT + 1))
   if "$SHADOW_TRIGGER_COMMAND" \
       --state-dir "$STATE_DIR" \
       --event-dir "$trigger_event_dir" \
@@ -390,12 +448,13 @@ EOF
       --shadow-trigger-source "$source_id" \
       --shadow-trigger-class "$trigger_class" \
       --shadow-trigger-id "$trigger_id" \
+      "${trigger_persistence_args[@]}" \
       --matrix-observation-only >/dev/null 2>&1; then
     trigger_status="PASS"
     trigger_rc="0"
   else
-    trigger_status="FAILED"
     trigger_rc="$?"
+    trigger_status="FAILED"
   fi
   printf '%s_profile_trigger_status=%s\n' "$state_key" "$trigger_status" >> "$TMP"
   printf '%s_profile_trigger_family=%s\n' "$state_key" "$producer_family" >> "$TMP"
@@ -426,6 +485,7 @@ profile_service_suspicion_for_source() {
   while IFS=$'\t' read -r profile_user services; do
     [ -n "$profile_user" ] || continue
     [ -n "$services" ] || continue
+    PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
     probe="$(run_profile_service_probe "$source_id" "$services")"
     IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services <<EOF
 $probe
@@ -438,6 +498,13 @@ EOF
   done <<EOF
 $rows
 EOF
+}
+
+write_fast_producer_telemetry() {
+  printf 'fast_producer_active_source_count=%s\n' "$PROFILE_SERVICE_ACTIVE_SOURCE_COUNT" >> "$TMP"
+  printf 'fast_producer_distinct_contract_count=%s\n' "$PROFILE_SERVICE_CONTRACT_COUNT" >> "$TMP"
+  printf 'fast_producer_observation_count=%s\n' "$PROFILE_SERVICE_OBSERVATION_COUNT" >> "$TMP"
+  printf 'fast_producer_receiver_invocation_count=%s\n' "$PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT" >> "$TMP"
 }
 
 get_field() {
@@ -588,9 +655,33 @@ diagnose_row() {
   printf '%s_diagnose_detail=%s\n' "$id" "$detail"
   } >> "$TMP"
   shadow_trigger_for_reason "$id" "$reason" "$severity"
-  if [ "$enabled" = "1" ] && [ "$severity" != "DISABLED" ] && interface_up "$iface"; then
-    profile_service_suspicion_for_source "$id"
-  fi
+}
+
+run_active_profile_suspicion_cycle() {
+  [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
+  [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
+  previous_source=""
+  while IFS=$'\t' read -r source_id _profile _services _profile_count; do
+    [ -n "$source_id" ] || continue
+    [ "$source_id" = "$previous_source" ] && continue
+    previous_source="$source_id"
+    registry_line="$(awk -v source="$source_id" '
+      {
+        for (i = 1; i <= NF; i++) {
+          split($i, pair, "=")
+          if (pair[1] == "id" && pair[2] == source) { print; exit }
+        }
+      }
+    ' "$REG")"
+    [ -n "$registry_line" ] || continue
+    iface="$(get_field interface "$registry_line")"
+    enabled="$(get_field enabled "$registry_line")"
+    enabled="${enabled:-1}"
+    [ "$enabled" = "1" ] || continue
+    [ -n "$iface" ] || continue
+    interface_up "$iface" || continue
+    profile_service_suspicion_for_source "$source_id"
+  done < "$PROFILE_CONTRACTS_FILE"
 }
 
 if [ ! -r "$REG" ]; then
@@ -598,8 +689,27 @@ if [ ! -r "$REG" ]; then
   exit 1
 fi
 
+if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
+  PROFILE_CONTRACTS_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-profile-contracts.XXXXXX")"
+  build_active_profile_contracts > "$PROFILE_CONTRACTS_FILE"
+  PROFILE_SERVICE_CONTRACT_COUNT="$(wc -l < "$PROFILE_CONTRACTS_FILE" | tr -d ' ')"
+  PROFILE_SERVICE_ACTIVE_SOURCE_COUNT="$(cut -f1 "$PROFILE_CONTRACTS_FILE" | uniq | wc -l | tr -d ' ')"
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"' EXIT
+fi
+
 : > "$TMP"
 echo "updated=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$TMP"
+
+if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
+  echo "fast_producer_mode=CONTROLLED_OBSERVATION_ONLY" >> "$TMP"
+  run_active_profile_suspicion_cycle
+  write_fast_producer_telemetry
+  mv "$TMP" "$OUT"
+  exit 0
+fi
+
+run_active_profile_suspicion_cycle
+write_fast_producer_telemetry
 
 while IFS= read -r line; do
   [ -z "$line" ] && continue

@@ -85,6 +85,39 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(payload["observation_only"]["downstream_consumer_invoked"])
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
 
+    def test_controlled_persistence_override_is_forwarded_with_the_existing_event_owner(self):
+        calls = []
+
+        def fake_run(*args, **kwargs):
+            calls.append((args, kwargs))
+            return SimpleNamespace(returncode=0, stdout='{"status":"OK"}')
+
+        with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+            result = self.refresh.run_one(
+                "wgfast", 3, "checker", Path("/state"), "google",
+                failure_persistence_samples=1,
+                failure_persistence_window_seconds=60,
+                event_dir=Path("/controlled-events"),
+            )
+
+        self.assertTrue(result["ok"])
+        command = calls[0][0][0]
+        self.assertIn("--failure-persistence-samples", command)
+        self.assertIn("--failure-persistence-window-seconds", command)
+        self.assertEqual(command[command.index("--event-dir") + 1], "/controlled-events")
+
+    def test_controlled_persistence_override_requires_shadow_observation_mode(self):
+        argv = [
+            str(REFRESH_TOOL), "--shadow-failure-persistence-samples", "1",
+        ]
+        output = io.StringIO()
+        with mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output):
+            self.assertEqual(self.refresh.main(), 2)
+        self.assertEqual(
+            json.loads(output.getvalue())["error"],
+            "shadow_persistence_override_requires_observation_only_shadow_trigger",
+        )
+
     def test_matrix_runtime_caller_passes_comparison_only_to_existing_advisory_owner(self):
         command = []
 

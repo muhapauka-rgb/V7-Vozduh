@@ -555,6 +555,74 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.assertIn("profile_trigger_class=STALE_OR_UNKNOWN_STATE", state_text)
             self.assertFalse(receiver_log.exists())
 
+    def test_fast_producer_deduplicates_users_by_source_and_exact_service_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgshared protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "users.registry").write_text(
+                "ip=profile-a current=wgshared enabled=1\n"
+                "ip=profile-b current=wgshared enabled=1\n"
+                "ip=profile-c current=wgshared enabled=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-preferences.json").write_text(json.dumps({
+                "users": {
+                    "profile-a": {"services": ["google", "telegram"]},
+                    "profile-b": {"services": ["telegram", "google"]},
+                    "profile-c": {"services": ["youtube"]},
+                },
+            }), encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"OK\",\"results\":{}}'\n")
+            self.write_command(bin_dir, "shadow-receiver", "exit 0\n")
+            output = root / "fast-observation.state"
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--output", str(output),
+                "--fast-producer-only",
+                "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--profile-service-failure-samples", "1",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            state_text = output.read_text(encoding="utf-8")
+            self.assertIn("fast_producer_active_source_count=1", state_text)
+            self.assertIn("fast_producer_distinct_contract_count=2", state_text)
+            self.assertIn("fast_producer_observation_count=2", state_text)
+            self.assertIn("fast_producer_receiver_invocation_count=0", state_text)
+
+    def test_fast_producer_requires_explicit_controlled_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.base_state(root, "id=wgfast protocol=wireguard interface=v7wg enabled=1\n")
+            proc = subprocess.run([
+                str(TOOL), "--state-dir", str(state), "--fast-producer-only",
+                "--profile-service-suspicion-command", "/bin/true",
+                "--shadow-trigger-command", "/bin/true",
+            ], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("requires profile suspicion command and explicit output", proc.stderr)
+
+    def test_failed_receiver_records_its_real_exit_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            state = self.base_state(root, "id=wgfail protocol=wireguard interface=v7wg enabled=1\n")
+            (state / "summary.state").write_text("wgfail_code=000\n", encoding="utf-8")
+            self.write_command(bin_dir, "ip", "echo '1: v7wg: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420'\n")
+            self.write_command(bin_dir, "wg", "exit 0\n")
+            self.write_command(bin_dir, "shadow-receiver", "exit 17\n")
+            out = self.run_tool(state, bin_dir, [
+                "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--shadow-trigger-egress", "wgfail", "--shadow-trigger-services", "google",
+            ])
+            self.assertIn("wgfail_shadow_trigger_status=FAILED", out)
+            self.assertIn("wgfail_shadow_trigger_rc=17", out)
+
 
 if __name__ == "__main__":
     unittest.main()

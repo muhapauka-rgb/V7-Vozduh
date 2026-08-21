@@ -465,6 +465,22 @@ separate non-FAST groups. This reclassification does not admit FAST, change
 cadence, or alter routes.
 This reclassification does not admit FAST, change cadence, or alter routes.
 
+The next bounded pre-deploy validation is recorded in
+`docs/reports/engineering/2026-08-21_183000_v5_3_fast_producer_scale_and_failure_to_t0_causal_validation.md`.
+It corrected producer scope to active user-serving source plus distinct exact
+service contract, eliminating O(users) probing and proving that the former
+1,000-row `131.709 s` result combined broad synthetic scope with serial
+execution. Its terminal is `PRE_DEPLOY_FAST_OPTIMIZATION_REQUIRED`: a genuinely
+1,000-active distinct-contract cohort still requires `80.357 s`, exceeding the
+30-second decision deadline, and the normal health lifecycle retains its serial
+broad diagnostic tail. The same validation established that two producer
+observations plus Matrix's existing universal 180-second persistence duplicate
+failure-confirmation latency; the owner-backed alternative remains a
+controlled-observation candidate only, with recovery and canonical production
+defaults unchanged. The exact next stage is an existing-owner bounded active
+cohort execution design and 7/50/100/1000 Polygon tournament. No controlled
+deploy or automatic FAST admission is permitted before that terminal passes.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

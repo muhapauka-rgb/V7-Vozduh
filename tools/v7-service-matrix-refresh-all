@@ -2928,11 +2928,20 @@ def run_one(
     checker: str,
     state_dir: Path,
     services: str = "",
+    failure_persistence_samples: int = 0,
+    failure_persistence_window_seconds: int = 0,
+    event_dir: Optional[Path] = None,
 ) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
     if str(services or "").strip():
         cmd.extend(["--services", str(services).strip()])
+    if int(failure_persistence_samples or 0) > 0:
+        cmd.extend(["--failure-persistence-samples", str(int(failure_persistence_samples))])
+    if int(failure_persistence_window_seconds or 0) > 0:
+        cmd.extend(["--failure-persistence-window-seconds", str(int(failure_persistence_window_seconds))])
+    if event_dir is not None:
+        cmd.extend(["--event-dir", str(event_dir)])
     try:
         proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False, timeout=timeout * 14)
     except subprocess.TimeoutExpired as exc:
@@ -4304,6 +4313,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--shadow-failure-persistence-samples",
+        type=int,
+        default=0,
+        help="Controlled observation-only override for Matrix failure samples; never changes the production default.",
+    )
+    parser.add_argument(
+        "--shadow-failure-persistence-window-seconds",
+        type=int,
+        default=0,
+        help="Controlled observation-only override for Matrix failure window; never changes the production default.",
+    )
+    parser.add_argument(
         "--event-provenance",
         choices=("OPERATOR_INDUCED", "OBSERVED_EXTERNAL_UNATTRIBUTED"),
         default="",
@@ -4366,6 +4387,15 @@ def main() -> int:
         )
     )
     shadow_trigger: dict[str, Any] = {}
+    shadow_persistence_samples = max(0, int(args.shadow_failure_persistence_samples or 0))
+    shadow_persistence_window = max(0, int(args.shadow_failure_persistence_window_seconds or 0))
+    if (shadow_persistence_samples or shadow_persistence_window) and (
+        not args.matrix_observation_only or not shadow_trigger_requested
+    ):
+        print(json.dumps({
+            "error": "shadow_persistence_override_requires_observation_only_shadow_trigger",
+        }, ensure_ascii=False))
+        return 2
     if shadow_trigger_requested:
         trigger_source = str(args.shadow_trigger_source or "").strip()
         trigger_class = str(args.shadow_trigger_class or "").strip()
@@ -4401,6 +4431,11 @@ def main() -> int:
             services=trigger_services,
             profile_user=profile_user,
         )
+        shadow_trigger["controlled_persistence_override"] = {
+            "samples": shadow_persistence_samples or 3,
+            "window_seconds": shadow_persistence_window or 180,
+            "production_default_changed": False,
+        }
     # Probes are read/network work.  They must not hold the shared Matrix
     # writer lock; every existing ``v7-service-matrix-test`` invocation takes
     # that lock only for its own atomic durable update.  This preserves writer
@@ -4410,6 +4445,9 @@ def main() -> int:
         run_one(
             row["id"], max(3, min(int(args.timeout), 30)), args.checker,
             state_dir, service_subset,
+            shadow_persistence_samples,
+            shadow_persistence_window,
+            event_dir=Path(args.event_dir),
         )
         for row in rows
     ])

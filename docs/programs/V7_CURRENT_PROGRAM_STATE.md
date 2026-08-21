@@ -41,7 +41,7 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Execute the existing V5.3 bottleneck-to-mature-system synthesis, then form candidates and run the common Polygon/scale tournament before any architecture decision; preserve Runtime-unknown facts.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Build the shared Polygon candidate failure-matrix input for the ordinary-failure T0–T11 path; run it for A/B/C candidates before any architecture decision and preserve Runtime-unknown facts.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
 | `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2` |
 | `CURRENT_TRANSITION_ID` | `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` |
@@ -656,6 +656,7 @@ This section is the single live volatile current-state surface. Older production
 | `V5_3_SYSTEM_LEVEL_DECISION_REPORT_SHA256` | `ab9e7c037471d8e1352dcdb7e5f67189f5c582563a8a63b3404465524488df06` |
 | `V5_3_ARCHITECTURE_REORDERING_REPORT` | `docs/reports/engineering/2026-08-21_095441_v5_3_program_reordering_and_architecture_revalidation.md` |
 | `V5_3_CONCRETE_MISSION_PLAN_REPORT` | `docs/reports/engineering/2026-08-21_095941_v5_3_concrete_mission_plan_integrated.md` |
+| `V5_3_BOTTLENECK_PATTERN_SYNTHESIS_REPORT` | `docs/reports/engineering/2026-08-21_100109_v5_3_bottleneck_to_mature_pattern_synthesis.md` |
 | `V5_3_PHASE_G_CROSS_EGRESS_PARALLELISM` | `NO_CROSS_EGRESS_PARALLELISM_ADMITTED` |
 | `V5_3_PHASE_G_IMPLEMENTATION_STATUS` | `REJECTED_NO_RUNTIME_ADMISSION` |
 | `V5_3_PHASE_G_REPORT` | `docs/reports/engineering/2026-08-20_233000_v5_3_phase_g_cross_egress_polygon_measurement.md` |
@@ -805,7 +806,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2`; `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` | existing opt-in selectors retained; measured bottlenecks reopen architecture comparison; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | bottleneck-to-pattern synthesis -> candidate set -> Polygon/scale tournament -> weighted architecture decision -> explicit FAST consumer eligibility or retained full fallback |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PHASE_G_TO_T0_T11_4043DD01CDF2`; `V5_3_PHASE_G_NO_PARALLELISM_CONSUMED_TO_T0_T11_V1` | bottleneck-to-pattern synthesis consumed; existing opt-in selectors retained; automatic role consumer held | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | shared candidate failure matrix -> ordinary T0–T11 Polygon path -> scale tournament -> weighted architecture decision -> explicit FAST consumer eligibility or retained full fallback |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

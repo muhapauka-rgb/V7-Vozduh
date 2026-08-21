@@ -410,11 +410,14 @@ fallback preservation, residual classification and CPS/OMP consumption are all
 proven, with an exact successor or lawful terminal.
 
 Current position in this plan: **Stage A baseline/provenance is bounded and
-Stage B bottleneck-to-pattern synthesis is the active Engineering block**.
-Stage C ordinary-failure execution starts after the candidate set and common
-Polygon/scale tournament inputs are ready. This ordering keeps the work on the
-switching-time objective and prevents a historical architecture decision from
-becoming confirmation bias.
+Stage B bottleneck-to-pattern synthesis is consumed as an Engineering input**.
+Its durable output is
+`docs/reports/engineering/2026-08-21_100109_v5_3_bottleneck_to_mature_pattern_synthesis.md`.
+The next active block is Stage C: build the shared candidate failure-matrix
+input for the ordinary-failure T0–T11 path, then continue to the common
+Polygon/scale tournament before any architecture decision. This ordering keeps
+the work on the switching-time objective and prevents a historical
+architecture decision from becoming confirmation bias.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series

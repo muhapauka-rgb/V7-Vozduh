@@ -126,7 +126,11 @@ class HealthLoop:
                 f"phase={phase} planned_start_ns={planned_start_ns} actual_start_ns={actual_start_ns} finish_ns={finish_ns} "
                 f"phase_start_jitter_ms={jitter_ms} start_to_start_ms={start_to_start_ms} "
                 f"pass_duration_ms={elapsed_ms(actual_start_ns, finish_ns)} deadline_overrun_ms={overrun_ms} "
-                f"deadline_miss={int(jitter_ms > 0)} fast_rc={fast_rc}",
+                # A host can wake a few milliseconds after an absolute sleep
+                # deadline without losing a phase.  Reserve deadline_miss for
+                # an actual phase overrun; preserve the raw wake fact
+                # separately for Runtime diagnostics.
+                f"schedule_wake_late={int(jitter_ms > 0)} deadline_miss={int(overrun_ms > 0)} fast_rc={fast_rc}",
                 flush=True,
             )
             previous_actual_start_ns = actual_start_ns

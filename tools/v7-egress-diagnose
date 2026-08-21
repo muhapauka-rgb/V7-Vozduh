@@ -224,6 +224,7 @@ shadow_trigger_for_reason() {
 
 build_active_profile_contracts() {
   python3 - "$STATE_DIR/users.registry" "$STATE_DIR/service-preferences.json" "$REG" <<'PY'
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -299,7 +300,11 @@ for source, identities in sorted(active_sources.items()):
         # receiver.  The observation itself is deduplicated by source + exact
         # service contract, never by user count.
         interface, enabled = registry.get(source, ("", "0"))
-        print(f"{source}\t{sorted(profiles)[0]}\t{','.join(services)}\t{len(profiles)}\t{interface}\t{enabled}")
+        profile = sorted(profiles)[0]
+        # Precompute the existing per-profile state key in this single source
+        # parse.  Parallel workers must not spawn one hashing process each.
+        key_hash = hashlib.sha256(f"{source}|{profile}".encode("utf-8")).hexdigest()[:16]
+        print(f"{source}\t{profile}\t{','.join(services)}\t{len(profiles)}\t{interface}\t{enabled}\t{source}_profile_{key_hash}")
 PY
 }
 
@@ -402,8 +407,11 @@ profile_service_trigger() {
   degraded_services="$6"
   failed_services="$7"
   unknown_services="$8"
-  key_hash="$(printf '%s' "${source_id}|${profile_user}" | shasum -a 256 | awk '{print substr($1,1,16)}')"
-  state_key="${source_id}_profile_${key_hash}"
+  state_key="${9:-}"
+  if [ -z "$state_key" ]; then
+    key_hash="$(printf '%s' "${source_id}|${profile_user}" | shasum -a 256 | awk '{print substr($1,1,16)}')"
+    state_key="${source_id}_profile_${key_hash}"
+  fi
   previous_count="$(previous_value "${state_key}_profile_failure_count")"
   previous_count="${previous_count:-0}"
   if [ "$failure_count" -gt 0 ] 2>/dev/null; then
@@ -514,8 +522,9 @@ dns_suspicion_producer() {
   degraded_services="$6"
   failed_services="$7"
   unknown_services="$8"
+  state_key="${9:-}"
   [ -n "$dns_services" ] || return 0
-  profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+  profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"
 }
 
 profile_service_suspicion_for_source() {
@@ -542,6 +551,7 @@ process_profile_service_probe() {
   profile_user="$2"
   services="$3"
   probe="$4"
+  state_key="${5:-}"
   IFS='|' read -r probe_status failure_count dns_services degraded_services failed_services unknown_services completion_ns <<EOF
 $probe
 EOF
@@ -550,9 +560,9 @@ EOF
     FAST_PRODUCER_COMPLETION_MS+=("$completion_ms")
   fi
   if [ -n "$dns_services" ]; then
-    dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+    dns_suspicion_producer "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"
   else
-    profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services"
+    profile_service_trigger "$source_id" "$profile_user" "$services" "$failure_count" "$dns_services" "$degraded_services" "$failed_services" "$unknown_services" "$state_key"
   fi
 }
 
@@ -740,7 +750,7 @@ build_ready_fast_contract_workset() {
   source_ready="0"
   last_checked_iface=""
   last_checked_iface_ready="0"
-  while IFS=$'\t' read -r source_id profile_user services _profile_count iface enabled; do
+  while IFS=$'\t' read -r source_id profile_user services _profile_count iface enabled state_key; do
     [ -n "$source_id" ] || continue
     if [ "$source_id" != "$previous_source" ]; then
       previous_source="$source_id"
@@ -760,7 +770,7 @@ build_ready_fast_contract_workset() {
       fi
     fi
     [ "$source_ready" = "1" ] || continue
-    printf '%s\t%s\t%s\n' "$source_id" "$profile_user" "$services"
+    printf '%s\t%s\t%s\t%s\n' "$source_id" "$profile_user" "$services" "$state_key"
   done < "$PROFILE_CONTRACTS_FILE"
 }
 
@@ -773,13 +783,15 @@ run_parallel_active_profile_suspicion_cycle() {
   work_sources=()
   work_profiles=()
   work_services=()
-  while IFS=$'\t' read -r source_id profile_user services; do
+  work_state_keys=()
+  while IFS=$'\t' read -r source_id profile_user services state_key; do
     [ -n "$source_id" ] || continue
     [ -n "$profile_user" ] || continue
     [ -n "$services" ] || continue
     work_sources+=("$source_id")
     work_profiles+=("$profile_user")
     work_services+=("$services")
+    work_state_keys+=("$state_key")
   done < "$work_file"
 
   total="${#work_sources[@]}"
@@ -791,7 +803,7 @@ run_parallel_active_profile_suspicion_cycle() {
   while [ "$next_index" -lt "$total" ] || [ "$inflight" -gt 0 ]; do
     while [ "$next_index" -lt "$total" ] && [ "$inflight" -lt "$FAST_PRODUCER_CONCURRENCY" ]; do
       slot="$next_index"
-      printf '%s\t%s\t%s\n' "${work_sources[$slot]}" "${work_profiles[$slot]}" "${work_services[$slot]}" > "$work_dir/$slot.meta"
+      printf '%s\t%s\t%s\t%s\n' "${work_sources[$slot]}" "${work_profiles[$slot]}" "${work_services[$slot]}" "${work_state_keys[$slot]}" > "$work_dir/$slot.meta"
       (
         run_profile_service_probe "${work_sources[$slot]}" "${work_services[$slot]}" > "$work_dir/$slot.result"
         touch "$work_dir/$slot.done"
@@ -810,11 +822,11 @@ run_parallel_active_profile_suspicion_cycle() {
       [ -n "${probe_pids[$slot]:-}" ] || continue
       [ -f "$work_dir/$slot.done" ] || continue
       wait "${probe_pids[$slot]}" || true
-      IFS=$'\t' read -r source_id profile_user services < "$work_dir/$slot.meta"
+      IFS=$'\t' read -r source_id profile_user services state_key < "$work_dir/$slot.meta"
       probe="$(cat "$work_dir/$slot.result")"
       # Only this parent processes trigger/state consequences.  Probe workers
       # are read-only and cannot race the canonical writer or incident state.
-      process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe"
+      process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe" "$state_key"
       unset 'probe_pids[$slot]'
       inflight=$((inflight - 1))
       completed=$((completed + 1))
@@ -838,7 +850,7 @@ run_active_profile_suspicion_cycle() {
   previous_source=""
   last_checked_iface=""
   last_checked_iface_ready="0"
-  while IFS=$'\t' read -r source_id _profile _services _profile_count iface enabled; do
+  while IFS=$'\t' read -r source_id _profile _services _profile_count iface enabled _state_key; do
     [ -n "$source_id" ] || continue
     [ "$source_id" = "$previous_source" ] && continue
     previous_source="$source_id"

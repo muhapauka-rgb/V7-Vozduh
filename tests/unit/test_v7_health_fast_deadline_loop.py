@@ -81,6 +81,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         rows = phase_rows(output)
         self.assertEqual(trace_rows, ["start", "end", "start", "end", "start", "end"])
         self.assertTrue(all(row["deadline_overrun_ms"] > 0 for row in rows), output)
+        self.assertTrue(all(row["deadline_miss"] == 1 for row in rows), output)
         # Consecutive starts happen after the one previous phase finishes, not
         # together and not after a completion-plus-new-interval drift. Startup
         # cost differs materially across supported hosts, so assert the actual

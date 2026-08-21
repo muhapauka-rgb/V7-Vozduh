@@ -504,12 +504,17 @@ remaining phase budget and is synchronously deferred if it would cross the
 next deadline.  There is no new scheduler, timer, owner, queue, writer or
 state surface; C8 remains controlled-only and Full fallback, Matrix writer
 serialization, production persistence and conservative recovery are unchanged.
-The source/Polygon lifecycle tests pass, but the full controlled C8
-`Failure -> T0 -> T11` chain is still unmeasured.  The terminal is now
-`FAST_HEALTH_LIFECYCLE_OPTIMIZATION_REQUIRED_WITH_EXACT_RESIDUAL`: run the
-accepted 1,000-contract C8 fixture for three deadline-isolated phases and
-connect two fresh same-scope failures to the existing controlled Matrix/T0-T11
-fixture.  No deploy or automatic FAST admission is allowed before that evidence.
+The source/Polygon lifecycle tests pass.  The accepted three-phase C8 result
+is recorded in
+`docs/reports/engineering/2026-08-22_004129_v5_3_c8_three_phase_deadline_polygon.md`:
+all 1,000-contract phases completed in `19.441/22.324/22.030 s`, below the
+30-second deadline, with `max_inflight=8`, no receiver invocation and no
+retained process.  The one minimal hot-path repair precomputes the existing
+per-profile state key during canonical input parsing; no decision or ownership
+boundary changed.  The exact remaining evidence is now the existing controlled
+`two fresh same-scope failures -> Matrix -> T0 -> T11` synthetic fixture.
+Automatic FAST, deploy and ordinary-client movement remain held until that
+boundary is proven.
 
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series

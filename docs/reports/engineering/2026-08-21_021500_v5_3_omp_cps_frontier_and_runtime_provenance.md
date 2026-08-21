@@ -127,6 +127,16 @@ runtime snapshot сами требуют согласованной revalidation
 
 Временная рабочая директория удалена; production и основная ветка не менялись.
 
+Отдельная проверка Matrix binaries сняла кодовой drift:
+
+- `v7-service-matrix-refresh-all`: локально и production
+  `6a23f6369b919d25ab16c85f33b600a518f2c06b2f69c14739f43fcece021936`;
+- `v7-service-matrix-test`: локально и production
+  `398e4c1c6ad5c3d3cf0d99d3f56ffd5ce987e189285e2e841a07f7c9d8dd5801`.
+
+Следовательно, текущий blocker относится к governance/runtime snapshot
+provenance, а не к реализации Matrix или short/full caller.
+
 ## Текущая позиция Mission
 
 T0–T11 timing, fresh Matrix revalidation и one-client synthetic T10–T11 уже

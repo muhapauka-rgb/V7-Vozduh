@@ -19042,6 +19042,7 @@ def controlled_campaign_target_selection_diagnostic(
         if bool_value(row.get("enabled", "1"))
     ]
     matrix = read_json(Path(args.state_dir) / "service-matrix.json", {})
+    diagnose = read_flat_state(Path(args.state_dir) / "egress-diagnose.state")
     matrix_updated = str(matrix.get("updated") or "")
     quality = read_json(Path(args.quality_summary_file), {})
     quality_items = (
@@ -19083,7 +19084,8 @@ def controlled_campaign_target_selection_diagnostic(
         ordinary_users = len(target_assignments) - certification_users
         baseline = controlled_certification_source_health_status(
             Path(args.state_dir),
-            target_id,
+            target_id, matrix=matrix, diagnose=diagnose,
+            egress_rows=registry_rows,
         )
         candidate = planner._candidate(
             representative,

@@ -215,6 +215,15 @@ uses the same binary and the same target owner; no watcher, cache, state,
 owner, policy or mutation path is introduced.  Local focused tests remain
 green.  This is the final bounded-read repair before the live selection retry.
 
+**Target-owner repeated-read repair (2026-08-23).**  A direct memory
+measurement isolated the remaining pressure inside the existing target
+diagnostic itself: it repeatedly re-read Matrix, diagnosis and the egress
+registry while evaluating each target.  It now reuses one current snapshot
+through its existing health projection, exactly as the controlled-pool path
+does.  The target-ranking regression, VLESS-stage-one selection regression and
+pool snapshot regression pass.  This changes only local read reuse; ranking,
+policy coverage, target eligibility and all execution fences are unchanged.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

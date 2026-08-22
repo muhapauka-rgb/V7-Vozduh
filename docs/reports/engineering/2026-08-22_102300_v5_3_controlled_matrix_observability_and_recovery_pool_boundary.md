@@ -204,6 +204,17 @@ focused tests pass.  Next: deploy and rerun the still-fresh VLESS selection,
 then construct the one-way Packet/lease recovery consumer only after that
 selection is observed live.
 
+**Sequential existing-owner read (2026-08-23).**  The live target diagnostic
+alone is valid but peaks near 134 MiB.  Even after duplicate views were
+released, invoking it in the same process as VLESS selection could retain the
+Python allocator's earlier heap and trigger the Runtime memory guard.  The
+CLI now obtains that existing target diagnostic in one short-lived child
+invocation before the VLESS source projection begins, passes back only its
+compact JSON result, and then performs the exact source binding.  The child
+uses the same binary and the same target owner; no watcher, cache, state,
+owner, policy or mutation path is introduced.  Local focused tests remain
+green.  This is the final bounded-read repair before the live selection retry.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

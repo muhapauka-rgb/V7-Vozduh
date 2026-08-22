@@ -24057,6 +24057,8 @@ def routing_core_certification_execute_only(args: argparse.Namespace) -> dict[st
 
 def ct_m0f_standing_source_selection_only(
     args: argparse.Namespace,
+    *,
+    precomputed_target_diagnostic: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Select one current source through the existing controlled-pool owner.
 
@@ -24368,7 +24370,13 @@ def ct_m0f_standing_source_selection_only(
     # Target admission is expensive and cannot make an unbound source or an
     # ambiguous identity executable.  Defer it until the existing L3/source
     # gates have selected an exact one-user predecessor below.
-    target_diagnostic = {"targets": [], "selection": {}}
+    target_diagnostic_precomputed = isinstance(
+        precomputed_target_diagnostic, dict,
+    )
+    target_diagnostic = (
+        dict(precomputed_target_diagnostic)
+        if target_diagnostic_precomputed else {"targets": [], "selection": {}}
+    )
     shared_targets = []
     controlled_contract_targets = []
     matrix_failure_shared_targets = []
@@ -24457,7 +24465,8 @@ def ct_m0f_standing_source_selection_only(
         del egress_rows
         del binding_evidence_cache
         gc.collect()
-        target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
+        if not target_diagnostic_precomputed:
+            target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
         diagnostic_selected_target = str(
             (target_diagnostic.get("selection") or {}).get("selected_target_id")
             or ""
@@ -24813,12 +24822,75 @@ def ct_m0f_standing_source_selection_only(
     return projection
 
 
+def ct_m0f_target_diagnostic_subprocess(
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    """Read the existing target owner in a short-lived process.
+
+    The one-user VLESS selector and the target owner each legitimately need a
+    broad read-only inventory.  Keeping both Python heaps resident is not a
+    policy requirement and can exceed the Runtime envelope.  A child process
+    preserves the exact existing diagnostic and returns only its already
+    compact JSON projection; it does not create a daemon, cache, owner or
+    mutation path.
+    """
+    command = [
+        sys.argv[0],
+        "--state-dir", str(args.state_dir),
+        "--event-dir", str(args.event_dir),
+        "--policy-file", str(args.policy_file),
+        "--org-policy-file", str(args.org_policy_file),
+        "--quality-summary-file", str(args.quality_summary_file),
+        "--intelligence-snapshot-root", str(args.intelligence_snapshot_root),
+        "--safety-file", str(args.safety_file),
+        "--load-summary-file", str(args.load_summary_file),
+        "--restore-barrier-file", str(args.restore_barrier_file),
+        "--egress-drafts-dir", str(args.egress_drafts_dir),
+        "--action-class-audit-store", str(args.action_class_audit_store),
+        "--controlled-target-selection-diagnostic",
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "targets": [], "selection": {},
+            "preflight_error": f"target_diagnostic_subprocess:{exc}",
+        }
+    try:
+        result = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        result = {}
+    if not isinstance(result, dict):
+        result = {}
+    if not result:
+        return {
+            "targets": [], "selection": {},
+            "preflight_error": (
+                "target_diagnostic_subprocess_invalid_output:"
+                f"rc={proc.returncode}"
+            ),
+        }
+    return result
+
+
 def main() -> int:
     main_entered_ns = time.monotonic_ns()
     usage_before = resource.getrusage(resource.RUSAGE_SELF)
     args = build_arg_parser().parse_args()
     if args.ct_m0f_standing_source_selection:
-        result = ct_m0f_standing_source_selection_only(args)
+        result = ct_m0f_standing_source_selection_only(
+            args,
+            precomputed_target_diagnostic=ct_m0f_target_diagnostic_subprocess(
+                args,
+            ),
+        )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("ok") else 2
     if args.prepare_controlled_source_topology_authority_request:

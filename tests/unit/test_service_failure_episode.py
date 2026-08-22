@@ -979,6 +979,34 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["blockers"],
         )
 
+    def test_controlled_pool_reuses_one_matrix_snapshot_for_all_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "users.registry").write_text("", encoding="utf-8")
+            (state / "egress.registry").write_text(
+                "id=one enabled=1 controlled_certification_source=1\n"
+                "id=two enabled=1 controlled_certification_source=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(
+                json.dumps({"items": {}, "updated": "2020-01-01T00:00:00+00:00"}),
+                encoding="utf-8",
+            )
+            (state / "egress-diagnose.state").write_text("", encoding="utf-8")
+            original = self.autoswitch.controlled_certification_source_health_status
+            with mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_source_health_status",
+                wraps=original,
+            ) as health:
+                self.autoswitch.controlled_certification_pool_status(state)
+
+        self.assertGreaterEqual(health.call_count, 2)
+        for call in health.call_args_list:
+            self.assertIsInstance(call.kwargs.get("matrix"), dict)
+            self.assertIsInstance(call.kwargs.get("diagnose"), dict)
+            self.assertIsInstance(call.kwargs.get("egress_rows"), list)
+
     def test_ct_m0f_binding_reuses_ephemeral_current_owner_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

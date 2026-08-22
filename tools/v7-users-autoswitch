@@ -1149,6 +1149,10 @@ def read_flat_state(path: Path) -> dict[str, str]:
 def controlled_certification_source_health_status(
     state_dir: Path,
     source_id: str,
+    *,
+    matrix: Optional[dict[str, Any]] = None,
+    diagnose: Optional[dict[str, str]] = None,
+    egress_rows: Optional[list[dict[str, str]]] = None,
 ) -> dict[str, Any]:
     """Project a compact, fail-closed baseline from the existing Matrix owner.
 
@@ -1159,7 +1163,7 @@ def controlled_certification_source_health_status(
     """
     state_dir = Path(state_dir)
     matrix_path = state_dir / "service-matrix.json"
-    matrix = read_json(matrix_path, {})
+    matrix = matrix if isinstance(matrix, dict) else read_json(matrix_path, {})
     items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
     row = items.get(str(source_id or ""))
     row = row if isinstance(row, dict) else {}
@@ -1201,7 +1205,10 @@ def controlled_certification_source_health_status(
     else:
         status = "PASS_HEALTHY_BASELINE"
 
-    diagnose = read_flat_state(state_dir / "egress-diagnose.state")
+    diagnose = (
+        diagnose if isinstance(diagnose, dict)
+        else read_flat_state(state_dir / "egress-diagnose.state")
+    )
     diagnostic_reason = str(
         diagnose.get(f"{source_id}_diagnose_reason") or "NOT_OBSERVED"
     )
@@ -1211,8 +1218,12 @@ def controlled_certification_source_health_status(
     diagnostic_detail = str(
         diagnose.get(f"{source_id}_diagnose_detail") or ""
     )
+    source_rows = (
+        egress_rows if isinstance(egress_rows, list)
+        else parse_registry(state_dir / "egress.registry")
+    )
     source_row = next((
-        value for value in parse_registry(state_dir / "egress.registry")
+        value for value in source_rows
         if str(value.get("id") or "") == str(source_id or "")
     ), {})
     config_path = Path(
@@ -1309,6 +1320,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
     egress_path = state_dir / "egress.registry"
     users = parse_registry(users_path)
     egress = parse_registry(egress_path)
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    diagnose = read_flat_state(state_dir / "egress-diagnose.state")
     enabled_certification_users = [
         row for row in users
         if bool_value(row.get("certification_user"))
@@ -1328,7 +1341,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
     for source in sorted(active_sources, key=lambda row: str(row.get("id") or "")):
         source_id = str(source.get("id") or "")
         baseline_health = controlled_certification_source_health_status(
-            state_dir, source_id,
+            state_dir, source_id, matrix=matrix, diagnose=diagnose,
+            egress_rows=egress,
         )
         source_group = str(source.get("certification_group") or "")
         assigned = [
@@ -1403,7 +1417,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         )
         if source_id and execution_only_contract:
             baseline_health = controlled_certification_source_health_status(
-                state_dir, source_id,
+                state_dir, source_id, matrix=matrix, diagnose=diagnose,
+                egress_rows=egress,
             )
             execution_only_controlled_target_candidates.append({
                 "source_id": source_id,
@@ -1434,7 +1449,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
         ):
             continue
         baseline_health = controlled_certification_source_health_status(
-            state_dir, source_id,
+            state_dir, source_id, matrix=matrix, diagnose=diagnose,
+            egress_rows=egress,
         )
         isolated_source_candidates.append({
             "source_id": source_id,

@@ -173,6 +173,22 @@ stage-one allocation tests pass, and the existing Polygon suites pass 11/11
 (timings by probe cap: 1=0.849 s, 2=0.838 s, 4=0.747 s).  No client, route,
 Matrix cadence or policy was changed by this correction.
 
+**Live VLESS revalidation and bounded-read repair (2026-08-23).**  A new
+existing-owner Matrix refresh for `vless` completed with `WARN`: 13 of 14
+services failed, the current event is `CERTIFICATION_ONLY`, and its scope is
+11 certification identities with zero ordinary identities.  The ensuing
+read-only selection was still killed before output, despite the L3/topology
+fallback being removed.  The exact remaining cause was the pre-existing pool
+projection repeatedly re-reading the same large Matrix and diagnostic state
+for every registered source.  The pool owner now reads each of those canonical
+files once and supplies that same immutable snapshot to its existing per-source
+health projection.  It creates no cache, state, registry or owner; it only
+removes repeated local parsing within one read-only invocation.  Four focused
+tests pass, including the proof that all source-health projections receive the
+same supplied Matrix, diagnosis and registry snapshot.  The next action is to
+deploy this bounded-read repair and rerun the fresh VLESS selection.  No
+identity has moved and no route has changed.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

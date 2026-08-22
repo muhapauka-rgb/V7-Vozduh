@@ -9,6 +9,7 @@ set of safe moves through the existing v7-user-switch command.
 
 import argparse
 import copy
+import gc
 import fcntl
 import fnmatch
 import hashlib
@@ -1313,7 +1314,11 @@ def controlled_certification_source_health_status(
     }
 
 
-def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
+def controlled_certification_pool_status(
+    state_dir: Path,
+    *,
+    include_candidate_inventory: bool = True,
+) -> dict[str, Any]:
     """Project the existing certification pool without exposing identities."""
     state_dir = Path(state_dir)
     users_path = state_dir / "users.registry"
@@ -1398,6 +1403,8 @@ def controlled_certification_pool_status(state_dir: Path) -> dict[str, Any]:
     isolated_source_candidates = []
     execution_only_controlled_target_candidates = []
     for source in sorted(egress, key=lambda row: str(row.get("id") or "")):
+        if not include_candidate_inventory:
+            break
         source_id = str(source.get("id") or "")
         execution_only_contract = (
             bool_value(source.get("enabled", "1"))
@@ -23309,7 +23316,9 @@ def controlled_certification_substrate_authority_request_only(
             audit_store
         ),
     )
-    pool = controlled_certification_pool_status(Path(args.state_dir))
+    pool = controlled_certification_pool_status(
+        Path(args.state_dir), include_candidate_inventory=False,
+    )
     sources = [
         row for row in (pool.get("active_source_projections") or [])
         if (
@@ -24073,6 +24082,11 @@ def ct_m0f_standing_source_selection_only(
             and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
         )
     ]
+    # This selector needs only the active controlled-source projection.  Do
+    # not retain the broad campaign inventory while later invoking the
+    # existing target diagnostic: that diagnostic owns its own complete
+    # inventory and retaining both can exceed the Runtime memory envelope.
+    del pool
     projected_source_ids = {
         str(row.get("source_id") or "") for row in projections
     }
@@ -24434,6 +24448,15 @@ def ct_m0f_standing_source_selection_only(
         selected_target_projection = baseline
     selected_user = str(selected_user_row.get("ip") or "")
     if selected_source and selected_user and policy_file is not None:
+        # All subsequent source facts are scalar/fingerprinted in ``selected``
+        # and ``active_service_failure_binding``.  Release the read-only
+        # registry snapshots before asking the existing target owner for its
+        # own full projection.  This changes neither source selection nor any
+        # persisted state; it merely prevents simultaneous duplicate views.
+        del users
+        del egress_rows
+        del binding_evidence_cache
+        gc.collect()
         target_diagnostic = controlled_campaign_target_selection_diagnostic(args)
         diagnostic_selected_target = str(
             (target_diagnostic.get("selection") or {}).get("selected_target_id")

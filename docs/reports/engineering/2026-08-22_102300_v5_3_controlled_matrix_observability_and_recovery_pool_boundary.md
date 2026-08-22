@@ -189,6 +189,21 @@ same supplied Matrix, diagnosis and registry snapshot.  The next action is to
 deploy this bounded-read repair and rerun the fresh VLESS selection.  No
 identity has moved and no route has changed.
 
+**Second bounded-memory repair (2026-08-23).**  The single-snapshot repair
+reduced repeated parsing, but a Runtime selector still exceeded its memory
+envelope when it retained the broad controlled-campaign inventory while the
+existing target owner built its own full reserve projection.  The selector
+only needs active controlled-source projections at that point; candidate
+inventory is not an input to the VLESS failure decision.  It now requests the
+same existing pool owner in compact-source mode, retains only the scalar and
+fingerprinted selected facts, then releases its duplicate read-only registry
+views before calling the existing target diagnostic.  The target diagnostic,
+policy gate, Matrix binding and output contract remain unchanged.  This is
+again a memory-lifetime repair, not a new cache or owner.  The same four
+focused tests pass.  Next: deploy and rerun the still-fresh VLESS selection,
+then construct the one-way Packet/lease recovery consumer only after that
+selection is observed live.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

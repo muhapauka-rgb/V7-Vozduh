@@ -3059,13 +3059,50 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
     if not matrix_failed:
         blockers.append("matrix_source_not_currently_failed")
 
-    event_rows = cache.get("service_failure_events")
-    if not isinstance(event_rows, list):
-        event_rows = read_jsonl(Path(event_dir) / "service-failure-events.jsonl")
-        cache["service_failure_events"] = event_rows
     event_match: dict[str, Any] = {}
     now = datetime.now(timezone.utc)
-    for event in reversed(event_rows):
+    event_path = Path(event_dir) / "service-failure-events.jsonl"
+    event_rows = cache.get("service_failure_events")
+    if isinstance(event_rows, list):
+        reverse_events = reversed(event_rows)
+    else:
+        # This event journal can be large.  The binding needs only the newest
+        # matching immutable event, so scan tail-first rather than materialize
+        # unrelated history into the Runtime heap.
+        reverse_events = []
+        try:
+            with event_path.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                position = handle.tell()
+                pending = b""
+                decoded: list[dict[str, Any]] = []
+                while position > 0 and not decoded:
+                    size = min(65536, position)
+                    position -= size
+                    handle.seek(position)
+                    pending = handle.read(size) + pending
+                    parts = pending.split(b"\n")
+                    pending = parts[0]
+                    for raw in reversed(parts[1:]):
+                        try:
+                            value = json.loads(raw.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            continue
+                        if isinstance(value, dict):
+                            decoded.append(value)
+                    # Keep only one bounded tail chunk; a matching event is
+                    # normally recent and the full journal is never needed.
+                    if position == 0 and pending:
+                        try:
+                            value = json.loads(pending.decode("utf-8"))
+                            if isinstance(value, dict):
+                                decoded.append(value)
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            pass
+                reverse_events = decoded
+        except OSError:
+            reverse_events = []
+    for event in reverse_events:
         if str(event.get("event_type") or "") not in {
             "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
         }:

@@ -236,6 +236,13 @@ parallel owner.  The VLESS selection and target-ranking focused tests pass.
 
 ## Effects and limits
 
+**Matrix-event tail read (2026-08-23).**  The remaining VLESS selector memory
+fault was the full historical Matrix event journal being materialized to find
+one current VLESS event.  The exact binding now scans from the end of that
+append-only journal and holds only a bounded recent tail.  The strict-event
+binding and stage-one target-selection tests pass.  No event is written,
+changed or deleted by this read path.
+
 - Ordinary users moved: `0`.
 - Certification users moved: `0`.
 - Ordinary assignment/route delta: `0`.

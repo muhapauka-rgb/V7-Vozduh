@@ -17963,6 +17963,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--ct-m0f-precomputed-target-diagnostic-file",
+        default="",
+        help=(
+            "One-shot compact output of the existing controlled-target "
+            "diagnostic. Required by the bounded-memory CT-M0F selector; "
+            "it is read-only and never becomes durable state."
+        ),
+    )
+    parser.add_argument(
         "--prepare-controlled-source-topology-authority-request",
         action="store_true",
         help=(
@@ -24882,6 +24891,24 @@ def ct_m0f_target_diagnostic_subprocess(
     return result
 
 
+def ct_m0f_precomputed_target_diagnostic_from_file(
+    path_value: str,
+) -> dict[str, Any]:
+    path = Path(str(path_value or ""))
+    if not path.is_file():
+        return {
+            "targets": [], "selection": {},
+            "preflight_error": "exact_precomputed_target_diagnostic_required",
+        }
+    result = read_json(path, {})
+    if not isinstance(result, dict):
+        return {
+            "targets": [], "selection": {},
+            "preflight_error": "precomputed_target_diagnostic_invalid",
+        }
+    return result
+
+
 def main() -> int:
     main_entered_ns = time.monotonic_ns()
     usage_before = resource.getrusage(resource.RUSAGE_SELF)
@@ -24889,8 +24916,16 @@ def main() -> int:
     if args.ct_m0f_standing_source_selection:
         result = ct_m0f_standing_source_selection_only(
             args,
-            precomputed_target_diagnostic=ct_m0f_target_diagnostic_subprocess(
-                args,
+            precomputed_target_diagnostic=(
+                ct_m0f_precomputed_target_diagnostic_from_file(
+                    args.ct_m0f_precomputed_target_diagnostic_file,
+                )
+                if args.ct_m0f_precomputed_target_diagnostic_file else {
+                    "targets": [], "selection": {},
+                    "preflight_error": (
+                        "exact_precomputed_target_diagnostic_required"
+                    ),
+                }
             ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

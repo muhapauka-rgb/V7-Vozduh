@@ -224,6 +224,16 @@ does.  The target-ranking regression, VLESS-stage-one selection regression and
 pool snapshot regression pass.  This changes only local read reuse; ranking,
 policy coverage, target eligibility and all execution fences are unchanged.
 
+**Sequential hand-off boundary (2026-08-23).**  The Runtime limit permits the
+source and target projections independently but kills their simultaneous
+in-process combination.  The CT-M0F CLI therefore now accepts only the compact
+one-shot JSON output of the existing target diagnostic through an explicit
+temporary input file.  Without that exact input it fails closed.  The future
+governed consumer will create and remove that file within one transaction;
+it is not durable Matrix, policy, registry, authority or runtime state.  This
+lets the production proof use VLESS without requiring a larger host or a
+parallel owner.  The VLESS selection and target-ranking focused tests pass.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

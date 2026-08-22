@@ -533,13 +533,28 @@ as a controlled-certification source.  A real controlled source failure was
 therefore written to fresh Matrix state and safely classified as
 certification-only; it caused zero ordinary-user movement and was restored.
 The block also proved that the presently available recovery pool cannot supply
-the one-user physical T0→T11 sample: the current isolated source contains five
-certification users and the only candidate reserve drafts duplicate an
-unhealthy legacy channel.  This is a specific resource/topology boundary, not
-a reason to change cadence, enable FAST or weaken Matrix fallback.  Polygon
-and existing Stage A–F evidence continue independently; a later physical
-proof requires a genuinely independent ready source or an explicitly admitted
-existing-owner one-user source-narrowing operation.
+the one-user physical T0→T11 sample on the initially selected execution-only
+source: it contains five certification users and its candidate reserve drafts
+duplicate an unhealthy legacy channel.  A follow-up VLESS reuse audit corrects
+the remaining path: VLESS is a real failed source with certification-only
+users and zero ordinary users.  The next repair is internal to existing
+owners, not a wait for another profile: bind one certification identity to
+the current canonical VLESS failure and allow one existing-policy-fenced,
+fresh `DEGRADED_USABLE` reserve.  It must preserve zero ordinary-user effect,
+full Matrix fallback and the FAST hold.  Polygon and existing Stage A–F
+evidence continue independently.
+
+The VLESS selection repair is now implemented and tested: it accepts only a
+fresh exact certification-only Matrix event whose compact certification scope
+matches the current registry and whose source still has zero ordinary users.
+It consumes the existing stage-1 shared-target allocation and standing-policy
+semantic gate rather than selecting a target manually; stale, mixed or policy
+mismatched state remains STOP_SAFE.  This completes the source/target
+selection substep.  The next bounded frontier is not a generic availability
+benchmark: its healthy-source reset would return a client to failed VLESS.
+Extend the existing Packet/lease/verification consumer only for a one-way
+synthetic VLESS recovery, retain the identity on the verified reserve, then
+measure and observe the real recovery path before any later reset.
 
 #### V5.3 Runtime shadow deployment and controlled closure -- superseding residual
 

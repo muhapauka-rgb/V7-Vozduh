@@ -704,6 +704,217 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(result["requires_binding"])
         self.assertEqual(result["status"], "NO_ACTIVE_SERVICE_FAILURE_BINDING")
 
+    def test_ct_m0f_certification_only_matrix_binding_reuses_exact_current_event(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = ["10.7.0.18", "10.7.0.19"]
+            (state / "users.registry").write_text(
+                "\n".join(
+                    f"ip={user} current=vless enabled=1 certification_user=1 "
+                    "certification_group=g1"
+                    for user in users
+                ) + "\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1\n",
+                encoding="utf-8",
+            )
+            now = datetime.now(timezone.utc).isoformat()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {
+                    "checked_at": now,
+                    "services": {"youtube": {"ok": False}},
+                }},
+            }), encoding="utf-8")
+            scope_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": users,
+            })
+            event = {
+                "event_id": "sfe_vless_current",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "observed_at": now,
+                "channel": "vless",
+                "source_incident_id": "sfinc_vless_current",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "source_scope": {
+                    "scope_classification": "CERTIFICATION_ONLY",
+                    "source_channel": "vless",
+                    "affected_scope_count": 0,
+                    "controlled_certification_scope": {
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": scope_fingerprint,
+                        "raw_user_list_stored": False,
+                    },
+                },
+            }
+            (events / "service-failure-events.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8"
+            )
+            result = (
+                self.autoswitch
+                .ct_m0f_certification_only_matrix_failure_binding_projection(
+                    state, "vless", event_dir=events,
+                )
+            )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(
+            result["binding_kind"], "CERTIFICATION_ONLY_MATRIX_FAILURE"
+        )
+        self.assertEqual(result["source_scope_count"], 2)
+        self.assertFalse(result["raw_identity_list_stored"])
+
+    def test_ct_m0f_selector_reuses_stage_one_degraded_target_for_matrix_failure(self):
+        availability_policy = {
+            "action_class_scopes": {
+                "bounded availability-first controlled failover": {
+                    "allowed_actions": [
+                        "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
+                    ],
+                    "certification_identities_only": True,
+                    "max_users_per_transaction": 48,
+                    "max_concurrent_transactions": 1,
+                    "ordinary_identity_delta": 0,
+                    "ordinary_route_delta": 0,
+                    "shared_target_fault_injection_allowed": False,
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            users = ["10.7.0.18", "10.7.0.19"]
+            (state / "users.registry").write_text(
+                "\n".join(
+                    f"ip={user} current=vless enabled=1 certification_user=1 "
+                    "certification_group=g1"
+                    for user in users
+                ) + "\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1 "
+                "certification_group=g1\n",
+                encoding="utf-8",
+            )
+            now = datetime.now(timezone.utc).isoformat()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {
+                    "checked_at": now,
+                    "services": {"youtube": {"ok": False}},
+                }},
+            }), encoding="utf-8")
+            scope_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless", "users": users,
+            })
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "sfe_vless_current",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "observed_at": now,
+                "channel": "vless",
+                "source_incident_id": "sfinc_vless_current",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "source_scope": {
+                    "scope_classification": "CERTIFICATION_ONLY",
+                    "source_channel": "vless",
+                    "affected_scope_count": 0,
+                    "controlled_certification_scope": {
+                        "affected_scope_count": 2,
+                        "affected_scope_fingerprint": scope_fingerprint,
+                    },
+                },
+            }) + "\n", encoding="utf-8")
+            policy = root / "policy.json"
+            audit = root / "audit.jsonl"
+            policy.write_text(
+                json.dumps({"delegated_autonomy_policy": {"stub": True}}),
+                encoding="utf-8",
+            )
+            audit.write_text("", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(state), event_dir=str(events),
+                policy_file=str(policy), action_class_audit_store=str(audit),
+            )
+            pool = {"active_source_projections": [{
+                "source_id": "vless",
+                "certification_group": "g1",
+                "enabled_certification_users_on_source": 2,
+                "group_aligned_certification_users_on_source": 2,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {"ok": False},
+            }]}
+            target = {
+                "target_id": "awg3",
+                "ordinary_planner_eligible": True,
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {
+                    "state": "DEGRADED_USABLE",
+                    "policy_boundary": (
+                        "EXACT_DEGRADED_SHARED_TARGET_ACTION_CLASS_"
+                        "CONTRACT_REQUIRED"
+                    ),
+                },
+                "health": {"ok": True, "observation_fingerprint": "target"},
+                "capacity": {"target_safe_additional_capacity": 1},
+                "verification_supported": True,
+                "rollback_containment_supported": True,
+            }
+            with mock.patch.object(
+                self.autoswitch, "controlled_certification_pool_status",
+                return_value=pool,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": availability_policy},
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_live_execution_lineage_records", return_value=[],
+            ), mock.patch.object(
+                self.autoswitch,
+                "availability_first_standing_policy_semantic_coverage_gate",
+                return_value={"ok": True},
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value={
+                    "targets": [target],
+                    "shared_production_target_capacity_projection": {
+                        "stage_allocations": {"1": {
+                            "immutable_allocation_projection": [{
+                                "target_id": "awg3",
+                                "allocated_users": 1,
+                                "availability_classification": "DEGRADED_USABLE",
+                            }],
+                        }},
+                    },
+                },
+            ):
+                result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["selected_source_id"], "vless")
+        self.assertEqual(result["selected_user"], "10.7.0.18")
+        self.assertEqual(result["selected_target_id"], "awg3")
+        self.assertEqual(
+            result["selected_target_admission"]["admission_law"],
+            "ACTIVE_AVAILABILITY_FIRST_MATRIX_FAILURE_ONE_USER",
+        )
+        self.assertEqual(
+            result["active_service_failure_binding"]["binding_kind"],
+            "CERTIFICATION_ONLY_MATRIX_FAILURE",
+        )
+
     def test_ct_m0f_binding_reuses_ephemeral_current_owner_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

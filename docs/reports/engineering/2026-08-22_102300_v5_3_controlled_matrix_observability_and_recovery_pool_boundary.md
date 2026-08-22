@@ -22,12 +22,11 @@ ordinary-route decision and deferred to the existing controlled owner.  The
 source was restored immediately.  No ordinary customer, ordinary route,
 policy, timer, FAST admission or Matrix cadence changed.
 
-The requested end-to-end recovery could not lawfully start because the actual
-controlled source has five certification users while the exact one-user
-controlled-failure contract permits one.  The inventory has no independent
-ready controlled reserve: both eligible-looking draft records duplicate the
-unhealthy legacy channel and were rejected by the existing draft lifecycle.
-This is a real resource/topology boundary, not a stale-Matrix wait.
+The first attempted end-to-end recovery using the execution-only source could
+not lawfully start because that source has five certification users while the
+exact one-user controlled-failure contract permits one.  Its independent draft
+reserve candidates duplicate the unhealthy legacy channel and were correctly
+rejected.  This conclusion applies to that source only.
 
 ## Change and deployment
 
@@ -80,7 +79,7 @@ with all `14/14` checks successful for the controlled source.  The remaining
 certification-only reconciliation projection had no active source and no route
 effect; it is historical-scope reconciliation, not a live failure.
 
-## Recovery-pool disposition
+## Recovery-pool disposition and correction
 
 The existing topology owner found an approved one-user draft preparation, but
 the admin draft owner rejected its materialization with
@@ -92,6 +91,71 @@ An attempted Tier-48 request was immediately inspected and found to select a
 different source and require an unnecessary 48-identity campaign.  It was
 explicitly declined through the existing Authority audit owner.  This left
 policy, registry, Runtime, routes and clients unchanged.
+
+**Correction after the VLESS reuse audit (2026-08-23).**  The existing
+`vless` source is a better real-failure input: it has eleven certification
+users, zero ordinary users and a fresh Matrix `WARN` result with only `1/14`
+checks passing.  It must not be used as a target, but it can safely be the
+source of a one-user controlled recovery.  The existing selector currently
+rejects it for two implementation reasons:
+
+1. its certification-only Matrix event is represented with an ordinary
+affected scope of zero, so the selector cannot bind one existing
+certification identity to the fresh real incident;
+2. existing healthy targets are presently classified `DEGRADED_USABLE`, while
+the selector's one-user shared-target branch accepts only `HEALTHY` despite
+the active availability-first policy already fencing a one-user,
+certification-only degraded-target transition.
+
+This is an existing-owner producer/consumer and admission-projection gap, not
+an external-resource requirement.  The safe repair is limited to the existing
+Matrix/controlled-selector path: expose an exact one-user certification
+binding from the current canonical event, and admit only a fresh,
+capacity-checked, verified `DEGRADED_USABLE` target when the existing standing
+policy's one-user fences pass.  It must not change ordinary scope, target
+fault injection, FAST admission or the full-Matrix fallback.
+
+**Implemented selection repair (2026-08-23).**  The existing
+`tools/v7-users-autoswitch` now reads a certification-only Matrix event only
+when all of these independently current facts agree: VLESS remains failed in
+Matrix, the Matrix observation and event are fresh, the source registry still
+has no ordinary users, and the compact certification scope fingerprint equals
+the live registry.  It chooses one group-aligned certification identity only.
+For the destination it reuses the existing stage-1 availability allocation and
+the already active policy semantic-coverage gate; it does not hand-pick a
+server or relax the normal `HEALTHY` target floor.  In the observed inventory
+that allocation selects `awg3` for one identity while retaining its ordinary
+clients unchanged.  Stale, recovered, scope-mismatched, ordinary-mixed or
+policy-incomplete inputs return `STOP_SAFE`.
+
+Validation for this repair:
+
+- two new focused tests prove exact VLESS-event binding and selection of the
+  existing one-user degraded allocation;
+- the previous healthy shared-target and execution-only-target selection tests
+  remain green;
+- the existing Polygon candidate-failure and Matrix full-vs-subset suites pass
+  11/11.  Their local loopback server needs elevated test permission and has
+  no production effect.
+
+This closes discovery/selection only.  It deliberately does not yet move the
+selected identity: the existing availability benchmark runner assumes a
+healthy source and performs a reset back to that source, which is unsafe while
+VLESS is actually failed.  The next implementation is therefore a narrow
+one-way governed recovery consumer that reuses the same Packet, lease,
+verification and rollback owners, leaves the one synthetic identity on the
+verified reserve, and records the Matrix incident binding.  It must not reuse
+the healthy-source benchmark semantics or reset a client onto the failed
+VLESS channel.
+
+**Runtime revalidation correction.**  The first deployed selector attempt was
+terminated by the operating system before output.  The Matrix snapshot and
+VLESS event themselves were fresh; the cause was ordering, not data: the
+selector loaded the large ordinary L3 history before trying the stricter
+certification-only event.  The binding is now tried first for a
+certification-only source; the ordinary L3 binding remains its fail-closed
+fallback.  This preserves the former path for ordinary incidents while keeping
+the controlled real-failure path bounded.
 
 ## Effects and limits
 
@@ -110,15 +174,14 @@ the deployed runtime binary remains the verified `3f18ab5` Matrix repair.
 
 Continue the admitted V5.3 plan without waiting for a Matrix timer:
 
-1. Use the already-consumed Polygon/scale results for the architecture track;
-   they remain the valid evidence for candidate comparison and do not require
-   a live client move.
-2. For a new physical T0→T11 recovery proof, the existing controlled-source
-   lifecycle needs one of two safe inputs: a genuinely independent ready
-   draft from the external profile owner, **or** an explicitly admitted
-   existing-owner operation that narrows the current five-user controlled
-   source to one before its whole-interface failure.  Neither may be faked by
-   overriding the duplicate-channel rejection.
-3. Once that one-user source and a healthy target exist, reuse the already
-   deployed Matrix observation and governed Packet/lease/verification path;
-   measure source failure → fresh Matrix → decision → recovery and then reset.
+1. Repair and Polygon-test the two existing-owner VLESS binding/admission
+   gaps above. **Complete:** fresh VLESS event and existing one-user allocation
+   now produce a single read-only selection.
+2. Extend the existing governed Packet/lease/verification consumer for the
+   exact *one-way* VLESS-failure sample.  It must retain the selected
+   certification identity on the healthy reserve while VLESS is failed;
+   resetting it to the known-failed source is forbidden.
+3. Run the governed one-user recovery, measure VLESS failure → fresh Matrix →
+   selection → client recovery and observe the client on the reserve.  A later
+   VLESS recovery may use the existing reset lifecycle; duplicate draft
+   rejection remains unchanged.

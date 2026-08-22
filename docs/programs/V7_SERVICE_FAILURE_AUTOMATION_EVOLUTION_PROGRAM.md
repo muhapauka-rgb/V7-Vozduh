@@ -525,6 +525,22 @@ deployment gate is not an engineering inference: the verified local commits
 are not yet published and the Runtime reports an older deployed commit.  No
 deploy is admissible until that external version boundary converges.
 
+The subsequent physical controlled-observability block is recorded in
+`docs/reports/engineering/2026-08-22_102300_v5_3_controlled_matrix_observability_and_recovery_pool_boundary.md`.
+It repaired one existing Matrix-owner gap: a full refresh now includes a
+disabled interface only when the existing registry has already classified it
+as a controlled-certification source.  A real controlled source failure was
+therefore written to fresh Matrix state and safely classified as
+certification-only; it caused zero ordinary-user movement and was restored.
+The block also proved that the presently available recovery pool cannot supply
+the one-user physical T0→T11 sample: the current isolated source contains five
+certification users and the only candidate reserve drafts duplicate an
+unhealthy legacy channel.  This is a specific resource/topology boundary, not
+a reason to change cadence, enable FAST or weaken Matrix fallback.  Polygon
+and existing Stage A–F evidence continue independently; a later physical
+proof requires a genuinely independent ready source or an explicitly admitted
+existing-owner one-user source-narrowing operation.
+
 #### V5.3 Runtime shadow deployment and controlled closure -- superseding residual
 
 The deployment boundary subsequently converged through the existing safe deploy

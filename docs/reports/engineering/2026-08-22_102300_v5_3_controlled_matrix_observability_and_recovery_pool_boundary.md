@@ -68,11 +68,17 @@ bounded scale checks.  The temporary loopback response surface was local only.
 | Matrix refresh | Existing `v7-service-matrix-refresh-all` | fresh source row `NOT_STARTED`; current scope decision `RECONCILE_CONTROLLED_CERTIFICATION_SCOPE_ONLY` |
 | Consumer | Existing Matrix passive projection | `DEFERRED_TO_EXISTING_CONTROLLED_OWNER`; no ordinary Runtime action |
 | Restore | Existing `v7-egress-set-state ... enabled --controlled-certification --apply` | interface restored and kill-switch rebuilt |
+| Recovery Matrix refresh | Existing `v7-service-matrix-refresh-all` after restore | fresh `OK`, `14/14` checks successful |
 | Recovery preflight | Existing governed controlled-certification preflight | `STOP_SAFE`: no distinct enabled controlled target and no exact one-user source scope |
 
 The full refresh also kept its normal work; the source-specific fresh row was
 written at the controlled observation time.  A service limit response remains
 distinct from a hard failure as before.
+
+After restoration, a second ordinary full refresh produced a fresh `OK` row
+with all `14/14` checks successful for the controlled source.  The remaining
+certification-only reconciliation projection had no active source and no route
+effect; it is historical-scope reconciliation, not a live failure.
 
 ## Recovery-pool disposition
 

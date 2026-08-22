@@ -546,6 +546,42 @@ Candidate, Packet, lease or execution record changed.  A future natural
 ordinary production comparison is an external observation lane, not an open
 engineering action and never permission to manufacture a move.
 
+#### V5.3 real controlled-path re-entry: source-readiness correction
+
+The evidence above closes the synthetic controlled obligation, but it does not
+make an unhealthy or shared production channel a lawful substitute for the
+next real controlled observation. The durable plan continues in this order:
+
+```text
+1. existing exact certification identity + healthy isolated source/target
+   -> canonical controlled T0 (two FAST observations and Matrix)
+2. governed one-user Apply, route/traffic T11 and rollback proof
+3. real controlled Full-versus-FAST before/after
+4. progressive certification cohorts only after the one-user result
+5. remove only a proven redundant synchronous wait for exactly admitted classes
+6. bounded ordinary rollout only after the prior gates
+7. scale/storm/recovery/restart certification
+8. canonical cleanup and Mission closure
+```
+
+This is an execution sequence inside the existing V5.3 track, not eight new
+Missions or a replacement of CPS/OMP. CPS remains the volatile authority for
+whether a particular execution is admitted. Existing Polygon comparison and
+scale evidence can continue independently, but it may not be relabelled as a
+real client-recovery result.
+
+Current source-readiness evidence is recorded in
+`docs/reports/engineering/2026-08-22_095500_v5_3_controlled_source_readiness_and_polygon_revalidation.md`.
+It proves that Matrix is fresh and the empty legacy dedicated source is
+unhealthy (`0/14` observation-only checks passed; stale handshake diagnosis).
+The only ready-looking replacement draft is rejected by the existing native
+admin owner as a duplicate of that source. The request to prepare one exact
+dedicated source is Authority-approved, but it is not consumable until an
+owner-verified **independent healthy egress profile/peer** exists. No ordinary
+client, route, channel enablement, Matrix write, Candidate, Packet, lease or
+Apply was performed. This is an exact source-substrate blocker, not permission
+to weaken the one-user isolation or Full-Matrix fallback laws.
+
 `WORKSTREAM_COMPACTNESS_LAW`: these phases are the complete logical structure.
 Do not add a phase, tracker, matrix document, status ledger or report series
 when an existing phase/report can preserve the decision, owner, consumer,

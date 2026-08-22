@@ -88,6 +88,26 @@ class V53NonTelegramTriggerRevalidationTest(unittest.TestCase):
         self.assertNotIn("systemctl start", quality)
         self.assertNotIn("wake_existing_matrix_consumer", quality)
 
+    def test_full_refresh_includes_only_disabled_controlled_interface_source(self):
+        rows = [
+            {"id": "ordinary-down", "enabled": "0", "type": "interface"},
+            {
+                "id": "controlled-down",
+                "enabled": "0",
+                "type": "interface",
+                "controlled_certification_source": "1",
+            },
+            {"id": "healthy", "enabled": "1", "type": "interface"},
+        ]
+        selected, requested = self.matrix_refresh.select_probe_rows(rows, "")
+        self.assertEqual(requested, [])
+        self.assertEqual(
+            sorted(row["id"] for row in selected),
+            ["controlled-down", "healthy"],
+        )
+        with self.assertRaisesRegex(ValueError, "exact_egress_subset_not_enabled"):
+            self.matrix_refresh.select_probe_rows(rows, "controlled-down")
+
     def test_shadow_trigger_is_exact_owner_backed_and_observation_only(self):
         contract = self.matrix_refresh.build_shadow_trigger_contract(
             source="hot",

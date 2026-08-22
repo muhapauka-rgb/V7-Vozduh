@@ -3049,7 +3049,16 @@ def resolve_profile_service_subset(state_dir: Path, profile_user: str) -> list[s
 def select_probe_rows(
     rows: list[dict[str, str]], exact_egresses: str,
 ) -> tuple[list[dict[str, str]], list[str]]:
-    """Resolve an exact enabled subset without creating another registry."""
+    """Resolve the normal enabled subset plus a bounded controlled exception.
+
+    A deliberately disabled certification-only source is the existing
+    controlled-condition owner's fault stimulus.  Excluding it from the
+    ordinary full refresh leaves its last healthy Matrix row in place, so the
+    Matrix cannot observe the condition it is meant to confirm.  Include only
+    that already-marked source in the *default* full refresh.  Explicit subset
+    callers retain their enabled-only contract, and ordinary disabled channels
+    remain excluded.
+    """
     requested = sorted(set(
         item.strip() for item in str(exact_egresses or "").split(",") if item.strip()
     ))
@@ -3063,11 +3072,19 @@ def select_probe_rows(
     missing = sorted(set(requested) - set(enabled_by_id))
     if missing:
         raise ValueError("exact_egress_subset_not_enabled:" + ",".join(missing))
-    return (
-        [enabled_by_id[item] for item in requested] if requested
-        else list(enabled_by_id.values()),
-        requested,
-    )
+    if requested:
+        return [enabled_by_id[item] for item in requested], requested
+    controlled_disabled = {
+        str(row.get("id") or ""): row
+        for row in rows
+        if (
+            str(row.get("id") or "")
+            and not bool_value(row.get("enabled"), default=True)
+            and bool_value(row.get("controlled_certification_source"))
+            and str(row.get("type") or "") == "interface"
+        )
+    }
+    return list({**enabled_by_id, **controlled_disabled}.values()), requested
 
 
 def run_service_failure_automation_advisory(

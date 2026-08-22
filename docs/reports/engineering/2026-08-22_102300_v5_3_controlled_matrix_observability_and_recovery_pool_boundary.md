@@ -46,6 +46,12 @@ all three rules.  The affected unit module passed.  The broader legacy suite
 has two unrelated fixture failures where old fixtures lack a now-required
 live-registry scope fingerprint; these were not changed or masked.
 
+Post-change Polygon regression also passed: `11/11` across the candidate
+failure matrix and controlled Matrix comparison.  It re-proved full/subset
+equivalence for the controlled healthy and required-service cases, full
+fallback on disagreement, stale-state fail-closed behavior and the existing
+bounded scale checks.  The temporary loopback response surface was local only.
+
 `tools/v7-safe-deploy --json` and the apply both returned `PASS`:
 
 - deploy: `deploy-z8-14-Updatesystem-3f18ab5-20260822T100910`;
@@ -106,4 +112,3 @@ Continue the admitted V5.3 plan without waiting for a Matrix timer:
 3. Once that one-user source and a healthy target exist, reuse the already
    deployed Matrix observation and governed Packet/lease/verification path;
    measure source failure → fresh Matrix → decision → recovery and then reset.
-

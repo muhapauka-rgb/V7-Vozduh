@@ -102,6 +102,10 @@ policy, registry, Runtime, routes and clients unchanged.
 - Full Matrix fallback: unchanged.
 - Production claim: none.  This is controlled observability evidence only.
 
+Final `tools/v7-truth-check --all --json`: `PASS`, blockers none.  The only
+warning is the expected documentation-only local/Runtime commit difference;
+the deployed runtime binary remains the verified `3f18ab5` Matrix repair.
+
 ## Exact next step
 
 Continue the admitted V5.3 plan without waiting for a Matrix timer:

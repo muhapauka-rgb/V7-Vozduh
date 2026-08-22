@@ -24177,7 +24177,23 @@ def ct_m0f_standing_source_selection_only(
             )
         )
         binding = controlled_matrix_binding
-        if not binding.get("ok"):
+        registry = next(
+            (
+                item for item in egress_rows
+                if str(item.get("id") or "") == source_id
+            ),
+            {},
+        )
+        certification_only_source = (
+            int(row.get("enabled_non_certification_users_on_source") or 0) == 0
+            and bool_value(registry.get("controlled_certification_source"))
+        )
+        # A controlled certification-only source has no ordinary passive
+        # cohort by design.  If its stricter Matrix evidence is stale or
+        # contradictory, do not scan the unrelated ordinary L3 history as a
+        # fallback: that cannot make this source safe to execute and used to
+        # consume enough memory for the OS to kill the read-only selector.
+        if not binding.get("ok") and not certification_only_source:
             binding = ct_m0f_active_service_failure_binding_projection(
                 state_dir,
                 source_id,
@@ -24235,6 +24251,7 @@ def ct_m0f_standing_source_selection_only(
     if (
         not failed_ready
         and not preparation_sources
+        and not stale_or_unbound_failed_sources
         and all(
             hasattr(args, name)
             for name in (

@@ -915,6 +915,70 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "CERTIFICATION_ONLY_MATRIX_FAILURE",
         )
 
+    def test_ct_m0f_stale_certification_only_matrix_does_not_scan_l3_or_topology(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.18 current=vless enabled=1 certification_user=1 "
+                "certification_group=g1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=vless enabled=1 controlled_certification_source=1 "
+                "certification_group=g1\n",
+                encoding="utf-8",
+            )
+            stale = "2020-01-01T00:00:00+00:00"
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {
+                    "checked_at": stale,
+                    "services": {"youtube": {"ok": False}},
+                }},
+            }), encoding="utf-8")
+            policy = root / "policy.json"
+            audit = root / "audit.jsonl"
+            drafts = root / "drafts"
+            drafts.mkdir()
+            policy.write_text("{}", encoding="utf-8")
+            audit.write_text("", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(state), event_dir=str(events),
+                policy_file=str(policy), action_class_audit_store=str(audit),
+                egress_drafts_dir=str(drafts),
+            )
+            pool = {"active_source_projections": [{
+                "source_id": "vless",
+                "certification_group": "g1",
+                "enabled_certification_users_on_source": 1,
+                "group_aligned_certification_users_on_source": 1,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {"ok": False},
+            }]}
+            with mock.patch.object(
+                self.autoswitch, "controlled_certification_pool_status",
+                return_value=pool,
+            ), mock.patch.object(
+                self.autoswitch,
+                "ct_m0f_active_service_failure_binding_projection",
+                side_effect=AssertionError("ordinary L3 fallback must not run"),
+            ), mock.patch.object(
+                self.autoswitch, "controlled_source_topology_diagnostic",
+                side_effect=AssertionError("topology diagnostic must not run"),
+            ):
+                result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["selection_mode"], "STOP_SAFE")
+        self.assertIn(
+            "no_healthy_isolated_controlled_source_with_group_aligned_certification_identity",
+            result["blockers"],
+        )
+
     def test_ct_m0f_binding_reuses_ephemeral_current_owner_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

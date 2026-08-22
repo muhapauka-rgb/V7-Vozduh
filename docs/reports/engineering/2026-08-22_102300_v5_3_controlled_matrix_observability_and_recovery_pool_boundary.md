@@ -157,6 +157,22 @@ certification-only source; the ordinary L3 binding remains its fail-closed
 fallback.  This preserves the former path for ordinary incidents while keeping
 the controlled real-failure path bounded.
 
+**Stale-evidence selector hardening (2026-08-23).**  By the time the next
+read-only Runtime invocation ran, the VLESS observation was no longer fresh.
+That invocation was again killed before producing a result: after the strict
+binding rejected stale evidence, it still fell through into the unrelated
+ordinary L3-history and topology scans.  This was neither a reason to move a
+client nor evidence that VLESS had recovered.  The selector now recognizes a
+controlled certification-only source (zero ordinary identities) and, if its
+strict Matrix evidence is not executable, returns to `STOP_SAFE` directly.
+It neither looks for an ordinary passive cohort that cannot exist nor runs a
+topology discovery which cannot make stale evidence fresh.  Ordinary or
+mixed-scope sources retain their existing L3 fallback.  A focused regression
+test proves both expensive fallbacks stay untouched; the strict binding and
+stage-one allocation tests pass, and the existing Polygon suites pass 11/11
+(timings by probe cap: 1=0.849 s, 2=0.838 s, 4=0.747 s).  No client, route,
+Matrix cadence or policy was changed by this correction.
+
 ## Effects and limits
 
 - Ordinary users moved: `0`.

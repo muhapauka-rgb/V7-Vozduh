@@ -6854,6 +6854,21 @@ class GovernedCanaryCliTest(unittest.TestCase):
             args = self.transaction_args(root)
             args.execute_l3_production_validation = True
             args.confirm_l3_production_validation = "EXECUTE_L3_PRODUCTION_VALIDATION_APPROVED"
+            args._service_failure_causal_binding = {
+                "source_incident_id": "sfinc_test",
+                "source_event_id": "sfe_test",
+                "source_event_ids": ["sfe_test"],
+                "source_channel": "vless",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "source_scope": {
+                    "affected_scope_count": 1,
+                    "affected_scope_fingerprint": "scope-test",
+                    "source_channel": "vless",
+                    "raw_user_list_stored": False,
+                },
+                "first_failed_observation_monotonic_ns": 101,
+                "confirmed_hard_failure_monotonic_ns": 202,
+            }
             apply_calls = []
             original_plan = module.run_l3_production_validation_plan
             original_apply = module.run_autoswitch_apply
@@ -6928,6 +6943,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertTrue(apply_calls[0]["authority_generation"])
         self.assertTrue(apply_calls[0]["source_bundle_hash"])
         self.assertEqual(apply_calls[0]["snapshot_bundle_hash"], "l3-snapshot-bundle")
+        self.assertEqual(
+            apply_calls[0]["ct_m0f_first_failed_observation_monotonic_ns"],
+            101,
+        )
+        self.assertEqual(
+            apply_calls[0]["ct_m0f_confirmed_hard_failure_monotonic_ns"],
+            202,
+        )
         self.assertEqual(barrier["packet_id"], apply_calls[0]["packet_id"])
         self.assertEqual(barrier["operation_id"], apply_calls[0]["operation_id"])
         locked_move = barrier["approved_plan_lock"]["selected_moves"][0]

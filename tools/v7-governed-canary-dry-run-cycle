@@ -6192,6 +6192,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ct_m0f_source_incident_generation=str(
             getattr(args, "_ct_m0f_source_incident_generation", "") or ""
         ),
+        ct_m0f_first_failed_observation_monotonic_ns=int(
+            (packet.get("service_failure_causal_binding") or {}).get(
+                "first_failed_observation_monotonic_ns"
+            )
+            or 0
+        ),
+        ct_m0f_confirmed_hard_failure_monotonic_ns=int(
+            (packet.get("service_failure_causal_binding") or {}).get(
+                "confirmed_hard_failure_monotonic_ns"
+            )
+            or 0
+        ),
     )
     apply_completed_ns = time.monotonic_ns()
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}

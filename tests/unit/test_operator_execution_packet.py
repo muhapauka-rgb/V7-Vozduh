@@ -4383,6 +4383,44 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             policy_root,
         )
 
+    def test_audit_replay_flags_searches_only_exact_canonical_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit = Path(tmp) / "operator-audit.jsonl"
+            audit.write_text(
+                "{not-json}\n"
+                + json.dumps(
+                    {"approval_id": "different", "payload": "approval-wanted"},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            operator_execution.append_record(
+                audit,
+                {
+                    "record_type": "runtime_action_record_persisted",
+                    "approval_id": "approval-wanted",
+                    "engineering_authority_request_id": "authority-wanted",
+                },
+            )
+
+            found = operator_execution.audit_replay_flags(
+                audit, "approval-wanted", "authority-wanted",
+            )
+            absent = operator_execution.audit_replay_flags(
+                audit, "approval-absent", "authority-absent",
+            )
+
+        self.assertEqual(
+            found,
+            {"approval_seen": True, "engineering_authority_seen": True},
+        )
+        self.assertEqual(
+            absent,
+            {"approval_seen": False, "engineering_authority_seen": False},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

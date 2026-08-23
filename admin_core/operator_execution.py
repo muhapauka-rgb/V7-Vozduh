@@ -16,6 +16,7 @@ import fcntl
 import gzip
 import hashlib
 import json
+import mmap
 import os
 import secrets
 from contextlib import contextmanager
@@ -7743,31 +7744,65 @@ def audit_replay_flags(audit_store, approval_id, engineering_request_id=""):
     approval_seen = False
     authority_seen = False
     try:
-        with path.open("r", encoding="utf-8", errors="replace") as handle:
-            for line in handle:
-                if (
-                    (not approval_marker or approval_marker not in line)
-                    and (not authority_marker or authority_marker not in line)
-                ):
-                    continue
-                try:
-                    row = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                approval_seen = approval_seen or (
-                    approval_id
-                    and str(row.get("approval_id") or "") == approval_id
-                )
-                authority_seen = authority_seen or (
-                    engineering_request_id
-                    and str(
-                        row.get("engineering_authority_request_id") or ""
-                    ) == engineering_request_id
-                )
-                if approval_seen and (
-                    authority_seen or not engineering_request_id
-                ):
-                    break
+        # The audit journal can be several hundred MB, while replay safety
+        # needs equality for at most two immutable one-use identifiers.  Let
+        # the kernel search the mapped bytes and JSON-decode only matching
+        # lines.  This remains a direct read of the canonical append-only
+        # owner; it adds no cache, index, watcher or second truth source.
+        with path.open("rb") as handle:
+            if os.fstat(handle.fileno()).st_size <= 0:
+                return {
+                    "approval_seen": False,
+                    "engineering_authority_seen": False,
+                }
+            with mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ) as mapped:
+                marker_kinds = []
+                if approval_marker:
+                    marker_kinds.append((approval_marker.encode("ascii"), "approval"))
+                if authority_marker:
+                    marker_kinds.append((authority_marker.encode("ascii"), "authority"))
+                decoded_lines = set()
+                for marker, _kind in marker_kinds:
+                    offset = 0
+                    while True:
+                        position = mapped.find(marker, offset)
+                        if position < 0:
+                            break
+                        line_start = mapped.rfind(b"\n", 0, position) + 1
+                        line_end = mapped.find(b"\n", position)
+                        if line_end < 0:
+                            line_end = len(mapped)
+                        identity = (line_start, line_end)
+                        offset = position + max(1, len(marker))
+                        if identity in decoded_lines:
+                            continue
+                        decoded_lines.add(identity)
+                        try:
+                            row = json.loads(
+                                mapped[line_start:line_end].decode(
+                                    "utf-8", errors="replace"
+                                )
+                            )
+                        except (json.JSONDecodeError, UnicodeDecodeError):
+                            continue
+                        approval_seen = approval_seen or bool(
+                            approval_id
+                            and str(row.get("approval_id") or "") == approval_id
+                        )
+                        authority_seen = authority_seen or bool(
+                            engineering_request_id
+                            and str(
+                                row.get("engineering_authority_request_id") or ""
+                            ) == engineering_request_id
+                        )
+                        if approval_seen and (
+                            authority_seen or not engineering_request_id
+                        ):
+                            break
+                    if approval_seen and (
+                        authority_seen or not engineering_request_id
+                    ):
+                        break
     except OSError:
         # Preserve the old reader's absent/unreadable-file behavior: no row
         # was observable, and the later append remains the durable operation.

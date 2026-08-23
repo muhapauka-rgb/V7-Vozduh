@@ -19,6 +19,7 @@ import json
 import mmap
 import os
 import secrets
+import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -8105,6 +8106,21 @@ def execute_packet(
     lifecycle_store=None,
     execution_lease_id="",
 ):
+    timing_started_ns = time.monotonic_ns()
+    timing_cursor_ns = timing_started_ns
+    timing_spans = []
+
+    def mark_timing(stage):
+        nonlocal timing_cursor_ns
+        completed_ns = time.monotonic_ns()
+        timing_spans.append({
+            "stage": stage,
+            "duration_ms": round(
+                (completed_ns - timing_cursor_ns) / 1_000_000.0, 3
+            ),
+        })
+        timing_cursor_ns = completed_ns
+
     now = now or utc_now()
     approval_id = packet.get("approval_id") or stable_id("appr", packet)
     engineering_authority = packet.get("engineering_authority") if isinstance(packet.get("engineering_authority"), dict) else {}
@@ -8112,12 +8128,14 @@ def execute_packet(
     replay = audit_replay_flags(
         audit_store, approval_id, engineering_request_id,
     )
+    mark_timing("canonical_replay_recheck")
     if replay.get("engineering_authority_seen"):
         recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["engineering_authority_request_already_consumed"]}
     elif replay.get("approval_seen"):
         recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["approval_id_already_recorded"]}
     else:
         recheck = runtime_recheck(packet, state_dir, now=now, planner_snapshot=planner_snapshot)
+    mark_timing("packet_and_runtime_recheck")
     if mode == "validate":
         return {"mode": mode, "approval_id": approval_id, "recheck": validate_packet(packet, now=now), "record_written": False}
     if mode == "recheck":
@@ -8196,6 +8214,7 @@ def execute_packet(
                     "user_movement": False,
                     "routing_mutation": False,
                 })
+                mark_timing("engineering_authority_consumption")
         if packet.get("runtime_action") == RUNTIME_ACTION_ZERO_MOVE_GOVERNANCE:
             if recheck.get("allow"):
                 if runtime_governance_store is None:
@@ -8213,6 +8232,7 @@ def execute_packet(
                 if not restore_barrier_file:
                     raise PacketError("restore_barrier_file_required")
                 clearance_result = append_restore_barrier_clearance(restore_barrier_file, packet, recheck, now=now)
+                mark_timing("restore_barrier_clearance_write")
                 if clearance_result.get("ok"):
                     runtime_action_performed = True
                     runtime_mutation = True
@@ -8259,9 +8279,13 @@ def execute_packet(
         "clearance_verdict": clearance_result.get("verdict") if clearance_result else "",
         "engineering_authority_request_id": engineering_request_id,
     }
-    written = append_record(audit_store, redact(record))
+    redacted_record = redact(record)
+    mark_timing("audit_record_redaction")
+    written = append_record(audit_store, redacted_record)
+    mark_timing("canonical_audit_append")
     if clearance_result and clearance_result.get("ok") and lifecycle_store:
         lifecycle_records = append_lifecycle_records(lifecycle_store, packet, recheck, clearance_result, written, now=now)
+    mark_timing("lifecycle_projection_append")
     return {
         "mode": mode,
         "approval_id": approval_id,
@@ -8273,6 +8297,14 @@ def execute_packet(
         "lifecycle_records": lifecycle_records,
         "execution_allowed_now": bool(clearance_result and clearance_result.get("ok")),
         "real_runtime_action_performed": runtime_action_performed,
+        "execution_timing": {
+            "schema_version": "v7.operator-execution-hot-path-timing.v1",
+            "clock_source": "time.monotonic_ns",
+            "total_duration_ms": round(
+                (time.monotonic_ns() - timing_started_ns) / 1_000_000.0, 3
+            ),
+            "spans": timing_spans,
+        },
     }
 
 

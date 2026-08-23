@@ -590,10 +590,25 @@ The former 1.7 GiB OOM path now remains below 180 MiB in the current-state
 Polygon and performs no automatic retry. This closes only the execution-memory
 prerequisite; it does not admit a target, Runtime trigger, route change or S11.
 
-The next executable V5.3 block is **N1–N4**: current signal inventory,
-definitive-versus-ambiguous predicates, role/profile cadence tournament and
-Matrix-owned MODE A versus MODE B confirmation/direct-T0 decision. It is not a
-timer enablement or cadence increase.
+`N1–N4` engineering and Polygon tournament completed at implementation commits
+`c6024218` and `92064629`; the exact evidence is recorded in
+`docs/reports/engineering/2026-08-23_140500_v5_3_n1_n4_role_signal_tournament.md`.
+The selected current target is: one-second HARD scan; Matrix-validated direct
+T0 only for fresh identity-bound `INTERFACE_DOWN_OR_MISSING`; one-second
+Telegram-required-profile rotation with two distinct failed endpoints;
+five-second bounded other-required-service observation with C128 and existing
+Matrix targeted confirmation. All ambiguous, stale, replayed, correlated or
+conflicting evidence remains fail-closed. These capabilities are deployed but
+are not yet the active Runtime caller: exact consumer migration and predecessor
+retirement remain N7/N8 responsibilities and cannot be claimed from this block.
+
+The next executable V5.3 block is **N5–N6**: reuse the existing
+Matrix/Planner/capacity owners to maintain a bounded compatible top-H pre-ready
+target set and prepared data plane, then replace the 15-minute burst execution
+shape with a fair bounded staggered DEEP horizon under the same Matrix writer.
+This block must preserve FAST priority, Full fallback, fact-specific freshness,
+compatible-target dedup, restart fairness and no-catch-up-storm behavior. It is
+not Runtime activation, route mutation or client movement.
 
 ### V5.3 integrated T0–T11 latency-optimization track
 

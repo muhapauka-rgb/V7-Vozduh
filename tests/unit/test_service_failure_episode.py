@@ -294,26 +294,22 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 )
 
         self.assertTrue(result["ok"])
-        self.assertEqual(
-            result["status"],
-            "CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED",
-        )
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
+        self.assertEqual(len(calls), 4)
         self.assertIn("--reset-ct-m0f-standing-validation-sample", calls[0])
-        self.assertNotIn("--ct-m0f-standing-source-selection", calls[0])
+        self.assertIn("--controlled-target-selection-diagnostic", calls[1])
+        self.assertIn("--ct-m0f-standing-source-selection", calls[2])
+        self.assertIn("--execute-l3-production-validation", calls[3])
         self.assertEqual(
-            result["durable_successor"],
-            "NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE",
+            result["automatic_successor_reentry"]["status"],
+            "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
         )
-        receipt = result["sample_preparation_receipt"]
+        receipt = result["predecessor_sample_closure_receipt"]
         self.assertEqual(receipt["phase"], "ACTIVE_SAMPLE_CLOSURE")
         self.assertEqual(
             receipt["predicates"]["previous_sample_closure"]["state"], "PASS"
         )
-        self.assertEqual(
-            receipt["predicates"]["fresh_candidate_admission"]["state"],
-            "NOT_EVALUATED",
-        )
+        self.assertEqual(result["users_moved"], 0)
 
     def test_ct_m0f_standing_matrix_prepares_condition_then_waits_for_fresh_generation(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)

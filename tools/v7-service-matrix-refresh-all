@@ -1588,9 +1588,63 @@ def run_ct_m0f_standing_validation_campaign(
             "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_PREPARES_FRESH_SAMPLE",
         }
 
+    def continue_after_safe_closure(
+        closure: dict[str, Any],
+        *,
+        remaining_successors: int,
+    ) -> dict[str, Any]:
+        """Consume an already-available fresh successor in this owner run.
+
+        Closing the prior sample used to return even when the same invocation
+        had been woken by a newer canonical Matrix generation. That stranded
+        a current failure behind a fictitious wait for another generation.
+        Re-enter the same owner with a strictly smaller bounded budget; add no
+        timer, queue, watcher or persistence.
+        """
+        if (
+            str(closure.get("status") or "")
+            != "CT_M0F_SAMPLE_CLOSED_NEXT_ORDINARY_MATRIX_GENERATION_REQUIRED"
+            or remaining_successors <= 0
+        ):
+            return closure
+        successor = run_ct_m0f_standing_validation_campaign(
+            executor,
+            planner,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+            timeout_sec=timeout_sec,
+            max_successive_samples=remaining_successors,
+        )
+        merged = dict(successor)
+        merged["steps"] = list(closure.get("steps") or []) + list(
+            successor.get("steps") or []
+        )
+        merged["automatic_successor_reentry"] = {
+            "status": "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
+            "predecessor_terminal": str(closure.get("status") or ""),
+            "remaining_successors": remaining_successors,
+            "new_timer_or_queue_created": False,
+        }
+        merged["predecessor_sample_closure_receipt"] = closure.get(
+            "sample_preparation_receipt"
+        )
+        merged["runtime_mutation_performed"] = bool(
+            closure.get("runtime_mutation_performed")
+            or successor.get("runtime_mutation_performed")
+        )
+        merged["users_moved"] = int(closure.get("users_moved") or 0) + int(
+            successor.get("users_moved") or 0
+        )
+        return merged
+
     active_result = close_active_sample(active_reservations())
     if active_result is not None:
-        return active_result
+        return continue_after_safe_closure(
+            active_result,
+            remaining_successors=max(0, int(max_successive_samples) - 1),
+        )
 
     # The source selector and target diagnostic are existing owners but each
     # legitimately reads a broad inventory.  The selector's bounded-memory
@@ -1773,10 +1827,15 @@ def run_ct_m0f_standing_validation_campaign(
             "users_moved": 0,
         }
 
-    for _ in range(max(1, int(max_successive_samples))):
+    for successor_index in range(max(1, int(max_successive_samples))):
         active_result = close_active_sample(active_reservations())
         if active_result is not None:
-            return active_result
+            return continue_after_safe_closure(
+                active_result,
+                remaining_successors=max(
+                    0, int(max_successive_samples) - successor_index - 1,
+                ),
+            )
 
         execute_command = [
             executor,

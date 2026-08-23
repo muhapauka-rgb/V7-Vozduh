@@ -342,6 +342,256 @@ def read_controlled_target_selection_diagnostic(
     return payload
 
 
+def read_prepared_controlled_target_selection_diagnostic(
+    planner: str,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+) -> dict[str, Any]:
+    """Reuse the current Planner hot-target projection on the incident path.
+
+    The projection is validated by its existing owner first.  This adapter
+    then intersects only that already-ranked target set with the current
+    registry, current Matrix path evidence and current capacity.  It never
+    ranks a new target; any stale/missing fact returns an empty diagnostic so
+    the established full diagnostic remains the fail-closed backstop.
+    """
+    summary = read_json(
+        state_dir / "service-matrix-refresh-summary.json", {},
+    )
+    if not isinstance(summary, dict) or not isinstance(
+        summary.get("prepared_class_decisions"), dict,
+    ):
+        return {
+            "ok": False,
+            "status": "PREPARED_TARGET_PROJECTION_MISSING",
+            "blockers": ["prepared_projection_missing"],
+        }
+    command = [
+        planner,
+        "--prepared-class-projection-only",
+        "--state-dir", str(state_dir),
+        "--event-dir", str(event_dir),
+        "--policy-file", str(policy_file),
+        "--action-class-audit-store", str(audit_store),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=15,
+        )
+        payload = json.loads(proc.stdout or "{}")
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+        return {
+            "ok": False,
+            "status": "PREPARED_TARGET_PROJECTION_UNAVAILABLE",
+            "blockers": [f"prepared_projection_owner_failed:{type(exc).__name__}"],
+        }
+    projection = (
+        payload.get("prepared_class_decisions")
+        if isinstance(payload, dict)
+        and isinstance(payload.get("prepared_class_decisions"), dict)
+        else {}
+    )
+    freshness = (
+        payload.get("prepared_class_decision_freshness")
+        if isinstance(payload, dict)
+        and isinstance(payload.get("prepared_class_decision_freshness"), dict)
+        else {}
+    )
+    if (
+        proc.returncode != 0
+        or payload.get("ok") is not True
+        or str(freshness.get("status") or "")
+        != "PREPARED_CLASS_DECISION_FRESH"
+    ):
+        return {
+            "ok": False,
+            "status": "PREPARED_TARGET_PROJECTION_STALE",
+            "blockers": list(
+                (payload.get("prepared_projection_reuse") or {}).get(
+                    "blockers"
+                )
+                or ["prepared_projection_not_fresh"]
+            ),
+        }
+
+    current_scope = current_failed_source_scope(event_dir, state_dir)
+    current_failed = sorted({
+        str(row.get("channel") or "")
+        for row in (
+            current_scope.get("certification_only_active_sources") or []
+        )
+        if isinstance(row, dict)
+        and bool(row.get("source_currently_failed"))
+        and str(row.get("channel") or "")
+    })
+    selected_source = current_failed[0] if current_failed else ""
+    classes = [
+        row for row in (projection.get("classes") or [])
+        if isinstance(row, dict)
+        and str(row.get("source_channel") or "") == selected_source
+    ]
+    declared_targets: list[str] = []
+    for row in classes:
+        for target in row.get("hot_targets") or []:
+            target_id = str(
+                (target or {}).get("target_id")
+                if isinstance(target, dict) else ""
+            )
+            if target_id and target_id not in declared_targets:
+                declared_targets.append(target_id)
+
+    egress_rows = {
+        str(row.get("id") or ""): row
+        for row in parse_registry(state_dir / "egress.registry")
+        if str(row.get("id") or "")
+    }
+    user_counts: dict[str, int] = {}
+    for row in parse_registry(state_dir / "users.registry"):
+        if not bool_value(row.get("enabled", "1"), default=True):
+            continue
+        current = str(row.get("current") or "")
+        user_counts[current] = user_counts.get(current, 0) + 1
+    matrix = read_json(state_dir / "service-matrix.json", {})
+    matrix_items = (
+        matrix.get("items")
+        if isinstance(matrix, dict)
+        and isinstance(matrix.get("items"), dict)
+        else {}
+    )
+    now_epoch = time.time()
+    targets: list[dict[str, Any]] = []
+    rejected: list[str] = []
+    for target_id in declared_targets:
+        registry = egress_rows.get(target_id) or {}
+        observed = matrix_items.get(target_id)
+        observed = observed if isinstance(observed, dict) else {}
+        observed_at = str(
+            observed.get("checked_at") or observed.get("updated") or ""
+        )
+        try:
+            age_seconds = max(
+                0.0,
+                now_epoch
+                - datetime.fromisoformat(
+                    observed_at.replace("Z", "+00:00")
+                ).timestamp(),
+            )
+        except (TypeError, ValueError):
+            age_seconds = -1.0
+        path = (
+            observed.get("path_evidence")
+            if isinstance(observed.get("path_evidence"), dict)
+            else {}
+        )
+        components = (
+            path.get("component_status")
+            if isinstance(path.get("component_status"), dict)
+            else {}
+        )
+        path_ok = bool(
+            components
+            and all(
+                str(value or "").upper() == "PASS"
+                for value in components.values()
+            )
+        )
+        status_ok = str(observed.get("status") or "").upper() in {
+            "OK", "DEGRADED",
+        }
+        hard_limit = int(
+            registry.get("failover_hard_limit")
+            or registry.get("hard_limit")
+            or 0
+        )
+        free_capacity = max(
+            0, hard_limit - int(user_counts.get(target_id) or 0)
+        )
+        admitted = bool(
+            registry
+            and bool_value(registry.get("enabled", "1"), default=True)
+            and not bool_value(registry.get("canary_reserved"))
+            and target_id != selected_source
+            and status_ok
+            and path_ok
+            and 0.0 <= age_seconds <= 3.0
+            and free_capacity >= 1
+        )
+        if not admitted:
+            rejected.append(target_id)
+            continue
+        health = {
+            "ok": True,
+            "observation_fingerprint": hashlib.sha256(
+                json.dumps(
+                    {
+                        "target": target_id,
+                        "observed_at": observed_at,
+                        "path_fingerprint": path.get("path_fingerprint"),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
+        }
+        targets.append({
+            "target_id": target_id,
+            "health": health,
+            "shared_target_technically_eligible": True,
+            "ordinary_planner_eligible": True,
+            "controlled_rebind_eligible": False,
+            "controlled_only_contract": False,
+            "verification_supported": True,
+            "rollback_containment_supported": True,
+            "shared_target_availability": {
+                "state": "HEALTHY",
+                "policy_boundary": "NONE",
+                "hard_reasons": [],
+            },
+            "capacity": {
+                "target_safe_additional_capacity": free_capacity,
+            },
+            "prepared_projection_owner": str(
+                projection.get("owner") or ""
+            ),
+            "prepared_projection_produced_at": str(
+                projection.get("produced_at") or ""
+            ),
+            "matrix_path_age_seconds": round(age_seconds, 3),
+        })
+    return {
+        "schema_version": (
+            "v7.prepared-controlled-target-selection-diagnostic.v1"
+        ),
+        "status": (
+            "PREPARED_CONTROLLED_TARGET_READY"
+            if targets else "PREPARED_CONTROLLED_TARGET_STOP_SAFE"
+        ),
+        "ok": bool(targets),
+        "targets": targets,
+        "selection": {
+            "selected_target_id": str(
+                (targets[0] if targets else {}).get("target_id") or ""
+            ),
+        },
+        "selected_source_id": selected_source,
+        "declared_target_count": len(declared_targets),
+        "rejected_targets": rejected,
+        "world_model_rebuilt": False,
+        "manual_server_selection": False,
+        "full_diagnostic_fallback_required": not bool(targets),
+        "runtime_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def consume_approved_controlled_source_topology(
     planner: str,
     *,
@@ -1654,10 +1904,23 @@ def run_ct_m0f_standing_validation_campaign(
     # that hand-off private to this invocation: it is neither a cache nor a
     # second state source, and it makes the automatic Matrix consumer use the
     # same target decision as the manual read-only predecessor did.
-    target_diagnostic = read_controlled_target_selection_diagnostic(
-        state_dir=state_dir,
-        policy_file=policy_file,
-        audit_store=audit_store,
+    prepared_target_diagnostic = (
+        read_prepared_controlled_target_selection_diagnostic(
+            planner,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+        )
+    )
+    target_diagnostic = (
+        prepared_target_diagnostic
+        if prepared_target_diagnostic.get("ok") is True
+        else read_controlled_target_selection_diagnostic(
+            state_dir=state_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+        )
     )
     diagnostic_path = ""
     try:
@@ -1696,6 +1959,12 @@ def run_ct_m0f_standing_validation_campaign(
     sample_binding_fingerprint = str(
         source_selection.get("sample_binding_fingerprint") or ""
     )
+    source_selection["prepared_target_reuse"] = {
+        "status": str(prepared_target_diagnostic.get("status") or ""),
+        "ok": bool(prepared_target_diagnostic.get("ok")),
+        "fallback_used": prepared_target_diagnostic.get("ok") is not True,
+        "world_model_rebuilt": False,
+    }
     if (
         source_rc not in {0, 2}
         or source_selection.get("ok") is not True

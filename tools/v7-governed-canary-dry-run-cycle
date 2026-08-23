@@ -5423,7 +5423,25 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 or ""
             )
         ),
-        refresh_snapshots=bool(ct_m0f_standing_requested or availability_mode),
+        # A Matrix-bound real failure changes health, not identity or routing
+        # registries.  Its prepared Planner generation therefore remains the
+        # exact incident predecessor and must not pay a post-T0 full snapshot
+        # rebuild.  Controlled setup/recovery can move identities immediately
+        # before this call and retains the existing refresh requirement.
+        refresh_snapshots=bool(
+            availability_mode
+            or (
+                ct_m0f_standing_requested
+                and not str(
+                    getattr(
+                        args,
+                        "expected_service_failure_binding_kind",
+                        "",
+                    )
+                    or ""
+                )
+            )
+        ),
         controlled_user=(
             str(
                 getattr(args, "ct_m0f_standing_validation_user", "")

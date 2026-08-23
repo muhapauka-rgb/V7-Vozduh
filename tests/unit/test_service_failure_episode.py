@@ -493,6 +493,93 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             for command in successor_calls
         ))
 
+    def test_ct_m0f_incident_reuses_fresh_prepared_target_without_full_diagnostic(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            events = Path(tmp) / "events"
+            state.mkdir()
+            events.mkdir()
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+                "produced_at": datetime.now(timezone.utc).isoformat(),
+                "classes": [{
+                    "source_channel": "exec-source",
+                    "hot_targets": [{"target_id": "awg3"}],
+                }],
+            }
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=exec-source enabled=1 hard_limit=10\n"
+                "id=awg3 enabled=1 hard_limit=80\n",
+                encoding="utf-8",
+            )
+            (state / "users.registry").write_text(
+                "ip=10.7.0.18 current=exec-source enabled=1\n",
+                encoding="utf-8",
+            )
+            observed = datetime.now(timezone.utc).isoformat()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"awg3": {
+                    "status": "OK",
+                    "checked_at": observed,
+                    "path_evidence": {
+                        "path_fingerprint": "p" * 64,
+                        "component_status": {
+                            "firewall_rules": "PASS",
+                            "interface_addresses": "PASS",
+                            "policy_rules": "PASS",
+                            "routing_tables": "PASS",
+                        },
+                    },
+                }},
+            }), encoding="utf-8")
+            owner_payload = {
+                "ok": True,
+                "prepared_class_decisions": projection,
+                "prepared_class_decision_freshness": {
+                    "status": "PREPARED_CLASS_DECISION_FRESH",
+                },
+            }
+            ready_scope = {
+                "certification_only_active_sources": [{
+                    "channel": "exec-source",
+                    "source_currently_failed": True,
+                }],
+            }
+            with mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                return_value=self.refresh.subprocess.CompletedProcess(
+                    ["planner"], 0, stdout=json.dumps(owner_payload),
+                ),
+            ), mock.patch.object(
+                self.refresh,
+                "current_failed_source_scope",
+                return_value=ready_scope,
+            ):
+                result = (
+                    self.refresh
+                    .read_prepared_controlled_target_selection_diagnostic(
+                        "planner",
+                        state_dir=state,
+                        event_dir=events,
+                        policy_file=Path(tmp) / "policy.json",
+                        audit_store=Path(tmp) / "audit.jsonl",
+                    )
+                )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["selected_source_id"], "exec-source")
+        self.assertEqual(
+            result["selection"]["selected_target_id"], "awg3",
+        )
+        self.assertFalse(result["world_model_rebuilt"])
+        self.assertFalse(result["manual_server_selection"])
+
     def test_ct_m0f_no_sample_admission_retains_predicate_receipt_in_matrix_projection(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

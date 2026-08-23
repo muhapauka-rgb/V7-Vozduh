@@ -5089,7 +5089,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
             captured["command"] = command
             return FakeProc()
 
-        with mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+        with mock.patch.object(
+            module.subprocess, "run", side_effect=fake_run,
+        ) as run:
             module.run_l3_production_validation_plan(
                 state_dir=Path("/state"),
                 event_dir=Path("/events"),
@@ -5109,6 +5111,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "v7-intelligence-snapshot-refresh",
             command[refresh_command_index + 1],
         )
+        timeout_index = command.index("--pre-planner-refresh-timeout-sec")
+        self.assertEqual(command[timeout_index + 1], "75")
+        self.assertEqual(run.call_args.kwargs["timeout"], 120)
 
     def test_compact_transaction_result_retains_bounded_planner_diagnosis(self):
         module = load_cli_module()

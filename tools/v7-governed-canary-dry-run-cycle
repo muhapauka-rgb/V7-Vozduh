@@ -798,6 +798,8 @@ def run_l3_production_validation_plan(
         command.extend([
             "--pre-planner-refresh-command",
             str(snapshot_refresh_executable()),
+            "--pre-planner-refresh-timeout-sec",
+            "75",
         ])
     if source:
         command.extend(["--source-egress", source])
@@ -813,7 +815,12 @@ def run_l3_production_validation_plan(
             target,
         ])
     try:
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=90)
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=120 if refresh_snapshots else 90,
+        )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {
             "ok": False,

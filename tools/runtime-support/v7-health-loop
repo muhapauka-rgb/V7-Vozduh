@@ -118,6 +118,20 @@ DEFAULT_ROLE_COMMANDS = (
     ),
 )
 
+# Preserve simultaneous source confirmation and prepared-target validation on
+# the FAST path, but do not create a seven-role startup burst. Slow roles are
+# deterministically placed later in the same existing owner; no cursor or
+# scheduler state is persisted.
+DEFAULT_ROLE_INITIAL_OFFSETS_MS = {
+    "hard": 0,
+    "telegram": 0,
+    "hot_target": 0,
+    "hot_target_other": 2_000,
+    "other_required": 2_500,
+    "planner_projection": 10_000,
+    "deep": 15_000,
+}
+
 
 def monotonic_ns() -> int:
     return time.monotonic_ns()
@@ -231,6 +245,7 @@ class ManagedRole:
     name: str
     cadence_ns: int
     command: tuple[str, ...]
+    initial_offset_ns: int = 0
     next_due_ns: int = 0
     process: subprocess.Popen[bytes] | None = None
     started_ns: int = 0
@@ -301,7 +316,7 @@ class RoleHealthLoop:
     def run(self) -> int:
         started = monotonic_ns()
         for role in self.roles:
-            role.next_due_ns = started
+            role.next_due_ns = started + role.initial_offset_ns
         hard = next((role for role in self.roles if role.name == "hard"), self.roles[0])
         try:
             while True:
@@ -402,6 +417,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 name=name,
                 cadence_ns=intervals[name] * 1_000_000,
                 command=(controlled[name],) if controlled[name] else tuple(command),
+                initial_offset_ns=(
+                    0
+                    if any(controlled.values())
+                    else DEFAULT_ROLE_INITIAL_OFFSETS_MS[name] * 1_000_000
+                ),
             )
             for name, _default_interval, command in DEFAULT_ROLE_COMMANDS
         )

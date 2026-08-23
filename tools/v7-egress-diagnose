@@ -8,6 +8,7 @@ SHADOW_TRIGGER_EGRESS=""
 SHADOW_TRIGGER_SERVICES=""
 SHADOW_TRIGGER_PROFILE_USER=""
 SHADOW_TRIGGER_EVENT_DIR=""
+CANONICAL_EVENT_DIR="${V7_EVENT_DIR:-}"
 SHADOW_TRIGGER_COOLDOWN_SEC="60"
 PROFILE_SERVICE_SUSPICION_COMMAND=""
 PROFILE_SERVICE_FAILURE_SAMPLES="2"
@@ -199,6 +200,19 @@ fi
 REG="${STATE_DIR}/egress.registry"
 SUM="${STATE_DIR}/summary.state"
 OUT="${OUT:-${STATE_DIR}/egress-diagnose.state}"
+# Production Matrix events are owned at /opt/v7/events, not below the egress
+# state subtree. Preserve the state-relative fallback only for an explicitly
+# isolated/custom state directory used by tests or a local Polygon.
+if [ -z "$CANONICAL_EVENT_DIR" ]; then
+  if [ "$STATE_DIR" = "/opt/v7/egress/state" ]; then
+    CANONICAL_EVENT_DIR="/opt/v7/events"
+  else
+    CANONICAL_EVENT_DIR="${STATE_DIR}/../events"
+  fi
+fi
+if [ -n "$SHADOW_TRIGGER_EVENT_DIR" ]; then
+  CANONICAL_EVENT_DIR="$SHADOW_TRIGGER_EVENT_DIR"
+fi
 TMP="${OUT}.tmp.$$"
 if [ "$OUT" = "-" ]; then
   TMP="$(mktemp "${TMPDIR:-/tmp}/v7-egress-diagnose-output.XXXXXX")"
@@ -245,7 +259,7 @@ shadow_trigger_for_reason() {
   fi
 
   trigger_id="v7st_$(printf '%s' "${id}|${trigger_class}|${reason}" | shasum -a 256 | awk '{print substr($1,1,24)}')"
-  trigger_event_dir="${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"
+  trigger_event_dir="$CANONICAL_EVENT_DIR"
   trigger_service_args=()
   if [ -n "$SHADOW_TRIGGER_PROFILE_USER" ]; then
     trigger_service_args=(--shadow-trigger-profile-user "$SHADOW_TRIGGER_PROFILE_USER")
@@ -330,7 +344,7 @@ publish_definitive_interface_failure() {
   HARD_SIGNAL_OBSERVATION_COUNT=$((HARD_SIGNAL_OBSERVATION_COUNT + 1))
   if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
       --state-dir "$STATE_DIR" \
-      --event-dir "${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}" \
+      --event-dir "$CANONICAL_EVENT_DIR" \
       --interface "$iface" \
       --direct-local-failure-class INTERFACE_DOWN_OR_MISSING \
       --direct-signal-observed-at "$observed_at" \
@@ -618,7 +632,7 @@ EOF
     return 0
   fi
   trigger_id="v7ps_$(printf '%s' "${source_id}|${profile_user}|${trigger_class}|${failed_services}" | shasum -a 256 | awk '{print substr($1,1,24)}')"
-  trigger_event_dir="${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"
+  trigger_event_dir="$CANONICAL_EVENT_DIR"
   trigger_service_args=()
   if [ "$profile_user" = "__GLOBAL__" ]; then
     trigger_service_args=(--services "$services")

@@ -11,6 +11,7 @@ import importlib.machinery
 import importlib.util
 import io
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -210,10 +211,17 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
                 "--hard-signal-only",
                 "--definitive-matrix-command", str(MATRIX_TOOL),
                 "--consumer-wake-command", str(wake),
-                "--shadow-trigger-event-dir", str(root / "events"),
             ]
-            first = subprocess.run(command, text=True, capture_output=True, check=False, timeout=10)
-            second = subprocess.run(command, text=True, capture_output=True, check=False, timeout=10)
+            env = os.environ.copy()
+            env["V7_EVENT_DIR"] = str(root / "events")
+            first = subprocess.run(
+                command, text=True, capture_output=True, check=False,
+                timeout=10, env=env,
+            )
+            second = subprocess.run(
+                command, text=True, capture_output=True, check=False,
+                timeout=10, env=env,
+            )
             values = dict(
                 line.split("=", 1)
                 for line in output.read_text(encoding="utf-8").splitlines()
@@ -228,6 +236,18 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertEqual(values["hard_signal_new_t0_count"], "0")
         self.assertNotIn("unused_hard_signal_status", values)
         self.assertEqual(wake_lines, ["wake"])
+
+    def test_production_hard_signal_uses_canonical_event_owner_path(self):
+        source = DIAGNOSE_TOOL.read_text(encoding="utf-8")
+        self.assertIn(
+            'if [ "$STATE_DIR" = "/opt/v7/egress/state" ]; then',
+            source,
+        )
+        self.assertIn('CANONICAL_EVENT_DIR="/opt/v7/events"', source)
+        self.assertNotIn(
+            '--event-dir "${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}"',
+            source,
+        )
 
     def test_telegram_role_scope_is_profile_contract_not_all_egresses_or_users(self):
         with tempfile.TemporaryDirectory() as tmp:

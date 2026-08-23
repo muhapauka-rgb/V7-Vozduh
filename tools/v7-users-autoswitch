@@ -24687,6 +24687,7 @@ def ct_m0f_standing_source_selection_only(
             int(row.get("enabled_certification_users_on_source") or 0) > 0
             and int(row.get("group_aligned_certification_users_on_source") or 0) > 0
             and bool((row.get("baseline_health") or {}).get("ok"))
+            and not bool(row.get("controlled_condition_active"))
         )
     ]
     healthy_baselines.sort(

@@ -631,9 +631,15 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "certification_group": "g1",
             }] if str(path).endswith("users.registry") else [{
                 "id": "exec-source",
+                "type": "interface",
                 "role": "EXECUTION_ONLY",
+                "controlled_certification_source": "1",
                 "reservation_owner": "operator_execution_governance",
                 "execution_reserved": "1",
+                "canary_reserved": "1",
+                "autoswitch_allowed": "0",
+                "rebalance_allowed": "0",
+                "production_assignment_allowed": "0",
             }]),
         ), mock.patch.object(
             self.autoswitch,
@@ -660,7 +666,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         ):
             result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
 
-        self.assertTrue(result["ok"])
+        self.assertTrue(result["ok"], result)
         self.assertEqual(
             result["selection_mode"],
             "PREPARE_CONTROLLED_FAILURE_CONDITION",
@@ -681,6 +687,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
     def test_ct_m0f_active_service_failure_binding_requires_accounted_live_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)
+            (state / "users.registry").write_text(
+                "ip=10.7.0.18 current=vless enabled=1\n",
+                encoding="utf-8",
+            )
+            live_scope_fingerprint = self.autoswitch.sha256_json({
+                "source_channel": "vless",
+                "users": ["10.7.0.18"],
+            })
             (state / "l3-runtime-state.json").write_text(json.dumps({
                 "incidents": {
                     "passive_example": {
@@ -694,8 +708,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                         "current_source_scope": {
                             "status": "ACCOUNTED",
                             "affected_scope_count": 39,
-                            "unresolved_scope_count": 38,
+                            "unresolved_scope_count": 1,
                             "affected_scope_fingerprint": "a" * 64,
+                            "unresolved_scope_fingerprint": live_scope_fingerprint,
                         },
                     },
                 },
@@ -707,7 +722,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertTrue(result["requires_binding"])
         self.assertEqual(result["automation_obligation_id"], "sfaob_example")
         self.assertEqual(result["source_incident_id"], "sfinc_example")
-        self.assertEqual(result["source_scope_fingerprint"], "a" * 64)
+        self.assertEqual(
+            result["source_scope_fingerprint"], live_scope_fingerprint,
+        )
 
     def test_ct_m0f_missing_live_binding_fails_closed_when_l3_owner_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1540,7 +1557,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "current": "exec-source",
             "enabled": "1",
             "certification_user": "1",
-            "certification_group": "identity-group",
+            "certification_group": "source-group",
         }, {
             "ip": "10.7.0.108",
             "current": "vless",
@@ -1585,7 +1602,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         ):
             result = self.autoswitch.ct_m0f_standing_source_selection_only(args)
 
-        self.assertTrue(result["ok"])
+        self.assertTrue(result["ok"], result)
         self.assertEqual(
             result["selection_mode"],
             "EXECUTE_CONTROLLED_FAILURE_CUTOVER",

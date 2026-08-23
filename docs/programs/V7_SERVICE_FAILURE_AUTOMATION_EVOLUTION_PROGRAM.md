@@ -634,13 +634,26 @@ proved that the remaining 3--7 second delay is shared-lock contention from the
 still-active predecessor Telegram timer, not probe time. No route changed, no
 client moved and N7 claims S11 only.
 
-The next executable V5.3 block is **N8 UNATTENDED_RUNTIME_CALLER_AND_CONSUMER_CUTOVER**.
-It must persist the official prepared projection through the existing Matrix
-state, prove a finite role-loop canary, activate the existing `v7-health.service`
-as the single role caller, retire overlapping Full/Telegram predecessor timers
-only after rollback-ready evidence, and run one controlled synthetic failure
-through the existing Candidate/Packet/Lease/Barrier/Apply/verification chain.
-It may not claim T11 without independent client telemetry.
+`N8` completed at deployed commit `4cb03fdf` plus its immediate self-target
+selection follow-up. Exact evidence is recorded in
+`docs/reports/engineering/2026-08-23_170201_v5_3_n8_unattended_runtime_cutover.md`.
+The deployed `v7-health.service` automatically detected an isolated Polygon
+failure, woke the existing Matrix/Planner consumer and moved exactly one
+certification client through Candidate/Packet/Lease/Barrier/Apply/S11 without
+a manual Planner or apply invocation. Route, target-bound payload, Outcome and
+Learning passed; the source was restored, ordinary-user delta was zero, and
+the repaired consumer peaked near 323.8 MiB instead of the earlier 1.6 GiB
+OOM. Full/Telegram predecessor timers remain disabled. The proof is S11 only;
+T11 still requires independent client telemetry.
+
+The real automatic sample also measured about 63.4 seconds from Polygon onset
+to S11. It therefore closes N8 automation semantics but does **not** satisfy
+the terminal 3--5 second latency law. The next executable V5.3 block is
+**N9 FULL_SCALE_AND_CRITICAL_PATH_TOURNAMENT**: run the mandatory scale/resource
+matrix and compare reuse of the prepared top-H projection plus exact
+role/profile-required S11 verification against the currently broad selection
+and payload spans. The measured-safe winner is implemented in existing owners;
+Full remains the stale/conflict/disagreement fallback.
 
 ### V5.3 integrated T0–T11 latency-optimization track
 

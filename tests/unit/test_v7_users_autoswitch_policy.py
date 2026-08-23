@@ -927,6 +927,70 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "users.registry",
         )
 
+    def test_controlled_engineering_setup_is_exact_and_independent_of_l3_incident(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="awg3")
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                (
+                    "ip=10.7.0.92 current=awg3 table=1092 enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            state = json.loads(
+                (state_dir / "v7-state.json").read_text(encoding="utf-8")
+            )
+            state["users"] = [{
+                "ip": "10.7.0.92",
+                "current": "vless",
+                "table": "1092",
+                "enabled": "1",
+            }]
+            (state_dir / "v7-state.json").write_text(
+                json.dumps(state), encoding="utf-8",
+            )
+            (state_dir / "egress.registry").write_text(
+                (
+                    "id=awg3 interface=awg3 enabled=1 state=enabled "
+                    "role=GLOBAL_FAST\n"
+                    "id=polygon interface=v7polygon enabled=1 state=enabled "
+                    "role=EXECUTION_ONLY controlled_certification_source=1 "
+                    "execution_reserved=1 canary_reserved=1 "
+                    "reservation_owner=operator_execution_governance "
+                    "production_assignment_allowed=0\n"
+                ),
+                encoding="utf-8",
+            )
+            args = self.args_for(root, [
+                "--controlled-engineering-setup",
+                "--max-selected-moves", "1",
+                "--user", "10.7.0.92",
+                "--source-egress", "awg3",
+                "--target-egress", "polygon",
+                "--approved-packet-id", "packet",
+                "--approved-operation-id", "operation",
+                "--approved-execution-lease-id", "lease",
+                "--approved-selected-move-hash", "move",
+                "--approved-authority-generation", "authority",
+                "--approved-breaker-generation", "breaker",
+                "--approved-source-bundle-hash", "source-bundle",
+                "--approved-snapshot-bundle-hash", "snapshot-bundle",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {
+                "user_ip": "10.7.0.92",
+                "current_egress": "awg3",
+                "recommended_egress": "polygon",
+            }
+            scope = planner._exact_controlled_engineering_setup_scope([move])
+
+        self.assertTrue(scope["ok"], scope)
+        self.assertEqual(scope["reasons"], [])
+        self.assertFalse(scope["authority_expanded"])
+        self.assertEqual(planner.users[0].current, "awg3")
+
     def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -2969,6 +2969,7 @@ def run_one(
     failure_persistence_window_seconds: int = 0,
     event_dir: Optional[Path] = None,
     path_evidence_refresh: bool = False,
+    role_fast_timeout: bool = False,
 ) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
@@ -2976,6 +2977,8 @@ def run_one(
         cmd.append("--path-evidence-refresh")
     elif str(services or "").strip():
         cmd.extend(["--services", str(services).strip()])
+        if role_fast_timeout:
+            cmd.append("--role-fast-timeout")
     if int(failure_persistence_samples or 0) > 0:
         cmd.extend(["--failure-persistence-samples", str(int(failure_persistence_samples))])
     if int(failure_persistence_window_seconds or 0) > 0:
@@ -4782,6 +4785,10 @@ def main() -> int:
             path_evidence_refresh=(
                 args.prepared_hot_targets
                 and args.prepared_hot_target_service_class == "path"
+            ),
+            role_fast_timeout=(
+                args.prepared_hot_targets
+                and args.prepared_hot_target_service_class != "path"
             ),
         )
 

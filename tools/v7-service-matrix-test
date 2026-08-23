@@ -1709,6 +1709,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--failure-persistence-samples", type=int, default=3)
     parser.add_argument("--failure-persistence-window-seconds", type=int, default=180)
     parser.add_argument("--timeout", type=int, default=8)
+    parser.add_argument(
+        "--role-fast-timeout",
+        action="store_true",
+        help=(
+            "Allow a 1..5 second timeout only for an exact role-scoped service "
+            "subset; default/full Matrix timeout semantics stay unchanged."
+        ),
+    )
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--interface", default="")
     parser.add_argument(
@@ -1791,7 +1799,13 @@ def main() -> int:
         return 0 if result.get("ok") else 2
     matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
     iface = args.interface.strip() or egress_interface(state_dir, egress_id)
-    timeout = max(3, min(int(args.timeout or 8), 30))
+    if args.role_fast_timeout:
+        if not str(args.services or "").strip() or service != "all":
+            print(json.dumps({"error": "role_fast_timeout_requires_exact_service_subset"}, ensure_ascii=False))
+            return 2
+        timeout = max(1, min(int(args.timeout or 1), 5))
+    else:
+        timeout = max(3, min(int(args.timeout or 8), 30))
     try:
         selected = exact_services_to_run(service, str(args.services or ""))
     except ValueError as exc:

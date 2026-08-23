@@ -13,6 +13,8 @@ import gc
 import fcntl
 import fnmatch
 import hashlib
+import importlib.machinery
+import importlib.util
 import ipaddress
 import json
 import math
@@ -63,6 +65,7 @@ ROLLBACK_PACKET_SCHEMA = "c2.autoswitch-rollback-packet.v1"
 SAFE_IP_RE = re.compile(r"^10\.(0|7)\.[0-9]{1,3}\.[0-9]{1,3}$")
 DEFAULT_REQUIRED_SERVICES: tuple[str, ...] = ()
 _SERVICE_MATRIX_LOCKS_HELD_BY_PROCESS: set[str] = set()
+_IN_PROCESS_CLIENT_SPEED_MODULE: Any = None
 DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", "google_auth")
 SELECTED_MOVE_SEMANTIC_FIELDS = (
     "reason",
@@ -84,6 +87,32 @@ PREPARED_SELECTION_INVALIDATOR_KEYS = (
     "anti_flap_generation",
 )
 PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS = 300
+
+
+def in_process_client_speed_module() -> Any:
+    """Load the existing exact-client probe owner once on the hot path.
+
+    The owner, inputs and output contract remain ``v7-client-speed-api``.
+    Reusing its Python module avoids a second interpreter and duplicate import
+    of the already-loaded execution contracts after route visibility.
+    """
+    global _IN_PROCESS_CLIENT_SPEED_MODULE
+    if _IN_PROCESS_CLIENT_SPEED_MODULE is not None:
+        return _IN_PROCESS_CLIENT_SPEED_MODULE
+    path = Path(
+        shutil.which("v7-client-speed-api")
+        or Path(__file__).resolve().with_name("v7-client-speed-api")
+    )
+    loader = importlib.machinery.SourceFileLoader(
+        "v7_client_speed_runtime_owner", str(path)
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise RuntimeError("exact_client_probe_owner_spec_unavailable")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    _IN_PROCESS_CLIENT_SPEED_MODULE = module
+    return module
 
 
 def prepared_selection_planner_generation(
@@ -18674,18 +18703,30 @@ class AutoswitchPlanner:
         with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json") as handle:
             json.dump(context, handle, sort_keys=True)
             handle.flush()
-            payload_proc = subprocess.run(
-                ["v7-client-speed-api", "--exact-client-probe-context", handle.name, "--json"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-                timeout=10,
-            )
-        try:
-            payload = json.loads(payload_proc.stdout or "{}")
-        except json.JSONDecodeError:
-            payload = {"status": "PROBE_INVALID", "blockers": ["target_payload_receipt_not_json"]}
+            try:
+                client_speed_owner = in_process_client_speed_module()
+            except Exception:
+                # Preserve the deployed executable as the fail-closed
+                # compatibility path only if the same owner cannot be loaded.
+                # A probe execution error must not silently become a second
+                # attempt when the certification contract says retry_count=0.
+                payload_proc = subprocess.run(
+                    ["v7-client-speed-api", "--exact-client-probe-context", handle.name, "--json"],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    timeout=10,
+                )
+                try:
+                    payload = json.loads(payload_proc.stdout or "{}")
+                except json.JSONDecodeError:
+                    payload = {
+                        "status": "PROBE_INVALID",
+                        "blockers": ["target_payload_receipt_not_json"],
+                    }
+            else:
+                payload = client_speed_owner.run_exact_probe_context(handle.name)
 
         span_by_stage = {
             str(row.get("stage") or ""): row

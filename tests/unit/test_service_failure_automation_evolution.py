@@ -40,6 +40,22 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         cls.matrix = load_module("v7_service_matrix_scope_automation", ROOT / "tools" / "v7-service-matrix-test")
         cls.refresh = load_module("v7_service_matrix_refresh_automation", ROOT / "tools" / "v7-service-matrix-refresh-all")
 
+    def test_exact_client_probe_owner_is_loaded_once_in_process(self):
+        previous = self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE
+        self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE = None
+        try:
+            first = self.autoswitch.in_process_client_speed_module()
+            second = self.autoswitch.in_process_client_speed_module()
+        finally:
+            self.autoswitch._IN_PROCESS_CLIENT_SPEED_MODULE = previous
+
+        self.assertIs(first, second)
+        self.assertTrue(callable(first.run_exact_probe_context))
+        self.assertEqual(
+            Path(first.__loader__.path).resolve(),
+            (ROOT / "tools" / "v7-client-speed-api").resolve(),
+        )
+
     def test_stop_safe_is_materialized_once_with_bounded_shadow(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

@@ -141,6 +141,26 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             600.0,
         )
 
+    def test_exact_user_payload_scope_is_consumed_as_stronger_s11_proof(self):
+        receipt = self.kernel_cutover_receipt()
+        payload = receipt["target_payload_proof"]
+        payload.update({
+            "status": (
+                "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_RECEIPT_READY"
+            ),
+            "scope": "EXACT_CLIENT_NETWORK_CONTEXT",
+            "exact_certification_identity_context": True,
+            "routing_table_or_fwmark_bound": True,
+            "exact_user_source_fwmark_table_traversed": True,
+        })
+        receipt["exact_user_payload_claimed"] = True
+        result = pipeline.control_plane_kernel_path_cutover_contract(receipt)
+        self.assertEqual(
+            result["status"],
+            "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+        )
+        self.assertTrue(result["exact_user_payload_path_proven"])
+
     def test_disconnected_or_overclaimed_cutover_is_rejected(self):
         receipt = self.kernel_cutover_receipt()
         receipt["target_payload_proof"]["operation_id"] = "other_operation"

@@ -18385,9 +18385,10 @@ class AutoswitchPlanner:
         """Consume the existing CT-M0F owners after a governed apply.
 
         The method is gated by an explicit validation flag and a fresh Packet,
-        operation and execution lease.  It performs only the target-egress
-        payload probe after the existing route verifier has passed.  It cannot
-        create a Candidate, Packet, lease, restore barrier or routing effect.
+        operation and execution lease.  After the existing route verifier has
+        passed it performs one exact certification-identity probe through the
+        moved user's source rule/table and selected target.  It cannot create
+        a Candidate, Packet, lease, restore barrier or routing effect.
         """
         if not bool_value(getattr(self.args, "ct_m0f_kernel_cutover_validation", False)):
             return {"status": "NOT_REQUESTED", "ok": False}
@@ -18579,57 +18580,10 @@ class AutoswitchPlanner:
                 "routing_mutation_performed_by_consumer": False,
             }
 
-        now = datetime.now(timezone.utc)
-        context = {
-            "schema_version": "v7.target-egress-payload-probe-context.v1",
-            **lineage,
-            "contract_id": "ctm0f_" + sha256_json(lineage)[:24],
-            "sample_kind": str(getattr(self.args, "ct_m0f_sample_kind", "") or "warm"),
-            "issuing_owner": "existing Controlled Production owner",
-            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
-            "certification_identity": True,
-            "source_address": source_address,
-            "interface": target.interface,
-            "expected_egress_ip": expected_ip,
-            "expected_egress_ip_source": expected_ip_source,
-            "expected_target_egress_fingerprint": hashlib.sha256(expected_ip.encode("utf-8")).hexdigest(),
-            "target_url": "https://api.ipify.org",
-            "timeout_ms": 2000,
-            "retry_count": 1,
-            "expires_at": (now + timedelta(minutes=5)).isoformat(),
-        }
-        context["context_hash"] = hashlib.sha256(
-            json.dumps(context, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json") as handle:
-            json.dump(context, handle, sort_keys=True)
-            handle.flush()
-            payload_proc = subprocess.run(
-                ["v7-client-speed-api", "--target-egress-payload-context", handle.name, "--json"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-                timeout=10,
-            )
-        try:
-            payload = json.loads(payload_proc.stdout or "{}")
-        except json.JSONDecodeError:
-            payload = {"status": "PROBE_INVALID", "blockers": ["target_payload_receipt_not_json"]}
-
-        span_by_stage = {
-            str(row.get("stage") or ""): row
-            for row in self._performance_spans
-            if isinstance(row, dict)
-        }
-        route_span = result_row.get("route_writer_timing") if isinstance(result_row.get("route_writer_timing"), dict) else {}
-        visibility_span = result_row.get("route_visibility_timing") if isinstance(result_row.get("route_visibility_timing"), dict) else {}
         incident = ((plan.get("safety") or {}).get("l3_incident") or {})
-        # Matrix can legitimately bind a controlled condition to an incident
-        # shell before its clocks are copied into the plan.  Preserve that
-        # incident identity, but consume the exact matching append-only
-        # condition as the clock owner when the plan/move values are zero.
-        # This is a narrow lineage repair, not a synthetic failure timestamp.
+        # Bind the payload probe to the same Matrix/controlled-condition
+        # monotonic failure clock before executing the probe.  The immutable
+        # context hash therefore covers the exact clock lineage too.
         first_failed_ns = next((value for value in (
             to_int(incident.get("first_failed_observation_monotonic_ns"), 0),
             to_int(move.get("first_failed_observation_monotonic_ns"), 0),
@@ -18656,6 +18610,77 @@ class AutoswitchPlanner:
             ),
             to_int(controlled_condition.get("confirmed_hard_failure_monotonic_ns"), 0),
         ) if value > 0), 0)
+
+        now = datetime.now(timezone.utc)
+        try:
+            netns_inode = int(os.stat("/proc/self/ns/net").st_ino)
+        except OSError:
+            netns_inode = 0
+        boot_id = ""
+        try:
+            boot_id = Path("/proc/sys/kernel/random/boot_id").read_text(
+                encoding="utf-8"
+            ).strip()
+        except OSError:
+            pass
+        try:
+            fwmark = int(str(user.table if user else ""), 0)
+        except (TypeError, ValueError):
+            fwmark = 0
+        context = {
+            "schema_version": "v7.exact-client-probe-execution-context.v1",
+            **lineage,
+            "contract_id": "ctm0f_" + sha256_json(lineage)[:24],
+            "sample_kind": str(getattr(self.args, "ct_m0f_sample_kind", "") or "warm"),
+            "issuing_owner": "existing Controlled Production owner",
+            "active_program": "V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            "certification_identity": True,
+            "source_address": lineage["user"],
+            "interface": target.interface,
+            "routing_table": str(user.table if user else ""),
+            "fwmark": fwmark,
+            "network_namespace_inode": netns_inode,
+            "clock_domain_id": (
+                f"linux-boot:{boot_id or 'unknown'}:netns:{netns_inode}"
+            ),
+            "first_failed_observation_monotonic_ns": first_failed_ns,
+            "confirmed_hard_failure_monotonic_ns": confirmed_ns,
+            "observation_cadence_ms": 50,
+            "clock_uncertainty_ms": 2.0,
+            "expected_egress_ip": expected_ip,
+            "expected_egress_ip_source": expected_ip_source,
+            "expected_target_egress_fingerprint": hashlib.sha256(expected_ip.encode("utf-8")).hexdigest(),
+            "target_url": "https://checkip.amazonaws.com",
+            "timeout_ms": 650,
+            "retry_count": 0,
+            "expires_at": (now + timedelta(minutes=5)).isoformat(),
+        }
+        context["context_hash"] = hashlib.sha256(
+            json.dumps(context, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".json") as handle:
+            json.dump(context, handle, sort_keys=True)
+            handle.flush()
+            payload_proc = subprocess.run(
+                ["v7-client-speed-api", "--exact-client-probe-context", handle.name, "--json"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=10,
+            )
+        try:
+            payload = json.loads(payload_proc.stdout or "{}")
+        except json.JSONDecodeError:
+            payload = {"status": "PROBE_INVALID", "blockers": ["target_payload_receipt_not_json"]}
+
+        span_by_stage = {
+            str(row.get("stage") or ""): row
+            for row in self._performance_spans
+            if isinstance(row, dict)
+        }
+        route_span = result_row.get("route_writer_timing") if isinstance(result_row.get("route_writer_timing"), dict) else {}
+        visibility_span = result_row.get("route_visibility_timing") if isinstance(result_row.get("route_visibility_timing"), dict) else {}
         decision_ns = to_int(
             (span_by_stage.get("planner_entry_target_capacity_and_allocation") or {}).get("completed_monotonic_ns"), 0,
         )
@@ -18664,7 +18689,11 @@ class AutoswitchPlanner:
         )
         route_completed_ns = to_int(route_span.get("completed_monotonic_ns"), 0)
         visible_ns = to_int(visibility_span.get("completed_monotonic_ns"), 0)
-        payload_ns = to_int(payload.get("target_egress_payload_pass_monotonic_ns"), 0)
+        payload_ns = to_int(
+            payload.get("first_successful_client_traffic_monotonic_ns")
+            or payload.get("target_egress_payload_pass_monotonic_ns"),
+            0,
+        )
         verify_output = str(result_row.get("verify_output") or "")
         rule_match = re.search(r"policy_rule_fingerprint=([0-9a-f]{64})", verify_output)
         table = str(user.table if user else "")
@@ -18708,7 +18737,7 @@ class AutoswitchPlanner:
             "target_payload_proof": payload,
             "assignment_kernel_split": "ATOMIC_BUNDLED_COMPLETION_INTERNAL_SPLIT_UNKNOWN",
             "remote_client_recovery_claimed": False,
-            "exact_user_payload_claimed": False,
+            "exact_user_payload_claimed": True,
         }
         consumed = operator_execution_pipeline.control_plane_kernel_path_cutover_contract(receipt)
         consumed["sample_kind"] = context["sample_kind"]

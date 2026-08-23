@@ -66,6 +66,7 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             "fresh_dns_resolution": True,
             "fresh_socket": True,
             "source_bind_applied": True,
+            "source_identity_freebind_applied": True,
             "interface_bind_applied": True,
             "so_mark_applied": True,
             "payload_response_verified": True,
@@ -119,6 +120,8 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         )
         self.assertTrue(receipt["exact_certification_identity_context"])
         self.assertTrue(receipt["routing_table_or_fwmark_bound"])
+        self.assertTrue(receipt["exact_user_source_fwmark_table_traversed"])
+        self.assertEqual(receipt["scope"], "EXACT_CLIENT_NETWORK_CONTEXT")
         self.assertEqual(receipt["observed_target_egress_fingerprint"], "a" * 64)
         self.assertFalse(receipt["management_default_route_used"])
         self.assertEqual(receipt["user_movement"], 0)
@@ -144,6 +147,27 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertTrue(receipt["management_default_route_used"])
         self.assertIn("exact_certification_identity_context_not_proven", receipt["blockers"])
         self.assertIn("routing_table_or_fwmark_binding_not_proven", receipt["blockers"])
+
+    def test_declared_identity_must_equal_bound_source_address(self):
+        context = self.context()
+        context["source_address"] = "10.7.0.99"
+        attempt = self.successful_attempt()
+        attempt["route"]["prefsrc"] = "10.7.0.99"
+        with mock.patch.object(
+            client_speed, "current_netns_inode", return_value=4242
+        ), mock.patch.object(
+            client_speed,
+            "current_clock_domain_id",
+            return_value="linux-boot:unit:netns:4242",
+        ):
+            receipt = client_speed.build_exact_probe_receipt(
+                context, attempt, [attempt]
+            )
+        self.assertEqual(receipt["status"], "PROBE_INVALID")
+        self.assertIn(
+            "exact_certification_identity_context_not_proven",
+            receipt["blockers"],
+        )
 
     def test_validation_generation_has_deterministic_duplicate_identity(self):
         context = self.context()

@@ -75,6 +75,51 @@ PERFORMANCE_REVALIDATION_GENERATION = (
 )
 
 
+_IN_PROCESS_AUTOSWITCH_MODULE: Any = None
+
+
+def in_process_autoswitch_module(planner: str) -> Any:
+    """Load the existing Planner/selector owner once in this Matrix run.
+
+    This is only an invocation optimization: the loaded file, functions and
+    current files remain the same canonical owners.  A load/call failure is
+    handled by the established subprocess path below.
+    """
+    global _IN_PROCESS_AUTOSWITCH_MODULE
+    if _IN_PROCESS_AUTOSWITCH_MODULE is not None:
+        return _IN_PROCESS_AUTOSWITCH_MODULE
+    path = Path(planner)
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    loader = importlib.machinery.SourceFileLoader(
+        "_v7_users_autoswitch_matrix_runtime",
+        str(path),
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise ImportError(f"autoswitch module spec unavailable: {path}")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    _IN_PROCESS_AUTOSWITCH_MODULE = module
+    return module
+
+
+def in_process_autoswitch_args(
+    module: Any,
+    *,
+    state_dir: Path,
+    event_dir: Path,
+    policy_file: Path,
+    audit_store: Path,
+) -> argparse.Namespace:
+    return module.build_arg_parser().parse_args([
+        "--state-dir", str(state_dir),
+        "--event-dir", str(event_dir),
+        "--policy-file", str(policy_file),
+        "--action-class-audit-store", str(audit_store),
+    ])
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -369,30 +414,60 @@ def read_prepared_controlled_target_selection_diagnostic(
             "status": "PREPARED_TARGET_PROJECTION_MISSING",
             "blockers": ["prepared_projection_missing"],
         }
-    command = [
-        planner,
-        "--prepared-class-projection-only",
-        "--state-dir", str(state_dir),
-        "--event-dir", str(event_dir),
-        "--policy-file", str(policy_file),
-        "--action-class-audit-store", str(audit_store),
-    ]
+    payload: dict[str, Any] = {}
+    returncode = 2
     try:
-        proc = subprocess.run(
-            command,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=False,
-            timeout=15,
+        module = in_process_autoswitch_module(planner)
+        owner_args = in_process_autoswitch_args(
+            module,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
         )
-        payload = json.loads(proc.stdout or "{}")
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-        return {
-            "ok": False,
-            "status": "PREPARED_TARGET_PROJECTION_UNAVAILABLE",
-            "blockers": [f"prepared_projection_owner_failed:{type(exc).__name__}"],
-        }
+        reuse = module.reuse_current_prepared_class_projection(owner_args)
+        if reuse.get("ok"):
+            payload = {
+                "ok": True,
+                "prepared_class_decisions": reuse.get(
+                    "prepared_class_decisions"
+                ) or {},
+                "prepared_class_decision_freshness": reuse.get(
+                    "prepared_class_decision_freshness"
+                ) or {},
+                "prepared_projection_reuse": reuse,
+            }
+            returncode = 0
+    except Exception:
+        # Fail over to the same executable owner.  This is availability of an
+        # invocation mechanism, never a bypass of its validation result.
+        payload = {}
+    if not payload:
+        command = [
+            planner,
+            "--prepared-class-projection-only",
+            "--state-dir", str(state_dir),
+            "--event-dir", str(event_dir),
+            "--policy-file", str(policy_file),
+            "--action-class-audit-store", str(audit_store),
+        ]
+        try:
+            proc = subprocess.run(
+                command,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+                timeout=15,
+            )
+            payload = json.loads(proc.stdout or "{}")
+            returncode = proc.returncode
+        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+            return {
+                "ok": False,
+                "status": "PREPARED_TARGET_PROJECTION_UNAVAILABLE",
+                "blockers": [f"prepared_projection_owner_failed:{type(exc).__name__}"],
+            }
     projection = (
         payload.get("prepared_class_decisions")
         if isinstance(payload, dict)
@@ -406,7 +481,7 @@ def read_prepared_controlled_target_selection_diagnostic(
         else {}
     )
     if (
-        proc.returncode != 0
+        returncode != 0
         or payload.get("ok") is not True
         or str(freshness.get("status") or "")
         != "PREPARED_CLASS_DECISION_FRESH"
@@ -1938,31 +2013,54 @@ def run_ct_m0f_standing_validation_campaign(
             audit_store=audit_store,
         )
     )
-    diagnostic_path = ""
+    source_rc = 2
+    source_selection: dict[str, Any] = {}
+    source_output = ""
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            prefix="v7-ct-m0f-target-",
-            suffix=".json",
-            delete=False,
-        ) as diagnostic_file:
-            json.dump(target_diagnostic, diagnostic_file, ensure_ascii=False)
-            diagnostic_file.write("\n")
-            diagnostic_path = diagnostic_file.name
-        source_command = [
-            planner,
-            "--ct-m0f-standing-source-selection",
-            "--state-dir", str(state_dir),
-            "--policy-file", str(policy_file),
-            "--action-class-audit-store", str(audit_store),
-            "--ct-m0f-precomputed-target-diagnostic-file", diagnostic_path,
-        ]
-        source_rc, source_selection, source_output = invoke(source_command, 180)
-    finally:
-        if diagnostic_path:
-            with contextlib.suppress(OSError):
-                os.unlink(diagnostic_path)
+        module = in_process_autoswitch_module(planner)
+        owner_args = in_process_autoswitch_args(
+            module,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            policy_file=policy_file,
+            audit_store=audit_store,
+        )
+        source_selection = module.ct_m0f_standing_source_selection_only(
+            owner_args,
+            precomputed_target_diagnostic=target_diagnostic,
+        )
+        source_rc = 0 if source_selection.get("ok") else 2
+    except Exception:
+        source_selection = {}
+    if not source_selection:
+        diagnostic_path = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                prefix="v7-ct-m0f-target-",
+                suffix=".json",
+                delete=False,
+            ) as diagnostic_file:
+                json.dump(target_diagnostic, diagnostic_file, ensure_ascii=False)
+                diagnostic_file.write("\n")
+                diagnostic_path = diagnostic_file.name
+            source_command = [
+                planner,
+                "--ct-m0f-standing-source-selection",
+                "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--policy-file", str(policy_file),
+                "--action-class-audit-store", str(audit_store),
+                "--ct-m0f-precomputed-target-diagnostic-file", diagnostic_path,
+            ]
+            source_rc, source_selection, source_output = invoke(
+                source_command, 180
+            )
+        finally:
+            if diagnostic_path:
+                with contextlib.suppress(OSError):
+                    os.unlink(diagnostic_path)
     selected_source = str(source_selection.get("selected_source_id") or "")
     selected_user = str(source_selection.get("selected_user") or "")
     selected_target = str(source_selection.get("selected_target_id") or "")

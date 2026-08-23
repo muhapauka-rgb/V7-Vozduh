@@ -3713,8 +3713,19 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
     if kernel.get("old_effective_binding_absent") is not True:
         blockers.append("old_effective_binding_still_present_or_unknown")
 
-    if payload.get("status") != "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN":
-        blockers.append("target_egress_payload_not_proven")
+    exact_payload = (
+        payload.get("status")
+        == "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_RECEIPT_READY"
+        and str(payload.get("scope") or "")
+        == "EXACT_CLIENT_NETWORK_CONTEXT"
+    )
+    target_only_payload = (
+        payload.get("status")
+        == "TARGET_EGRESS_ROUTE_BOUND_PAYLOAD_PROBE_PROVEN"
+        and str(payload.get("scope") or "") == "TARGET_EGRESS_PATH_ONLY"
+    )
+    if not (exact_payload or target_only_payload):
+        blockers.append("route_bound_payload_not_proven")
     required_payload = {
         "fresh_socket": payload.get("fresh_socket") is True,
         "fresh_dns_or_declared_no_dns": (
@@ -3727,9 +3738,19 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
         "target_fingerprint_verified": payload.get("target_fingerprint_verified") is True,
         "kernel_counter_only_forbidden": payload.get("kernel_counter_only") is False,
     }
+    if exact_payload:
+        required_payload.update({
+            "exact_certification_identity_context": (
+                payload.get("exact_certification_identity_context") is True
+            ),
+            "routing_table_or_fwmark_bound": (
+                payload.get("routing_table_or_fwmark_bound") is True
+            ),
+            "exact_user_source_fwmark_table_traversed": (
+                payload.get("exact_user_source_fwmark_table_traversed") is True
+            ),
+        })
     blockers.extend(name for name, passed in required_payload.items() if not passed)
-    if str(payload.get("scope") or "") != "TARGET_EGRESS_PATH_ONLY":
-        blockers.append("payload_scope_must_be_target_egress_path_only")
     if _as_int(payload.get("timeout_ms"), 0) <= 0:
         blockers.append("payload_timeout_contract_missing")
     if _as_int(payload.get("retry_count"), -1) < 0:
@@ -3762,7 +3783,10 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
     }
     if receipt.get("assignment_kernel_split") == "ATOMIC_BUNDLED_COMPLETION_INTERNAL_SPLIT_UNKNOWN":
         metrics["kernel_route_mutation_latency_ms"] = None
-    exact_user_payload = payload.get("exact_user_source_fwmark_table_traversed") is True
+    exact_user_payload = bool(
+        exact_payload
+        and payload.get("exact_user_source_fwmark_table_traversed") is True
+    )
     if receipt.get("exact_user_payload_claimed") is True and not exact_user_payload:
         blockers.append("exact_user_payload_claim_forbidden_without_exact_traversal")
     if receipt.get("remote_client_recovery_claimed") is True:

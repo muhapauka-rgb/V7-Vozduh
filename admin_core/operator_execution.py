@@ -7710,6 +7710,70 @@ def engineering_authority_replay_seen(records, request_id):
     return any(str(record.get("engineering_authority_request_id") or "") == str(request_id) for record in records)
 
 
+def audit_replay_flags(audit_store, approval_id, engineering_request_id=""):
+    """Stream only rows which can match the two one-use replay keys.
+
+    The canonical journal remains the sole replay owner.  Materializing every
+    unrelated historical payload before an emergency cutover added latency
+    and memory without strengthening the equality check performed by
+    ``replay_seen``.  The byte prefilter is only an optimization; matching
+    rows are still JSON-decoded and compared by field.
+    """
+    path = Path(audit_store)
+    if not path.exists():
+        return {
+            "approval_seen": False,
+            "engineering_authority_seen": False,
+        }
+    approval_id = str(approval_id or "")
+    engineering_request_id = str(engineering_request_id or "")
+    approval_marker = (
+        f'"approval_id":{json.dumps(approval_id, ensure_ascii=True)}'
+        if approval_id else ""
+    )
+    authority_marker = (
+        '"engineering_authority_request_id":'
+        + json.dumps(engineering_request_id, ensure_ascii=True)
+        if engineering_request_id else ""
+    )
+    approval_seen = False
+    authority_seen = False
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                if (
+                    (not approval_marker or approval_marker not in line)
+                    and (not authority_marker or authority_marker not in line)
+                ):
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                approval_seen = approval_seen or (
+                    approval_id
+                    and str(row.get("approval_id") or "") == approval_id
+                )
+                authority_seen = authority_seen or (
+                    engineering_request_id
+                    and str(
+                        row.get("engineering_authority_request_id") or ""
+                    ) == engineering_request_id
+                )
+                if approval_seen and (
+                    authority_seen or not engineering_request_id
+                ):
+                    break
+    except OSError:
+        # Preserve the old reader's absent/unreadable-file behavior: no row
+        # was observable, and the later append remains the durable operation.
+        pass
+    return {
+        "approval_seen": bool(approval_seen),
+        "engineering_authority_seen": bool(authority_seen),
+    }
+
+
 def append_record(audit_store, record):
     path = Path(audit_store)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -8004,12 +8068,14 @@ def execute_packet(
 ):
     now = now or utc_now()
     approval_id = packet.get("approval_id") or stable_id("appr", packet)
-    records = read_audit_records(audit_store)
     engineering_authority = packet.get("engineering_authority") if isinstance(packet.get("engineering_authority"), dict) else {}
     engineering_request_id = str(engineering_authority.get("request_id") or "")
-    if engineering_authority_replay_seen(records, engineering_request_id):
+    replay = audit_replay_flags(
+        audit_store, approval_id, engineering_request_id,
+    )
+    if replay.get("engineering_authority_seen"):
         recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["engineering_authority_request_already_consumed"]}
-    elif replay_seen(records, approval_id):
+    elif replay.get("approval_seen"):
         recheck = {"allow": False, "verdict": "DENY_REPLAY", "errors": ["approval_id_already_recorded"]}
     else:
         recheck = runtime_recheck(packet, state_dir, now=now, planner_snapshot=planner_snapshot)

@@ -6353,7 +6353,12 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         mode="runtime_action",
         planner_snapshot=plan,
         restore_barrier_file=restore_barrier_file,
-        lifecycle_store=lifecycle_store,
+        # The barrier plus canonical audit row are the pre-apply durability
+        # gates.  The three descriptive lifecycle rows do not authorize the
+        # mutation, so writing/fsyncing them before route apply only delays
+        # recovery.  Materialize them below after the route/S11 consumer has
+        # returned, through the same existing lifecycle owner.
+        lifecycle_store=None,
     )
     if not clearance_result.get("execution_allowed_now"):
         terminal = operator_execution.finish_execution_lease(
@@ -6503,6 +6508,23 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         planner_runtime=planner_runtime,
     )
     apply_completed_ns = time.monotonic_ns()
+    deferred_lifecycle_records: dict[str, Any] = {}
+    if (
+        clearance_result.get("execution_allowed_now")
+        and isinstance(clearance_result.get("record"), dict)
+        and isinstance(clearance_result.get("clearance_result"), dict)
+    ):
+        deferred_lifecycle_records = operator_execution.append_lifecycle_records(
+            lifecycle_store,
+            packet,
+            clearance_result.get("recheck") or {},
+            clearance_result.get("clearance_result") or {},
+            clearance_result.get("record") or {},
+        )
+        clearance_result["lifecycle_records"] = deferred_lifecycle_records
+        clearance_result["lifecycle_materialization"] = (
+            "DEFERRED_UNTIL_AFTER_ROUTE_AND_S11_CONSUMER"
+        )
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}
     reported_apply = (
         apply_payload.get("apply_result")

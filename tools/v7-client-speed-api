@@ -477,6 +477,21 @@ def execute_fresh_exact_probe_request(context):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(timeout_seconds)
             interface = str(context.get("interface") or "")
+            # The exact certification identity is an ingress/client address,
+            # not an address configured on the selected egress interface.
+            # Linux IP_FREEBIND lets this read-only probe originate with that
+            # exact source identity so the normal source rule and per-user
+            # routing table are genuinely traversed.  Target-only probes keep
+            # their configured interface address and do not use this option.
+            source_identity_freebind = not bool(
+                context.get("target_egress_interface_bound_probe")
+            )
+            if source_identity_freebind:
+                sock.setsockopt(
+                    socket.SOL_IP,
+                    getattr(socket, "IP_FREEBIND", 15),
+                    1,
+                )
             sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_BINDTODEVICE", 25), interface.encode("utf-8") + b"\0")
             sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_MARK", 36), safe_int(context.get("fwmark"), 0))
             sock.bind((str(context.get("source_address") or ""), 0))
@@ -521,6 +536,7 @@ def execute_fresh_exact_probe_request(context):
                 "fresh_dns_resolution": True,
                 "fresh_socket": True,
                 "source_bind_applied": True,
+                "source_identity_freebind_applied": source_identity_freebind,
                 "interface_bind_applied": True,
                 "so_mark_applied": True,
                 "status_line": status_line,
@@ -572,9 +588,12 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
     interface_matches = str(route.get("dev") or "") == str(context.get("interface") or "")
     exact_identity = all((
         context.get("certification_identity") is True,
+        str(context.get("source_address") or "")
+        == str(context.get("user") or ""),
         actual_netns == safe_int(context.get("network_namespace_inode"), 0),
         actual_clock == str(context.get("clock_domain_id") or ""),
         attempt.get("source_bind_applied") is True,
+        attempt.get("source_identity_freebind_applied") is True,
         attempt.get("interface_bind_applied") is True,
         source_matches,
         interface_matches,
@@ -613,6 +632,11 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         "user": str(context.get("user") or ""),
         "source": str(context.get("source") or ""),
         "target": str(context.get("target") or ""),
+        "candidate_id": str(context.get("candidate_id") or ""),
+        "packet_id": str(context.get("packet_id") or ""),
+        "lease_id": str(context.get("lease_id") or ""),
+        "operation_id": str(context.get("operation_id") or ""),
+        "scope": "EXACT_CLIENT_NETWORK_CONTEXT",
         "exact_certification_identity_context": exact_identity,
         "routing_table_or_fwmark_bound": route_bound,
         "network_namespace_inode": actual_netns,
@@ -627,6 +651,11 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         "fresh_socket": attempt.get("fresh_socket") is True,
         "fresh_dns_resolution": attempt.get("fresh_dns_resolution") is True,
         "kernel_counter_only": False,
+        "exact_user_source_fwmark_table_traversed": bool(
+            exact_identity and route_bound
+        ),
+        "target_interface_bound": interface_matches,
+        "target_fingerprint_verified": bool(observed_target_fingerprint),
         "timeout_ms": safe_int(context.get("timeout_ms"), 0),
         "retry_count": safe_int(context.get("retry_count"), -1),
         "observation_cadence_ms": safe_int(context.get("observation_cadence_ms"), 0),
@@ -636,6 +665,7 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         "first_failed_observation_monotonic_ns": safe_int(context.get("first_failed_observation_monotonic_ns"), 0),
         "confirmed_hard_failure_monotonic_ns": safe_int(context.get("confirmed_hard_failure_monotonic_ns"), 0),
         "first_successful_client_traffic_monotonic_ns": recovered_ns,
+        "target_egress_payload_pass_monotonic_ns": recovered_ns,
         "attempt_count": len(attempts if isinstance(attempts, list) else []),
         "attempts": attempts if isinstance(attempts, list) else [],
         "runtime_mutation_performed": False,

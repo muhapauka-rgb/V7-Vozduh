@@ -113,6 +113,40 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertRegex(result.stderr, re.compile("require finite --max-phases"))
 
+    def test_role_loop_keeps_one_second_hard_lane_independent_of_slow_service_lane(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            hard = self.write_command(root, "hard", "sleep 0.01\n")
+            telegram = self.write_command(root, "telegram", "sleep 0.02\n")
+            required = self.write_command(root, "required", "sleep 2.2\n")
+            completed = subprocess.run(
+                [
+                    str(LOOP), "--role-based-fast", "--max-phases", "7",
+                    "--hard-interval-ms", "500",
+                    "--telegram-interval-ms", "500",
+                    "--required-interval-ms", "1000",
+                    "--controlled-hard-command", str(hard),
+                    "--controlled-telegram-command", str(telegram),
+                    "--controlled-required-command", str(required),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=10,
+            )
+        hard_rows = []
+        for line in completed.stdout.splitlines():
+            if not line.startswith("V7_HEALTH_ROLE_START role=hard "):
+                continue
+            values = dict(item.split("=", 1) for item in line.split()[1:])
+            hard_rows.append({key: int(value) for key, value in values.items() if key != "role"})
+        self.assertEqual(len(hard_rows), 7, completed.stdout)
+        for previous, current in zip(hard_rows, hard_rows[1:]):
+            spacing_ms = (current["actual_start_ns"] - previous["actual_start_ns"]) / 1_000_000
+            self.assertLess(spacing_ms, 650, completed.stdout)
+        self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=other_required", completed.stdout)
+        self.assertIn("V7_HEALTH_ROLE_COMPLETE role=other_required", completed.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

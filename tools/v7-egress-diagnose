@@ -13,7 +13,15 @@ PROFILE_SERVICE_SUSPICION_COMMAND=""
 PROFILE_SERVICE_FAILURE_SAMPLES="2"
 PROFILE_SERVICE_COOLDOWN_SEC="60"
 PROFILE_CONTRACTS_FILE=""
+ACTIVE_SOURCE_FILE=""
 FAST_PRODUCER_ONLY="0"
+LIGHTWEIGHT_BATCH_PRODUCER="0"
+HARD_SIGNAL_ONLY="0"
+DEFINITIVE_MATRIX_COMMAND=""
+CONSUMER_WAKE_COMMAND=""
+HARD_SIGNAL_OBSERVATION_COUNT=0
+HARD_SIGNAL_T0_COUNT=0
+HARD_SIGNAL_WAKE_COUNT=0
 OUTPUT_EXPLICIT="0"
 PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES=""
 PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC=""
@@ -40,6 +48,22 @@ while [ "$#" -gt 0 ]; do
     --fast-producer-only)
       FAST_PRODUCER_ONLY="1"
       shift
+      ;;
+    --lightweight-batch-producer)
+      LIGHTWEIGHT_BATCH_PRODUCER="1"
+      shift
+      ;;
+    --hard-signal-only)
+      HARD_SIGNAL_ONLY="1"
+      shift
+      ;;
+    --definitive-matrix-command)
+      DEFINITIVE_MATRIX_COMMAND="$2"
+      shift 2
+      ;;
+    --consumer-wake-command)
+      CONSUMER_WAKE_COMMAND="$2"
+      shift 2
       ;;
     --fast-producer-concurrency)
       FAST_PRODUCER_CONCURRENCY="$2"
@@ -132,12 +156,27 @@ if [ "$FAST_PRODUCER_ONLY" = "1" ] && { [ -z "$PROFILE_SERVICE_SUSPICION_COMMAND
   echo "fast producer only requires profile suspicion command and explicit output" >&2
   exit 2
 fi
+if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ] && [ "$FAST_PRODUCER_ONLY" != "1" ]; then
+  echo "lightweight batch producer requires --fast-producer-only" >&2
+  exit 2
+fi
+
+if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
+  if [ "$FAST_PRODUCER_ONLY" = "1" ] || [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || [ -n "$SHADOW_TRIGGER_COMMAND" ]; then
+    echo "hard signal only is exclusive from service-probe modes" >&2
+    exit 2
+  fi
+  if [ -z "$DEFINITIVE_MATRIX_COMMAND" ] || [ "$OUTPUT_EXPLICIT" != "1" ]; then
+    echo "hard signal only requires canonical Matrix command and explicit output" >&2
+    exit 2
+  fi
+fi
 
 case "$FAST_PRODUCER_CONCURRENCY" in
   ''|*[!0-9]*) echo "invalid --fast-producer-concurrency" >&2; exit 2 ;;
 esac
-if [ "$FAST_PRODUCER_CONCURRENCY" -lt 1 ] || [ "$FAST_PRODUCER_CONCURRENCY" -gt 8 ]; then
-  echo "--fast-producer-concurrency must be between 1 and 8" >&2
+if [ "$FAST_PRODUCER_CONCURRENCY" -lt 1 ] || [ "$FAST_PRODUCER_CONCURRENCY" -gt 128 ]; then
+  echo "--fast-producer-concurrency must be between 1 and 128" >&2
   exit 2
 fi
 if [ "$FAST_PRODUCER_CONCURRENCY" -gt 1 ] && [ "$FAST_PRODUCER_ONLY" != "1" ]; then
@@ -160,6 +199,18 @@ REG="${STATE_DIR}/egress.registry"
 SUM="${STATE_DIR}/summary.state"
 OUT="${OUT:-${STATE_DIR}/egress-diagnose.state}"
 TMP="${OUT}.tmp.$$"
+if [ "$OUT" = "-" ]; then
+  TMP="$(mktemp "${TMPDIR:-/tmp}/v7-egress-diagnose-output.XXXXXX")"
+fi
+
+commit_output() {
+  if [ "$OUT" = "-" ]; then
+    cat "$TMP"
+    rm -f "$TMP"
+  else
+    mv "$TMP" "$OUT"
+  fi
+}
 
 previous_value() {
   key="$1"
@@ -220,6 +271,90 @@ shadow_trigger_for_reason() {
   printf '%s_shadow_trigger_id=%s\n' "$id" "$trigger_id" >> "$TMP"
   printf '%s_shadow_trigger_epoch=%s\n' "$id" "$now_epoch" >> "$TMP"
   printf '%s_shadow_trigger_rc=%s\n' "$id" "$trigger_rc" >> "$TMP"
+}
+
+build_active_source_ids() {
+  python3 - "$STATE_DIR/users.registry" <<'PY'
+import sys
+from pathlib import Path
+
+try:
+    lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+except OSError:
+    lines = []
+sources = set()
+for line in lines:
+    fields = {}
+    for part in line.split():
+        if "=" in part:
+            key, value = part.split("=", 1)
+            fields[key.strip()] = value.strip()
+    if str(fields.get("enabled", "1")).lower() in {"0", "false", "no", "off"}:
+        continue
+    source = str(fields.get("current") or "").strip()
+    if source:
+        sources.add(source)
+print("\n".join(sorted(sources)))
+PY
+}
+
+source_is_active() {
+  source_id="$1"
+  [ -n "${ACTIVE_SOURCE_FILE:-}" ] && [ -r "$ACTIVE_SOURCE_FILE" ] || return 1
+  grep -Fqx "$source_id" "$ACTIVE_SOURCE_FILE"
+}
+
+wake_existing_failure_consumer() {
+  [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
+  if [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "systemctl" ]; then
+    "$CONSUMER_WAKE_COMMAND" start --no-block v7-autoswitch-planner.service >/dev/null 2>&1
+  else
+    "$CONSUMER_WAKE_COMMAND" >/dev/null 2>&1
+  fi
+}
+
+publish_definitive_interface_failure() {
+  source_id="$1"
+  iface="$2"
+  observed_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  result_file="$(mktemp "${TMPDIR:-/tmp}/v7-hard-signal.XXXXXX")"
+  HARD_SIGNAL_OBSERVATION_COUNT=$((HARD_SIGNAL_OBSERVATION_COUNT + 1))
+  if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
+      --state-dir "$STATE_DIR" \
+      --event-dir "${SHADOW_TRIGGER_EVENT_DIR:-${STATE_DIR}/../events}" \
+      --interface "$iface" \
+      --direct-local-failure-class INTERFACE_DOWN_OR_MISSING \
+      --direct-signal-observed-at "$observed_at" \
+      --direct-signal-max-age-seconds 3 >"$result_file" 2>/dev/null; then
+    direct_status="$(python3 - "$result_file" <<'PY'
+import json
+import sys
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    payload = {}
+direct = payload.get("direct_local_failure") if isinstance(payload, dict) else {}
+print("EMITTED" if isinstance(direct, dict) and direct.get("event_emitted") else (
+    "T0" if isinstance(direct, dict) and direct.get("status") == "CANONICAL_T0_WRITTEN" else "STOP_SAFE"
+))
+PY
+)"
+  else
+    direct_status="STOP_SAFE"
+  fi
+  rm -f "$result_file"
+  printf '%s_hard_signal_class=INTERFACE_DOWN_OR_MISSING\n' "$source_id" >> "$TMP"
+  printf '%s_hard_signal_status=%s\n' "$source_id" "$direct_status" >> "$TMP"
+  printf '%s_hard_signal_observed_at=%s\n' "$source_id" "$observed_at" >> "$TMP"
+  if [ "$direct_status" = "EMITTED" ]; then
+    HARD_SIGNAL_T0_COUNT=$((HARD_SIGNAL_T0_COUNT + 1))
+    if wake_existing_failure_consumer; then
+      HARD_SIGNAL_WAKE_COUNT=$((HARD_SIGNAL_WAKE_COUNT + 1))
+      printf '%s_hard_signal_consumer_wake=PASS\n' "$source_id" >> "$TMP"
+    else
+      printf '%s_hard_signal_consumer_wake=STOP_SAFE\n' "$source_id" >> "$TMP"
+    fi
+  fi
 }
 
 build_active_profile_contracts() {
@@ -677,6 +812,11 @@ handshake_age_seconds() {
 
 interface_up() {
   iface="$1"
+  if [ -r "/sys/class/net/${iface}/flags" ]; then
+    IFS= read -r interface_flags < "/sys/class/net/${iface}/flags" || interface_flags="0"
+    [ $((interface_flags & 1)) -eq 1 ] 2>/dev/null && return 0
+    return 1
+  fi
   ip link show "$iface" 2>/dev/null | grep -q 'UP,LOWER_UP'
 }
 
@@ -774,6 +914,74 @@ build_ready_fast_contract_workset() {
   done < "$PROFILE_CONTRACTS_FILE"
 }
 
+run_lightweight_batch_profile_suspicion_cycle() {
+  work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-batch.XXXXXX")"
+  work_file="$work_dir/active-contract-set.tsv"
+  result_file="$work_dir/batch-result.json"
+  parsed_file="$work_dir/parsed.tsv"
+  build_ready_fast_contract_workset > "$work_file"
+  if [ ! -s "$work_file" ]; then
+    rm -rf "$work_dir"
+    return 0
+  fi
+  if ! "$PROFILE_SERVICE_SUSPICION_COMMAND" __batch__ all \
+      --state-dir "$STATE_DIR" \
+      --batch-lightweight-contracts "$work_file" \
+      --batch-concurrency "$FAST_PRODUCER_CONCURRENCY" \
+      --sentinel-timeout-ms 500 > "$result_file" 2>/dev/null; then
+    printf 'fast_producer_batch_status=STOP_SAFE_BATCH_OWNER_FAILED\n' >> "$TMP"
+    rm -rf "$work_dir"
+    return 0
+  fi
+  python3 - "$result_file" > "$parsed_file" <<'PY'
+import json
+import sys
+import time
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    payload = {}
+for row in payload.get("contracts") or []:
+    if not isinstance(row, dict):
+        continue
+    services = [str(item) for item in row.get("services") or [] if str(item)]
+    if not services:
+        continue
+    blockers = [str(item) for item in row.get("blockers") or [] if str(item)]
+    unknown = list(row.get("unknown_services") or [])
+    if blockers:
+        unknown.extend(services)
+    values = [
+        str(row.get("source") or ""),
+        str(row.get("profile") or ""),
+        ",".join(services),
+        str(max(0, int(row.get("failure_count") or 0))),
+        ",".join(str(item) for item in row.get("dns_services") or []),
+        ",".join(str(item) for item in row.get("degraded_services") or []),
+        ",".join(str(item) for item in row.get("failed_services") or []),
+        ",".join(sorted(set(unknown))),
+        str(row.get("state_key") or ""),
+        str(time.time_ns()),
+    ]
+    print("|".join(value.replace("|", " ").replace("\n", " ") for value in values))
+PY
+  FAST_PRODUCER_MAX_INFLIGHT="$FAST_PRODUCER_CONCURRENCY"
+  while IFS='|' read -r source_id profile_user services failure_count dns_services degraded_services failed_services unknown_services state_key completion_ns; do
+    [ -n "$source_id" ] || continue
+    PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
+    probe="OK|${failure_count}|${dns_services}|${degraded_services}|${failed_services}|${unknown_services}|${completion_ns}"
+    process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe" "$state_key"
+  done < "$parsed_file"
+  printf 'fast_producer_batch_status=PASS\n' >> "$TMP"
+  printf 'fast_producer_batch_probe_count=%s\n' "$(python3 - "$result_file" <<'PY'
+import json, sys
+try: print(int(json.load(open(sys.argv[1], encoding="utf-8")).get("probe_count") or 0))
+except Exception: print(0)
+PY
+)" >> "$TMP"
+  rm -rf "$work_dir"
+}
+
 run_parallel_active_profile_suspicion_cycle() {
   work_dir="$(mktemp -d "${TMPDIR:-/tmp}/v7-fast-contracts.XXXXXX")"
   work_file="$work_dir/active-contract-set.tsv"
@@ -843,6 +1051,10 @@ run_parallel_active_profile_suspicion_cycle() {
 run_active_profile_suspicion_cycle() {
   [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ] || return 0
   [ -r "$PROFILE_CONTRACTS_FILE" ] || return 0
+  if [ "$LIGHTWEIGHT_BATCH_PRODUCER" = "1" ]; then
+    run_lightweight_batch_profile_suspicion_cycle
+    return 0
+  fi
   if [ "$FAST_PRODUCER_CONCURRENCY" -gt 1 ] 2>/dev/null; then
     run_parallel_active_profile_suspicion_cycle
     return 0
@@ -881,7 +1093,11 @@ if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
   build_active_profile_contracts > "$PROFILE_CONTRACTS_FILE"
   PROFILE_SERVICE_CONTRACT_COUNT="$(wc -l < "$PROFILE_CONTRACTS_FILE" | tr -d ' ')"
   PROFILE_SERVICE_ACTIVE_SOURCE_COUNT="$(cut -f1 "$PROFILE_CONTRACTS_FILE" | uniq | wc -l | tr -d ' ')"
-  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"' EXIT
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
+elif [ "$HARD_SIGNAL_ONLY" = "1" ]; then
+  ACTIVE_SOURCE_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-active-sources.XXXXXX")"
+  build_active_source_ids > "$ACTIVE_SOURCE_FILE"
+  trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
 fi
 
 : > "$TMP"
@@ -894,7 +1110,33 @@ if [ "$FAST_PRODUCER_ONLY" = "1" ]; then
   echo "fast_producer_mode=CONTROLLED_OBSERVATION_ONLY" >> "$TMP"
   run_active_profile_suspicion_cycle
   write_fast_producer_telemetry
-  mv "$TMP" "$OUT"
+  commit_output
+  exit 0
+fi
+
+if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
+  echo "hard_signal_mode=ROLE_BASED_ACTIVE_SOURCE_LOCAL_LIVENESS" >> "$TMP"
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in \#*) continue ;; esac
+    id="$(get_field id "$line")"
+    iface="$(get_field interface "$line")"
+    enabled="$(get_field enabled "$line")"
+    [ -n "$id" ] || continue
+    [ -n "$iface" ] || continue
+    [ "${enabled:-1}" = "1" ] || continue
+    source_is_active "$id" || continue
+    if interface_up "$iface"; then
+      printf '%s_hard_signal_status=HEALTHY_LOCAL_INTERFACE\n' "$id" >> "$TMP"
+    else
+      publish_definitive_interface_failure "$id" "$iface"
+    fi
+  done < "$REG"
+  printf 'hard_signal_active_source_count=%s\n' "$(wc -l < "$ACTIVE_SOURCE_FILE" | tr -d ' ')" >> "$TMP"
+  printf 'hard_signal_observation_count=%s\n' "$HARD_SIGNAL_OBSERVATION_COUNT" >> "$TMP"
+  printf 'hard_signal_new_t0_count=%s\n' "$HARD_SIGNAL_T0_COUNT" >> "$TMP"
+  printf 'hard_signal_consumer_wake_count=%s\n' "$HARD_SIGNAL_WAKE_COUNT" >> "$TMP"
+  commit_output
   exit 0
 fi
 
@@ -915,4 +1157,4 @@ while IFS= read -r line; do
   diagnose_row "$id" "$protocol" "$iface" "$enabled"
 done < "$REG"
 
-mv "$TMP" "$OUT"
+commit_output

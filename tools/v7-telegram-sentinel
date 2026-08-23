@@ -443,6 +443,63 @@ def check_telegram(iface: str, timeout: float) -> dict[str, Any]:
     }
 
 
+def check_telegram_rotating_sample(
+    iface: str,
+    timeout: float,
+    *,
+    sample_index: int,
+    samples_per_cycle: int = 1,
+) -> dict[str, Any]:
+    """Run a bounded, rotating Telegram transport sample for V5.3 N2.
+
+    One cycle does not claim an outage.  Consecutive failures must cover
+    distinct targets before Matrix receives a persistent-failure observation.
+    Rotating one target per cycle keeps the cost O(role-scoped egresses), not
+    five sockets per egress per second.
+    """
+    count = max(1, min(int(samples_per_cycle or 1), len(TELEGRAM_ENDPOINTS)))
+    start = max(0, int(sample_index or 0)) % len(TELEGRAM_ENDPOINTS)
+    selected = [
+        TELEGRAM_ENDPOINTS[(start + offset) % len(TELEGRAM_ENDPOINTS)]
+        for offset in range(count)
+    ]
+    started = time.time()
+    samples = [tcp_sample(host, port, iface, timeout) for host, port in selected]
+    ok_count = sum(1 for row in samples if row.get("ok"))
+    ok = ok_count == len(samples)
+    latencies = [
+        float(row.get("connect_ms") or 0)
+        for row in samples if row.get("ok") and row.get("connect_ms")
+    ]
+    target_ids = [str(row.get("target") or "") for row in samples]
+    return {
+        "sample_ok": ok,
+        "status": "OK" if ok else "DOWN",
+        "score": 100 if ok else 0,
+        "ratio": round(ok_count / len(samples), 3) if samples else 0.0,
+        "critical_ok": ok,
+        "ok_count": ok_count,
+        "total": len(samples),
+        "reason": (
+            "telegram rotating tcp target reachable"
+            if ok else "; ".join(
+                f"{row.get('target')}={row.get('error') or 'failed'}"
+                for row in samples if not row.get("ok")
+            )
+        ),
+        "samples": samples,
+        "sample_target_ids": target_ids,
+        "sample_target_fingerprint": sha256_json(target_ids),
+        "first_byte_sec": round(min(latencies) / 1000.0, 3) if latencies else "",
+        "total_sec": round(time.time() - started, 3),
+        "probe_budget": {
+            "sockets": len(samples),
+            "endpoint_samples_per_cycle": count,
+            "rotation_index": start,
+        },
+    }
+
+
 def route_class_fitness(matrix_row: dict[str, Any]) -> dict[str, Any]:
     services = matrix_row.get("services") or {}
     fitness: dict[str, Any] = {}
@@ -774,14 +831,67 @@ def update_matrix(matrix_file: Path, egress_id: str, iface: str, item: dict[str,
     })
 
 
-def egress_items(state_dir: Path, only: str) -> list[dict[str, str]]:
+def telegram_required_source_ids(state_dir: Path) -> set[str]:
+    """Resolve active sources only from the existing user/profile contracts."""
+    prefs = read_json(state_dir / "service-preferences.json", {})
+    if not isinstance(prefs, dict) or not bool_value(prefs.get("enabled"), default=True):
+        return set()
+    user_prefs = prefs.get("users") if isinstance(prefs.get("users"), dict) else {}
+    global_values = prefs.get("required_services") or []
+    if isinstance(global_values, str):
+        global_values = [item.strip() for item in global_values.split(",") if item.strip()]
+    global_requires = "telegram" in {
+        str(item).strip().lower() for item in global_values
+    } if isinstance(global_values, list) else False
+    try:
+        user_lines = (state_dir / "users.registry").read_text(
+            encoding="utf-8", errors="replace",
+        ).splitlines()
+    except OSError:
+        user_lines = []
+    sources: set[str] = set()
+    for line in user_lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        row = parse_kv_line(line)
+        if not bool_value(row.get("enabled"), default=True):
+            continue
+        source = str(row.get("current") or "").strip()
+        identity = str(row.get("ip") or "").strip()
+        profile = user_prefs.get(identity) if identity else None
+        values = (
+            (profile.get("required_services") or profile.get("services") or [])
+            if isinstance(profile, dict)
+            else []
+        )
+        if isinstance(values, str):
+            values = [item.strip() for item in values.split(",") if item.strip()]
+        requires = global_requires or (
+            "telegram" in {str(item).strip().lower() for item in values}
+            if isinstance(values, list) else False
+        )
+        if source and requires:
+            sources.add(source)
+    return sources
+
+
+def egress_items(
+    state_dir: Path,
+    only: str,
+    *,
+    required_profiles_only: bool = False,
+) -> list[dict[str, str]]:
     rows = parse_registry(state_dir / "egress.registry")
+    required_sources = telegram_required_source_ids(state_dir) if required_profiles_only else set()
     result = []
     for row in rows:
         egress_id = str(row.get("id") or "")
         if only and egress_id != only:
             continue
         if not bool_value(row.get("enabled"), default=True):
+            continue
+        if required_profiles_only and egress_id not in required_sources:
             continue
         result.append(row)
     return result
@@ -799,6 +909,7 @@ def check_egress(row: dict[str, str], prior: dict[str, Any], args: argparse.Name
         "threshold_seconds": threshold,
     }
 
+    previous = prior.get(egress_id) if isinstance(prior.get(egress_id), dict) else {}
     type_requires_interface = row.get("type") == "interface"
     if type_requires_interface and not interface_live(iface):
         result = {
@@ -812,21 +923,49 @@ def check_egress(row: dict[str, str], prior: dict[str, Any], args: argparse.Name
             "total_sec": 0,
         }
     else:
-        result = check_telegram(iface, float(args.timeout))
+        if int(args.endpoint_samples_per_cycle or 0) > 0:
+            result = check_telegram_rotating_sample(
+                iface,
+                float(args.timeout),
+                sample_index=max(0, int(previous.get("sample_sequence") or 0)),
+                samples_per_cycle=int(args.endpoint_samples_per_cycle),
+            )
+        else:
+            result = check_telegram(iface, float(args.timeout))
     item.update(result)
 
     status = str(result.get("status") or "")
     bad_now = status in ("DOWN", "NOT_STARTED")
-    prev = prior.get(egress_id) or {}
     if bad_now:
-        bad_since = str(prev.get("bad_since") or checked_at)
+        bad_since = str(previous.get("bad_since") or checked_at)
         bad_for = max(0.0, time.time() - parse_ts(bad_since))
+        failure_samples = max(0, int(previous.get("failure_samples") or 0)) + 1
+        prior_targets = [
+            str(value) for value in (previous.get("failure_target_ids") or [])
+            if str(value)
+        ]
+        current_targets = [
+            str(value) for value in (result.get("sample_target_ids") or [])
+            if str(value)
+        ]
+        failure_target_ids = list(dict.fromkeys(prior_targets + current_targets))[-8:]
     else:
         bad_since = ""
         bad_for = 0.0
-    blocked = status == "NOT_STARTED" or (status == "DOWN" and bad_for >= threshold)
+        failure_samples = 0
+        failure_target_ids = []
+    sample_threshold = max(0, int(args.failure_samples or 0))
+    distinct_target_count = len(set(failure_target_ids))
+    if sample_threshold:
+        blocked = bool(
+            status == "DOWN"
+            and failure_samples >= sample_threshold
+            and distinct_target_count >= min(2, sample_threshold)
+        )
+    else:
+        blocked = status == "NOT_STARTED" or (status == "DOWN" and bad_for >= threshold)
     if status == "NOT_STARTED":
-        matrix_status = "NOT_STARTED"
+        matrix_status = "SOURCE_LOCAL_FAILURE_DELEGATED" if sample_threshold else "NOT_STARTED"
     elif status == "DOWN" and blocked:
         matrix_status = f"TELEGRAM_DOWN_{threshold}S"
     elif status == "DOWN":
@@ -844,8 +983,44 @@ def check_egress(row: dict[str, str], prior: dict[str, Any], args: argparse.Name
         "blocked": blocked,
         "matrix_ok": not blocked,
         "matrix_status": matrix_status,
+        "failure_samples": failure_samples,
+        "failure_target_ids": failure_target_ids,
+        "distinct_failure_target_count": distinct_target_count,
+        "sample_sequence": max(0, int(previous.get("sample_sequence") or 0)) + 1,
     })
     return item
+
+
+def apply_correlated_telegram_guard(items: dict[str, Any]) -> dict[str, Any]:
+    """Suppress source evacuation when all independently scoped paths fail.
+
+    This is intentionally conservative.  A shared Telegram endpoint incident
+    or host-wide probe problem becomes DEGRADED/STOP_SAFE and remains available
+    to deep reconciliation; it never fans out into one action per source.
+    """
+    blocked = [item for item in items.values() if isinstance(item, dict) and item.get("blocked")]
+    healthy = [item for item in items.values() if isinstance(item, dict) and item.get("sample_ok")]
+    correlated = len(blocked) >= 2 and not healthy
+    if correlated:
+        for item in blocked:
+            item.update({
+                "blocked": False,
+                "matrix_ok": True,
+                "matrix_status": "DEGRADED",
+                "correlated_failure": True,
+                "correlated_failure_disposition": "STOP_SAFE_SHARED_TELEGRAM_EVIDENCE",
+            })
+    return {
+        "status": (
+            "STOP_SAFE_CORRELATED_TELEGRAM_FAILURE"
+            if correlated else "SOURCE_SPECIFIC_OR_HEALTHY"
+        ),
+        "correlated": correlated,
+        "blocked_source_count_before_guard": len(blocked),
+        "healthy_source_count": len(healthy),
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
 
 
 def run_autoswitch(args: argparse.Namespace, blocked_items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -878,7 +1053,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sentinel-file", default=str(DEFAULT_SENTINEL_FILE))
     parser.add_argument("--matrix-file", default=str(DEFAULT_MATRIX_FILE))
     parser.add_argument("--egress", default="", help="Limit to one egress id.")
+    parser.add_argument(
+        "--required-profiles-only",
+        action="store_true",
+        help=(
+            "Probe only current sources of enabled profiles that declare "
+            "Telegram required; source truth remains users.registry plus "
+            "service-preferences.json."
+        ),
+    )
     parser.add_argument("--threshold-seconds", type=int, default=14)
+    parser.add_argument(
+        "--failure-samples",
+        type=int,
+        default=0,
+        help="N2 consecutive failures required; zero preserves legacy time-threshold compatibility.",
+    )
+    parser.add_argument(
+        "--endpoint-samples-per-cycle",
+        type=int,
+        default=0,
+        help="N2 rotating endpoint count; zero preserves the legacy five-endpoint sample.",
+    )
+    parser.add_argument("--concurrency", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=2.0, help="Per endpoint TCP timeout.")
     parser.add_argument("--autoswitch-cooldown-seconds", type=int, default=30)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
@@ -898,17 +1095,44 @@ def main() -> int:
     if only and not SAFE_EGRESS_RE.match(only):
         print(json.dumps({"error": "invalid_egress"}, ensure_ascii=False))
         return 2
+    if not 0 <= int(args.failure_samples or 0) <= 10:
+        print(json.dumps({"error": "failure_samples_out_of_range"}, ensure_ascii=False))
+        return 2
+    if not 0 <= int(args.endpoint_samples_per_cycle or 0) <= len(TELEGRAM_ENDPOINTS):
+        print(json.dumps({"error": "endpoint_samples_per_cycle_out_of_range"}, ensure_ascii=False))
+        return 2
+    if not 1 <= int(args.concurrency or 0) <= 128:
+        print(json.dumps({"error": "concurrency_out_of_range"}, ensure_ascii=False))
+        return 2
 
     started = time.time()
     prior_state = read_json(sentinel_file, {"items": {}})
     prior_items = prior_state.get("items") or {}
-    rows = egress_items(state_dir, only)
+    rows = egress_items(
+        state_dir, only, required_profiles_only=bool(args.required_profiles_only),
+    )
     items: dict[str, Any] = {}
-    with ThreadPoolExecutor(max_workers=max(1, min(len(rows), 8))) as pool:
+    with ThreadPoolExecutor(max_workers=max(1, min(len(rows), int(args.concurrency)))) as pool:
         future_map = {pool.submit(check_egress, row, prior_items, args): row for row in rows}
         for future in as_completed(future_map):
             item = future.result()
             items[str(item.get("egress") or "")] = item
+    correlated_guard = (
+        apply_correlated_telegram_guard(items)
+        if int(args.failure_samples or 0) > 0
+        else {
+            "status": "LEGACY_COMPATIBILITY_NOT_APPLIED",
+            "correlated": False,
+            "blocked_source_count_before_guard": sum(
+                1 for item in items.values() if item.get("blocked")
+            ),
+            "healthy_source_count": sum(
+                1 for item in items.values() if item.get("sample_ok")
+            ),
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    )
     try:
         with service_matrix_writer_lock(matrix_file, int(args.lock_timeout_sec)) as lock_info:
             update_matrix_items(matrix_file, items)
@@ -963,12 +1187,20 @@ def main() -> int:
         "updated": now_iso(),
         "threshold_seconds": int(args.threshold_seconds),
         "timeout_seconds": float(args.timeout),
+        "failure_samples_required": int(args.failure_samples or 0),
+        "endpoint_samples_per_cycle": int(args.endpoint_samples_per_cycle or 0),
+        "concurrency_cap": int(args.concurrency),
         "elapsed_sec": round(time.time() - started, 3),
         "checked_egress": len(items),
+        "role_scope": (
+            "TELEGRAM_REQUIRED_ACTIVE_PROFILE_SOURCES"
+            if args.required_profiles_only else "ALL_ENABLED_EGRESS_COMPATIBILITY"
+        ),
         "blocked_egress": sorted(item.get("egress") for item in blocked_items),
         "healthy_egress": sorted(item.get("egress") for item in healthy_items),
         "last_autoswitch_at": last_autoswitch_at,
         "autoswitch": autoswitch,
+        "correlated_failure_guard": correlated_guard,
         "fast_signal_bridge": fast_signal_bridge,
         "existing_consumer_wake": wake_existing_matrix_consumer(
             list(fast_signal_bridge.get("new_events") or [])

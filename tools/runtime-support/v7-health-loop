@@ -34,6 +34,48 @@ DEFAULT_LEGACY = (
     ("state_json", "/usr/local/bin/v7-state-json-save"),
 )
 
+DEFAULT_ROLE_COMMANDS = (
+    (
+        "hard", 1_000,
+        (
+            "/usr/local/bin/v7-egress-diagnose",
+            "--output", "-",
+            "--hard-signal-only",
+            "--definitive-matrix-command", "/usr/local/bin/v7-service-matrix-test",
+            "--consumer-wake-command", "/usr/bin/systemctl",
+        ),
+    ),
+    (
+        "telegram", 1_000,
+        (
+            "/usr/local/bin/v7-telegram-sentinel",
+            "--required-profiles-only",
+            "--failure-samples", "2",
+            "--endpoint-samples-per-cycle", "1",
+            "--concurrency", "128",
+            "--threshold-seconds", "2",
+            "--timeout", "0.25",
+            "--no-autoswitch",
+        ),
+    ),
+    (
+        "other_required", 5_000,
+        (
+            "/usr/local/bin/v7-egress-diagnose",
+            "--output", "/opt/v7/egress/state/egress-diagnose.state",
+            "--fast-producer-only",
+            "--lightweight-batch-producer",
+            "--fast-producer-concurrency", "128",
+            "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
+            "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
+            "--profile-service-failure-samples", "2",
+            "--profile-service-cooldown-sec", "5",
+            "--profile-service-shadow-matrix-samples", "1",
+            "--profile-service-shadow-matrix-window-sec", "5",
+        ),
+    ),
+)
+
 
 def monotonic_ns() -> int:
     return time.monotonic_ns()
@@ -142,6 +184,102 @@ class HealthLoop:
             self.run_legacy_until(planned_start_ns)
 
 
+@dataclass
+class ManagedRole:
+    name: str
+    cadence_ns: int
+    command: tuple[str, ...]
+    next_due_ns: int = 0
+    process: subprocess.Popen[bytes] | None = None
+    started_ns: int = 0
+    starts: int = 0
+    completions: int = 0
+    deadline_misses: int = 0
+
+
+@dataclass
+class RoleHealthLoop:
+    """Multi-cadence work placement inside the one existing health owner."""
+
+    roles: tuple[ManagedRole, ...]
+    max_hard_phases: int = 0
+    poll_ns: int = 25_000_000
+
+    def _start_due_roles(self, now_ns: int) -> None:
+        for role in self.roles:
+            if now_ns < role.next_due_ns:
+                continue
+            while role.next_due_ns <= now_ns:
+                role.next_due_ns += role.cadence_ns
+            if role.process is not None:
+                role.deadline_misses += 1
+                print(
+                    f"V7_HEALTH_ROLE_DEADLINE_MISS role={role.name} "
+                    f"misses={role.deadline_misses} reason=PREVIOUS_INVOCATION_RUNNING",
+                    flush=True,
+                )
+                continue
+            role.process = subprocess.Popen(
+                list(role.command),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            role.started_ns = now_ns
+            role.starts += 1
+            print(
+                f"V7_HEALTH_ROLE_START role={role.name} start={role.starts} "
+                f"cadence_ms={role.cadence_ns // 1_000_000} actual_start_ns={now_ns}",
+                flush=True,
+            )
+
+    def _collect_roles(self, now_ns: int) -> None:
+        for role in self.roles:
+            if role.process is None:
+                continue
+            rc = role.process.poll()
+            if rc is None:
+                continue
+            duration = elapsed_ms(role.started_ns, now_ns)
+            role.completions += 1
+            print(
+                f"V7_HEALTH_ROLE_COMPLETE role={role.name} completion={role.completions} "
+                f"duration_ms={duration} rc={rc}",
+                flush=True,
+            )
+            role.process = None
+            role.started_ns = 0
+
+    def _stop_children(self) -> None:
+        for role in self.roles:
+            if role.process is not None:
+                terminate_process_group(role.process)
+                role.process = None
+
+    def run(self) -> int:
+        started = monotonic_ns()
+        for role in self.roles:
+            role.next_due_ns = started
+        hard = next((role for role in self.roles if role.name == "hard"), self.roles[0])
+        try:
+            while True:
+                now_ns = monotonic_ns()
+                self._collect_roles(now_ns)
+                self._start_due_roles(now_ns)
+                if self.max_hard_phases and hard.starts >= self.max_hard_phases:
+                    # A finite Polygon completes only after every invocation it
+                    # started has returned; no child or orphan survives it.
+                    while any(role.process is not None for role in self.roles):
+                        time.sleep(self.poll_ns / 1_000_000_000)
+                        self._collect_roles(monotonic_ns())
+                    return 0
+                next_due = min(role.next_due_ns for role in self.roles)
+                wait_ns = max(1_000_000, min(self.poll_ns, next_due - monotonic_ns()))
+                time.sleep(wait_ns / 1_000_000_000)
+        finally:
+            self._stop_children()
+
+
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fast-interval-ms", type=int, default=30_000)
@@ -149,6 +287,13 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--max-phases", type=int, default=0)
     parser.add_argument("--controlled-fast-command")
     parser.add_argument("--controlled-legacy-command", action="append", default=[])
+    parser.add_argument("--role-based-fast", action="store_true")
+    parser.add_argument("--controlled-hard-command")
+    parser.add_argument("--controlled-telegram-command")
+    parser.add_argument("--controlled-required-command")
+    parser.add_argument("--hard-interval-ms", type=int, default=1_000)
+    parser.add_argument("--telegram-interval-ms", type=int, default=1_000)
+    parser.add_argument("--required-interval-ms", type=int, default=5_000)
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -158,11 +303,41 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--max-phases must be non-negative")
     if (args.controlled_fast_command or args.controlled_legacy_command) and not args.max_phases:
         parser.error("controlled health commands require finite --max-phases")
+    controlled_roles = (
+        args.controlled_hard_command,
+        args.controlled_telegram_command,
+        args.controlled_required_command,
+    )
+    if any(controlled_roles) and (not args.role_based_fast or not args.max_phases):
+        parser.error("controlled role commands require --role-based-fast and finite --max-phases")
+    for value in (args.hard_interval_ms, args.telegram_interval_ms, args.required_interval_ms):
+        if value <= 0:
+            parser.error("role intervals must be positive")
     return args
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    if args.role_based_fast:
+        controlled = {
+            "hard": args.controlled_hard_command,
+            "telegram": args.controlled_telegram_command,
+            "other_required": args.controlled_required_command,
+        }
+        intervals = {
+            "hard": args.hard_interval_ms,
+            "telegram": args.telegram_interval_ms,
+            "other_required": args.required_interval_ms,
+        }
+        roles = tuple(
+            ManagedRole(
+                name=name,
+                cadence_ns=intervals[name] * 1_000_000,
+                command=(controlled[name],) if controlled[name] else tuple(command),
+            )
+            for name, _default_interval, command in DEFAULT_ROLE_COMMANDS
+        )
+        return RoleHealthLoop(roles=roles, max_hard_phases=args.max_phases).run()
     if args.controlled_fast_command:
         fast_command = (args.controlled_fast_command,)
         legacy_commands = tuple((f"controlled_{index}", command) for index, command in enumerate(args.controlled_legacy_command))

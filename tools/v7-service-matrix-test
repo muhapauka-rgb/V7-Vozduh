@@ -20,6 +20,7 @@ import resource
 import socket
 import subprocess
 import time
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -33,6 +34,10 @@ DEFAULT_MATRIX_FILE = DEFAULT_STATE_DIR / "service-matrix.json"
 DEFAULT_EVENT_DIR = DEFAULT_STATE_DIR.parent.parent / "events"
 SAFE_EGRESS_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 SAFE_SERVICE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+DIRECT_LOCAL_SERVICE_ID = "__channel_liveness__"
+DIRECT_LOCAL_FAILURE_CLASSES = {"INTERFACE_DOWN_OR_MISSING"}
+N3_MAX_BATCH_CONTRACTS = 10_000
+N3_MAX_FAST_SERVICES_PER_CONTRACT = 3
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_LOCK_WAIT_SECONDS = 90
@@ -442,6 +447,111 @@ def canonical_egress_identity(row: dict[str, Any], *, egress_id: str, iface: str
     }
 
 
+def validate_definitive_local_failure(
+    state_dir: Path,
+    *,
+    egress_id: str,
+    iface: str,
+    failure_class: str,
+    observed_at: str,
+    expected_identity_generation: str = "",
+    max_age_seconds: float = 3.0,
+) -> dict[str, Any]:
+    """Validate one local hard signal at the canonical Matrix boundary.
+
+    The caller supplies only a wake and its claimed scope.  Matrix re-reads the
+    existing registry, recalculates the identity generation and re-observes the
+    local interface.  A stale, replayed, wrong-generation, conflicting or
+    ambiguous signal therefore cannot become T0.  This is MODE B only for the
+    exact interface-down class; all remote timeouts and service failures remain
+    MODE A targeted confirmation.
+    """
+    failure_class = str(failure_class or "").strip().upper()
+    observed = parse_timestamp(observed_at)
+    now = datetime.now(timezone.utc)
+    blockers: list[str] = []
+    row = egress_row(state_dir, egress_id)
+    canonical_iface = str(row.get("interface") or egress_id)
+    identity = canonical_egress_identity(
+        row, egress_id=egress_id, iface=canonical_iface,
+    )
+    if failure_class not in DIRECT_LOCAL_FAILURE_CLASSES:
+        blockers.append("failure_class_not_admitted_for_direct_t0")
+    if not row or str(row.get("id") or "") != egress_id:
+        blockers.append("canonical_egress_missing")
+    if str(row.get("enabled", "1")).lower() in {"0", "false", "no", "off"}:
+        blockers.append("canonical_egress_disabled")
+    if not iface or iface != canonical_iface:
+        blockers.append("interface_identity_mismatch")
+    if expected_identity_generation and expected_identity_generation != identity["egress_identity_generation"]:
+        blockers.append("egress_identity_generation_mismatch")
+    if observed is None:
+        blockers.append("signal_timestamp_invalid")
+        age_seconds = None
+    else:
+        age_seconds = (now - observed).total_seconds()
+        if age_seconds < -1.0:
+            blockers.append("signal_timestamp_from_future")
+        elif age_seconds > max(0.1, float(max_age_seconds)):
+            blockers.append("signal_stale")
+    interface_path = Path("/sys/class/net") / canonical_iface
+    interface_exists = bool(canonical_iface and interface_path.exists())
+    operstate = "MISSING"
+    if interface_exists:
+        try:
+            operstate = (interface_path / "operstate").read_text(encoding="utf-8").strip().upper()
+        except OSError:
+            operstate = "UNKNOWN"
+    if failure_class == "INTERFACE_DOWN_OR_MISSING" and interface_exists and operstate == "UP":
+        blockers.append("local_interface_is_currently_up")
+    if failure_class == "INTERFACE_DOWN_OR_MISSING" and operstate == "UNKNOWN":
+        blockers.append("local_interface_state_unknown")
+    return {
+        "schema_version": "v7.matrix-definitive-local-signal-validation.v1",
+        "status": "ADMITTED" if not blockers else "STOP_SAFE",
+        "ok": not blockers,
+        "owner": "tools/v7-service-matrix-test",
+        "mode": "MODE_B_DIRECT_T0" if not blockers else "MODE_B_REJECTED",
+        "failure_class": failure_class,
+        "egress": egress_id,
+        "interface": canonical_iface,
+        "interface_exists": interface_exists,
+        "interface_operstate": operstate,
+        "signal_observed_at": observed_at,
+        "signal_age_seconds": round(age_seconds, 6) if age_seconds is not None else None,
+        "max_age_seconds": float(max_age_seconds),
+        "identity": identity,
+        "blockers": blockers,
+        "source_network_probe_skipped": not blockers,
+        "matrix_is_canonical_t0_writer": True,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
+def definitive_local_failure_result(validation: dict[str, Any]) -> dict[str, Any]:
+    """Build the internal Matrix observation for an admitted local failure."""
+    observed_at = str(validation.get("signal_observed_at") or now_iso())
+    return {
+        "label": "Channel local liveness",
+        "kind": "local_kernel_liveness",
+        "interface": str(validation.get("interface") or ""),
+        "ok": False,
+        "status": "NOT_STARTED",
+        "severity": "FAIL",
+        "tested_at": observed_at,
+        "reason": "interface_down_or_missing",
+        "error": "interface_down_or_missing",
+        "probe_provenance": "MATRIX_REVALIDATED_LOCAL_KERNEL_STATE",
+        "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+        "probe_classification": "FAILURE",
+        "failure_class": str(validation.get("failure_class") or ""),
+        "direct_t0_mode": "MODE_B_DIRECT_T0",
+        "source_network_probe_skipped": True,
+        "validation_schema_version": str(validation.get("schema_version") or ""),
+    }
+
+
 def _bounded_command_fingerprint(command: list[str], *, timeout: int = 3) -> dict[str, Any]:
     """Fingerprint one existing kernel/network owner without storing raw data."""
     try:
@@ -614,13 +724,15 @@ def service_failure_episode(
     )
     failure = service_failure_observed(result)
     methodology = "HTTP_LIMITED" if str(result.get("status") or "").upper() == "HTTP_LIMITED" else ""
+    result.setdefault("probe_provenance", "SERVICE_PROBE_OBSERVED")
+    result.setdefault("evidence_class", "PROBE_OBSERVATION")
+    result.setdefault(
+        "probe_classification", methodology or ("FAILURE" if failure else "HEALTHY"),
+    )
     result.update({
         "observed_at": observed_at,
         "observation_monotonic_ns": int(observed_monotonic_ns or 0),
         "monotonic_clock_domain": str(monotonic_clock_domain or ""),
-        "probe_provenance": "SERVICE_PROBE_OBSERVED",
-        "evidence_class": "PROBE_OBSERVATION",
-        "probe_classification": methodology or ("FAILURE" if failure else "HEALTHY"),
     })
     if failure:
         started_at = str(previous.get("failure_started_at") or previous.get("observed_at") or previous.get("tested_at") or observed_at) if continuous else observed_at
@@ -960,6 +1072,194 @@ def run_service(service_id: str, iface: str, timeout: int) -> dict[str, Any]:
     return run_curl_check(service_id, meta, iface, timeout)
 
 
+def run_lightweight_service_sentinel(
+    service_id: str,
+    iface: str,
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    """Cheap N3 suspicion probe; never a direct failure confirmation."""
+    meta = SERVICE_CATALOG.get(service_id) or {}
+    if service_id == "telegram" or str(meta.get("kind") or "") == "telegram_tcp":
+        return {
+            "label": str(meta.get("label") or service_id),
+            "ok": False,
+            "status": "UNKNOWN",
+            "severity": "WARN",
+            "tested_at": now_iso(),
+            "reason": "telegram_owned_by_n2_sentinel",
+            "error": "telegram_owned_by_n2_sentinel",
+            "evidence_class": "ROLE_OWNERSHIP_CONFLICT_STOP_SAFE",
+        }
+    parsed = urlparse(str(meta.get("url") or ""))
+    host = str(parsed.hostname or "")
+    port = int(parsed.port or (443 if parsed.scheme == "https" else 80))
+    if not host:
+        return {
+            "label": str(meta.get("label") or service_id),
+            "ok": False,
+            "status": "UNKNOWN",
+            "severity": "WARN",
+            "tested_at": now_iso(),
+            "reason": "protocol_target_missing",
+            "error": "protocol_target_missing",
+            "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
+        }
+    sample = tcp_connect_sample(
+        host, port, iface, max(0.05, min(float(timeout_seconds), 2.0)), True,
+    )
+    ok = bool(sample.get("ok"))
+    error = str(sample.get("error") or sample.get("bind_error") or "")
+    if ok:
+        status = "OK"
+    elif "name" in error.lower() or "resolve" in error.lower() or "gaierror" in error.lower():
+        status = "DNS_FAILURE"
+    elif "timeout" in error.lower():
+        status = "TIMEOUT"
+    else:
+        status = "FAIL"
+    return {
+        "label": str(meta.get("label") or service_id),
+        "kind": "lightweight_tcp_sentinel",
+        "interface": iface,
+        "ok": ok,
+        "status": status,
+        "severity": "OK" if ok else "FAIL",
+        "tested_at": now_iso(),
+        "reason": "tcp_reachable" if ok else (error or "tcp_unreachable"),
+        "error": "" if ok else (error or "tcp_unreachable"),
+        "samples": [sample],
+        "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
+        "requires_targeted_matrix_confirmation": not ok,
+        "direct_t0_allowed": False,
+    }
+
+
+def batch_lightweight_observations(
+    state_dir: Path,
+    contract_file: Path,
+    *,
+    concurrency: int,
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    """Probe an ephemeral source/profile work set in one Matrix process."""
+    contracts: list[dict[str, Any]] = []
+    try:
+        lines = contract_file.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        return {
+            "status": "STOP_SAFE",
+            "ok": False,
+            "blockers": [f"contract_file_unreadable:{type(exc).__name__}"],
+            "contracts": [],
+        }
+    if len(lines) > N3_MAX_BATCH_CONTRACTS:
+        return {
+            "status": "STOP_SAFE",
+            "ok": False,
+            "blockers": ["contract_count_exceeds_bounded_batch"],
+            "contract_count": len(lines),
+            "max_contracts": N3_MAX_BATCH_CONTRACTS,
+            "contracts": [],
+        }
+    registry = {
+        str(row.get("id") or ""): row
+        for row in parse_registry(state_dir / "egress.registry")
+        if str(row.get("id") or "")
+    }
+    work: list[tuple[int, str, str]] = []
+    for line in lines:
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        source, profile, services = parts[:3]
+        state_key = parts[3] if len(parts) > 3 else ""
+        row = registry.get(source) or {}
+        iface = str(row.get("interface") or source)
+        enabled = str(row.get("enabled", "1")).lower() not in {"0", "false", "no", "off"}
+        service_ids = []
+        for value in services.split(","):
+            value = safe_id(value.strip(), SAFE_SERVICE_RE)
+            if value and value in SERVICE_CATALOG and value != "telegram" and value not in service_ids:
+                service_ids.append(value)
+        contract = {
+            "source": source,
+            "profile": profile,
+            "services": service_ids,
+            "state_key": state_key,
+            "interface": iface,
+            "enabled": enabled,
+            "results": {},
+            "blockers": [],
+        }
+        if not row:
+            contract["blockers"].append("source_missing")
+        if not enabled:
+            contract["blockers"].append("source_disabled")
+        if not service_ids:
+            contract["blockers"].append("no_n3_services")
+        if len(service_ids) > N3_MAX_FAST_SERVICES_PER_CONTRACT:
+            contract["blockers"].append("fast_service_budget_exceeded")
+        index = len(contracts)
+        contracts.append(contract)
+        if not contract["blockers"]:
+            for service_id in service_ids:
+                work.append((index, service_id, iface))
+
+    started_ns = time.monotonic_ns()
+    cap = max(1, min(int(concurrency or 1), 128))
+    with ThreadPoolExecutor(max_workers=cap) as pool:
+        futures = {
+            pool.submit(
+                run_lightweight_service_sentinel, service_id, iface, timeout_seconds,
+            ): (index, service_id)
+            for index, service_id, iface in work
+        }
+        for future in as_completed(futures):
+            index, service_id = futures[future]
+            try:
+                contracts[index]["results"][service_id] = future.result()
+            except Exception as exc:
+                contracts[index]["results"][service_id] = {
+                    "ok": False,
+                    "status": "UNKNOWN",
+                    "reason": f"{type(exc).__name__}:{exc}",
+                    "evidence_class": "AMBIGUOUS_LIGHTWEIGHT_SENTINEL",
+                }
+    completed_ns = time.monotonic_ns()
+    for contract in contracts:
+        results = contract.get("results") or {}
+        contract["failure_count"] = sum(1 for row in results.values() if not bool(row.get("ok")))
+        contract["failed_services"] = sorted(
+            f"{service}:{row.get('status') or 'UNKNOWN'}"
+            for service, row in results.items() if not bool(row.get("ok"))
+        )
+        contract["unknown_services"] = sorted(
+            service for service, row in results.items()
+            if str(row.get("status") or "").upper() in {"UNKNOWN", "STALE", "CONFLICT"}
+        )
+        contract["dns_services"] = sorted(
+            service for service, row in results.items()
+            if str(row.get("status") or "").upper() == "DNS_FAILURE"
+        )
+        contract["degraded_services"] = []
+    return {
+        "schema_version": "v7.matrix-lightweight-batch-observation.v1",
+        "status": "PASS",
+        "ok": True,
+        "owner": "tools/v7-service-matrix-test",
+        "observation_only": True,
+        "canonical_write_performed": False,
+        "direct_t0_allowed": False,
+        "contract_count": len(contracts),
+        "probe_count": len(work),
+        "concurrency_cap": cap,
+        "elapsed_ms": round((completed_ns - started_ns) / 1_000_000.0, 3),
+        "contracts": contracts,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def services_to_run(service: str) -> list[str]:
     if not service or service == "all":
         return list(SERVICE_CATALOG.keys())
@@ -1000,6 +1300,7 @@ def update_matrix(
     persistence_window_seconds: int = 180,
     egress_identity: Optional[dict[str, str]] = None,
     state_dir: Optional[Path] = None,
+    skip_network_path_projection: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
@@ -1165,7 +1466,11 @@ def update_matrix(
                     "event_type": "SERVICE_FAILURE_OBSERVED",
                     "capture_only": True,
                     "event_provenance": "EXTERNAL_UNATTRIBUTED",
-                    "evidence_class": "PROBE_OBSERVED_PRODUCTION_EVENT",
+                    "evidence_class": (
+                        "MATRIX_VALIDATED_DEFINITIVE_LOCAL_HARD_FAILURE"
+                        if str(merged.get("evidence_class") or "") == "DEFINITIVE_LOCAL_HARD_FAILURE"
+                        else "PROBE_OBSERVED_PRODUCTION_EVENT"
+                    ),
                     "natural_production_credit": False,
                     "channel": egress_id,
                     "service": service_id,
@@ -1191,6 +1496,8 @@ def update_matrix(
                     "next_consumer": "tools/v7-users-autoswitch._consume_passive_production_events",
                     "provenance_reconciliation_required": True,
                     "candidate_or_execution_forbidden": True,
+                    "direct_t0_mode": str(merged.get("direct_t0_mode") or "MODE_A_CONFIRMED"),
+                    "source_network_probe_skipped": bool(merged.get("source_network_probe_skipped")),
                 })
         # A continuing episode must remain observable after its initial event
         # has been consumed.  Reuse the existing Matrix JSONL producer and
@@ -1297,11 +1604,23 @@ def update_matrix(
                 "candidate_or_execution_forbidden": True,
             })
         for service_id in list(services):
-            if service_id not in SERVICE_CATALOG:
+            if service_id not in SERVICE_CATALOG and service_id != DIRECT_LOCAL_SERVICE_ID:
                 services.pop(service_id, None)
-        total = len(services)
-        ok_count = sum(1 for item in services.values() if bool(item.get("ok")))
-        not_started = total > 0 and all(item.get("status") == "NOT_STARTED" for item in services.values())
+        catalog_services = {
+            service_id: item
+            for service_id, item in services.items()
+            if service_id in SERVICE_CATALOG
+        }
+        total = len(catalog_services)
+        ok_count = sum(1 for item in catalog_services.values() if bool(item.get("ok")))
+        direct_local_failed = service_failure_observed(
+            services.get(DIRECT_LOCAL_SERVICE_ID, {})
+            if isinstance(services.get(DIRECT_LOCAL_SERVICE_ID), dict)
+            else {}
+        )
+        not_started = direct_local_failed or (
+            total > 0 and all(item.get("status") == "NOT_STARTED" for item in catalog_services.values())
+        )
         row.update({
             "egress": egress_id,
             "interface": iface,
@@ -1312,13 +1631,26 @@ def update_matrix(
             "count": total,
             "status": "NOT_STARTED" if not_started else ("OK" if total and ok_count == total else ("WARN" if ok_count else "FAIL")),
         })
-        row["path_evidence"] = network_path_evidence(
-            state_dir or matrix_file.parent,
-            egress_row(state_dir or matrix_file.parent, egress_id),
-            egress_id=egress_id,
-            iface=iface,
-            service_ids=sorted(services),
-        )
+        if skip_network_path_projection:
+            prior_path = row.get("path_evidence") if isinstance(row.get("path_evidence"), dict) else {}
+            row["path_evidence"] = {
+                **prior_path,
+                "direct_local_validation": {
+                    "owner": "tools/v7-service-matrix-test",
+                    "status": "CURRENT_LOCAL_INTERFACE_REVALIDATED",
+                    "network_projection_skipped": True,
+                    "reason": "definitive_local_hard_failure_critical_path",
+                    "measured_at": observed_at,
+                },
+            }
+        else:
+            row["path_evidence"] = network_path_evidence(
+                state_dir or matrix_file.parent,
+                egress_row(state_dir or matrix_file.parent, egress_id),
+                egress_id=egress_id,
+                iface=iface,
+                service_ids=sorted(catalog_services),
+            )
         row["route_class_fitness"] = route_class_fitness(row)
         data["updated"] = now_iso()
         write_json_atomic(matrix_file, data)
@@ -1343,6 +1675,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=int, default=8)
     parser.add_argument("--lock-timeout-sec", type=int, default=DEFAULT_LOCK_WAIT_SECONDS)
     parser.add_argument("--interface", default="")
+    parser.add_argument(
+        "--batch-lightweight-contracts",
+        default="",
+        help=(
+            "Read one ephemeral tab-separated source/profile/service work set "
+            "and return N3 lightweight observations without a Matrix write."
+        ),
+    )
+    parser.add_argument("--batch-concurrency", type=int, default=64)
+    parser.add_argument("--sentinel-timeout-ms", type=int, default=500)
+    parser.add_argument(
+        "--direct-local-failure-class",
+        default="",
+        help=(
+            "Ask the canonical Matrix owner to validate one fresh local hard "
+            "signal and, only for an admitted definitive class, write T0 without "
+            "a redundant source network probe."
+        ),
+    )
+    parser.add_argument("--direct-signal-observed-at", default="")
+    parser.add_argument("--direct-signal-identity-generation", default="")
+    parser.add_argument("--direct-signal-max-age-seconds", type=float, default=3.0)
     parser.add_argument(
         "--path-evidence-only",
         action="store_true",
@@ -1372,6 +1726,25 @@ def main() -> int:
         return 2
 
     state_dir = Path(args.state_dir)
+    batch_contracts = str(args.batch_lightweight_contracts or "").strip()
+    if batch_contracts:
+        if str(args.services or "").strip() or service != "all" or args.direct_local_failure_class:
+            print(json.dumps({"error": "batch_lightweight_mode_is_exclusive"}, ensure_ascii=False))
+            return 2
+        if not 1 <= int(args.batch_concurrency or 0) <= 128:
+            print(json.dumps({"error": "batch_concurrency_out_of_range"}, ensure_ascii=False))
+            return 2
+        if not 50 <= int(args.sentinel_timeout_ms or 0) <= 2000:
+            print(json.dumps({"error": "sentinel_timeout_ms_out_of_range"}, ensure_ascii=False))
+            return 2
+        result = batch_lightweight_observations(
+            state_dir,
+            Path(batch_contracts),
+            concurrency=int(args.batch_concurrency),
+            timeout_seconds=int(args.sentinel_timeout_ms) / 1000.0,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0 if result.get("ok") else 2
     matrix_file = Path(args.matrix_file) if args.matrix_file else state_dir / "service-matrix.json"
     iface = args.interface.strip() or egress_interface(state_dir, egress_id)
     timeout = max(3, min(int(args.timeout or 8), 30))
@@ -1382,6 +1755,46 @@ def main() -> int:
         return 2
     row = egress_row(state_dir, egress_id)
     identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
+    direct_failure_class = str(args.direct_local_failure_class or "").strip().upper()
+    direct_validation: dict[str, Any] = {}
+    direct_previous_event_id = ""
+    if direct_failure_class:
+        if str(args.services or "").strip() or service != "all" or args.probe_observation_only:
+            print(json.dumps({
+                "error": "direct_local_failure_mode_is_exclusive",
+                "status": "STOP_SAFE",
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False))
+            return 2
+        direct_validation = validate_definitive_local_failure(
+            state_dir,
+            egress_id=egress_id,
+            iface=iface,
+            failure_class=direct_failure_class,
+            observed_at=str(args.direct_signal_observed_at or now_iso()),
+            expected_identity_generation=str(args.direct_signal_identity_generation or ""),
+            max_age_seconds=max(0.1, min(float(args.direct_signal_max_age_seconds or 3.0), 30.0)),
+        )
+        if not direct_validation.get("ok"):
+            print(json.dumps({
+                "action": "service_matrix_direct_local_failure",
+                "status": "STOP_SAFE",
+                "egress": egress_id,
+                "interface": iface,
+                "direct_local_failure": direct_validation,
+                "runtime_behavior_changed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 2
+        prior_matrix = read_json(matrix_file, {})
+        prior_service = (
+            ((((prior_matrix.get("items") or {}).get(egress_id) or {}).get("services") or {}).get(DIRECT_LOCAL_SERVICE_ID) or {})
+            if isinstance(prior_matrix, dict)
+            else {}
+        )
+        direct_previous_event_id = str(prior_service.get("failure_event_id") or "") if isinstance(prior_service, dict) else ""
     if args.path_evidence_only:
         evidence = network_path_evidence(
             state_dir,
@@ -1401,7 +1814,12 @@ def main() -> int:
         }, ensure_ascii=False, indent=2 if args.pretty else None))
         return 0
     probes_started_ns = time.monotonic_ns()
-    if interface_required(row) and not interface_live(iface):
+    if direct_validation:
+        selected = [DIRECT_LOCAL_SERVICE_ID]
+        results = {
+            DIRECT_LOCAL_SERVICE_ID: definitive_local_failure_result(direct_validation),
+        }
+    elif interface_required(row) and not interface_live(iface):
         results = {service_id: not_started_result(service_id, iface) for service_id in selected}
     else:
         results = {}
@@ -1452,10 +1870,11 @@ def main() -> int:
                 results,
                 int(args.lock_timeout_sec),
                 event_dir=Path(args.event_dir),
-                persistence_samples=max(1, int(args.failure_persistence_samples or 3)),
-                persistence_window_seconds=max(1, int(args.failure_persistence_window_seconds or 180)),
+                persistence_samples=(1 if direct_validation else max(1, int(args.failure_persistence_samples or 3))),
+                persistence_window_seconds=(1 if direct_validation else max(1, int(args.failure_persistence_window_seconds or 180))),
                 egress_identity=identity,
                 state_dir=state_dir,
+                skip_network_path_projection=bool(direct_validation),
             )
         except TimeoutError:
             print(json.dumps({
@@ -1527,6 +1946,20 @@ def main() -> int:
             },
         },
     }
+    if direct_validation:
+        direct_service = (((row.get("services") or {}).get(DIRECT_LOCAL_SERVICE_ID)) or {})
+        current_event_id = str(direct_service.get("failure_event_id") or "") if isinstance(direct_service, dict) else ""
+        payload["action"] = "service_matrix_direct_local_failure"
+        payload["direct_local_failure"] = {
+            **direct_validation,
+            "status": "CANONICAL_T0_WRITTEN",
+            "event_id": current_event_id,
+            "event_emitted": bool(current_event_id and current_event_id != direct_previous_event_id),
+            "canonical_service_id": DIRECT_LOCAL_SERVICE_ID,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+        }
     print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
     return 0
 

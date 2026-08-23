@@ -372,13 +372,17 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             self.write_command(bin_dir, "profile-checker", "printf '%s\\n' '{\"status\":\"FAIL\",\"results\":{\"google\":{\"ok\":false,\"status\":\"DOWN\",\"reason\":\"HTTP_FAILURE\"},\"telegram\":{\"ok\":true,\"status\":\"OK\"}}}'\n")
             receiver_log = root / "receiver.args"
             self.write_command(bin_dir, "shadow-receiver", "printf '%s\\n' \"$*\" >> \"$RECEIVER_LOG\"\nexit 0\n")
+            wake_log = root / "wake.log"
+            self.write_command(bin_dir, "wake-consumer", "printf 'wake\\n' >> \"$WAKE_LOG\"\nexit 0\n")
             env = os.environ.copy()
             env["PATH"] = f"{bin_dir}:{env['PATH']}"
             env["RECEIVER_LOG"] = str(receiver_log)
+            env["WAKE_LOG"] = str(wake_log)
             args = [
                 str(TOOL), "--state-dir", str(state),
                 "--profile-service-suspicion-command", str(bin_dir / "profile-checker"),
                 "--shadow-trigger-command", str(bin_dir / "shadow-receiver"),
+                "--consumer-wake-command", str(bin_dir / "wake-consumer"),
                 "--profile-service-failure-samples", "2",
             ]
             first = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
@@ -386,11 +390,14 @@ class V7EgressDiagnoseTest(unittest.TestCase):
             first_state = (state / "egress-diagnose.state").read_text(encoding="utf-8")
             self.assertIn("profile_failure_count=1", first_state)
             self.assertIn("profile_trigger_status=WAITING_REPEAT", first_state)
+            self.assertFalse(wake_log.exists())
             second = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
             self.assertEqual(second.returncode, 0, second.stderr)
             second_state = (state / "egress-diagnose.state").read_text(encoding="utf-8")
             self.assertIn("profile_trigger_status=PASS", second_state)
             self.assertIn("profile_trigger_class=REQUIRED_SERVICE_FAILURE", second_state)
+            self.assertIn("profile_consumer_wake=PASS", second_state)
+            self.assertEqual(wake_log.read_text(encoding="utf-8"), "wake\n")
             receiver_args = receiver_log.read_text(encoding="utf-8")
             self.assertIn("--shadow-trigger-profile-user profile-a", receiver_args)
             self.assertIn("--shadow-trigger-class REQUIRED_SERVICE_FAILURE", receiver_args)

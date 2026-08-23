@@ -1486,7 +1486,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                         "controlled_only_contract": True,
                         "ordinary_planner_eligible": False,
                         "shared_target_technically_eligible": True,
-                        "current_stage_feasible": True,
+                        # The old 48-user campaign is not the CT-M0F
+                        # transaction size.  An exact reserved target with
+                        # one free slot remains legal for this one-user path.
+                        "current_stage_feasible": False,
                         "role": "EXECUTION_ONLY",
                         "reservation_owner": "operator_execution_governance",
                         "shared_target_availability": {

@@ -165,6 +165,7 @@ class V7SyncToolsTest(unittest.TestCase):
 
     def test_existing_planner_consumes_canonical_events_without_repeating_legacy_planner(self):
         service = (ROOT / "systemd/drafts/v7-autoswitch-planner.service").read_text(encoding="utf-8")
+        self.assertIn("Restart=on-failure", service)
         self.assertIn("v7-service-matrix-refresh-all --consume-existing-service-failure-events-only", service)
         self.assertNotIn("v7-users-autoswitch --pre-planner-refresh=write", service)
         self.assertNotIn("v7-users-autoswitch --apply", service)

@@ -27,6 +27,7 @@ PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES=""
 PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC=""
 PROFILE_SERVICE_OBSERVATION_COUNT=0
 PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT=0
+PROFILE_SERVICE_CONSUMER_WAKE_COUNT=0
 PROFILE_SERVICE_CONTRACT_COUNT=0
 PROFILE_SERVICE_ACTIVE_SOURCE_COUNT=0
 FAST_PRODUCER_CONCURRENCY="1"
@@ -636,6 +637,19 @@ EOF
       --matrix-observation-only >/dev/null 2>&1; then
     trigger_status="PASS"
     trigger_rc="0"
+    # A targeted Matrix confirmation is only the canonical health/T0 write.
+    # Hand the confirmed event to the already existing governed consumer in
+    # the same way as the definitive hard-signal path.  The consumer remains
+    # fail-closed and single-flight; this producer never plans or applies a
+    # route itself.
+    if [ -n "$CONSUMER_WAKE_COMMAND" ]; then
+      if wake_existing_failure_consumer; then
+        PROFILE_SERVICE_CONSUMER_WAKE_COUNT=$((PROFILE_SERVICE_CONSUMER_WAKE_COUNT + 1))
+        printf '%s_profile_consumer_wake=PASS\n' "$state_key" >> "$TMP"
+      else
+        printf '%s_profile_consumer_wake=STOP_SAFE\n' "$state_key" >> "$TMP"
+      fi
+    fi
   else
     trigger_rc="$?"
     trigger_status="FAILED"
@@ -706,6 +720,7 @@ write_fast_producer_telemetry() {
   printf 'fast_producer_distinct_contract_count=%s\n' "$PROFILE_SERVICE_CONTRACT_COUNT" >> "$TMP"
   printf 'fast_producer_observation_count=%s\n' "$PROFILE_SERVICE_OBSERVATION_COUNT" >> "$TMP"
   printf 'fast_producer_receiver_invocation_count=%s\n' "$PROFILE_SERVICE_RECEIVER_INVOCATION_COUNT" >> "$TMP"
+  printf 'fast_producer_consumer_wake_count=%s\n' "$PROFILE_SERVICE_CONSUMER_WAKE_COUNT" >> "$TMP"
   printf 'fast_producer_concurrency_cap=%s\n' "$FAST_PRODUCER_CONCURRENCY" >> "$TMP"
   printf 'fast_producer_max_inflight=%s\n' "$FAST_PRODUCER_MAX_INFLIGHT" >> "$TMP"
   completion_count="${#FAST_PRODUCER_COMPLETION_MS[@]}"

@@ -24883,7 +24883,6 @@ def ct_m0f_standing_source_selection_only(
                 and str(row.get("role") or "").upper() == "EXECUTION_ONLY"
                 and str(row.get("reservation_owner") or "")
                 == "operator_execution_governance"
-                and bool(row.get("current_stage_feasible"))
             ):
                 controlled_contract_targets.append(row)
         # The established availability-first owner already derives a stage-1

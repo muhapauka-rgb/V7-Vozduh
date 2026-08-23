@@ -91,6 +91,7 @@ DEFAULT_ROLE_COMMANDS = (
             "--fast-producer-concurrency", "128",
             "--profile-service-suspicion-command", "/usr/local/bin/v7-service-matrix-test",
             "--shadow-trigger-command", "/usr/local/bin/v7-service-matrix-refresh-all",
+            "--consumer-wake-command", "/usr/bin/systemctl",
             "--profile-service-failure-samples", "2",
             "--profile-service-cooldown-sec", "5",
             "--profile-service-shadow-matrix-samples", "1",

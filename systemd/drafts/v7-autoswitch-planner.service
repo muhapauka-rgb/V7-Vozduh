@@ -13,6 +13,8 @@ Environment=V7_ACTOR=autoswitch-planner
 # governed Packet/lease/barrier path. OMP, reports and certification tails are
 # Engineering/controlled-owner work and are explicitly outside this process.
 ExecStart=/usr/local/bin/v7-service-matrix-refresh-all --consume-existing-service-failure-events-only --runtime-hot-path-only
+Restart=on-failure
+RestartSec=1
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

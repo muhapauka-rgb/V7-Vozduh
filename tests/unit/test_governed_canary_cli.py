@@ -2694,6 +2694,47 @@ class GovernedCanaryCliTest(unittest.TestCase):
             drifted["blockers"],
         )
 
+    def test_lineage_bound_ct_m0f_reset_admits_only_exact_shared_execution_target(self):
+        module = load_cli_module()
+        kwargs = {
+            "users": [{
+                "ip": "10.7.0.107",
+                "current": "awg3",
+                "enabled": "1",
+                "certification_user": "1",
+            }],
+            "egress": [
+                {
+                    "id": "controlled-source",
+                    "enabled": "1",
+                    "controlled_certification_source": "1",
+                },
+                {"id": "awg3", "enabled": "1", "role": "GLOBAL_STABLE"},
+            ],
+            "user": "10.7.0.107",
+            "source": "awg3",
+            "target": "controlled-source",
+            "campaign_reset": True,
+            "controlled_source": "controlled-source",
+            "lineage_bound_reset": True,
+        }
+        selected = module.controlled_certification_cleanup_selection(
+            **kwargs,
+            lineage_execution_target="awg3",
+        )
+        drifted = module.controlled_certification_cleanup_selection(
+            **kwargs,
+            lineage_execution_target="awg0",
+        )
+
+        self.assertEqual(selected["selection_status"], "SELECTED", selected)
+        self.assertTrue(selected["lineage_bound_reset"])
+        self.assertEqual(drifted["selection_status"], "STOP_SAFE")
+        self.assertIn(
+            "campaign_reset_current_source_changed_from_lineage_target",
+            drifted["blockers"],
+        )
+
     def test_availability_first_reset_admits_isolated_controlled_target_only(self):
         module = load_cli_module()
         egress = [

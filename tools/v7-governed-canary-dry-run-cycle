@@ -1483,6 +1483,8 @@ def controlled_certification_cleanup_selection(
     availability_first_reset: bool = False,
     availability_first_target: str = "",
     availability_first_allocation_fingerprint: str = "",
+    lineage_bound_reset: bool = False,
+    lineage_execution_target: str = "",
 ) -> dict[str, Any]:
     """Admit only exact pre-state restoration after a consumed controlled run."""
     blockers: list[str] = []
@@ -1554,6 +1556,16 @@ def controlled_certification_cleanup_selection(
                     blockers.append(
                         "availability_first_reset_source_crosses_campaign"
                     )
+        elif lineage_bound_reset:
+            # CT-M0F already validated the exact reservation/Packet/lease
+            # lineage before entering this cleanup owner.  The execution
+            # target may therefore be a shared, pre-ready production egress;
+            # requiring it to masquerade as EXECUTION_ONLY would preserve the
+            # superseded isolated-target architecture and strand the sample.
+            if str(source_row.get("id") or "") != lineage_execution_target:
+                blockers.append(
+                    "campaign_reset_current_source_changed_from_lineage_target"
+                )
         elif (
             str(source_row.get("role") or "").upper() != "EXECUTION_ONLY"
             or str(source_row.get("reservation_owner") or "")
@@ -1629,6 +1641,7 @@ def controlled_certification_cleanup_selection(
         ),
         "max_users": 1,
         "campaign_reset": campaign_reset,
+        "lineage_bound_reset": lineage_bound_reset,
         "availability_first_reset_source_isolated": bool(
             availability_first_reset
             and not any(
@@ -7006,6 +7019,12 @@ def _execute_governed_transaction_with_guards_inner(
                 cleanup_request.get("availability_first_allocation_fingerprint")
                 or ""
             ),
+            lineage_bound_reset=bool_value(
+                cleanup_request.get("lineage_bound_reset")
+            ),
+            lineage_execution_target=str(
+                cleanup_request.get("lineage_execution_target") or ""
+            ),
         )
         if certification_cleanup_selection.get("selection_status") != "SELECTED":
             return transaction_stop(
@@ -12276,6 +12295,8 @@ def reset_ct_m0f_standing_validation_sample(
             "ct_m0f_standing_reservation_id": str(
                 reservation.get("reservation_id") or ""
             ),
+            "lineage_bound_reset": True,
+            "lineage_execution_target": target,
         }
         # The reset is not a new discretionary USER_SWITCH.  It is the
         # mandatory recovery half of the already validated standing CT-M0F

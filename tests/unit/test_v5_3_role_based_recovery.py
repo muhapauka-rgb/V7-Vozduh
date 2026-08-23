@@ -79,6 +79,24 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
             rc = self.matrix.main()
         return rc, json.loads(output.getvalue())
 
+    def invoke_direct_recovery(self, root: Path) -> tuple[int, dict]:
+        state = root / "state"
+        argv = [
+            str(MATRIX_TOOL), "source-a", "all",
+            "--state-dir", str(state),
+            "--event-dir", str(root / "events"),
+            "--interface", "polygon-definitely-missing0",
+            "--direct-local-recovery",
+        ]
+        output = io.StringIO()
+        with (
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(self.matrix, "interface_live", return_value=True),
+            contextlib.redirect_stdout(output),
+        ):
+            rc = self.matrix.main()
+        return rc, json.loads(output.getvalue())
+
     def test_definitive_missing_interface_writes_t0_once_without_network_probe(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -148,6 +166,32 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
                 self.assertFalse(result["ok"], result)
                 self.assertIn(case["blocker"], result["blockers"])
                 self.assertFalse((state / "service-matrix.json").exists())
+
+    def test_direct_local_recovery_closes_episode_once_and_emits_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_state(root)
+            failure_rc, failure = self.invoke_direct(root, observed_at=self.matrix.now_iso())
+            recovery_rc, recovery = self.invoke_direct_recovery(root)
+            second_rc, second = self.invoke_direct_recovery(root)
+            matrix = json.loads((root / "state" / "service-matrix.json").read_text(encoding="utf-8"))
+            events = [
+                json.loads(line)
+                for line in (root / "events" / "service-failure-events.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+
+        direct = matrix["items"]["source-a"]["services"]["__channel_liveness__"]
+        self.assertEqual(failure_rc, 0, failure)
+        self.assertEqual(recovery_rc, 0, recovery)
+        self.assertTrue(recovery["direct_local_recovery"]["event_emitted"])
+        self.assertEqual(second_rc, 0, second)
+        self.assertEqual(second["status"], "HEALTHY_NO_OPEN_EPISODE")
+        self.assertTrue(direct["ok"])
+        self.assertEqual(direct["failure_state"], "RECOVERY_OBSERVED")
+        self.assertEqual(
+            len([event for event in events if event.get("event_type") == "SERVICE_RECOVERY_OBSERVED"]),
+            1,
+        )
 
     def test_mode_a_is_binding_for_every_remote_or_service_ambiguity(self):
         ambiguous = {
@@ -236,6 +280,75 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertEqual(values["hard_signal_new_t0_count"], "0")
         self.assertNotIn("unused_hard_signal_status", values)
         self.assertEqual(wake_lines, ["wake"])
+
+    def test_existing_diagnose_owner_closes_direct_episode_when_interface_recovers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.write_state(root, interface="lo")
+            matrix = {
+                "items": {
+                    "source-a": {
+                        "services": {
+                            "__channel_liveness__": {
+                                "ok": False,
+                                "status": "NOT_STARTED",
+                                "severity": "FAIL",
+                                "failure_episode_id": "sfep_polygon_open",
+                                "failure_event_id": "sfe_polygon_open",
+                                "failure_state": "OBSERVED_CONTINUING",
+                                "failure_family": "RUNTIME_INTERFACE_UNAVAILABLE",
+                                "failure_started_at": self.matrix.now_iso(),
+                                "observed_at": self.matrix.now_iso(),
+                            }
+                        }
+                    }
+                }
+            }
+            (state / "service-matrix.json").write_text(json.dumps(matrix), encoding="utf-8")
+            wake_trace = root / "wake.trace"
+            wake = root / "wake"
+            wake.write_text(f"#!/bin/sh\necho wake >> '{wake_trace}'\n", encoding="utf-8")
+            wake.chmod(0o755)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            ip_tool = bin_dir / "ip"
+            ip_tool.write_text(
+                "#!/bin/sh\necho '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536'\n",
+                encoding="utf-8",
+            )
+            ip_tool.chmod(0o755)
+            matrix_trace = root / "matrix.trace"
+            matrix_receiver = bin_dir / "matrix-receiver"
+            matrix_receiver.write_text(
+                "#!/bin/sh\nprintf '%s\\n' \"$*\" > \"$MATRIX_TRACE\"\n"
+                "printf '%s\\n' '{\"direct_local_recovery\":{\"status\":\"CANONICAL_RECOVERY_WRITTEN\",\"event_emitted\":true}}'\n",
+                encoding="utf-8",
+            )
+            matrix_receiver.chmod(0o755)
+            output = state / "egress-diagnose.state"
+            env = os.environ.copy()
+            env["V7_EVENT_DIR"] = str(root / "events")
+            env["PATH"] = f"{bin_dir}:{env['PATH']}"
+            env["MATRIX_TRACE"] = str(matrix_trace)
+            result = subprocess.run(
+                [
+                    str(DIAGNOSE_TOOL),
+                    "--state-dir", str(state),
+                    "--output", str(output),
+                    "--hard-signal-only",
+                    "--definitive-matrix-command", str(matrix_receiver),
+                    "--consumer-wake-command", str(wake),
+                ],
+                text=True, capture_output=True, check=False, timeout=10, env=env,
+            )
+            out = output.read_text(encoding="utf-8")
+            receiver_args = matrix_trace.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("source-a_hard_signal_recovery_status=EMITTED", out)
+        self.assertIn("hard_signal_recovery_count=1", out)
+        self.assertIn("--direct-local-recovery", receiver_args)
+        self.assertIn(f"--event-dir {root / 'events'}", receiver_args)
 
     def test_production_hard_signal_uses_canonical_event_owner_path(self):
         source = DIAGNOSE_TOOL.read_text(encoding="utf-8")

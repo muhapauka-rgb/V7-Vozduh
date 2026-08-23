@@ -1404,6 +1404,7 @@ def update_matrix(
     egress_identity: Optional[dict[str, str]] = None,
     state_dir: Optional[Path] = None,
     skip_network_path_projection: bool = False,
+    direct_local_validation_reason: str = "definitive_local_hard_failure_critical_path",
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
@@ -1742,7 +1743,7 @@ def update_matrix(
                     "owner": "tools/v7-service-matrix-test",
                     "status": "CURRENT_LOCAL_INTERFACE_REVALIDATED",
                     "network_projection_skipped": True,
-                    "reason": "definitive_local_hard_failure_critical_path",
+                    "reason": direct_local_validation_reason,
                     "measured_at": observed_at,
                 },
             }
@@ -1805,6 +1806,16 @@ def build_parser() -> argparse.ArgumentParser:
             "a redundant source network probe."
         ),
     )
+    parser.add_argument(
+        "--direct-local-recovery",
+        action="store_true",
+        help=(
+            "Ask the canonical Matrix owner to close an existing direct local "
+            "failure episode after the same interface is observed UP. This is "
+            "the recovery half of --direct-local-failure-class and performs no "
+            "network service probe or routing mutation."
+        ),
+    )
     parser.add_argument("--direct-signal-observed-at", default="")
     parser.add_argument("--direct-signal-identity-generation", default="")
     parser.add_argument("--direct-signal-max-age-seconds", type=float, default=3.0)
@@ -1847,7 +1858,12 @@ def main() -> int:
     state_dir = Path(args.state_dir)
     batch_contracts = str(args.batch_lightweight_contracts or "").strip()
     if batch_contracts:
-        if str(args.services or "").strip() or service != "all" or args.direct_local_failure_class:
+        if (
+            str(args.services or "").strip()
+            or service != "all"
+            or args.direct_local_failure_class
+            or args.direct_local_recovery
+        ):
             print(json.dumps({"error": "batch_lightweight_mode_is_exclusive"}, ensure_ascii=False))
             return 2
         if not 1 <= int(args.batch_concurrency or 0) <= 128:
@@ -1881,8 +1897,19 @@ def main() -> int:
     row = egress_row(state_dir, egress_id)
     identity = canonical_egress_identity(row, egress_id=egress_id, iface=iface)
     direct_failure_class = str(args.direct_local_failure_class or "").strip().upper()
+    direct_recovery = bool(args.direct_local_recovery)
     direct_validation: dict[str, Any] = {}
+    direct_recovery_validation: dict[str, Any] = {}
     direct_previous_event_id = ""
+    direct_previous_recovery_event_id = ""
+    if direct_failure_class and direct_recovery:
+        print(json.dumps({
+            "error": "direct_local_failure_and_recovery_are_mutually_exclusive",
+            "status": "STOP_SAFE",
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }, ensure_ascii=False))
+        return 2
     if direct_failure_class:
         if str(args.services or "").strip() or service != "all" or args.probe_observation_only:
             print(json.dumps({
@@ -1920,8 +1947,82 @@ def main() -> int:
             else {}
         )
         direct_previous_event_id = str(prior_service.get("failure_event_id") or "") if isinstance(prior_service, dict) else ""
+    elif direct_recovery:
+        if str(args.services or "").strip() or service != "all" or args.probe_observation_only:
+            print(json.dumps({
+                "error": "direct_local_recovery_mode_is_exclusive",
+                "status": "STOP_SAFE",
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False))
+            return 2
+        prior_matrix = read_json(matrix_file, {})
+        prior_service = (
+            ((((prior_matrix.get("items") or {}).get(egress_id) or {}).get("services") or {}).get(DIRECT_LOCAL_SERVICE_ID) or {})
+            if isinstance(prior_matrix, dict)
+            else {}
+        )
+        if not isinstance(prior_service, dict) or not service_failure_observed(prior_service):
+            print(json.dumps({
+                "action": "service_matrix_direct_local_recovery",
+                "status": "HEALTHY_NO_OPEN_EPISODE",
+                "egress": egress_id,
+                "interface": iface,
+                "canonical_matrix_write": False,
+                "recovery_event_emitted": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 0
+        if not interface_live(iface):
+            print(json.dumps({
+                "action": "service_matrix_direct_local_recovery",
+                "status": "STOP_SAFE",
+                "egress": egress_id,
+                "interface": iface,
+                "blockers": ["interface_not_up"],
+                "canonical_matrix_write": False,
+                "recovery_event_emitted": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 2
+        if (
+            str(prior_service.get("egress_identity_generation") or "")
+            and str(prior_service.get("egress_identity_generation") or "")
+            != str(identity.get("egress_identity_generation") or "")
+        ):
+            print(json.dumps({
+                "action": "service_matrix_direct_local_recovery",
+                "status": "STOP_SAFE",
+                "egress": egress_id,
+                "interface": iface,
+                "blockers": ["egress_identity_generation_mismatch"],
+                "canonical_matrix_write": False,
+                "recovery_event_emitted": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }, ensure_ascii=False, indent=2 if args.pretty else None))
+            return 2
+        direct_previous_recovery_event_id = str(prior_service.get("recovery_event_id") or "")
+        direct_recovery_validation = {
+            "label": "Channel local liveness",
+            "kind": "local_kernel_liveness",
+            "interface": iface,
+            "ok": True,
+            "status": "OK",
+            "severity": "OK",
+            "tested_at": now_iso(),
+            "reason": "local_interface_recovered",
+            "error": "",
+            "probe_provenance": "MATRIX_REVALIDATED_LOCAL_KERNEL_STATE",
+            "evidence_class": "DEFINITIVE_LOCAL_RECOVERY",
+            "probe_classification": "HEALTHY",
+            "recovery_class": "INTERFACE_UP",
+            "source_network_probe_skipped": True,
+        }
     if args.path_evidence_only or args.path_evidence_refresh:
-        if str(args.services or "").strip() or service != "all" or direct_failure_class:
+        if str(args.services or "").strip() or service != "all" or direct_failure_class or direct_recovery:
             print(json.dumps({"error": "path_evidence_mode_is_exclusive"}, ensure_ascii=False))
             return 2
         evidence = network_path_evidence(
@@ -1972,6 +2073,9 @@ def main() -> int:
         results = {
             DIRECT_LOCAL_SERVICE_ID: definitive_local_failure_result(direct_validation),
         }
+    elif direct_recovery_validation:
+        selected = [DIRECT_LOCAL_SERVICE_ID]
+        results = {DIRECT_LOCAL_SERVICE_ID: direct_recovery_validation}
     elif interface_required(row) and not interface_live(iface):
         results = {service_id: not_started_result(service_id, iface) for service_id in selected}
     else:
@@ -2027,7 +2131,12 @@ def main() -> int:
                 persistence_window_seconds=(1 if direct_validation else max(1, int(args.failure_persistence_window_seconds or 180))),
                 egress_identity=identity,
                 state_dir=state_dir,
-                skip_network_path_projection=bool(direct_validation),
+                skip_network_path_projection=bool(direct_validation or direct_recovery_validation),
+                direct_local_validation_reason=(
+                    "definitive_local_recovery_critical_path"
+                    if direct_recovery_validation
+                    else "definitive_local_hard_failure_critical_path"
+                ),
             )
         except TimeoutError:
             print(json.dumps({
@@ -2109,6 +2218,27 @@ def main() -> int:
             "event_id": current_event_id,
             "event_emitted": bool(current_event_id and current_event_id != direct_previous_event_id),
             "canonical_service_id": DIRECT_LOCAL_SERVICE_ID,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+        }
+    elif direct_recovery_validation:
+        direct_service = (((row.get("services") or {}).get(DIRECT_LOCAL_SERVICE_ID)) or {})
+        current_recovery_event_id = (
+            str(direct_service.get("recovery_event_id") or "")
+            if isinstance(direct_service, dict)
+            else ""
+        )
+        payload["action"] = "service_matrix_direct_local_recovery"
+        payload["direct_local_recovery"] = {
+            "status": "CANONICAL_RECOVERY_WRITTEN",
+            "recovery_event_id": current_recovery_event_id,
+            "event_emitted": bool(
+                current_recovery_event_id
+                and current_recovery_event_id != direct_previous_recovery_event_id
+            ),
+            "canonical_service_id": DIRECT_LOCAL_SERVICE_ID,
+            "source_network_probe_skipped": True,
             "candidate_created": False,
             "packet_created": False,
             "lease_created": False,

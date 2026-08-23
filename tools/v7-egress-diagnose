@@ -289,7 +289,8 @@ shadow_trigger_for_reason() {
 }
 
 build_active_hard_rows() {
-  python3 - "$STATE_DIR/users.registry" "$REG" <<'PY'
+  python3 - "$STATE_DIR/users.registry" "$REG" "$STATE_DIR/service-matrix.json" <<'PY'
+import json
 import sys
 from pathlib import Path
 
@@ -310,6 +311,13 @@ try:
     registry = Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines()
 except OSError:
     registry = []
+try:
+    matrix = json.loads(Path(sys.argv[3]).read_text(encoding="utf-8"))
+except (OSError, ValueError, TypeError):
+    matrix = {}
+matrix_items = matrix.get("items") if isinstance(matrix, dict) else {}
+if not isinstance(matrix_items, dict):
+    matrix_items = {}
 for row in (fields(line) for line in registry if line.strip() and not line.lstrip().startswith("#")):
     source = str(row.get("id") or "")
     iface = str(row.get("interface") or "")
@@ -323,7 +331,15 @@ for row in (fields(line) for line in registry if line.strip() and not line.lstri
             # Preserve the existing ``ip link`` fallback for platforms or
             # interface types without a readable sysfs flag surface.
             pass
-        print(f"{source}\t{iface}\t{enabled}\t{liveness}")
+        matrix_row = matrix_items.get(source) if isinstance(matrix_items.get(source), dict) else {}
+        services = matrix_row.get("services") if isinstance(matrix_row, dict) else {}
+        direct = services.get("__channel_liveness__") if isinstance(services, dict) else {}
+        recovery_open = "1" if isinstance(direct, dict) and (
+            direct.get("ok") is False
+            or str(direct.get("failure_episode_id") or "")
+            or str(direct.get("failure_state") or "").startswith("OBSERVED_")
+        ) else "0"
+        print(f"{source}\t{iface}\t{enabled}\t{liveness}\t{recovery_open}")
 PY
 }
 
@@ -376,6 +392,45 @@ PY
       printf '%s_hard_signal_consumer_wake=PASS\n' "$source_id" >> "$TMP"
     else
       printf '%s_hard_signal_consumer_wake=STOP_SAFE\n' "$source_id" >> "$TMP"
+    fi
+  fi
+}
+
+publish_definitive_interface_recovery() {
+  source_id="$1"
+  iface="$2"
+  result_file="$(mktemp "${TMPDIR:-/tmp}/v7-hard-recovery.XXXXXX")"
+  HARD_SIGNAL_OBSERVATION_COUNT=$((HARD_SIGNAL_OBSERVATION_COUNT + 1))
+  if "$DEFINITIVE_MATRIX_COMMAND" "$source_id" all \
+      --state-dir "$STATE_DIR" \
+      --event-dir "$CANONICAL_EVENT_DIR" \
+      --interface "$iface" \
+      --direct-local-recovery >"$result_file" 2>/dev/null; then
+    recovery_status="$(python3 - "$result_file" <<'PY'
+import json
+import sys
+try:
+    payload = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    payload = {}
+direct = payload.get("direct_local_recovery") if isinstance(payload, dict) else {}
+print("EMITTED" if isinstance(direct, dict) and direct.get("event_emitted") else (
+    "RECOVERED" if isinstance(direct, dict) and direct.get("status") == "CANONICAL_RECOVERY_WRITTEN" else "STOP_SAFE"
+))
+PY
+)"
+  else
+    recovery_status="STOP_SAFE"
+  fi
+  rm -f "$result_file"
+  printf '%s_hard_signal_recovery_status=%s\n' "$source_id" "$recovery_status" >> "$TMP"
+  if [ "$recovery_status" = "EMITTED" ]; then
+    HARD_SIGNAL_RECOVERY_COUNT=$((HARD_SIGNAL_RECOVERY_COUNT + 1))
+    if wake_existing_failure_consumer; then
+      HARD_SIGNAL_WAKE_COUNT=$((HARD_SIGNAL_WAKE_COUNT + 1))
+      printf '%s_hard_signal_recovery_consumer_wake=PASS\n' "$source_id" >> "$TMP"
+    else
+      printf '%s_hard_signal_recovery_consumer_wake=STOP_SAFE\n' "$source_id" >> "$TMP"
     fi
   fi
 }
@@ -1172,7 +1227,8 @@ if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   echo "hard_signal_mode=ROLE_BASED_ACTIVE_SOURCE_LOCAL_LIVENESS" >> "$TMP"
   hard_last_iface=""
   hard_last_iface_up="0"
-  while IFS=$'\t' read -r id iface enabled local_liveness; do
+  HARD_SIGNAL_RECOVERY_COUNT=0
+  while IFS=$'\t' read -r id iface enabled local_liveness recovery_open; do
     [ -n "$id" ] || continue
     [ -n "$iface" ] || continue
     [ "${enabled:-1}" = "1" ] || continue
@@ -1191,7 +1247,11 @@ if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
       fi
     fi
     if [ "$hard_last_iface_up" = "1" ]; then
-      printf '%s_hard_signal_status=HEALTHY_LOCAL_INTERFACE\n' "$id"
+      if [ "${recovery_open:-0}" = "1" ]; then
+        publish_definitive_interface_recovery "$id" "$iface"
+      else
+        printf '%s_hard_signal_status=HEALTHY_LOCAL_INTERFACE\n' "$id"
+      fi
     else
       publish_definitive_interface_failure "$id" "$iface"
     fi
@@ -1199,6 +1259,7 @@ if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   printf 'hard_signal_active_source_count=%s\n' "$(wc -l < "$ACTIVE_SOURCE_FILE" | tr -d ' ')" >> "$TMP"
   printf 'hard_signal_observation_count=%s\n' "$HARD_SIGNAL_OBSERVATION_COUNT" >> "$TMP"
   printf 'hard_signal_new_t0_count=%s\n' "$HARD_SIGNAL_T0_COUNT" >> "$TMP"
+  printf 'hard_signal_recovery_count=%s\n' "$HARD_SIGNAL_RECOVERY_COUNT" >> "$TMP"
   printf 'hard_signal_consumer_wake_count=%s\n' "$HARD_SIGNAL_WAKE_COUNT" >> "$TMP"
   commit_output
   exit 0

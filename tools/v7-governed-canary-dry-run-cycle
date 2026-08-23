@@ -6869,6 +6869,12 @@ def _execute_governed_transaction_with_guards_inner(
                 state_dir=state_dir,
                 event_dir=event_dir,
                 snapshot_root=snapshot_root,
+                current_state_window=ct_m0f_standing_reset,
+                current_state_user=(
+                    str(cleanup_request.get("user") or "")
+                    if ct_m0f_standing_reset
+                    else ""
+                ),
             )
         )
         if not availability_reset_snapshot_refresh.get("ok"):

@@ -2740,6 +2740,17 @@ class GovernedCanaryCliTest(unittest.TestCase):
             drifted["blockers"],
         )
 
+    def test_ct_m0f_reset_snapshot_refresh_uses_exact_current_user_window(self):
+        source = (
+            Path(__file__).resolve().parents[2]
+            / "tools"
+            / "v7-governed-canary-dry-run-cycle"
+        ).read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("current_state_window=ct_m0f_standing_reset", source)
+        self.assertIn('str(cleanup_request.get("user") or "")', source)
+
     def test_availability_first_reset_admits_isolated_controlled_target_only(self):
         module = load_cli_module()
         egress = [

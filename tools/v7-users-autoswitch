@@ -4611,8 +4611,7 @@ class AutoswitchPlanner:
         reasons = list(contract_validation.get("errors") or [])
         if not sample.get("ok"):
             reasons.extend(sample.get("errors") or ["ct_m0f_sample_lineage_invalid"])
-        if sample.get("terminal"):
-            reasons.append("ct_m0f_sample_already_terminal")
+        terminal_residue_reconciliation = bool(sample.get("terminal"))
         reservation = (
             sample.get("reservation")
             if isinstance(sample.get("reservation"), dict)
@@ -4659,6 +4658,13 @@ class AutoswitchPlanner:
             "source": expected["current_egress"],
             "target": expected["recommended_egress"],
             "contract_id": str(contract.get("contract_id") or ""),
+            # A terminal closes evidence admission, not the mandatory return
+            # of a certification identity to its recorded baseline.  The
+            # exact reservation/user/source/target and current-route checks
+            # above keep this cleanup narrower than an ordinary USER_SWITCH.
+            "terminal_residue_reconciliation": (
+                terminal_residue_reconciliation
+            ),
         }
 
     def _activate_controlled_verifier_contention(self, move: dict[str, Any], operation_id: str) -> dict[str, Any]:

@@ -5078,6 +5078,64 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         eligibility = source[eligibility_start:eligibility_end]
         self.assertIn("self._load_runtime_registry_users()", eligibility)
 
+    def test_ct_m0f_terminal_sample_still_authorizes_exact_baseline_cleanup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="awg3")
+            planner = self.tool.AutoswitchPlanner(
+                self.args_for(
+                    root,
+                    [
+                        "--ct-m0f-standing-reset-reservation-id",
+                        "ctm0fsample_terminal",
+                    ],
+                )
+            )
+            planner.policy[
+                self.tool.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY
+            ] = {
+                "contract_id": "ctm0fsdpc_test",
+                "contract_hash": "h" * 64,
+            }
+            reservation = {
+                "reservation_id": "ctm0fsample_terminal",
+                "contract_id": "ctm0fsdpc_test",
+                "contract_hash": "h" * 64,
+                "user": "10.0.0.2",
+                "source": "vless",
+                "target": "awg3",
+            }
+            move = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "awg3",
+                "recommended_egress": "vless",
+            }
+            with mock.patch.object(
+                self.tool.operator_execution,
+                "ct_m0f_standing_validation_sample_from_audit",
+                return_value={
+                    "ok": True,
+                    "reservation": reservation,
+                    "terminal": {"sample_valid": False},
+                },
+            ), mock.patch.object(
+                self.tool.operator_execution,
+                "validate_ct_m0f_standing_validation_policy",
+                return_value={"ok": True, "errors": []},
+            ), mock.patch.object(
+                self.tool,
+                "parse_registry",
+                return_value=[{
+                    "ip": "10.0.0.2",
+                    "current": "awg3",
+                    "certification_user": "1",
+                }],
+            ):
+                scope = planner._exact_ct_m0f_standing_reset_scope([move])
+
+        self.assertTrue(scope["ok"], scope)
+        self.assertTrue(scope["terminal_residue_reconciliation"])
+
     def test_l3_execution_stops_safe_when_target_lost_before_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

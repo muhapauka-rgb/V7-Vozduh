@@ -118,7 +118,7 @@ server-side recovery only and never relabels itself as T11.
 
 | Class | Minimum causal path | Measured target | Explicit non-goal |
 | --- | --- | --- | --- |
-| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence or cheap path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | controlled failure onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | full deep sweep before an unambiguous failure |
+| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence -> Matrix-owned provenance/freshness/generation validation and, only if the N1/N4 tournament admits it, direct canonical T0 without a redundant source network probe; cheap or ambiguous path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | controlled failure onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | full deep sweep before an unambiguous failure or treating an ambiguous timeout as definitive evidence |
 | `TELEGRAM_CRITICAL` | Telegram is required by the active product/profile contract; fast Telegram evidence -> independent targeted Matrix corroboration -> T0 -> S11 | controlled Telegram outage onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | treating Telegram as universal for a profile where it is not required |
 | `OTHER_REQUIRED_SERVICE` | active source plus distinct active profile-service contract -> lightweight protocol-appropriate sentinel -> targeted Matrix confirmation -> T0 -> S11 | N3-selected physical-failure -> T0 SLO `<=15 s`, with production observation clock and separately measured T0 -> S11 | a 1–3 second promise or a full 14-service probe for every sample |
 | `AMBIGUOUS_QUALITY_OPTIONAL` | quality, partial censorship, jitter, loss, optional service or conflicting evidence -> SUSPECT/DEGRADED -> bounded confirmation or Full fallback | prompt safe classification; no fail-open | evacuation merely because an optional or ambiguous service failed |
@@ -172,21 +172,87 @@ SLOWER_RISE = existing conservative persistence, stability, anti-flap and
 No N phase weakens stale/unknown/conflicting fail-closed behavior, recovery
 probation, capacity/policy checks, rollback or existing action Authority.
 
+#### Failure-evidence certainty split and direct-T0 tournament
+
+The current Program must not force the same confirmation path onto materially
+different evidence classes.  N1, N4 and N7 must compare, rather than assume,
+the following two paths under the same Matrix owner and state surface:
+
+```text
+DEFINITIVE_LOCAL_HARD_FAILURE
+= owner-backed local fact that proves the exact current source responsibility
+  is absent or failed, with fresh monotonic time, exact source identity,
+  generation continuity and no stale/conflicting evidence
+-> existing Matrix owner validates provenance/freshness/identity/generation
+-> Matrix atomically records canonical T0 without repeating a source network probe
+-> relevant pre-ready hot target is confirmed in parallel
+
+AMBIGUOUS_OR_REMOTE_FAILURE_EVIDENCE
+= timeout, loss, generic path miss, Telegram/DNS/application failure,
+  partial censorship, quality degradation or any non-authoritative local symptom
+-> SUSPECT
+-> independent bounded targeted Matrix confirmation of the source/service
+-> canonical T0 only after confirmation
+
+STALE / UNKNOWN / CONFLICTING / CORRELATED
+-> DEGRADED or STOP_SAFE
+-> no client movement; use bounded revalidation or explicit Full fallback
+```
+
+An L0 producer never writes T0, changes eligibility or applies a route.  The
+Matrix remains the single canonical health/state/T0 writer in both paths.  A
+direct canonical T0 is therefore a Matrix-owned consumption mode for exact
+definitive evidence, not a second health owner and not a bypass of Planner,
+target readiness, Candidate, Packet, Lease, Barrier, Apply, verification,
+rollback or Authority.
+
+The Polygon tournament must compare:
+
+```text
+MODE A = every hard signal -> repeat source probe -> Matrix T0
+MODE B = definitive local hard signal -> Matrix validation/direct T0;
+         ambiguous signal -> repeat source probe -> Matrix T0
+```
+
+Use the same interface-down, process-death, tunnel-loss, route-loss, stale
+event, wrong-generation, restart/replay, transient timeout, endpoint glitch,
+Telegram, DNS, partial-service, correlated-provider and recovery scenarios.
+Measure controlled onset->T0, onset->S11, false positive/negative, duplicate
+episodes, stale/conflict rejection, target-readiness correctness, probes,
+CPU/RSS/network/writer pressure and automatic caller/consumer behavior.
+
+`MODE B` is admitted only for the exact definitive classes that prove all of:
+
+- no false-failure, stale-generation, replay or restart-safety regression;
+- Matrix remains the only canonical T0 writer and produces the same downstream
+  contract consumed by Planner and governed execution;
+- source-probe removal yields a material measured latency or load improvement;
+- target readiness remains fresh and independently checked before Apply;
+- disagreement, missing provenance or incomplete identity falls back to
+  `SUSPECT` plus targeted confirmation, never fail-open.
+
+If any condition fails, that class retains `MODE A`.  Vendor immediate-failure
+behavior is evidence for the tournament, not authority to select `MODE B`.
+
 #### Canonical layer placement and strict ownership
 
 | Layer | Role | Existing owner/contract reused | Prohibited shortcut |
 | --- | --- | --- | --- |
-| `L0` | immediately turn definitive existing local failure evidence into `SUSPECT` | `v7-egress-diagnose`, existing systemd, interface/tunnel and route/path evidence | a new watcher, event truth or direct route apply |
+| `L0` | classify fresh owner-backed local evidence as definitive or ambiguous; ambiguous evidence creates `SUSPECT`, while a tournament-admitted definitive class may be consumed by the Matrix owner as direct canonical T0 without a redundant source probe | `v7-egress-diagnose`, existing systemd, interface/tunnel and route/path evidence | a new watcher, direct T0 writer, event truth or direct route apply |
 | `L1P` | cheap active-source path liveness | Matrix/diagnose existing-owner inputs | Google/YouTube/full HTTP Matrix as the liveness probe |
 | `L1T` | Telegram-critical health of active sources and bounded hot targets | existing Telegram sentinel and Matrix service semantics | a fresh all-target Telegram sweep after T0 |
 | `L2` | other required service health by active source and distinct profile contract | Matrix/profile/DNS service semantics | per-user polling or treating optional services as channel failure |
 | `L3` | C8 reconciliation backstop | existing bounded C8/deadline-loop Matrix work | calling C8 the primary critical detector |
 | `L4` | staggered deep, diagnostic, disagreement, stale/conflict, quality, cold-target and recovery support | existing Matrix canonical writer and Full fallback | global synchronous Full-before-action or a second writer |
 
-L0/L1/L2 create `SUSPECT` only.  Matrix alone retains canonical health/state
-and T0 ownership.  A fast signal wakes the existing bounded targeted Matrix
-confirmation through its legal existing-owner invocation; it does not bypass
-Matrix, Planner, Packet, Lease, Barrier, apply, verification or rollback.
+L1P/L1T/L2 and every ambiguous L0 observation create `SUSPECT` only.  A fresh
+exact definitive L0 class may skip only the redundant source network probe
+after its N1/N4/N7 tournament gate passes; it still enters through the Matrix
+owner for canonical validation and atomic T0.  Matrix alone retains canonical
+health/state and T0 ownership.  Every other fast signal wakes the existing
+bounded targeted Matrix confirmation through its legal existing-owner
+invocation.  Neither mode bypasses Matrix, Planner, Packet, Lease, Barrier,
+apply, verification or rollback.
 
 Correlated evidence is fail-safe and must suppress evacuation storms:
 
@@ -285,13 +351,13 @@ tests, report, deploy or Polygon alone never advances a phase.
 | --- | --- |
 | `N0` | Record this product/SLO amendment in the existing Program; reconcile current callers, consumers, state and prior V5.3 evidence against the new roles. |
 | `N0a` | **Runtime execution envelope prerequisite.** Profile and reduce the existing governed downstream executor until it completes one controlled causal path without unbounded materialisation, OOM or repeated automatic retries. It is mandatory before N8 controlled Runtime admission and before production activation of a new cadence; it does not block independent N1–N7/N9 Polygon, profiling, implementation or scale work. |
-| `N1` | `HARD_FAILURE_EVENT_DRIVEN_SIGNAL_INTEGRATION`: reuse existing definitive local evidence and tournament cheap path liveness at `250 ms/500 ms/1 s/2 s`; choose only a measured safe cadence. |
+| `N1` | `HARD_FAILURE_EVENT_DRIVEN_SIGNAL_INTEGRATION`: reuse existing local evidence, define exact definitive-versus-ambiguous predicates with provenance/freshness/identity/generation gates, and tournament cheap path liveness at `250 ms/500 ms/1 s/2 s`; choose only measured safe evidence classes and cadence. |
 | `N2` | `TELEGRAM_CRITICAL_FAST_HEALTH_V2`: tournament `250 ms/500 ms/1 s`, thresholds and independent evidence against persistent outage, transient loss/timeout, endpoint glitch, correlated failure, 1,000 egresses and hot-target readiness. |
 | `N3` | Other-required service sentinels: tournament `5 s/10 s/15 s/30 s` by current source plus distinct required profile contract, using DNS/TCP/TLS/light HTTP only where protocol-appropriate. |
-| `N4` | Immediate targeted confirmation: each lawful signal invokes current-source/service confirmation now; source and relevant hot target are checked concurrently where safe; no wait for the next periodic Matrix cycle. |
+| `N4` | Immediate Matrix-owned confirmation/direct-T0 tournament: compare `MODE A` repeat-source confirmation against `MODE B` direct canonical T0 for exact N1 definitive classes. Ambiguous signals always invoke current-source/service confirmation now; the relevant hot target is checked concurrently where safe; no wait for the next periodic Matrix cycle. |
 | `N5` | `PRE_READY_TARGET_AND_PREPARED_DATAPLANE`: pre-failure hot-target readiness for the bounded top-H set plus existing V4 constant-time prepared data-plane proof; include freshness, dedup, coverage, capacity, policy, generation, role and 1/10/100/1000 compatible-cohort readiness. |
 | `N6` | Transform Full Matrix from burst semantics to a measured staggered deep-refresh horizon under the existing Matrix writer; retain fallback for disagreement, stale/conflict and ambiguous cases, with FAST priority, fairness, bounded deep rate/concurrency and no catch-up storm. |
-| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial. HARD/PATH and applicable Telegram require P95 `<=3 s` and max `<=5 s`; test each cadence phase offset and correlated failure. |
+| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial, including the required `MODE A` versus `MODE B` comparison, stale/wrong-generation/replay/restart falsification and proof that only admitted definitive classes skip a redundant source probe. HARD/PATH and applicable Telegram require P95 `<=3 s` and max `<=5 s`; test each cadence phase offset and correlated failure. |
 | `N8` | Controlled unattended Runtime proof: signal -> confirmation -> T0 -> selection -> governed apply -> S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
 | `N9` | Full scale tournament using the mandatory egress/user/profile matrix and all resource/pressure measurements. |
 | `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. |
@@ -382,6 +448,12 @@ parallel health truth or unbounded work.
    and retirement law; timer-only wake statements are scoped away from N0–N11,
    legacy server-bound client-recovery names are mapped to S11, and no
    redundant, unreachable or duplicate path remains.
+7. Every material hard-failure class has a measured `MODE_A_RETAINED` or
+   `MODE_B_DIRECT_T0_ADMITTED` disposition.  Any direct-T0 class proves exact
+   provenance, freshness, identity/generation continuity, replay/restart
+   safety, single Matrix ownership, unchanged downstream contract, independent
+   target readiness and a material latency/load gain; ambiguous evidence can
+   never enter direct T0.
 
 The next executable V5.3 action after this amendment is **N0a**, not a timer
 or cadence increase.

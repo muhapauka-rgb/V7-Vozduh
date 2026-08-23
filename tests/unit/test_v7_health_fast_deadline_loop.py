@@ -95,7 +95,9 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         service = (ROOT / "systemd/v7-health.service").read_text(encoding="utf-8")
         loop = LOOP.read_text(encoding="utf-8")
         sync = (ROOT / "tools/v7_sync_lib.py").read_text(encoding="utf-8")
-        self.assertIn("ExecStart=/usr/local/bin/v7-health-loop", service)
+        self.assertIn(
+            "ExecStart=/usr/local/bin/v7-health-loop --role-based-fast", service,
+        )
         self.assertNotIn("sleep 30", service)
         self.assertIn("time.monotonic_ns", loop)
         self.assertIn("start_new_session=True", loop)

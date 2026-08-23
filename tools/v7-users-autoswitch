@@ -24736,7 +24736,6 @@ def ct_m0f_standing_source_selection_only(
     prevents the downstream governed planner from choosing an unrelated
     certification identity before the standing envelope can validate it.
     """
-    pool = controlled_certification_pool_status(Path(args.state_dir))
     state_dir = Path(args.state_dir)
     users = parse_registry(state_dir / "users.registry")
     egress_rows = parse_registry(state_dir / "egress.registry")
@@ -24744,21 +24743,120 @@ def ct_m0f_standing_source_selection_only(
         "users": users,
         "egress_rows": egress_rows,
     }
-    projections = [
-        row
-        for row in (pool.get("active_source_projections") or [])
-        if (
-            isinstance(row, dict)
-            and str(row.get("source_id") or "")
-            and bool(row.get("source_isolated_for_controlled_failure"))
-            and int(row.get("enabled_non_certification_users_on_source") or 0) == 0
-        )
-    ]
-    # This selector needs only the active controlled-source projection.  Do
-    # not retain the broad campaign inventory while later invoking the
-    # existing target diagnostic: that diagnostic owns its own complete
-    # inventory and retaining both can exceed the Runtime memory envelope.
-    del pool
+    # A canonical certification-only Matrix failure plus an already validated
+    # prepared target diagnostic contains every fact needed to identify the
+    # exact current source. Avoid rebuilding the broad certification campaign
+    # pool on this hard-failure hot path; the same registry and event owners
+    # below still prove isolation, identity, reservation and causal binding.
+    projections: list[dict[str, Any]] = []
+    fast_failed_source_projection_reused = False
+    if (
+        isinstance(precomputed_target_diagnostic, dict)
+        and precomputed_target_diagnostic.get("ok") is True
+    ):
+        for registry in egress_rows:
+            source_id = str(registry.get("id") or "")
+            if not source_id:
+                continue
+            source_users = [
+                row for row in users
+                if str(row.get("current") or "") == source_id
+                and bool_value(row.get("enabled", "1"))
+            ]
+            certification_users = [
+                row for row in source_users
+                if bool_value(row.get("certification_user"))
+            ]
+            non_certification_users = [
+                row for row in source_users
+                if not bool_value(row.get("certification_user"))
+            ]
+            exact_execution_contract = (
+                bool_value(registry.get("controlled_certification_source"))
+                and str(registry.get("type") or "") == "interface"
+                and str(registry.get("reservation_owner") or "")
+                == "operator_execution_governance"
+                and bool_value(registry.get("execution_reserved"))
+                and bool_value(registry.get("canary_reserved"))
+                and not bool_value(registry.get("autoswitch_allowed"))
+                and not bool_value(registry.get("rebalance_allowed"))
+                and str(
+                    registry.get("production_assignment_allowed") or ""
+                ).lower() in {"0", "false", "no"}
+            )
+            if (
+                not exact_execution_contract
+                or not certification_users
+                or non_certification_users
+            ):
+                continue
+            binding = (
+                ct_m0f_certification_only_matrix_failure_binding_projection(
+                    state_dir,
+                    source_id,
+                    event_dir=Path(
+                        getattr(args, "event_dir", "")
+                        or state_dir / "events"
+                    ),
+                    evidence_cache=binding_evidence_cache,
+                )
+            )
+            if not binding.get("ok"):
+                continue
+            baseline_health = controlled_certification_source_health_status(
+                state_dir, source_id,
+            )
+            if bool(baseline_health.get("ok")):
+                continue
+            source_group = str(registry.get("certification_group") or "")
+            group_aligned = [
+                row for row in certification_users
+                if not source_group
+                or str(row.get("certification_group") or "") == source_group
+            ]
+            if not group_aligned:
+                continue
+            projections.append({
+                "source_id": source_id,
+                "certification_group": source_group,
+                "enabled_certification_users_on_source": len(
+                    certification_users
+                ),
+                "group_aligned_certification_users_on_source": len(
+                    group_aligned
+                ),
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": baseline_health,
+                "controlled_condition_active": not bool_value(
+                    registry.get("enabled", "1")
+                ),
+                "projection_origin": (
+                    "current_matrix_failure_binding_plus_existing_"
+                    "execution_contract"
+                ),
+                "active_service_failure_binding": binding,
+            })
+        projections.sort(key=lambda row: str(row.get("source_id") or ""))
+        fast_failed_source_projection_reused = bool(projections)
+    if not projections:
+        pool = controlled_certification_pool_status(state_dir)
+        projections = [
+            row
+            for row in (pool.get("active_source_projections") or [])
+            if (
+                isinstance(row, dict)
+                and str(row.get("source_id") or "")
+                and bool(row.get("source_isolated_for_controlled_failure"))
+                and int(
+                    row.get("enabled_non_certification_users_on_source") or 0
+                ) == 0
+            )
+        ]
+        # This selector needs only the active controlled-source projection.
+        # Do not retain the broad campaign inventory while later invoking the
+        # existing target diagnostic.
+        del pool
     projected_source_ids = {
         str(row.get("source_id") or "") for row in projections
     }
@@ -25464,6 +25562,9 @@ def ct_m0f_standing_source_selection_only(
             else ""
         ),
         "eligible_source_count": len(failed_ready) + len(preparation_sources),
+        "fast_failed_source_projection_reused": (
+            fast_failed_source_projection_reused
+        ),
         "eligible_identity_count": 1 if selected_user else 0,
         "shared_target_policy_admission": {
             "ok": shared_target_action_admitted,

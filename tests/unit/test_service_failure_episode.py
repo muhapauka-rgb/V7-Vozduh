@@ -908,6 +908,127 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["eligible_source_count"], 1)
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
 
+    def test_ct_m0f_hard_failure_reuses_exact_source_without_pool_rebuild(self):
+        availability_policy = {
+            "action_class_scopes": {
+                "bounded availability-first controlled failover": {
+                    "allowed_actions": [
+                        "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
+                    ],
+                    "certification_identities_only": True,
+                    "max_users_per_transaction": 1,
+                    "max_concurrent_transactions": 1,
+                    "ordinary_identity_delta": 0,
+                    "ordinary_route_delta": 0,
+                    "shared_target_fault_injection_allowed": False,
+                },
+            },
+        }
+        users = [{
+            "ip": "10.7.0.18",
+            "current": "exec-source",
+            "enabled": "1",
+            "certification_user": "1",
+            "certification_group": "g1",
+        }]
+        egress = [{
+            "id": "exec-source",
+            "enabled": "0",
+            "type": "interface",
+            "controlled_certification_source": "1",
+            "reservation_owner": "operator_execution_governance",
+            "execution_reserved": "1",
+            "canary_reserved": "1",
+            "autoswitch_allowed": "0",
+            "rebalance_allowed": "0",
+            "production_assignment_allowed": "0",
+            "certification_group": "g1",
+        }]
+        target_diagnostic = {
+            "ok": True,
+            "selection": {"selected_target_id": "awg3"},
+            "targets": [{
+                "target_id": "awg3",
+                "ordinary_planner_eligible": True,
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {
+                    "state": "HEALTHY", "policy_boundary": "NONE",
+                },
+                "health": {
+                    "ok": True,
+                    "observation_fingerprint": "target-health",
+                },
+                "capacity": {"target_safe_additional_capacity": 9},
+                "verification_supported": True,
+                "rollback_containment_supported": True,
+            }],
+        }
+        binding = {
+            "ok": True,
+            "requires_binding": True,
+            "binding_kind": "CERTIFICATION_ONLY_MATRIX_FAILURE",
+            "automation_obligation_id": "sfaob_test",
+            "source_incident_id": "sfinc_test",
+            "source_scope_fingerprint": "a" * 64,
+            "source_incident_generation": "egid_test",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "audit.jsonl"
+            policy.write_text(
+                json.dumps({"delegated_autonomy_policy": {"stub": True}}),
+                encoding="utf-8",
+            )
+            audit.write_text("", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(root),
+                event_dir=str(root / "events"),
+                policy_file=str(policy),
+                action_class_audit_store=str(audit),
+            )
+            with mock.patch.object(
+                self.autoswitch,
+                "parse_registry",
+                side_effect=lambda path: (
+                    users if str(path).endswith("users.registry") else egress
+                ),
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_pool_status",
+            ) as pool_mock, mock.patch.object(
+                self.autoswitch,
+                "ct_m0f_certification_only_matrix_failure_binding_projection",
+                return_value=binding,
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_certification_source_health_status",
+                return_value={
+                    "ok": False,
+                    "status": "FAIL_CONTROLLED_SOURCE",
+                    "observation_fingerprint": "source-failure",
+                },
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": availability_policy},
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_live_execution_lineage_records",
+                return_value=[],
+            ):
+                result = (
+                    self.autoswitch.ct_m0f_standing_source_selection_only(
+                        args,
+                        precomputed_target_diagnostic=target_diagnostic,
+                    )
+                )
+        pool_mock.assert_not_called()
+        self.assertTrue(result["ok"], result)
+        self.assertTrue(result["fast_failed_source_projection_reused"])
+        self.assertEqual(result["selected_source_id"], "exec-source")
+        self.assertEqual(result["selected_target_id"], "awg3")
+
     def test_ct_m0f_active_service_failure_binding_requires_accounted_live_owner(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

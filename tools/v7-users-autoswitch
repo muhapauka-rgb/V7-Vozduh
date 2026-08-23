@@ -457,6 +457,7 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
     stable_inputs = generation.get("inputs") if isinstance(generation.get("inputs"), dict) else {}
     volatile_inputs = generation.get("volatile_inputs") if isinstance(generation.get("volatile_inputs"), dict) else {}
     groups: dict[str, dict[str, Any]] = {}
+    global_hot_contracts: dict[str, dict[str, Any]] = {}
     exclusions = 0
     for row in decisions:
         user = str(row.get("user_ip") or row.get("user") or "")
@@ -478,12 +479,73 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             "exception_boundary": str(row.get("exception_boundary") or "NONE"),
         }
         class_id = "pcd_" + sha256_json(semantic)[:24]
-        item = groups.setdefault(class_id, {"semantic": semantic, "members": []})
+        item = groups.setdefault(
+            class_id,
+            {"semantic": semantic, "members": [], "hot_targets": {}},
+        )
         item["members"].append(user)
+        candidates = [
+            candidate
+            for candidate in (row.get("candidates") or [])
+            if isinstance(candidate, dict)
+            and bool(candidate.get("eligible"))
+            and str(candidate.get("egress") or "")
+            and str(candidate.get("egress") or "") != source
+            and not bool_value(candidate.get("canary_reserved"))
+        ]
+        # The Planner owns eligibility and scoring.  This adapter only bounds
+        # and deduplicates its already-ranked alternatives; it never invents
+        # or manually chooses a server.
+        candidates.sort(key=lambda candidate: (
+            -to_float(candidate.get("score"), 0.0),
+            str(candidate.get("egress") or ""),
+        ))
+        if not candidates and target:
+            # Older/current plan fixtures expose only the selected target.  It
+            # is still an official Planner result and remains a lawful H=1
+            # projection, with the same generation invalidators below.
+            candidates = [{
+                "egress": target,
+                "eligible": True,
+                "score": to_float(row.get("recommended_score"), 0.0),
+                "role": str(row.get("target_role") or ""),
+                "capacity_decision": capacity,
+            }]
+        for candidate in candidates[:4]:
+            target_id = str(candidate.get("egress") or "")
+            target_semantic = {
+                "target_id": target_id,
+                "critical_services": services,
+            }
+            contract_fingerprint = sha256_json(target_semantic)
+            capacity_decision = (
+                candidate.get("capacity_decision")
+                if isinstance(candidate.get("capacity_decision"), dict)
+                else {}
+            )
+            contract = {
+                **target_semantic,
+                "target_service_fingerprint": contract_fingerprint,
+                "planner_score": round(to_float(candidate.get("score"), 0.0), 3),
+                "capacity_bucket": str(
+                    capacity_decision.get("status")
+                    or capacity_decision.get("decision")
+                    or "UNKNOWN"
+                ),
+                "role": str(candidate.get("role") or ""),
+                "selection_owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+                "manual_server_selection": False,
+            }
+            item["hot_targets"][contract_fingerprint] = contract
+            global_hot_contracts[contract_fingerprint] = contract
     prepared = []
     for class_id, item in sorted(groups.items()):
         members = sorted(set(item["members"]))
         semantic = item["semantic"]
+        hot_targets = sorted(
+            item["hot_targets"].values(),
+            key=lambda row: (-to_float(row.get("planner_score"), 0.0), str(row.get("target_id") or "")),
+        )[:4]
         prepared.append({
             "class_id": class_id,
             **semantic,
@@ -491,6 +553,13 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             "membership_fingerprint": sha256_json({"members": members}),
             "raw_member_list_stored": False,
             "prepared_action": "FAILOVER_TO_EXISTING_PLANNER_TARGET",
+            "hot_target_limit": 4,
+            "hot_targets": hot_targets,
+            "hot_target_count": len(hot_targets),
+            "target_readiness_state": (
+                "PRE_READY_TARGET_SET_PROJECTED"
+                if hot_targets else "NO_3S_TARGET_CAPACITY"
+            ),
             "execution_allowed": False,
         })
     invalidators = {
@@ -506,6 +575,34 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
         "active_operation_generation": str((plan.get("operation") or {}).get("operation_id") or ""),
         "rollback_target_availability_generation": str(volatile_inputs.get("service_matrix") or ""),
     }
+    fact_freshness = {
+        "path_liveness": {
+            "generation_owner": "target_health_and_path_generation",
+            "maximum_age_seconds": 3,
+        },
+        "telegram_required_service": {
+            "generation_owner": "target_health_and_path_generation",
+            "maximum_age_seconds": 2,
+        },
+        "other_required_service": {
+            "generation_owner": "target_health_and_path_generation",
+            "maximum_age_seconds": 10,
+        },
+        "capacity": {
+            "generation_owner": "capacity_reservation_generation",
+            "maximum_age_seconds": 30,
+        },
+        "policy": {
+            "generation_owner": "policy_authority_generation",
+            "maximum_age_seconds": None,
+            "freshness_semantics": "CURRENT_GENERATION_EQUALITY",
+        },
+        "identity_and_role": {
+            "generation_owner": "target_topology_generation",
+            "maximum_age_seconds": None,
+            "freshness_semantics": "CURRENT_GENERATION_EQUALITY",
+        },
+    }
     return {
         "schema_version": "v7.prepared-class-decision-projection.v1",
         "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
@@ -516,6 +613,24 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
         "class_count": len(prepared),
         "excluded_decision_count": exclusions,
         "invalidators": invalidators,
+        "hot_target_set": {
+            "schema_version": "v7.role-based-pre-ready-hot-target-set.v1",
+            "bound_per_class": 4,
+            "selection_owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+            "contracts": sorted(
+                global_hot_contracts.values(),
+                key=lambda row: (str(row.get("target_id") or ""), row.get("critical_services") or []),
+            ),
+            "deduplicated_target_service_contract_count": len(global_hot_contracts),
+            "fact_specific_freshness": fact_freshness,
+            "current_state": (
+                "PRE_READY_TARGET_SET_PROJECTED"
+                if global_hot_contracts else "NO_3S_TARGET_CAPACITY"
+            ),
+            "prepared_dataplane_owner": "admin_core.routing_core + existing route owner",
+            "incident_time_world_model_rebuild": False,
+            "new_state_store_created": False,
+        },
         "hot_validation_law": "COMPARE_DECLARED_GENERATIONS_ONLY_NO_WORLD_MODEL_REBUILD",
         "candidate_created": False,
         "packet_created": False,
@@ -543,6 +658,34 @@ def validate_prepared_class_decision_projection(
         status = "PREPARED_CLASS_DECISION_STALE"
     else:
         status = "PREPARED_CLASS_DECISION_FRESH"
+    fact_owner_map = {
+        "path_liveness": "target_health_and_path_generation",
+        "telegram_required_service": "target_health_and_path_generation",
+        "other_required_service": "target_health_and_path_generation",
+        "capacity": "capacity_reservation_generation",
+        "policy": "policy_authority_generation",
+        "identity_and_role": "target_topology_generation",
+    }
+    fact_freshness = {
+        fact: {
+            "generation_owner": owner,
+            "fresh": bool(
+                expected.get(owner)
+                and str(expected.get(owner) or "")
+                == str(current_invalidators.get(owner) or "")
+            ),
+        }
+        for fact, owner in fact_owner_map.items()
+    }
+    hot_target_set = (
+        projection.get("hot_target_set")
+        if isinstance(projection.get("hot_target_set"), dict)
+        else {}
+    )
+    no_hot_target = not bool(hot_target_set.get("contracts"))
+    if status == "PREPARED_CLASS_DECISION_FRESH" and no_hot_target:
+        status = "NO_3S_TARGET_CAPACITY"
+        reasons = ["pre_ready_hot_target_missing"]
     return {
         "schema_version": "v7.prepared-class-decision-freshness-consumer.v1",
         "owner": "tools/v7-users-autoswitch",
@@ -550,6 +693,9 @@ def validate_prepared_class_decision_projection(
         "ok": status == "PREPARED_CLASS_DECISION_FRESH",
         "invalidation_reasons": reasons,
         "comparison_count": len(expected),
+        "fact_specific_freshness": fact_freshness,
+        "hot_target_contract_count": len(hot_target_set.get("contracts") or []),
+        "no_3s_target_capacity": no_hot_target,
         "world_model_rebuilt": False,
         "registry_scanned": False,
         "member_list_serialized": False,

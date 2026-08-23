@@ -74,6 +74,17 @@ DEFAULT_ROLE_COMMANDS = (
             "--profile-service-shadow-matrix-window-sec", "5",
         ),
     ),
+    (
+        "deep", 60_000,
+        (
+            "/usr/local/bin/v7-service-matrix-refresh-all",
+            "--staggered-deep",
+            "--matrix-observation-only",
+            "--deep-horizon-seconds", "900",
+            "--deep-slot-seconds", "60",
+            "--deep-concurrency", "16",
+        ),
+    ),
 )
 
 
@@ -291,9 +302,11 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--controlled-hard-command")
     parser.add_argument("--controlled-telegram-command")
     parser.add_argument("--controlled-required-command")
+    parser.add_argument("--controlled-deep-command")
     parser.add_argument("--hard-interval-ms", type=int, default=1_000)
     parser.add_argument("--telegram-interval-ms", type=int, default=1_000)
     parser.add_argument("--required-interval-ms", type=int, default=5_000)
+    parser.add_argument("--deep-interval-ms", type=int, default=60_000)
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -307,10 +320,14 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         args.controlled_hard_command,
         args.controlled_telegram_command,
         args.controlled_required_command,
+        args.controlled_deep_command,
     )
     if any(controlled_roles) and (not args.role_based_fast or not args.max_phases):
         parser.error("controlled role commands require --role-based-fast and finite --max-phases")
-    for value in (args.hard_interval_ms, args.telegram_interval_ms, args.required_interval_ms):
+    for value in (
+        args.hard_interval_ms, args.telegram_interval_ms,
+        args.required_interval_ms, args.deep_interval_ms,
+    ):
         if value <= 0:
             parser.error("role intervals must be positive")
     return args
@@ -323,11 +340,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             "hard": args.controlled_hard_command,
             "telegram": args.controlled_telegram_command,
             "other_required": args.controlled_required_command,
+            "deep": args.controlled_deep_command,
         }
         intervals = {
             "hard": args.hard_interval_ms,
             "telegram": args.telegram_interval_ms,
             "other_required": args.required_interval_ms,
+            "deep": args.deep_interval_ms,
         }
         roles = tuple(
             ManagedRole(

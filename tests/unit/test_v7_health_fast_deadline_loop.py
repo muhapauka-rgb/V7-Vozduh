@@ -119,6 +119,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             hard = self.write_command(root, "hard", "sleep 0.01\n")
             telegram = self.write_command(root, "telegram", "sleep 0.02\n")
             required = self.write_command(root, "required", "sleep 2.2\n")
+            deep = self.write_command(root, "deep", "sleep 2.8\n")
             completed = subprocess.run(
                 [
                     str(LOOP), "--role-based-fast", "--max-phases", "7",
@@ -128,6 +129,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     "--controlled-hard-command", str(hard),
                     "--controlled-telegram-command", str(telegram),
                     "--controlled-required-command", str(required),
+                    "--controlled-deep-command", str(deep),
+                    "--deep-interval-ms", "1000",
                 ],
                 text=True,
                 capture_output=True,
@@ -162,6 +165,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertGreaterEqual(len(hard_during_required), 2, completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=other_required", completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_COMPLETE role=other_required", completed.stdout)
+        self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=deep", completed.stdout)
+        self.assertIn("V7_HEALTH_ROLE_COMPLETE role=deep", completed.stdout)
 
 
 if __name__ == "__main__":

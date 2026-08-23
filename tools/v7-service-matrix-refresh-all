@@ -8,6 +8,7 @@ treating every run as FAIL because no legacy status= line was printed.
 """
 
 import argparse
+import concurrent.futures
 import contextlib
 import fcntl
 import hashlib
@@ -3123,6 +3124,67 @@ def select_probe_rows(
     return list({**enabled_by_id, **controlled_disabled}.values()), requested
 
 
+def select_staggered_deep_rows(
+    rows: list[dict[str, str]],
+    matrix: dict[str, Any],
+    *,
+    now_epoch: float,
+    horizon_seconds: int,
+    slot_seconds: int,
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    """Select one fair restart-stable slice from the existing Matrix inventory.
+
+    Sorting canonical egress ids and assigning ``index % slot_count`` gives
+    every slice either floor(N/S) or ceil(N/S) rows.  There is no cursor,
+    queue, cache or catch-up state to lose on restart.  A missed slice remains
+    visibly stale through the existing per-egress Matrix timestamps; it is not
+    replayed as a burst.
+    """
+    horizon = max(60, min(int(horizon_seconds or 900), 86_400))
+    slot = max(1, min(int(slot_seconds or 60), horizon))
+    slot_count = max(1, (horizon + slot - 1) // slot)
+    slot_index = int(max(0.0, now_epoch) // slot) % slot_count
+    ordered = sorted(rows, key=lambda row: str(row.get("id") or ""))
+    selected = [
+        row for index, row in enumerate(ordered)
+        if index % slot_count == slot_index
+    ]
+    items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
+    stale: list[str] = []
+    for row in ordered:
+        egress_id = str(row.get("id") or "")
+        item = items.get(egress_id) if isinstance(items.get(egress_id), dict) else {}
+        observed = str(item.get("checked_at") or item.get("updated") or "")
+        try:
+            observed_epoch = datetime.fromisoformat(observed.replace("Z", "+00:00")).timestamp()
+            age = max(0.0, now_epoch - observed_epoch)
+        except (TypeError, ValueError):
+            age = None
+        if age is None or age > horizon:
+            stale.append(egress_id)
+    schedule = {
+        "schema_version": "v7.matrix-staggered-deep-schedule.v1",
+        "owner": "tools/v7-service-matrix-refresh-all",
+        "canonical_writer": "tools/v7-service-matrix-test",
+        "horizon_seconds": horizon,
+        "slot_seconds": slot,
+        "slot_count": slot_count,
+        "slot_index": slot_index,
+        "inventory_count": len(ordered),
+        "selected_count": len(selected),
+        "maximum_slice_size": (len(ordered) + slot_count - 1) // slot_count,
+        "selected_egresses": [str(row.get("id") or "") for row in selected],
+        "stale_egresses": stale,
+        "stale_count": len(stale),
+        "missed_horizon_behavior": "REMAIN_STALE_NO_CATCH_UP_BURST",
+        "restart_behavior": "RECOMPUTE_DETERMINISTIC_SLICE_NO_CURSOR",
+        "new_state_store_created": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+    return selected, schedule
+
+
 def run_service_failure_automation_advisory(
     consumer: str,
     *,
@@ -4323,6 +4385,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run only existing Matrix probes and canonical Matrix writes; do not emit events or invoke consumers.",
     )
     parser.add_argument(
+        "--staggered-deep",
+        action="store_true",
+        help=(
+            "Run one deterministic fair DEEP slice under the existing Matrix "
+            "writer. Requires --matrix-observation-only; never catches up a "
+            "missed slice with a burst."
+        ),
+    )
+    parser.add_argument("--deep-horizon-seconds", type=int, default=900)
+    parser.add_argument("--deep-slot-seconds", type=int, default=60)
+    parser.add_argument("--deep-concurrency", type=int, default=16)
+    parser.add_argument(
         "--egresses",
         default="",
         help=(
@@ -4431,6 +4505,19 @@ def main() -> int:
             "error": "probe_subset_invalid_in_event_consumption_only_mode",
         }, ensure_ascii=False))
         return 2
+    if args.staggered_deep and (
+        not args.matrix_observation_only
+        or event_only
+        or requested_egresses
+        or bool(service_subset)
+    ):
+        print(json.dumps({
+            "error": (
+                "staggered_deep_requires_full_scope_observation_only_"
+                "without_explicit_subset"
+            ),
+        }, ensure_ascii=False))
+        return 2
     shadow_trigger_requested = any(
         str(value or "").strip()
         for value in (
@@ -4494,16 +4581,38 @@ def main() -> int:
     # that lock only for its own atomic durable update.  This preserves writer
     # serialization while allowing the fast failure producer to publish during
     # a long full refresh.
-    results = ([] if event_only else [
-        run_one(
+    deep_schedule: dict[str, Any] = {}
+    if args.staggered_deep:
+        rows, deep_schedule = select_staggered_deep_rows(
+            rows,
+            read_json(state_dir / "service-matrix.json", {}),
+            now_epoch=time.time(),
+            horizon_seconds=int(args.deep_horizon_seconds),
+            slot_seconds=int(args.deep_slot_seconds),
+        )
+
+    def execute_row(row: dict[str, str]) -> dict[str, Any]:
+        return run_one(
             row["id"], max(3, min(int(args.timeout), 30)), args.checker,
             state_dir, service_subset,
             shadow_persistence_samples,
             shadow_persistence_window,
             event_dir=Path(args.event_dir),
         )
-        for row in rows
-    ])
+
+    if event_only:
+        results = []
+    elif args.staggered_deep and rows:
+        concurrency = max(1, min(int(args.deep_concurrency or 16), 128, len(rows)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            results = list(executor.map(execute_row, rows))
+        deep_schedule["concurrency_cap"] = concurrency
+        deep_schedule["fast_priority_contract"] = (
+            "SEPARATE_HEALTH_ROLE; PER_EGRESS_WRITES_USE_EXISTING_SHORT_LOCK; "
+            "NO_DEEP_BACKLOG"
+        )
+    else:
+        results = [execute_row(row) for row in rows]
     writer_locks = [
         row.get("service_matrix_lock")
         for row in results
@@ -4542,20 +4651,29 @@ def main() -> int:
         },
         "mode": (
             "EXISTING_EVENT_CONSUMPTION_ONLY" if event_only
+            else "STAGGERED_DEEP_REFRESH" if args.staggered_deep
             else "BOUNDED_EXACT_SUBSET_REFRESH" if requested_egresses or service_subset
             else "FULL_MATRIX_REFRESH"
         ),
         "probe_selection": {
             "egresses": requested_egresses or [str(row.get("id") or "") for row in rows],
             "services": [item.strip() for item in service_subset.split(",") if item.strip()] or ["all"],
-            "role_selection_owner": "EXTERNAL_EXISTING_MATRIX_CALLER",
+            "role_selection_owner": (
+                "EXISTING_MATRIX_DETERMINISTIC_DEEP_SLICER"
+                if args.staggered_deep else "EXTERNAL_EXISTING_MATRIX_CALLER"
+            ),
             "full_matrix_fallback_preserved": True,
         },
     }
+    if deep_schedule:
+        payload["deep_schedule"] = deep_schedule
     if shadow_trigger:
         payload["shadow_trigger"] = shadow_trigger
     if args.matrix_observation_only:
-        payload["mode"] = "MATRIX_OBSERVATION_ONLY"
+        payload["mode"] = (
+            "STAGGERED_DEEP_OBSERVATION_ONLY"
+            if args.staggered_deep else "MATRIX_OBSERVATION_ONLY"
+        )
         payload["observation_only"] = {
             "owner": "tools/v7-service-matrix-refresh-all",
             "canonical_matrix_write_preserved": True,

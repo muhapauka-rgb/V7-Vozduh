@@ -965,7 +965,17 @@ for row in payload.get("contracts") or []:
     ]
     print("|".join(value.replace("|", " ").replace("\n", " ") for value in values))
 PY
-  FAST_PRODUCER_MAX_INFLIGHT="$FAST_PRODUCER_CONCURRENCY"
+  batch_probe_count="$(python3 - "$result_file" <<'PY'
+import json, sys
+try: print(max(0, int(json.load(open(sys.argv[1], encoding="utf-8")).get("probe_count") or 0)))
+except Exception: print(0)
+PY
+)"
+  if [ "$batch_probe_count" -lt "$FAST_PRODUCER_CONCURRENCY" ] 2>/dev/null; then
+    FAST_PRODUCER_MAX_INFLIGHT="$batch_probe_count"
+  else
+    FAST_PRODUCER_MAX_INFLIGHT="$FAST_PRODUCER_CONCURRENCY"
+  fi
   while IFS='|' read -r source_id profile_user services failure_count dns_services degraded_services failed_services unknown_services state_key completion_ns; do
     [ -n "$source_id" ] || continue
     PROFILE_SERVICE_OBSERVATION_COUNT=$((PROFILE_SERVICE_OBSERVATION_COUNT + 1))
@@ -973,12 +983,7 @@ PY
     process_profile_service_probe "$source_id" "$profile_user" "$services" "$probe" "$state_key"
   done < "$parsed_file"
   printf 'fast_producer_batch_status=PASS\n' >> "$TMP"
-  printf 'fast_producer_batch_probe_count=%s\n' "$(python3 - "$result_file" <<'PY'
-import json, sys
-try: print(int(json.load(open(sys.argv[1], encoding="utf-8")).get("probe_count") or 0))
-except Exception: print(0)
-PY
-)" >> "$TMP"
+  printf 'fast_producer_batch_probe_count=%s\n' "$batch_probe_count" >> "$TMP"
   rm -rf "$work_dir"
 }
 

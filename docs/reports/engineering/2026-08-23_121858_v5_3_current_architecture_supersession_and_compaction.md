@@ -58,6 +58,9 @@ archived or reconstructed.  No legacy code was restored.
   Runtime classified the delta as docs-only.  Overall pre-publication result
   was NO-GO only because the sandboxed GitHub read was unavailable and the
   documentation change was not yet committed.
+- Post-publication `tools/v7-truth-check --all --json`: `FULLY_ALIGNED`, final
+  verdict PASS; CPS/OMP/GitHub/local/Runtime PASS, zero blockers, remote branch
+  and local commit both `a77c54735dadf7bd57de98fd141d85959beaaa25`.
 
 ## Exact successor
 
@@ -66,4 +69,3 @@ remains the admission owner.  The Program contract names N0a (bounded memory
 envelope of the existing governed downstream executor) as the first
 implementation residual; independent N1–N7/N9 Polygon work remains legal under
 its existing-owner gates and current CPS admission.
-

@@ -7032,6 +7032,11 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             "approved_plan_lock_validation"
         ]
         self.assertTrue(validation["ok"])
+        self.assertTrue(
+            revalidated["safety"]["restore_barrier"][
+                "clearance_generation_ok"
+            ]
+        )
         self.assertEqual(len(revalidated["selected_moves"]), 1)
         self.assertEqual(
             revalidated["selected_moves"][0]["user_ip"], move["user_ip"]

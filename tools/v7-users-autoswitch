@@ -4195,6 +4195,30 @@ class AutoswitchPlanner:
         selected_count = int(
             approved_plan_lock.get("selected_move_count") or 0
         )
+        if (
+            approved_plan_lock.get("ok")
+            and bool_value(restore_barrier.get("expired"))
+            and bool_value(restore_barrier.get("cleared"))
+            and restore_barrier.get("clearance_max_selected_moves")
+            is not None
+        ):
+            locked_moves = [
+                copy.deepcopy(move)
+                for move in (
+                    approved_plan_lock.get("selected_moves") or []
+                )
+                if isinstance(move, dict)
+            ]
+            locked_hash = str(
+                approved_plan_lock.get("selected_move_hash") or ""
+            )
+            restore_barrier.update(
+                self._restore_clearance_generation_check(
+                    restore_barrier,
+                    locked_moves,
+                    locked_hash,
+                )
+            )
         snapshot_gate = self._intelligence_snapshot_gate(selected_count)
         snapshot_gate = self._apply_source_bundle_lease_to_intelligence_gate(
             snapshot_gate,

@@ -3411,7 +3411,10 @@ def run_autoswitch_apply(
             planner._record_performance_span(
                 "planner_entry_target_capacity_and_allocation",
                 planner_entry_started_ns,
-                owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+                owner=(
+                    "tools/v7-users-autoswitch."
+                    "AutoswitchPlanner.revalidate_committed_apply_plan"
+                ),
             )
             apply_started_ns = time.monotonic_ns()
             plan["apply_result"] = planner.apply(plan)

@@ -241,6 +241,30 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(run_one.call_args.args[4], "google,telegram")
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
 
+    def test_n9_path_only_profile_keeps_prepared_target_without_service_probe(self):
+        rows = [
+            {"id": "source-a", "interface": "source", "enabled": "1"},
+            {"id": "target-a", "interface": "target", "enabled": "1"},
+        ]
+        projection = self.autoswitch.build_prepared_class_decision_projection({
+            "updated": "2026-08-23T12:00:00+00:00",
+            "operation": {"operation_id": ""},
+            "safety": {"generation": self.generation()},
+            "decisions": [{
+                "user_ip": "10.7.0.5",
+                "current_egress": "source-a",
+                "recommended_egress": "target-a",
+                "important_services": [],
+            }],
+        })
+        selected, scope = self.refresh.select_prepared_hot_target_rows(
+            rows, {"prepared_class_decisions": projection},
+        )
+
+        self.assertTrue(scope["ok"], scope)
+        self.assertEqual(scope["selected_targets"], ["target-a"])
+        self.assertEqual(selected[0]["_prepared_services"], "")
+
     def test_n8_projection_refresh_reuses_matrix_summary_and_lock(self):
         projection = self.autoswitch.build_prepared_class_decision_projection({
             "updated": "2026-08-23T12:00:00+00:00",

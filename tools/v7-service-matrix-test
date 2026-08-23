@@ -38,6 +38,7 @@ DIRECT_LOCAL_SERVICE_ID = "__channel_liveness__"
 DIRECT_LOCAL_FAILURE_CLASSES = {"INTERFACE_DOWN_OR_MISSING"}
 N3_MAX_BATCH_CONTRACTS = 10_000
 N3_MAX_FAST_SERVICES_PER_CONTRACT = 3
+N3_ROLE_DEADLINE_SECONDS = 5.0
 TELEGRAM_HARD_STATUSES = {"NOT_STARTED", "DOWN"}
 TELEGRAM_SOFT_STATUSES = {"DEGRADED", "DOWN_GRACE", "GRACE"}
 DEFAULT_LOCK_WAIT_SECONDS = 90
@@ -1276,6 +1277,37 @@ def batch_lightweight_observations(
 
     started_ns = time.monotonic_ns()
     cap = max(1, min(int(concurrency or 1), 128))
+    timeout_bound_seconds = (
+        ((len(work) + cap - 1) // cap) * max(0.0, float(timeout_seconds))
+        if work else 0.0
+    )
+    if timeout_bound_seconds > N3_ROLE_DEADLINE_SECONDS:
+        # Never start a workload that cannot fit the existing five-second role
+        # slot at its declared physical timeout.  The 15-minute staggered DEEP
+        # owner remains the safe fallback; this explicit capacity terminal is
+        # preferable to overlapping batches, socket pressure and silent
+        # deadline loss at a 1000-egress/many-profile boundary.
+        return {
+            "schema_version": "v7.matrix-lightweight-batch-observation.v1",
+            "status": "NO_5S_PROFILE_SERVICE_ROLE_CAPACITY",
+            "ok": False,
+            "owner": "tools/v7-service-matrix-test",
+            "observation_only": True,
+            "canonical_write_performed": False,
+            "direct_t0_allowed": False,
+            "contract_count": len(contracts),
+            "probe_count": len(work),
+            "concurrency_cap": cap,
+            "timeout_seconds_per_probe": float(timeout_seconds),
+            "timeout_bound_seconds": round(timeout_bound_seconds, 3),
+            "role_deadline_seconds": N3_ROLE_DEADLINE_SECONDS,
+            "blockers": ["profile_service_probe_budget_exceeds_role_deadline"],
+            "fallback": "EXISTING_STAGGERED_DEEP_FULL_MATRIX",
+            "contracts": [],
+            "network_probes_started": 0,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
     with ThreadPoolExecutor(max_workers=cap) as pool:
         futures = {
             pool.submit(
@@ -1322,6 +1354,8 @@ def batch_lightweight_observations(
         "contract_count": len(contracts),
         "probe_count": len(work),
         "concurrency_cap": cap,
+        "timeout_bound_seconds": round(timeout_bound_seconds, 3),
+        "role_deadline_seconds": N3_ROLE_DEADLINE_SECONDS,
         "elapsed_ms": round((completed_ns - started_ns) / 1_000_000.0, 3),
         "contracts": contracts,
         "routing_mutation_performed": False,

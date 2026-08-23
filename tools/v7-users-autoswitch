@@ -67,6 +67,7 @@ DEFAULT_USER_PRIORITY_SERVICES = ("youtube", "instagram", "telegram", "google", 
 SELECTED_MOVE_SEMANTIC_FIELDS = (
     "reason",
     "important_services",
+    "profile_required_services",
     "candidates",
     "scores",
     "service_failover",
@@ -466,7 +467,11 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
         if not user or not source or not target or source == target:
             exclusions += 1
             continue
-        services = sorted(str(item) for item in (row.get("important_services") or []) if str(item))
+        services = sorted(str(item) for item in (
+            row.get("profile_required_services")
+            if "profile_required_services" in row
+            else row.get("important_services") or []
+        ) if str(item))
         capacity = row.get("capacity_decision") if isinstance(row.get("capacity_decision"), dict) else {}
         semantic = {
             "source_channel": source,
@@ -546,6 +551,19 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             item["hot_targets"].values(),
             key=lambda row: (-to_float(row.get("planner_score"), 0.0), str(row.get("target_id") or "")),
         )[:4]
+        # Keep the per-class routing relation compact.  Full target readiness
+        # facts live once in ``hot_target_set.contracts`` and are addressed by
+        # fingerprint; embedding them in every class made a valid
+        # 1000-source/many-profile projection needlessly approach 20 MiB.
+        hot_target_refs = [
+            {
+                "target_id": str(row.get("target_id") or ""),
+                "target_service_fingerprint": str(
+                    row.get("target_service_fingerprint") or ""
+                ),
+            }
+            for row in hot_targets
+        ]
         prepared.append({
             "class_id": class_id,
             **semantic,
@@ -554,8 +572,9 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             "raw_member_list_stored": False,
             "prepared_action": "FAILOVER_TO_EXISTING_PLANNER_TARGET",
             "hot_target_limit": 4,
-            "hot_targets": hot_targets,
-            "hot_target_count": len(hot_targets),
+            "hot_targets": hot_target_refs,
+            "hot_target_contracts_embedded": False,
+            "hot_target_count": len(hot_target_refs),
             "target_readiness_state": (
                 "PRE_READY_TARGET_SET_PROJECTED"
                 if hot_targets else "NO_3S_TARGET_CAPACITY"
@@ -10203,6 +10222,25 @@ class AutoswitchPlanner:
             values.extend(user_priority_services_from_pref(prefs))
         return normalize_service_ids(values)
 
+    def _profile_required_services(self, user: User) -> list[str]:
+        """Exact service contract for fast health and S11 verification.
+
+        Planner ranking keeps its established best-effort defaults in
+        ``_important_services``.  Fast health and post-switch verification are
+        stricter: application services are required only when declared by the
+        global policy or this exact profile.  This is the role boundary that
+        prevents Telegram from becoming universal.
+        """
+        values = list(self._explicit_required_services())
+        prefs = (self.service_prefs.get("users") or {}).get(user.ip) or {}
+        if isinstance(prefs, dict):
+            values.extend(normalize_service_ids(
+                prefs.get("required_services")
+                if "required_services" in prefs
+                else prefs.get("services") or []
+            ))
+        return normalize_service_ids(values)
+
     def _matrix_services(self, egress_id: str) -> dict[str, Any]:
         return ((self.matrix.get("items") or {}).get(egress_id) or {}).get("services") or {}
 
@@ -13882,6 +13920,7 @@ class AutoswitchPlanner:
 
     def _decision_for_user(self, user: User) -> dict[str, Any]:
         important = self._important_services(user)
+        profile_required = self._profile_required_services(user)
         route_class = self.args.route_class or self._route_class_for_services(important)
         candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in self.egress.values()]
         candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
@@ -13990,6 +14029,7 @@ class AutoswitchPlanner:
             "group": user.group,
             "route_class": route_class,
             "important_services": important,
+            "profile_required_services": profile_required,
             "current_egress": user.current,
             "recommended_egress": recommended,
             "action": action,
@@ -17640,11 +17680,23 @@ class AutoswitchPlanner:
         lines.append("V7_SCOPED_USER_ROUTE_CHECK=" + ("OK" if route_rc == 0 else "FAIL"))
         return subprocess.CompletedProcess(argv, route_rc, stdout="\n".join(lines) + "\n")
 
+    def _verification_required_services(self, move: dict[str, Any]) -> list[str]:
+        if "profile_required_services" in move:
+            return normalize_service_ids(move.get("profile_required_services") or [])
+        user_ip = str(move.get("user_ip") or "")
+        user = next((row for row in getattr(self, "users", []) if row.ip == user_ip), None)
+        if user is not None:
+            return self._profile_required_services(user)
+        # Compatibility for isolated historical fixtures that do not carry a
+        # user/profile surface. New Planner output always emits the exact
+        # ``profile_required_services`` field above.
+        return normalize_service_ids(move.get("important_services") or [])
+
     def _verify_emergency_required_services(self, move: dict[str, Any]) -> subprocess.CompletedProcess[str]:
         target = str(move.get("recommended_egress") or "")
-        services = normalize_service_ids(move.get("important_services") or [])
-        if not target or not services:
-            return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="missing target or services\n")
+        services = self._verification_required_services(move)
+        if not target:
+            return subprocess.CompletedProcess(["v7-service-matrix-test"], 1, stdout="missing target\n")
         timeout_sec = max(1, min(to_int(self.emergency_failover_policy.get("service_verify_timeout_seconds"), 5), 30))
         lock_timeout_sec = max(1, to_int(getattr(self.args, "service_matrix_lock_timeout_sec", DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS), DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS))
         command_timeout_sec = timeout_sec + lock_timeout_sec + 5
@@ -17652,18 +17704,19 @@ class AutoswitchPlanner:
         # One exact subset now incurs one Python startup, one lock lifecycle and
         # one durable Matrix write instead of repeating all three per service.
         command_timeout_sec = timeout_sec + lock_timeout_sec + 5
-        command = [
-            "v7-service-matrix-test",
-            target,
-            "--services",
-            ",".join(services),
-            "--timeout",
-            str(timeout_sec),
-            "--state-dir",
-            str(self.state_dir),
-            "--lock-timeout-sec",
-            str(lock_timeout_sec),
-        ]
+        command = ["v7-service-matrix-test", target]
+        if services:
+            command.extend([
+                "--services", ",".join(services),
+                "--timeout", str(timeout_sec),
+                "--lock-timeout-sec", str(lock_timeout_sec),
+            ])
+        else:
+            # A profile with no declared application service still requires a
+            # fresh channel/path proof before the exact payload check, but it
+            # must not inherit the historical five-service fallback.
+            command.append("--path-evidence-only")
+        command.extend(["--state-dir", str(self.state_dir)])
         try:
             return subprocess.run(
                 command,
@@ -17686,7 +17739,7 @@ class AutoswitchPlanner:
         """
         started_ns = time.monotonic_ns()
         target = str(move.get("recommended_egress") or "")
-        services = normalize_service_ids(move.get("important_services") or [])
+        services = self._verification_required_services(move)
         matrix = read_json(self.state_dir / "service-matrix.json", {"items": {}})
         target_row = ((matrix.get("items") or {}).get(target) or {}) if isinstance(matrix, dict) else {}
         stored_path = target_row.get("path_evidence") if isinstance(target_row.get("path_evidence"), dict) else {}
@@ -17749,6 +17802,30 @@ class AutoswitchPlanner:
                 },
             }
             return subprocess.CompletedProcess(command, 0, stdout=json.dumps(payload, ensure_ascii=False))
+        if not services and current_path and probe.returncode == 0:
+            duration_ms = round((time.monotonic_ns() - started_ns) / 1_000_000.0, 3)
+            current_payload.update({
+                "action": "fresh_exact_channel_path_verification",
+                "status": "FRESH_CHANNEL_PATH_VERIFIED_NO_PROFILE_SERVICES",
+                "ok": True,
+                "egress": target,
+                "required_services": [],
+                "matrix_scope": "EGRESS_PATH_AND_CHANNEL_PROFILE",
+                "full_matrix_refreshed": False,
+                "profile_service_probe_count": 0,
+                "user_binding_evidence_owner": "tools/v7-users-autoswitch._verify_routes_for_apply",
+                "performance_timeline": {
+                    "schema_version": "v7.service-matrix-path-only-reuse-timing.v1",
+                    "clock_source": "time.monotonic_ns",
+                    "owner": "tools/v7-users-autoswitch + existing v7-service-matrix-test path owner",
+                    "spans": [{
+                        "stage": "fresh_exact_channel_path_verification",
+                        "duration_ms": duration_ms,
+                        "critical_path": True,
+                    }],
+                },
+            })
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps(current_payload, ensure_ascii=False))
         refreshed = self._verify_emergency_required_services(move)
         try:
             payload = json.loads(refreshed.stdout or "{}")

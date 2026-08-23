@@ -365,6 +365,41 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertTrue(all(row["failure_count"] == 0 for row in result["contracts"]))
         self.assertFalse(matrix_exists)
 
+    def test_n9_n3_rejects_timeout_bound_overrun_before_opening_sockets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            count = 1000
+            (state / "egress.registry").write_text(
+                "".join(
+                    f"id=s{index} interface=if{index} enabled=1\n"
+                    for index in range(count)
+                ),
+                encoding="utf-8",
+            )
+            contracts = root / "contracts.tsv"
+            contracts.write_text(
+                "".join(
+                    f"s{index}\tu{index}\tgoogle,youtube,google_auth\tstate-{index}\n"
+                    for index in range(count)
+                ),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.matrix, "run_lightweight_service_sentinel",
+            ) as probe:
+                result = self.matrix.batch_lightweight_observations(
+                    state, contracts, concurrency=128, timeout_seconds=0.5,
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "NO_5S_PROFILE_SERVICE_ROLE_CAPACITY")
+        self.assertEqual(result["probe_count"], 3000)
+        self.assertEqual(result["network_probes_started"], 0)
+        self.assertEqual(result["fallback"], "EXISTING_STAGGERED_DEEP_FULL_MATRIX")
+        probe.assert_not_called()
+
     def test_n3_tournament_selects_five_seconds_and_cap_128_for_1000_contracts(self):
         # One 500 ms lightweight socket per distinct contract.  At cap 128 the
         # timeout-bound pass is <=4 s. Two failed passes plus a bounded 3 s

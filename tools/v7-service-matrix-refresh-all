@@ -3364,8 +3364,11 @@ def select_prepared_hot_target_rows(
             for item in (contract.get("critical_services") or [])
             if str(item).strip() and str(item).strip().lower() != "all"
         }
-        if services:
-            by_target.setdefault(target_id, set()).update(services)
+        # A path-only profile has an intentionally empty application-service
+        # set.  It still needs the already selected target in the pre-ready
+        # PATH role; dropping it here recreated the broad incident-time target
+        # fallback for exactly the cheapest profile class.
+        by_target.setdefault(target_id, set()).update(services)
     enabled = {
         str(row.get("id") or ""): row
         for row in rows

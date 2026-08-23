@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 from typing import Optional
@@ -29,6 +30,72 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tool = load_tool_module()
+
+    def test_fast_profile_services_are_explicit_and_telegram_is_not_universal(self):
+        # Planner ranking retains its historical best-effort defaults.
+        self.assertEqual(
+            self.tool.user_priority_services_from_pref({}),
+            list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
+        )
+        planner = object.__new__(self.tool.AutoswitchPlanner)
+        planner.users = []
+        self.assertEqual(
+            planner._verification_required_services({
+                "important_services": list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
+                "profile_required_services": ["telegram"],
+            }),
+            ["telegram"],
+        )
+        self.assertEqual(
+            planner._verification_required_services({
+                "important_services": list(self.tool.DEFAULT_USER_PRIORITY_SERVICES),
+                "profile_required_services": [],
+            }),
+            [],
+        )
+
+    def test_empty_profile_uses_existing_path_owner_without_service_probes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "service-matrix.json").write_text(
+                json.dumps({"items": {"target": {"services": {}}}}),
+                encoding="utf-8",
+            )
+            planner = object.__new__(self.tool.AutoswitchPlanner)
+            planner.state_dir = state
+            planner.args = SimpleNamespace(service_matrix_lock_timeout_sec=1)
+            planner.emergency_failover_policy = {}
+            current = {
+                "status": "OK",
+                "path_evidence": {
+                    "path_fingerprint": "path-current",
+                    "service_set_fingerprint": "services-current",
+                    "egress_identity_generation": "identity-current",
+                },
+            }
+            with mock.patch.object(
+                self.tool.subprocess,
+                "run",
+                return_value=subprocess.CompletedProcess(
+                    ["v7-service-matrix-test"], 0, stdout=json.dumps(current),
+                ),
+            ) as run:
+                result = planner._reuse_or_verify_emergency_required_services({
+                    "recommended_egress": "target",
+                    "important_services": [],
+                })
+
+        self.assertEqual(result.returncode, 0, result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(
+            payload["status"],
+            "FRESH_CHANNEL_PATH_VERIFIED_NO_PROFILE_SERVICES",
+        )
+        self.assertEqual(payload["required_services"], [])
+        self.assertEqual(payload["profile_service_probe_count"], 0)
+        command = run.call_args.args[0]
+        self.assertIn("--path-evidence-only", command)
+        self.assertNotIn("--services", command)
 
     def test_route_writer_failure_code_is_safe_and_bounded(self):
         self.assertEqual(

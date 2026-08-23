@@ -602,13 +602,31 @@ conflicting evidence remains fail-closed. These capabilities are deployed but
 are not yet the active Runtime caller: exact consumer migration and predecessor
 retirement remain N7/N8 responsibilities and cannot be claimed from this block.
 
-The next executable V5.3 block is **N5–N6**: reuse the existing
-Matrix/Planner/capacity owners to maintain a bounded compatible top-H pre-ready
-target set and prepared data plane, then replace the 15-minute burst execution
-shape with a fair bounded staggered DEEP horizon under the same Matrix writer.
-This block must preserve FAST priority, Full fallback, fact-specific freshness,
-compatible-target dedup, restart fairness and no-catch-up-storm behavior. It is
-not Runtime activation, route mutation or client movement.
+`N5–N6` completed at deployed commit `c74db2c8`. Exact evidence is split by
+logical responsibility:
+
+- `docs/reports/engineering/2026-08-23_143052_v5_3_n5_pre_ready_target_and_prepared_dataplane.md`;
+- `docs/reports/engineering/2026-08-23_143052_v5_3_n6_staggered_deep_matrix.md`.
+
+The existing Planner now projects a bounded official top-H (`H <= 4`) hot
+target/service set with fact-specific freshness and fail-closed
+`NO_3S_TARGET_CAPACITY`; the existing V4 Routing Core remains the prepared
+data-plane owner. The existing Matrix refresh owner now supports a restart-
+stable 15-slice DEEP horizon, bounded concurrency and no catch-up burst while
+retaining the explicit Full fallback. Current production advisory evidence has
+six prepared semantic classes, four deduplicated hot target/service contracts
+and `PREPARED_CLASS_DECISION_FRESH`, with zero route mutation and zero users
+moved. These capabilities are deployed but not yet activated as the production
+role caller: the predecessor Full/Telegram timers remain until N7 integrated
+proof and N8 caller migration prove safe replacement.
+
+The next executable V5.3 block is **N7 CAUSAL_POLYGON_TOURNAMENT**. It must run
+the same controlled onset-to-S11 harness across interface, tunnel, path,
+Telegram, DNS, other-required, multi-service and partial failures; compare Mode
+A and Mode B; cover cadence phase offsets, stale/wrong-generation/replay/restart,
+correlated failure and FAST-vs-DEEP contention; and measure source confirmation,
+concurrent target readiness, downstream decision and independently verified
+server-side recovery. It may not claim T11 without independent client telemetry.
 
 ### V5.3 integrated T0–T11 latency-optimization track
 

@@ -4629,6 +4629,14 @@ def compact_refresh_projection(payload: dict[str, Any]) -> dict[str, Any]:
         "full_child_payload_embedded": False,
     }
     for key in (
+        "prepared_class_decisions",
+        "prepared_class_decision_freshness",
+        "prepared_projection_updated",
+    ):
+        value = payload.get(key)
+        if value not in (None, "", [], {}):
+            projection[key] = value
+    for key in (
         "passive_event_consumer", "service_failure_automation_advisory",
         "service_failure_omp_consumer", "service_failure_post_action_passive_consumer",
         "service_failure_post_action_omp_consumer",
@@ -5640,6 +5648,21 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
         return 0
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
+    # Every Matrix lifecycle role shares this one summary owner.  Preserve the
+    # Planner's compact prepared projection across event-only and ordinary
+    # refresh receipts; overwriting it forced the incident consumer to rebuild
+    # the entire world model immediately after T0.  This is a same-owner merge,
+    # not a new cache or truth source.
+    previous_summary = read_json(summary_file, {})
+    if isinstance(previous_summary, dict):
+        for key in (
+            "prepared_class_decisions",
+            "prepared_class_decision_freshness",
+            "prepared_projection_updated",
+        ):
+            value = previous_summary.get(key)
+            if value not in (None, "", [], {}):
+                payload[key] = value
     if args.event_provenance == "OPERATOR_INDUCED" and not str(args.event_trigger_reference or "").strip():
         print(json.dumps({"error": "operator_induced_event_trigger_reference_required"}, ensure_ascii=False))
         return 2

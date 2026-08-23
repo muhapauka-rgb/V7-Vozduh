@@ -580,6 +580,29 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(result["world_model_rebuilt"])
         self.assertFalse(result["manual_server_selection"])
 
+    def test_runtime_hot_summary_preserves_existing_prepared_projection(self):
+        prepared = {
+            "schema_version": "v7.prepared-class-decision-projection.v1",
+            "produced_at": "2026-08-23T16:00:00+00:00",
+            "classes": [{"source_channel": "exec-source"}],
+        }
+        compact = self.refresh.compact_refresh_projection({
+            "updated": "2026-08-23T16:00:01+00:00",
+            "elapsed_sec": 0.1,
+            "total": 0,
+            "ok_count": 0,
+            "prepared_class_decisions": prepared,
+            "prepared_class_decision_freshness": {
+                "status": "PREPARED_CLASS_DECISION_FRESH",
+            },
+            "prepared_projection_updated": "2026-08-23T16:00:00+00:00",
+        })
+        self.assertEqual(compact["prepared_class_decisions"], prepared)
+        self.assertEqual(
+            compact["prepared_class_decision_freshness"]["status"],
+            "PREPARED_CLASS_DECISION_FRESH",
+        )
+
     def test_ct_m0f_no_sample_admission_retains_predicate_receipt_in_matrix_projection(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

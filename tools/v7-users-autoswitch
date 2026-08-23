@@ -3076,7 +3076,7 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
                 position = handle.tell()
                 pending = b""
                 decoded: list[dict[str, Any]] = []
-                while position > 0 and not decoded:
+                while position > 0 and len(decoded) < 1000:
                     size = min(65536, position)
                     position -= size
                     handle.seek(position)
@@ -3090,8 +3090,9 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
                             continue
                         if isinstance(value, dict):
                             decoded.append(value)
-                    # Keep only one bounded tail chunk; a matching event is
-                    # normally recent and the full journal is never needed.
+                    # Keep a bounded recent tail; a matching event may be
+                    # behind unrelated channel events, but the full journal
+                    # is never needed.
                     if position == 0 and pending:
                         try:
                             value = json.loads(pending.decode("utf-8"))

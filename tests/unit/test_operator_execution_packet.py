@@ -543,6 +543,60 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 ["pkt_stage25"],
             )
 
+    def test_live_execution_lineage_process_cache_invalidates_on_append(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            first = {
+                "record_type": (
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+                ),
+                "record_hash": "a" * 64,
+                "reservation_id": "sample-a",
+            }
+            second = {
+                "record_type": (
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE
+                ),
+                "record_hash": "b" * 64,
+                "reservation_id": "sample-a",
+            }
+            audit_path.write_text(
+                json.dumps({"record_type": "irrelevant"})
+                + "\n"
+                + json.dumps(first)
+                + "\n",
+                encoding="utf-8",
+            )
+            initial = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+            )
+            initial[0]["reservation_id"] = "caller-mutated"
+            cached = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+            )
+            self.assertEqual(
+                [row.get("reservation_id") for row in cached],
+                ["sample-a"],
+            )
+            with audit_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(second) + "\n")
+            refreshed = (
+                operator_execution.read_live_execution_lineage_records(
+                    audit_path,
+                )
+            )
+            self.assertEqual(
+                [row.get("record_type") for row in refreshed],
+                [
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
+                ],
+            )
+
     def test_live_execution_lineage_keeps_authority_after_audit_rotation(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

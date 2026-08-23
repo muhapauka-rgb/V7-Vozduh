@@ -7482,6 +7482,12 @@ def read_audit_records(audit_store):
     return records
 
 
+_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE: dict[
+    tuple[str, int, bool, tuple[tuple[str, int, int], ...]],
+    tuple[dict[str, Any], ...],
+] = {}
+
+
 def read_live_execution_lineage_records(
     audit_store,
     *,
@@ -7532,6 +7538,36 @@ def read_live_execution_lineage_records(
         AVAILABILITY_FIRST_TARGET_BOUND_EFFECT_CLASS,
         CONTROLLED_CERTIFICATION_CAMPAIGN_STAGE_EFFECT_CLASS,
     }
+    source_signature: list[tuple[str, int, int]] = []
+    for candidate in names:
+        try:
+            stat = candidate.stat()
+        except OSError:
+            continue
+        source_signature.append(
+            (str(candidate), int(stat.st_size), int(stat.st_mtime_ns))
+        )
+    cache_key = (
+        str(path),
+        max(0, int(max_rotated_segments)),
+        bool(include_runtime_actions),
+        tuple(source_signature),
+    )
+    cached = _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.get(cache_key)
+    if cached is not None:
+        # Callers historically received independent parsed rows.  Preserve
+        # that contract so one validator cannot mutate another validator's
+        # view while still avoiding repeated gzip/JSON work in the same
+        # bounded execution process.
+        return copy.deepcopy(list(cached))
+
+    durable_value_markers = tuple(
+        json.dumps(value, ensure_ascii=True)
+        for value in sorted(durable_record_types | durable_effect_classes)
+    )
+    runtime_value_markers = (
+        json.dumps("RESTORE_BARRIER_CLEARANCE_WRITTEN"),
+    ) if include_runtime_actions else ()
     records = []
     # oldest -> newest keeps append-only semantic consumers deterministic.
     for candidate in reversed(names):
@@ -7540,6 +7576,18 @@ def read_live_execution_lineage_records(
             with opener(candidate, "rt", encoding="utf-8", errors="replace") as handle:
                 for line in handle:
                     if not line.strip():
+                        continue
+                    # Most append-only audit rows are unrelated to current
+                    # Authority/receipt lineage.  Test the immutable enum
+                    # values before JSON decoding: false positives are safe
+                    # (the exact predicates below still decide), while every
+                    # qualifying row necessarily contains one of these quoted
+                    # values regardless of JSON key ordering or whitespace.
+                    if not any(
+                        marker in line
+                        for marker in durable_value_markers
+                        + runtime_value_markers
+                    ):
                         continue
                     try:
                         row = json.loads(line)
@@ -7559,6 +7607,15 @@ def read_live_execution_lineage_records(
                         records.append(row)
         except OSError:
             continue
+    # This cache is deliberately process-local and keyed by the stat identity
+    # of the active file and every bounded rotated segment.  An append,
+    # rotation or replacement therefore invalidates it without a watcher,
+    # sidecar, registry or second source of truth.
+    if len(_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE) >= 16:
+        _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
+    _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE[cache_key] = tuple(
+        copy.deepcopy(records)
+    )
     return records
 
 

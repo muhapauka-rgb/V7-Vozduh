@@ -236,6 +236,16 @@ parallel owner.  The VLESS selection and target-ranking focused tests pass.
 
 ## Effects and limits
 
+**Current revalidation result (2026-08-23).** The live VLESS Matrix write is
+fresh and still `WARN` (13/14 failed; 11 certification identities, 0 ordinary).
+The existing Matrix test owner refreshed the durable matrix but did not emit a
+new failure event after the controlled certification identities changed; the
+latest event therefore carries an older scope fingerprint. The selector
+correctly remains `STOP_SAFE` and moved zero users. The exact remaining gap is
+to make the existing event writer revalidate the current certification-only
+scope on a continuing failure, then rerun one-user selection and recovery.
+No client, route, policy or authority changed in this attempt.
+
 **Matrix-event tail read (2026-08-23).**  The remaining VLESS selector memory
 fault was the full historical Matrix event journal being materialized to find
 one current VLESS event.  The exact binding now scans from the end of that

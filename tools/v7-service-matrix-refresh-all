@@ -3185,6 +3185,114 @@ def select_staggered_deep_rows(
     return selected, schedule
 
 
+def _prepared_projection_candidates(value: Any, *, node_limit: int = 4096) -> list[dict[str, Any]]:
+    """Find compact Planner projections in an existing Matrix summary.
+
+    The summary is already a bounded projection owned by Matrix. This walker
+    is deliberately node-bounded and read-only; it does not reconstruct the
+    Planner world model or scan users at incident time.
+    """
+    candidates: list[dict[str, Any]] = []
+    pending = [value]
+    visited = 0
+    while pending and visited < max(1, int(node_limit)):
+        current = pending.pop()
+        visited += 1
+        if isinstance(current, dict):
+            if str(current.get("schema_version") or "") == (
+                "v7.prepared-class-decision-projection.v1"
+            ):
+                candidates.append(current)
+            nested = current.get("prepared_class_decisions")
+            if isinstance(nested, dict):
+                candidates.append(nested)
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    return candidates
+
+
+def select_prepared_hot_target_rows(
+    rows: list[dict[str, str]], projection_surface: Any,
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    """Resolve exact pre-ready targets selected by the existing Planner.
+
+    This is only a probe-scope adapter. It never ranks or invents a target,
+    and a missing/disabled target remains visible instead of widening to the
+    full inventory.
+    """
+    candidates = _prepared_projection_candidates(projection_surface)
+    candidates.sort(key=lambda row: str(row.get("produced_at") or ""))
+    projection = candidates[-1] if candidates else {}
+    hot = (
+        projection.get("hot_target_set")
+        if isinstance(projection.get("hot_target_set"), dict)
+        else {}
+    )
+    contracts = [
+        row for row in (hot.get("contracts") or [])
+        if isinstance(row, dict) and str(row.get("target_id") or "")
+    ]
+    by_target: dict[str, set[str]] = {}
+    for contract in contracts:
+        target_id = str(contract.get("target_id") or "")
+        services = {
+            str(item).strip()
+            for item in (contract.get("critical_services") or [])
+            if str(item).strip() and str(item).strip().lower() != "all"
+        }
+        if services:
+            by_target.setdefault(target_id, set()).update(services)
+    enabled = {
+        str(row.get("id") or ""): row
+        for row in rows
+        if str(row.get("id") or "")
+        and bool_value(row.get("enabled"), default=True)
+    }
+    missing = sorted(set(by_target) - set(enabled))
+    selected: list[dict[str, str]] = []
+    for target_id in sorted(set(by_target) & set(enabled)):
+        selected.append({
+            **enabled[target_id],
+            "_prepared_services": ",".join(sorted(by_target[target_id])),
+        })
+    status = "PREPARED_HOT_TARGET_SCOPE_READY"
+    blockers: list[str] = []
+    if not projection:
+        status = "PREPARED_PROJECTION_MISSING"
+        blockers.append("prepared_projection_missing")
+    elif str(projection.get("status") or "") != "PREPARED_CLASS_DECISION_AVAILABLE":
+        status = "PREPARED_PROJECTION_NOT_READY"
+        blockers.append("prepared_projection_not_ready")
+    elif not contracts or not by_target:
+        status = "NO_3S_TARGET_CAPACITY"
+        blockers.append("pre_ready_hot_target_missing")
+    if missing:
+        status = "PREPARED_TARGET_IDENTITY_STALE"
+        blockers.append("prepared_target_missing_or_disabled")
+    return selected, {
+        "schema_version": "v7.matrix-prepared-hot-target-probe-scope.v1",
+        "status": status,
+        "ok": not blockers,
+        "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        "consumer": "tools/v7-service-matrix-refresh-all",
+        "projection_produced_at": str(projection.get("produced_at") or ""),
+        "prepared_class_count": int(projection.get("class_count") or 0),
+        "declared_contract_count": len(contracts),
+        "deduplicated_target_count": len(by_target),
+        "selected_target_count": len(selected),
+        "selected_targets": [str(row.get("id") or "") for row in selected],
+        "missing_targets": missing,
+        "blockers": blockers,
+        "manual_server_selection": False,
+        "world_model_rebuilt": False,
+        "user_registry_scanned": False,
+        "full_matrix_fallback_preserved": True,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def run_service_failure_automation_advisory(
     consumer: str,
     *,
@@ -4397,6 +4505,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--deep-slot-seconds", type=int, default=60)
     parser.add_argument("--deep-concurrency", type=int, default=16)
     parser.add_argument(
+        "--prepared-hot-targets",
+        action="store_true",
+        help=(
+            "Refresh only exact target/service contracts already selected by "
+            "the prepared Planner projection. Requires observation-only mode."
+        ),
+    )
+    parser.add_argument("--prepared-projection-file", default="")
+    parser.add_argument("--prepared-hot-target-concurrency", type=int, default=16)
+    parser.add_argument("--prepared-hot-target-timeout-sec", type=int, default=1)
+    parser.add_argument(
         "--egresses",
         default="",
         help=(
@@ -4518,6 +4637,20 @@ def main() -> int:
             ),
         }, ensure_ascii=False))
         return 2
+    if args.prepared_hot_targets and (
+        not args.matrix_observation_only
+        or args.staggered_deep
+        or event_only
+        or requested_egresses
+        or bool(service_subset)
+    ):
+        print(json.dumps({
+            "error": (
+                "prepared_hot_targets_require_observation_only_without_"
+                "explicit_subset_or_deep"
+            ),
+        }, ensure_ascii=False))
+        return 2
     shadow_trigger_requested = any(
         str(value or "").strip()
         for value in (
@@ -4582,6 +4715,7 @@ def main() -> int:
     # serialization while allowing the fast failure producer to publish during
     # a long full refresh.
     deep_schedule: dict[str, Any] = {}
+    prepared_hot_target_scope: dict[str, Any] = {}
     if args.staggered_deep:
         rows, deep_schedule = select_staggered_deep_rows(
             rows,
@@ -4590,11 +4724,28 @@ def main() -> int:
             horizon_seconds=int(args.deep_horizon_seconds),
             slot_seconds=int(args.deep_slot_seconds),
         )
+    elif args.prepared_hot_targets:
+        projection_file = (
+            Path(args.prepared_projection_file)
+            if str(args.prepared_projection_file or "").strip()
+            else state_dir / "service-matrix-refresh-summary.json"
+        )
+        rows, prepared_hot_target_scope = select_prepared_hot_target_rows(
+            rows, read_json(projection_file, {}),
+        )
 
     def execute_row(row: dict[str, str]) -> dict[str, Any]:
+        row_services = (
+            str(row.get("_prepared_services") or "")
+            if args.prepared_hot_targets else service_subset
+        )
+        row_timeout = (
+            max(1, min(int(args.prepared_hot_target_timeout_sec or 1), 5))
+            if args.prepared_hot_targets else max(3, min(int(args.timeout), 30))
+        )
         return run_one(
-            row["id"], max(3, min(int(args.timeout), 30)), args.checker,
-            state_dir, service_subset,
+            row["id"], row_timeout, args.checker,
+            state_dir, row_services,
             shadow_persistence_samples,
             shadow_persistence_window,
             event_dir=Path(args.event_dir),
@@ -4610,6 +4761,21 @@ def main() -> int:
         deep_schedule["fast_priority_contract"] = (
             "SEPARATE_HEALTH_ROLE; PER_EGRESS_WRITES_USE_EXISTING_SHORT_LOCK; "
             "NO_DEEP_BACKLOG"
+        )
+    elif args.prepared_hot_targets and rows:
+        concurrency = max(
+            1,
+            min(
+                int(args.prepared_hot_target_concurrency or 16),
+                128,
+                len(rows),
+            ),
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+            results = list(executor.map(execute_row, rows))
+        prepared_hot_target_scope["concurrency_cap"] = concurrency
+        prepared_hot_target_scope["timeout_seconds_per_service"] = max(
+            1, min(int(args.prepared_hot_target_timeout_sec or 1), 5)
         )
     else:
         results = [execute_row(row) for row in rows]
@@ -4652,6 +4818,7 @@ def main() -> int:
         "mode": (
             "EXISTING_EVENT_CONSUMPTION_ONLY" if event_only
             else "STAGGERED_DEEP_REFRESH" if args.staggered_deep
+            else "PREPARED_HOT_TARGET_REFRESH" if args.prepared_hot_targets
             else "BOUNDED_EXACT_SUBSET_REFRESH" if requested_egresses or service_subset
             else "FULL_MATRIX_REFRESH"
         ),
@@ -4660,13 +4827,18 @@ def main() -> int:
             "services": [item.strip() for item in service_subset.split(",") if item.strip()] or ["all"],
             "role_selection_owner": (
                 "EXISTING_MATRIX_DETERMINISTIC_DEEP_SLICER"
-                if args.staggered_deep else "EXTERNAL_EXISTING_MATRIX_CALLER"
+                if args.staggered_deep
+                else "EXISTING_PLANNER_PREPARED_PROJECTION"
+                if args.prepared_hot_targets
+                else "EXTERNAL_EXISTING_MATRIX_CALLER"
             ),
             "full_matrix_fallback_preserved": True,
         },
     }
     if deep_schedule:
         payload["deep_schedule"] = deep_schedule
+    if prepared_hot_target_scope:
+        payload["prepared_hot_target_scope"] = prepared_hot_target_scope
     if shadow_trigger:
         payload["shadow_trigger"] = shadow_trigger
     if args.matrix_observation_only:
@@ -4674,6 +4846,8 @@ def main() -> int:
             "STAGGERED_DEEP_OBSERVATION_ONLY"
             if args.staggered_deep else "MATRIX_OBSERVATION_ONLY"
         )
+        if args.prepared_hot_targets:
+            payload["mode"] = "PREPARED_HOT_TARGET_OBSERVATION_ONLY"
         payload["observation_only"] = {
             "owner": "tools/v7-service-matrix-refresh-all",
             "canonical_matrix_write_preserved": True,

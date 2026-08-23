@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import importlib.machinery
 import importlib.util
+import contextlib
+import io
 import json
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 from admin_core.routing_core import bounded_class_bucket_commit, prepare_semantic_classes
 
@@ -189,6 +193,52 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertLessEqual(len(selected), 7)
         self.assertEqual(schedule["selected_count"], len(selected))
         self.assertFalse(schedule["new_state_store_created"])
+
+    def test_n7_prepared_hot_target_mode_runs_only_planner_targets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text(
+                "id=source-a interface=source enabled=1\n"
+                "id=target-a interface=target enabled=1\n"
+                "id=unrelated interface=unused enabled=1\n",
+                encoding="utf-8",
+            )
+            projection = self.autoswitch.build_prepared_class_decision_projection({
+                "updated": "2026-08-23T12:00:00+00:00",
+                "operation": {"operation_id": ""},
+                "safety": {"generation": self.generation()},
+                "decisions": [{
+                    "user_ip": "10.7.0.5", "current_egress": "source-a",
+                    "recommended_egress": "target-a",
+                    "important_services": ["telegram", "google"],
+                }],
+            })
+            projection_file = root / "projection.json"
+            projection_file.write_text(json.dumps({
+                "prepared_class_decisions": projection,
+            }), encoding="utf-8")
+            argv = [
+                str(ROOT / "tools/v7-service-matrix-refresh-all"),
+                "--state-dir", str(state),
+                "--prepared-hot-targets", "--matrix-observation-only",
+                "--prepared-projection-file", str(projection_file),
+            ]
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                self.refresh, "run_one",
+                return_value={"egress": "target-a", "ok": True, "status": "OK"},
+            ) as run_one, contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(payload["mode"], "PREPARED_HOT_TARGET_OBSERVATION_ONLY")
+        self.assertEqual(payload["prepared_hot_target_scope"]["selected_targets"], ["target-a"])
+        self.assertEqual(run_one.call_count, 1)
+        self.assertEqual(run_one.call_args.args[0], "target-a")
+        self.assertEqual(run_one.call_args.args[4], "google,telegram")
+        self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
 
 
 if __name__ == "__main__":

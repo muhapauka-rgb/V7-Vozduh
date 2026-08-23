@@ -359,6 +359,10 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertNotIn("10.7.0.16", json.dumps(result))
 
     def test_prepared_polygon_session_is_deterministic_and_runtime_only(self):
+        self.assertEqual(
+            client_speed.EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS,
+            "10.0.0.1",
+        )
         first = client_speed.exact_probe_session_names("10.7.0.16")
         second = client_speed.exact_probe_session_names("10.7.0.16")
         other = client_speed.exact_probe_session_names("10.7.0.17")

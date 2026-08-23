@@ -41,6 +41,9 @@ CLIENT_PROFILE_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
 EXACT_PROBE_INGRESS_INTERFACE = os.environ.get(
     "V7_EXACT_PROBE_INGRESS_INTERFACE", "wg0"
 )
+EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS = os.environ.get(
+    "V7_EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS", "10.0.0.1"
+)
 EXACT_PROBE_LOCK = Path(
     os.environ.get("V7_EXACT_PROBE_LOCK", "/run/v7-exact-client-probe.lock")
 )
@@ -760,7 +763,8 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
         if context.get("prepare_client_session_only") is True:
             keepalive = _run_probe_command([
                 "ip", "netns", "exec", namespace,
-                "ping", "-c", "1", "-W", "1", "10.7.0.1",
+                "ping", "-c", "1", "-W", "1",
+                EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS,
             ], timeout=3)
             if keepalive.returncode != 0:
                 session_ready = False

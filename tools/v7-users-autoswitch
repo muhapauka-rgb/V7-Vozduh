@@ -15807,6 +15807,9 @@ class AutoswitchPlanner:
             "remaining_not_attempted": 0,
         }
         selected_moves = list(plan["selected_moves"])
+        controlled_engineering_setup_scope = (
+            self._exact_controlled_engineering_setup_scope(selected_moves)
+        )
         bounded_checkpoint_enabled = len(selected_moves) > 1
         bounded_checkpoint: dict[str, Any] = {}
         if bounded_checkpoint_enabled:
@@ -15937,7 +15940,11 @@ class AutoswitchPlanner:
                 # running the unrelated global route scan.  Ordinary/batch
                 # governed applies preserve their global verifier; L3 keeps
                 # its existing emergency-scoped behavior.
-                scoped_route_verification = emergency_mode or strict_contract
+                scoped_route_verification = (
+                    emergency_mode
+                    or strict_contract
+                    or controlled_engineering_setup_scope.get("ok") is True
+                )
                 verify = self._verify_routes_for_apply(
                     ip if scoped_route_verification else "",
                     target if scoped_route_verification else "",

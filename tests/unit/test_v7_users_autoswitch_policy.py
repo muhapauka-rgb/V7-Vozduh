@@ -5723,6 +5723,45 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             ["TABLE_DEFAULT_MISMATCH"],
         )
 
+    def test_controlled_engineering_setup_uses_scoped_route_verification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            planner, plan, _switch_calls = self.governed_source_bundle_lease_plan(
+                root, users=1, max_selected_moves=1
+            )
+            move = plan["selected_moves"][0]
+            planner.args.controlled_engineering_setup = True
+            planner._exact_controlled_engineering_setup_scope = lambda _moves: {
+                "ok": True,
+                "authority_expanded": False,
+            }
+            verify_calls = []
+
+            def fake_verify_routes(user_ip: str = "", expected_egress: str = ""):
+                verify_calls.append((user_ip, expected_egress))
+                if not user_ip:
+                    return subprocess.CompletedProcess(
+                        ["v7-user-route-check"], 1,
+                        stdout="unrelated global route failure\n",
+                    )
+                return subprocess.CompletedProcess(
+                    ["v7-users-autoswitch", "--verify-user-route", user_ip],
+                    0,
+                    stdout="exact controlled user route verified\n",
+                )
+
+            planner._verify_routes = fake_verify_routes
+            result = planner.apply(plan)
+
+        self.assertTrue(result["applied"])
+        self.assertEqual(
+            verify_calls,
+            [(move["user_ip"], move["recommended_egress"])],
+        )
+        row = result["results"][0]
+        self.assertEqual(row["route_verification_scope"], "selected_user")
+        self.assertEqual(row["terminal_outcome_classification"], "SUCCESS")
+
     def test_global_route_verification_failure_does_not_quarantine_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -38,6 +38,21 @@ def load_matrix():
 
 
 class V53RoleBasedRecoveryTest(unittest.TestCase):
+    def test_hard_failure_keeps_fast_consumer_in_same_priority_window(self):
+        diagnose = DIAGNOSE_TOOL.read_text(encoding="utf-8")
+        service = (
+            ROOT / "systemd" / "drafts" / "v7-autoswitch-planner.service"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn(
+            'start v7-autoswitch-planner.service', diagnose,
+        )
+        self.assertNotIn(
+            'start --no-block v7-autoswitch-planner.service', diagnose,
+        )
+        self.assertNotIn("Nice=10", service)
+        self.assertNotIn("IOSchedulingPriority=7", service)
+
     @classmethod
     def setUpClass(cls):
         cls.matrix = load_matrix()

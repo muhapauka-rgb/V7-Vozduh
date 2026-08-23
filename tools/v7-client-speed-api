@@ -590,7 +590,7 @@ def _run_probe_command(command, *, input_text=None, timeout=5):
 def _exact_namespace_http_script():
     # Kept as one bounded child so the socket is genuinely created inside the
     # client namespace.  The context contains no secrets.
-    return r'''import hashlib,json,secrets,socket,ssl,sys,time
+    return r'''import hashlib,http.client,json,secrets,socket,ssl,sys,time
 from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
 c=json.loads(sys.stdin.read()); p=urlparse(c["target_url"]); host=p.hostname
 dest=c["destination_ip"]; port=p.port or 443; started=time.monotonic_ns()
@@ -603,15 +603,11 @@ try:
  q=list(parse_qsl(p.query,keep_blank_values=True)); q.extend((("v7ProbeNonce",secrets.token_hex(16)),("v7ProbeTimeNs",str(time.time_ns()))))
  target=p.path or "/"; target+=("?"+urlencode(q)) if q else ""
  req=(f"GET {target} HTTP/1.1\r\nHost: {host}\r\nAccept: text/plain\r\nCache-Control: no-cache, no-store\r\nPragma: no-cache\r\nConnection: close\r\n\r\n").encode("ascii")
- t.sendall(req); chunks=[]; total=0
- while total<65536:
-  chunk=t.recv(min(8192,65536-total))
-  if not chunk: break
-  chunks.append(chunk); total+=len(chunk)
- raw=b"".join(chunks); header,sep,body=raw.partition(b"\r\n\r\n")
- status=header.split(b"\r\n",1)[0].decode("ascii",errors="replace")
+ t.sendall(req)
+ response=http.client.HTTPResponse(t); response.begin(); body=response.read(65536)
+ status=f"HTTP/{response.version//10}.{response.version%10} {response.status} {response.reason}"
  response=body.decode("utf-8",errors="replace").strip(); finished=time.monotonic_ns()
- print(json.dumps({"ok":bool(sep and " 200 " in status),"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":status,"response_text":response,"payload_fingerprint":hashlib.sha256(body).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True}))
+ print(json.dumps({"ok":bool(" 200 " in status),"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":status,"response_text":response,"payload_fingerprint":hashlib.sha256(body).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True}))
 except Exception as e:
  print(json.dumps({"ok":False,"started_monotonic_ns":started,"finished_monotonic_ns":time.monotonic_ns(),"error":f"{type(e).__name__}:{e}"[:240]}))
 finally:

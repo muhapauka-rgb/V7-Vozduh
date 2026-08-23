@@ -18,6 +18,12 @@ LOADER.exec_module(client_speed)
 
 
 class ExactClientProbeOwnerTest(unittest.TestCase):
+    def test_namespace_http_probe_uses_framed_response_completion(self):
+        script = client_speed._exact_namespace_http_script()
+        compile(script, "<exact-namespace-http>", "exec")
+        self.assertIn("http.client.HTTPResponse", script)
+        self.assertNotIn("while total<65536", script)
+
     def context(self):
         first = 1_000_000_000
         context = {

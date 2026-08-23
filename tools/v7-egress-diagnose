@@ -346,7 +346,11 @@ PY
 wake_existing_failure_consumer() {
   [ -n "$CONSUMER_WAKE_COMMAND" ] || return 0
   if [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "systemctl" ]; then
-    "$CONSUMER_WAKE_COMMAND" start --no-block v7-autoswitch-planner.service >/dev/null 2>&1
+    # Keep the triggering FAST role alive until the already-existing consumer
+    # reaches its bounded terminal.  The health owner can then preserve HARD
+    # recovery precedence for the complete causal path instead of restarting
+    # background probes while a detached Nice=10 consumer is still applying.
+    "$CONSUMER_WAKE_COMMAND" start v7-autoswitch-planner.service >/dev/null 2>&1
   else
     "$CONSUMER_WAKE_COMMAND" >/dev/null 2>&1
   fi

@@ -879,6 +879,54 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertFalse(scope["source_enabled"])
         self.assertEqual(scope["source_state"], "maintenance")
 
+    def test_exact_incident_planner_uses_current_registry_not_stale_state_projection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="vless")
+            state_dir = root / "state"
+            (state_dir / "users.registry").write_text(
+                (
+                    "ip=10.7.0.16 current=1 table=1014 enabled=1 "
+                    "certification_user=1\n"
+                ),
+                encoding="utf-8",
+            )
+            state = json.loads(
+                (state_dir / "v7-state.json").read_text(encoding="utf-8")
+            )
+            state["users"] = [{
+                "ip": "10.7.0.16",
+                "current": "vless",
+                "table": "1014",
+                "enabled": "1",
+            }]
+            (state_dir / "v7-state.json").write_text(
+                json.dumps(state), encoding="utf-8",
+            )
+            args = self.args_for(root, [
+                "--emergency-failover-autonomy",
+                "--max-selected-moves", "1",
+                "--user", "10.7.0.16",
+                "--source-egress", "1",
+                "--target-egress", "vless",
+            ])
+            planner = self.tool.AutoswitchPlanner(args)
+
+        self.assertEqual(len(planner.users), 1)
+        self.assertEqual(planner.users[0].ip, "10.7.0.16")
+        self.assertEqual(planner.users[0].current, "1")
+        registry_span = next(
+            row for row in planner._performance_spans
+            if row.get("stage") == "registry_and_live_inventory_reads"
+        )
+        self.assertTrue(
+            registry_span["details"]["exact_incident_identity_scope"]
+        )
+        self.assertEqual(
+            registry_span["details"]["user_assignment_owner"],
+            "users.registry",
+        )
+
     def test_availability_first_scope_consumes_exact_standing_semantic_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

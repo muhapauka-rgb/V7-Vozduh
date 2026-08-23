@@ -3893,13 +3893,43 @@ class AutoswitchPlanner:
         )
         self._snapshot_items_cache: dict[str, list[dict[str, Any]]] = {}
         registry_started_ns = time.monotonic_ns()
-        self.users = self._load_users()
+        exact_incident_identity_scope = bool(
+            str(getattr(args, "user", "") or "").strip()
+            and str(getattr(args, "source_egress", "") or "").strip()
+            and to_int(getattr(args, "max_selected_moves", 0), 0) == 1
+            and bool_value(
+                getattr(args, "emergency_failover_autonomy", False)
+            )
+        )
+        # The exact one-user failure transaction is entered after Matrix has
+        # already bound a current source and identity.  ``v7-state.json`` is a
+        # diagnostic projection and may legitimately lag a preceding Polygon
+        # or production assignment; overlaying it on ``users.registry`` can
+        # therefore erase the exact current Candidate before Packet creation.
+        # Reuse the canonical mutable registry directly for this already
+        # bounded incident scope, matching the existing pre-apply verifier.
+        # Broad planning retains its historical snapshot-overlay semantics.
+        self.users = (
+            self._load_runtime_registry_users()
+            if exact_incident_identity_scope
+            else self._load_users()
+        )
         self.egress = self._load_egress()
         self._sync_egress_user_counts()
         self._record_performance_span(
             "registry_and_live_inventory_reads",
             registry_started_ns,
             owner="users.registry + egress.registry",
+            details={
+                "exact_incident_identity_scope": (
+                    exact_incident_identity_scope
+                ),
+                "user_assignment_owner": (
+                    "users.registry"
+                    if exact_incident_identity_scope
+                    else "v7-state projection with registry completion"
+                ),
+            },
         )
         policy_resolution_started_ns = time.monotonic_ns()
         self.switch_policy = self._switch_policy()

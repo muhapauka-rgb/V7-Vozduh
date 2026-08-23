@@ -10,6 +10,7 @@ import json
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
@@ -239,6 +240,52 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(run_one.call_args.args[0], "target-a")
         self.assertEqual(run_one.call_args.args[4], "google,telegram")
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
+
+    def test_n8_projection_refresh_reuses_matrix_summary_and_lock(self):
+        projection = self.autoswitch.build_prepared_class_decision_projection({
+            "updated": "2026-08-23T12:00:00+00:00",
+            "operation": {"operation_id": ""},
+            "safety": {"generation": self.generation()},
+            "decisions": [{
+                "user_ip": "10.7.0.5", "current_egress": "source-a",
+                "recommended_egress": "target-a",
+                "important_services": ["telegram"],
+            }],
+        })
+        freshness = self.autoswitch.validate_prepared_class_decision_projection(
+            projection, projection["invalidators"],
+        )
+        child = SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps({
+                "prepared_class_decisions": projection,
+                "prepared_class_decision_freshness": freshness,
+            }),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            summary = state / "service-matrix-refresh-summary.json"
+            summary.write_text(json.dumps({"updated": "prior", "total": 7}), encoding="utf-8")
+            with mock.patch.object(self.refresh.subprocess, "run", return_value=child):
+                result = self.refresh.refresh_prepared_class_projection(
+                    "/usr/local/bin/v7-users-autoswitch",
+                    state_dir=state,
+                    summary_file=summary,
+                    lock_timeout_sec=1,
+                )
+            stored = json.loads(summary.read_text(encoding="utf-8"))
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["prepared_target_contract_count"], 1)
+        self.assertEqual(stored["updated"], "prior")
+        self.assertEqual(stored["total"], 7)
+        self.assertEqual(
+            stored["prepared_class_decisions"]["schema_version"],
+            "v7.prepared-class-decision-projection.v1",
+        )
+        self.assertFalse(result["routing_mutation_performed"])
+        self.assertEqual(result["users_moved"], 0)
 
 
 if __name__ == "__main__":

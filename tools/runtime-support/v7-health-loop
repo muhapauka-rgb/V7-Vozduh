@@ -98,6 +98,14 @@ DEFAULT_ROLE_COMMANDS = (
         ),
     ),
     (
+        "planner_projection", 30_000,
+        (
+            "/usr/local/bin/v7-service-matrix-refresh-all",
+            "--refresh-prepared-projection-only",
+            "--matrix-observation-only",
+        ),
+    ),
+    (
         "deep", 60_000,
         (
             "/usr/local/bin/v7-service-matrix-refresh-all",
@@ -327,12 +335,14 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--controlled-hot-target-command")
     parser.add_argument("--controlled-hot-target-other-command")
     parser.add_argument("--controlled-required-command")
+    parser.add_argument("--controlled-planner-projection-command")
     parser.add_argument("--controlled-deep-command")
     parser.add_argument("--hard-interval-ms", type=int, default=1_000)
     parser.add_argument("--telegram-interval-ms", type=int, default=1_000)
     parser.add_argument("--hot-target-interval-ms", type=int, default=1_000)
     parser.add_argument("--hot-target-other-interval-ms", type=int, default=5_000)
     parser.add_argument("--required-interval-ms", type=int, default=5_000)
+    parser.add_argument("--planner-projection-interval-ms", type=int, default=30_000)
     parser.add_argument("--deep-interval-ms", type=int, default=60_000)
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
@@ -349,6 +359,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         args.controlled_hot_target_command,
         args.controlled_hot_target_other_command,
         args.controlled_required_command,
+        args.controlled_planner_projection_command,
         args.controlled_deep_command,
     )
     if any(controlled_roles) and (not args.role_based_fast or not args.max_phases):
@@ -357,7 +368,8 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         args.hard_interval_ms, args.telegram_interval_ms,
         args.hot_target_interval_ms,
         args.hot_target_other_interval_ms,
-        args.required_interval_ms, args.deep_interval_ms,
+        args.required_interval_ms, args.planner_projection_interval_ms,
+        args.deep_interval_ms,
     ):
         if value <= 0:
             parser.error("role intervals must be positive")
@@ -373,6 +385,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "hot_target": args.controlled_hot_target_command,
             "hot_target_other": args.controlled_hot_target_other_command,
             "other_required": args.controlled_required_command,
+            "planner_projection": args.controlled_planner_projection_command,
             "deep": args.controlled_deep_command,
         }
         intervals = {
@@ -381,6 +394,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "hot_target": args.hot_target_interval_ms,
             "hot_target_other": args.hot_target_other_interval_ms,
             "other_required": args.required_interval_ms,
+            "planner_projection": args.planner_projection_interval_ms,
             "deep": args.deep_interval_ms,
         }
         roles = tuple(

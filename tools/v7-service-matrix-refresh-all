@@ -3472,6 +3472,119 @@ def run_service_failure_automation_advisory(
     }
 
 
+def refresh_prepared_class_projection(
+    consumer: str,
+    *,
+    state_dir: Path,
+    summary_file: Path,
+    lock_timeout_sec: int,
+    timeout_sec: int = 45,
+) -> dict[str, Any]:
+    """Persist one compact Planner projection in the existing Matrix summary.
+
+    Planning happens outside the writer lock. Only the bounded projection is
+    merged under the existing Matrix lock; no incident, Candidate, Packet,
+    lease, route or user effect is created by this role.
+    """
+    command = [
+        consumer,
+        "--prepared-class-projection-only",
+        "--state-dir", str(state_dir),
+        "--event-dir", str(state_dir.parent / "events"),
+    ]
+    started_ns = time.monotonic_ns()
+    try:
+        proc = subprocess.run(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+            timeout=max(5, min(int(timeout_sec or 45), 120)),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+            "status": "STOP_SAFE",
+            "ok": False,
+            "blockers": [f"prepared_projection_owner_failed:{type(exc).__name__}"],
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    try:
+        parsed = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
+        parsed = {}
+    projection = (
+        parsed.get("prepared_class_decisions")
+        if isinstance(parsed.get("prepared_class_decisions"), dict)
+        else {}
+    )
+    freshness = (
+        parsed.get("prepared_class_decision_freshness")
+        if isinstance(parsed.get("prepared_class_decision_freshness"), dict)
+        else {}
+    )
+    if (
+        proc.returncode != 0
+        or str(projection.get("schema_version") or "")
+        != "v7.prepared-class-decision-projection.v1"
+        or str(freshness.get("status") or "")
+        != "PREPARED_CLASS_DECISION_FRESH"
+    ):
+        return {
+            "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+            "status": "STOP_SAFE",
+            "ok": False,
+            "returncode": proc.returncode,
+            "blockers": ["prepared_projection_not_fresh_or_unavailable"],
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    lock_started_ns = time.monotonic_ns()
+    try:
+        with service_matrix_writer_lock(state_dir, lock_timeout_sec):
+            lock_acquired_ns = time.monotonic_ns()
+            summary = read_json(summary_file, {})
+            if not isinstance(summary, dict):
+                summary = {}
+            summary["prepared_class_decisions"] = projection
+            summary["prepared_class_decision_freshness"] = freshness
+            summary["prepared_projection_updated"] = now_iso()
+            write_json_atomic(summary_file, summary)
+            lock_released_ns = time.monotonic_ns()
+    except TimeoutError:
+        return {
+            "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+            "status": "STOP_SAFE_MATRIX_LOCK_TIMEOUT",
+            "ok": False,
+            "blockers": ["service_matrix_lock_timeout"],
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+    return {
+        "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+        "status": "PASS",
+        "ok": True,
+        "prepared_class_count": int(projection.get("class_count") or 0),
+        "prepared_target_contract_count": len(
+            ((projection.get("hot_target_set") or {}).get("contracts") or [])
+        ),
+        "projection_produced_at": str(projection.get("produced_at") or ""),
+        "planner_elapsed_ms": round((lock_started_ns - started_ns) / 1_000_000, 3),
+        "lock_wait_ms": round((lock_acquired_ns - lock_started_ns) / 1_000_000, 3),
+        "lock_hold_ms": round((lock_released_ns - lock_acquired_ns) / 1_000_000, 3),
+        "summary_file": str(summary_file),
+        "existing_matrix_summary_reused": True,
+        "incident_obligation_materialized": False,
+        "candidate_created": False,
+        "packet_created": False,
+        "lease_created": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]:
     """Consume the already-materialized obligation through the standard OMP entrypoint.
 
@@ -4635,6 +4748,14 @@ def build_parser() -> argparse.ArgumentParser:
             "the prepared Planner projection. Requires observation-only mode."
         ),
     )
+    parser.add_argument(
+        "--refresh-prepared-projection-only",
+        action="store_true",
+        help=(
+            "Refresh only the existing Planner prepared-class projection in "
+            "the existing Matrix summary; no probes, events or execution."
+        ),
+    )
     parser.add_argument("--prepared-projection-file", default="")
     parser.add_argument("--prepared-hot-target-concurrency", type=int, default=16)
     parser.add_argument("--prepared-hot-target-timeout-sec", type=int, default=1)
@@ -4723,6 +4844,37 @@ def main() -> int:
     args = build_parser().parse_args()
     started = time.time()
     state_dir = Path(args.state_dir)
+    if args.refresh_prepared_projection_only:
+        conflicting = bool(
+            args.staggered_deep
+            or args.prepared_hot_targets
+            or args.consume_existing_service_failure_events_only
+            or str(args.egresses or "").strip()
+            or str(args.services or "").strip()
+            or not args.matrix_observation_only
+        )
+        if conflicting:
+            print(json.dumps({
+                "error": (
+                    "prepared_projection_refresh_requires_observation_only_"
+                    "without_probes_or_event_consumption"
+                ),
+            }, ensure_ascii=False))
+            return 2
+        summary_file = (
+            Path(args.summary_file)
+            if args.summary_file
+            else state_dir / "service-matrix-refresh-summary.json"
+        )
+        result = refresh_prepared_class_projection(
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            summary_file=summary_file,
+            lock_timeout_sec=int(args.lock_timeout_sec),
+            timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None))
+        return 0 if result.get("ok") else 2
     event_only = bool(args.consume_existing_service_failure_events_only)
     registry_rows = parse_registry(state_dir / "egress.registry")
     try:

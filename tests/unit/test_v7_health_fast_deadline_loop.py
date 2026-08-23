@@ -121,6 +121,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             hot_target = self.write_command(root, "hot_target", "sleep 0.02\n")
             hot_target_other = self.write_command(root, "hot_target_other", "sleep 0.02\n")
             required = self.write_command(root, "required", "sleep 2.2\n")
+            planner_projection = self.write_command(root, "planner_projection", "sleep 0.02\n")
             deep = self.write_command(root, "deep", "sleep 2.8\n")
             completed = subprocess.run(
                 [
@@ -133,6 +134,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     "--controlled-hot-target-command", str(hot_target),
                     "--controlled-hot-target-other-command", str(hot_target_other),
                     "--controlled-required-command", str(required),
+                    "--controlled-planner-projection-command", str(planner_projection),
                     "--controlled-deep-command", str(deep),
                     "--deep-interval-ms", "1000",
                 ],

@@ -18176,6 +18176,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--prepared-class-projection-only",
+        action="store_true",
+        help=(
+            "Compute only the existing Planner's compact prepared-class and "
+            "hot-target projection. Never materialize an incident obligation, "
+            "create execution objects, apply routing or move users."
+        ),
+    )
+    parser.add_argument(
         "--matrix-comparative-preflight",
         action="store_true",
         help=(
@@ -25275,6 +25284,34 @@ def main() -> int:
         result = consume_passive_events_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
+    if args.prepared_class_projection_only:
+        planner = AutoswitchPlanner(args)
+        plan = planner.plan()
+        projection = build_prepared_class_decision_projection(plan)
+        freshness = validate_prepared_class_decision_projection(
+            projection, projection.get("invalidators") or {},
+        )
+        result = {
+            "schema_version": "v7.prepared-class-projection-only.v1",
+            "status": (
+                "PASS"
+                if freshness.get("status") == "PREPARED_CLASS_DECISION_FRESH"
+                else str(freshness.get("status") or "STOP_SAFE")
+            ),
+            "ok": freshness.get("status") == "PREPARED_CLASS_DECISION_FRESH",
+            "prepared_class_decisions": projection,
+            "prepared_class_decision_freshness": freshness,
+            "performance_timeline": planner.performance_timeline(),
+            "incident_obligation_materialized": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "runtime_mutation_performed": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+        return 0 if result.get("ok") else 2
     if args.consume_service_failure_automation_only:
         result = consume_service_failure_automation_only(args)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

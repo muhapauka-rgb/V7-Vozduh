@@ -251,6 +251,7 @@ def role_isolation_evidence() -> dict:
         hot = command("hot", "sleep 0.005\n")
         hot_other = command("hot_other", "sleep 0.20\n")
         required = command("required", "sleep 1.50\n")
+        planner_projection = command("planner_projection", "sleep 0.02\n")
         deep = command("deep", "sleep 2.20\n")
         result = subprocess.run(
             [
@@ -258,12 +259,14 @@ def role_isolation_evidence() -> dict:
                 "--hard-interval-ms", "1000", "--telegram-interval-ms", "1000",
                 "--hot-target-interval-ms", "1000", "--required-interval-ms", "1000",
                 "--hot-target-other-interval-ms", "1000",
+                "--planner-projection-interval-ms", "1000",
                 "--deep-interval-ms", "1000",
                 "--controlled-hard-command", str(hard),
                 "--controlled-telegram-command", str(telegram),
                 "--controlled-hot-target-command", str(hot),
                 "--controlled-hot-target-other-command", str(hot_other),
                 "--controlled-required-command", str(required),
+                "--controlled-planner-projection-command", str(planner_projection),
                 "--controlled-deep-command", str(deep),
             ],
             text=True, capture_output=True, check=True, timeout=10,

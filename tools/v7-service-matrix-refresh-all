@@ -12,6 +12,8 @@ import concurrent.futures
 import contextlib
 import fcntl
 import hashlib
+import importlib.machinery
+import importlib.util
 import json
 import os
 import re
@@ -3030,6 +3032,112 @@ def run_one(
     }
 
 
+def run_prepared_path_rows_in_process(
+    rows: list[dict[str, str]],
+    *,
+    checker: str,
+    state_dir: Path,
+    concurrency: int,
+    lock_timeout_sec: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Reuse Matrix path primitives once per bounded prepared-target pass.
+
+    Loading one Matrix owner and probing independent kernel projections in a
+    thread pool avoids a heavyweight Python process per target. Canonical
+    writes remain serialized through the owner's existing writer lock.
+    """
+    started_ns = time.monotonic_ns()
+    loader = importlib.machinery.SourceFileLoader(
+        "v7_matrix_prepared_path_owner", str(checker),
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None or spec.loader is None:
+        return [], {
+            "status": "STOP_SAFE_MATRIX_OWNER_UNLOADABLE",
+            "ok": False,
+        }
+    owner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(owner)
+    owner_loaded_ns = time.monotonic_ns()
+
+    def observe(row: dict[str, str]) -> tuple[dict[str, str], dict[str, Any], float]:
+        row_started_ns = time.monotonic_ns()
+        egress_id = str(row.get("id") or "")
+        iface = str(row.get("interface") or egress_id)
+        services = [
+            item for item in str(row.get("_prepared_services") or "").split(",")
+            if item
+        ]
+        evidence = owner.network_path_evidence(
+            state_dir, row, egress_id=egress_id, iface=iface,
+            service_ids=services,
+        )
+        return row, evidence, round(
+            (time.monotonic_ns() - row_started_ns) / 1_000_000.0, 3,
+        )
+
+    workers = max(1, min(int(concurrency or 16), 128, len(rows) or 1))
+    observed: list[tuple[dict[str, str], dict[str, Any], float]] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        observed = list(executor.map(observe, rows))
+    probes_completed_ns = time.monotonic_ns()
+    results: list[dict[str, Any]] = []
+    for row, evidence, probe_ms in observed:
+        egress_id = str(row.get("id") or "")
+        iface = str(row.get("interface") or egress_id)
+        try:
+            _matrix, lock = owner.update_matrix_path_evidence(
+                state_dir / "service-matrix.json",
+                state_dir=state_dir,
+                egress_id=egress_id,
+                iface=iface,
+                evidence=evidence,
+                lock_timeout_sec=int(lock_timeout_sec),
+            )
+            component_status = evidence.get("component_status") or {}
+            ok = bool(component_status) and all(
+                str(value or "") == "PASS" for value in component_status.values()
+            )
+            results.append({
+                "egress": egress_id,
+                "status": "PASS" if ok else "WARN",
+                "ok": ok,
+                "elapsed_sec": round(probe_ms / 1000.0, 3),
+                "path_evidence": {
+                    "measured_at": evidence.get("measured_at"),
+                    "path_fingerprint": evidence.get("path_fingerprint"),
+                    "component_status": component_status,
+                    "performance_timeline": evidence.get("performance_timeline"),
+                },
+                "service_matrix_lock": lock,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            })
+        except TimeoutError as exc:
+            results.append({
+                "egress": egress_id,
+                "status": "LOCK_TIMEOUT",
+                "ok": False,
+                "error": str(exc),
+                "service_matrix_lock": {"held": False, "status": "LOCK_TIMEOUT"},
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            })
+    completed_ns = time.monotonic_ns()
+    return results, {
+        "schema_version": "v7.prepared-path-in-process-timing.v1",
+        "owner": "tools/v7-service-matrix-test.network_path_evidence+update_matrix_path_evidence",
+        "caller": "tools/v7-service-matrix-refresh-all",
+        "owner_load_ms": round((owner_loaded_ns - started_ns) / 1_000_000.0, 3),
+        "parallel_probe_wall_ms": round((probes_completed_ns - owner_loaded_ns) / 1_000_000.0, 3),
+        "serialized_write_wall_ms": round((completed_ns - probes_completed_ns) / 1_000_000.0, 3),
+        "total_ms": round((completed_ns - started_ns) / 1_000_000.0, 3),
+        "concurrency_cap": workers,
+        "processes_spawned_per_target": 0,
+        "single_matrix_owner_loaded": True,
+    }
+
+
 def build_shadow_trigger_contract(
     *,
     source: str,
@@ -4792,6 +4900,7 @@ def main() -> int:
             ),
         )
 
+    prepared_path_timing: dict[str, Any] = {}
     if event_only:
         results = []
     elif args.staggered_deep and rows:
@@ -4803,6 +4912,22 @@ def main() -> int:
             "SEPARATE_HEALTH_ROLE; PER_EGRESS_WRITES_USE_EXISTING_SHORT_LOCK; "
             "NO_DEEP_BACKLOG"
         )
+    elif (
+        args.prepared_hot_targets
+        and args.prepared_hot_target_service_class == "path"
+        and rows
+    ):
+        results, prepared_path_timing = run_prepared_path_rows_in_process(
+            rows,
+            checker=str(args.checker),
+            state_dir=state_dir,
+            concurrency=int(args.prepared_hot_target_concurrency or 16),
+            lock_timeout_sec=int(args.lock_timeout_sec),
+        )
+        prepared_hot_target_scope["concurrency_cap"] = int(
+            prepared_path_timing.get("concurrency_cap") or 1
+        )
+        prepared_hot_target_scope["in_process_path_owner"] = prepared_path_timing
     elif args.prepared_hot_targets and rows:
         concurrency = max(
             1,
@@ -4880,6 +5005,8 @@ def main() -> int:
         payload["deep_schedule"] = deep_schedule
     if prepared_hot_target_scope:
         payload["prepared_hot_target_scope"] = prepared_hot_target_scope
+    if prepared_path_timing:
+        payload["prepared_path_timing"] = prepared_path_timing
     if shadow_trigger:
         payload["shadow_trigger"] = shadow_trigger
     if args.matrix_observation_only:

@@ -3161,6 +3161,8 @@ def run_autoswitch_apply(
     ct_m0f_standing_reset_reservation_id: str = "",
     ct_m0f_source_incident_id: str = "",
     ct_m0f_source_incident_generation: str = "",
+    ct_m0f_first_failed_observation_monotonic_ns: int = 0,
+    ct_m0f_confirmed_hard_failure_monotonic_ns: int = 0,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
@@ -3248,6 +3250,16 @@ def run_autoswitch_apply(
             command.extend([
                 "--ct-m0f-source-incident-id", ct_m0f_source_incident_id,
                 "--ct-m0f-source-incident-generation", ct_m0f_source_incident_generation,
+            ])
+        if ct_m0f_first_failed_observation_monotonic_ns > 0:
+            command.extend([
+                "--ct-m0f-first-failed-observation-monotonic-ns",
+                str(ct_m0f_first_failed_observation_monotonic_ns),
+            ])
+        if ct_m0f_confirmed_hard_failure_monotonic_ns > 0:
+            command.extend([
+                "--ct-m0f-confirmed-hard-failure-monotonic-ns",
+                str(ct_m0f_confirmed_hard_failure_monotonic_ns),
             ])
     if ct_m0f_standing_reset_reservation_id:
         command.extend([
@@ -4900,7 +4912,16 @@ def service_failure_obligation_execution_binding(
             except (TypeError, ValueError):
                 continue
             if 0 <= age_seconds <= 1800:
-                matching_events.append(event)
+                bound_event = dict(event)
+                for timing_field in (
+                    "first_failed_observation_monotonic_ns",
+                    "confirmed_hard_failure_monotonic_ns",
+                ):
+                    if int(raw.get(timing_field) or 0) > 0:
+                        bound_event[timing_field] = int(
+                            raw.get(timing_field) or 0
+                        )
+                matching_events.append(bound_event)
         event = matching_events[-1] if matching_events else {}
         if not event:
             blockers.append("fresh_active_certification_only_matrix_event_missing")
@@ -4938,6 +4959,12 @@ def service_failure_obligation_execution_binding(
             "event_type": str(event.get("event_type") or ""),
             "event_provenance": str(event.get("event_provenance") or ""),
             "observation_generation": str(event.get("observation_generation") or ""),
+            "first_failed_observation_monotonic_ns": int(
+                event.get("first_failed_observation_monotonic_ns") or 0
+            ),
+            "confirmed_hard_failure_monotonic_ns": int(
+                event.get("confirmed_hard_failure_monotonic_ns") or 0
+            ),
             "source_channel": expected_source,
             "source_scope": packet_source_scope,
             "event_source_scope": event_source_scope,
@@ -7300,6 +7327,18 @@ def _execute_governed_transaction_with_guards_inner(
         ),
         ct_m0f_source_incident_generation=str(
             getattr(args, "_ct_m0f_source_incident_generation", "") or ""
+        ),
+        ct_m0f_first_failed_observation_monotonic_ns=int(
+            (packet.get("service_failure_causal_binding") or {}).get(
+                "first_failed_observation_monotonic_ns"
+            )
+            or 0
+        ),
+        ct_m0f_confirmed_hard_failure_monotonic_ns=int(
+            (packet.get("service_failure_causal_binding") or {}).get(
+                "confirmed_hard_failure_monotonic_ns"
+            )
+            or 0
         ),
         **apply_options,
     )

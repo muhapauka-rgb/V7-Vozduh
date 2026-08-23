@@ -18023,11 +18023,27 @@ class AutoswitchPlanner:
         first_failed_ns = next((value for value in (
             to_int(incident.get("first_failed_observation_monotonic_ns"), 0),
             to_int(move.get("first_failed_observation_monotonic_ns"), 0),
+            to_int(
+                getattr(
+                    self.args,
+                    "ct_m0f_first_failed_observation_monotonic_ns",
+                    0,
+                ),
+                0,
+            ),
             to_int(controlled_condition.get("first_failed_observation_monotonic_ns"), 0),
         ) if value > 0), 0)
         confirmed_ns = next((value for value in (
             to_int(incident.get("confirmed_hard_failure_monotonic_ns"), 0),
             to_int(move.get("confirmed_hard_failure_monotonic_ns"), 0),
+            to_int(
+                getattr(
+                    self.args,
+                    "ct_m0f_confirmed_hard_failure_monotonic_ns",
+                    0,
+                ),
+                0,
+            ),
             to_int(controlled_condition.get("confirmed_hard_failure_monotonic_ns"), 0),
         ) if value > 0), 0)
         decision_ns = to_int(
@@ -18189,6 +18205,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-reset-reservation-id", default="")
     parser.add_argument("--ct-m0f-source-incident-id", default="")
     parser.add_argument("--ct-m0f-source-incident-generation", default="")
+    parser.add_argument(
+        "--ct-m0f-first-failed-observation-monotonic-ns",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
+        "--ct-m0f-confirmed-hard-failure-monotonic-ns",
+        type=int,
+        default=0,
+    )
     parser.add_argument("--ct-m0f-sample-kind", choices=("cold", "warm"), default="warm")
     parser.add_argument(
         "--consume-passive-events-only",

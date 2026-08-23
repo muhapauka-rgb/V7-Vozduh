@@ -1677,6 +1677,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             args.approved_packet_id = "pkt_test"
             args.approved_execution_lease_id = "lease_test"
             args.approved_operation_id = "operation_test"
+            args.ct_m0f_first_failed_observation_monotonic_ns = 90
+            args.ct_m0f_confirmed_hard_failure_monotonic_ns = 95
             planner = self.tool.AutoswitchPlanner(args)
             move = {
                 "user_ip": "10.0.0.2",
@@ -1756,8 +1758,8 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["incident_id"], "matrix_incident_shell")
         self.assertEqual(result["incident_generation"], "matrix_generation_shell")
-        self.assertEqual(consumed_receipt["first_failed_observation_monotonic_ns"], 100)
-        self.assertEqual(consumed_receipt["confirmed_hard_failure_monotonic_ns"], 100)
+        self.assertEqual(consumed_receipt["first_failed_observation_monotonic_ns"], 90)
+        self.assertEqual(consumed_receipt["confirmed_hard_failure_monotonic_ns"], 95)
 
     def test_ct_m0f_invalid_evidence_preserves_safe_route_failure_categories(self):
         with tempfile.TemporaryDirectory() as tmp:

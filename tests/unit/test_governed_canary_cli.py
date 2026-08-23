@@ -1949,6 +1949,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "event_provenance": "EXTERNAL_UNATTRIBUTED",
                 "timestamp": now.isoformat(),
                 "observation_generation": "matrix_generation",
+                "first_failed_observation_monotonic_ns": 101,
+                "confirmed_hard_failure_monotonic_ns": 202,
                 "correlated_services": ["google"],
                 "source_scope": {
                     "scope_classification": "CERTIFICATION_ONLY",
@@ -1964,6 +1966,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["binding_kind"], "CERTIFICATION_ONLY_MATRIX_FAILURE")
         self.assertEqual(result["source_event_id"], "sfe_vless")
         self.assertEqual(result["current_registry_scope_fingerprint"], scope_fingerprint)
+        self.assertEqual(result["first_failed_observation_monotonic_ns"], 101)
+        self.assertEqual(result["confirmed_hard_failure_monotonic_ns"], 202)
         self.assertEqual(result["source_scope"], {
             "scope_classification": "CERTIFICATION_ONLY",
             "source_channel": "vless",
@@ -5368,6 +5372,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 ct_m0f_sample_kind="cold",
                 ct_m0f_source_incident_id="sfinc_exact",
                 ct_m0f_source_incident_generation="egid_exact",
+                ct_m0f_first_failed_observation_monotonic_ns=101,
+                ct_m0f_confirmed_hard_failure_monotonic_ns=202,
             )
         finally:
             module.subprocess.run = original_run
@@ -5388,6 +5394,24 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             command[command.index("--ct-m0f-source-incident-generation") + 1],
             "egid_exact",
+        )
+        self.assertEqual(
+            command[
+                command.index(
+                    "--ct-m0f-first-failed-observation-monotonic-ns"
+                )
+                + 1
+            ],
+            "101",
+        )
+        self.assertEqual(
+            command[
+                command.index(
+                    "--ct-m0f-confirmed-hard-failure-monotonic-ns"
+                )
+                + 1
+            ],
+            "202",
         )
 
     def test_availability_first_binds_exact_controlled_identity_to_existing_plan(self):

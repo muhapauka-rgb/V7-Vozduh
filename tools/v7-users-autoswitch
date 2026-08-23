@@ -18459,14 +18459,16 @@ class AutoswitchPlanner:
             "lease_id": str(getattr(self.args, "approved_execution_lease_id", "") or ""),
             "operation_id": str(getattr(self.args, "approved_operation_id", "") or ""),
         }
+        standing_lineage_records: list[dict[str, Any]] = []
         controlled_condition: dict[str, Any] = {}
         if standing_contract_id:
-            condition_records = operator_execution.read_audit_records(
-                Path(self.args.action_class_audit_store)
-            )
+            # Committed-apply revalidation refreshed this exact
+            # decision-bounded lineage immediately before mutation. No
+            # operator-audit write occurs before this evidence consumer.
+            standing_lineage_records = self._standing_policy_audit_records()
             controlled_condition = next(
                 (
-                    row for row in reversed(condition_records)
+                    row for row in reversed(standing_lineage_records)
                     if row.get("record_type")
                     == "ct_m0f_standing_controlled_condition_prepared"
                     and str(row.get("contract_id") or "")
@@ -18525,6 +18527,7 @@ class AutoswitchPlanner:
                 source=lineage["source"],
                 target=lineage["target"],
                 audit_store=Path(self.args.action_class_audit_store),
+                audit_records=standing_lineage_records,
             )
             if standing_contract_id
             else operator_execution.validate_ct_m0f_controlled_validation_consumption(

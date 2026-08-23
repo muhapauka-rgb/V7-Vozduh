@@ -56,6 +56,42 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
             (ROOT / "tools" / "v7-client-speed-api").resolve(),
         )
 
+    def test_exact_ct_reservation_reuses_fresh_decision_lineage(self):
+        expected = {
+            "contract_id": "contract",
+            "contract_hash": "hash",
+            "implementation_fingerprint": "implementation",
+            "validation_generation_id": "generation",
+            "packet_id": "packet",
+            "operation_id": "operation",
+            "lease_id": "lease",
+            "user": "10.7.0.9",
+            "source": "source",
+            "target": "target",
+        }
+        record = {
+            "record_type": (
+                operator_execution
+                .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+            ),
+            **expected,
+        }
+        with mock.patch.object(
+            operator_execution,
+            "read_live_execution_lineage_records",
+            side_effect=AssertionError("lineage must be reused"),
+        ):
+            result = (
+                operator_execution
+                .validate_ct_m0f_standing_validation_sample_reservation(
+                    **expected,
+                    audit_records=[record],
+                )
+            )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["reservation"], record)
+
     def test_stop_safe_is_materialized_once_with_bounded_shadow(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp) / "state"

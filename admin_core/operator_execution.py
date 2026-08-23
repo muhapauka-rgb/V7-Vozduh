@@ -2369,11 +2369,15 @@ def reserve_ct_m0f_standing_validation_sample(
 def validate_ct_m0f_standing_validation_sample_reservation(
     *, contract_id, contract_hash, implementation_fingerprint,
     validation_generation_id, packet_id, operation_id, lease_id, user, source, target,
-    audit_store=None,
+    audit_store=None, audit_records=None,
 ):
     expected = {"contract_id": str(contract_id or ""), "contract_hash": str(contract_hash or ""), "implementation_fingerprint": str(implementation_fingerprint or ""), "validation_generation_id": str(validation_generation_id or ""), "packet_id": str(packet_id or ""), "operation_id": str(operation_id or ""), "lease_id": str(lease_id or ""), "user": str(user or ""), "source": str(source or ""), "target": str(target or "")}
-    records = read_live_execution_lineage_records(
-        Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+    records = (
+        list(audit_records)
+        if isinstance(audit_records, (list, tuple))
+        else read_live_execution_lineage_records(
+            Path(audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE)
+        )
     )
     matches = [row for row in records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE and all(str(row.get(key) or "") == value for key, value in expected.items())]
     errors = [f"ct_m0f_standing_{key}_missing" for key, value in expected.items() if not value]

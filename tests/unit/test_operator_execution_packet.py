@@ -597,6 +597,67 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 ],
             )
 
+    def test_live_execution_lineage_stops_after_exact_required_decision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            audit_path = root / "operator-execution-audit.jsonl"
+            decision_id = "ctm0f-decision-current"
+            active = {
+                "record_type": (
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE
+                ),
+                "reservation_id": "current-sample",
+            }
+            decision = {
+                "record_type": (
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+                ),
+                "decision_id": decision_id,
+            }
+            unrelated_older = {
+                "record_type": (
+                    operator_execution
+                    .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+                ),
+                "reservation_id": "older-unrelated-sample",
+            }
+            audit_path.write_text(json.dumps(active) + "\n", encoding="utf-8")
+            audit_path.with_name(audit_path.name + ".1").write_text(
+                json.dumps(decision) + "\n", encoding="utf-8",
+            )
+            audit_path.with_name(audit_path.name + ".2").write_text(
+                json.dumps(unrelated_older) + "\n", encoding="utf-8",
+            )
+            records = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+                required_decision_ids=(decision_id,),
+            )
+            self.assertEqual(
+                [row.get("decision_id") or row.get("reservation_id") for row in records],
+                [decision_id, "current-sample"],
+            )
+
+    def test_append_record_reads_only_last_predecessor_semantics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            first = {
+                "record_type": "large_predecessor",
+                "payload": "x" * 200000,
+                "record_hash": "a" * 64,
+            }
+            audit_path.write_text(json.dumps(first) + "\n\n", encoding="utf-8")
+            appended = operator_execution.append_record(
+                audit_path,
+                {"record_type": "bounded_successor", "created_at": "now"},
+            )
+            self.assertEqual(appended["previous_record_hash"], "a" * 64)
+            self.assertEqual(
+                operator_execution.read_last_audit_record(audit_path),
+                appended,
+            )
+
     def test_live_execution_lineage_keeps_authority_after_audit_rotation(self):
         now = datetime(2026, 7, 30, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:

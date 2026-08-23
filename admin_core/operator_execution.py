@@ -7482,8 +7482,62 @@ def read_audit_records(audit_store):
     return records
 
 
+def read_last_audit_record(audit_store):
+    """Read only the final non-empty append-only audit row.
+
+    ``append_record`` needs the predecessor hash, not a materialized copy of
+    every earlier payload.  Reading the complete (and intentionally rich)
+    active journal on every append made one governed transaction repeatedly
+    decode megabytes before its next write.  This bounded reverse read keeps
+    the same append-only owner and the same corrupt-tail behavior.
+    """
+    path = Path(audit_store)
+    if not path.exists():
+        return {}
+    try:
+        with path.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            position = handle.tell()
+            pending = b""
+            while position > 0:
+                size = min(65536, position)
+                position -= size
+                handle.seek(position)
+                pending = handle.read(size) + pending
+                lines = pending.splitlines()
+                if position > 0 and lines:
+                    pending = lines.pop(0)
+                else:
+                    pending = b""
+                for raw in reversed(lines):
+                    if not raw.strip():
+                        continue
+                    text = raw.decode("utf-8", errors="replace")
+                    try:
+                        row = json.loads(text)
+                    except json.JSONDecodeError:
+                        return {
+                            "record_type": "CORRUPT_RECORD",
+                            "raw_hash": sha256_bytes(raw),
+                        }
+                    return row if isinstance(row, dict) else {}
+            if pending.strip():
+                text = pending.decode("utf-8", errors="replace")
+                try:
+                    row = json.loads(text)
+                except json.JSONDecodeError:
+                    return {
+                        "record_type": "CORRUPT_RECORD",
+                        "raw_hash": sha256_bytes(pending),
+                    }
+                return row if isinstance(row, dict) else {}
+    except OSError:
+        return {}
+    return {}
+
+
 _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE: dict[
-    tuple[str, int, bool, tuple[tuple[str, int, int], ...]],
+    tuple[str, int, bool, tuple[str, ...], tuple[tuple[str, int, int], ...]],
     tuple[dict[str, Any], ...],
 ] = {}
 
@@ -7493,6 +7547,7 @@ def read_live_execution_lineage_records(
     *,
     max_rotated_segments=8,
     include_runtime_actions=False,
+    required_decision_ids=(),
 ):
     """Read compact durable execution lineage across bounded audit rotation.
 
@@ -7547,10 +7602,14 @@ def read_live_execution_lineage_records(
         source_signature.append(
             (str(candidate), int(stat.st_size), int(stat.st_mtime_ns))
         )
+    required_ids = tuple(sorted({
+        str(value) for value in (required_decision_ids or ()) if str(value)
+    }))
     cache_key = (
         str(path),
         max(0, int(max_rotated_segments)),
         bool(include_runtime_actions),
+        required_ids,
         tuple(source_signature),
     )
     cached = _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.get(cache_key)
@@ -7568,9 +7627,17 @@ def read_live_execution_lineage_records(
     runtime_value_markers = (
         json.dumps("RESTORE_BARRIER_CLEARANCE_WRITTEN"),
     ) if include_runtime_actions else ()
-    records = []
-    # oldest -> newest keeps append-only semantic consumers deterministic.
-    for candidate in reversed(names):
+    segment_records: list[list[dict[str, Any]]] = []
+    found_required_ids: set[str] = set()
+    # A caller that names the exact current Authority decision needs the
+    # complete newer lineage plus that immutable decision, not unrelated
+    # older contracts.  Scan newest -> oldest and stop only after every exact
+    # requested decision is found.  The returned records are still restored
+    # to oldest -> newest order below.  Callers without an exact decision keep
+    # the historical full bounded horizon unchanged.
+    scan_names = names if required_ids else list(reversed(names))
+    for candidate in scan_names:
+        current_segment: list[dict[str, Any]] = []
         try:
             opener = gzip.open if candidate.suffix == ".gz" else open
             with opener(candidate, "rt", encoding="utf-8", errors="replace") as handle:
@@ -7604,9 +7671,20 @@ def read_live_execution_lineage_records(
                         or row.get("effect_class") in durable_effect_classes
                         or runtime_action
                     ):
-                        records.append(row)
+                        current_segment.append(row)
+                        decision_id = str(row.get("decision_id") or "")
+                        if decision_id in required_ids:
+                            found_required_ids.add(decision_id)
         except OSError:
             continue
+        segment_records.append(current_segment)
+        if required_ids and found_required_ids == set(required_ids):
+            break
+    if required_ids:
+        segment_records.reverse()
+    records = [
+        row for segment in segment_records for row in segment
+    ]
     # This cache is deliberately process-local and keyed by the stat identity
     # of the active file and every bounded rotated segment.  An append,
     # rotation or replacement therefore invalidates it without a watcher,
@@ -7635,8 +7713,8 @@ def engineering_authority_replay_seen(records, request_id):
 def append_record(audit_store, record):
     path = Path(audit_store)
     path.parent.mkdir(parents=True, exist_ok=True)
-    previous_records = read_audit_records(path)
-    previous_hash = previous_records[-1].get("record_hash", "GENESIS") if previous_records else "GENESIS"
+    previous_record = read_last_audit_record(path)
+    previous_hash = previous_record.get("record_hash", "GENESIS") if previous_record else "GENESIS"
     payload = {k: v for k, v in record.items() if k != "record_hash"}
     payload["previous_record_hash"] = previous_hash
     payload["record_hash"] = sha256_bytes(canonical_json(payload).encode("utf-8"))

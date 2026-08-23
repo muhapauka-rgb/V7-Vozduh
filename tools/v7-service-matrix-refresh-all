@@ -1550,7 +1550,18 @@ def run_ct_m0f_standing_validation_campaign(
         if isinstance(policy_root, dict)
         else {}
     )
-    records = operator_execution.read_live_execution_lineage_records(audit_store)
+    standing_decision = (
+        contract.get("authority_decision")
+        if isinstance(contract.get("authority_decision"), dict)
+        else {}
+    )
+    required_decision_ids = tuple(filter(None, [
+        str(standing_decision.get("decision_id") or "")
+    ]))
+    records = operator_execution.read_live_execution_lineage_records(
+        audit_store,
+        required_decision_ids=required_decision_ids,
+    )
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract, audit_records=records,
     )
@@ -1672,7 +1683,8 @@ def run_ct_m0f_standing_validation_campaign(
 
     def active_reservations() -> list[dict[str, Any]]:
         current = operator_execution.read_live_execution_lineage_records(
-            audit_store
+            audit_store,
+            required_decision_ids=required_decision_ids,
         )
         terminal_ids = {
             str(row.get("reservation_id") or "")

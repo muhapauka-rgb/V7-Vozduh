@@ -791,6 +791,7 @@ def run_l3_production_validation_plan(
         # releases the lock.
         "--service-matrix-lock-timeout-sec",
         "5",
+        "--governed-candidate-only",
     ]
     if refresh_snapshots:
         # Controlled certification can move a cohort immediately before the
@@ -5257,12 +5258,23 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 if isinstance(policy_root, dict)
                 else {}
             )
+            standing_decision = (
+                contract.get("authority_decision")
+                if isinstance(contract.get("authority_decision"), dict)
+                else {}
+            )
+            standing_records = (
+                operator_execution.read_live_execution_lineage_records(
+                    audit_dir / "operator-execution-audit.jsonl",
+                    required_decision_ids=tuple(filter(None, [
+                        str(standing_decision.get("decision_id") or "")
+                    ])),
+                )
+            )
             ct_m0f_standing_binding = (
                 operator_execution.validate_ct_m0f_standing_validation_policy(
                     contract,
-                    audit_records=operator_execution.read_live_execution_lineage_records(
-                        audit_dir / "operator-execution-audit.jsonl"
-                    ),
+                    audit_records=standing_records,
                 )
             )
             if not ct_m0f_standing_binding.get("ok"):
@@ -5297,9 +5309,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             budget = operator_execution.ct_m0f_standing_validation_budget_status(
                 contract,
                 ct_m0f_implementation_fingerprint,
-                audit_records=operator_execution.read_audit_records(
-                    audit_dir / "operator-execution-audit.jsonl"
-                ),
+                audit_records=standing_records,
             )
             if budget.get("campaign_complete"):
                 return transaction_stop(
@@ -12363,9 +12373,27 @@ def reset_ct_m0f_standing_validation_sample(
         if isinstance(forward.get("sample_evidence"), dict)
         else {}
     )
+    evidence_has_timing = bool(
+        isinstance(evidence.get("metrics"), dict)
+        and evidence.get("metrics")
+    )
+    sample_slo_gate = (
+        operator_execution_pipeline.controlled_kernel_cutover_gate(
+            [evidence] if isinstance(evidence, dict) else []
+        )
+        if evidence_has_timing
+        else {
+            "ok": False,
+            "status": "TIMING_NOT_EMITTED_BY_LEGACY_SAMPLE",
+        }
+    )
     sample_valid = bool(
         evidence.get("status")
         == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+        and (
+            not evidence_has_timing
+            or sample_slo_gate.get("ok") is True
+        )
     )
     terminal = operator_execution.record_ct_m0f_standing_validation_sample_terminal(
         reservation_id=str(reservation.get("reservation_id") or ""),
@@ -12395,6 +12423,7 @@ def reset_ct_m0f_standing_validation_sample(
         "reservation": reservation,
         "reset_transaction": reset_transaction,
         "sample_terminal": terminal,
+        "sample_slo_gate": sample_slo_gate,
         "budget": budget,
         "recovery_mode": recovery_mode,
         "source_recovery_proven": source_recovery_proven,

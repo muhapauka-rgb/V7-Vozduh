@@ -5132,6 +5132,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         refresh_index = captured["command"].index("--pre-planner-refresh")
         self.assertEqual(captured["command"][refresh_index + 1], "off")
         self.assertNotIn("--pre-planner-refresh-command", captured["command"])
+        self.assertIn("--governed-candidate-only", captured["command"])
 
     def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):
         module = load_cli_module()

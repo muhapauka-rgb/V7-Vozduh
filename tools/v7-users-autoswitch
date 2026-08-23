@@ -18499,6 +18499,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "durable evidence are unchanged."
         ),
     )
+    parser.add_argument(
+        "--governed-candidate-only",
+        action="store_true",
+        help=(
+            "Return the fresh existing-Planner Candidate without apply or "
+            "post-action finalization. The governed caller must still bind "
+            "a fresh Packet/lease and invoke the normal apply owner."
+        ),
+    )
     parser.add_argument("--verify", action="store_true", default=True, help="Run v7-user-route-check after apply.")
     parser.add_argument("--no-verify", dest="verify", action="store_false")
     parser.add_argument("--rollback-on-verify-fail", action="store_true", default=True)
@@ -25136,11 +25145,19 @@ def ct_m0f_standing_source_selection_only(
     availability_contract = (
         availability_contract if isinstance(availability_contract, dict) else {}
     )
+    availability_decision = (
+        availability_contract.get("authority_decision")
+        if isinstance(availability_contract.get("authority_decision"), dict)
+        else {}
+    )
     availability_validation = (
         operator_execution.validate_standing_delegated_operational_policy(
             availability_contract,
             audit_records=operator_execution.read_live_execution_lineage_records(
-                Path(getattr(args, "action_class_audit_store", "") or "")
+                Path(getattr(args, "action_class_audit_store", "") or ""),
+                required_decision_ids=tuple(filter(None, [
+                    str(availability_decision.get("decision_id") or "")
+                ])),
             ),
         )
         if availability_contract
@@ -25880,6 +25897,33 @@ def main() -> int:
         planner_entry_started_ns,
         owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
     )
+    if args.governed_candidate_only:
+        timeline = planner.performance_timeline()
+        timeline["total_ms"] = round(
+            (time.monotonic_ns() - planner_init_started_ns) / 1_000_000.0,
+            3,
+        )
+        plan["performance_timeline"] = timeline
+        plan["apply_result"] = {
+            "applied": False,
+            "reason": "governed_candidate_only",
+        }
+        plan["governed_candidate_only"] = {
+            "status": "FRESH_CANDIDATE_RETURNED",
+            "candidate_created_by_existing_planner": True,
+            "packet_created": False,
+            "lease_created": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "next_owner": "existing governed Packet/lease caller",
+        }
+        print(json.dumps(
+            plan,
+            ensure_ascii=False,
+            indent=2 if args.pretty else None,
+            sort_keys=False,
+        ))
+        return 0
     apply_started_ns = time.monotonic_ns()
     plan["apply_result"] = planner.apply(plan)
     planner._record_performance_span(

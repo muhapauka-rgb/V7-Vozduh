@@ -620,13 +620,27 @@ moved. These capabilities are deployed but not yet activated as the production
 role caller: the predecessor Full/Telegram timers remain until N7 integrated
 proof and N8 caller migration prove safe replacement.
 
-The next executable V5.3 block is **N7 CAUSAL_POLYGON_TOURNAMENT**. It must run
-the same controlled onset-to-S11 harness across interface, tunnel, path,
-Telegram, DNS, other-required, multi-service and partial failures; compare Mode
-A and Mode B; cover cadence phase offsets, stale/wrong-generation/replay/restart,
-correlated failure and FAST-vs-DEEP contention; and measure source confirmation,
-concurrent target readiness, downstream decision and independently verified
-server-side recovery. It may not claim T11 without independent client telemetry.
+`N7` completed at deployed commit `1055f90f`; exact evidence is recorded in
+`docs/reports/engineering/2026-08-23_151500_v5_3_n7_causal_polygon_tournament.md`.
+The tournament admits direct T0 only for fresh, identity-bound
+`INTERFACE_DOWN_OR_MISSING`; all tunnel/path/route, Telegram, DNS, other-service,
+multi-service and partial evidence retains targeted confirmation or Full/
+`STOP_SAFE`. HARD/PATH and Telegram causal distributions meet their declared
+limits, DNS/other/multi remain below 15 seconds, and stale, wrong-generation,
+replay, restart, correlated-failure and role-isolation falsification passed.
+The official prepared set is two targets (`awg0`, `awg3`); its path probes take
+about 70 ms and its four-service role takes 1.492 seconds. Production also
+proved that the remaining 3--7 second delay is shared-lock contention from the
+still-active predecessor Telegram timer, not probe time. No route changed, no
+client moved and N7 claims S11 only.
+
+The next executable V5.3 block is **N8 UNATTENDED_RUNTIME_CALLER_AND_CONSUMER_CUTOVER**.
+It must persist the official prepared projection through the existing Matrix
+state, prove a finite role-loop canary, activate the existing `v7-health.service`
+as the single role caller, retire overlapping Full/Telegram predecessor timers
+only after rollback-ready evidence, and run one controlled synthetic failure
+through the existing Candidate/Packet/Lease/Barrier/Apply/verification chain.
+It may not claim T11 without independent client telemetry.
 
 ### V5.3 integrated T0–T11 latency-optimization track
 

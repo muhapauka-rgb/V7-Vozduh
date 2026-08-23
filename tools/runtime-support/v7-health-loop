@@ -55,6 +55,7 @@ DEFAULT_ROLE_COMMANDS = (
             "--concurrency", "128",
             "--threshold-seconds", "2",
             "--timeout", "0.25",
+            "--include-prepared-hot-targets",
             "--no-autoswitch",
         ),
     ),
@@ -66,6 +67,18 @@ DEFAULT_ROLE_COMMANDS = (
             "--matrix-observation-only",
             "--prepared-hot-target-concurrency", "16",
             "--prepared-hot-target-timeout-sec", "1",
+            "--prepared-hot-target-service-class", "path",
+        ),
+    ),
+    (
+        "hot_target_other", 5_000,
+        (
+            "/usr/local/bin/v7-service-matrix-refresh-all",
+            "--prepared-hot-targets",
+            "--matrix-observation-only",
+            "--prepared-hot-target-concurrency", "16",
+            "--prepared-hot-target-timeout-sec", "1",
+            "--prepared-hot-target-service-class", "other",
         ),
     ),
     (
@@ -312,11 +325,13 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--controlled-hard-command")
     parser.add_argument("--controlled-telegram-command")
     parser.add_argument("--controlled-hot-target-command")
+    parser.add_argument("--controlled-hot-target-other-command")
     parser.add_argument("--controlled-required-command")
     parser.add_argument("--controlled-deep-command")
     parser.add_argument("--hard-interval-ms", type=int, default=1_000)
     parser.add_argument("--telegram-interval-ms", type=int, default=1_000)
     parser.add_argument("--hot-target-interval-ms", type=int, default=1_000)
+    parser.add_argument("--hot-target-other-interval-ms", type=int, default=5_000)
     parser.add_argument("--required-interval-ms", type=int, default=5_000)
     parser.add_argument("--deep-interval-ms", type=int, default=60_000)
     args = parser.parse_args(argv)
@@ -332,6 +347,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         args.controlled_hard_command,
         args.controlled_telegram_command,
         args.controlled_hot_target_command,
+        args.controlled_hot_target_other_command,
         args.controlled_required_command,
         args.controlled_deep_command,
     )
@@ -340,6 +356,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     for value in (
         args.hard_interval_ms, args.telegram_interval_ms,
         args.hot_target_interval_ms,
+        args.hot_target_other_interval_ms,
         args.required_interval_ms, args.deep_interval_ms,
     ):
         if value <= 0:
@@ -354,6 +371,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "hard": args.controlled_hard_command,
             "telegram": args.controlled_telegram_command,
             "hot_target": args.controlled_hot_target_command,
+            "hot_target_other": args.controlled_hot_target_other_command,
             "other_required": args.controlled_required_command,
             "deep": args.controlled_deep_command,
         }
@@ -361,6 +379,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "hard": args.hard_interval_ms,
             "telegram": args.telegram_interval_ms,
             "hot_target": args.hot_target_interval_ms,
+            "hot_target_other": args.hot_target_other_interval_ms,
             "other_required": args.required_interval_ms,
             "deep": args.deep_interval_ms,
         }

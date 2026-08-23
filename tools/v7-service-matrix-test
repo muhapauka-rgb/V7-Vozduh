@@ -693,6 +693,42 @@ def network_path_evidence(
     }
 
 
+def update_matrix_path_evidence(
+    matrix_file: Path,
+    *,
+    state_dir: Path,
+    egress_id: str,
+    iface: str,
+    evidence: dict[str, Any],
+    lock_timeout_sec: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Atomically refresh only the existing Matrix path projection.
+
+    This is the L1P pre-ready target lane. It creates no service episode or
+    event and remains under the same Matrix writer lock/state owner.
+    """
+    with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
+        data = read_json(matrix_file, {"items": {}})
+        if not isinstance(data, dict):
+            data = {"items": {}}
+        row = data.setdefault("items", {}).setdefault(egress_id, {})
+        identity = canonical_egress_identity(
+            egress_row(state_dir, egress_id), egress_id=egress_id, iface=iface,
+        )
+        row.update({
+            "id": egress_id,
+            "interface": iface,
+            "egress_identity_generation": identity["egress_identity_generation"],
+            "egress_config_generation": identity["egress_config_generation"],
+            "path_evidence": evidence,
+            "path_evidence_updated": now_iso(),
+        })
+        row["route_class_fitness"] = route_class_fitness(row)
+        data["updated"] = now_iso()
+        write_json_atomic(matrix_file, data)
+    return data, lock_info
+
+
 def service_failure_episode(
     previous: dict[str, Any],
     observed: dict[str, Any],
@@ -1703,6 +1739,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Read and fingerprint the current probe path without probes or durable Matrix writes.",
     )
     parser.add_argument(
+        "--path-evidence-refresh",
+        action="store_true",
+        help=(
+            "Refresh only the existing canonical Matrix path projection under "
+            "its writer lock; emit no service event or downstream action."
+        ),
+    )
+    parser.add_argument(
         "--probe-observation-only",
         action="store_true",
         help=(
@@ -1795,7 +1839,10 @@ def main() -> int:
             else {}
         )
         direct_previous_event_id = str(prior_service.get("failure_event_id") or "") if isinstance(prior_service, dict) else ""
-    if args.path_evidence_only:
+    if args.path_evidence_only or args.path_evidence_refresh:
+        if str(args.services or "").strip() or service != "all" or direct_failure_class:
+            print(json.dumps({"error": "path_evidence_mode_is_exclusive"}, ensure_ascii=False))
+            return 2
         evidence = network_path_evidence(
             state_dir,
             row,
@@ -1803,12 +1850,37 @@ def main() -> int:
             iface=iface,
             service_ids=list(SERVICE_CATALOG),
         )
+        lock_info: dict[str, Any] = {
+            "held": False,
+            "scope": "path_evidence_observation_only",
+        }
+        if args.path_evidence_refresh:
+            try:
+                _matrix, lock_info = update_matrix_path_evidence(
+                    matrix_file,
+                    state_dir=state_dir,
+                    egress_id=egress_id,
+                    iface=iface,
+                    evidence=evidence,
+                    lock_timeout_sec=int(args.lock_timeout_sec),
+                )
+            except TimeoutError as exc:
+                print(json.dumps({
+                    "action": "service_matrix_path_evidence_refresh",
+                    "status": "LOCK_TIMEOUT",
+                    "error": str(exc),
+                    "routing_mutation_performed": False,
+                    "users_moved": 0,
+                }, ensure_ascii=False))
+                return 75
         print(json.dumps({
             "action": "service_matrix_path_evidence",
             "status": "PASS",
             "egress": egress_id,
             "interface": iface,
             "path_evidence": evidence,
+            "canonical_matrix_write": bool(args.path_evidence_refresh),
+            "service_matrix_lock": lock_info,
             "runtime_behavior_changed": False,
             "users_moved": 0,
         }, ensure_ascii=False, indent=2 if args.pretty else None))

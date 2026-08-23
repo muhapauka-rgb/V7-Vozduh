@@ -119,6 +119,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             hard = self.write_command(root, "hard", "sleep 0.01\n")
             telegram = self.write_command(root, "telegram", "sleep 0.02\n")
             hot_target = self.write_command(root, "hot_target", "sleep 0.02\n")
+            hot_target_other = self.write_command(root, "hot_target_other", "sleep 0.02\n")
             required = self.write_command(root, "required", "sleep 2.2\n")
             deep = self.write_command(root, "deep", "sleep 2.8\n")
             completed = subprocess.run(
@@ -130,6 +131,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     "--controlled-hard-command", str(hard),
                     "--controlled-telegram-command", str(telegram),
                     "--controlled-hot-target-command", str(hot_target),
+                    "--controlled-hot-target-other-command", str(hot_target_other),
                     "--controlled-required-command", str(required),
                     "--controlled-deep-command", str(deep),
                     "--deep-interval-ms", "1000",

@@ -25,7 +25,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
@@ -876,14 +876,77 @@ def telegram_required_source_ids(state_dir: Path) -> set[str]:
     return sources
 
 
+def prepared_telegram_hot_target_ids(path: Path) -> tuple[set[str], dict[str, Any]]:
+    """Read only Telegram targets selected by the existing Planner projection."""
+    surface = read_json(path, {})
+    pending = [surface]
+    projections: list[dict[str, Any]] = []
+    visited = 0
+    while pending and visited < 4096:
+        current = pending.pop()
+        visited += 1
+        if isinstance(current, dict):
+            if str(current.get("schema_version") or "") == (
+                "v7.prepared-class-decision-projection.v1"
+            ):
+                projections.append(current)
+            nested = current.get("prepared_class_decisions")
+            if isinstance(nested, dict):
+                projections.append(nested)
+            pending.extend(current.values())
+        elif isinstance(current, list):
+            pending.extend(current)
+    projections.sort(key=lambda row: str(row.get("produced_at") or ""))
+    projection = projections[-1] if projections else {}
+    hot = (
+        projection.get("hot_target_set")
+        if isinstance(projection.get("hot_target_set"), dict)
+        else {}
+    )
+    target_ids = {
+        str(contract.get("target_id") or "")
+        for contract in (hot.get("contracts") or [])
+        if isinstance(contract, dict)
+        and "telegram" in {
+            str(item).strip().lower()
+            for item in (contract.get("critical_services") or [])
+        }
+        and str(contract.get("target_id") or "")
+    }
+    blockers = []
+    if not projection:
+        blockers.append("prepared_projection_missing")
+    elif str(projection.get("status") or "") != "PREPARED_CLASS_DECISION_AVAILABLE":
+        blockers.append("prepared_projection_not_ready")
+    elif not target_ids:
+        blockers.append("prepared_telegram_target_missing")
+    return target_ids, {
+        "schema_version": "v7.telegram-prepared-hot-target-scope.v1",
+        "status": "READY" if not blockers else "STOP_SAFE",
+        "ok": not blockers,
+        "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        "consumer": "tools/v7-telegram-sentinel",
+        "projection_produced_at": str(projection.get("produced_at") or ""),
+        "target_ids": sorted(target_ids),
+        "target_count": len(target_ids),
+        "blockers": blockers,
+        "manual_server_selection": False,
+        "user_registry_scanned_for_targets": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def egress_items(
     state_dir: Path,
     only: str,
     *,
     required_profiles_only: bool = False,
+    additional_ids: Optional[set[str]] = None,
 ) -> list[dict[str, str]]:
     rows = parse_registry(state_dir / "egress.registry")
     required_sources = telegram_required_source_ids(state_dir) if required_profiles_only else set()
+    admitted = required_sources | set(additional_ids or set())
     result = []
     for row in rows:
         egress_id = str(row.get("id") or "")
@@ -891,7 +954,7 @@ def egress_items(
             continue
         if not bool_value(row.get("enabled"), default=True):
             continue
-        if required_profiles_only and egress_id not in required_sources:
+        if required_profiles_only and egress_id not in admitted:
             continue
         result.append(row)
     return result
@@ -1062,6 +1125,15 @@ def build_parser() -> argparse.ArgumentParser:
             "service-preferences.json."
         ),
     )
+    parser.add_argument(
+        "--include-prepared-hot-targets",
+        action="store_true",
+        help=(
+            "Add only Telegram targets from the existing prepared Planner "
+            "projection to the required-profile source pass."
+        ),
+    )
+    parser.add_argument("--prepared-projection-file", default="")
     parser.add_argument("--threshold-seconds", type=int, default=14)
     parser.add_argument(
         "--failure-samples",
@@ -1104,12 +1176,32 @@ def main() -> int:
     if not 1 <= int(args.concurrency or 0) <= 128:
         print(json.dumps({"error": "concurrency_out_of_range"}, ensure_ascii=False))
         return 2
+    if args.include_prepared_hot_targets and not args.required_profiles_only:
+        print(json.dumps({
+            "error": "prepared_hot_targets_require_required_profiles_only",
+        }, ensure_ascii=False))
+        return 2
 
     started = time.time()
     prior_state = read_json(sentinel_file, {"items": {}})
     prior_items = prior_state.get("items") or {}
+    prepared_target_scope: dict[str, Any] = {
+        "status": "NOT_REQUESTED", "ok": True, "target_ids": [],
+    }
+    prepared_target_ids: set[str] = set()
+    if args.include_prepared_hot_targets:
+        projection_file = (
+            Path(args.prepared_projection_file)
+            if str(args.prepared_projection_file or "").strip()
+            else state_dir / "service-matrix-refresh-summary.json"
+        )
+        prepared_target_ids, prepared_target_scope = (
+            prepared_telegram_hot_target_ids(projection_file)
+        )
     rows = egress_items(
-        state_dir, only, required_profiles_only=bool(args.required_profiles_only),
+        state_dir, only,
+        required_profiles_only=bool(args.required_profiles_only),
+        additional_ids=prepared_target_ids,
     )
     items: dict[str, Any] = {}
     with ThreadPoolExecutor(max_workers=max(1, min(len(rows), int(args.concurrency)))) as pool:
@@ -1193,9 +1285,12 @@ def main() -> int:
         "elapsed_sec": round(time.time() - started, 3),
         "checked_egress": len(items),
         "role_scope": (
-            "TELEGRAM_REQUIRED_ACTIVE_PROFILE_SOURCES"
+            "TELEGRAM_REQUIRED_ACTIVE_PROFILE_SOURCES_AND_PREPARED_TARGETS"
+            if args.required_profiles_only and args.include_prepared_hot_targets
+            else "TELEGRAM_REQUIRED_ACTIVE_PROFILE_SOURCES"
             if args.required_profiles_only else "ALL_ENABLED_EGRESS_COMPATIBILITY"
         ),
+        "prepared_hot_target_scope": prepared_target_scope,
         "blocked_egress": sorted(item.get("egress") for item in blocked_items),
         "healthy_egress": sorted(item.get("egress") for item in healthy_items),
         "last_autoswitch_at": last_autoswitch_at,

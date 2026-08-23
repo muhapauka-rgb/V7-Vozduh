@@ -2968,10 +2968,13 @@ def run_one(
     failure_persistence_samples: int = 0,
     failure_persistence_window_seconds: int = 0,
     event_dir: Optional[Path] = None,
+    path_evidence_refresh: bool = False,
 ) -> dict[str, Any]:
     started = time.time()
     cmd = [checker, egress_id, "all", "--timeout", str(timeout), "--state-dir", str(state_dir)]
-    if str(services or "").strip():
+    if path_evidence_refresh:
+        cmd.append("--path-evidence-refresh")
+    elif str(services or "").strip():
         cmd.extend(["--services", str(services).strip()])
     if int(failure_persistence_samples or 0) > 0:
         cmd.extend(["--failure-persistence-samples", str(int(failure_persistence_samples))])
@@ -2997,7 +3000,7 @@ def run_one(
     except json.JSONDecodeError:
         parsed = {}
     status = str(parsed.get("status") or ("OK" if proc.returncode == 0 else "FAIL"))
-    ok = proc.returncode == 0 and status in ("OK", "WARN")
+    ok = proc.returncode == 0 and status in ("OK", "WARN", "PASS")
     return {
         "egress": egress_id,
         "status": status,
@@ -4516,6 +4519,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prepared-hot-target-concurrency", type=int, default=16)
     parser.add_argument("--prepared-hot-target-timeout-sec", type=int, default=1)
     parser.add_argument(
+        "--prepared-hot-target-service-class",
+        choices=("all", "path", "other"),
+        default="all",
+        help=(
+            "Probe all declared services, path evidence only, or declared "
+            "non-Telegram services. Telegram has its existing sentinel owner."
+        ),
+    )
+    parser.add_argument(
         "--egresses",
         default="",
         help=(
@@ -4733,6 +4745,24 @@ def main() -> int:
         rows, prepared_hot_target_scope = select_prepared_hot_target_rows(
             rows, read_json(projection_file, {}),
         )
+        service_class = str(args.prepared_hot_target_service_class or "all")
+        if service_class == "path":
+            rows = [{**row, "_prepared_services": ""} for row in rows]
+        elif service_class == "other":
+            filtered_rows = []
+            for row in rows:
+                services = [
+                    item for item in str(row.get("_prepared_services") or "").split(",")
+                    if item and item != "telegram"
+                ]
+                if services:
+                    filtered_rows.append({
+                        **row,
+                        "_prepared_services": ",".join(sorted(set(services))),
+                    })
+            rows = filtered_rows
+        prepared_hot_target_scope["service_class"] = service_class
+        prepared_hot_target_scope["selected_target_count_for_service_class"] = len(rows)
 
     def execute_row(row: dict[str, str]) -> dict[str, Any]:
         row_services = (
@@ -4749,6 +4779,10 @@ def main() -> int:
             shadow_persistence_samples,
             shadow_persistence_window,
             event_dir=Path(args.event_dir),
+            path_evidence_refresh=(
+                args.prepared_hot_targets
+                and args.prepared_hot_target_service_class == "path"
+            ),
         )
 
     if event_only:

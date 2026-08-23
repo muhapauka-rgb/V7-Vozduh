@@ -249,6 +249,7 @@ def role_isolation_evidence() -> dict:
         hard = command("hard", "sleep 0.005\n")
         telegram = command("telegram", "sleep 0.005\n")
         hot = command("hot", "sleep 0.005\n")
+        hot_other = command("hot_other", "sleep 0.20\n")
         required = command("required", "sleep 1.50\n")
         deep = command("deep", "sleep 2.20\n")
         result = subprocess.run(
@@ -256,10 +257,12 @@ def role_isolation_evidence() -> dict:
                 str(HEALTH_LOOP), "--role-based-fast", "--max-phases", "5",
                 "--hard-interval-ms", "1000", "--telegram-interval-ms", "1000",
                 "--hot-target-interval-ms", "1000", "--required-interval-ms", "1000",
+                "--hot-target-other-interval-ms", "1000",
                 "--deep-interval-ms", "1000",
                 "--controlled-hard-command", str(hard),
                 "--controlled-telegram-command", str(telegram),
                 "--controlled-hot-target-command", str(hot),
+                "--controlled-hot-target-other-command", str(hot_other),
                 "--controlled-required-command", str(required),
                 "--controlled-deep-command", str(deep),
             ],
@@ -424,6 +427,42 @@ class V53N7CausalPolygonTournamentTest(unittest.TestCase):
         self.assertEqual(selected[0]["_prepared_services"], "google,telegram")
         self.assertFalse(scope["manual_server_selection"])
         self.assertFalse(scope["user_registry_scanned"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            projection_file = Path(tmp) / "projection.json"
+            projection_file.write_text(json.dumps({
+                "prepared_class_decisions": projection,
+            }), encoding="utf-8")
+            telegram_ids, telegram_scope = SENTINEL.prepared_telegram_hot_target_ids(
+                projection_file,
+            )
+        self.assertTrue(telegram_scope["ok"], telegram_scope)
+        self.assertEqual(telegram_ids, {"target-a"})
+        self.assertFalse(telegram_scope["manual_server_selection"])
+
+    def test_path_ready_refresh_writes_only_existing_matrix_path_projection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = write_state(root)
+            evidence = {
+                "schema_version": "v7.service-matrix-network-path.v1",
+                "path_fingerprint": "path-n7",
+                "measured_at": MATRIX.now_iso(),
+                "component_status": {"interface_addresses": "PASS"},
+            }
+            _matrix, lock = MATRIX.update_matrix_path_evidence(
+                state / "service-matrix.json",
+                state_dir=state,
+                egress_id="target-a",
+                iface="lo",
+                evidence=evidence,
+                lock_timeout_sec=2,
+            )
+            stored = json.loads((state / "service-matrix.json").read_text(encoding="utf-8"))
+        row = stored["items"]["target-a"]
+        self.assertEqual(row["path_evidence"]["path_fingerprint"], "path-n7")
+        self.assertEqual(row.get("services"), None)
+        self.assertTrue(lock["held"])
 
     def test_fast_and_hot_target_roles_are_not_delayed_by_deep(self):
         row = self.evidence["role_isolation"]

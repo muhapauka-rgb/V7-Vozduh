@@ -5071,20 +5071,20 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("service_failure_automation_consumed_execution_handoff(", pre_executor)
         self.assertNotIn("run_service_failure_omp_consumer(", pre_executor)
 
-    def test_runtime_hot_path_certification_scope_reuses_governed_consumer_only(self):
-        """A certification failure skips OMP but reaches its existing consumer."""
+    def test_runtime_hot_path_certification_scope_stops_before_known_memory_limit(self):
+        """A certification failure stays bounded while its consumer is repaired."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
         flag = source.index(
             "# A known certification-only source is not an ordinary customer failure."
         )
         controlled_scope = source.index(
-            "certification_only_scope_uses_existing_ct_m0f_governed_consumer",
+            "STOP_SAFE_CONTROLLED_CONSUMER_RUNTIME_MEMORY_LIMIT",
             flag,
         )
         branch_end = source.index("    if args.skip_passive_consumer:", controlled_scope)
         early_scope = source[flag:branch_end]
-        self.assertIn("run_ct_m0f_standing_validation_campaign(", early_scope)
-        self.assertIn("wake_existing_controlled_matrix_consumer()", early_scope)
+        self.assertNotIn("run_ct_m0f_standing_validation_campaign(", early_scope)
+        self.assertNotIn("systemctl", early_scope)
         self.assertNotIn("run_service_failure_omp_consumer(", early_scope)
         self.assertNotIn("run_passive_consumer(", early_scope)
         planner_unit = (ROOT / "systemd/drafts/v7-autoswitch-planner.service").read_text(
@@ -5095,25 +5095,6 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertIn("--runtime-hot-path-only", planner_unit)
         self.assertIn("--runtime-hot-path-only", refresh_unit)
-
-    def test_existing_controlled_matrix_consumer_wake_is_non_mutating(self):
-        with mock.patch.object(
-            self.refresh.subprocess,
-            "run",
-            return_value=self.refresh.subprocess.CompletedProcess(
-                ["systemctl"], 0, stdout="queued"
-            ),
-        ) as run:
-            result = self.refresh.wake_existing_controlled_matrix_consumer()
-
-        self.assertTrue(result["ok"])
-        self.assertTrue(result["requested"])
-        self.assertFalse(result["runtime_mutation_performed"])
-        self.assertEqual(result["users_moved"], 0)
-        self.assertEqual(
-            run.call_args.args[0],
-            ["systemctl", "start", "--no-block", "v7-autoswitch-planner.service"],
-        )
 
     def test_source_bounded_planning_filters_before_decision_construction(self):
         """A source-bounded request must not score unrelated active users."""

@@ -161,49 +161,6 @@ def default_governed_executor_path() -> str:
     return str(local) if local.exists() else "v7-governed-canary-dry-run-cycle"
 
 
-def wake_existing_controlled_matrix_consumer() -> dict[str, Any]:
-    """Advance the already-installed lightweight Matrix consumer once.
-
-    The full Matrix refresh owns probes and can be memory-heavy.  Its existing
-    ``v7-autoswitch-planner.service`` consumer runs the same Matrix tool in
-    event-only mode in a separate systemd cgroup, so a bounded CT-M0F
-    Candidate/Packet/lease operation never competes with the full probe heap.
-    This is a one-shot wake of an existing service, not a timer, queue, owner
-    or execution pipeline.
-    """
-    command = ["systemctl", "start", "--no-block", "v7-autoswitch-planner.service"]
-    try:
-        proc = subprocess.run(
-            command,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            check=False,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return {
-            "status": "STOP_SAFE_EXISTING_CONTROLLED_CONSUMER_WAKE_FAILED",
-            "ok": False,
-            "requested": True,
-            "error": f"{type(exc).__name__}:{exc}",
-            "runtime_mutation_performed": False,
-            "users_moved": 0,
-        }
-    return {
-        "status": (
-            "EXISTING_CONTROLLED_MATRIX_CONSUMER_WAKE_REQUESTED"
-            if proc.returncode == 0
-            else "STOP_SAFE_EXISTING_CONTROLLED_CONSUMER_WAKE_FAILED"
-        ),
-        "ok": proc.returncode == 0,
-        "requested": True,
-        "output_tail": (proc.stdout or "")[-500:],
-        "runtime_mutation_performed": False,
-        "users_moved": 0,
-    }
-
-
 def controlled_certification_matrix_binding(
     *,
     audit_store: Path,
@@ -4653,37 +4610,34 @@ def main() -> int:
         )
     )
     # A known certification-only source is not an ordinary customer failure.
-    # It must never enter the ordinary passive/OMP path, but the existing
-    # CT-M0F governed consumer is precisely its bounded one-user owner.  The
-    # former unconditional defer made a READY Matrix selection wait for a
-    # person to run that existing consumer manually.  Reuse it here, through
-    # its own Candidate/Packet/lease/pre-apply gates, and retain the same
-    # fail-closed terminal projection for every rejected predicate.
+    # It must never enter the ordinary passive/OMP path.  Its existing CT-M0F
+    # consumer has an independently observed Runtime memory ceiling, so the
+    # Matrix owner records a bounded STOP_SAFE instead of re-waking a process
+    # that the kernel has already had to terminate.  The source/target binding
+    # and executor pre-apply gates remain available for the next bounded
+    # Polygon memory correction; no route action is attempted from this state.
     if (
         args.runtime_hot_path_only
         and not source_scope.get("active")
         and source_scope.get("certification_only_active_sources")
     ):
         payload["current_failed_source_scope"] = source_scope
-        payload["ct_m0f_standing_validation_campaign"] = (
-            run_ct_m0f_standing_validation_campaign(
-                str(args.governed_executor),
-                str(args.passive_consumer),
-                state_dir=state_dir,
-                event_dir=Path(args.event_dir),
-                policy_file=Path(args.policy_file),
-                audit_store=Path(args.operator_execution_audit_store),
-                timeout_sec=int(args.passive_consumer_timeout_sec) + 900,
-            )
-            if event_only
-            else wake_existing_controlled_matrix_consumer()
-        )
+        payload["ct_m0f_standing_validation_campaign"] = {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_CONTROLLED_CONSUMER_RUNTIME_MEMORY_LIMIT",
+            "ok": True,
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+            "blockers": ["existing_controlled_consumer_runtime_memory_limit"],
+            "next_required_consumer": "bounded Polygon memory correction through existing CT-M0F owners",
+        }
         ct_m0f_action = payload["ct_m0f_standing_validation_campaign"]
         payload["passive_event_consumer"] = {
             "schema_version": "v7.passive-consumer-liveness.v1",
-            "status": "ORDINARY_PATH_NOT_APPLICABLE_CONTROLLED_OWNER_CONSUMED",
+            "status": "DEFERRED_TO_EXISTING_CONTROLLED_OWNER",
             "ok": bool(ct_m0f_action.get("ok")),
-            "reason": "certification_only_scope_uses_existing_ct_m0f_governed_consumer",
+            "reason": "certification_only_scope_waits_for_bounded_existing_consumer_memory_correction",
             "runtime_mutation_performed": bool(
                 ct_m0f_action.get("runtime_mutation_performed")
             ),

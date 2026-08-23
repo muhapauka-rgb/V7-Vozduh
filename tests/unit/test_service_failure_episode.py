@@ -5102,19 +5102,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("service_failure_automation_consumed_execution_handoff(", pre_executor)
         self.assertNotIn("run_service_failure_omp_consumer(", pre_executor)
 
-    def test_runtime_hot_path_certification_scope_stops_before_known_memory_limit(self):
-        """A certification failure stays bounded while its consumer is repaired."""
+    def test_runtime_hot_path_certification_scope_reenters_one_bounded_sample(self):
+        """N0a permits one existing-owner sample, never the ordinary path."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
         flag = source.index(
-            "# A known certification-only source is not an ordinary customer failure."
+            "# A known certification-only source is not an ordinary customer failure"
         )
         controlled_scope = source.index(
-            "STOP_SAFE_CONTROLLED_CONSUMER_RUNTIME_MEMORY_LIMIT",
+            "run_ct_m0f_standing_validation_campaign(",
             flag,
         )
         branch_end = source.index("    if args.skip_passive_consumer:", controlled_scope)
         early_scope = source[flag:branch_end]
-        self.assertNotIn("run_ct_m0f_standing_validation_campaign(", early_scope)
+        self.assertIn("max_successive_samples=1", early_scope)
         self.assertNotIn("systemctl", early_scope)
         self.assertNotIn("run_service_failure_omp_consumer(", early_scope)
         self.assertNotIn("run_passive_consumer(", early_scope)

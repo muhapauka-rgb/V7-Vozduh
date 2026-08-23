@@ -12414,14 +12414,11 @@ def reset_ct_m0f_standing_validation_sample(
             "ct_m0f_standing_sample_lineage_invalid",
             blockers=sample.get("errors") or [],
         )
-    if sample.get("terminal"):
-        return {
-            "schema_version": "v7.ct-m0f-standing-validation-reset.v1",
-            "final_verdict": "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
-            "sample": sample,
-            "runtime_mutation_performed": False,
-            "users_moved": 0,
-        }
+    existing_terminal = (
+        sample.get("terminal")
+        if isinstance(sample.get("terminal"), dict)
+        else {}
+    )
     reservation = sample["reservation"]
     policy_root = read_json(Path(args.policy_file), {})
     contract = (
@@ -12464,6 +12461,14 @@ def reset_ct_m0f_standing_validation_sample(
             current_egress=current,
             reservation=reservation,
         )
+    if existing_terminal and current == source:
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-reset.v1",
+            "final_verdict": "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
+            "sample": sample,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
 
     reset_transaction: dict[str, Any] = {}
     matrix = read_json(state_dir / "service-matrix.json", {})
@@ -12632,18 +12637,20 @@ def reset_ct_m0f_standing_validation_sample(
             or sample_slo_gate.get("ok") is True
         )
     )
-    terminal = operator_execution.record_ct_m0f_standing_validation_sample_terminal(
-        reservation_id=str(reservation.get("reservation_id") or ""),
-        sample_valid=sample_valid,
-        sample_evidence=evidence,
-        terminal_reason=(
-            "verified_cutover_and_"
-            + recovery_mode.lower()
-            + "_complete"
-            if sample_valid
-            else "sample_forward_evidence_missing_or_invalid_after_safe_reconciliation"
-        ),
-        audit_store=audit_store,
+    terminal = existing_terminal or (
+        operator_execution.record_ct_m0f_standing_validation_sample_terminal(
+            reservation_id=str(reservation.get("reservation_id") or ""),
+            sample_valid=sample_valid,
+            sample_evidence=evidence,
+            terminal_reason=(
+                "verified_cutover_and_"
+                + recovery_mode.lower()
+                + "_complete"
+                if sample_valid
+                else "sample_forward_evidence_missing_or_invalid_after_safe_reconciliation"
+            ),
+            audit_store=audit_store,
+        )
     )
     budget = operator_execution.ct_m0f_standing_validation_budget_status(
         contract,
@@ -12653,6 +12660,9 @@ def reset_ct_m0f_standing_validation_sample(
     return {
         "schema_version": "v7.ct-m0f-standing-validation-reset.v1",
         "final_verdict": (
+            "CT_M0F_STANDING_TERMINAL_RESIDUE_RECONCILED"
+            if existing_terminal and reset_transaction
+            else
             "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED"
             if sample_valid
             else "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID"

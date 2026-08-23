@@ -1832,6 +1832,101 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "ctm0fsample_test",
         )
 
+    def test_ct_m0f_reset_reconciles_terminal_sample_route_residue(self):
+        module = load_cli_module()
+        reservation = {
+            "reservation_id": "ctm0fsample_terminal",
+            "contract_id": "ctm0fsdpc_test",
+            "contract_hash": "h" * 64,
+            "user": "10.7.0.107",
+            "source": "execution-source",
+            "target": "awg3",
+            "implementation_fingerprint": "i" * 64,
+        }
+        terminal = {
+            "reservation_id": reservation["reservation_id"],
+            "sample_valid": False,
+        }
+        args = argparse.Namespace(
+            ct_m0f_standing_validation_reservation_id=(
+                reservation["reservation_id"]
+            ),
+            policy_file="/unused/policy.json",
+        )
+
+        with mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_sample_from_audit",
+            return_value={
+                "ok": True,
+                "terminal": terminal,
+                "reservation": reservation,
+                "forward_evidence": {"sample_evidence": {
+                    "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                }},
+            },
+        ), mock.patch.object(
+            module,
+            "read_json",
+            side_effect=lambda path, default=None: (
+                {module.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": reservation["contract_id"],
+                    "contract_hash": reservation["contract_hash"],
+                }}
+                if str(path).endswith("policy.json")
+                else {"items": {"execution-source": {"services": {
+                    "google": {"status": "OK", "ok": True},
+                }}}}
+            ),
+        ), mock.patch.object(
+            module.operator_execution,
+            "validate_ct_m0f_standing_validation_policy",
+            return_value={"ok": True, "errors": []},
+        ), mock.patch.object(
+            module.operator_execution,
+            "read_audit_records",
+            return_value=[],
+        ), mock.patch.object(
+            module,
+            "read_registry",
+            side_effect=lambda path: (
+                [{"ip": reservation["user"], "current": "awg3"}]
+                if str(path).endswith("users.registry")
+                else [{"id": "execution-source", "enabled": "1"}]
+            ),
+        ), mock.patch.object(
+            module,
+            "execute_governed_transaction_with_guards",
+            return_value={
+                "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                "verification_result": "PASS",
+            },
+        ) as execute, mock.patch.object(
+            module.operator_execution,
+            "record_ct_m0f_standing_validation_sample_terminal",
+        ) as record_terminal, mock.patch.object(
+            module.operator_execution,
+            "ct_m0f_standing_validation_budget_status",
+            return_value={"campaign_complete": False},
+        ):
+            result = module.reset_ct_m0f_standing_validation_sample(
+                args,
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/snapshots"),
+                audit_dir=Path("/audit"),
+                lease_file=Path("/lease.json"),
+            )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_TERMINAL_RESIDUE_RECONCILED",
+        )
+        self.assertEqual(result["sample_terminal"], terminal)
+        self.assertEqual(result["users_moved"], 1)
+        execute.assert_called_once()
+        record_terminal.assert_not_called()
+
     def test_ct_m0f_reset_leaves_user_on_reserve_while_source_is_failed(self):
         """A real failed source cannot use the benchmark return-to-source path."""
         module = load_cli_module()

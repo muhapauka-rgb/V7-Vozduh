@@ -4525,6 +4525,25 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(spans[0]["stage"], "advisory_l3_and_closure_history_load")
         self.assertNotIn("started_monotonic_ns", spans[0])
 
+    def test_matrix_projection_retains_governed_execution_timing(self):
+        timing = {
+            "schema_version": "v7.governed-execution-timing.v1",
+            "status": "MONOTONIC_BREAKDOWN_CONSUMED",
+            "total_ms": 4321.0,
+            "spans": [
+                {"stage": "planner", "duration_ms": 1234.0},
+                {"stage": "apply_and_verification", "duration_ms": 3087.0},
+            ],
+        }
+        projected = self.refresh._consumer_projection({
+            "consumer_result": {
+                "status": "ACTION_COMPLETED",
+                "execution_timing": timing,
+            },
+        })["consumer_result"]
+
+        self.assertEqual(projected["execution_timing"], timing)
+
     def test_matrix_projection_retains_bounded_cohort_policy_stop_reason(self):
         projected = self.refresh._consumer_projection({
             "consumer_result": {

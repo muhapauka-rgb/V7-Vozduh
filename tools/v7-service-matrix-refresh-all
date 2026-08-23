@@ -4086,6 +4086,13 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         )
         if result.get(key) not in (None, "", [], {})
     }
+    execution_timing = result.get("execution_timing")
+    if isinstance(execution_timing, dict) and execution_timing:
+        # This is already the governed caller's bounded monotonic receipt.
+        # Preserve it in the existing Matrix lifecycle projection so a failed
+        # latency sample can be attributed without replaying an apply or
+        # creating another metrics/state owner.
+        compact_result["execution_timing"] = execution_timing
     prepared = result.get("prepared_class_decisions") or value.get("prepared_class_decisions")
     if isinstance(prepared, dict) and prepared:
         compact_result["prepared_class_decisions"] = prepared

@@ -5016,6 +5016,16 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertTrue(eligibility["ct_m0f_standing_reset_scope"]["ok"])
         ordinary_evidence.assert_not_called()
 
+    def test_ct_m0f_standing_reset_reads_rotated_live_lineage(self):
+        source = (ROOT / "tools" / "v7-users-autoswitch").read_text(
+            encoding="utf-8"
+        )
+        start = source.index("def _exact_ct_m0f_standing_reset_scope")
+        end = source.index("def _activate_controlled_verifier_contention", start)
+        reset_scope = source[start:end]
+        self.assertIn("read_live_execution_lineage_records", reset_scope)
+        self.assertNotIn("read_audit_records(audit_store)", reset_scope)
+
     def test_l3_execution_stops_safe_when_target_lost_before_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

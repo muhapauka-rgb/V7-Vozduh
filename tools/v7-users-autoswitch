@@ -4302,7 +4302,14 @@ class AutoswitchPlanner:
         contract_validation = (
             operator_execution.validate_ct_m0f_standing_validation_policy(
                 contract,
-                audit_records=operator_execution.read_audit_records(audit_store),
+                # Use the same rotated-family lineage reader as the outer
+                # CT-M0F reset owner. Reading only the current audit segment
+                # loses the standing-policy admission after rotation and can
+                # incorrectly bind an exact baseline reset to another open
+                # source incident.
+                audit_records=operator_execution.read_live_execution_lineage_records(
+                    audit_store
+                ),
             )
         )
         reasons = list(contract_validation.get("errors") or [])
@@ -12732,6 +12739,7 @@ class AutoswitchPlanner:
                 "availability_first_controlled_scope": (
                     availability_first_scope
                 ),
+                "ct_m0f_standing_reset_scope": ct_m0f_reset_scope,
             }
         return {
             "present": True,

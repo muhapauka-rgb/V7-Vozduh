@@ -4052,6 +4052,116 @@ class AutoswitchPlanner:
             )
         return self._standing_policy_audit_records_cache
 
+    def revalidate_committed_apply_plan(
+        self,
+        apply_args: argparse.Namespace,
+    ) -> dict[str, Any]:
+        """Revalidate one Packet-locked move without rebuilding Planner.
+
+        The governed caller has already used this exact owner to select the
+        Candidate, then materialized the immutable Packet, lease and restore
+        barrier.  Starting a second Planner process and rebuilding the same
+        policy/world projection adds latency without adding independence.
+        Reuse the owner instance, but reload every mutable execution input and
+        re-run ``plan`` so the approved lock, current registry, Matrix,
+        snapshots, policy lineage and control gates are still consumed fresh.
+        A policy-file change fails closed instead of mixing generations.
+        """
+        started_ns = time.monotonic_ns()
+        current_policy = read_json(Path(apply_args.policy_file), {})
+        current_org_policy = read_json(Path(apply_args.org_policy_file), {})
+        if sha256_json(current_policy) != sha256_json(self.policy):
+            raise RuntimeError("committed_apply_policy_generation_changed")
+        if sha256_json(current_org_policy) != sha256_json(self.org_policy):
+            raise RuntimeError("committed_apply_org_policy_generation_changed")
+
+        self.args = apply_args
+        self.operation_started_at = now_iso()
+        self.event_dir = Path(apply_args.event_dir)
+        self.state_dir = Path(apply_args.state_dir)
+        self.intelligence_snapshot_root = Path(
+            apply_args.intelligence_snapshot_root
+        )
+        self.restore_barrier_file = Path(apply_args.restore_barrier_file)
+        self.safety_file = Path(apply_args.safety_file)
+        self.l3_runtime_state_file = self.state_dir / "l3-runtime-state.json"
+        self.l3_capability_state_file = (
+            self.state_dir / "l3-capability-state.json"
+        )
+
+        self.l3_runtime_state = self._load_l3_runtime_state()
+        self.state = read_json(self.state_dir / "v7-state.json", {})
+        self.quality_summary = read_json(
+            Path(apply_args.quality_summary_file), {"items": {}}
+        )
+        self.speed = read_json(
+            self.state_dir / "egress-speed.json", {"items": {}}
+        )
+        self.client_speed = read_json(
+            self.state_dir / "client-speed.json", {"users": {}}
+        )
+        self.matrix = read_json(
+            self.state_dir / "service-matrix.json", {"items": {}}
+        )
+        self.telegram_sentinel = read_json(
+            Path(apply_args.telegram_sentinel_file), {"items": {}}
+        )
+        self.vless_activity = read_json(
+            Path(apply_args.vless_activity_file), {}
+        )
+        self.service_prefs = read_json(
+            self.state_dir / "service-preferences.json", {}
+        )
+        self.safety_state = self._load_safety()
+        self.restore_barrier = self._restore_barrier_status()
+        self.generation = self._generation_status()
+        self.pre_planner_refresh = self._run_pre_planner_refresh()
+        if self.pre_planner_refresh.get("stop_required"):
+            raise RuntimeError("committed_apply_snapshot_refresh_stop_safe")
+        self.intelligence_snapshots = self._load_intelligence_snapshots()
+        self._snapshot_items_cache = {}
+
+        # Exact incident execution is already identity-bound by Matrix and
+        # Packet.  The mutable registry is the assignment owner; the broad
+        # diagnostic v7-state projection must not overwrite it.
+        self.users = self._load_runtime_registry_users()
+        self.egress = self._load_egress()
+        self._sync_egress_user_counts()
+        self.last_switch = self._last_switches()
+        self.group_usage = self._group_usage()
+        self.dynamic_load = self._dynamic_load_summary()
+        self.reconnect_state_file = Path(apply_args.reconnect_state_file)
+        self.reconnect_state = self._load_reconnect_state()
+        self.reconnect_events = self._observe_reconnect_events()
+        self._routing_intelligence_cache = {}
+        self._active_execution_control = {}
+        self.controlled_campaign_target_admission = (
+            controlled_campaign_execution_target_admission(apply_args)
+        )
+
+        # Force the standing-decision reader through its exact decision-aware
+        # freshness key.  The underlying process cache is reused only when the
+        # append-only lineage file signature is unchanged.
+        self._standing_policy_audit_records_cache = None
+        self.switch_policy = self._switch_policy()
+        self.authority_budget_policy = self._authority_budget_policy()
+        self.emergency_failover_policy = self._emergency_failover_policy()
+        self._record_performance_span(
+            "committed_apply_mutable_owner_revalidation",
+            started_ns,
+            owner=(
+                "existing Matrix/registry/policy/snapshot/Packet-barrier "
+                "owners"
+            ),
+            details={
+                "new_planner_instance_created": False,
+                "candidate_reused": True,
+                "mutable_execution_inputs_reloaded": True,
+                "policy_generation_equal": True,
+            },
+        )
+        return self.plan()
+
     def performance_timeline(self) -> dict[str, Any]:
         return {
             "schema_version": "v7.governed-transaction-nested-timing.v1",

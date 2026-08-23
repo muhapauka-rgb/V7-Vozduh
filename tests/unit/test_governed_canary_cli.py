@@ -5858,6 +5858,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     },
                 }
 
+            def revalidate_committed_apply_plan(self, args):
+                self.args = args
+                return self.plan()
+
             def apply(self, _plan):
                 return {
                     "applied": True,
@@ -5912,10 +5916,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertFalse(
             result["performance_forensics"]["new_runtime_process_created"]
         )
-        self.assertEqual(
-            created[-1].args._standing_policy_lineage_reuse["records"],
-            [{"decision_id": "decision-current"}],
-        )
+        self.assertEqual(len(created), 1)
+        self.assertIs(created[-1], prior)
 
     def test_run_autoswitch_apply_marks_timeout_without_claiming_no_effect(self):
         module = load_cli_module()

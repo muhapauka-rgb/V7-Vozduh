@@ -3396,31 +3396,15 @@ def run_autoswitch_apply(
         plan: dict[str, Any] = {}
         try:
             apply_args = module.build_arg_parser().parse_args(command[1:])
-            prior_records = getattr(
-                prior_planner,
-                "_standing_policy_audit_records_cache",
-                None,
-            )
-            prior_contract = (
-                (getattr(prior_planner, "policy", {}) or {}).get(
-                    "delegated_autonomy_policy"
+            if prior_planner is None or not hasattr(
+                prior_planner, "revalidate_committed_apply_plan"
+            ):
+                raise RuntimeError(
+                    "in_process_committed_planner_runtime_unavailable"
                 )
-                if isinstance(
-                    (getattr(prior_planner, "policy", {}) or {}).get(
-                        "delegated_autonomy_policy"
-                    ),
-                    dict,
-                )
-                else {}
-            )
-            if isinstance(prior_records, list):
-                apply_args._standing_policy_lineage_reuse = {
-                    "contract_hash": module.sha256_json(prior_contract),
-                    "records": prior_records,
-                }
-            planner = module.AutoswitchPlanner(apply_args)
+            planner = prior_planner
             planner_entry_started_ns = time.monotonic_ns()
-            plan = planner.plan()
+            plan = planner.revalidate_committed_apply_plan(apply_args)
             planner._record_performance_span(
                 "planner_entry_target_capacity_and_allocation",
                 planner_entry_started_ns,

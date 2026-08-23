@@ -68,6 +68,87 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
             calls = ip_log.read_text(encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
+        self.assertIn("rule add pref 100 from 10.7.0.2 table 100", calls)
+
+    def test_existing_exact_policy_rule_is_not_duplicated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            ip = root / "bin" / "ip"
+            ip.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' \"$*\" >> '{ip_log}'\n"
+                "if [ \"$*\" = \"-4 rule show\" ]; then "
+                "printf '100: from 10.7.0.2 lookup 100\\n'; fi\n",
+                encoding="utf-8",
+            )
+            ip.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+            })
+            result = subprocess.run(
+                [str(SCRIPT), "10.7.0.2", "vless"],
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("rule add", calls)
+
+    def test_policy_rule_failure_restores_previous_route(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            lib = root / "v7-egress-lib"
+            lib.write_text(
+                lib.read_text(encoding="utf-8").replace(
+                    "v7_egress_interface(){ printf 'tun0\\n'; }",
+                    "v7_egress_interface(){ if [ \"$1\" = \"1\" ]; then printf 'old0\\n'; else printf 'tun0\\n'; fi; }",
+                ),
+                encoding="utf-8",
+            )
+            ip = root / "bin" / "ip"
+            ip.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' \"$*\" >> '{ip_log}'\n"
+                "if [ \"$1 $2\" = \"rule add\" ]; then exit 2; fi\n",
+                encoding="utf-8",
+            )
+            ip.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+            })
+            result = subprocess.run(
+                [str(SCRIPT), "10.7.0.2", "vless"],
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(
+            "V7_ROUTE_WRITE_FAILURE=ROUTE_POLICY_RULE_WRITE_FAILED_ROUTE_RESTORED",
+            result.stdout,
+        )
+        self.assertIn("route replace default dev tun0 table 100", calls)
+        self.assertIn("route replace default dev old0 table 100", calls)
 
     def test_route_write_failure_is_safe_and_classified(self):
         with tempfile.TemporaryDirectory() as tmp:

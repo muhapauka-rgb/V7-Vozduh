@@ -46,6 +46,7 @@ if ! v7_egress_enabled "$EGRESS"; then
 fi
 dev="$(v7_egress_interface "$EGRESS" || true)"
 [ -n "$dev" ] || { echo "V7_ROUTE_WRITE_FAILURE=ROUTE_EGRESS_INTERFACE_MISSING"; exit 1; }
+from_dev="$(v7_egress_interface "$current" || true)"
 
 CONTROL_GENERATION="${V7_EXECUTION_CONTROL_GENERATION:-}"
 MUTATION_KIND="${V7_EXECUTION_MUTATION_KIND:-}"
@@ -116,6 +117,22 @@ if ! route_write_error="$(ip route replace default dev "$dev" table "$table" 2>&
   esac
   echo "V7_ROUTE_WRITE_FAILURE=$route_write_failure"
   exit 1
+fi
+# The per-user routing table is ineffective without its source rule.  Reuse
+# this existing low-level owner to keep both kernel primitives coherent for
+# the exact governed user.  Existing rules are preserved; only a missing
+# exact source/table binding is added.
+ip_rules="$(ip -4 rule show 2>/dev/null || true)"
+if ! printf '%s\n' "$ip_rules" | grep -Fq "from $USER_IP lookup $table" \
+  && ! printf '%s\n' "$ip_rules" | grep -Fq "from $USER_IP/32 lookup $table"; then
+  if ! rule_write_error="$(ip rule add pref "$table" from "$USER_IP" table "$table" 2>&1)"; then
+    if [ -n "$from_dev" ] && ip route replace default dev "$from_dev" table "$table" >/dev/null 2>&1; then
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_POLICY_RULE_WRITE_FAILED_ROUTE_RESTORED"
+    else
+      echo "V7_ROUTE_WRITE_FAILURE=ROUTE_POLICY_RULE_WRITE_FAILED_ROLLBACK_FAILED"
+    fi
+    exit 1
+  fi
 fi
 if [ -r /proc/uptime ]; then
   read -r V7_ROUTE_WRITE_COMPLETED _ < /proc/uptime

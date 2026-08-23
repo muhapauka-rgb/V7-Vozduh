@@ -5076,6 +5076,40 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(captured["command"][refresh_index + 1], "off")
         self.assertNotIn("--pre-planner-refresh-command", captured["command"])
 
+    def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):
+        module = load_cli_module()
+        captured = {}
+
+        class FakeProc:
+            returncode = 0
+            stdout = "{}"
+            stderr = ""
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return FakeProc()
+
+        with mock.patch.object(module.subprocess, "run", side_effect=fake_run):
+            module.run_l3_production_validation_plan(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path("/state/autoswitch-restore-barrier.json"),
+                max_users=1,
+                source="vless",
+                target="awg0",
+                refresh_snapshots=True,
+            )
+
+        command = captured["command"]
+        refresh_index = command.index("--pre-planner-refresh")
+        self.assertEqual(command[refresh_index + 1], "write")
+        refresh_command_index = command.index("--pre-planner-refresh-command")
+        self.assertIn(
+            "v7-intelligence-snapshot-refresh",
+            command[refresh_command_index + 1],
+        )
+
     def test_compact_transaction_result_retains_bounded_planner_diagnosis(self):
         module = load_cli_module()
         compact = module.compact_transaction_result({

@@ -764,16 +764,12 @@ def run_l3_production_validation_plan(
     target: str = "",
     campaign_request_id: str = "",
     campaign_request_hash: str = "",
+    refresh_snapshots: bool = False,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
-        # The current snapshot bundle already has its own source-hash and
-        # freshness gate.  Writing a new engineering snapshot before every
-        # ordinary service-failure decision placed a slow, contended producer
-        # on the client-switching path.  Reuse the existing read-only gate;
-        # stale or mismatched inputs remain STOP_SAFE inside the Planner.
         "--pre-planner-refresh",
-        "off",
+        "write" if refresh_snapshots else "off",
         "--emergency-failover-autonomy",
         "--mode",
         "guarded",
@@ -794,6 +790,15 @@ def run_l3_production_validation_plan(
         "--service-matrix-lock-timeout-sec",
         "5",
     ]
+    if refresh_snapshots:
+        # Controlled certification can move a cohort immediately before the
+        # next sample.  Refresh through the existing snapshot owner once so
+        # Planner identities match the current registry.  Ordinary incident
+        # handling keeps the zero-write fast path above.
+        command.extend([
+            "--pre-planner-refresh-command",
+            str(snapshot_refresh_executable()),
+        ])
     if source:
         command.extend(["--source-egress", source])
     if target:
@@ -5394,6 +5399,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 or ""
             )
         ),
+        refresh_snapshots=bool(ct_m0f_standing_requested or availability_mode),
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",

@@ -584,8 +584,16 @@ parallel health truth or unbounded work.
 This document contract makes eventual zero superseded Runtime residue binding;
 it does not claim current Runtime already satisfies the N11 terminal.
 
-The next executable V5.3 action after this amendment is **N0a**, not a timer
-or cadence increase.
+`N0a` completed at deployed commit `f42e2908` with bounded Runtime evidence in
+`docs/reports/engineering/2026-08-23_131740_v5_3_n0a_runtime_memory_envelope.md`.
+The former 1.7 GiB OOM path now remains below 180 MiB in the current-state
+Polygon and performs no automatic retry. This closes only the execution-memory
+prerequisite; it does not admit a target, Runtime trigger, route change or S11.
+
+The next executable V5.3 block is **N1–N4**: current signal inventory,
+definitive-versus-ambiguous predicates, role/profile cadence tournament and
+Matrix-owned MODE A versus MODE B confirmation/direct-T0 decision. It is not a
+timer enablement or cadence increase.
 
 ### V5.3 integrated T0–T11 latency-optimization track
 

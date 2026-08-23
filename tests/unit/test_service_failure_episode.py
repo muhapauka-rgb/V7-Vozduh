@@ -405,6 +405,94 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "next ordinary Matrix generation",
         )
 
+        selection_calls = {"count": 0}
+        successor_calls = []
+
+        def fake_successor_run(command, **_kwargs):
+            successor_calls.append(command)
+            if "--controlled-target-selection-diagnostic" in command:
+                payload = {}
+            elif "--ct-m0f-standing-source-selection" in command:
+                selection_calls["count"] += 1
+                payload = {
+                    "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_READY",
+                    "ok": True,
+                    "selection_mode": (
+                        "PREPARE_CONTROLLED_FAILURE_CONDITION"
+                        if selection_calls["count"] == 1
+                        else "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+                    ),
+                    "selected_source_id": "exec-source",
+                    "selected_user": "10.7.0.18",
+                    "selected_target_id": "vless",
+                    "sample_binding_fingerprint": "b" * 64,
+                }
+            elif "--prepare-ct-m0f-standing-controlled-condition" in command:
+                payload = {
+                    "final_verdict": "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+                    "runtime_mutation_performed": True,
+                    "users_moved": 1,
+                }
+            else:
+                payload = {
+                    "final_verdict": "STOP_SAFE",
+                    "stop_reason": "no_sample_reserved_in_unit_test",
+                    "runtime_mutation_performed": False,
+                    "users_moved": 0,
+                }
+            return self.refresh.subprocess.CompletedProcess(
+                command, 0 if payload.get("final_verdict") != "STOP_SAFE" else 2,
+                stdout=json.dumps(payload),
+            )
+
+        ready_scope = {
+            "certification_only_active_sources": [{
+                "channel": "exec-source",
+                "source_currently_failed": True,
+            }],
+        }
+        with mock.patch.object(
+            self.refresh.subprocess, "run", side_effect=fake_successor_run,
+        ), mock.patch.object(
+            self.refresh, "current_failed_source_scope", return_value=ready_scope,
+        ), mock.patch.object(
+            self.refresh,
+            "read_json",
+            return_value={
+                self.refresh.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: {
+                    "contract_id": "ctm0fsdpc_unit",
+                    "contract_hash": "h" * 64,
+                },
+            },
+        ), mock.patch.object(
+            self.refresh.operator_execution,
+            "validate_ct_m0f_standing_validation_policy",
+            return_value={"ok": True, "errors": []},
+        ), mock.patch.object(
+            self.refresh.operator_execution,
+            "read_live_execution_lineage_records",
+            return_value=[],
+        ):
+            successor = self.refresh.run_ct_m0f_standing_validation_campaign(
+                "governed-executor",
+                "existing-planner",
+                state_dir=state,
+                event_dir=events,
+                policy_file=policy,
+                audit_store=audit,
+                max_successive_samples=2,
+                controlled_successor_wait_sec=0.2,
+            )
+
+        self.assertEqual(
+            successor["automatic_failure_successor_reentry"]["status"],
+            "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
+        )
+        self.assertTrue(any(
+            "--execute-l3-production-validation" in command
+            for command in successor_calls
+        ))
+
     def test_ct_m0f_no_sample_admission_retains_predicate_receipt_in_matrix_projection(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory() as tmp:
@@ -5150,7 +5238,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         branch_end = source.index("    if args.skip_passive_consumer:", controlled_scope)
         early_scope = source[flag:branch_end]
-        self.assertIn("max_successive_samples=1", early_scope)
+        self.assertIn("max_successive_samples=2", early_scope)
+        self.assertIn("controlled_successor_wait_sec=3.0", early_scope)
+        self.assertIn(
+            "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
+            REFRESH_TOOL.read_text(encoding="utf-8"),
+        )
         self.assertNotIn("systemctl", early_scope)
         self.assertNotIn("run_service_failure_omp_consumer(", early_scope)
         self.assertNotIn("run_passive_consumer(", early_scope)

@@ -1281,6 +1281,7 @@ def run_ct_m0f_standing_validation_campaign(
     audit_store: Path,
     timeout_sec: int = 600,
     max_successive_samples: int = 8,
+    controlled_successor_wait_sec: float = 0.0,
 ) -> dict[str, Any]:
     """Consume the bounded CT-M0F standing policy through existing owners.
 
@@ -1616,6 +1617,7 @@ def run_ct_m0f_standing_validation_campaign(
             audit_store=audit_store,
             timeout_sec=timeout_sec,
             max_successive_samples=remaining_successors,
+            controlled_successor_wait_sec=0.0,
         )
         merged = dict(successor)
         merged["steps"] = list(closure.get("steps") or []) + list(
@@ -1754,6 +1756,69 @@ def run_ct_m0f_standing_validation_campaign(
             and prepared.get("final_verdict")
             == "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED"
         )
+        if (
+            passed
+            and int(max_successive_samples) > 1
+            and float(controlled_successor_wait_sec) > 0.0
+        ):
+            # The controlled-condition owner removes the interface while this
+            # systemd service is still active. The hard-signal producer can
+            # therefore persist T0 but `systemctl start` cannot create a
+            # second instance. Consume that already-durable successor inside
+            # the same existing owner with a strict time and recursion bound.
+            deadline = time.monotonic() + min(
+                5.0, max(0.1, float(controlled_successor_wait_sec))
+            )
+            successor_scope: dict[str, Any] = {}
+            while time.monotonic() < deadline:
+                successor_scope = current_failed_source_scope(
+                    event_dir, state_dir,
+                )
+                controlled_sources = [
+                    row for row in (
+                        successor_scope.get("certification_only_active_sources")
+                        or []
+                    )
+                    if isinstance(row, dict)
+                ]
+                if any(
+                    str(row.get("channel") or "") == selected_source
+                    and bool(row.get("source_currently_failed"))
+                    for row in controlled_sources
+                ):
+                    successor = run_ct_m0f_standing_validation_campaign(
+                        executor,
+                        planner,
+                        state_dir=state_dir,
+                        event_dir=event_dir,
+                        policy_file=policy_file,
+                        audit_store=audit_store,
+                        timeout_sec=timeout_sec,
+                        max_successive_samples=max(
+                            1, int(max_successive_samples) - 1,
+                        ),
+                        controlled_successor_wait_sec=0.0,
+                    )
+                    merged = dict(successor)
+                    merged["controlled_condition_predecessor"] = prepared
+                    merged["automatic_failure_successor_reentry"] = {
+                        "status": "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
+                        "source": selected_source,
+                        "wait_budget_seconds": min(
+                            5.0,
+                            max(0.1, float(controlled_successor_wait_sec)),
+                        ),
+                        "new_timer_or_queue_created": False,
+                    }
+                    merged["runtime_mutation_performed"] = bool(
+                        prepared.get("runtime_mutation_performed")
+                        or successor.get("runtime_mutation_performed")
+                    )
+                    merged["users_moved"] = int(
+                        prepared.get("users_moved") or 0
+                    ) + int(successor.get("users_moved") or 0)
+                    return merged
+                time.sleep(0.1)
         return {
             "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
             "status": (
@@ -5369,7 +5434,8 @@ def main() -> int:
                 policy_file=Path(args.policy_file),
                 audit_store=Path(args.operator_execution_audit_store),
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 900,
-                max_successive_samples=1,
+                max_successive_samples=2,
+                controlled_successor_wait_sec=3.0,
             )
         )
         ct_m0f_action = payload["ct_m0f_standing_validation_campaign"]

@@ -2869,6 +2869,37 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             )
         self.assertEqual([row["event_id"] for row in result], ["evt_4", "evt_5"])
 
+    def test_runtime_service_failure_window_never_materializes_complete_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "service-failure-events.jsonl"
+            rows = [
+                {"event_id": f"evt_{index}", "padding": "x" * 1024}
+                for index in range(5000)
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.autoswitch,
+                "read_jsonl",
+                wraps=self.autoswitch.read_jsonl,
+            ) as bounded_reader:
+                result = self.autoswitch.read_service_failure_event_window(
+                    path, limit=3,
+                )
+        self.assertEqual(
+            [row["event_id"] for row in result],
+            ["evt_4997", "evt_4998", "evt_4999"],
+        )
+        bounded_reader.assert_called_once()
+        self.assertEqual(bounded_reader.call_args.kwargs["tail_limit"], 3)
+        self.assertGreater(bounded_reader.call_args.kwargs["tail_max_bytes"], 0)
+        self.assertLessEqual(
+            bounded_reader.call_args.kwargs["tail_max_bytes"],
+            self.autoswitch.SERVICE_FAILURE_EVENT_WINDOW_MAX_BYTES,
+        )
+
     def test_jsonl_exact_schema_reader_keeps_complete_matching_lineage(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "execution-events.jsonl"

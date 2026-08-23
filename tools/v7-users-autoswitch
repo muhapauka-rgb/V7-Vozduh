@@ -53,6 +53,9 @@ DEFAULT_RECONNECT_STATE_FILE = DEFAULT_STATE_DIR / "client-reconnect-state.json"
 DEFAULT_VLESS_ACTIVITY_FILE = DEFAULT_STATE_DIR / "vless-activity.json"
 DEFAULT_LOAD_SUMMARY_FILE = DEFAULT_STATE_DIR / "egress-load-summary.json"
 DEFAULT_RESTORE_BARRIER_FILE = DEFAULT_STATE_DIR / "autoswitch-restore-barrier.json"
+SERVICE_FAILURE_EVENT_WINDOW_LIMIT = 20_000
+SERVICE_FAILURE_EVENT_WINDOW_MIN_BYTES = 4_000_000
+SERVICE_FAILURE_EVENT_WINDOW_MAX_BYTES = 32_000_000
 DEFAULT_EGRESS_DRAFTS_DIR = Path("/etc/v7/egress-drafts")
 DEFAULT_EXECUTION_CONTROL_FILE = operator_execution.DEFAULT_AUTONOMOUS_EXECUTION_CONTROL_FILE
 DEFAULT_SERVICE_MATRIX_LOCK_TIMEOUT_SECONDS = 90
@@ -2323,6 +2326,36 @@ def read_jsonl(
     return rows[-tail_limit:] if tail_limit > 0 else rows
 
 
+def read_service_failure_event_window(
+    path: Path,
+    *,
+    limit: int = SERVICE_FAILURE_EVENT_WINDOW_LIMIT,
+) -> list[dict[str, Any]]:
+    """Read a bounded recent window from the canonical failure-event owner.
+
+    The production journal is append-only and can grow to hundreds of
+    megabytes. Runtime decisions need only recent Matrix evidence, so loading
+    the complete journal is both unnecessary and unsafe. This remains a
+    projection of the same owner: no cache, registry or alternate truth is
+    introduced, and absence from the bounded fresh window fails closed.
+    """
+    bounded_limit = max(
+        1, min(int(limit or 1), SERVICE_FAILURE_EVENT_WINDOW_LIMIT)
+    )
+    max_bytes = max(
+        SERVICE_FAILURE_EVENT_WINDOW_MIN_BYTES,
+        min(
+            SERVICE_FAILURE_EVENT_WINDOW_MAX_BYTES,
+            bounded_limit * 4096,
+        ),
+    )
+    return read_jsonl(
+        Path(path),
+        tail_limit=bounded_limit,
+        tail_max_bytes=max_bytes,
+    )
+
+
 def read_jsonl_exact_schema(path: Path, schema_version: str) -> tuple[list[dict[str, Any]], bool]:
     """Stream one immutable JSONL owner and materialize only one exact schema.
 
@@ -2888,7 +2921,9 @@ def ct_m0f_active_service_failure_binding_projection(
         now = datetime.now(timezone.utc)
         event_rows = cache.get("service_failure_events")
         if not isinstance(event_rows, list):
-            event_rows = read_jsonl(Path(event_dir) / "service-failure-events.jsonl")
+            event_rows = read_service_failure_event_window(
+                Path(event_dir) / "service-failure-events.jsonl",
+            )
             cache["service_failure_events"] = event_rows
         for event in reversed(event_rows):
             if str(event.get("event_type") or "") not in {
@@ -5130,7 +5165,9 @@ class AutoswitchPlanner:
             return binding
         event_dir = getattr(self, "event_dir", self.state_dir.parent / "events")
         event_path = Path(event_dir) / "service-failure-events.jsonl"
-        for event in reversed(read_jsonl(event_path)[-2000:]):
+        for event in reversed(
+            read_service_failure_event_window(event_path, limit=2000)
+        ):
             if str(event.get("event_id") or "") != event_id:
                 continue
             event_scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
@@ -6671,7 +6708,12 @@ class AutoswitchPlanner:
         ]
         now = time.time()
         for path in paths:
-            for event in read_jsonl(path)[-200:]:
+            event_window = (
+                read_service_failure_event_window(path, limit=200)
+                if path.name == "service-failure-events.jsonl"
+                else read_jsonl(path, tail_limit=200, tail_max_bytes=4_000_000)
+            )
+            for event in event_window:
                 source = self._l3_normalized_wake_source(
                     event.get("wake_source")
                     or event.get("source")
@@ -15261,7 +15303,7 @@ class AutoswitchPlanner:
 
         path = self.event_dir / "service-failure-events.jsonl"
         source_window_started_ns = time.monotonic_ns()
-        source_rows = read_jsonl(path, tail_limit=2000, tail_max_bytes=16_000_000)
+        source_rows = read_service_failure_event_window(path, limit=2000)
         record_passive_substep("passive_event_source_window_load", source_window_started_ns)
         persistence_samples = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_samples"), 3))
         persistence_window = max(1, to_int(self.service_signal_policy.get("service_failure_persistence_window_seconds"), 180))

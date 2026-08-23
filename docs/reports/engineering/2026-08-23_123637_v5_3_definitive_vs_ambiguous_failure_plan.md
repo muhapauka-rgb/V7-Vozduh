@@ -69,10 +69,24 @@ None. No Runtime, Matrix implementation, timer, cadence, route, client, state,
 owner, Authority, CPS or OMP value changed. The correction adds a mandatory
 future Polygon decision gate; it does not preselect direct T0.
 
+## Validation and publication
+
+- `git diff --check`: PASS before publication.
+- Program contradiction scan: the former blanket `L0/L1/L2 -> SUSPECT only`
+  rule is replaced by the gated certainty split; Telegram and all other
+  ambiguous evidence still require independent confirmation.
+- `tools/v7-truth-check --all --json`: CPS, OMP, local workspace and Runtime
+  consistency PASS; zero internal contradictions; documentation-only Runtime
+  mismatch accepted and no deploy required.
+- Commit `83a02aad838200906127012f6863e78e5752e596` was pushed to
+  `origin/Updatesystem` and independently resolved through the GitHub API.
+- The truth-check GitHub sub-check remained `GITHUB_NO_GO` only because its own
+  sandboxed remote read could not reach GitHub; the independent authenticated
+  API read proved the exact published branch commit.
+
 ## Exact next step
 
 The current Program frontier remains N0a. In the admitted N1/N4 work, inventory
 the existing L0 producers and classify each observable fact by provenance,
 freshness, source identity, generation continuity and conflict behavior; then
 build the shared `MODE A` versus `MODE B` Polygon cases before changing Runtime.
-

@@ -1573,6 +1573,67 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertIn("packet_id_missing", result["blockers"])
         self.assertIn("lease_id_missing", result["blockers"])
 
+    def test_ct_m0f_apply_emits_exact_evidence_on_route_verification_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="1")
+            args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--verify",
+                    "--rollback-on-verify-fail",
+                    "--ct-m0f-kernel-cutover-validation",
+                    "--max-selected-moves",
+                    "1",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = {
+                "enabled": True,
+                "mode": "guarded",
+                "operation": {
+                    "operation_id": "op-ct-m0f-route-failure",
+                    "selected_move_hash": "hash-ct-m0f-route-failure",
+                },
+                "selected_moves": [{
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "1",
+                    "recommended_egress": "vless",
+                    "move_type": "failover",
+                }],
+                "summary": {"selected_moves": 1},
+                "safety": {},
+            }
+            planner._validate_atomic_execution_envelope = lambda _plan: {"ok": True}
+            planner._l3_execution_eligibility = lambda _plan: {
+                "ok": True,
+                "active": False,
+            }
+            planner._run_switch = lambda *_args: subprocess.CompletedProcess(
+                ["v7-user-switch"], 0, stdout="ok\n"
+            )
+            planner._verify_routes_for_apply = lambda *_args: subprocess.CompletedProcess(
+                ["v7-user-route-check"], 1, stdout="route failed\n"
+            )
+            planner._ct_m0f_kernel_cutover_evidence = mock.Mock(
+                return_value={
+                    "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
+                    "ok": False,
+                    "blockers": ["exact_user_route_verification_required"],
+                }
+            )
+
+            result = planner.apply(plan)
+
+        evidence = result["results"][0]["ct_m0f_kernel_cutover_evidence"]
+        self.assertFalse(evidence["ok"])
+        self.assertEqual(
+            evidence["blockers"],
+            ["exact_user_route_verification_required"],
+        )
+        planner._ct_m0f_kernel_cutover_evidence.assert_called_once()
+
     def test_ct_m0f_cutover_reuses_controlled_condition_and_nested_registry_ip(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

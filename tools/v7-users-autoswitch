@@ -15231,7 +15231,16 @@ class AutoswitchPlanner:
                         )[:8]
                 row["route_visibility_timing"] = route_visibility_span
                 service_verify = None
-                if verify.returncode == 0 and emergency_mode:
+                ct_m0f_cutover_requested = bool_value(
+                    getattr(
+                        self.args,
+                        "ct_m0f_kernel_cutover_validation",
+                        False,
+                    )
+                )
+                if verify.returncode == 0 and (
+                    emergency_mode or ct_m0f_cutover_requested
+                ):
                     controlled_condition = None
                     if bool_value(getattr(self.args, "controlled_verifier_contention", False)):
                         controlled_condition = self._activate_controlled_verifier_contention(move, operation_id)
@@ -15265,10 +15274,15 @@ class AutoswitchPlanner:
                             row["service_probe_nested_timing"] = service_payload["performance_timeline"]
                     row["service_verify_rc"] = service_verify.returncode
                     row["service_verify_output"] = service_verify.stdout[-4000:]
-                    if service_verify.returncode == 0:
-                        row["ct_m0f_kernel_cutover_evidence"] = (
-                            self._ct_m0f_kernel_cutover_evidence(plan, move, row)
-                        )
+                # CT-M0F owns a bounded diagnostic sample even when route or
+                # service verification fails.  Always return that exact
+                # consumer evidence so the parent can close the reservation
+                # with the real blocker instead of reporting that the route
+                # consumer emitted nothing.
+                if ct_m0f_cutover_requested:
+                    row["ct_m0f_kernel_cutover_evidence"] = (
+                        self._ct_m0f_kernel_cutover_evidence(plan, move, row)
+                    )
                 verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)
                 if verification_failed and self.args.rollback_on_verify_fail:
                     row["verification_failure_reason"] = "route_verify_failed"

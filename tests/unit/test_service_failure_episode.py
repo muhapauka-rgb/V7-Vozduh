@@ -740,6 +740,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             event = {
                 "event_id": "sfe_vless_current",
                 "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "service": "youtube",
                 "observed_at": now,
                 "channel": "vless",
                 "source_incident_id": "sfinc_vless_current",
@@ -814,6 +815,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 (events / "service-failure-events.jsonl").write_text(json.dumps({
                     "event_id": "sfrev_old_scope",
                     "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "service": "youtube",
                     "observed_at": now,
                     "channel": "vless",
                     "source_incident_id": "sfinc_vless_current",
@@ -918,6 +920,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 (events / "service-failure-events.jsonl").write_text(json.dumps({
                     "event_id": "sfrev_case",
                     "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "service": "youtube",
                     "observed_at": case["event_at"],
                     "channel": "vless",
                     "source_incident_id": case["event_incident"],
@@ -990,6 +993,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             (events / "service-failure-events.jsonl").write_text(json.dumps({
                 "event_id": "sfe_vless_current",
                 "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "service": "youtube",
                 "observed_at": now,
                 "channel": "vless",
                 "source_incident_id": "sfinc_vless_current",

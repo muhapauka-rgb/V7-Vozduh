@@ -4745,9 +4745,9 @@ fingerprint is therefore historical observation evidence, not a live
 membership lock and not a reason to rewrite or re-emit Matrix state whenever
 a controlled identity moves.
 
-The existing controlled selector must first prove one fresh currently-failed
-Matrix source incident and one matching fresh capture-only Matrix event, then
-read the current `users.registry` scope. It stops safely for an empty scope,
+The existing controlled selector must first prove a fresh currently-failed
+Matrix source and one matching fresh capture-only Matrix event whose correlated
+service remains failed, then read the current `users.registry` scope. It stops safely for an empty scope,
 any ordinary user, an uncontrolled source, stale/recovered/ambiguous Matrix
 state, a stale event, or an event from another incident. Only after that
 read-only binding may the existing Candidate/Packet/lease chain freeze the

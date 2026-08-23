@@ -104,6 +104,10 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("os.killpg", loop)
         self.assertNotIn("&", loop)
         self.assertIn('"name": "v7-health-loop"', sync)
+        self.assertIn('"telegram": 250', loop)
+        self.assertIn('"hot_target": 500', loop)
+        self.assertIn('"planner_projection": 10', loop)
+        self.assertIn('["/usr/bin/nice", "-n", str(nice)', loop)
 
     def test_controlled_commands_require_a_finite_polygon_run(self):
         result = subprocess.run(

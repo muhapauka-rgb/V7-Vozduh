@@ -73,6 +73,17 @@ SELECTED_MOVE_SEMANTIC_FIELDS = (
     "service_failover",
     "availability_first_controlled_assignment",
 )
+PREPARED_SELECTION_INVALIDATOR_KEYS = (
+    "planner_generation",
+    "membership_generation",
+    "target_topology_generation",
+    "policy_authority_generation",
+    "organization_policy_generation",
+    "service_routing_generation",
+    "capacity_reservation_generation",
+    "anti_flap_generation",
+)
+PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS = 300
 RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
     "channel-service-scores",
@@ -632,6 +643,11 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
         "class_count": len(prepared),
         "excluded_decision_count": exclusions,
         "invalidators": invalidators,
+        # Health observations are refreshed by the dedicated PATH/service
+        # roles and are validated at use time. Rebuilding the O(N) Planner
+        # projection for every Matrix observation would make the slow world
+        # model compete with the one-second detection lanes.
+        "selection_invalidator_keys": list(PREPARED_SELECTION_INVALIDATOR_KEYS),
         "hot_target_set": {
             "schema_version": "v7.role-based-pre-ready-hot-target-set.v1",
             "bound_per_class": 4,
@@ -665,8 +681,15 @@ def validate_prepared_class_decision_projection(
 ) -> dict[str, Any]:
     """Bounded consumer for a precomputed decision's declared invalidators."""
     expected = projection.get("invalidators") if isinstance(projection.get("invalidators"), dict) else {}
+    declared_keys = projection.get("selection_invalidator_keys")
+    compared_keys = (
+        [str(key) for key in declared_keys]
+        if isinstance(declared_keys, list) and declared_keys
+        else list(expected)
+    )
     reasons = sorted(
-        key for key, value in expected.items()
+        key for key in compared_keys
+        if (value := expected.get(key)) is not None
         if str(value or "") != str(current_invalidators.get(key) or "")
     )
     missing = not projection or not expected or not (projection.get("classes") or [])
@@ -711,7 +734,8 @@ def validate_prepared_class_decision_projection(
         "status": status,
         "ok": status == "PREPARED_CLASS_DECISION_FRESH",
         "invalidation_reasons": reasons,
-        "comparison_count": len(expected),
+        "comparison_count": len(compared_keys),
+        "selection_invalidator_keys": compared_keys,
         "fact_specific_freshness": fact_freshness,
         "hot_target_contract_count": len(hot_target_set.get("contracts") or []),
         "no_3s_target_capacity": no_hot_target,
@@ -722,6 +746,77 @@ def validate_prepared_class_decision_projection(
         "packet_created": False,
         "lease_created": False,
         "runtime_mutation_performed": False,
+    }
+
+
+def current_prepared_selection_invalidators(args: argparse.Namespace) -> dict[str, str]:
+    """Hash only inputs that can invalidate the prepared selection surface."""
+    state_dir = Path(args.state_dir)
+    stable_inputs = {
+        "users_registry": sha256_file(state_dir / "users.registry"),
+        "egress_registry": sha256_file(state_dir / "egress.registry"),
+        "service_preferences": sha256_file(state_dir / "service-preferences.json"),
+        "policy": sha256_file(Path(args.policy_file)),
+        "org_policy": sha256_file(Path(args.org_policy_file)),
+    }
+    return {
+        "planner_generation": sha256_json(stable_inputs),
+        "membership_generation": stable_inputs["users_registry"],
+        "target_topology_generation": stable_inputs["egress_registry"],
+        "policy_authority_generation": stable_inputs["policy"],
+        "organization_policy_generation": stable_inputs["org_policy"],
+        "service_routing_generation": stable_inputs["service_preferences"],
+        "capacity_reservation_generation": sha256_file(state_dir / "egress-speed.json"),
+        "anti_flap_generation": sha256_file(Path(args.safety_file)),
+    }
+
+
+def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[str, Any]:
+    """Reuse the Matrix-owned target set while its selection inputs are current.
+
+    A periodic rebuild remains mandatory to re-rank top-H from fresh quality
+    evidence. Between rebuilds, PATH and required-service roles update the
+    selected targets' readiness without an O(N) Planner run.
+    """
+    summary = read_json(
+        Path(args.state_dir) / "service-matrix-refresh-summary.json", {},
+    )
+    projection = (
+        summary.get("prepared_class_decisions")
+        if isinstance(summary, dict)
+        and isinstance(summary.get("prepared_class_decisions"), dict)
+        else {}
+    )
+    expected = projection.get("invalidators") if isinstance(projection.get("invalidators"), dict) else {}
+    declared = projection.get("selection_invalidator_keys")
+    current = current_prepared_selection_invalidators(args)
+    age_seconds = max(0.0, time.time() - parse_ts(projection.get("produced_at")))
+    blockers: list[str] = []
+    if str(projection.get("schema_version") or "") != "v7.prepared-class-decision-projection.v1":
+        blockers.append("prepared_projection_missing")
+    if str(projection.get("status") or "") != "PREPARED_CLASS_DECISION_AVAILABLE":
+        blockers.append("prepared_projection_not_ready")
+    if list(declared or []) != list(PREPARED_SELECTION_INVALIDATOR_KEYS):
+        blockers.append("selection_invalidation_contract_upgrade_required")
+    for key in PREPARED_SELECTION_INVALIDATOR_KEYS:
+        if not expected.get(key) or str(expected.get(key)) != str(current.get(key)):
+            blockers.append(f"selection_input_changed:{key}")
+    if age_seconds >= PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS:
+        blockers.append("periodic_quality_rerank_due")
+    freshness = validate_prepared_class_decision_projection(
+        projection, {**expected, **current},
+    ) if projection else {}
+    ok = not blockers and freshness.get("status") == "PREPARED_CLASS_DECISION_FRESH"
+    return {
+        "ok": ok,
+        "status": "PREPARED_CLASS_PROJECTION_REUSED" if ok else "PREPARED_CLASS_PROJECTION_REBUILD_REQUIRED",
+        "blockers": sorted(set(blockers)),
+        "age_seconds": round(age_seconds, 3),
+        "maximum_reuse_seconds": PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS,
+        "prepared_class_decisions": projection if ok else {},
+        "prepared_class_decision_freshness": freshness if ok else {},
+        "world_model_rebuilt": False,
+        "matrix_observation_invalidates_selection": False,
     }
 
 
@@ -25418,6 +25513,30 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
         return 0 if result.get("status") == "PASS" else 2
     if args.prepared_class_projection_only:
+        reuse = reuse_current_prepared_class_projection(args)
+        if reuse.get("ok"):
+            result = {
+                "schema_version": "v7.prepared-class-projection-only.v1",
+                "status": "PASS",
+                "ok": True,
+                "prepared_class_decisions": reuse["prepared_class_decisions"],
+                "prepared_class_decision_freshness": reuse["prepared_class_decision_freshness"],
+                "prepared_projection_reuse": reuse,
+                "performance_timeline": {
+                    "schema_version": "v7.prepared-projection-reuse-timing.v1",
+                    "process_elapsed_ms": round((time.monotonic_ns() - PROCESS_STARTED_NS) / 1_000_000, 3),
+                    "world_model_rebuilt": False,
+                },
+                "incident_obligation_materialized": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "runtime_mutation_performed": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
+            print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))
+            return 0
         planner = AutoswitchPlanner(args)
         plan = planner.plan()
         projection = build_prepared_class_decision_projection(plan)
@@ -25434,6 +25553,7 @@ def main() -> int:
             "ok": freshness.get("status") == "PREPARED_CLASS_DECISION_FRESH",
             "prepared_class_decisions": projection,
             "prepared_class_decision_freshness": freshness,
+            "prepared_projection_reuse": reuse,
             "performance_timeline": planner.performance_timeline(),
             "incident_obligation_materialized": False,
             "candidate_created": False,

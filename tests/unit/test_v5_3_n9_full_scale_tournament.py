@@ -18,6 +18,7 @@ import time
 import tracemalloc
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 
@@ -329,6 +330,56 @@ class V53N9FullScaleTournamentTest(unittest.TestCase):
         self.assertEqual(result["active_source_count"], 1000)
         self.assertEqual(result["observations"], 0)
         self.assertFalse(result["deadline_miss"], result)
+
+    def test_prepared_projection_reuses_stable_selection_but_not_changed_membership(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            policy = root / "policy.json"
+            org_policy = root / "org-policy.json"
+            safety = state / "autoswitch-safety.json"
+            for path, value in (
+                (state / "users.registry", "ip=synthetic-0 current=source-0 enabled=1\n"),
+                (state / "egress.registry", "id=source-0 interface=lo enabled=1\n"),
+                (state / "service-preferences.json", "{}\n"),
+                (state / "egress-speed.json", "{}\n"),
+                (state / "service-matrix.json", "{}\n"),
+                (policy, "{}\n"), (org_policy, "{}\n"), (safety, "{}\n"),
+            ):
+                path.write_text(value, encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(state), policy_file=str(policy),
+                org_policy_file=str(org_policy), safety_file=str(safety),
+            )
+            plan, _case = build_case(1, 1, "one")
+            projection = self.autoswitch.build_prepared_class_decision_projection(plan)
+            projection["produced_at"] = self.autoswitch.now_iso()
+            projection["invalidators"].update(
+                self.autoswitch.current_prepared_selection_invalidators(args)
+            )
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+
+            first = self.autoswitch.reuse_current_prepared_class_projection(args)
+            self.assertTrue(first["ok"], first)
+            (state / "service-matrix.json").write_text('{"generation": 2}\n', encoding="utf-8")
+            after_observation = self.autoswitch.reuse_current_prepared_class_projection(args)
+            self.assertTrue(after_observation["ok"], after_observation)
+            self.assertFalse(after_observation["matrix_observation_invalidates_selection"])
+
+            (state / "users.registry").write_text(
+                "ip=synthetic-0 current=source-0 enabled=1\n"
+                "ip=synthetic-1 current=source-0 enabled=1\n",
+                encoding="utf-8",
+            )
+            changed = self.autoswitch.reuse_current_prepared_class_projection(args)
+            self.assertFalse(changed["ok"], changed)
+            self.assertIn(
+                "selection_input_changed:membership_generation", changed["blockers"],
+            )
 
 
 if __name__ == "__main__":

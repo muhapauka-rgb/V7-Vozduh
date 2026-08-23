@@ -448,17 +448,28 @@ def read_prepared_controlled_target_selection_diagnostic(
             if target_id and target_id not in declared_targets:
                 declared_targets.append(target_id)
 
+    hot_target_set = (
+        projection.get("hot_target_set")
+        if isinstance(projection.get("hot_target_set"), dict)
+        else {}
+    )
+    declared_capacity: dict[str, int] = {}
+    for contract in hot_target_set.get("contracts") or []:
+        if not isinstance(contract, dict):
+            continue
+        target_id = str(contract.get("target_id") or "")
+        if target_id not in declared_targets:
+            continue
+        declared_capacity[target_id] = max(
+            declared_capacity.get(target_id, 0),
+            int(contract.get("target_safe_additional_capacity") or 0),
+        )
+
     egress_rows = {
         str(row.get("id") or ""): row
         for row in parse_registry(state_dir / "egress.registry")
         if str(row.get("id") or "")
     }
-    user_counts: dict[str, int] = {}
-    for row in parse_registry(state_dir / "users.registry"):
-        if not bool_value(row.get("enabled", "1"), default=True):
-            continue
-        current = str(row.get("current") or "")
-        user_counts[current] = user_counts.get(current, 0) + 1
     matrix = read_json(state_dir / "service-matrix.json", {})
     matrix_items = (
         matrix.get("items")
@@ -506,14 +517,7 @@ def read_prepared_controlled_target_selection_diagnostic(
         status_ok = str(observed.get("status") or "").upper() in {
             "OK", "DEGRADED",
         }
-        hard_limit = int(
-            registry.get("failover_hard_limit")
-            or registry.get("hard_limit")
-            or 0
-        )
-        free_capacity = max(
-            0, hard_limit - int(user_counts.get(target_id) or 0)
-        )
+        free_capacity = max(0, declared_capacity.get(target_id, 0))
         admitted = bool(
             registry
             and bool_value(registry.get("enabled", "1"), default=True)

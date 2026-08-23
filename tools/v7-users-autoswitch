@@ -539,6 +539,16 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
                 if isinstance(candidate.get("capacity_decision"), dict)
                 else {}
             )
+            projected_load = (
+                capacity_decision.get("projected_load")
+                if isinstance(capacity_decision.get("projected_load"), dict)
+                else {}
+            )
+            target_safe_additional_capacity = max(
+                0,
+                to_int(projected_load.get("hard_limit"), 0)
+                - to_int(projected_load.get("users"), 0),
+            )
             contract = {
                 **target_semantic,
                 "target_service_fingerprint": contract_fingerprint,
@@ -547,6 +557,13 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
                     capacity_decision.get("status")
                     or capacity_decision.get("decision")
                     or "UNKNOWN"
+                ),
+                # This scalar is produced by the existing capacity owner.  A
+                # hot-path consumer may reuse it only while the projection's
+                # membership/capacity generations still match; it must never
+                # invent a registry default during an incident.
+                "target_safe_additional_capacity": (
+                    target_safe_additional_capacity
                 ),
                 "role": str(candidate.get("role") or ""),
                 "selection_owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",

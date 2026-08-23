@@ -507,6 +507,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "source_channel": "exec-source",
                     "hot_targets": [{"target_id": "awg3"}],
                 }],
+                "hot_target_set": {"contracts": [{
+                    "target_id": "awg3",
+                    "target_safe_additional_capacity": 79,
+                }]},
             }
             (state / "service-matrix-refresh-summary.json").write_text(
                 json.dumps({"prepared_class_decisions": projection}),
@@ -514,7 +518,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             )
             (state / "egress.registry").write_text(
                 "id=exec-source enabled=1 hard_limit=10\n"
-                "id=awg3 enabled=1 hard_limit=80\n",
+                "id=awg3 enabled=1\n",
                 encoding="utf-8",
             )
             (state / "users.registry").write_text(
@@ -579,6 +583,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertFalse(result["world_model_rebuilt"])
         self.assertFalse(result["manual_server_selection"])
+        self.assertEqual(
+            result["targets"][0]["capacity"][
+                "target_safe_additional_capacity"
+            ],
+            79,
+        )
 
     def test_runtime_hot_summary_preserves_existing_prepared_projection(self):
         prepared = {
@@ -1850,8 +1860,24 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 },
             }},
             "decisions": [
-                {"user_ip": "10.0.0.2", "current_egress": "vless", "recommended_egress": "awg0", "important_services": ["google", "telegram"]},
-                {"user_ip": "10.0.0.3", "current_egress": "vless", "recommended_egress": "awg0", "important_services": ["telegram", "google"]},
+                {
+                    "user_ip": "10.0.0.2",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                    "important_services": ["google", "telegram"],
+                    "capacity_decision": {"projected_load": {
+                        "users": 3, "hard_limit": 30,
+                    }},
+                },
+                {
+                    "user_ip": "10.0.0.3",
+                    "current_egress": "vless",
+                    "recommended_egress": "awg0",
+                    "important_services": ["telegram", "google"],
+                    "capacity_decision": {"projected_load": {
+                        "users": 3, "hard_limit": 30,
+                    }},
+                },
             ],
         }
         prepared = self.autoswitch.build_prepared_class_decision_projection(plan)
@@ -1859,6 +1885,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(prepared["class_count"], 1)
         self.assertEqual(prepared["classes"][0]["member_count"], 2)
         self.assertFalse(prepared["classes"][0]["raw_member_list_stored"])
+        self.assertEqual(
+            prepared["hot_target_set"]["contracts"][0][
+                "target_safe_additional_capacity"
+            ],
+            27,
+        )
         self.assertNotIn("10.0.0.2", json.dumps(prepared))
         self.assertEqual(
             prepared["hot_validation_law"],

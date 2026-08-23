@@ -5285,6 +5285,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     Path(operator_execution.__file__)
                 ),
                 "governed_cycle": operator_execution.sha256_file(Path(__file__)),
+                "matrix_failure_consumer": operator_execution.sha256_file(
+                    Path(__file__).with_name(
+                        "v7-service-matrix-refresh-all"
+                    )
+                ),
                 "autoswitch": operator_execution.sha256_file(
                     planner_observe_executable()
                 ),

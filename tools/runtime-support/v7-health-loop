@@ -127,10 +127,10 @@ DEFAULT_ROLE_INITIAL_OFFSETS_MS = {
     "hard": 0,
     "telegram": 250,
     "hot_target": 500,
-    "hot_target_other": 2_000,
-    "other_required": 2_500,
-    "planner_projection": 10_000,
-    "deep": 15_000,
+    "hot_target_other": 1_000,
+    "other_required": 3_500,
+    "planner_projection": 13_000,
+    "deep": 20_000,
 }
 
 DEFAULT_ROLE_NICE = {
@@ -139,6 +139,7 @@ DEFAULT_ROLE_NICE = {
     "hot_target_other": 4,
     "other_required": 4,
 }
+SLOW_ROLE_NAMES = frozenset(DEFAULT_ROLE_NICE)
 
 
 def monotonic_ns() -> int:
@@ -269,6 +270,7 @@ class RoleHealthLoop:
     roles: tuple[ManagedRole, ...]
     max_hard_phases: int = 0
     poll_ns: int = 25_000_000
+    serialize_slow_roles: bool = True
 
     def _start_due_roles(self, now_ns: int) -> None:
         for role in self.roles:
@@ -284,6 +286,23 @@ class RoleHealthLoop:
                     flush=True,
                 )
                 continue
+            if self.serialize_slow_roles and role.name in SLOW_ROLE_NAMES:
+                running_slow = next(
+                    (
+                        other.name for other in self.roles
+                        if other.name in SLOW_ROLE_NAMES
+                        and other.name != role.name
+                        and other.process is not None
+                    ),
+                    "",
+                )
+                if running_slow:
+                    print(
+                        f"V7_HEALTH_ROLE_DEFERRED role={role.name} "
+                        f"reason=SLOW_ROLE_ALREADY_RUNNING running_role={running_slow}",
+                        flush=True,
+                    )
+                    continue
             command = list(role.command)
             nice = DEFAULT_ROLE_NICE.get(role.name)
             if nice is not None:
@@ -437,7 +456,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             for name, _default_interval, command in DEFAULT_ROLE_COMMANDS
         )
-        return RoleHealthLoop(roles=roles, max_hard_phases=args.max_phases).run()
+        return RoleHealthLoop(
+            roles=roles,
+            max_hard_phases=args.max_phases,
+            # Controlled Polygon commands remain able to exercise deliberate
+            # overlap. Production commands use one low-priority background
+            # role at a time so DEEP/quality work cannot form a CPU burst.
+            serialize_slow_roles=not any(controlled.values()),
+        ).run()
     if args.controlled_fast_command:
         fast_command = (args.controlled_fast_command,)
         legacy_commands = tuple((f"controlled_{index}", command) for index, command in enumerate(args.controlled_legacy_command))

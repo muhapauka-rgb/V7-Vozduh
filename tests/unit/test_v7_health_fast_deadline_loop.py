@@ -108,6 +108,8 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"hot_target": 500', loop)
         self.assertIn('"planner_projection": 10', loop)
         self.assertIn('["/usr/bin/nice", "-n", str(nice)', loop)
+        self.assertIn("SLOW_ROLE_ALREADY_RUNNING", loop)
+        self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
 
     def test_controlled_commands_require_a_finite_polygon_run(self):
         result = subprocess.run(

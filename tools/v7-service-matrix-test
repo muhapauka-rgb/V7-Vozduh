@@ -707,25 +707,58 @@ def update_matrix_path_evidence(
     This is the L1P pre-ready target lane. It creates no service episode or
     event and remains under the same Matrix writer lock/state owner.
     """
+    return update_matrix_path_evidence_batch(
+        matrix_file,
+        state_dir=state_dir,
+        observations=[{
+            "egress_id": egress_id,
+            "interface": iface,
+            "evidence": evidence,
+        }],
+        lock_timeout_sec=lock_timeout_sec,
+    )
+
+
+def update_matrix_path_evidence_batch(
+    matrix_file: Path,
+    *,
+    state_dir: Path,
+    observations: list[dict[str, Any]],
+    lock_timeout_sec: int,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Commit one bounded prepared-target path batch with one atomic write."""
     with service_matrix_writer_lock(matrix_file, lock_timeout_sec) as lock_info:
         data = read_json(matrix_file, {"items": {}})
         if not isinstance(data, dict):
             data = {"items": {}}
-        row = data.setdefault("items", {}).setdefault(egress_id, {})
-        identity = canonical_egress_identity(
-            egress_row(state_dir, egress_id), egress_id=egress_id, iface=iface,
-        )
-        row.update({
-            "id": egress_id,
-            "interface": iface,
-            "egress_identity_generation": identity["egress_identity_generation"],
-            "egress_config_generation": identity["egress_config_generation"],
-            "path_evidence": evidence,
-            "path_evidence_updated": now_iso(),
-        })
-        row["route_class_fitness"] = route_class_fitness(row)
+        items = data.setdefault("items", {})
+        for observation in observations:
+            egress_id = str(observation.get("egress_id") or "")
+            iface = str(observation.get("interface") or egress_id)
+            evidence = (
+                observation.get("evidence")
+                if isinstance(observation.get("evidence"), dict)
+                else {}
+            )
+            if not egress_id or not evidence:
+                continue
+            row = items.setdefault(egress_id, {})
+            identity = canonical_egress_identity(
+                egress_row(state_dir, egress_id), egress_id=egress_id, iface=iface,
+            )
+            row.update({
+                "id": egress_id,
+                "interface": iface,
+                "egress_identity_generation": identity["egress_identity_generation"],
+                "egress_config_generation": identity["egress_config_generation"],
+                "path_evidence": evidence,
+                "path_evidence_updated": now_iso(),
+            })
+            row["route_class_fitness"] = route_class_fitness(row)
         data["updated"] = now_iso()
         write_json_atomic(matrix_file, data)
+        lock_info["batch_observation_count"] = len(observations)
+        lock_info["single_atomic_write"] = True
     return data, lock_info
 
 

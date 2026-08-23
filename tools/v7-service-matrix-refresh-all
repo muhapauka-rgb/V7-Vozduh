@@ -3082,18 +3082,19 @@ def run_prepared_path_rows_in_process(
         observed = list(executor.map(observe, rows))
     probes_completed_ns = time.monotonic_ns()
     results: list[dict[str, Any]] = []
-    for row, evidence, probe_ms in observed:
-        egress_id = str(row.get("id") or "")
-        iface = str(row.get("interface") or egress_id)
-        try:
-            _matrix, lock = owner.update_matrix_path_evidence(
-                state_dir / "service-matrix.json",
-                state_dir=state_dir,
-                egress_id=egress_id,
-                iface=iface,
-                evidence=evidence,
-                lock_timeout_sec=int(lock_timeout_sec),
-            )
+    try:
+        _matrix, batch_lock = owner.update_matrix_path_evidence_batch(
+            state_dir / "service-matrix.json",
+            state_dir=state_dir,
+            observations=[{
+                "egress_id": str(row.get("id") or ""),
+                "interface": str(row.get("interface") or row.get("id") or ""),
+                "evidence": evidence,
+            } for row, evidence, _probe_ms in observed],
+            lock_timeout_sec=int(lock_timeout_sec),
+        )
+        for index, (row, evidence, probe_ms) in enumerate(observed):
+            egress_id = str(row.get("id") or "")
             component_status = evidence.get("component_status") or {}
             ok = bool(component_status) and all(
                 str(value or "") == "PASS" for value in component_status.values()
@@ -3109,11 +3110,19 @@ def run_prepared_path_rows_in_process(
                     "component_status": component_status,
                     "performance_timeline": evidence.get("performance_timeline"),
                 },
-                "service_matrix_lock": lock,
+                "service_matrix_lock": (
+                    batch_lock if index == 0 else {
+                        "held": False,
+                        "scope": "shared_prepared_path_batch_lock",
+                        "batch_observation_count": len(observed),
+                    }
+                ),
                 "routing_mutation_performed": False,
                 "users_moved": 0,
             })
-        except TimeoutError as exc:
+    except TimeoutError as exc:
+        for row, _evidence, _probe_ms in observed:
+            egress_id = str(row.get("id") or "")
             results.append({
                 "egress": egress_id,
                 "status": "LOCK_TIMEOUT",

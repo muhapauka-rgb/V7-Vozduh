@@ -1798,6 +1798,13 @@ def run_ct_m0f_standing_validation_campaign(
             "--pretty",
         ]
         if active_service_failure_binding.get("requires_binding"):
+            binding_kind = str(
+                active_service_failure_binding.get("binding_kind") or ""
+            )
+            if binding_kind:
+                execute_command.extend([
+                    "--expected-service-failure-binding-kind", binding_kind,
+                ])
             execute_command.extend([
                 "--expected-service-failure-obligation-id",
                 str(active_service_failure_binding.get("automation_obligation_id") or ""),

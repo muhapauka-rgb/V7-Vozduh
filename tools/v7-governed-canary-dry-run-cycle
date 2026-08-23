@@ -4781,7 +4781,149 @@ def service_failure_obligation_execution_binding(
     expected_scope_fingerprint = str(
         getattr(args, "expected_service_failure_scope_fingerprint", "") or ""
     )
+    expected_binding_kind = str(
+        getattr(args, "expected_service_failure_binding_kind", "") or ""
+    )
     expected_source = str(getattr(args, "approved_source", "") or "")
+    if expected_binding_kind == "CERTIFICATION_ONLY_MATRIX_FAILURE":
+        # Certification-only Matrix episodes intentionally have no ordinary
+        # OMP obligation: their current membership is owned by users.registry,
+        # while Matrix owns the failed episode.  Revalidate both existing
+        # owners here before Packet creation, rather than forcing that
+        # distinct one-user path through the ordinary positive-scope contract.
+        blockers: list[str] = []
+        for value, reason in (
+            (expected_incident_id, "service_failure_incident_id_missing"),
+            (expected_scope_fingerprint, "service_failure_scope_fingerprint_missing"),
+            (expected_source, "service_failure_source_missing"),
+        ):
+            if not value:
+                blockers.append(reason)
+        if expected_obligation_id:
+            blockers.append("certification_only_matrix_binding_must_not_supply_ordinary_obligation")
+
+        users = read_registry(state_dir / "users.registry")
+        source_users = sorted({
+            str(row.get("ip") or "")
+            for row in users
+            if str(row.get("ip") or "")
+            and bool_value(row.get("enabled", "1"))
+            and str(row.get("current") or "") == expected_source
+        })
+        ordinary_users = {
+            str(row.get("ip") or "")
+            for row in users
+            if str(row.get("ip") or "")
+            and bool_value(row.get("enabled", "1"))
+            and str(row.get("current") or "") == expected_source
+            and not bool_value(row.get("certification_user"))
+        }
+        current_scope_fingerprint = operator_execution.sha256_json({
+            "source_channel": expected_source,
+            "users": source_users,
+        })
+        if not source_users:
+            blockers.append("controlled_certification_scope_empty")
+        if ordinary_users:
+            blockers.append("ordinary_users_present_on_controlled_source")
+        if current_scope_fingerprint != expected_scope_fingerprint:
+            blockers.append("current_certification_scope_fingerprint_mismatch")
+
+        matrix = read_json(state_dir / "service-matrix.json", {})
+        matrix_row = (
+            ((matrix.get("items") or {}).get(expected_source) or {})
+            if isinstance(matrix, dict) else {}
+        )
+        services = (
+            matrix_row.get("services")
+            if isinstance(matrix_row.get("services"), dict) else {}
+        )
+        matrix_failed_services = {
+            str(service_id): row
+            for service_id, row in services.items()
+            if isinstance(row, dict) and row.get("ok") is False
+        }
+        try:
+            checked = datetime.fromisoformat(
+                str(matrix_row.get("checked_at") or "").replace("Z", "+00:00")
+            )
+            if checked.tzinfo is None:
+                checked = checked.replace(tzinfo=timezone.utc)
+            matrix_fresh = 0 <= (
+                datetime.now(timezone.utc) - checked.astimezone(timezone.utc)
+            ).total_seconds() <= 1800
+        except (TypeError, ValueError):
+            matrix_fresh = False
+        if not matrix_fresh:
+            blockers.append("matrix_source_observation_not_fresh")
+        if not matrix_failed_services:
+            blockers.append("matrix_source_not_currently_failed")
+
+        matching_events: list[dict[str, Any]] = []
+        now = datetime.now(timezone.utc)
+        for raw in read_jsonl_family(
+            event_dir / "service-failure-events.jsonl", limit=20000,
+        ):
+            event = events.normalize_regression_event(raw)
+            if str(event.get("event_type") or "") not in {
+                "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+            }:
+                continue
+            if (
+                str(event.get("source_incident_id") or "") != expected_incident_id
+                or str(event.get("object") or "") != expected_source
+                or not bool(event.get("capture_only"))
+                or str(event.get("event_provenance") or "") != "EXTERNAL_UNATTRIBUTED"
+            ):
+                continue
+            scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
+            if (
+                str(scope.get("scope_classification") or "") != "CERTIFICATION_ONLY"
+                or int(scope.get("affected_scope_count") or 0) != 0
+            ):
+                continue
+            event_services = {
+                str(service_id) for service_id in (raw.get("correlated_services") or [])
+                if str(service_id)
+            }
+            if str(raw.get("service") or ""):
+                event_services.add(str(raw.get("service") or ""))
+            if not event_services.intersection(matrix_failed_services):
+                continue
+            try:
+                observed = datetime.fromisoformat(
+                    str(event.get("timestamp") or "").replace("Z", "+00:00")
+                )
+                if observed.tzinfo is None:
+                    observed = observed.replace(tzinfo=timezone.utc)
+                age_seconds = (now - observed.astimezone(timezone.utc)).total_seconds()
+            except (TypeError, ValueError):
+                continue
+            if 0 <= age_seconds <= 1800:
+                matching_events.append(event)
+        event = matching_events[-1] if matching_events else {}
+        if not event:
+            blockers.append("fresh_active_certification_only_matrix_event_missing")
+        source_event_id = str(event.get("event_id") or "")
+        return {
+            "schema_version": "v7.service-failure-causal-binding.v1",
+            "status": "BOUND" if not blockers else "STOP_SAFE",
+            "ok": not blockers,
+            "binding_kind": expected_binding_kind,
+            "direct_l3_handoff": False,
+            "blockers": sorted(set(blockers)),
+            "automation_obligation_id": "",
+            "omp_consumption_id": "",
+            "source_incident_id": expected_incident_id,
+            "source_event_id": source_event_id,
+            "source_event_ids": [source_event_id] if source_event_id else [],
+            "event_type": str(event.get("event_type") or ""),
+            "event_provenance": str(event.get("event_provenance") or ""),
+            "observation_generation": str(event.get("observation_generation") or ""),
+            "source_channel": expected_source,
+            "source_scope": dict(event.get("source_scope") or {}),
+            "current_registry_scope_fingerprint": current_scope_fingerprint,
+        }
     blockers: list[str] = []
     for value, reason in (
         (expected_obligation_id, "service_failure_obligation_id_missing"),
@@ -4908,6 +5050,7 @@ def service_failure_obligation_execution_binding(
         "schema_version": "v7.service-failure-causal-binding.v1",
         "status": "BOUND" if not blockers else "STOP_SAFE",
         "ok": not blockers,
+        "binding_kind": "ORDINARY_SERVICE_FAILURE_OBLIGATION",
         "direct_l3_handoff": direct_l3_handoff,
         "blockers": sorted(set(blockers)),
         "automation_obligation_id": expected_obligation_id,
@@ -5296,6 +5439,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         # Packet exists; controlled-condition CT-M0F retains its separate
         # audit-backed fallback and deliberately supplies no expected fields.
         if any(str(getattr(args, name, "") or "") for name in (
+            "expected_service_failure_binding_kind",
             "expected_service_failure_obligation_id",
             "expected_service_failure_incident_id",
             "expected_service_failure_scope_fingerprint",
@@ -12588,6 +12732,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="v7-users-autoswitch",
     )
     parser.add_argument("--expected-service-failure-obligation-id", default="")
+    parser.add_argument(
+        "--expected-service-failure-binding-kind",
+        choices=("CERTIFICATION_ONLY_MATRIX_FAILURE",),
+        default="",
+    )
     parser.add_argument("--expected-service-failure-incident-id", default="")
     parser.add_argument("--expected-service-failure-scope-fingerprint", default="")
     parser.add_argument("--ordinary-service-failure-only", action="store_true")

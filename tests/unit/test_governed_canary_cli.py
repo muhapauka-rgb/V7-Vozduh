@@ -1911,6 +1911,60 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["users_moved"], 0)
         execute.assert_not_called()
 
+    def test_ct_m0f_certification_matrix_binding_revalidates_current_scope(self):
+        module = load_cli_module()
+        now = datetime.now(timezone.utc)
+        users = [
+            {"ip": "10.7.0.107", "current": "vless", "enabled": "1", "certification_user": "1"},
+            {"ip": "10.7.0.108", "current": "vless", "enabled": "1", "certification_user": "1"},
+        ]
+        scope_fingerprint = module.operator_execution.sha256_json({
+            "source_channel": "vless",
+            "users": ["10.7.0.107", "10.7.0.108"],
+        })
+        args = argparse.Namespace(
+            expected_service_failure_binding_kind="CERTIFICATION_ONLY_MATRIX_FAILURE",
+            expected_service_failure_obligation_id="",
+            expected_service_failure_incident_id="sfinc_vless",
+            expected_service_failure_scope_fingerprint=scope_fingerprint,
+            approved_source="vless",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            events = Path(tmp) / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "service-matrix.json").write_text(json.dumps({
+                "items": {"vless": {
+                    "checked_at": now.isoformat(),
+                    "services": {"google": {"ok": False, "status": "FAIL"}},
+                }},
+            }), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "sfe_vless",
+                "event_type": "SERVICE_FAILURE_REVALIDATED",
+                "channel": "vless",
+                "source_incident_id": "sfinc_vless",
+                "capture_only": True,
+                "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                "timestamp": now.isoformat(),
+                "observation_generation": "matrix_generation",
+                "correlated_services": ["google"],
+                "source_scope": {
+                    "scope_classification": "CERTIFICATION_ONLY",
+                    "affected_scope_count": 0,
+                },
+            }) + "\n", encoding="utf-8")
+            with mock.patch.object(module, "read_registry", return_value=users):
+                result = module.service_failure_obligation_execution_binding(
+                    args, state_dir=state, event_dir=events,
+                )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["binding_kind"], "CERTIFICATION_ONLY_MATRIX_FAILURE")
+        self.assertEqual(result["source_event_id"], "sfe_vless")
+        self.assertEqual(result["current_registry_scope_fingerprint"], scope_fingerprint)
+
     def test_ct_m0f_reset_restores_owner_disabled_source_without_return_move(self):
         module = load_cli_module()
         reservation = {

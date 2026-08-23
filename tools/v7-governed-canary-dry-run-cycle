@@ -4905,6 +4905,24 @@ def service_failure_obligation_execution_binding(
         if not event:
             blockers.append("fresh_active_certification_only_matrix_event_missing")
         source_event_id = str(event.get("event_id") or "")
+        event_source_scope = (
+            dict(event.get("source_scope") or {})
+            if isinstance(event.get("source_scope"), dict)
+            else {}
+        )
+        # The event intentionally records zero ordinary users for a
+        # certification-only episode.  Packet causality, however, must bind
+        # the exact positive scope it may move.  Reuse the current
+        # users.registry scope already revalidated above and retain the event
+        # snapshot separately; never reinterpret ordinary_scope_count=0 as an
+        # empty controlled execution scope.
+        packet_source_scope = {
+            "scope_classification": "CERTIFICATION_ONLY",
+            "source_channel": expected_source,
+            "affected_scope_count": len(source_users),
+            "affected_scope_fingerprint": current_scope_fingerprint,
+            "raw_user_list_stored": False,
+        }
         return {
             "schema_version": "v7.service-failure-causal-binding.v1",
             "status": "BOUND" if not blockers else "STOP_SAFE",
@@ -4921,7 +4939,8 @@ def service_failure_obligation_execution_binding(
             "event_provenance": str(event.get("event_provenance") or ""),
             "observation_generation": str(event.get("observation_generation") or ""),
             "source_channel": expected_source,
-            "source_scope": dict(event.get("source_scope") or {}),
+            "source_scope": packet_source_scope,
+            "event_source_scope": event_source_scope,
             "current_registry_scope_fingerprint": current_scope_fingerprint,
         }
     blockers: list[str] = []

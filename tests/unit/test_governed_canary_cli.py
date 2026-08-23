@@ -1964,6 +1964,16 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(result["binding_kind"], "CERTIFICATION_ONLY_MATRIX_FAILURE")
         self.assertEqual(result["source_event_id"], "sfe_vless")
         self.assertEqual(result["current_registry_scope_fingerprint"], scope_fingerprint)
+        self.assertEqual(result["source_scope"], {
+            "scope_classification": "CERTIFICATION_ONLY",
+            "source_channel": "vless",
+            "affected_scope_count": 2,
+            "affected_scope_fingerprint": scope_fingerprint,
+            "raw_user_list_stored": False,
+        })
+        self.assertEqual(
+            result["event_source_scope"]["affected_scope_count"], 0
+        )
 
     def test_ct_m0f_reset_restores_owner_disabled_source_without_return_move(self):
         module = load_cli_module()

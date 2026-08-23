@@ -13420,6 +13420,7 @@ def main(argv=None) -> int:
             "CT_M0F_STANDING_SAMPLE_ALREADY_CLOSED",
             "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
             "CT_M0F_STANDING_SAMPLE_SAFELY_RECONCILED_INVALID",
+            "CT_M0F_STANDING_TERMINAL_RESIDUE_RECONCILED",
         } else 2
     if args.materialize_due_delayed_observations:
         if args.confirm_delayed_observations != "MATERIALIZE_VERIFIED_DELAYED_OBSERVATIONS_APPROVED":

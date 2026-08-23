@@ -87,16 +87,48 @@ server-side recovery only and never relabels itself as T11.
 
 | Class | Minimum causal path | Measured target | Explicit non-goal |
 | --- | --- | --- | --- |
-| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence or cheap path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | P95 first observable failure -> S11 `<= 3 s` | full deep sweep before an unambiguous failure |
-| `TELEGRAM_CRITICAL` | Telegram is required by the active product/profile contract; fast Telegram evidence -> independent targeted Matrix corroboration -> T0 -> S11 | P95 first Telegram failure signal -> S11 `<= 3 s` | treating Telegram as universal for a profile where it is not required |
-| `OTHER_REQUIRED_SERVICE` | active source plus distinct active profile-service contract -> lightweight protocol-appropriate sentinel -> targeted Matrix confirmation -> T0 -> S11 | P95 physical failure -> T0 `<= 10–15 s`; measure and minimise T0 -> S11 separately | a 1–3 second promise or a full 14-service probe for every sample |
+| `HARD_PATH` | definitive existing OS/systemd/interface/tunnel/peer/route evidence or cheap path liveness -> independent targeted Matrix corroboration -> T0 -> S11 | controlled failure onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | full deep sweep before an unambiguous failure |
+| `TELEGRAM_CRITICAL` | Telegram is required by the active product/profile contract; fast Telegram evidence -> independent targeted Matrix corroboration -> T0 -> S11 | controlled Telegram outage onset -> S11 P95 `<=3 s`, max `<=5 s`; production observation clock retained separately | treating Telegram as universal for a profile where it is not required |
+| `OTHER_REQUIRED_SERVICE` | active source plus distinct active profile-service contract -> lightweight protocol-appropriate sentinel -> targeted Matrix confirmation -> T0 -> S11 | N3-selected physical-failure -> T0 SLO `<=15 s`, with production observation clock and separately measured T0 -> S11 | a 1–3 second promise or a full 14-service probe for every sample |
 | `AMBIGUOUS_QUALITY_OPTIONAL` | quality, partial censorship, jitter, loss, optional service or conflicting evidence -> SUSPECT/DEGRADED -> bounded confirmation or Full fallback | prompt safe classification; no fail-open | evacuation merely because an optional or ambiguous service failed |
+
+`TELEGRAM_CRITICAL` is deliberately profile-scoped: it applies only where the
+active serving profile declares Telegram required.  It is the only application
+service class eligible for the 1–3-second target; Google, Auth, DNS and all
+other profile-required services use `OTHER_REQUIRED_SERVICE`.
+
+Every class records two non-interchangeable clocks:
+
+```text
+CONTROLLED / POLYGON
+CONTROLLED_FAILURE_OR_OUTAGE_ONSET -> S11
+
+PRODUCTION
+FIRST_FAILED_SERVER_OBSERVATION -> S11
+AND LAST_SUCCESSFUL_OBSERVATION -> FIRST_FAILED_SERVER_OBSERVATION
+```
+
+The controlled clock establishes the actual target: HARD/PATH and applicable
+Telegram must prove P95 `<= 3 s`, **no valid sample > 5 s**, and failure
+placement immediately before a probe, immediately after a probe and
+mid-interval.  Production does not invent an unobservable physical-outage
+timestamp; it records the observation clock and cadence gap separately, so a
+long unseen failure cannot be presented as a 3-second recovery.  For other
+required services, N3 selects one exact
+`SELECTED_OTHER_REQUIRED_OBSERVATION_SLO <= 15 s` from controlled evidence.
+Its acceptance is worst cadence phase plus probe timeout plus confirmation,
+not an average interval or an open `10–15 s` range.
 
 `<= 3 s` is a target to be proved in the exact failure class and cohort, not a
 configured promise.  Its initial budget envelope is: signal `<= 0.7 s`,
 confirmation/T0 `<= 0.6 s`, target decision `<= 0.2 s`, Packet/Lease `<= 0.2
 s`, apply `<= 0.6 s`, verification `<= 0.7 s`.  A failed budget remains
 STOP_SAFE or falls back; it may not be hidden by averaging unrelated samples.
+It is also a failed performance sample, an open Engineering residual and a
+bar to the N terminal.  Every N1/N2/N4 confirmation and S11 verification must
+declare class-specific timeout, retry and `MAX_WALL` values within the
+remaining envelope; no serial retry may exceed it.  Negative probes are
+measured independently rather than assumed to cost the same as success.
 
 Failure and recovery remain asymmetric:
 
@@ -125,6 +157,24 @@ and T0 ownership.  A fast signal wakes the existing bounded targeted Matrix
 confirmation through its legal existing-owner invocation; it does not bypass
 Matrix, Planner, Packet, Lease, Barrier, apply, verification or rollback.
 
+Correlated evidence is fail-safe and must suppress evacuation storms:
+
+```text
+SOURCE TELEGRAM FAIL + COMPATIBLE HOT TARGET TELEGRAM PASS
+-> source-specific Telegram suspicion; bounded confirmation may proceed
+
+SOURCE TELEGRAM FAIL + multiple independent compatible hot targets FAIL
+-> correlated/global Telegram incident; DEGRADED + bounded revalidation
+-> no Telegram-only evacuation
+
+COMMON PATH-PROBE TARGET FAILS ACROSS MANY EGRESS
+-> shared-probe/correlated incident; not "all egresses failed"
+```
+
+N2/N7/N9 must prove this distinction under endpoint glitch, burst and
+correlated-failure cases.  A source-specific action never follows merely from
+one shared external endpoint being unavailable.
+
 The old roles are deliberately reclassified, not abandoned:
 
 ```text
@@ -137,6 +187,11 @@ The deep horizon means every relevant egress receives a deep refresh within
 the measured horizon (initially 15 minutes), not one burst at the horizon
 boundary.  Any staggered implementation must reuse Matrix state and writer
 serialization; it may not add a timer, queue, cache, registry or truth source.
+N6 additionally proves: L0/L1/L2/N4 always outrank DEEP; bounded global deep
+probes/sec and concurrency; fair coverage without cold-egress starvation; no
+catch-up burst; and a missed horizon becoming `STALE` rather than a probe
+storm.  DEEP cannot delay decisive HARD/PATH, Telegram or required-service
+confirmation.
 
 #### Scale, probe and data-plane invariants
 
@@ -149,7 +204,20 @@ HEALTH_COST != O(users)
 10,000 users on one source with the same profile must consume one health
 contract, not 10,000 probes.  A hot target set is bounded by `H <= 2–4` per
 active source/profile and is current for path liveness, Telegram readiness
-where Telegram is required, capacity, policy, generation and role.  On
+where Telegram is required, capacity, policy, generation and role.  N2/N5
+select and measure separate freshness budgets for path, Telegram, capacity,
+policy, generation and role; one "current" timestamp is insufficient.  Hot
+target health is deduplicated by compatible target-plus-critical-service
+fingerprint:
+
+```text
+HOT_TARGET_HEALTH_COST = O(distinct compatible target + critical-service contract)
+NOT O(source x target relation)
+```
+
+Each active source claiming a 3-second class requires at least one fresh,
+pre-ready eligible compatible hot target before the failure.  Otherwise the
+exact state is `NO_3S_TARGET_CAPACITY`, never a fictional SLO pass.  On
 suspicion, source confirmation and relevant hot-target confirmation are
 eligible to run in parallel under the existing owner’s bounded concurrency;
 state commit remains single-writer.
@@ -165,10 +233,16 @@ budget; spawning a heavyweight process per probe is not a valid result.
 
 The data plane is part of the critical path.  Before a class may claim S11,
 the chosen hot target tunnel and routing primitives must already be ready.
-Measure make-before-break and governed apply for cohorts of `1`, `10`, `100`
-and `1000` affected clients.  A batch/cohort optimization is admissible only
-when the existing Packet/Lease/Barrier/rollback invariants and per-client
-verification remain true.
+N5 consumes the existing V4 constant-time cohort/data-plane contract:
+prepared decision, class/bucket identity where applicable, capacity reservation,
+bounded kernel commit and no hidden incident-time `O(users)` scan.  Measure
+make-before-break and governed apply for compatible cohorts of `1`, `10`,
+`100` and `1000` affected clients before N7.  The 3-second result applies to
+the eligible compatible routing class/cohort, not merely its first moved
+identity.  Exceptional identities may use an explicit slower fallback.  A
+batch/cohort optimization is admissible only when the existing
+Packet/Lease/Barrier/rollback invariants and per-client verification remain
+true.
 
 #### N0–N11 execution order
 
@@ -179,14 +253,14 @@ tests, report, deploy or Polygon alone never advances a phase.
 | Phase | Required result and gate |
 | --- | --- |
 | `N0` | Record this product/SLO amendment in the existing Program; reconcile current callers, consumers, state and prior V5.3 evidence against the new roles. |
-| `N0a` | **Runtime execution envelope prerequisite.** Profile and reduce the existing governed downstream executor until it completes one controlled causal path without unbounded materialisation, OOM or repeated automatic retries. This precedes every cadence change. |
+| `N0a` | **Runtime execution envelope prerequisite.** Profile and reduce the existing governed downstream executor until it completes one controlled causal path without unbounded materialisation, OOM or repeated automatic retries. It is mandatory before N8 controlled Runtime admission and before production activation of a new cadence; it does not block independent N1–N7/N9 Polygon, profiling, implementation or scale work. |
 | `N1` | `HARD_FAILURE_EVENT_DRIVEN_SIGNAL_INTEGRATION`: reuse existing definitive local evidence and tournament cheap path liveness at `250 ms/500 ms/1 s/2 s`; choose only a measured safe cadence. |
 | `N2` | `TELEGRAM_CRITICAL_FAST_HEALTH_V2`: tournament `250 ms/500 ms/1 s`, thresholds and independent evidence against persistent outage, transient loss/timeout, endpoint glitch, correlated failure, 1,000 egresses and hot-target readiness. |
 | `N3` | Other-required service sentinels: tournament `5 s/10 s/15 s/30 s` by current source plus distinct required profile contract, using DNS/TCP/TLS/light HTTP only where protocol-appropriate. |
 | `N4` | Immediate targeted confirmation: each lawful signal invokes current-source/service confirmation now; source and relevant hot target are checked concurrently where safe; no wait for the next periodic Matrix cycle. |
-| `N5` | Pre-failure hot-target readiness for the bounded top-H target set; prove freshness, capacity, policy, generation, role and relevant critical-service readiness. |
-| `N6` | Transform Full Matrix from burst semantics to a measured staggered deep-refresh horizon under the existing Matrix writer; retain fallback for disagreement, stale/conflict and ambiguous cases. |
-| `N7` | Causal Polygon tournament from first observable failure to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial. Only hard/path and Telegram require `<=3 s` P95. |
+| `N5` | `PRE_READY_TARGET_AND_PREPARED_DATAPLANE`: pre-failure hot-target readiness for the bounded top-H set plus existing V4 constant-time prepared data-plane proof; include freshness, dedup, coverage, capacity, policy, generation, role and 1/10/100/1000 compatible-cohort readiness. |
+| `N6` | Transform Full Matrix from burst semantics to a measured staggered deep-refresh horizon under the existing Matrix writer; retain fallback for disagreement, stale/conflict and ambiguous cases, with FAST priority, fairness, bounded deep rate/concurrency and no catch-up storm. |
+| `N7` | Causal Polygon tournament from controlled failure/outage onset to S11: interface/tunnel/path/Telegram/DNS/other-required/multi-service/partial. HARD/PATH and applicable Telegram require P95 `<=3 s` and max `<=5 s`; test each cadence phase offset and correlated failure. |
 | `N8` | Controlled unattended Runtime proof: signal -> confirmation -> T0 -> selection -> governed apply -> S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
 | `N9` | Full scale tournament using the mandatory egress/user/profile matrix and all resource/pressure measurements. |
 | `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. |
@@ -204,6 +278,33 @@ producer -> legal caller -> existing consumer -> canonical state -> next owner
 Manual invocation may create Engineering evidence but cannot close N8/N10.
 Duplicate suppression, restart recovery, deadline/timeout containment and
 safe re-entry must be tested at every new automatic edge.
+
+##### V5.3 fast-wake, controlled-evidence and terminology precedence
+
+For N0–N11 only, L0 local failure evidence, L1P path liveness, L1T
+profile-required Telegram sentinel and L2 required-service sentinel are legal
+immediate wake producers for bounded targeted Matrix confirmation.  Legacy
+statements that Matrix/timer is the only or sole wake producer apply only to
+their expressly named CT-M0F sample-generation or legacy regular-wake
+semantics.  They must not delay, prohibit or reinterpret N1–N4 confirmation.
+Likewise, a historical Full-Matrix comparison is not an executable
+Full-before-action requirement for HARD/PATH, applicable Telegram or decisive
+required-service cases.
+
+Evidence classes remain separate:
+
+```text
+POLYGON DELIBERATE FAULT INJECTION = allowed Engineering evidence
+EXACT-OWNER-AUTHORIZED CONTROLLED CERTIFICATION = allowed only in its admitted envelope
+MANUFACTURED ORDINARY PRODUCTION FAILURE = forbidden
+REPEATED PRODUCTION ACTION MERELY TO FILL A SAMPLE COUNT = forbidden
+```
+
+For N0–N11 consumption only, historical server-bound
+`CLIENT_TRAFFIC_RECOVERY_*` / route-bound probe receipts are renamed
+`S11_SERVER_SIDE_RECOVERY_*`.  They remain reusable server evidence but cannot
+satisfy `T11_CLIENT_TRAFFIC_RECOVERED` or remote client application recovery
+without independent client telemetry.
 
 No code is retained merely because it is historical.  Before deleting or
 deferring a branch, the existing owner must prove its caller(s), consumer(s),
@@ -227,20 +328,29 @@ parallel health truth or unbounded work.
 
 `MATRIX_ROLE_BASED_RECOVERY_OPTIMIZATION_TERMINAL_COMPLETE` requires all of:
 
-1. HARD/PATH and applicable Telegram-critical classes meet their measured P95
-   first-observable-signal -> S11 target; other required services meet their
-   separately measured 10–15-second T0 contract or retain an exact blocker.
+1. HARD/PATH and applicable Telegram-critical classes meet controlled
+   onset->S11 P95 `<=3 s`, max `<=5 s` and phase-offset evidence; production
+   first-failed-observation and last-success->first-failure clocks are stored
+   separately.  Other required services have one selected measured detection
+   SLO `<=15 s`, including cadence phase, timeout and confirmation.
 2. C8 is a proven backstop; Full Matrix is a proven bounded deep/fallback
    horizon and neither blocks decisive unambiguous recovery.
-3. Hot targets are pre-ready, source/target checks remain fail-closed, and
-   S11 is route-bound and service-specific.
-4. The `7/50/100/1000` and `250/500/10,000+` scale matrix proves dedup,
-   bounded resource cost and no health-cost dependence on user count.
-5. N8 proves an unattended controlled real caller/consumer chain and N10
+3. Hot targets have fact-specific freshness budgets, global compatible-target
+   dedup and SLO coverage; source/target checks remain fail-closed, correlated
+   Telegram/shared-probe failure cannot create an evacuation storm, and S11 is
+   route-bound, target-identity-bound and failure-class-specific.
+4. Existing V4 constant-time data-plane invariants pass for `1/10/100/1000`
+   compatible affected identities; no incident-critical `O(users)` path or
+   first-identity-only SLO claim remains.  The `7/50/100/1000` and
+   `250/500/10,000+` scale matrix proves the remaining dedup and bounded cost.
+5. Full Matrix is staggered, bounded and fair, has no catch-up storm and never
+   delays FAST. N8 proves an unattended controlled real caller/consumer chain and N10
    proves the lawful ordinary safety boundary.  T11 is claimed only if an
    independent client signal exists.
 6. Every old and new code/timer/consumer path has passed the classification
-   and retirement law; no redundant, unreachable or duplicate path remains.
+   and retirement law; timer-only wake statements are scoped away from N0–N11,
+   legacy server-bound client-recovery names are mapped to S11, and no
+   redundant, unreachable or duplicate path remains.
 
 The next executable V5.3 action after this amendment is **N0a**, not a timer
 or cadence increase.
@@ -400,7 +510,10 @@ admitted read-only profiling, implementation, focused tests, replay, fault
 injection, Polygon Engineering, scale modelling or safe deploy. CT-M0F
 controlled-production evidence may satisfy only criteria that explicitly
 require that class; it cannot be cross-credited as ordinary/natural evidence.
-No controlled or ordinary action may be manufactured to advance V5.3.
+No ordinary production action, or uncontrolled controlled action, may be
+manufactured merely to advance V5.3. Existing-owner Polygon fault injection
+and an exact-owner-authorized controlled certification action remain lawful
+only within their admitted envelope and never become ordinary evidence.
 
 Under existing OMP `NO_UNNECESSARY_WAITING`, parallel-frontier, dynamic
 Mission-compression and arbitration laws, any Matrix criterion blocked by
@@ -1565,9 +1678,11 @@ valid CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER samples
   -> CT-M0F COMPLETE_CONSUMED -> CT-M1 READY
 ```
 
-The ordinary Matrix/timer remains the only producer of a fresh validation
-generation.  Neither Codex nor an operator may invoke it to manufacture a
-sample.  A current incident, fresh live gates and the active standing policy
+For this CT-M0F validation-generation contract only, the ordinary Matrix/timer
+remains the only producer of a fresh validation generation. It does not
+restrict the V5.3 N0–N11 fast-wake precedence law. Neither Codex nor an
+operator may invoke it to manufacture a CT-M0F sample. A current incident,
+fresh live gates and the active standing policy
 may drive the existing Runtime path; this track never creates Candidate,
 Packet, lease, restore-barrier, apply, routing mutation or user movement
 outside that exact existing-owner envelope.
@@ -1677,8 +1792,10 @@ a standing-policy rebind.
 
 ### Existing wake and controlled-condition law
 
-The existing Matrix/timer owner is the sole ordinary CT-M0F wake producer.
-Neither an operator nor Codex may invoke Matrix to manufacture a sample.
+The existing Matrix/timer owner is the sole ordinary CT-M0F wake producer for
+this CT-M0F contract. It does not restrict V5.3 N0–N11 fast targeted Matrix
+confirmation. Neither an operator nor Codex may invoke Matrix to manufacture
+a CT-M0F sample.
 The first-failure timestamp must retain its actual provenance. A controlled
 source condition may be used only if the active exact contract independently
 admits that condition; otherwise no client-recovery claim, sample or inferred
@@ -4683,8 +4800,10 @@ observation generation, source channel, and compact current-source scope
 count/fingerprint. An incomplete tuple is `STOP_SAFE`; a historical Packet,
 Candidate, lease, approval or route observation may never fill the gap.
 
-The existing Matrix lifecycle is the only regular wake source. It may create
-the next fresh probe generation and invoke the existing OMP/CPS consumer; this
+For this legacy regular-wake lifecycle, the existing Matrix lifecycle is the
+only regular wake source. It does not restrict V5.3 N0–N11 legal immediate
+signals from waking bounded targeted Matrix confirmation. It may create the
+next fresh probe generation and invoke the existing OMP/CPS consumer; this
 Program must not enable a timer, create a watcher or use an operator/Codex
 message as a required re-entry mechanism. Every transaction still independently
 checks source degradation, user/source membership, healthy target, capacity,

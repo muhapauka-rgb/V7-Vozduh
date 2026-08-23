@@ -61,18 +61,34 @@ the broader Program again.
     tournament, including cadence phase, timeout and confirmation—not retain a
     permanent `10–15s` range.
 
-## Product decision required
+## Decision and amendment applied
 
-The supplied review correctly identifies an ambiguity that cannot be resolved
-by engineering: whether Telegram’s 1–3-second class applies to every active
-source serving enabled clients, or only to profiles that declare Telegram
-required.  The Program currently uses the latter.  This choice changes which
-outage may move clients and therefore needs explicit product direction before
-the text is changed.
+Product direction confirmed: Telegram’s 1–3-second class applies **only** to
+profiles that declare Telegram required.  The Program now makes this explicit
+and applies the following targeted corrections without deleting the broader
+V5.3/CT/V4 contracts:
+
+- controlled onset and production observation clocks are separate; HARD/PATH
+  and applicable Telegram require P95 `<=3s` and max `<=5s`;
+- N3 must select one exact other-required-service SLO after its tournament;
+- confirmation and class-specific S11 have bounded timeout/retry/wall budgets;
+- correlated Telegram/path-probe failures suppress evacuation storms;
+- hot target freshness, fingerprint dedup and `NO_3S_TARGET_CAPACITY` are
+  mandatory; N5 now consumes V4 constant-time cohort/data-plane invariants;
+- N6 has FAST priority, fairness, bounded deep rate and no catch-up storm;
+- N0a gates N8/production activation but not independent N1–N7/N9 work;
+- explicit fast-wake precedence scopes old timer-only CT/legacy wording away
+  from N0–N11; allowed controlled evidence is separated from forbidden
+  manufactured ordinary production action;
+- old server-bound client-recovery receipts map to S11 for N consumption and
+  cannot prove client-side T11; and the N terminal now checks all these facts.
+
+Program-only validation: `git diff --check` passed.  No Runtime, route, timer,
+Matrix, client or application code was changed.
 
 ## Exact next action
 
-After that one decision, amend the existing N0–N11 section and the few named
-legacy statements in place; retain all unrelated Program contracts.  Then N0a
-and N1–N7/N9 continue in parallel according to their independent gates.
-
+N0a and N1–N7/N9 may proceed through independent existing-owner admissions.
+The first implementation work remains N0a: bound the existing downstream
+executor's memory without OOM; this is required before N8 and any production
+activation of a newly selected cadence.

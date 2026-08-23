@@ -13295,7 +13295,18 @@ class AutoswitchPlanner:
             availability_first_authorized or ct_m0f_reset_authorized
         )
         max_allowed_selected = clearance_max_selected_moves if approved_batch_scope else 1
-        live_users = {user.ip: user for user in self._load_users()}
+        # An exact standing-policy reset is checked against the mutable
+        # canonical users registry, just like the approved-plan-lock gate
+        # above. The planner's lagging read model may still show the pre-reset
+        # source and must not strand a lineage-bound certification identity.
+        live_users = {
+            user.ip: user
+            for user in (
+                self._load_runtime_registry_users()
+                if controlled_recovery_authorized
+                else self._load_users()
+            )
+        }
         live_egress = self._load_egress()
         blockers: list[str] = []
         checked_moves: list[dict[str, Any]] = []

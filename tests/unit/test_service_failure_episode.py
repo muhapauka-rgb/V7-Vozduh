@@ -382,8 +382,27 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["status"],
             "CT_M0F_CONTROLLED_CONDITION_PREPARED_WAITING_FRESH_MATRIX_GENERATION",
         )
-        self.assertIn("--prepare-ct-m0f-standing-controlled-condition", calls[1])
-        self.assertNotIn("--execute-l3-production-validation", calls[1])
+        prepare_call = next(
+            command
+            for command in calls
+            if "--prepare-ct-m0f-standing-controlled-condition" in command
+        )
+        target_diagnostic_call = next(
+            command
+            for command in calls
+            if "--controlled-target-selection-diagnostic" in command
+        )
+        source_selection_call = next(
+            command
+            for command in calls
+            if "--ct-m0f-standing-source-selection" in command
+        )
+        self.assertIn("--controlled-target-selection-diagnostic", target_diagnostic_call)
+        self.assertIn(
+            "--ct-m0f-precomputed-target-diagnostic-file",
+            source_selection_call,
+        )
+        self.assertNotIn("--execute-l3-production-validation", prepare_call)
         self.assertEqual(result["durable_successor"], "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE")
         self.assertEqual(
             result["sample_preparation_receipt"]["next_required_consumer"],
@@ -5052,25 +5071,21 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertNotIn("service_failure_automation_consumed_execution_handoff(", pre_executor)
         self.assertNotIn("run_service_failure_omp_consumer(", pre_executor)
 
-    def test_runtime_hot_path_units_exclude_engineering_tail(self):
-        """Runtime units must not synchronously invoke OMP/reporting tails."""
+    def test_runtime_hot_path_certification_scope_reuses_governed_consumer_only(self):
+        """A certification failure skips OMP but reaches its existing consumer."""
         source = REFRESH_TOOL.read_text(encoding="utf-8")
-        flag = source.index('"--runtime-hot-path-only"')
-        cert_exit = source.index(
-            "CERTIFICATION_SCOPE_DEFERRED_TO_EXISTING_CONTROLLED_OWNER",
+        flag = source.index(
+            "# A known certification-only source is not an ordinary customer failure."
+        )
+        controlled_scope = source.index(
+            "certification_only_scope_uses_existing_ct_m0f_governed_consumer",
             flag,
         )
-        action_exit = source.index(
-            "RUNTIME_HOT_PATH_ACTION_ATTEMPT_COMPLETE",
-            cert_exit,
-        )
-        post_action_omp = source.index(
-            'payload["service_failure_post_action_omp_consumer"]',
-            action_exit,
-        )
-        self.assertLess(flag, cert_exit)
-        self.assertLess(cert_exit, action_exit)
-        self.assertLess(action_exit, post_action_omp)
+        branch_end = source.index("    if args.skip_passive_consumer:", controlled_scope)
+        early_scope = source[flag:branch_end]
+        self.assertIn("run_ct_m0f_standing_validation_campaign(", early_scope)
+        self.assertNotIn("run_service_failure_omp_consumer(", early_scope)
+        self.assertNotIn("run_passive_consumer(", early_scope)
         planner_unit = (ROOT / "systemd/drafts/v7-autoswitch-planner.service").read_text(
             encoding="utf-8"
         )

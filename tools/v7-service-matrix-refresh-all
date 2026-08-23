@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1588,14 +1589,42 @@ def run_ct_m0f_standing_validation_campaign(
     if active_result is not None:
         return active_result
 
-    source_command = [
-        planner,
-        "--ct-m0f-standing-source-selection",
-        "--state-dir", str(state_dir),
-        "--policy-file", str(policy_file),
-        "--action-class-audit-store", str(audit_store),
-    ]
-    source_rc, source_selection, source_output = invoke(source_command, 180)
+    # The source selector and target diagnostic are existing owners but each
+    # legitimately reads a broad inventory.  The selector's bounded-memory
+    # contract accepts the diagnostic only as a one-shot compact file.  Keep
+    # that hand-off private to this invocation: it is neither a cache nor a
+    # second state source, and it makes the automatic Matrix consumer use the
+    # same target decision as the manual read-only predecessor did.
+    target_diagnostic = read_controlled_target_selection_diagnostic(
+        state_dir=state_dir,
+        policy_file=policy_file,
+        audit_store=audit_store,
+    )
+    diagnostic_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix="v7-ct-m0f-target-",
+            suffix=".json",
+            delete=False,
+        ) as diagnostic_file:
+            json.dump(target_diagnostic, diagnostic_file, ensure_ascii=False)
+            diagnostic_file.write("\n")
+            diagnostic_path = diagnostic_file.name
+        source_command = [
+            planner,
+            "--ct-m0f-standing-source-selection",
+            "--state-dir", str(state_dir),
+            "--policy-file", str(policy_file),
+            "--action-class-audit-store", str(audit_store),
+            "--ct-m0f-precomputed-target-diagnostic-file", diagnostic_path,
+        ]
+        source_rc, source_selection, source_output = invoke(source_command, 180)
+    finally:
+        if diagnostic_path:
+            with contextlib.suppress(OSError):
+                os.unlink(diagnostic_path)
     selected_source = str(source_selection.get("selected_source_id") or "")
     selected_user = str(source_selection.get("selected_user") or "")
     selected_target = str(source_selection.get("selected_target_id") or "")
@@ -4574,22 +4603,38 @@ def main() -> int:
         )
     )
     # A known certification-only source is not an ordinary customer failure.
-    # Its controlled owner must retain its reservation/re-entry semantics, but
-    # it must not make the 30-second Runtime consumer replay passive/OMP work
-    # or attempt a prohibited ordinary Packet.  This is a compact read over
-    # existing Matrix + registry owners, not a new truth source.
+    # It must never enter the ordinary passive/OMP path, but the existing
+    # CT-M0F governed consumer is precisely its bounded one-user owner.  The
+    # former unconditional defer made a READY Matrix selection wait for a
+    # person to run that existing consumer manually.  Reuse it here, through
+    # its own Candidate/Packet/lease/pre-apply gates, and retain the same
+    # fail-closed terminal projection for every rejected predicate.
     if (
         args.runtime_hot_path_only
         and not source_scope.get("active")
         and source_scope.get("certification_only_active_sources")
     ):
         payload["current_failed_source_scope"] = source_scope
+        payload["ct_m0f_standing_validation_campaign"] = (
+            run_ct_m0f_standing_validation_campaign(
+                str(args.governed_executor),
+                str(args.passive_consumer),
+                state_dir=state_dir,
+                event_dir=Path(args.event_dir),
+                policy_file=Path(args.policy_file),
+                audit_store=Path(args.operator_execution_audit_store),
+                timeout_sec=int(args.passive_consumer_timeout_sec) + 900,
+            )
+        )
+        ct_m0f_action = payload["ct_m0f_standing_validation_campaign"]
         payload["passive_event_consumer"] = {
             "schema_version": "v7.passive-consumer-liveness.v1",
-            "status": "DEFERRED_TO_EXISTING_CONTROLLED_OWNER",
-            "ok": True,
-            "reason": "certification_only_scope_has_no_ordinary_runtime_action",
-            "runtime_mutation_performed": False,
+            "status": "ORDINARY_PATH_NOT_APPLICABLE_CONTROLLED_OWNER_CONSUMED",
+            "ok": bool(ct_m0f_action.get("ok")),
+            "reason": "certification_only_scope_uses_existing_ct_m0f_governed_consumer",
+            "runtime_mutation_performed": bool(
+                ct_m0f_action.get("runtime_mutation_performed")
+            ),
         }
         payload["service_failure_omp_consumer"] = {
             "schema_version": "v7.service-failure-omp-consumer-liveness.v1",
@@ -4597,7 +4642,10 @@ def main() -> int:
             "ok": True,
             "reason": "certification_only_scope_is_not_an_ordinary_runtime_handoff",
         }
-        payload["next_output"] = "CERTIFICATION_SCOPE_DEFERRED_TO_EXISTING_CONTROLLED_OWNER"
+        payload["next_output"] = str(
+            ct_m0f_action.get("status")
+            or "STOP_SAFE_CONTROLLED_CERTIFICATION_CONSUMER_NO_TERMINAL"
+        )
         compact_payload = compact_refresh_projection(payload)
         write_json_atomic(summary_file, compact_payload)
         append_event(Path(args.event_dir), payload)

@@ -4544,6 +4544,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
 
         self.assertEqual(projected["execution_timing"], timing)
 
+        nested = self.refresh._consumer_projection({
+            "schema_version": (
+                "v7.ct-m0f-standing-validation-matrix-consumer.v1"
+            ),
+            "status": "CT_M0F_SAMPLE_CLOSED",
+            "steps": [{
+                "kind": "FRESH_SAMPLE_EXECUTION",
+                "result": {"execution_timing": timing},
+            }],
+        })["consumer_result"]
+        self.assertEqual(nested["execution_timing"], timing)
+
     def test_matrix_projection_retains_bounded_cohort_policy_stop_reason(self):
         projected = self.refresh._consumer_projection({
             "consumer_result": {

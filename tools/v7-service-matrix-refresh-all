@@ -4087,6 +4087,22 @@ def _consumer_projection(payload: Any) -> dict[str, Any]:
         if result.get(key) not in (None, "", [], {})
     }
     execution_timing = result.get("execution_timing")
+    if not isinstance(execution_timing, dict) or not execution_timing:
+        # CT-M0F may execute and close a sample in one bounded Matrix
+        # invocation. Its governed execution receipt then lives in the
+        # existing lifecycle step list while the top-level result describes
+        # the closure successor. Retain the newest receipt without copying
+        # the step payload or creating another telemetry store.
+        for step in reversed(result.get("steps") or []):
+            if not isinstance(step, dict):
+                continue
+            child = step.get("result")
+            if not isinstance(child, dict):
+                continue
+            candidate_timing = child.get("execution_timing")
+            if isinstance(candidate_timing, dict) and candidate_timing:
+                execution_timing = candidate_timing
+                break
     if isinstance(execution_timing, dict) and execution_timing:
         # This is already the governed caller's bounded monotonic receipt.
         # Preserve it in the existing Matrix lifecycle projection so a failed

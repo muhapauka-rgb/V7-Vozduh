@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import html
 import argparse
+import fcntl
 import hashlib
 import ipaddress
 import json
@@ -36,6 +37,13 @@ EXACT_PROBE_CONTEXT_SCHEMA = "v7.exact-client-probe-execution-context.v1"
 EXACT_PROBE_RECEIPT_SCHEMA = "v7.exact-client-network-context-traffic-probe-receipt.v1"
 TARGET_EGRESS_PAYLOAD_CONTEXT_SCHEMA = "v7.target-egress-payload-probe-context.v1"
 TARGET_EGRESS_PAYLOAD_RECEIPT_SCHEMA = "v7.target-egress-payload-probe-receipt.v1"
+CLIENT_PROFILE_ROOT = Path(os.environ.get("V7_CLIENT_ROOT", "/root/v7-clients"))
+EXACT_PROBE_INGRESS_INTERFACE = os.environ.get(
+    "V7_EXACT_PROBE_INGRESS_INTERFACE", "wg0"
+)
+EXACT_PROBE_LOCK = Path(
+    os.environ.get("V7_EXACT_PROBE_LOCK", "/run/v7-exact-client-probe.lock")
+)
 
 
 def now_iso():
@@ -139,6 +147,9 @@ def exact_client_probe_readiness():
         }
         current = str(row.get("current") or "")
         egress = egresses.get(current) if isinstance(egresses.get(current), dict) else {}
+        local_profile_ready = bool(
+            os.geteuid() == 0 and exact_certification_client_profile(ip)
+        )
         expected_ip = str(egress.get("expected_ip") or "")
         try:
             expected_ip_ok = bool(ipaddress.ip_address(expected_ip).is_global)
@@ -147,8 +158,14 @@ def exact_client_probe_readiness():
         if not all((
             str(row.get("enabled", "1")) == "1",
             str(row.get("certification_user", "")).lower() in {"1", "true", "yes"},
-            int(agent.get("online_until") or 0) >= now,
-            "exact_client_network_context_traffic_probe_v1" in capabilities,
+            (
+                local_profile_ready
+                or (
+                    int(agent.get("online_until") or 0) >= now
+                    and "exact_client_network_context_traffic_probe_v1"
+                    in capabilities
+                )
+            ),
             current,
             str(row.get("table") or "").isdigit(),
             str(egress.get("interface") or ""),
@@ -161,6 +178,10 @@ def exact_client_probe_readiness():
             "routing_table_fingerprint": sha256_text(row.get("table")),
             "target_interface_fingerprint": sha256_text(egress.get("interface")),
             "expected_egress_fingerprint": sha256_text(expected_ip),
+            "execution_mode": (
+                "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE"
+                if local_profile_ready else "ONLINE_CLIENT_AGENT"
+            ),
             "agent_last_seen": str(agent.get("last_seen") or ""),
             "online_until": int(agent.get("online_until") or 0),
         })
@@ -175,7 +196,7 @@ def exact_client_probe_readiness():
     ):
         blockers.append("enabled_certification_identity_missing")
     if not eligible:
-        blockers.append("online_capable_exact_certification_client_agent_missing")
+        blockers.append("exact_certification_client_execution_context_missing")
     return {
         "schema_version": "v7.exact-client-probe-readiness.v1",
         "status": (
@@ -196,7 +217,7 @@ def exact_client_probe_readiness():
         "next_required_consumer": (
             "existing Controlled Production owner issues one short-lived exact probe command/context"
             if selected
-            else "existing Controlled Production owner provisions or activates one dedicated certification client agent"
+            else "existing Controlled Production owner provisions one local Polygon profile or activates one dedicated certification client agent"
         ),
     }
 
@@ -411,6 +432,8 @@ def route_lookup_for_exact_probe(destination_ip, context):
         "mark",
         str(context.get("fwmark") or "0"),
     ]
+    if str(context.get("ingress_interface") or ""):
+        command.extend(("iif", str(context.get("ingress_interface") or "")))
     # A target-egress payload probe deliberately proves the already selected
     # target interface.  The socket below uses SO_BINDTODEVICE, so its route
     # lookup must model that same execution context.  Exact-client probes do
@@ -453,6 +476,296 @@ def _cache_busted_url(url, nonce):
     return urlunparse(parsed._replace(query=urlencode(query)))
 
 
+def exact_certification_client_profile(source_address):
+    """Return the existing client profile for one exact certification IP.
+
+    The profile is an already-owned client artifact, not a second identity
+    registry.  Ambiguity fails closed and no key material is returned here.
+    """
+    source_address = str(source_address or "").strip()
+    matches = []
+    address_re = re.compile(
+        rf"^Address\s*=\s*{re.escape(source_address)}/32(?:\s|$)", re.M
+    )
+    try:
+        candidates = sorted(CLIENT_PROFILE_ROOT.glob("*/*.conf"))
+    except OSError:
+        candidates = []
+    for path in candidates:
+        try:
+            if address_re.search(path.read_text(encoding="utf-8")):
+                matches.append(path)
+        except OSError:
+            continue
+    return matches[0] if len(matches) == 1 else None
+
+
+def wireguard_setconf_text(profile_text):
+    """Strip wg-quick-only fields without writing private keys to disk."""
+    allowed_interface = {"privatekey", "listenport", "fwmark"}
+    allowed_peer = {
+        "publickey", "presharedkey", "allowedips", "endpoint",
+        "persistentkeepalive",
+    }
+    section = ""
+    output = []
+    for raw in str(profile_text or "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            section = line.lower()
+            if section in {"[interface]", "[peer]"}:
+                output.append(line)
+            continue
+        if "=" not in line or section not in {"[interface]", "[peer]"}:
+            continue
+        key = line.split("=", 1)[0].strip().lower()
+        allowed = allowed_interface if section == "[interface]" else allowed_peer
+        if key in allowed:
+            output.append(line)
+    return "\n".join(output) + "\n"
+
+
+def wireguard_profile_metadata(profile_text):
+    metadata = {"address": "", "endpoint_host": "", "private_key": ""}
+    for raw in str(profile_text or "").splitlines():
+        if "=" not in raw:
+            continue
+        key, value = (item.strip() for item in raw.split("=", 1))
+        if key.lower() == "address":
+            metadata["address"] = value.split(",", 1)[0].split("/", 1)[0].strip()
+        elif key.lower() == "privatekey":
+            metadata["private_key"] = value
+        elif key.lower() == "endpoint":
+            endpoint = value.strip()
+            metadata["endpoint_host"] = (
+                endpoint.rsplit(":", 1)[0].strip("[]")
+                if ":" in endpoint else endpoint
+            )
+    return metadata
+
+
+def _run_probe_command(command, *, input_text=None, timeout=5):
+    return subprocess.run(
+        command,
+        input=input_text,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        timeout=timeout,
+    )
+
+
+def _exact_namespace_http_script():
+    # Kept as one bounded child so the socket is genuinely created inside the
+    # client namespace.  The context contains no secrets.
+    return r'''import hashlib,json,secrets,socket,ssl,sys,time
+from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
+c=json.loads(sys.stdin.read()); p=urlparse(c["target_url"]); host=p.hostname
+dest=c["destination_ip"]; port=p.port or 443; started=time.monotonic_ns()
+s=None; t=None
+try:
+ s=socket.socket(socket.AF_INET,socket.SOCK_STREAM); s.settimeout(c["timeout_seconds"])
+ s.setsockopt(socket.SOL_SOCKET,getattr(socket,"SO_BINDTODEVICE",25),(c["client_interface"]+"\0").encode())
+ s.bind((c["source_address"],0)); s.connect((dest,port))
+ t=ssl.create_default_context().wrap_socket(s,server_hostname=host)
+ q=list(parse_qsl(p.query,keep_blank_values=True)); q.extend((("v7ProbeNonce",secrets.token_hex(16)),("v7ProbeTimeNs",str(time.time_ns()))))
+ target=p.path or "/"; target+=("?"+urlencode(q)) if q else ""
+ req=(f"GET {target} HTTP/1.1\r\nHost: {host}\r\nAccept: text/plain\r\nCache-Control: no-cache, no-store\r\nPragma: no-cache\r\nConnection: close\r\n\r\n").encode("ascii")
+ t.sendall(req); chunks=[]; total=0
+ while total<65536:
+  chunk=t.recv(min(8192,65536-total))
+  if not chunk: break
+  chunks.append(chunk); total+=len(chunk)
+ raw=b"".join(chunks); header,sep,body=raw.partition(b"\r\n\r\n")
+ status=header.split(b"\r\n",1)[0].decode("ascii",errors="replace")
+ response=body.decode("utf-8",errors="replace").strip(); finished=time.monotonic_ns()
+ print(json.dumps({"ok":bool(sep and " 200 " in status),"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":status,"response_text":response,"payload_fingerprint":hashlib.sha256(body).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True}))
+except Exception as e:
+ print(json.dumps({"ok":False,"started_monotonic_ns":started,"finished_monotonic_ns":time.monotonic_ns(),"error":f"{type(e).__name__}:{e}"[:240]}))
+finally:
+ for h in (t,s):
+  try:
+   if h is not None: h.close()
+  except OSError: pass
+'''
+
+
+def execute_ephemeral_client_namespace_probe(context, destination_ip):
+    """Run one request as the existing synthetic WireGuard client.
+
+    The namespace and veth exist only for the request and are removed in a
+    finally block.  No production route, assignment, Matrix state or timer is
+    changed.  The actual packet enters the server through its canonical wg0
+    owner, so the user's source rule and selected target table are exercised.
+    """
+    profile = exact_certification_client_profile(context.get("source_address"))
+    if profile is None:
+        return {}, [{
+            "error": "exact_certification_client_profile_missing_or_ambiguous",
+            "fresh_socket": False,
+            "payload_response_verified": False,
+        }]
+    try:
+        profile_text = profile.read_text(encoding="utf-8")
+    except OSError as exc:
+        return {}, [{
+            "error": f"client_profile_read_failed:{type(exc).__name__}",
+            "fresh_socket": False,
+            "payload_response_verified": False,
+        }]
+    metadata = wireguard_profile_metadata(profile_text)
+    source = str(context.get("source_address") or "")
+    if metadata.get("address") != source or not metadata.get("private_key"):
+        return {}, [{
+            "error": "client_profile_identity_or_key_invalid",
+            "fresh_socket": False,
+            "payload_response_verified": False,
+        }]
+    endpoint_host = str(metadata.get("endpoint_host") or "")
+    try:
+        endpoint_ip = socket.gethostbyname(endpoint_host)
+    except OSError as exc:
+        return {}, [{
+            "error": f"client_endpoint_resolution_failed:{type(exc).__name__}",
+            "fresh_socket": False,
+            "payload_response_verified": False,
+        }]
+
+    route = route_lookup_for_exact_probe(destination_ip, {
+        **context,
+        "fwmark": 0,
+        "ingress_interface": EXACT_PROBE_INGRESS_INTERFACE,
+    })
+    suffix = secrets.token_hex(3)
+    namespace = f"v7p{suffix}"[:15]
+    host_if = f"v7h{suffix}"[:15]
+    peer_if = f"v7n{suffix}"[:15]
+    wg_if = f"v7w{suffix}"[:15]
+    cleanup = []
+    started_ns = time.monotonic_ns()
+    lock_handle = None
+    try:
+        EXACT_PROBE_LOCK.parent.mkdir(parents=True, exist_ok=True)
+        lock_handle = EXACT_PROBE_LOCK.open("a+", encoding="utf-8")
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        setup = (
+            (["ip", "netns", "add", namespace], None),
+            (["ip", "link", "add", host_if, "type", "veth", "peer", "name", peer_if], None),
+            (["ip", "link", "set", peer_if, "netns", namespace], None),
+            (["ip", "addr", "add", "169.254.253.1/30", "dev", host_if], None),
+            (["ip", "link", "set", host_if, "up"], None),
+            (["ip", "netns", "exec", namespace, "ip", "link", "set", "lo", "up"], None),
+            (["ip", "netns", "exec", namespace, "ip", "addr", "add", "169.254.253.2/30", "dev", peer_if], None),
+            (["ip", "netns", "exec", namespace, "ip", "link", "set", peer_if, "up"], None),
+            (["ip", "netns", "exec", namespace, "ip", "route", "add", f"{endpoint_ip}/32", "via", "169.254.253.1", "dev", peer_if], None),
+            (["ip", "netns", "exec", namespace, "ip", "link", "add", wg_if, "type", "wireguard"], None),
+            (["ip", "netns", "exec", namespace, "wg", "setconf", wg_if, "/dev/stdin"], wireguard_setconf_text(profile_text)),
+            (["ip", "netns", "exec", namespace, "ip", "addr", "add", f"{source}/32", "dev", wg_if], None),
+            (["ip", "netns", "exec", namespace, "ip", "link", "set", wg_if, "up"], None),
+            (["ip", "netns", "exec", namespace, "ip", "route", "add", "default", "dev", wg_if], None),
+        )
+        for command, input_text in setup:
+            proc = _run_probe_command(command, input_text=input_text)
+            if proc.returncode != 0:
+                raise RuntimeError(
+                    f"namespace_setup_failed:{command[-1]}:{(proc.stdout or '').strip()[:160]}"
+                )
+        inode_proc = _run_probe_command([
+            "ip", "netns", "exec", namespace, "stat", "-Lc", "%i",
+            "/proc/self/ns/net",
+        ])
+        client_netns_inode = safe_int((inode_proc.stdout or "").strip(), 0)
+        public_proc = _run_probe_command(
+            ["wg", "pubkey"], input_text=metadata["private_key"] + "\n"
+        )
+        public_key = (public_proc.stdout or "").strip() if public_proc.returncode == 0 else ""
+        allowed_proc = _run_probe_command(
+            ["wg", "show", EXACT_PROBE_INGRESS_INTERFACE, "allowed-ips"]
+        )
+        peer_mapping = any(
+            line.split()[0] == public_key
+            and f"{source}/32" in line.split()[1:]
+            for line in (allowed_proc.stdout or "").splitlines()
+            if len(line.split()) >= 2
+        )
+        child_context = {
+            "target_url": str(context.get("target_url") or ""),
+            "destination_ip": destination_ip,
+            "timeout_seconds": max(
+                0.05, safe_int(context.get("timeout_ms"), 1000) / 1000.0
+            ),
+            "client_interface": wg_if,
+            "source_address": source,
+        }
+        probe_proc = _run_probe_command(
+            ["ip", "netns", "exec", namespace, sys.executable, "-c", _exact_namespace_http_script()],
+            input_text=json.dumps(child_context, sort_keys=True),
+            timeout=max(2, safe_int(context.get("timeout_ms"), 1000) // 1000 + 3),
+        )
+        try:
+            result = json.loads(probe_proc.stdout or "{}")
+        except json.JSONDecodeError:
+            result = {"ok": False, "error": "client_namespace_probe_output_invalid"}
+        response_text = str(result.get("response_text") or "").strip()
+        expected_ip = str(context.get("expected_egress_ip") or "").strip()
+        payload_ok = bool(result.get("ok") and response_text == expected_ip)
+        attempt = {
+            "attempt": 1,
+            "started_monotonic_ns": safe_int(result.get("started_monotonic_ns"), started_ns),
+            "finished_monotonic_ns": safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()),
+            "duration_ms": round((safe_int(result.get("finished_monotonic_ns"), time.monotonic_ns()) - safe_int(result.get("started_monotonic_ns"), started_ns)) / 1_000_000.0, 3),
+            "destination_ip": destination_ip,
+            "route": route,
+            "fresh_dns_resolution": False,
+            "dns_mode": "DECLARED_NO_DNS",
+            "fresh_socket": result.get("fresh_socket") is True,
+            "source_bind_applied": result.get("source_bind_applied") is True,
+            "source_identity_freebind_applied": False,
+            "interface_bind_applied": True,
+            "so_mark_applied": False,
+            "host_policy_route_proven": bool(
+                route.get("ok") is True
+                and str(route.get("table") or "") == str(context.get("routing_table") or "")
+                and str(route.get("dev") or "") == str(context.get("interface") or "")
+            ),
+            "client_tunnel_ingress_proven": bool(
+                peer_mapping and client_netns_inode and result.get("client_interface_bound") is True
+            ),
+            "client_profile_peer_mapping_proven": peer_mapping,
+            "client_namespace_isolated": bool(client_netns_inode),
+            "client_network_namespace_inode": client_netns_inode,
+            "status_line": str(result.get("status_line") or ""),
+            "payload_response_verified": payload_ok,
+            "payload_fingerprint": str(result.get("payload_fingerprint") or ""),
+            "response_matches_expected_egress_ip": response_text == expected_ip,
+            "error": str(result.get("error") or ""),
+        }
+        return (attempt if payload_ok else {}), [attempt]
+    except Exception as exc:
+        finished_ns = time.monotonic_ns()
+        return {}, [{
+            "attempt": 1,
+            "started_monotonic_ns": started_ns,
+            "finished_monotonic_ns": finished_ns,
+            "duration_ms": round((finished_ns - started_ns) / 1_000_000.0, 3),
+            "error": f"{type(exc).__name__}:{exc}"[:240],
+            "fresh_socket": False,
+            "payload_response_verified": False,
+        }]
+    finally:
+        _run_probe_command(["ip", "netns", "del", namespace], timeout=5)
+        _run_probe_command(["ip", "link", "del", host_if], timeout=5)
+        if lock_handle is not None:
+            try:
+                fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+                lock_handle.close()
+            except OSError:
+                pass
+
+
 def execute_fresh_exact_probe_request(context):
     parsed = urlparse(str(context.get("target_url") or ""))
     host = str(parsed.hostname or "")
@@ -460,6 +773,17 @@ def execute_fresh_exact_probe_request(context):
     timeout_seconds = max(0.05, safe_int(context.get("timeout_ms"), 1000) / 1000.0)
     retry_count = max(0, safe_int(context.get("retry_count"), 0))
     cadence_seconds = max(0.001, safe_int(context.get("observation_cadence_ms"), 100) / 1000.0)
+    if str(context.get("probe_transport") or "") == "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE":
+        try:
+            resolved = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+            destination_ip = str(resolved[0][4][0])
+        except (OSError, IndexError) as exc:
+            return {}, [{
+                "error": f"probe_destination_resolution_failed:{type(exc).__name__}",
+                "fresh_socket": False,
+                "payload_response_verified": False,
+            }]
+        return execute_ephemeral_client_namespace_probe(context, destination_ip)
     attempts = []
     for attempt_index in range(retry_count + 1):
         started_ns = time.monotonic_ns()
@@ -586,23 +910,36 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         str(context.get("source_address") or ""),
     }
     interface_matches = str(route.get("dev") or "") == str(context.get("interface") or "")
-    exact_identity = all((
-        context.get("certification_identity") is True,
-        str(context.get("source_address") or "")
-        == str(context.get("user") or ""),
-        actual_netns == safe_int(context.get("network_namespace_inode"), 0),
-        actual_clock == str(context.get("clock_domain_id") or ""),
+    local_freebind_identity = all((
         attempt.get("source_bind_applied") is True,
         attempt.get("source_identity_freebind_applied") is True,
         attempt.get("interface_bind_applied") is True,
         source_matches,
         interface_matches,
     ))
+    client_tunnel_identity = all((
+        attempt.get("source_bind_applied") is True,
+        attempt.get("client_tunnel_ingress_proven") is True,
+        attempt.get("client_profile_peer_mapping_proven") is True,
+        attempt.get("client_namespace_isolated") is True,
+        interface_matches,
+    ))
+    exact_identity = all((
+        context.get("certification_identity") is True,
+        str(context.get("source_address") or "")
+        == str(context.get("user") or ""),
+        actual_netns == safe_int(context.get("network_namespace_inode"), 0),
+        actual_clock == str(context.get("clock_domain_id") or ""),
+        local_freebind_identity or client_tunnel_identity,
+    ))
     route_bound = all((
         route.get("ok") is True,
         table_matches,
         interface_matches,
-        attempt.get("so_mark_applied") is True,
+        (
+            attempt.get("so_mark_applied") is True
+            or attempt.get("host_policy_route_proven") is True
+        ),
     ))
     expected_target_fingerprint = str(context.get("expected_target_egress_fingerprint") or "")
     observed_target_fingerprint = (
@@ -650,12 +987,25 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         "management_default_route_used": not (route_bound and exact_identity),
         "fresh_socket": attempt.get("fresh_socket") is True,
         "fresh_dns_resolution": attempt.get("fresh_dns_resolution") is True,
+        "dns_mode": str(attempt.get("dns_mode") or ""),
         "kernel_counter_only": False,
         "exact_user_source_fwmark_table_traversed": bool(
             exact_identity and route_bound
         ),
         "target_interface_bound": interface_matches,
         "target_fingerprint_verified": bool(observed_target_fingerprint),
+        "client_tunnel_ingress_proven": (
+            attempt.get("client_tunnel_ingress_proven") is True
+        ),
+        "client_profile_peer_mapping_proven": (
+            attempt.get("client_profile_peer_mapping_proven") is True
+        ),
+        "client_namespace_isolated": (
+            attempt.get("client_namespace_isolated") is True
+        ),
+        "client_network_namespace_inode": safe_int(
+            attempt.get("client_network_namespace_inode"), 0
+        ),
         "timeout_ms": safe_int(context.get("timeout_ms"), 0),
         "retry_count": safe_int(context.get("retry_count"), -1),
         "observation_cadence_ms": safe_int(context.get("observation_cadence_ms"), 0),

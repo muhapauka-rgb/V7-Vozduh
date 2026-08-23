@@ -148,6 +148,62 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertIn("exact_certification_identity_context_not_proven", receipt["blockers"])
         self.assertIn("routing_table_or_fwmark_binding_not_proven", receipt["blockers"])
 
+    def test_existing_client_tunnel_and_host_policy_route_produce_ready_receipt(self):
+        context = self.context()
+        context["probe_transport"] = "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE"
+        attempt = self.successful_attempt()
+        attempt.update({
+            "source_identity_freebind_applied": False,
+            "so_mark_applied": False,
+            "host_policy_route_proven": True,
+            "client_tunnel_ingress_proven": True,
+            "client_profile_peer_mapping_proven": True,
+            "client_namespace_isolated": True,
+            "client_network_namespace_inode": 5252,
+            "fresh_dns_resolution": False,
+            "dns_mode": "DECLARED_NO_DNS",
+        })
+        with mock.patch.object(
+            client_speed, "current_netns_inode", return_value=4242
+        ), mock.patch.object(
+            client_speed,
+            "current_clock_domain_id",
+            return_value="linux-boot:unit:netns:4242",
+        ):
+            receipt = client_speed.build_exact_probe_receipt(
+                context, attempt, [attempt]
+            )
+        self.assertEqual(
+            receipt["status"],
+            "EXACT_CLIENT_NETWORK_CONTEXT_TRAFFIC_PROBE_RECEIPT_READY",
+        )
+        self.assertTrue(receipt["client_tunnel_ingress_proven"])
+        self.assertTrue(receipt["exact_user_source_fwmark_table_traversed"])
+        self.assertEqual(receipt["dns_mode"], "DECLARED_NO_DNS")
+        consumed = client_speed.consume_exact_probe_receipt(receipt, context)
+        self.assertTrue(consumed["ok"])
+
+    def test_profile_lookup_is_exact_and_wg_quick_fields_are_not_forwarded(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "client" / "client.conf"
+            profile.parent.mkdir()
+            profile.write_text(
+                "[Interface]\nPrivateKey = private\nAddress = 10.7.0.3/32\nDNS = 10.0.0.1\n"
+                "[Peer]\nPublicKey = public\nAllowedIPs = 0.0.0.0/0\nEndpoint = 192.0.2.1:51820\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(client_speed, "CLIENT_PROFILE_ROOT", root):
+                self.assertEqual(
+                    client_speed.exact_certification_client_profile("10.7.0.3"),
+                    profile,
+                )
+            stripped = client_speed.wireguard_setconf_text(profile.read_text())
+        self.assertIn("PrivateKey = private", stripped)
+        self.assertIn("AllowedIPs = 0.0.0.0/0", stripped)
+        self.assertNotIn("Address =", stripped)
+        self.assertNotIn("DNS =", stripped)
+
     def test_declared_identity_must_equal_bound_source_address(self):
         context = self.context()
         context["source_address"] = "10.7.0.99"
@@ -263,8 +319,44 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             ), mock.patch.object(client_speed, "AGENTS", agents):
                 result = client_speed.exact_client_probe_readiness()
         self.assertFalse(result["ok"])
-        self.assertIn("online_capable_exact_certification_client_agent_missing", result["blockers"])
+        self.assertIn("exact_certification_client_execution_context_missing", result["blockers"])
         self.assertEqual(result["user_movement"], 0)
+
+    def test_readiness_reuses_existing_local_polygon_profile_without_agent(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            users = root / "users.registry"
+            egress = root / "egress.registry"
+            agents = root / "client-agents.json"
+            profiles = root / "clients"
+            profile = profiles / "cert" / "cert.conf"
+            profile.parent.mkdir(parents=True)
+            profile.write_text(
+                "[Interface]\nPrivateKey = private\nAddress = 10.7.0.16/32\n"
+                "[Peer]\nPublicKey = public\nAllowedIPs = 0.0.0.0/0\nEndpoint = 192.0.2.1:51820\n",
+                encoding="utf-8",
+            )
+            users.write_text(
+                "ip=10.7.0.16 current=awg3 table=1014 enabled=1 certification_user=1\n",
+                encoding="utf-8",
+            )
+            egress.write_text(
+                "id=awg3 enabled=1 interface=awg3 expected_ip=194.124.210.244\n",
+                encoding="utf-8",
+            )
+            agents.write_text(json.dumps({"agents": {}}), encoding="utf-8")
+            with mock.patch.object(client_speed, "USERS_REG", users), mock.patch.object(
+                client_speed, "EGRESS_REG", egress
+            ), mock.patch.object(client_speed, "AGENTS", agents), mock.patch.object(
+                client_speed, "CLIENT_PROFILE_ROOT", profiles
+            ), mock.patch.object(client_speed.os, "geteuid", return_value=0):
+                result = client_speed.exact_client_probe_readiness()
+        self.assertTrue(result["ok"])
+        self.assertEqual(
+            result["selected_context"]["execution_mode"],
+            "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE",
+        )
+        self.assertNotIn("10.7.0.16", json.dumps(result))
 
     def test_target_payload_mode_reuses_payload_primitive_without_user_recovery_claim(self):
         context = self.target_payload_context()

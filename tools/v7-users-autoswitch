@@ -18651,6 +18651,12 @@ class AutoswitchPlanner:
             "expected_egress_ip_source": expected_ip_source,
             "expected_target_egress_fingerprint": hashlib.sha256(expected_ip.encode("utf-8")).hexdigest(),
             "target_url": "https://checkip.amazonaws.com",
+            # Polygon certification identities already have canonical client
+            # profiles.  The existing client-speed owner uses one profile in
+            # an ephemeral namespace so the packet genuinely enters through
+            # wg0 and traverses the selected per-user table.  The namespace is
+            # removed immediately after the request.
+            "probe_transport": "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE",
             "timeout_ms": 650,
             "retry_count": 0,
             "expires_at": (now + timedelta(minutes=5)).isoformat(),

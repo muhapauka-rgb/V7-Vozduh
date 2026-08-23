@@ -3600,7 +3600,10 @@ def exact_client_network_context_traffic_probe_contract(
         "payload_response_verified": receipt.get("payload_response_verified") is True,
         "management_default_route_forbidden": receipt.get("management_default_route_used") is False,
         "fresh_socket": receipt.get("fresh_socket") is True,
-        "fresh_dns_resolution": receipt.get("fresh_dns_resolution") is True,
+        "fresh_dns_or_declared_no_dns": (
+            receipt.get("fresh_dns_resolution") is True
+            or str(receipt.get("dns_mode") or "") == "DECLARED_NO_DNS"
+        ),
         "kernel_counter_only_forbidden": receipt.get("kernel_counter_only") is False,
     }
     blockers = [name for name, passed in required_true.items() if not passed]

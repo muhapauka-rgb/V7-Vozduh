@@ -2,7 +2,9 @@
 
 Version: `5.3`
 
-Status: `APPROVED_EXECUTION_PLAN`
+Status: `CURRENT_PROGRAM_CONTRACT`; the sole current Service Failure health
+execution contract is the V5.3 N0–N11 section below. CPS alone owns live
+admission and frontier state.
 
 Activation state owner: `CPS`
 
@@ -64,6 +66,34 @@ CURRENT_SERVICE_FAILURE_HEALTH_AND_RECOVERY_ARCHITECTURE
 = V5.3 N0–N11 ROLE-BASED FAST RECOVERY ARCHITECTURE
 ```
 
+```text
+CURRENT_ARCHITECTURE_SUPERSESSION_LAW
+
+V5.3 N0–N11 is the sole current Service Failure health, detection,
+confirmation, target-readiness and recovery target architecture.
+
+Every older Runtime role describing the same responsibility is superseded by
+the corresponding current N0–N11 role. Historical implementation existence
+does not preserve historical responsibility. Reusing an owner, primitive or
+code path does not preserve its former role.
+
+A superseded Runtime path is not a fallback. A fallback exists only when the
+current N0–N11 contract explicitly names it as BACKSTOP, DEEP_BACKGROUND,
+FALLBACK or CURRENT_RECOVERY.
+
+Required semantic invariants survive. Superseded implementations survive only
+for the bounded replacement window required to prove and migrate their current
+consumers, then are removed responsibility by responsibility.
+
+THE REPOSITORY AFTER N0–N11 MUST IMPLEMENT ONE CURRENT SERVICE FAILURE SYSTEM,
+NOT A CURRENT SYSTEM PLUS SUPERSEDED DUPLICATE SYSTEMS.
+```
+
+An existing semantic law, table, phase order or terminal is strengthened in
+place. No second architecture identity, role table, `MODE A / MODE B` contract,
+retirement law, N0–N11 order or N terminal may be created beside its current
+definition.
+
 This is the only current target architecture for Service Failure health,
 detection, confirmation, target readiness and recovery optimization.  Older
 headings containing `active`, `current executable`, `retained executable` or
@@ -79,6 +109,22 @@ V5.3 work merely because the wording remains in this Program.
 | V3/V2/V1 governed execution and Authority lineage | reusable Candidate/Packet/Lease/Barrier/apply/verification/rollback, blast-radius and Authority safeguards where still owner-backed | define N cadence, health truth, primary detector, target architecture or automatic FAST admission |
 | reports, old terminals and superseded revisions | historical evidence with explicit reuse/invalidation test | dispatch work, establish current state, grant Authority or override CPS/this section |
 
+#### Current responsibility disposition
+
+| Existing mechanism/boundary | Sole current N role | Superseded meaning |
+| --- | --- | --- |
+| Matrix writer/state | single canonical health/state/T0 writer; validates exact definitive evidence or performs targeted confirmation according to the N1/N4/N7 tournament | any second writer or timer-only universal T0 ownership |
+| `v7-egress-diagnose` and existing system/local evidence producers | L0/L1 evidence production where owner-backed | direct T0 write, route decision or Apply |
+| existing Telegram sentinel | L1T producer only for profiles where Telegram is required | old universal timing, persistence or confirmation semantics after N2 replacement |
+| C8 | L3 reconciliation backstop | primary FAST detector |
+| Full Matrix | L4 staggered deep background, disagreement and explicit ambiguous fallback | universal primary detector or synchronous Full-before-action gate |
+| `users.registry` | current assignment and affected-scope truth | health truth or target decision |
+| existing Planner | target suitability/admission and route decision | Matrix-owned route selection |
+| existing Candidate/Packet/Lease/Barrier owners | governed execution identity and safety | health detection or duplicate orchestration |
+| existing governed Apply path and current mutation owner(s), resolved from SYSTEM_MAP and fresh Runtime | sole legal bounded client/routing mutation boundary | a newly inferred generic `Apply` owner or signal-driven direct mutation |
+| existing verification/rollback owners | failure-class-specific S11 proof, containment and rollback trigger | server evidence relabelled as T11 |
+| duplicate obsolete callers/consumers after proven replacement | no current role | unnamed compatibility, shadow primary or legacy fallback |
+
 When a retained clause conflicts with this scope table, correct its
 interpretation at the clause; do not create a new plan, delete the historical
 section wholesale or preserve the conflicting interpretation as a fallback.
@@ -91,7 +137,9 @@ cost-bounded path under the existing owners:
 ```text
 BAD OR UNUSABLE CURRENT SOURCE
 -> EARLY SERVER-SIDE SIGNAL
--> BOUNDED INDEPENDENT CONFIRMATION
+-> MATRIX-OWNED CERTAINTY HANDLING:
+   definitive L0 -> MODE A or tournament-admitted MODE B
+   ambiguous L0/L1P/L1T/L2 -> bounded independent targeted confirmation
 -> T0 FAILURE CONFIRMED BY MATRIX
 -> AFFECTED CLIENT SCOPE + PRE-READY HEALTHY TARGET
 -> EXISTING PLANNER / CANDIDATE / PACKET / LEASE / BARRIER / APPLY
@@ -164,7 +212,9 @@ measured independently rather than assumed to cost the same as success.
 Failure and recovery remain asymmetric:
 
 ```text
-FAST_FALL = compact fresh evidence plus bounded independent confirmation
+FAST_FALL = compact fresh evidence plus Matrix-owned certainty handling:
+            definitive L0 uses MODE A or tournament-admitted MODE B;
+            ambiguous evidence requires bounded independent confirmation
 SLOWER_RISE = existing conservative persistence, stability, anti-flap and
               re-admission semantics
 ```
@@ -272,13 +322,19 @@ N2/N7/N9 must prove this distinction under endpoint glitch, burst and
 correlated-failure cases.  A source-specific action never follows merely from
 one shared external endpoint being unavailable.
 
-The old roles are deliberately reclassified, not abandoned:
+Historical roles are superseded; only useful primitives survive in explicit
+current roles:
 
 ```text
 C8 30-SECOND FAST PRIMARY                 -> L3 RECONCILIATION BACKSTOP
 FULL MATRIX TIMER-DRIVEN FAILURE DETECTOR -> L4 DEEP/FALLBACK FRESHNESS HORIZON
 TWO SLOW POLLING SAMPLES AS PRIMARY PROOF -> fallback/reconciliation semantics
 ```
+
+`KEEP CURRENT PRIMITIVE != KEEP HISTORICAL ROLE`. The former primary-detector,
+timer-wait, cadence, synchronous confirmation and orchestration meanings are
+not current fallbacks and must disappear after the corresponding N replacement
+passes the responsibility-scoped retirement gate.
 
 The deep horizon means every relevant egress receives a deep refresh within
 the measured horizon (initially 15 minutes), not one burst at the horizon
@@ -361,7 +417,45 @@ tests, report, deploy or Polygon alone never advances a phase.
 | `N8` | Controlled unattended Runtime proof: signal -> confirmation -> T0 -> selection -> governed apply -> S11 with real caller, consumer, idempotency, duplicate suppression, restart safety and no manual CLI seam. |
 | `N9` | Full scale tournament using the mandatory egress/user/profile matrix and all resource/pressure measurements. |
 | `N10` | Bounded ordinary rollout only after N8/N9: controlled -> one ordinary-like case -> small cohort -> bounded production, with rollback and no manufactured ordinary failure. |
-| `N11` | Consumer-verified cleanup and terminal reconciliation. Remove/defer obsolete timer-only critical behavior, duplicate persistence, universal Full-before-action, superseded shadow branches and compatibility code only under the retirement contract below. |
+| `N11` | `WHOLE_SYSTEM_ZERO_RESIDUE_RECONCILIATION`: final consumer-verified repository reconciliation, not the first cleanup stage. It proves that earlier safe responsibility-scoped replacement closure removed obsolete timer-only critical behavior, duplicate persistence, universal Full-before-action, superseded shadow branches and expired compatibility code. |
+
+#### Per-phase replacement closure
+
+An N phase that replaces a Runtime responsibility cannot claim replacement
+closure until the exact superseded responsibility has been safely retired:
+
+```text
+OLD RESPONSIBILITY
+-> exact caller / consumer / state / fallback / rollback map
+-> shared-owner and narrow-CPS-lineage dependency check
+-> current N replacement implemented
+-> isolated functionality and safety proof
+-> SLO/resource proof where applicable
+-> same-Matrix Polygon proof
+-> integrated end-to-end consumer proof
+-> controlled unattended Runtime proof where applicable
+-> exact consumer migration
+-> one bounded fallback observation window
+-> no-caller / no-consumer / no-state-dependency proof for that responsibility
+-> obsolete code/config/timer/unit/state/test/fixture/caller removed
+-> responsibility residue = 0
+-> REPLACEMENT CLOSURE
+```
+
+Removing a superseded responsibility never implies deleting a shared file,
+owner, primitive or state surface still used by another current responsibility
+or a fresh CPS-selected narrow lineage. Static search alone is insufficient.
+
+If N7/N8 supplies integrated evidence needed by an earlier N replacement, that
+earlier phase remains `IMPLEMENTED_REPLACEMENT_PENDING_RETIREMENT_PROOF`; it
+does not delete its safe predecessor early and does not claim full replacement
+closure. N1–N6 name and shrink their own replacement responsibility; N7–N10
+prove it does not reappear; N11 only performs final whole-system reconciliation.
+
+For N4 specifically, periodic-wait dependency may be retired only for exact
+classes whose immediate handling is proven. `MODE A` remains for every class
+that fails direct-T0 admission, and every ambiguous class retains independent
+targeted source/service confirmation.
 
 #### Automation, removal and residue-closure law
 
@@ -380,7 +474,9 @@ safe re-entry must be tested at every new automatic edge.
 
 For N0–N11 only, L0 local failure evidence, L1P path liveness, L1T
 profile-required Telegram sentinel and L2 required-service sentinel are legal
-immediate wake producers for bounded targeted Matrix confirmation.  Legacy
+immediate wake producers for Matrix-owned certainty handling. A definitive L0
+class follows `MODE A` or tournament-admitted `MODE B`; ambiguous L0 and all
+L1P/L1T/L2 evidence require bounded targeted source/service confirmation. Legacy
 statements that Matrix/timer is the only or sole wake producer apply only to
 their expressly named CT-M0F sample-generation or legacy regular-wake
 semantics.  They must not delay, prohibit or reinterpret N1–N4 confirmation.
@@ -403,10 +499,11 @@ For N0–N11 consumption only, historical server-bound
 satisfy `T11_CLIENT_TRAFFIC_RECOVERED` or remote client application recovery
 without independent client telemetry.
 
-No code is retained merely because it is historical.  Before deleting or
+No code is retained merely because it is historical. Before deleting or
 deferring a branch, the existing owner must prove its caller(s), consumer(s),
-state effect, fallback/rollback contribution and replacement.  The only legal
-retirement sequence is:
+state effect, shared responsibilities, narrow current lineage,
+fallback/rollback contribution and replacement. The only legal retirement
+sequence is:
 
 ```text
 CONSUMER MAP -> REPLACEMENT PROVEN -> SAME-MATRIX POLYGON + CONTROLLED RUNTIME
@@ -414,7 +511,30 @@ CONSUMER MAP -> REPLACEMENT PROVEN -> SAME-MATRIX POLYGON + CONTROLLED RUNTIME
 -> DELETE OR EXPLICITLY DEFER WITH OWNER + RE-ENTRY CONDITION
 ```
 
-Static search alone is insufficient.  Conversely, no legacy function, timer,
+`EXPLICITLY_DEFERRED` is legal only when the exact responsibility, current
+owner, current live caller, current live consumer or unfinished integrated
+dependency, reason replacement is incomplete, bounded role, re-entry,
+deletion and expiry/revalidation conditions are recorded. It is illegal merely
+because code may be useful later, is historical, is called compatibility or
+has not yet been cleaned. After replacement proof and consumer migration, a
+deferred residue for that responsibility must be deleted.
+
+```text
+CURRENT_FALLBACK != LEGACY_PATH_LEFT_EXECUTABLE
+```
+
+Every surviving fallback names its current owner, caller, consumer, exact
+trigger, exit condition and safety role. An obsolete primary cannot survive by
+being renamed fallback.
+
+After safe migration of the same responsibility and consumer scope,
+`NEW PRIMARY + OLD PRIMARY`, equivalent event and timer primaries, duplicate
+confirmation consumers, duplicate FAST persistence, competing current-state
+projections, competing target-readiness paths and equivalent mass/per-user
+Apply paths are forbidden. Legal multiplicity is one primary plus explicitly
+current `BACKSTOP`, `DEEP_BACKGROUND`, `FALLBACK` or `CURRENT_RECOVERY`.
+
+Static search alone is insufficient. Conversely, no legacy function, timer,
 branch or compatibility path may remain unclassified: `ACTIVE`, `BACKSTOP`,
 `DEEP_BACKGROUND`, `FALLBACK`, `RETIRED_DELETED`, `EXPLICITLY_DEFERRED` or
 `EXTERNAL_BLOCKED`, each with owner and consumer.  New code must replace or
@@ -454,6 +574,15 @@ parallel health truth or unbounded work.
    safety, single Matrix ownership, unchanged downstream contract, independent
    target readiness and a material latency/load gain; ambiguous evidence can
    never enter direct T0.
+8. Each completed replacement responsibility has passed per-phase integrated
+   proof, bounded fallback observation, exact consumer migration and zero
+   responsibility residue. N11 proves zero unclassified timers/branches,
+   duplicate owners/decision paths, superseded wake/confirmation/persistence
+   paths, no-caller code, no-consumer outputs, obsolete compatibility/state/test
+   surfaces and old executable contracts for the same N responsibilities.
+
+This document contract makes eventual zero superseded Runtime residue binding;
+it does not claim current Runtime already satisfies the N11 terminal.
 
 The next executable V5.3 action after this amendment is **N0a**, not a timer
 or cadence increase.

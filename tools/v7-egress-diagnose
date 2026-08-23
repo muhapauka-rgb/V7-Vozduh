@@ -273,35 +273,35 @@ shadow_trigger_for_reason() {
   printf '%s_shadow_trigger_rc=%s\n' "$id" "$trigger_rc" >> "$TMP"
 }
 
-build_active_source_ids() {
-  python3 - "$STATE_DIR/users.registry" <<'PY'
+build_active_hard_rows() {
+  python3 - "$STATE_DIR/users.registry" "$REG" <<'PY'
 import sys
 from pathlib import Path
 
-try:
-    lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
-except OSError:
-    lines = []
-sources = set()
-for line in lines:
-    fields = {}
-    for part in line.split():
-        if "=" in part:
-            key, value = part.split("=", 1)
-            fields[key.strip()] = value.strip()
-    if str(fields.get("enabled", "1")).lower() in {"0", "false", "no", "off"}:
-        continue
-    source = str(fields.get("current") or "").strip()
-    if source:
-        sources.add(source)
-print("\n".join(sorted(sources)))
-PY
-}
+def fields(line):
+    return dict(part.split("=", 1) for part in line.split() if "=" in part)
 
-source_is_active() {
-  source_id="$1"
-  [ -n "${ACTIVE_SOURCE_FILE:-}" ] && [ -r "$ACTIVE_SOURCE_FILE" ] || return 1
-  grep -Fqx "$source_id" "$ACTIVE_SOURCE_FILE"
+try:
+    users = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+except OSError:
+    users = []
+active = {
+    str(row.get("current") or "")
+    for row in (fields(line) for line in users if line.strip() and not line.lstrip().startswith("#"))
+    if str(row.get("enabled", "1")).lower() not in {"0", "false", "no", "off"}
+    and str(row.get("current") or "")
+}
+try:
+    registry = Path(sys.argv[2]).read_text(encoding="utf-8", errors="replace").splitlines()
+except OSError:
+    registry = []
+for row in (fields(line) for line in registry if line.strip() and not line.lstrip().startswith("#")):
+    source = str(row.get("id") or "")
+    iface = str(row.get("interface") or "")
+    enabled = str(row.get("enabled", "1"))
+    if source in active and iface:
+        print(f"{source}\t{iface}\t{enabled}")
+PY
 }
 
 wake_existing_failure_consumer() {
@@ -1096,7 +1096,7 @@ if [ -n "$PROFILE_SERVICE_SUSPICION_COMMAND" ]; then
   trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
 elif [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   ACTIVE_SOURCE_FILE="$(mktemp "${TMPDIR:-/tmp}/v7-active-sources.XXXXXX")"
-  build_active_source_ids > "$ACTIVE_SOURCE_FILE"
+  build_active_hard_rows > "$ACTIVE_SOURCE_FILE"
   trap 'test -z "$PROFILE_CONTRACTS_FILE" || rm -f "$PROFILE_CONTRACTS_FILE"; test -z "$ACTIVE_SOURCE_FILE" || rm -f "$ACTIVE_SOURCE_FILE"' EXIT
 fi
 
@@ -1116,22 +1116,16 @@ fi
 
 if [ "$HARD_SIGNAL_ONLY" = "1" ]; then
   echo "hard_signal_mode=ROLE_BASED_ACTIVE_SOURCE_LOCAL_LIVENESS" >> "$TMP"
-  while IFS= read -r line; do
-    [ -z "$line" ] && continue
-    case "$line" in \#*) continue ;; esac
-    id="$(get_field id "$line")"
-    iface="$(get_field interface "$line")"
-    enabled="$(get_field enabled "$line")"
+  while IFS=$'\t' read -r id iface enabled; do
     [ -n "$id" ] || continue
     [ -n "$iface" ] || continue
     [ "${enabled:-1}" = "1" ] || continue
-    source_is_active "$id" || continue
     if interface_up "$iface"; then
       printf '%s_hard_signal_status=HEALTHY_LOCAL_INTERFACE\n' "$id" >> "$TMP"
     else
       publish_definitive_interface_failure "$id" "$iface"
     fi
-  done < "$REG"
+  done < "$ACTIVE_SOURCE_FILE"
   printf 'hard_signal_active_source_count=%s\n' "$(wc -l < "$ACTIVE_SOURCE_FILE" | tr -d ' ')" >> "$TMP"
   printf 'hard_signal_observation_count=%s\n' "$HARD_SIGNAL_OBSERVATION_COUNT" >> "$TMP"
   printf 'hard_signal_new_t0_count=%s\n' "$HARD_SIGNAL_T0_COUNT" >> "$TMP"

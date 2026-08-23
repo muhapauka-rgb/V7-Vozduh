@@ -5134,6 +5134,71 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertNotIn("--pre-planner-refresh-command", captured["command"])
         self.assertIn("--governed-candidate-only", captured["command"])
 
+    def test_l3_validation_plan_can_reuse_existing_planner_in_process(self):
+        module = load_cli_module()
+
+        class FakeArgs:
+            pass
+
+        class FakeParser:
+            def parse_args(self, command):
+                self.command = list(command)
+                return FakeArgs()
+
+        class FakePlanner:
+            def __init__(self, args):
+                self.args = args
+                self.policy = {"delegated_autonomy_policy": {}}
+                self._standing_policy_audit_records_cache = []
+
+            def plan(self):
+                return {"status": "READY", "selected_moves": []}
+
+            def _record_performance_span(self, *_args, **_kwargs):
+                return {}
+
+            def performance_timeline(self):
+                return {"spans": []}
+
+        class FakeModule:
+            AutoswitchPlanner = FakePlanner
+
+            @staticmethod
+            def build_arg_parser():
+                return FakeParser()
+
+        with mock.patch.object(
+            module, "in_process_planner_module", return_value=FakeModule,
+        ), mock.patch.object(
+            module.subprocess,
+            "run",
+            side_effect=AssertionError("subprocess must not be used"),
+        ):
+            result = module.run_l3_production_validation_plan(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path(
+                    "/state/autoswitch-restore-barrier.json"
+                ),
+                max_users=1,
+                source="execution-only",
+                target="awg3",
+                controlled_user="10.7.0.95",
+                in_process=True,
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["payload"]["status"], "READY")
+        self.assertEqual(
+            result["payload"]["governed_candidate_only"]["status"],
+            "FRESH_CANDIDATE_RETURNED",
+        )
+        self.assertIs(result["_planner_runtime"]["module"], FakeModule)
+        self.assertIsInstance(
+            result["_planner_runtime"]["planner"], FakePlanner,
+        )
+
     def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):
         module = load_cli_module()
         captured = {}
@@ -5763,6 +5828,94 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertNotIn("--pretty", captured["command"])
         timeout_index = captured["command"].index("--service-matrix-lock-timeout-sec")
         self.assertEqual(captured["command"][timeout_index + 1], "5")
+
+    def test_run_autoswitch_apply_reuses_planner_owner_in_process(self):
+        module = load_cli_module()
+        created = []
+
+        class FakeArgs:
+            pass
+
+        class FakeParser:
+            def parse_args(self, command):
+                args = FakeArgs()
+                args.command = list(command)
+                return args
+
+        class FakePlanner:
+            def __init__(self, args):
+                self.args = args
+                self.policy = {"delegated_autonomy_policy": {}}
+                self._standing_policy_audit_records_cache = None
+                created.append(self)
+
+            def plan(self):
+                return {
+                    "status": "READY",
+                    "operation": {
+                        "operation_id": "operation-in-process",
+                        "terminal_state": "SUCCESS",
+                    },
+                }
+
+            def apply(self, _plan):
+                return {
+                    "applied": True,
+                    "results": [{"user_ip": "10.7.0.95", "verify_rc": 0}],
+                }
+
+            def finalize_operation(self, _plan):
+                return None
+
+            def _record_performance_span(self, *_args, **_kwargs):
+                return {}
+
+            def performance_timeline(self):
+                return {"spans": []}
+
+        class FakeModule:
+            AutoswitchPlanner = FakePlanner
+            sha256_json = staticmethod(
+                module.operator_execution.sha256_json
+            )
+
+            @staticmethod
+            def build_arg_parser():
+                return FakeParser()
+
+        prior = FakePlanner(FakeArgs())
+        prior._standing_policy_audit_records_cache = [
+            {"decision_id": "decision-current"}
+        ]
+        with mock.patch.object(
+            module.subprocess,
+            "run",
+            side_effect=AssertionError("subprocess must not be used"),
+        ):
+            result = module.run_autoswitch_apply(
+                state_dir=Path("/state"),
+                event_dir=Path("/events"),
+                snapshot_root=Path("/state/intelligence"),
+                restore_barrier_file=Path(
+                    "/state/autoswitch-restore-barrier.json"
+                ),
+                user="10.7.0.95",
+                source="execution-only",
+                target="awg3",
+                max_users=1,
+                emergency_failover_autonomy=True,
+                planner_runtime={"module": FakeModule, "planner": prior},
+            )
+
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["payload"]["apply_result"]["applied"])
+        self.assertFalse(
+            result["performance_forensics"]["new_runtime_process_created"]
+        )
+        self.assertEqual(
+            created[-1].args._standing_policy_lineage_reuse["records"],
+            [{"decision_id": "decision-current"}],
+        )
 
     def test_run_autoswitch_apply_marks_timeout_without_claiming_no_effect(self):
         module = load_cli_module()

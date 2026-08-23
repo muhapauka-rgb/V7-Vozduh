@@ -3862,6 +3862,29 @@ class AutoswitchPlanner:
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.policy = read_json(Path(args.policy_file), {})
         self.org_policy = read_json(Path(args.org_policy_file), {})
+        standing_reuse = getattr(
+            args, "_standing_policy_lineage_reuse", {},
+        )
+        standing_reuse = (
+            standing_reuse if isinstance(standing_reuse, dict) else {}
+        )
+        current_standing_contract = (
+            (self.policy or {}).get("delegated_autonomy_policy")
+            if isinstance(
+                (self.policy or {}).get("delegated_autonomy_policy"), dict,
+            )
+            else {}
+        )
+        reused_records = standing_reuse.get("records")
+        self._standing_policy_audit_records_cache: Optional[
+            list[dict[str, Any]]
+        ] = (
+            copy.deepcopy(reused_records)
+            if isinstance(reused_records, list)
+            and str(standing_reuse.get("contract_hash") or "")
+            == sha256_json(current_standing_contract)
+            else None
+        )
         self.quality_summary = read_json(Path(args.quality_summary_file), {"items": {}})
         self.safety_file = Path(args.safety_file)
         self.safety_state = self._load_safety()
@@ -3988,6 +4011,46 @@ class AutoswitchPlanner:
             row["details"] = details
         self._performance_spans.append(row)
         return row
+
+    def _standing_policy_audit_records(self) -> list[dict[str, Any]]:
+        """Read the active standing decision and its newer lineage once.
+
+        Several policy resolvers validate the same immutable standing
+        contract.  Re-reading and deep-copying every rotated audit segment in
+        each resolver adds latency but no independent evidence.  The exact
+        decision id is the bounded stop condition; append/rotation freshness
+        remains owned by the underlying lineage reader for each process.
+        """
+        if self._standing_policy_audit_records_cache is None:
+            contract = (
+                (self.policy or {}).get("delegated_autonomy_policy")
+                if isinstance(
+                    (self.policy or {}).get("delegated_autonomy_policy"),
+                    dict,
+                )
+                else {}
+            )
+            decision = (
+                contract.get("authority_decision")
+                if isinstance(contract.get("authority_decision"), dict)
+                else {}
+            )
+            self._standing_policy_audit_records_cache = (
+                operator_execution.read_live_execution_lineage_records(
+                    Path(getattr(
+                        self.args,
+                        "action_class_audit_store",
+                        str(
+                            operator_execution
+                            .DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+                        ),
+                    )),
+                    required_decision_ids=tuple(filter(None, [
+                        str(decision.get("decision_id") or "")
+                    ])),
+                )
+            )
+        return self._standing_policy_audit_records_cache
 
     def performance_timeline(self) -> dict[str, Any]:
         return {
@@ -4128,9 +4191,7 @@ class AutoswitchPlanner:
         standing_validation = (
             operator_execution.validate_standing_delegated_operational_policy(
                 standing_contract,
-                audit_records=operator_execution.read_live_execution_lineage_records(
-                    audit_store
-                ),
+                audit_records=self._standing_policy_audit_records(),
             )
             if standing_contract
             else {
@@ -4811,9 +4872,7 @@ class AutoswitchPlanner:
             prepared_class=prepared_class,
             certified_class=certified_class,
             standing_policy_contract=standing_policy_contract,
-            authority_audit_records=operator_execution.read_live_execution_lineage_records(
-                authority_audit_store
-            ),
+            authority_audit_records=self._standing_policy_audit_records(),
         )
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))
@@ -4902,13 +4961,7 @@ class AutoswitchPlanner:
         standing_contract = (self.policy or {}).get("delegated_autonomy_policy")
         standing_validation = operator_execution.validate_standing_delegated_operational_policy(
             standing_contract if isinstance(standing_contract, dict) else {},
-            audit_records=operator_execution.read_live_execution_lineage_records(
-                Path(getattr(
-                    self.args,
-                    "action_class_audit_store",
-                    str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
-                ))
-            ),
+            audit_records=self._standing_policy_audit_records(),
         )
         standing_scope = standing_validation.get("policy") if isinstance(standing_validation.get("policy"), dict) else {}
         standing_max_users = max(0, to_int(standing_scope.get("max_users_per_action"), 0))

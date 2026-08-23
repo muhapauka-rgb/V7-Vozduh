@@ -14,6 +14,8 @@ import argparse
 from collections import deque
 import copy
 import hashlib
+import importlib.machinery
+import importlib.util
 import ipaddress
 import json
 import os
@@ -57,6 +59,28 @@ CONTROLLED_SUBSTRATE_EFFECT_RECORD_TYPE = (
 RECENT_MATRIX_EVENT_FILE_LIMIT = 8
 RECENT_MATRIX_EVENT_ROW_LIMIT = 64
 RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
+
+
+_IN_PROCESS_PLANNER_MODULE: Any = None
+
+
+def in_process_planner_module() -> Any:
+    """Load the existing Autoswitch owner into the governed process once."""
+    global _IN_PROCESS_PLANNER_MODULE
+    if _IN_PROCESS_PLANNER_MODULE is not None:
+        return _IN_PROCESS_PLANNER_MODULE
+    path = planner_observe_executable()
+    loader = importlib.machinery.SourceFileLoader(
+        "_v7_users_autoswitch_governed_runtime",
+        str(path),
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise ImportError(f"planner module spec unavailable: {path}")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    _IN_PROCESS_PLANNER_MODULE = module
+    return module
 
 
 def to_int(value: Any, default: int = 0) -> int:
@@ -767,6 +791,7 @@ def run_l3_production_validation_plan(
     campaign_request_hash: str = "",
     refresh_snapshots: bool = False,
     controlled_user: str = "",
+    in_process: bool = False,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -819,6 +844,73 @@ def run_l3_production_validation_plan(
             "--controlled-certification-campaign-target",
             target,
         ])
+    if in_process:
+        try:
+            module = in_process_planner_module()
+            planner_args = module.build_arg_parser().parse_args(command[1:])
+            planner = module.AutoswitchPlanner(planner_args)
+            plan_started_ns = time.monotonic_ns()
+            payload = planner.plan()
+            planner._record_performance_span(
+                "planner_entry_target_capacity_and_allocation",
+                plan_started_ns,
+                owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+            )
+            timing = planner.performance_timeline()
+            timing["total_ms"] = round(
+                sum(
+                    float(row.get("duration_ms") or 0.0)
+                    for row in timing.get("spans") or []
+                    if str(row.get("stage") or "")
+                    == "planner_initialization_total"
+                )
+                + sum(
+                    float(row.get("duration_ms") or 0.0)
+                    for row in timing.get("spans") or []
+                    if str(row.get("stage") or "")
+                    == "planner_entry_target_capacity_and_allocation"
+                ),
+                3,
+            )
+            payload["performance_timeline"] = timing
+            payload["apply_result"] = {
+                "applied": False,
+                "reason": "governed_candidate_only",
+            }
+            payload["governed_candidate_only"] = {
+                "status": "FRESH_CANDIDATE_RETURNED",
+                "candidate_created_by_existing_planner": True,
+                "packet_created": False,
+                "lease_created": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+                "next_owner": "existing governed Packet/lease caller",
+            }
+            return {
+                "ok": True,
+                "returncode": 0,
+                "command": command,
+                "payload": payload,
+                "stderr_tail": "",
+                "stdout_tail": "",
+                "runtime_mutation_performed": False,
+                "apply_executed": False,
+                "users_moved": 0,
+                "_planner_runtime": {
+                    "module": module,
+                    "planner": planner,
+                },
+            }
+        except Exception as exc:
+            return {
+                "ok": False,
+                "command": command,
+                "error": f"{type(exc).__name__}:{exc}",
+                "payload": {},
+                "runtime_mutation_performed": False,
+                "apply_executed": False,
+                "users_moved": 0,
+            }
     try:
         proc = subprocess.run(
             command,
@@ -3193,10 +3285,12 @@ def run_autoswitch_apply(
     ct_m0f_source_incident_generation: str = "",
     ct_m0f_first_failed_observation_monotonic_ns: int = 0,
     ct_m0f_confirmed_hard_failure_monotonic_ns: int = 0,
+    planner_runtime: Any = None,
 ) -> dict[str, Any]:
     timeout_seconds = autoswitch_apply_timeout_seconds(max_users)
     process_started_ns = time.monotonic_ns()
     child_usage_before = resource.getrusage(resource.RUSAGE_CHILDREN)
+    self_usage_before = resource.getrusage(resource.RUSAGE_SELF)
     command = [
         str(planner_observe_executable()),
         "--mode",
@@ -3296,6 +3390,151 @@ def run_autoswitch_apply(
             "--ct-m0f-standing-reset-reservation-id",
             ct_m0f_standing_reset_reservation_id,
         ])
+    if isinstance(planner_runtime, dict) and planner_runtime.get("module"):
+        module = planner_runtime["module"]
+        prior_planner = planner_runtime.get("planner")
+        plan: dict[str, Any] = {}
+        try:
+            apply_args = module.build_arg_parser().parse_args(command[1:])
+            prior_records = getattr(
+                prior_planner,
+                "_standing_policy_audit_records_cache",
+                None,
+            )
+            prior_contract = (
+                (getattr(prior_planner, "policy", {}) or {}).get(
+                    "delegated_autonomy_policy"
+                )
+                if isinstance(
+                    (getattr(prior_planner, "policy", {}) or {}).get(
+                        "delegated_autonomy_policy"
+                    ),
+                    dict,
+                )
+                else {}
+            )
+            if isinstance(prior_records, list):
+                apply_args._standing_policy_lineage_reuse = {
+                    "contract_hash": module.sha256_json(prior_contract),
+                    "records": prior_records,
+                }
+            planner = module.AutoswitchPlanner(apply_args)
+            planner_entry_started_ns = time.monotonic_ns()
+            plan = planner.plan()
+            planner._record_performance_span(
+                "planner_entry_target_capacity_and_allocation",
+                planner_entry_started_ns,
+                owner="tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+            )
+            apply_started_ns = time.monotonic_ns()
+            plan["apply_result"] = planner.apply(plan)
+            planner._record_performance_span(
+                "apply_and_verification_total",
+                apply_started_ns,
+                owner="tools/v7-users-autoswitch.AutoswitchPlanner.apply",
+                status=(
+                    "PASS"
+                    if (plan.get("apply_result") or {}).get("applied")
+                    else "STOP_SAFE"
+                ),
+            )
+            finalize_started_ns = time.monotonic_ns()
+            planner.finalize_operation(plan)
+            planner._record_performance_span(
+                "durable_audit_feedback_and_successor_publication",
+                finalize_started_ns,
+                owner="tools/v7-users-autoswitch.finalize_operation",
+            )
+            timing = planner.performance_timeline()
+            timing["total_ms"] = round(
+                (time.monotonic_ns() - process_started_ns) / 1_000_000.0,
+                3,
+            )
+            plan["performance_timeline"] = timing
+            payload = {
+                "schema_version": (
+                    "v7.autoswitch-governed-execution-receipt.v1"
+                ),
+                "full_plan_embedded": False,
+                "durable_plan_owner": (
+                    "existing execution audit and Outcome owners"
+                ),
+                **{
+                    key: plan.get(key)
+                    for key in (
+                        "final_verdict", "transaction_status", "status",
+                        "stop_reason", "reason", "stop_detail",
+                        "operation", "apply_result", "l3_learning_closure",
+                        "performance_timeline",
+                    )
+                    if key in plan
+                },
+            }
+            usage_after = resource.getrusage(resource.RUSAGE_SELF)
+            return {
+                "ok": True,
+                "command": command,
+                "returncode": 0,
+                "payload": payload,
+                "stderr_tail": "",
+                "stdout_tail": "",
+                "timeout_seconds": timeout_seconds,
+                "performance_forensics": {
+                    "schema_version": (
+                        "v7.autoswitch-in-process-forensics.v1"
+                    ),
+                    "clock_source": "time.monotonic_ns",
+                    "wall_ms": round(
+                        (time.monotonic_ns() - process_started_ns)
+                        / 1_000_000.0,
+                        3,
+                    ),
+                    "user_cpu_ms": round(
+                        max(
+                            0.0,
+                            usage_after.ru_utime
+                            - self_usage_before.ru_utime,
+                        )
+                        * 1000.0,
+                        3,
+                    ),
+                    "system_cpu_ms": round(
+                        max(
+                            0.0,
+                            usage_after.ru_stime
+                            - self_usage_before.ru_stime,
+                        )
+                        * 1000.0,
+                        3,
+                    ),
+                    "max_rss_kib": int(usage_after.ru_maxrss),
+                    "new_runtime_process_created": False,
+                    "existing_planner_owner_reused": True,
+                },
+            }
+        except Exception as exc:
+            return {
+                "ok": False,
+                "command": command,
+                "returncode": 2,
+                "error": f"{type(exc).__name__}:{exc}",
+                "payload": (
+                    {
+                        key: plan.get(key)
+                        for key in (
+                            "operation", "apply_result",
+                            "l3_learning_closure", "performance_timeline",
+                        )
+                        if key in plan
+                    }
+                    if isinstance(plan, dict)
+                    else {}
+                ),
+                "timeout_seconds": timeout_seconds,
+                "timed_out": False,
+                "stdout_tail": "",
+                "stderr_tail": "",
+            }
     child_env = dict(os.environ)
     child_env["V7_PARENT_LAUNCH_MONOTONIC_NS"] = str(process_started_ns)
     try:
@@ -5471,6 +5710,18 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
             else ""
         ),
+        in_process=bool(
+            ct_m0f_standing_requested
+            and str(
+                getattr(
+                    args,
+                    "expected_service_failure_binding_kind",
+                    "",
+                )
+                or ""
+            )
+            == "CERTIFICATION_ONLY_MATRIX_FAILURE"
+        ),
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",
@@ -5482,6 +5733,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             "" if l3_plan_run.get("ok") else "planner_subprocess_failed"
         ),
     )
+    planner_runtime = l3_plan_run.pop("_planner_runtime", None)
     plan = l3_plan_run.get("payload") if isinstance(l3_plan_run.get("payload"), dict) else {}
     if not plan:
         # The Matrix projection deliberately cannot retain an entire child
@@ -6251,6 +6503,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
             or 0
         ),
+        planner_runtime=planner_runtime,
     )
     apply_completed_ns = time.monotonic_ns()
     apply_payload = apply_run.get("payload") if isinstance(apply_run.get("payload"), dict) else {}

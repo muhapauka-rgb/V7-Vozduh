@@ -9211,8 +9211,7 @@ class AutoswitchPlanner:
             and (
                 str(getattr(self.args, "mode", "") or "") == "observe"
                 or (
-                    bool_value(getattr(self.args, "apply", False))
-                    and bool(str(getattr(self.args, "user", "") or "").strip())
+                    bool(str(getattr(self.args, "user", "") or "").strip())
                     and to_int(getattr(self.args, "max_selected_moves", 0), 0) == 1
                 )
             )

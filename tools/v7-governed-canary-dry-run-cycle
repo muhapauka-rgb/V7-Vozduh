@@ -765,6 +765,7 @@ def run_l3_production_validation_plan(
     campaign_request_id: str = "",
     campaign_request_hash: str = "",
     refresh_snapshots: bool = False,
+    controlled_user: str = "",
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -805,6 +806,8 @@ def run_l3_production_validation_plan(
         command.extend(["--source-egress", source])
     if target:
         command.extend(["--target-egress", target])
+    if controlled_user:
+        command.extend(["--user", controlled_user])
     if campaign_request_id or campaign_request_hash:
         command.extend([
             "--controlled-certification-campaign-request-id",
@@ -5407,6 +5410,20 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
         ),
         refresh_snapshots=bool(ct_m0f_standing_requested or availability_mode),
+        controlled_user=(
+            str(
+                getattr(args, "ct_m0f_standing_validation_user", "")
+                or ""
+            )
+            if ct_m0f_standing_requested
+            else str((availability_request.get("expected_users") or [""])[0])
+            if (
+                availability_mode
+                and requested_max_users == 1
+                and len(availability_request.get("expected_users") or []) == 1
+            )
+            else ""
+        ),
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",

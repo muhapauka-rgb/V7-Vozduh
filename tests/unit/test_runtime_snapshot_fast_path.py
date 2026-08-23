@@ -283,6 +283,34 @@ class RuntimeSnapshotFastPathTest(unittest.TestCase):
             self.assertTrue(snapshot_path(root / "state" / "intelligence", "service-scores").exists())
             self.assertEqual(len(plan["selected_moves"]), 1)
 
+    def test_exact_one_user_guarded_refresh_uses_bounded_current_state_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root)
+            plan = self.plan_with_args(
+                root,
+                [
+                    "--pre-planner-refresh", "write",
+                    "--pre-planner-refresh-command",
+                    str(ROOT / "tools" / "v7-intelligence-snapshot-refresh"),
+                    "--user", "10.0.0.2",
+                    "--max-selected-moves", "1",
+                ],
+            )
+            refresh = plan["safety"]["intelligence_snapshots"][
+                "pre_planner_refresh"
+            ]
+            self.assertEqual(refresh["state"], "REFRESH_SUCCESS")
+            self.assertEqual(refresh["history_window"], "CURRENT_STATE_BOUNDED")
+            self.assertEqual(refresh["candidate_scope"], "EXACT_USER")
+            self.assertIn("--current-state-window", refresh["command"])
+            self.assertEqual(
+                refresh["command"][
+                    refresh["command"].index("--current-state-user") + 1
+                ],
+                "10.0.0.2",
+            )
+
     def test_snapshot_only_planner_does_not_block_fast_matrix_writer(self):
         """A held Matrix writer lock may not stall a snapshot-only planner.
 

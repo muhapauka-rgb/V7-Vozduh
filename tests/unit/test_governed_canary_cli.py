@@ -5101,6 +5101,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 source="vless",
                 target="awg0",
                 refresh_snapshots=True,
+                controlled_user="10.7.0.90",
             )
 
         command = captured["command"]
@@ -5114,6 +5115,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
         timeout_index = command.index("--pre-planner-refresh-timeout-sec")
         self.assertEqual(command[timeout_index + 1], "75")
         self.assertEqual(run.call_args.kwargs["timeout"], 120)
+        user_index = command.index("--user")
+        self.assertEqual(command[user_index + 1], "10.7.0.90")
 
     def test_compact_transaction_result_retains_bounded_planner_diagnosis(self):
         module = load_cli_module()

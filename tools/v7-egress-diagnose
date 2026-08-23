@@ -426,12 +426,11 @@ PY
   printf '%s_hard_signal_recovery_status=%s\n' "$source_id" "$recovery_status" >> "$TMP"
   if [ "$recovery_status" = "EMITTED" ]; then
     HARD_SIGNAL_RECOVERY_COUNT=$((HARD_SIGNAL_RECOVERY_COUNT + 1))
-    if wake_existing_failure_consumer; then
-      HARD_SIGNAL_WAKE_COUNT=$((HARD_SIGNAL_WAKE_COUNT + 1))
-      printf '%s_hard_signal_recovery_consumer_wake=PASS\n' "$source_id" >> "$TMP"
-    else
-      printf '%s_hard_signal_recovery_consumer_wake=STOP_SAFE\n' "$source_id" >> "$TMP"
-    fi
+    # Recovery is already durable in the canonical Matrix/event flow.  It has
+    # no failure action to execute, so waking the failure-action consumer here
+    # creates a race with a subsequent failure and can prepare an action while
+    # the source is healthy.  The next failure owns the only hot-path wake.
+    printf '%s_hard_signal_recovery_consumer_wake=NOT_REQUIRED_RECOVERY_EVENT\n' "$source_id" >> "$TMP"
   fi
 }
 

@@ -4329,12 +4329,14 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     """
     path = event_dir / "service-failure-events.jsonl"
     latest_by_incident: dict[tuple[str, str], dict[str, Any]] = {}
+    incident_order: dict[tuple[str, str], int] = {}
+    latest_by_channel: dict[str, dict[str, Any]] = {}
     rows = intelligence_workers.read_jsonl_tail(
         path,
         limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
         max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
     )
-    for row in rows:
+    for row_index, row in enumerate(rows):
         if str(row.get("event_type") or "") not in {
             "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
         }:
@@ -4347,6 +4349,8 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
             # the current Matrix row's source-incident id rather than letting
             # a later unrelated event silently replace it by channel.
             latest_by_incident[(channel, incident_id)] = row
+            incident_order[(channel, incident_id)] = row_index
+            latest_by_channel[channel] = row
     try:
         user_rows = [
             parse_kv_line(line)
@@ -4364,9 +4368,44 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     }
     matrix = read_json(state_dir / "service-matrix.json", {})
     matrix_items = matrix.get("items") if isinstance(matrix, dict) and isinstance(matrix.get("items"), dict) else {}
+    current_event_rows: list[tuple[str, dict[str, Any]]] = []
+    for channel, source_row in sorted(matrix_items.items()):
+        if not isinstance(source_row, dict):
+            continue
+        services = source_row.get("services") if isinstance(source_row.get("services"), dict) else {}
+        failed_services = [
+            service for service in services.values()
+            if isinstance(service, dict)
+            and (
+                str(service.get("failure_state") or "").startswith("OBSERVED")
+                or service.get("ok") is False
+            )
+        ]
+        if not failed_services:
+            continue
+        current_incident_ids = {
+            str(service.get("source_incident_id") or "")
+            for service in failed_services
+            if str(service.get("source_incident_id") or "")
+        }
+        matching = [
+            (incident_order[(event_channel, incident_id)], row)
+            for (event_channel, incident_id), row in latest_by_incident.items()
+            if event_channel == channel and incident_id in current_incident_ids
+        ]
+        if matching:
+            # One source is one routing-action scope.  If several services
+            # expose incident ids, the latest canonical event is sufficient;
+            # historical incidents must never multiply the current scope.
+            current_event_rows.append((channel, max(matching, key=lambda item: item[0])[1]))
+        elif not current_incident_ids and channel in latest_by_channel:
+            # Compatibility for a genuinely current legacy Matrix row that
+            # predates source_incident_id.  Never use this fallback when the
+            # Matrix provides an exact incident identity.
+            current_event_rows.append((channel, latest_by_channel[channel]))
     active = []
     certification_only_active = []
-    for (channel, _incident_id), row in sorted(latest_by_incident.items()):
+    for channel, row in current_event_rows:
         scope = row.get("source_scope") if isinstance(row.get("source_scope"), dict) else {}
         ordinary_users = [
             user for user in user_rows
@@ -4380,16 +4419,7 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
             and str(user.get("current") or "") == channel
             and bool_value(user.get("certification_user"), default=False)
         ]
-        source_row = matrix_items.get(channel) if isinstance(matrix_items.get(channel), dict) else {}
-        services = source_row.get("services") if isinstance(source_row.get("services"), dict) else {}
-        source_currently_failed = any(
-            isinstance(service, dict)
-            and (
-                str(service.get("failure_state") or "").startswith("OBSERVED")
-                or service.get("ok") is False
-            )
-            for service in services.values()
-        )
+        source_currently_failed = True
         ordinary_scope = (
             scope.get("ordinary_production_scope")
             if isinstance(scope.get("ordinary_production_scope"), dict)
@@ -4425,7 +4455,7 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
         # certification-only terminal so an older ordinary drain cannot remain
         # current in CPS.
         "requires_scope_reconciliation": bool(certification_only_active),
-        "latest_source_count": len(latest_by_incident),
+        "latest_source_count": len(current_event_rows),
         "current_assigned_sources": sorted(current_users),
         "decision": (
             "PROCEED_EXISTING_SERVICE_FAILURE_LIFECYCLE"

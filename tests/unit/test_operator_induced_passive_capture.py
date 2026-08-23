@@ -182,6 +182,79 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertEqual(result["decision"], "RECONCILE_CONTROLLED_CERTIFICATION_SCOPE_ONLY")
         self.assertEqual(result["certification_only_active_sources"][0]["controlled_certification_scope_count"], 1)
 
+    def test_current_scope_excludes_historical_incidents_on_same_failed_channel(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=failed enabled=true certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "failed": {"services": {"telegram": {
+                    "ok": False,
+                    "failure_state": "OBSERVED_CONTINUING",
+                    "source_incident_id": "incident-current",
+                }}},
+            }}), encoding="utf-8")
+            rows = [
+                {
+                    "event_id": "historical",
+                    "event_type": "SERVICE_FAILURE_OBSERVED",
+                    "channel": "failed",
+                    "source_incident_id": "incident-old",
+                },
+                {
+                    "event_id": "current",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "channel": "failed",
+                    "source_incident_id": "incident-current",
+                },
+            ]
+            (events / "service-failure-events.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8",
+            )
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertEqual(result["latest_source_count"], 1)
+        self.assertEqual(
+            [row["event_id"] for row in result["certification_only_active_sources"]],
+            ["current"],
+        )
+
+    def test_current_scope_does_not_fallback_to_history_after_exact_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=source enabled=true certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "source": {"services": {"telegram": {
+                    "ok": True,
+                    "failure_state": "HEALTHY",
+                    "source_incident_id": "incident-recovered",
+                }}},
+            }}), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "historical",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "source",
+                "source_incident_id": "incident-old",
+            }) + "\n", encoding="utf-8")
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertFalse(result["active"])
+        self.assertEqual(result["certification_only_active_sources"], [])
+        self.assertEqual(result["latest_source_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

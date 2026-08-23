@@ -347,6 +347,11 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("source-a_hard_signal_recovery_status=EMITTED", out)
         self.assertIn("hard_signal_recovery_count=1", out)
+        self.assertIn(
+            "source-a_hard_signal_recovery_consumer_wake=NOT_REQUIRED_RECOVERY_EVENT",
+            out,
+        )
+        self.assertFalse(wake_trace.exists())
         self.assertIn("--direct-local-recovery", receiver_args)
         self.assertIn(f"--event-dir {root / 'events'}", receiver_args)
 

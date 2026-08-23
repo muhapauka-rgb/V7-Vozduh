@@ -4369,16 +4369,42 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     matrix = read_json(state_dir / "service-matrix.json", {})
     matrix_items = matrix.get("items") if isinstance(matrix, dict) and isinstance(matrix.get("items"), dict) else {}
     current_event_rows: list[tuple[str, dict[str, Any]]] = []
+
+    def observation_epoch(row: dict[str, Any]) -> float:
+        value = str(row.get("observed_at") or row.get("tested_at") or "")
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+        except (TypeError, ValueError):
+            return 0.0
+
     for channel, source_row in sorted(matrix_items.items()):
         if not isinstance(source_row, dict):
             continue
         services = source_row.get("services") if isinstance(source_row.get("services"), dict) else {}
+        liveness = (
+            services.get("__channel_liveness__")
+            if isinstance(services.get("__channel_liveness__"), dict)
+            else {}
+        )
+        definitive_recovery_epoch = (
+            observation_epoch(liveness)
+            if liveness.get("ok") is True
+            and str(liveness.get("failure_state") or "") in {"HEALTHY", "RECOVERY_OBSERVED"}
+            and str(liveness.get("evidence_class") or "") == "DEFINITIVE_LOCAL_RECOVERY"
+            else 0.0
+        )
         failed_services = [
             service for service in services.values()
             if isinstance(service, dict)
             and (
                 str(service.get("failure_state") or "").startswith("OBSERVED")
                 or service.get("ok") is False
+            )
+            and not (
+                definitive_recovery_epoch > 0.0
+                and str(service.get("failure_family") or "")
+                == "RUNTIME_INTERFACE_UNAVAILABLE"
+                and observation_epoch(service) <= definitive_recovery_epoch
             )
         ]
         if not failed_services:

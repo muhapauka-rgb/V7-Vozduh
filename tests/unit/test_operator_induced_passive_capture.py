@@ -255,6 +255,90 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertEqual(result["certification_only_active_sources"], [])
         self.assertEqual(result["latest_source_count"], 0)
 
+    def test_definitive_local_recovery_supersedes_older_interface_failure_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=source enabled=true certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "source": {"services": {
+                    "telegram": {
+                        "ok": False,
+                        "failure_state": "OBSERVED_NEW",
+                        "failure_family": "RUNTIME_INTERFACE_UNAVAILABLE",
+                        "observed_at": "2026-08-23T15:46:37+00:00",
+                        "source_incident_id": "incident-old",
+                    },
+                    "__channel_liveness__": {
+                        "ok": True,
+                        "failure_state": "RECOVERY_OBSERVED",
+                        "failure_family": "NONE",
+                        "evidence_class": "DEFINITIVE_LOCAL_RECOVERY",
+                        "observed_at": "2026-08-23T15:58:12+00:00",
+                        "source_incident_id": "incident-old",
+                    },
+                }},
+            }}), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "historical-interface-failure",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "source",
+                "source_incident_id": "incident-old",
+            }) + "\n", encoding="utf-8")
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertFalse(result["active"])
+        self.assertEqual(result["certification_only_active_sources"], [])
+        self.assertEqual(result["latest_source_count"], 0)
+
+    def test_failure_observed_after_local_recovery_remains_actionable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.2 current=source enabled=true certification_user=1\n",
+                encoding="utf-8",
+            )
+            (state / "service-matrix.json").write_text(json.dumps({"items": {
+                "source": {"services": {
+                    "telegram": {
+                        "ok": False,
+                        "failure_state": "OBSERVED_NEW",
+                        "failure_family": "RUNTIME_INTERFACE_UNAVAILABLE",
+                        "observed_at": "2026-08-23T16:00:00+00:00",
+                        "source_incident_id": "incident-new",
+                    },
+                    "__channel_liveness__": {
+                        "ok": True,
+                        "failure_state": "RECOVERY_OBSERVED",
+                        "evidence_class": "DEFINITIVE_LOCAL_RECOVERY",
+                        "observed_at": "2026-08-23T15:58:12+00:00",
+                    },
+                }},
+            }}), encoding="utf-8")
+            (events / "service-failure-events.jsonl").write_text(json.dumps({
+                "event_id": "new-failure",
+                "event_type": "SERVICE_FAILURE_OBSERVED",
+                "channel": "source",
+                "source_incident_id": "incident-new",
+            }) + "\n", encoding="utf-8")
+            result = tool.current_failed_source_scope(events, state)
+
+        self.assertTrue(result["requires_scope_reconciliation"])
+        self.assertEqual(
+            result["certification_only_active_sources"][0]["event_id"],
+            "new-failure",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

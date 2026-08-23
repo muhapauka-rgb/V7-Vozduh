@@ -93,11 +93,8 @@ Completed: the existing Program now contains the binding
 `V5.3 current role-based recovery amendment (N0–N11)`.  It adds N0a, the four
 SLO classes, S11, probe and data-plane contracts, automatic-consumption rules,
 and consumer-proved deletion rules.  It explicitly reclassifies the former C8
-and Full Matrix roles.  The reconciliation then removed the incompatible
-L1–L12/A–H V5.3 execution text from the live Program rather than merely
-labelling it historical.  Its evidence remains in the already referenced
-Engineering Reports and Git history, so the Program now has one executable
-V5.3 route only.
+and Full Matrix roles and marks incompatible older V5.3 sequences as historical
+evidence, so they cannot operate as a parallel plan.
 
 Program-only validation: `git diff --check` passed.  No application code was
 changed, therefore no executable function, timer, request loop or Runtime

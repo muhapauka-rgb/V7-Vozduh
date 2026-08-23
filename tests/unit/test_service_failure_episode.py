@@ -1024,6 +1024,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "enabled_non_certification_users_on_source": 0,
                 "source_isolated_for_controlled_failure": True,
                 "baseline_health": {"ok": False},
+                "controlled_condition_active": True,
             }]}
             target = {
                 "target_id": "awg3",

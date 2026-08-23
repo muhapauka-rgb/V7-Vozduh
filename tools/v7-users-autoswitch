@@ -24269,7 +24269,7 @@ def ct_m0f_standing_source_selection_only(
         source_failed = not bool((row.get("baseline_health") or {}).get("ok"))
         if certification_scope < 1 or not (controlled_condition or source_failed):
             continue
-        if controlled_condition:
+        if controlled_condition and not source_failed:
             # The deliberate condition owner operates on a whole source.  The
             # CT-M0F envelope permits exactly one certification identity, so
             # this is a *blast-radius* gate, not merely a later move limit.
@@ -24285,6 +24285,12 @@ def ct_m0f_standing_source_selection_only(
                     "certification_scope": certification_scope,
                 })
             continue
+        # A real current Matrix failure has a different existing-owner
+        # envelope: the source may contain a bounded certification cohort,
+        # while this selector still chooses and later Packet/lease-freezes
+        # exactly one identity.  Do not let the historical prepared-condition
+        # marker turn a real failure into a false "all members must already be
+        # one" rejection.
         # A certification-only Matrix event deliberately has no ordinary
         # passive scope.  Preserve that ordinary-customer fence, then reuse
         # the same event for the distinct existing one-user controlled path.

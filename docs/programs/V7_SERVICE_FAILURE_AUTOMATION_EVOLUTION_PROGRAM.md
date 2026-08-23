@@ -36,13 +36,16 @@ BAD CHANNEL
 -> FAST CONFIRMED FAILURE
 -> SAFE DECISION
 -> HEALTHY TARGET
--> CLIENT TRAFFIC RECOVERED
+-> S11 SERVER-SIDE RECOVERY VERIFIED
+-> T11 CLIENT TRAFFIC RECOVERED only with independent client telemetry
 ```
 
-The primary product KPI remains `T0 FAILURE CONFIRMED -> T11 CLIENT TRAFFIC
-RECOVERED`. This workstream additionally owns the Engineering measurement
-residual `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED FAILURE
-EVENT`; it does not redefine T0 or move report/OMP time into Runtime.
+The currently provable product KPI is `CONTROLLED FAILURE/OUTAGE ONSET -> S11
+SERVER_SIDE_RECOVERY_VERIFIED`. `T0 FAILURE CONFIRMED -> T11 CLIENT TRAFFIC
+RECOVERED` remains the future client-observed KPI and requires independent
+client telemetry. This workstream additionally owns the Engineering
+measurement residual `FIRST OBSERVABLE FAILURE SIGNAL -> CANONICAL CONFIRMED
+FAILURE EVENT`; it does not move report/OMP time into Runtime.
 
 ### V5.3 current role-based recovery amendment (N0–N11)
 
@@ -53,6 +56,34 @@ watcher, timer, registry, state store, event family or Authority surface.
 Earlier L1–L12 and Phase A–H text is retained only as evidence, historical
 candidate rationale and reusable sub-gates; it must not restore the former
 meaning of C8 or Full Matrix.
+
+#### Current architecture identity and legacy-contract scope
+
+```text
+CURRENT_SERVICE_FAILURE_HEALTH_AND_RECOVERY_ARCHITECTURE
+= V5.3 N0–N11 ROLE-BASED FAST RECOVERY ARCHITECTURE
+```
+
+This is the only current target architecture for Service Failure health,
+detection, confirmation, target readiness and recovery optimization.  Older
+headings containing `active`, `current executable`, `retained executable` or
+`approved execution plan` are relative to their named historical/narrow
+lineage. They do not create another current V5.3 target and cannot dispatch
+V5.3 work merely because the wording remains in this Program.
+
+| Retained Program family | Valid current/narrow meaning | Cannot do for V5.3 N0–N11 |
+| --- | --- | --- |
+| prior V5.3 L1–L12 / Phase A–H | evidence, measurements, candidate rationale and reusable acceptance sub-gates | choose architecture, restore Full-before-action, set cadence or claim T11 from server evidence |
+| V5.2–V4.6 CT-M0F lineage | exact controlled cutover/sample/continuation contract when fresh CPS selects that lineage | restrict N1–N4 immediate targeted Matrix wake, become the health architecture or replace S11 semantics |
+| V4.0 constant-time cohort contract | current data-plane/class/bucket invariants consumed by N5/N7/N9 | become a second health owner, detector, Planner or state surface |
+| V3/V2/V1 governed execution and Authority lineage | reusable Candidate/Packet/Lease/Barrier/apply/verification/rollback, blast-radius and Authority safeguards where still owner-backed | define N cadence, health truth, primary detector, target architecture or automatic FAST admission |
+| reports, old terminals and superseded revisions | historical evidence with explicit reuse/invalidation test | dispatch work, establish current state, grant Authority or override CPS/this section |
+
+When a retained clause conflicts with this scope table, correct its
+interpretation at the clause; do not create a new plan, delete the historical
+section wholesale or preserve the conflicting interpretation as a fallback.
+Only CPS owns which narrow execution lineage is live.  This Program owns the
+durable target contract, not volatile admission.
 
 The product must not be optimized as one large health sweep.  It is a layered,
 cost-bounded path under the existing owners:
@@ -367,16 +398,19 @@ EXTERNAL FAILURE OCCURS
 -> FIRST OBSERVABLE SIGNAL
 -> CANONICAL CONFIRMED FAILURE
 -> SAFE DECISION
--> CLIENT TRAFFIC RECOVERED
+-> S11 SERVER-SIDE RECOVERY VERIFIED
+-> T11 only when independent client telemetry exists
 ```
 
-The product result remains the existing measured `T0 FAILURE CONFIRMED -> T11
-CLIENT TRAFFIC RECOVERED` KPI. Where an independently attributable external
-failure boundary is available, the track also maps `T0 FAILURE OCCURRED ->
-T11`; where it is not observable, it must say `UNKNOWN`, use the first
-observable signal as the engineering boundary, and never manufacture a live
+For N0–N11 consumption, every older T0→T11 or client-recovery label in this
+retained evidence track is interpreted as T0→S11 when its terminal evidence is
+only server-bound route/service verification.  It may satisfy T11 only when an
+independent client signal is present.  Where an independently attributable
+external failure boundary is available, the track maps controlled onset to
+S11; where it is not observable, it says `UNKNOWN`, records first failed
+server observation and cadence separately, and never manufactures a live
 failure merely to fill the clock. Report/OMP/history/certification tail time
-is excluded from both clocks.
+is excluded from the recovery clocks.
 
 This track is retained as the evidence and comparison predecessor of the
 current N0–N11 execution contract above.  Its L gates are reusable only where
@@ -657,24 +691,29 @@ Run the same governed path for every admitted candidate, first on one
 synthetic client and then on bounded ordinary-like scope:
 
 ```text
-T0 failure
--> Matrix/passive signal
--> persistence/confirmation
+CONTROLLED FAILURE/OUTAGE ONSET
+-> L0/L1/L2 early signal
 -> exact source
--> exact eligible target
+-> pre-ready exact eligible target
 -> required service subset
--> full-Matrix comparison
+-> bounded targeted Matrix confirmation
+-> T0 failure confirmed
 -> decision
 -> Candidate -> Packet -> Lease -> Barrier -> Apply
--> route/service verification
--> T11 client traffic recovery
+-> failure-class-specific route/service verification
+-> S11 server-side recovery verified
+
+full-Matrix comparison -> asynchronous equivalence/fallback evidence
+client telemetry -> T11 only when independently present
 ```
 
 Prove existing Planner source/target selection, ordinary versus
 certification-only scope, stale/unknown/conflict fail-closed behavior,
 short/full disagreement fallback, recovery/re-admission and mandatory
-post-switch verification. No route or client movement is performed merely to
-manufacture an event.
+post-switch verification. Full Matrix comparison is not a synchronous
+prerequisite for an unambiguous HARD/PATH, applicable Telegram or decisive
+required-service action; disagreement still falls back safely. No route or
+client movement is performed merely to manufacture an event.
 
 #### Stage D — Polygon and scale tournament
 
@@ -687,7 +726,9 @@ Use one failure matrix and one result schema across candidates and scales:
 | 100 egresses | intermediate load boundary |
 | 1,000 egresses | stress model and saturation limits |
 
-Record T0–T11, full/short probe count, detection and recovery time,
+Record controlled onset→S11, production observation→S11 and, only where an
+independent client signal exists, T0→T11; also record full/short probe count,
+detection and recovery time,
 short/full agreement, false positives/negatives, stale/conflict behavior,
 target readiness, CPU/RAM, writer locks, network pressure, timeout budget,
 failure-domain isolation, complexity and safety. Cross-egress concurrency is
@@ -711,23 +752,26 @@ existing owners, full Matrix fallback, rollback and no Authority expansion.
 Timers, thresholds and cadence are changed only when the tournament provides a
 measured reason and an explicit safety/rollback proof.
 
-#### Stage F — before/after T0–T11 proof
+#### Stage F — before/after S11 and independently observed T11 proof
 
-Compare old and new with the same measurement method: T0–T11 latency, Matrix
-detection, decision and execution segments, probe count, short/full agreement,
-target readiness, false-positive/false-negative rate, CPU/RAM/network, writer
-contention, recovery correctness, actual client traffic recovery and rollback
-safety. Green tests alone are insufficient; a Polygon-only improvement remains
-an Engineering result until a lawful production observation proves otherwise.
+Compare old and new with the same measurement method: controlled onset→S11,
+production first-failed-observation→S11, Matrix detection, decision and
+execution segments, probe count, short/full agreement, target readiness,
+false-positive/false-negative rate, CPU/RAM/network, writer contention,
+recovery correctness and rollback safety. Measure T11 client traffic recovery
+only when independent client telemetry exists. Green tests alone are
+insufficient; a Polygon-only improvement remains an Engineering result until
+a lawful production observation proves otherwise.
 
 #### Stage G — production evidence and Mission closure
 
 Use only an existing natural ordinary failure if one occurs, or read-only
 production observation combined with controlled evidence. Never manufacture a
-production failure for a number. Close the Mission only when T0–T11,
-before/after, short/full equivalence, target readiness, client recovery,
+production failure for a number. Close the Mission only when required S11
+before/after, short/full equivalence, target readiness, server-side recovery,
 fallback preservation, residual classification and CPS/OMP consumption are all
-proven, with an exact successor or lawful terminal.
+proven, with an exact successor or lawful terminal. T11 remains a separately
+classified client-agent residual when independent telemetry is absent.
 
 Current position in this plan: **Stages A–D are consumed as Engineering
 evidence; Stage E post-tournament architecture decision is consumed**.

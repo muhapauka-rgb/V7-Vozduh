@@ -655,6 +655,20 @@ role/profile-required S11 verification against the currently broad selection
 and payload spans. The measured-safe winner is implemented in existing owners;
 Full remains the stale/conflict/disagreement fallback.
 
+`N9` completed at deployed commits `d24c7b66`, `63fd4128` and `b8d16492`.
+Exact evidence is recorded in
+`docs/reports/engineering/2026-08-23_180000_v5_3_n9_full_scale_and_critical_path_tournament.md`.
+All 36 mandatory scale cells passed. The worst 1,000-egress/10,000-user/many-
+profile prepared projection contains 10,000 compact classes, 40 deduplicated
+hot contracts, is 11.15 MB and builds in 0.989 seconds on Polygon. The exact
+N3 capacity gate rejects a physically impossible 47-second FAST batch before
+opening sockets and retains staggered DEEP. After production deadline
+isolation, HARD/Telegram/hot-PATH P95 were respectively 327/736/800 ms and
+maxima 524/1,113/1,162 ms, with zero command failures; five skipped one-second
+starts preserved an approximately two-second worst observation gap inside the
+declared 3/5-second law. No route changed and no client moved in N9. The next
+executable phase is `N10_BOUNDED_ORDINARY_ROLLOUT`; T11 remains unclaimed.
+
 ### V5.3 integrated T0–T11 latency-optimization track
 
 `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` is a bounded track

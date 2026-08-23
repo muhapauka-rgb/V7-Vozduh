@@ -84,6 +84,34 @@ PREPARED_SELECTION_INVALIDATOR_KEYS = (
     "anti_flap_generation",
 )
 PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS = 300
+
+
+def prepared_selection_planner_generation(
+    stable_inputs: dict[str, Any],
+) -> str:
+    """Fingerprint only inputs that can change prepared target selection.
+
+    The exact egress registry remains part of the normal Planner generation
+    and every execution packet. The incident hot path has a narrower law: an
+    operational ``enabled`` flip of the failed source must not invalidate the
+    already selected targets. Target enabled state is rechecked live by the
+    Matrix consumer before admission.
+    """
+    return sha256_json({
+        "users_registry": str(stable_inputs.get("users_registry") or ""),
+        "prepared_target_topology": str(
+            stable_inputs.get("prepared_target_topology")
+            or stable_inputs.get("egress_registry")
+            or ""
+        ),
+        "service_preferences": str(
+            stable_inputs.get("service_preferences") or ""
+        ),
+        "policy": str(stable_inputs.get("policy") or ""),
+        "org_policy": str(stable_inputs.get("org_policy") or ""),
+    })
+
+
 RUNTIME_INTELLIGENCE_SNAPSHOT_FAMILIES = (
     "service-scores",
     "channel-service-scores",
@@ -610,9 +638,15 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
             "execution_allowed": False,
         })
     invalidators = {
-        "planner_generation": str(generation.get("planner_generation_id") or ""),
+        "planner_generation": prepared_selection_planner_generation(
+            stable_inputs
+        ),
         "membership_generation": str(stable_inputs.get("users_registry") or ""),
-        "target_topology_generation": str(stable_inputs.get("egress_registry") or ""),
+        "target_topology_generation": str(
+            stable_inputs.get("prepared_target_topology")
+            or stable_inputs.get("egress_registry")
+            or ""
+        ),
         "policy_authority_generation": str(stable_inputs.get("policy") or ""),
         "organization_policy_generation": str(stable_inputs.get("org_policy") or ""),
         "service_routing_generation": str(stable_inputs.get("service_preferences") or ""),
@@ -772,14 +806,21 @@ def current_prepared_selection_invalidators(args: argparse.Namespace) -> dict[st
     stable_inputs = {
         "users_registry": sha256_file(state_dir / "users.registry"),
         "egress_registry": sha256_file(state_dir / "egress.registry"),
+        "prepared_target_topology": prepared_target_topology_generation(
+            state_dir / "egress.registry"
+        ),
         "service_preferences": sha256_file(state_dir / "service-preferences.json"),
         "policy": sha256_file(Path(args.policy_file)),
         "org_policy": sha256_file(Path(args.org_policy_file)),
     }
     return {
-        "planner_generation": sha256_json(stable_inputs),
+        "planner_generation": prepared_selection_planner_generation(
+            stable_inputs
+        ),
         "membership_generation": stable_inputs["users_registry"],
-        "target_topology_generation": stable_inputs["egress_registry"],
+        "target_topology_generation": stable_inputs[
+            "prepared_target_topology"
+        ],
         "policy_authority_generation": stable_inputs["policy"],
         "organization_policy_generation": stable_inputs["org_policy"],
         "service_routing_generation": stable_inputs["service_preferences"],
@@ -1353,6 +1394,25 @@ def parse_registry(path: Path) -> list[dict[str, str]]:
         if row:
             rows.append(row)
     return rows
+
+
+def prepared_target_topology_generation(path: Path) -> str:
+    """Hash target identity/policy topology without operational up/down.
+
+    ``enabled`` is volatile health state: a hard source failure is the event
+    that consumes this projection. The Matrix consumer still checks every
+    declared target's current enabled/canary state and fresh path evidence.
+    """
+    rows = [
+        {
+            str(key): str(value)
+            for key, value in sorted(row.items())
+            if str(key) != "enabled"
+        }
+        for row in parse_registry(path)
+    ]
+    rows.sort(key=lambda row: str(row.get("id") or ""))
+    return sha256_json(rows)
 
 
 def declared_target_egress_ip(target: "Egress") -> tuple[str, str]:
@@ -9124,6 +9184,11 @@ class AutoswitchPlanner:
         stable_inputs = {
             "users_registry": sha256_file(self.state_dir / "users.registry"),
             "egress_registry": sha256_file(self.state_dir / "egress.registry"),
+            "prepared_target_topology": (
+                prepared_target_topology_generation(
+                    self.state_dir / "egress.registry"
+                )
+            ),
             "service_preferences": sha256_file(self.state_dir / "service-preferences.json"),
             "policy": sha256_file(Path(self.args.policy_file)),
             "org_policy": sha256_file(Path(self.args.org_policy_file)),

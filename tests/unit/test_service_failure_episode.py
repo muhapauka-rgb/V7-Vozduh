@@ -1955,6 +1955,36 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             result["blockers"],
         )
 
+    def test_prepared_target_topology_ignores_only_operational_enabled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "egress.registry"
+            registry.write_text(
+                "id=source enabled=1 role=EXECUTION_ONLY interface=wg0\n"
+                "id=target enabled=1 role=GLOBAL_STABLE interface=wg1\n",
+                encoding="utf-8",
+            )
+            before = self.autoswitch.prepared_target_topology_generation(
+                registry
+            )
+            registry.write_text(
+                "id=source enabled=0 role=EXECUTION_ONLY interface=wg0\n"
+                "id=target enabled=1 role=GLOBAL_STABLE interface=wg1\n",
+                encoding="utf-8",
+            )
+            source_failed = (
+                self.autoswitch.prepared_target_topology_generation(registry)
+            )
+            registry.write_text(
+                "id=source enabled=0 role=EXECUTION_ONLY interface=wg0\n"
+                "id=target enabled=1 role=MAINTENANCE interface=wg1\n",
+                encoding="utf-8",
+            )
+            target_changed = (
+                self.autoswitch.prepared_target_topology_generation(registry)
+            )
+        self.assertEqual(before, source_failed)
+        self.assertNotEqual(source_failed, target_changed)
+
     def test_bounded_checkpoint_recovers_deferred_closure_without_forward_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

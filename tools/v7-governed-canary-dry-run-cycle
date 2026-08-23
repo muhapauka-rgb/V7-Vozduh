@@ -12256,6 +12256,42 @@ def prepare_ct_m0f_standing_controlled_condition(
             selection=selection,
         )
 
+    # A production user is already connected before its server fails.  Warm
+    # the exact existing Polygon client profile before controlled T0 so the
+    # measured recovery interval contains server detection/cutover, not an
+    # artificial post-failure creation of the client tunnel.  The client-speed
+    # owner validates the profile-to-wg0 peer mapping and keeps only a
+    # runtime-only namespace; no route, Matrix or canonical state is changed.
+    client_session_proc = subprocess.run(
+        [
+            "v7-client-speed-api",
+            "--prepare-exact-client-probe-session", expected["user"],
+            "--json",
+        ],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=15,
+        check=False,
+    )
+    try:
+        client_session = json.loads(client_session_proc.stdout or "{}")
+    except json.JSONDecodeError:
+        client_session = {}
+    if (
+        client_session_proc.returncode != 0
+        or client_session.get("ok") is not True
+    ):
+        return transaction_stop(
+            "ct_m0f_exact_client_session_preparation_failed",
+            blockers=list(
+                client_session.get("blockers")
+                if isinstance(client_session.get("blockers"), list)
+                else ["exact_client_session_preparation_failed"]
+            ),
+            client_session=client_session,
+        )
+
     setup_args = copy.copy(args)
     setup_args.confirm_controlled_certification_condition = (
         "PREPARE_CONTROLLED_CERTIFICATION_CONDITION_APPROVED"
@@ -12362,6 +12398,7 @@ def prepare_ct_m0f_standing_controlled_condition(
         "condition_returncode": condition.returncode,
         "condition_output": (condition.stdout or "")[-2000:],
         "condition_record": record,
+        "exact_client_session": client_session,
         "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE",
         "runtime_mutation_performed": True,
         "routing_mutation_performed": True,

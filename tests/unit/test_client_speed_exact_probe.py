@@ -358,6 +358,50 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         )
         self.assertNotIn("10.7.0.16", json.dumps(result))
 
+    def test_prepared_polygon_session_is_deterministic_and_runtime_only(self):
+        first = client_speed.exact_probe_session_names("10.7.0.16")
+        second = client_speed.exact_probe_session_names("10.7.0.16")
+        other = client_speed.exact_probe_session_names("10.7.0.17")
+        self.assertEqual(first, second)
+        self.assertNotEqual(first, other)
+        self.assertTrue(all(len(value) <= 15 for value in first.values()))
+        prepared = {
+            "status": "EXACT_CLIENT_PROBE_SESSION_PREPARED",
+            "duration_ms": 12.5,
+            "prepared_session_reused": True,
+            "client_tunnel_ingress_proven": True,
+        }
+        with mock.patch.object(
+            client_speed,
+            "execute_ephemeral_client_namespace_probe",
+            return_value=(prepared, [prepared]),
+        ) as execute:
+            result = client_speed.prepare_exact_client_probe_session(
+                "10.7.0.16"
+            )
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["prepared_session_reused"])
+        self.assertEqual(
+            result["persistent_state_kind"],
+            "RUNTIME_ONLY_POLYGON_CLIENT_NAMESPACE",
+        )
+        self.assertFalse(result["canonical_state_created"])
+        self.assertFalse(result["routing_mutation_performed"])
+        context = execute.call_args.args[0]
+        self.assertTrue(context["reuse_prepared_client_session"])
+        self.assertTrue(context["prepare_client_session_only"])
+
+    def test_non_private_session_identity_fails_before_namespace_creation(self):
+        with mock.patch.object(
+            client_speed, "execute_ephemeral_client_namespace_probe"
+        ) as execute:
+            result = client_speed.prepare_exact_client_probe_session(
+                "8.8.8.8"
+            )
+        execute.assert_not_called()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "PROBE_INVALID")
+
     def test_target_payload_mode_reuses_payload_primitive_without_user_recovery_claim(self):
         context = self.target_payload_context()
         attempt = self.successful_attempt()

@@ -182,6 +182,38 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=deep", completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_COMPLETE role=deep", completed.stdout)
 
+    def test_long_hard_recovery_preempts_disposable_observation_children(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            hard = self.write_command(root, "hard", "sleep 0.65\n")
+            background = self.write_command(root, "background", "sleep 5\n")
+            completed = subprocess.run(
+                [
+                    str(LOOP), "--role-based-fast", "--max-phases", "1",
+                    "--hard-interval-ms", "1000",
+                    "--controlled-hard-command", str(hard),
+                    "--controlled-telegram-command", str(background),
+                    "--controlled-hot-target-command", str(background),
+                    "--controlled-hot-target-other-command", str(background),
+                    "--controlled-required-command", str(background),
+                    "--controlled-planner-projection-command", str(background),
+                    "--controlled-deep-command", str(background),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=5,
+            )
+        self.assertIn(
+            "V7_HEALTH_ROLE_PREEMPTED role=telegram",
+            completed.stdout,
+        )
+        self.assertIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
+        self.assertIn(
+            "V7_HEALTH_ROLE_COMPLETE role=hard completion=1",
+            completed.stdout,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

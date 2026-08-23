@@ -54,6 +54,32 @@ def sha256_text(value):
     return hashlib.sha256(str(value or "").encode("utf-8")).hexdigest()
 
 
+def exact_probe_session_names(source_address):
+    """Return deterministic runtime-only names for one Polygon client."""
+    suffix = sha256_text(source_address)[:6]
+    return {
+        "namespace": f"v7p{suffix}"[:15],
+        "host_interface": f"v7h{suffix}"[:15],
+        "peer_interface": f"v7n{suffix}"[:15],
+        "client_interface": f"v7w{suffix}"[:15],
+    }
+
+
+def cleanup_exact_probe_session(source_address):
+    names = exact_probe_session_names(source_address)
+    _run_probe_command(["ip", "netns", "del", names["namespace"]], timeout=5)
+    _run_probe_command(["ip", "link", "del", names["host_interface"]], timeout=5)
+    return {
+        "schema_version": "v7.exact-client-probe-session.v1",
+        "status": "EXACT_CLIENT_PROBE_SESSION_REMOVED",
+        "ok": True,
+        "source_address_fingerprint": sha256_text(source_address),
+        "persistent_state_created": False,
+        "routing_mutation_performed": False,
+        "ordinary_user_effect": False,
+    }
+
+
 def exact_probe_context_hash(context):
     canonical = dict(context if isinstance(context, dict) else {})
     canonical.pop("context_hash", None)
@@ -639,18 +665,54 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
         "fwmark": 0,
         "ingress_interface": EXACT_PROBE_INGRESS_INTERFACE,
     })
-    suffix = secrets.token_hex(3)
-    namespace = f"v7p{suffix}"[:15]
-    host_if = f"v7h{suffix}"[:15]
-    peer_if = f"v7n{suffix}"[:15]
-    wg_if = f"v7w{suffix}"[:15]
+    reuse_session = context.get("reuse_prepared_client_session") is True
+    names = (
+        exact_probe_session_names(source)
+        if reuse_session
+        else {
+            "namespace": f"v7p{secrets.token_hex(3)}"[:15],
+            "host_interface": "",
+            "peer_interface": "",
+            "client_interface": "",
+        }
+    )
+    if not reuse_session:
+        suffix = names["namespace"][3:]
+        names.update({
+            "host_interface": f"v7h{suffix}"[:15],
+            "peer_interface": f"v7n{suffix}"[:15],
+            "client_interface": f"v7w{suffix}"[:15],
+        })
+    namespace = names["namespace"]
+    host_if = names["host_interface"]
+    peer_if = names["peer_interface"]
+    wg_if = names["client_interface"]
     cleanup = []
     started_ns = time.monotonic_ns()
     lock_handle = None
+    session_ready = False
+    session_reused = False
     try:
         EXACT_PROBE_LOCK.parent.mkdir(parents=True, exist_ok=True)
         lock_handle = EXACT_PROBE_LOCK.open("a+", encoding="utf-8")
         fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        namespace_probe = _run_probe_command(
+            ["ip", "netns", "exec", namespace, "ip", "link", "show", wg_if],
+            timeout=2,
+        )
+        host_probe = _run_probe_command(
+            ["ip", "link", "show", host_if], timeout=2,
+        )
+        session_reused = bool(
+            reuse_session
+            and namespace_probe.returncode == 0
+            and host_probe.returncode == 0
+        )
+        if reuse_session and not session_reused:
+            # A partial namespace is not a reusable client context.  Remove
+            # only the deterministic Polygon fixture and rebuild it below.
+            _run_probe_command(["ip", "netns", "del", namespace], timeout=5)
+            _run_probe_command(["ip", "link", "del", host_if], timeout=5)
         setup = (
             (["ip", "netns", "add", namespace], None),
             (["ip", "link", "add", host_if, "type", "veth", "peer", "name", peer_if], None),
@@ -667,12 +729,13 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             (["ip", "netns", "exec", namespace, "ip", "link", "set", wg_if, "up"], None),
             (["ip", "netns", "exec", namespace, "ip", "route", "add", "default", "dev", wg_if], None),
         )
-        for command, input_text in setup:
-            proc = _run_probe_command(command, input_text=input_text)
-            if proc.returncode != 0:
-                raise RuntimeError(
-                    f"namespace_setup_failed:{command[-1]}:{(proc.stdout or '').strip()[:160]}"
-                )
+        if not session_reused:
+            for command, input_text in setup:
+                proc = _run_probe_command(command, input_text=input_text)
+                if proc.returncode != 0:
+                    raise RuntimeError(
+                        f"namespace_setup_failed:{command[-1]}:{(proc.stdout or '').strip()[:160]}"
+                    )
         inode_proc = _run_probe_command([
             "ip", "netns", "exec", namespace, "stat", "-Lc", "%i",
             "/proc/self/ns/net",
@@ -691,6 +754,35 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             for line in (allowed_proc.stdout or "").splitlines()
             if len(line.split()) >= 2
         )
+        if not peer_mapping or not client_netns_inode:
+            raise RuntimeError("prepared_client_session_identity_validation_failed")
+        session_ready = True
+        if context.get("prepare_client_session_only") is True:
+            keepalive = _run_probe_command([
+                "ip", "netns", "exec", namespace,
+                "ping", "-c", "1", "-W", "1", "10.7.0.1",
+            ], timeout=3)
+            if keepalive.returncode != 0:
+                session_ready = False
+                raise RuntimeError("prepared_client_session_tunnel_handshake_failed")
+            finished_ns = time.monotonic_ns()
+            prepared = {
+                "attempt": 1,
+                "started_monotonic_ns": started_ns,
+                "finished_monotonic_ns": finished_ns,
+                "duration_ms": round((finished_ns - started_ns) / 1_000_000.0, 3),
+                "status": "EXACT_CLIENT_PROBE_SESSION_PREPARED",
+                "fresh_socket": False,
+                "payload_response_verified": False,
+                "client_tunnel_ingress_proven": True,
+                "client_profile_peer_mapping_proven": True,
+                "client_namespace_isolated": True,
+                "client_network_namespace_inode": client_netns_inode,
+                "prepared_session_reused": session_reused,
+                "keepalive_returncode": keepalive.returncode,
+                "source_address_fingerprint": sha256_text(source),
+            }
+            return prepared, [prepared]
         child_context = {
             "target_url": str(context.get("target_url") or ""),
             "destination_ip": destination_ip,
@@ -737,6 +829,7 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             "client_profile_peer_mapping_proven": peer_mapping,
             "client_namespace_isolated": bool(client_netns_inode),
             "client_network_namespace_inode": client_netns_inode,
+            "prepared_session_reused": session_reused,
             "status_line": str(result.get("status_line") or ""),
             "payload_response_verified": payload_ok,
             "payload_fingerprint": str(result.get("payload_fingerprint") or ""),
@@ -756,8 +849,9 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             "payload_response_verified": False,
         }]
     finally:
-        _run_probe_command(["ip", "netns", "del", namespace], timeout=5)
-        _run_probe_command(["ip", "link", "del", host_if], timeout=5)
+        if not reuse_session or not session_ready:
+            _run_probe_command(["ip", "netns", "del", namespace], timeout=5)
+            _run_probe_command(["ip", "link", "del", host_if], timeout=5)
         if lock_handle is not None:
             try:
                 fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
@@ -892,6 +986,58 @@ def execute_fresh_exact_probe_request(context):
         if attempt_index < retry_count:
             time.sleep(cadence_seconds)
     return {}, attempts
+
+
+def prepare_exact_client_probe_session(source_address):
+    """Warm one existing Polygon client tunnel before controlled T0.
+
+    The fixture is runtime-only and contains no copied credential or decision
+    state.  It represents the already-connected client condition that the
+    recovery SLO is intended to measure; the server-side route remains owned
+    by the normal per-user routing table.
+    """
+    source = str(source_address or "").strip()
+    try:
+        if not ipaddress.ip_address(source).is_private:
+            raise ValueError("source_address_not_private")
+    except ValueError as exc:
+        return {
+            "schema_version": "v7.exact-client-probe-session.v1",
+            "status": "PROBE_INVALID",
+            "ok": False,
+            "blockers": [str(exc)],
+        }
+    prepared, attempts = execute_ephemeral_client_namespace_probe({
+        "source_address": source,
+        "interface": "",
+        "routing_table": "",
+        "reuse_prepared_client_session": True,
+        "prepare_client_session_only": True,
+    }, "1.1.1.1")
+    ok = bool(prepared.get("status") == "EXACT_CLIENT_PROBE_SESSION_PREPARED")
+    return {
+        "schema_version": "v7.exact-client-probe-session.v1",
+        "status": (
+            "EXACT_CLIENT_PROBE_SESSION_PREPARED"
+            if ok else "PROBE_INVALID"
+        ),
+        "ok": ok,
+        "source_address_fingerprint": sha256_text(source),
+        "prepared_session_reused": bool(
+            prepared.get("prepared_session_reused")
+        ),
+        "duration_ms": prepared.get("duration_ms"),
+        "client_tunnel_ingress_proven": bool(
+            prepared.get("client_tunnel_ingress_proven")
+        ),
+        "persistent_state_kind": "RUNTIME_ONLY_POLYGON_CLIENT_NAMESPACE",
+        "canonical_state_created": False,
+        "routing_mutation_performed": False,
+        "ordinary_user_effect": False,
+        "blockers": [] if ok else [
+            str((attempts[-1] if attempts else {}).get("error") or "session_preparation_failed")
+        ],
+    }
 
 
 def build_exact_probe_receipt(context, successful_attempt, attempts):
@@ -1649,6 +1795,19 @@ def main():
         help="emit a compact read-only CT-M0F-V certification-client readiness projection",
     )
     parser.add_argument(
+        "--prepare-exact-client-probe-session",
+        metavar="CLIENT_IP",
+        help=(
+            "prepare one runtime-only existing-profile Polygon client session "
+            "before a controlled failure"
+        ),
+    )
+    parser.add_argument(
+        "--cleanup-exact-client-probe-session",
+        metavar="CLIENT_IP",
+        help="remove one runtime-only Polygon client session",
+    )
+    parser.add_argument(
         "--target-egress-payload-context",
         help=(
             "run one read-only target-egress payload probe from an existing "
@@ -1665,6 +1824,18 @@ def main():
         result = exact_client_probe_readiness()
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
         return 0 if result.get("ok") else 2
+    if args.prepare_exact_client_probe_session:
+        result = prepare_exact_client_probe_session(
+            args.prepare_exact_client_probe_session
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
+        return 0 if result.get("ok") else 2
+    if args.cleanup_exact_client_probe_session:
+        result = cleanup_exact_probe_session(
+            args.cleanup_exact_client_probe_session
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))
+        return 0
     if args.target_egress_payload_context:
         result = run_target_egress_payload_context(args.target_egress_payload_context)
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.json else None))

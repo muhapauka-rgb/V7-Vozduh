@@ -134,6 +134,12 @@ DEFAULT_ROLE_INITIAL_OFFSETS_MS = {
 }
 
 DEFAULT_ROLE_NICE = {
+    # v7-health.service itself runs at Nice=10.  A definitive HARD incident
+    # owns the recovery deadline, so restore that one child to normal priority
+    # while all observation/background roles retain the service/background
+    # priority.  This is work placement only; cadence and health ownership do
+    # not change.
+    "hard": -10,
     "planner_projection": 10,
     "deep": 8,
     "hot_target_other": 4,
@@ -271,8 +277,46 @@ class RoleHealthLoop:
     max_hard_phases: int = 0
     poll_ns: int = 25_000_000
     serialize_slow_roles: bool = True
+    hard_takeover_ns: int = 250_000_000
+
+    def _hard_recovery_takeover(self, now_ns: int) -> None:
+        """Give an admitted long HARD cycle the host until it returns.
+
+        Healthy HARD observation normally completes in roughly 100--200 ms.
+        Once it remains active beyond this bounded discriminator it is either
+        consuming the Matrix-owned failure successor or already fail-closing
+        that successor.  Observation-only roles cannot improve that decision,
+        but on a small host they can delay Packet/apply by seconds.  Cancel
+        only those disposable child invocations; their absolute cadence will
+        start a fresh observation after HARD completes.
+        """
+        hard = next((role for role in self.roles if role.name == "hard"), None)
+        if (
+            hard is None
+            or hard.process is None
+            or now_ns - hard.started_ns < self.hard_takeover_ns
+        ):
+            return
+        for role in self.roles:
+            if role.name == "hard" or role.process is None:
+                continue
+            duration = elapsed_ms(role.started_ns, now_ns)
+            terminate_process_group(role.process)
+            role.process = None
+            role.started_ns = 0
+            print(
+                f"V7_HEALTH_ROLE_PREEMPTED role={role.name} duration_ms={duration} "
+                "reason=HARD_RECOVERY_PRIORITY",
+                flush=True,
+            )
 
     def _start_due_roles(self, now_ns: int) -> None:
+        hard = next((role for role in self.roles if role.name == "hard"), None)
+        hard_takeover = bool(
+            hard is not None
+            and hard.process is not None
+            and now_ns - hard.started_ns >= self.hard_takeover_ns
+        )
         for role in self.roles:
             if now_ns < role.next_due_ns:
                 continue
@@ -283,6 +327,13 @@ class RoleHealthLoop:
                 print(
                     f"V7_HEALTH_ROLE_DEADLINE_MISS role={role.name} "
                     f"misses={role.deadline_misses} reason=PREVIOUS_INVOCATION_RUNNING",
+                    flush=True,
+                )
+                continue
+            if role.name != "hard" and hard_takeover:
+                print(
+                    f"V7_HEALTH_ROLE_DEFERRED role={role.name} "
+                    "reason=HARD_RECOVERY_PRIORITY",
                     flush=True,
                 )
                 continue
@@ -353,13 +404,16 @@ class RoleHealthLoop:
             while True:
                 now_ns = monotonic_ns()
                 self._collect_roles(now_ns)
+                self._hard_recovery_takeover(now_ns)
                 self._start_due_roles(now_ns)
                 if self.max_hard_phases and hard.starts >= self.max_hard_phases:
                     # A finite Polygon completes only after every invocation it
                     # started has returned; no child or orphan survives it.
                     while any(role.process is not None for role in self.roles):
                         time.sleep(self.poll_ns / 1_000_000_000)
-                        self._collect_roles(monotonic_ns())
+                        finite_now_ns = monotonic_ns()
+                        self._collect_roles(finite_now_ns)
+                        self._hard_recovery_takeover(finite_now_ns)
                     return 0
                 next_due = min(role.next_due_ns for role in self.roles)
                 wait_ns = max(1_000_000, min(self.poll_ns, next_due - monotonic_ns()))

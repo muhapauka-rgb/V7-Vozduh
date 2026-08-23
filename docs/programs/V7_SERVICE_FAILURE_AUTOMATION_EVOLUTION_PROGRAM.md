@@ -4735,6 +4735,30 @@ bounded action only if existing policy and runtime gates independently permit
 it. Consume verification, Outcome, Replay, Learning, scope update and the
 affected `CAUSAL_M7_OUTCOME_TIER_DECISION` tier decision.
 
+#### VLESS continuing-failure scope-binding law
+
+For a continuing certification-only VLESS failure, use **Model B**. The
+existing Matrix owner is canonical for the fresh health result, failure
+episode and immutable observation event. `users.registry` is canonical for
+the *current* assignment membership. A Matrix event's compact source-scope
+fingerprint is therefore historical observation evidence, not a live
+membership lock and not a reason to rewrite or re-emit Matrix state whenever
+a controlled identity moves.
+
+The existing controlled selector must first prove one fresh currently-failed
+Matrix source incident and one matching fresh capture-only Matrix event, then
+read the current `users.registry` scope. It stops safely for an empty scope,
+any ordinary user, an uncontrolled source, stale/recovered/ambiguous Matrix
+state, a stale event, or an event from another incident. Only after that
+read-only binding may the existing Candidate/Packet/lease chain freeze the
+one exact certification identity, source and target immediately before apply.
+The ordinary L3/passive path and its current-scope accounting remain unchanged.
+
+This preserves separation of responsibilities: Matrix never becomes a second
+user-assignment owner; the selector does not become an event writer; and a
+Packet/lease never reuses an old selection after membership, health, target,
+policy or authority changes.
+
 The implementation terminal is:
 
 `PERSISTENT_INCIDENT_CAUSAL_CLOSURE_RUNTIME_CONSUMED`

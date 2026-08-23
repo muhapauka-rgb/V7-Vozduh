@@ -2958,13 +2958,18 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
     event_dir: Path,
     evidence_cache: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    """Bind one controlled recovery to the current Matrix event, read-only.
+    """Bind a controlled recovery to one active Matrix episode, read-only.
 
-    The ordinary passive path intentionally gives a certification-only source
-    an ordinary scope of zero.  That is correct for customers, but must not
-    hide a real failed source from the existing one-user certification
-    recovery envelope.  This projects the same immutable Matrix event and
-    live registries; it stores neither a membership list nor a second event.
+    Matrix owns the current health/failure episode and its append-only event
+    is immutable evidence of an observation.  ``users.registry`` remains the
+    sole owner of *current* assignment membership.  A continuing failure must
+    therefore be bound to a fresh Matrix episode and then to the current
+    certification-only registry scope, rather than require an old event
+    snapshot to describe identities which may legitimately have changed.
+
+    This is an in-memory selector projection only.  It persists neither a
+    membership list nor an incident, and the later Candidate/Packet/lease
+    pipeline still freezes the one exact selected identity before any apply.
     """
     cache = evidence_cache if isinstance(evidence_cache, dict) else {}
     source_id = str(source_id or "")
@@ -3058,6 +3063,18 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
         blockers.append("matrix_source_observation_not_fresh")
     if not matrix_failed:
         blockers.append("matrix_source_not_currently_failed")
+    matrix_incident_ids = {
+        str(value.get("source_incident_id") or "")
+        for value in services.values()
+        if isinstance(value, dict)
+        and value.get("ok") is False
+        and str(value.get("source_incident_id") or "")
+    }
+    if not matrix_incident_ids:
+        blockers.append("matrix_source_incident_missing")
+    elif len(matrix_incident_ids) != 1:
+        blockers.append("matrix_source_incident_ambiguous")
+    matrix_incident_id = next(iter(matrix_incident_ids), "")
 
     event_match: dict[str, Any] = {}
     now = datetime.now(timezone.utc)
@@ -3110,25 +3127,22 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
             continue
         if str(event.get("channel") or event.get("object") or "") != source_id:
             continue
+        if str(event.get("source_incident_id") or "") != matrix_incident_id:
+            continue
         if not bool(event.get("capture_only")) or (
             str(event.get("event_provenance") or "")
             != "EXTERNAL_UNATTRIBUTED"
         ):
             continue
         scope = event.get("source_scope") if isinstance(event.get("source_scope"), dict) else {}
+        controlled_scope = scope.get("controlled_certification_scope")
         controlled_scope = (
-            scope.get("controlled_certification_scope")
-            if isinstance(scope.get("controlled_certification_scope"), dict)
-            else {}
+            controlled_scope if isinstance(controlled_scope, dict) else {}
         )
         if (
             str(scope.get("scope_classification") or "")
             != "CERTIFICATION_ONLY"
             or to_int(scope.get("affected_scope_count"), -1) != 0
-            or to_int(controlled_scope.get("affected_scope_count"), -1)
-            != live_scope["affected_scope_count"]
-            or str(controlled_scope.get("affected_scope_fingerprint") or "")
-            != live_scope["affected_scope_fingerprint"]
         ):
             continue
         timestamp = str(event.get("observed_at") or event.get("timestamp") or "")
@@ -3142,7 +3156,28 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
             event_match = event
             break
     if not event_match:
-        blockers.append("fresh_exact_certification_only_matrix_event_missing")
+        blockers.append("fresh_active_certification_only_matrix_event_missing")
+    event_scope = (
+        event_match.get("source_scope")
+        if isinstance(event_match.get("source_scope"), dict)
+        else {}
+    )
+    event_controlled_scope = (
+        event_scope.get("controlled_certification_scope")
+        if isinstance(event_scope.get("controlled_certification_scope"), dict)
+        else {}
+    )
+    event_scope_snapshot = {
+        "scope_classification": str(event_scope.get("scope_classification") or ""),
+        "ordinary_scope_count": to_int(event_scope.get("affected_scope_count"), -1),
+        "controlled_scope_count": to_int(
+            event_controlled_scope.get("affected_scope_count"), -1,
+        ),
+        "controlled_scope_fingerprint": str(
+            event_controlled_scope.get("affected_scope_fingerprint") or "",
+        ),
+        "raw_identity_list_stored": False,
+    }
     return {
         "schema_version": "v7.ct-m0f-certification-only-matrix-binding.v1",
         "status": (
@@ -3152,8 +3187,9 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
         "ok": not blockers,
         "requires_binding": True,
         "binding_kind": "CERTIFICATION_ONLY_MATRIX_FAILURE",
+        "scope_binding_model": "CURRENT_REGISTRY_SCOPE_ON_ACTIVE_MATRIX_EPISODE",
         "automation_obligation_id": "",
-        "source_incident_id": str(event_match.get("source_incident_id") or ""),
+        "source_incident_id": matrix_incident_id,
         "source_incident_generation": str(
             event_match.get("observation_generation") or ""
         ),
@@ -3166,7 +3202,15 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
         "source_scope_fingerprint": live_scope["affected_scope_fingerprint"],
         "source_scope_count": live_scope["affected_scope_count"],
         "live_source_scope": live_scope,
+        "event_scope_snapshot": event_scope_snapshot,
+        "event_scope_snapshot_matches_current": bool(
+            event_scope_snapshot["controlled_scope_count"]
+            == live_scope["affected_scope_count"]
+            and event_scope_snapshot["controlled_scope_fingerprint"]
+            == live_scope["affected_scope_fingerprint"]
+        ),
         "matrix_checked_at": checked_at,
+        "matrix_source_incident_id": matrix_incident_id,
         "blockers": sorted(set(blockers)),
         "read_only": True,
         "raw_identity_list_stored": False,

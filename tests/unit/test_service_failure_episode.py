@@ -728,7 +728,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             (state / "service-matrix.json").write_text(json.dumps({
                 "items": {"vless": {
                     "checked_at": now,
-                    "services": {"youtube": {"ok": False}},
+                    "services": {"youtube": {
+                        "ok": False,
+                        "source_incident_id": "sfinc_vless_current",
+                    }},
                 }},
             }), encoding="utf-8")
             scope_fingerprint = self.autoswitch.sha256_json({
@@ -770,6 +773,171 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["source_scope_count"], 2)
         self.assertFalse(result["raw_identity_list_stored"])
 
+    def test_ct_m0f_certification_binding_uses_current_registry_not_event_snapshot(self):
+        """A continuing Matrix episode may outlive a controlled scope change."""
+        cases = {
+            "unchanged": ["10.7.0.18"],
+            "removed_and_replaced": ["10.7.0.19"],
+            "added": ["10.7.0.18", "10.7.0.19"],
+        }
+        for name, current_users in cases.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = root / "state"
+                events = root / "events"
+                state.mkdir()
+                events.mkdir()
+                (state / "users.registry").write_text(
+                    "\n".join(
+                        f"ip={user} current=vless enabled=1 certification_user=1 "
+                        "certification_group=g1"
+                        for user in current_users
+                    ) + "\n",
+                    encoding="utf-8",
+                )
+                (state / "egress.registry").write_text(
+                    "id=vless enabled=1 controlled_certification_source=1\n",
+                    encoding="utf-8",
+                )
+                now = datetime.now(timezone.utc).isoformat()
+                (state / "service-matrix.json").write_text(json.dumps({
+                    "items": {"vless": {
+                        "checked_at": now,
+                        "services": {"youtube": {
+                            "ok": False,
+                            "source_incident_id": "sfinc_vless_current",
+                        }},
+                    }},
+                }), encoding="utf-8")
+                # This is an immutable historical snapshot from the first
+                # observation.  It intentionally does not track later moves.
+                (events / "service-failure-events.jsonl").write_text(json.dumps({
+                    "event_id": "sfrev_old_scope",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "observed_at": now,
+                    "channel": "vless",
+                    "source_incident_id": "sfinc_vless_current",
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "source_scope": {
+                        "scope_classification": "CERTIFICATION_ONLY",
+                        "affected_scope_count": 0,
+                        "controlled_certification_scope": {
+                            "affected_scope_count": 1,
+                            "affected_scope_fingerprint": "old-snapshot",
+                        },
+                    },
+                }) + "\n", encoding="utf-8")
+                result = self.autoswitch.ct_m0f_certification_only_matrix_failure_binding_projection(
+                    state, "vless", event_dir=events,
+                )
+                self.assertTrue(result["ok"], result)
+                self.assertEqual(result["source_scope_count"], len(current_users))
+                self.assertEqual(
+                    result["scope_binding_model"],
+                    "CURRENT_REGISTRY_SCOPE_ON_ACTIVE_MATRIX_EPISODE",
+                )
+                self.assertFalse(result["event_scope_snapshot_matches_current"])
+
+    def test_ct_m0f_certification_binding_fails_closed_for_ordinary_stale_or_wrong_episode(self):
+        variants = {
+            "ordinary_user": {
+                "users": (
+                    "ip=10.7.0.18 current=vless enabled=1 certification_user=1\n"
+                    "ip=10.7.0.19 current=vless enabled=1 certification_user=0\n"
+                ),
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_incident": "sfinc_current",
+                "event_incident": "sfinc_current",
+                "event_at": datetime.now(timezone.utc).isoformat(),
+                "blocker": "ordinary_users_present_on_controlled_source",
+            },
+            "empty_scope": {
+                "users": "",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_incident": "sfinc_current",
+                "event_incident": "sfinc_current",
+                "event_at": datetime.now(timezone.utc).isoformat(),
+                "blocker": "controlled_certification_scope_empty",
+            },
+            "stale_matrix": {
+                "users": "ip=10.7.0.18 current=vless enabled=1 certification_user=1\n",
+                "checked_at": "2020-01-01T00:00:00+00:00",
+                "matrix_incident": "sfinc_current",
+                "event_incident": "sfinc_current",
+                "event_at": datetime.now(timezone.utc).isoformat(),
+                "blocker": "matrix_source_observation_not_fresh",
+            },
+            "stale_event": {
+                "users": "ip=10.7.0.18 current=vless enabled=1 certification_user=1\n",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_incident": "sfinc_current",
+                "event_incident": "sfinc_current",
+                "event_at": "2020-01-01T00:00:00+00:00",
+                "blocker": "fresh_active_certification_only_matrix_event_missing",
+            },
+            "wrong_episode": {
+                "users": "ip=10.7.0.18 current=vless enabled=1 certification_user=1\n",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_incident": "sfinc_current",
+                "event_incident": "sfinc_old",
+                "event_at": datetime.now(timezone.utc).isoformat(),
+                "blocker": "fresh_active_certification_only_matrix_event_missing",
+            },
+            "recovered_matrix": {
+                "users": "ip=10.7.0.18 current=vless enabled=1 certification_user=1\n",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_incident": "",
+                "event_incident": "sfinc_old",
+                "event_at": datetime.now(timezone.utc).isoformat(),
+                "matrix_ok": True,
+                "blocker": "matrix_source_not_currently_failed",
+            },
+        }
+        for name, case in variants.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                state = root / "state"
+                events = root / "events"
+                state.mkdir()
+                events.mkdir()
+                (state / "users.registry").write_text(case["users"], encoding="utf-8")
+                (state / "egress.registry").write_text(
+                    "id=vless enabled=1 controlled_certification_source=1\n",
+                    encoding="utf-8",
+                )
+                (state / "service-matrix.json").write_text(json.dumps({
+                    "items": {"vless": {
+                        "checked_at": case["checked_at"],
+                        "services": {"youtube": {
+                            "ok": case.get("matrix_ok", False),
+                            "source_incident_id": case["matrix_incident"],
+                        }},
+                    }},
+                }), encoding="utf-8")
+                (events / "service-failure-events.jsonl").write_text(json.dumps({
+                    "event_id": "sfrev_case",
+                    "event_type": "SERVICE_FAILURE_REVALIDATED",
+                    "observed_at": case["event_at"],
+                    "channel": "vless",
+                    "source_incident_id": case["event_incident"],
+                    "capture_only": True,
+                    "event_provenance": "EXTERNAL_UNATTRIBUTED",
+                    "source_scope": {
+                        "scope_classification": "CERTIFICATION_ONLY",
+                        "affected_scope_count": 0,
+                        "controlled_certification_scope": {
+                            "affected_scope_count": 1,
+                            "affected_scope_fingerprint": "snapshot",
+                        },
+                    },
+                }) + "\n", encoding="utf-8")
+                result = self.autoswitch.ct_m0f_certification_only_matrix_failure_binding_projection(
+                    state, "vless", event_dir=events,
+                )
+                self.assertFalse(result["ok"], result)
+                self.assertIn(case["blocker"], result["blockers"])
+
     def test_ct_m0f_selector_reuses_stage_one_degraded_target_for_matrix_failure(self):
         availability_policy = {
             "action_class_scopes": {
@@ -810,7 +978,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             (state / "service-matrix.json").write_text(json.dumps({
                 "items": {"vless": {
                     "checked_at": now,
-                    "services": {"youtube": {"ok": False}},
+                    "services": {"youtube": {
+                        "ok": False,
+                        "source_incident_id": "sfinc_vless_current",
+                    }},
                 }},
             }), encoding="utf-8")
             scope_fingerprint = self.autoswitch.sha256_json({

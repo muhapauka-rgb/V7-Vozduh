@@ -815,6 +815,24 @@ def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[st
         blockers.append("prepared_projection_not_ready")
     if list(declared or []) != list(PREPARED_SELECTION_INVALIDATOR_KEYS):
         blockers.append("selection_invalidation_contract_upgrade_required")
+    hot_target_set = (
+        projection.get("hot_target_set")
+        if isinstance(projection.get("hot_target_set"), dict)
+        else {}
+    )
+    hot_contracts = [
+        row for row in (hot_target_set.get("contracts") or [])
+        if isinstance(row, dict)
+    ]
+    if hot_contracts and any(
+        "target_safe_additional_capacity" not in row
+        for row in hot_contracts
+    ):
+        # Existing v1 projections produced before the role-based capacity
+        # scalar was added are structurally valid but cannot safely feed the
+        # incident hot path. Force the existing Planner owner to rebuild them
+        # once instead of silently reusing a legacy projection.
+        blockers.append("prepared_hot_target_capacity_upgrade_required")
     for key in PREPARED_SELECTION_INVALIDATOR_KEYS:
         if not expected.get(key) or str(expected.get(key)) != str(current.get(key)):
             blockers.append(f"selection_input_changed:{key}")

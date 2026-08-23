@@ -1914,6 +1914,47 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["invalidation_reasons"], ["target_health_and_path_generation"])
         self.assertFalse(result["registry_scanned"])
 
+    def test_prepared_projection_reuse_rebuilds_legacy_capacity_contract(self):
+        projection = {
+            "schema_version": "v7.prepared-class-decision-projection.v1",
+            "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+            "produced_at": datetime.now(timezone.utc).isoformat(),
+            "classes": [{"class_id": "pcd_legacy"}],
+            "selection_invalidator_keys": list(
+                self.autoswitch.PREPARED_SELECTION_INVALIDATOR_KEYS
+            ),
+            "hot_target_set": {"contracts": [{"target_id": "awg3"}]},
+            "invalidators": {},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            args = SimpleNamespace(
+                state_dir=str(state),
+                policy_file=str(state / "policy.json"),
+                org_policy_file=str(state / "org-policy.json"),
+                safety_file=str(state / "safety.json"),
+            )
+            current = self.autoswitch.current_prepared_selection_invalidators(
+                args
+            )
+            projection["invalidators"] = current
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            result = self.autoswitch.reuse_current_prepared_class_projection(
+                args
+            )
+        self.assertFalse(result["ok"])
+        self.assertIn(
+            "prepared_hot_target_capacity_upgrade_required",
+            result["blockers"],
+        )
+
     def test_bounded_checkpoint_recovers_deferred_closure_without_forward_apply(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp)

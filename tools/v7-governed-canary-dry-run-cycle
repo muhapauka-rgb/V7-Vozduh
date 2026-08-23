@@ -6856,14 +6856,13 @@ def _execute_governed_transaction_with_guards_inner(
                 "controlled_certification_setup_snapshot_refresh_failed",
                 snapshot_refresh=certification_setup_snapshot_refresh,
             )
-    if availability_first_reset:
-        # A serialized cohort reset changes route-backed risk/blast/overview
-        # inputs after every member.  Reusing the preceding member's
-        # snapshots makes the next exact cleanup Packet fail permanently with
-        # snapshot_mismatch.  Consume the existing snapshot writer before
-        # every reset child, then rebuild the same decision surface from that
-        # fresh generation.  This is observation-state maintenance only; it
-        # grants no Authority and performs no routing mutation.
+    if availability_first_reset or ct_m0f_standing_reset:
+        # Any standing-policy reset changes route-backed risk/blast/overview
+        # inputs. Reusing the forward action's snapshots makes the exact
+        # cleanup Packet fail permanently with snapshot_mismatch. Consume the
+        # existing snapshot writer before the reset, then rebuild the same
+        # decision surface from that fresh generation. This is observation
+        # maintenance only; it grants no Authority and moves no user.
         availability_reset_snapshot_refresh = (
             refresh_controlled_topology_execution_snapshots(
                 args,
@@ -6923,7 +6922,7 @@ def _execute_governed_transaction_with_guards_inner(
         surface["controlled_execution_gate_profile"] = (
             "CONTROLLED_CERTIFICATION_TOPOLOGY"
         )
-    elif availability_first_reset:
+    elif availability_first_reset or ct_m0f_standing_reset:
         # This is the exact standing-policy-bound restoration of an already
         # moved certification identity, not a new risk-taking recommendation.
         # Keep snapshot, identity, route, target, rollback and execution gates,

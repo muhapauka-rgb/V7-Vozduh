@@ -1822,6 +1822,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "CT_M0F_STANDING_SAMPLE_RESET_AND_CLOSED",
         )
         self.assertTrue(captured["standing_reset"])
+        self.assertTrue(captured["request"]["lineage_bound_reset"])
+        self.assertEqual(
+            captured["request"]["lineage_execution_target"],
+            "execution-target",
+        )
         self.assertEqual(
             captured["request"]["ct_m0f_standing_reservation_id"],
             "ctm0fsample_test",

@@ -17917,10 +17917,27 @@ class AutoswitchPlanner:
         if int(result_row.get("service_verify_rc", 1)) != 0:
             blockers.append("fresh_compatible_matrix_or_service_verification_required")
         if blockers:
+            route_failure_categories = sorted({
+                str(value)
+                for value in (
+                    result_row.get("route_verification_failure_categories")
+                    or []
+                )
+                if re.fullmatch(r"[A-Z0-9_-]+", str(value))
+            })[:8]
             return {
                 "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_INVALID",
                 "ok": False,
                 "blockers": sorted(set(blockers)),
+                "route_verification_failure_categories": route_failure_categories,
+                "route_verification_scope": str(
+                    result_row.get("route_verification_scope") or ""
+                ),
+                "route_verification_expected_egress": str(
+                    result_row.get("route_verification_expected_egress") or ""
+                ),
+                "verify_rc": result_row.get("verify_rc"),
+                "service_verify_rc": result_row.get("service_verify_rc"),
                 "ordinary_user_delta": 0,
                 "routing_mutation_performed_by_consumer": False,
             }

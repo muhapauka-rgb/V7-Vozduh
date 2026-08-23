@@ -1759,6 +1759,52 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(consumed_receipt["first_failed_observation_monotonic_ns"], 100)
         self.assertEqual(consumed_receipt["confirmed_hard_failure_monotonic_ns"], 100)
 
+    def test_ct_m0f_invalid_evidence_preserves_safe_route_failure_categories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, current_egress="1")
+            args = self.args_for(root)
+            args.ct_m0f_kernel_cutover_validation = True
+            args.ct_m0f_validation_generation_id = "ctm0fgen_test"
+            args.ct_m0f_standing_validation_contract_id = "ctm0fsdpc_test"
+            args.ct_m0f_standing_validation_contract_hash = "c" * 64
+            args.ct_m0f_implementation_fingerprint = "i" * 64
+            args.approved_packet_id = "pkt_test"
+            args.approved_execution_lease_id = "lease_test"
+            args.approved_operation_id = "operation_test"
+            planner = self.tool.AutoswitchPlanner(args)
+            move = {
+                "user_ip": "10.0.0.2",
+                "current_egress": "1",
+                "recommended_egress": "vless",
+            }
+            with mock.patch.object(
+                self.tool.operator_execution,
+                "validate_ct_m0f_standing_validation_sample_reservation",
+                return_value={"ok": True, "errors": []},
+            ):
+                result = planner._ct_m0f_kernel_cutover_evidence(
+                    {"operation": {}, "safety": {}},
+                    move,
+                    {
+                        "verify_rc": 1,
+                        "route_verification_scope": "selected_user",
+                        "route_verification_expected_egress": "vless",
+                        "route_verification_failure_categories": [
+                            "TABLE_DEFAULT_MISMATCH",
+                            "unsafe text is dropped",
+                        ],
+                    },
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(
+            result["route_verification_failure_categories"],
+            ["TABLE_DEFAULT_MISMATCH"],
+        )
+        self.assertEqual(result["route_verification_scope"], "selected_user")
+        self.assertEqual(result["route_verification_expected_egress"], "vless")
+
     def test_ct_m0f_target_identity_reuses_single_declared_tunnel_endpoint(self):
         target = self.tool.Egress(
             id="controlled-target",

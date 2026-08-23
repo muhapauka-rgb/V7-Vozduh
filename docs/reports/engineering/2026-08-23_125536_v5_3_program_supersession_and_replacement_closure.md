@@ -120,6 +120,19 @@ CPS_STATE_EFFECT  = NONE
 OMP_STATE_EFFECT  = NONE
 ```
 
+## Publication verification
+
+- Program and this report were committed as
+  `377874e4607e162443de1093a451a36c82c3acb0` and pushed to
+  `origin/Updatesystem`.
+- The authenticated GitHub API independently resolved the remote branch to the
+  exact same commit.
+- Post-publication CPS, OMP, local and Runtime checks remain PASS; local worktree
+  is clean, Runtime is aligned and no deployment is required.
+- The truth-check GitHub sub-check still reports its own sandboxed remote reader
+  unavailable. This is a checker transport limitation, not an unverified push;
+  the independent authenticated API result above supplies remote proof.
+
 ## Terminal and next frontier
 
 Document terminal:
@@ -133,4 +146,3 @@ The exact Program frontier remains N0a. In later admitted N1/N4/N7 work, the
 system must classify existing L0 evidence and run the shared `MODE A` versus
 `MODE B` Polygon tournament before direct T0 Runtime admission. No predecessor
 may be physically removed until its integrated replacement gate passes.
-

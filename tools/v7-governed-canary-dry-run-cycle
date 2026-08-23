@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 from collections import deque
 import copy
+import hashlib
 import ipaddress
 import json
 import os
@@ -11879,6 +11880,46 @@ def prepare_ct_m0f_standing_controlled_condition(
     ):
         if expected[field] != str(selection.get(selection_field) or ""):
             blockers.append(f"ct_m0f_condition_{field}_binding_changed")
+    source_lines = [
+        line
+        for line in (state_dir / "egress.registry").read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines()
+        if line.startswith(f"id={expected['source']} ")
+    ]
+    source_row = next(
+        (
+            row
+            for row in read_registry(state_dir / "egress.registry")
+            if str(row.get("id") or "") == expected["source"]
+        ),
+        {},
+    )
+    source_users = sorted(
+        str(row.get("ip") or "")
+        for row in read_registry(state_dir / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == expected["source"]
+    )
+    certification_group = str(source_row.get("certification_group") or "")
+    exact_certification_users = sorted(
+        str(row.get("ip") or "")
+        for row in read_registry(state_dir / "users.registry")
+        if bool_value(row.get("enabled", "1"))
+        and str(row.get("current") or "") == expected["source"]
+        and bool_value(row.get("certification_user"))
+        and str(row.get("certification_group") or "") == certification_group
+    )
+    if len(source_lines) != 1:
+        blockers.append("ct_m0f_condition_source_registry_identity_not_exact")
+    if not source_users or source_users != exact_certification_users:
+        blockers.append("ct_m0f_condition_source_scope_not_certification_only")
+    if expected["user"] not in exact_certification_users:
+        blockers.append("ct_m0f_condition_selected_user_not_in_exact_source_scope")
+    if not certification_group:
+        blockers.append("ct_m0f_condition_certification_group_missing")
+    if not str(source_row.get("controlled_source_reservation_id") or ""):
+        blockers.append("ct_m0f_condition_source_reservation_missing")
     if blockers:
         return transaction_stop(
             "ct_m0f_standing_controlled_condition_not_admitted",
@@ -11909,8 +11950,16 @@ def prepare_ct_m0f_standing_controlled_condition(
     condition = subprocess.run(
         [
             str(getattr(args, "egress_state_owner", "v7-egress-set-state")),
-            expected["source"], "maintenance",
-            "--controlled-certification", "--apply",
+            expected["source"], "certification-failure",
+            "--controlled-certification",
+            "--certification-users", ",".join(exact_certification_users),
+            "--certification-group", certification_group,
+            "--reservation-id",
+            str(source_row.get("controlled_source_reservation_id") or ""),
+            "--expected-egress-fingerprint",
+            hashlib.sha256(source_lines[0].encode()).hexdigest(),
+            "--apply",
+            "--confirm", "INJECT_CONTROLLED_CERTIFICATION_FAILURE",
         ],
         text=True,
         stdout=subprocess.PIPE,

@@ -496,6 +496,19 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             state.mkdir()
             events.mkdir()
             audit_dir.mkdir()
+            (state / "egress.registry").write_text(
+                "id=exec-source protocol=wireguard type=interface interface=wg-exec "
+                "enabled=1 role=EXECUTION_ONLY controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=ct-m0f "
+                "controlled_source_reservation_id=ctres-test\n",
+                encoding="utf-8",
+            )
+            (state / "users.registry").write_text(
+                "ip=10.7.0.18 current=exec-source enabled=1 "
+                "certification_user=1 certification_group=ct-m0f\n",
+                encoding="utf-8",
+            )
             policy = root / "policy.json"
             contract = {
                 "contract_id": "contract",
@@ -539,7 +552,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 self.cycle.subprocess,
                 "run",
                 side_effect=fake_run,
-            ):
+            ) as run_mock:
                 result = self.cycle.prepare_ct_m0f_standing_controlled_condition(
                     args,
                     state_dir=state,
@@ -552,6 +565,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             records = self.cycle.operator_execution.read_audit_records(
                 audit_dir / "operator-execution-audit.jsonl"
             )
+            condition_command = next(
+                call.args[0]
+                for call in run_mock.mock_calls
+                if "certification-failure" in call.args[0]
+            )
 
         self.assertEqual(
             result["final_verdict"],
@@ -559,6 +577,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertEqual(records[-1]["record_type"], "ct_m0f_standing_controlled_condition_prepared")
         self.assertEqual(records[-1]["next_required_consumer"], "ordinary fresh Matrix generation")
+        self.assertIn("--expected-egress-fingerprint", condition_command)
+        self.assertIn("INJECT_CONTROLLED_CERTIFICATION_FAILURE", condition_command)
         self.assertGreater(
             int(records[-1]["first_failed_observation_monotonic_ns"]),
             0,

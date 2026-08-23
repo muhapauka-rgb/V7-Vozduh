@@ -249,6 +249,91 @@ class V7EgressLifecycleGuardTest(unittest.TestCase):
             self.assertIn("reason=assigned_certification_users_scoped", maintenance.stdout)
             self.assertIn("MODE=dry_run", maintenance.stdout)
 
+    def test_certification_failure_dry_run_preserves_enabled_registry(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=wg1 protocol=wireguard type=interface interface=wg1 "
+                "enabled=1 role=EXECUTION_ONLY config=/tmp/wg1.conf "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=n10 controlled_source_reservation_id=n10-r1 "
+                "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                original,
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1 "
+                "certification_user=1 certification_group=n10\n",
+            )
+            fingerprint = hashlib.sha256(
+                original.rstrip("\n").encode()
+            ).hexdigest()
+
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-failure",
+                "--controlled-certification",
+                "--certification-users",
+                "10.7.0.2",
+                "--certification-group",
+                "n10",
+                "--reservation-id",
+                "n10-r1",
+                "--expected-egress-fingerprint",
+                fingerprint,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("would_runtime=down_without_registry_disable", result.stdout)
+            self.assertIn("registry_enabled_preserved=1", result.stdout)
+            self.assertEqual(
+                (state / "egress.registry").read_text(encoding="utf-8"),
+                original,
+            )
+
+    def test_certification_failure_rejects_scope_or_reservation_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original = (
+                "id=wg1 protocol=wireguard type=interface interface=wg1 "
+                "enabled=1 role=EXECUTION_ONLY config=/tmp/wg1.conf "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=n10 controlled_source_reservation_id=n10-r1 "
+                "controlled_source_reservation_expires_at=2099-01-01T00:00:00+00:00\n"
+            )
+            state = self.write_state(
+                Path(tmp),
+                original,
+                "ip=10.7.0.2 current=wg1 table=100 enabled=1 "
+                "certification_user=1 certification_group=n10\n",
+            )
+            fingerprint = hashlib.sha256(
+                original.rstrip("\n").encode()
+            ).hexdigest()
+
+            result = self.run_set_state(
+                state,
+                "wg1",
+                "certification-failure",
+                "--controlled-certification",
+                "--certification-users",
+                "10.7.0.3",
+                "--certification-group",
+                "n10",
+                "--reservation-id",
+                "n10-r1",
+                "--expected-egress-fingerprint",
+                fingerprint,
+            )
+
+            self.assertEqual(result.returncode, 2, result.stdout)
+            self.assertIn("certification_failure_user_scope_changed", result.stdout)
+            self.assertEqual(
+                (state / "egress.registry").read_text(encoding="utf-8"),
+                original,
+            )
+
     def test_controlled_source_reserve_and_release_are_exact_and_reversible(self):
         with tempfile.TemporaryDirectory() as tmp:
             original = (

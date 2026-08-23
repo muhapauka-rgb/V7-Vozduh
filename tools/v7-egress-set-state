@@ -18,7 +18,7 @@ RESTORE_BACKUP=""
 CONFIRM=""
 
 usage() {
-  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--confirm token]" >&2
+  echo "Usage: v7-egress-set-state <egress_id> <enabled|disabled|maintenance|certification-failure|certification-scope|certification-reserve|certification-release> [--apply] [--controlled-certification] [--certification-users ip1,ip2] [--certification-group name] [--reservation-id id] [--reservation-expires-at ISO8601] [--expected-egress-fingerprint sha256] [--restore-backup path] [--confirm token]" >&2
 }
 
 while [ "$#" -gt 2 ]; do
@@ -296,7 +296,7 @@ rebuild_killswitch() {
 [ -n "$EGRESS_ID" ] && [ -n "$STATE" ] || { usage; exit 1; }
 safe_id "$EGRESS_ID" || { echo "unsafe egress id: $EGRESS_ID"; exit 1; }
 case "$STATE" in
-  enabled|disabled|maintenance|certification-scope|certification-reserve|certification-release) ;;
+  enabled|disabled|maintenance|certification-failure|certification-scope|certification-reserve|certification-release) ;;
   *) usage; exit 1 ;;
 esac
 safe_group "$CERTIFICATION_GROUP" || { echo "unsafe certification group: $CERTIFICATION_GROUP"; exit 1; }
@@ -616,6 +616,116 @@ if [ "$STATE" != "enabled" ]; then
       exit 2
     fi
   fi
+fi
+
+# Polygon-only hard-failure injection.  Keep the canonical registry enabled so
+# the existing hard-signal owner observes the same condition as an unexpected
+# interface loss.  The older controlled ``maintenance`` path disabled the
+# registry after removing the interface, leaving only a scheduler race in
+# which Matrix could see the failure.  This explicit action remains inside the
+# existing state owner and is admitted only for one exact, unexpired,
+# certification-only reservation.  Recovery is the existing ``enabled`` path.
+if [ "$STATE" = "certification-failure" ]; then
+  [ "$CONTROLLED_CERTIFICATION" -eq 1 ] || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_requires_controlled_certification"
+    exit 2
+  }
+  [ -n "$CERTIFICATION_USERS" ] && safe_ip_list "$CERTIFICATION_USERS" || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_requires_exact_users"
+    exit 2
+  }
+  safe_id "$RESERVATION_ID" || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_requires_reservation_id"
+    exit 2
+  }
+  safe_sha256 "$EXPECTED_EGRESS_FINGERPRINT" || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_requires_egress_fingerprint"
+    exit 2
+  }
+  [ "$line_hash" = "$EXPECTED_EGRESS_FINGERPRINT" ] || {
+    echo "ACTION=blocked"
+    echo "reason=egress_fingerprint_changed"
+    exit 2
+  }
+  role_now="$(kv_get "$line" role)"
+  reservation_id_now="$(kv_get "$line" controlled_source_reservation_id)"
+  reservation_expiry_now="$(kv_get "$line" controlled_source_reservation_expires_at)"
+  certification_group_now="$(kv_get "$line" certification_group)"
+  [ "$enabled_now" = "1" ] \
+    && [ "$controlled_certification_source_now" = "1" ] \
+    && [ "$role_now" = "EXECUTION_ONLY" ] \
+    && [ "$reservation_owner_now" = "operator_execution_governance" ] \
+    && [ "$reservation_id_now" = "$RESERVATION_ID" ] \
+    && future_iso8601 "$reservation_expiry_now" \
+    && [ "$certification_group_now" = "$CERTIFICATION_GROUP" ] || {
+      echo "ACTION=blocked"
+      echo "reason=certification_failure_reservation_or_role_not_exact"
+      exit 2
+    }
+  requested_users="$(tr ',' '\n' <<< "$CERTIFICATION_USERS" | awk 'NF' | sort -u | paste -sd ',' -)"
+  assigned_users="$(awk -v e="$EGRESS_ID" -v group="$CERTIFICATION_GROUP" '
+    {
+      enabled="1"; current=""; ip=""; certification="0"; assigned_group=""
+      for (i=1;i<=NF;i++) {
+        if ($i ~ /^enabled=/) enabled=substr($i,9)
+        if ($i ~ /^current=/) current=substr($i,9)
+        if ($i ~ /^ip=/) ip=substr($i,4)
+        if ($i ~ /^certification_user=/) certification=substr($i,20)
+        if ($i ~ /^certification_group=/) assigned_group=substr($i,21)
+      }
+      if (enabled == "1" && current == e) {
+        if (certification != "1" || assigned_group != group) exit 3
+        print ip
+      }
+    }
+  ' "$USERS_REG" | sort -u | paste -sd ',' -)" || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_source_contains_non_exact_member"
+    exit 2
+  }
+  [ -n "$assigned_users" ] && [ "$assigned_users" = "$requested_users" ] || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_user_scope_changed"
+    echo "requested_users=$requested_users"
+    echo "assigned_users=$assigned_users"
+    exit 2
+  }
+  echo "reservation_id=$reservation_id_now"
+  echo "certification_group=$certification_group_now"
+  echo "certification_users=$assigned_users"
+  echo "registry_enabled_preserved=1"
+  echo "recovery_owner=v7-egress-set-state enabled --apply"
+  if [ "$APPLY" -ne 1 ]; then
+    echo "MODE=dry_run"
+    echo "would_runtime=down_without_registry_disable"
+    echo "ACTION=none"
+    exit 0
+  fi
+  [ "$CONFIRM" = "INJECT_CONTROLLED_CERTIFICATION_FAILURE" ] || {
+    echo "ACTION=blocked"
+    echo "reason=exact_certification_failure_confirmation_required"
+    exit 2
+  }
+  [ "$type" = "interface" ] || {
+    echo "ACTION=blocked"
+    echo "reason=certification_failure_requires_interface_owner"
+    exit 2
+  }
+  ensure_interface_down "$EGRESS_ID" "$protocol" "$ifname" "$config"
+  rebuild_killswitch "controlled_certification_failure:$EGRESS_ID"
+  if command -v v7-audit-log >/dev/null 2>&1; then
+    v7-audit-log "controlled_certification_failure" "egress" "id=$EGRESS_ID reservation_id=$reservation_id_now users=$assigned_users" object_type=egress object_id="$EGRESS_ID" result=OK >/dev/null 2>&1 || true
+  fi
+  echo "MODE=apply"
+  echo "ACTION=controlled_certification_failure_injected"
+  echo "registry_enabled_preserved=1"
+  echo "users_moved=0"
+  echo "ordinary_users_affected=0"
+  exit 0
 fi
 
 if [ "$APPLY" -ne 1 ]; then

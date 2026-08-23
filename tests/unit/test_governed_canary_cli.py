@@ -5953,8 +5953,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     },
                 }
 
-            def revalidate_committed_apply_plan(self, args):
+            def revalidate_committed_apply_plan(
+                self, args, *, committed_plan=None
+            ):
                 self.args = args
+                self.committed_plan = committed_plan
                 return self.plan()
 
             def apply(self, _plan):
@@ -6003,7 +6006,20 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 target="awg3",
                 max_users=1,
                 emergency_failover_autonomy=True,
-                planner_runtime={"module": FakeModule, "planner": prior},
+                planner_runtime={
+                    "module": FakeModule,
+                    "planner": prior,
+                    "committed_plan": {
+                        "schema_version": 1,
+                        "selected_moves": [
+                            {
+                                "user_ip": "10.7.0.95",
+                                "current_egress": "execution-only",
+                                "recommended_egress": "awg3",
+                            }
+                        ],
+                    },
+                },
             )
 
         self.assertTrue(result["ok"])
@@ -6013,6 +6029,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(len(created), 1)
         self.assertIs(created[-1], prior)
+        self.assertIsNotNone(created[-1].committed_plan)
 
     def test_run_autoswitch_apply_marks_timeout_without_claiming_no_effect(self):
         module = load_cli_module()

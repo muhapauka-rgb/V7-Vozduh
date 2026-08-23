@@ -4055,17 +4055,21 @@ class AutoswitchPlanner:
     def revalidate_committed_apply_plan(
         self,
         apply_args: argparse.Namespace,
+        *,
+        committed_plan: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
-        """Revalidate one Packet-locked move without rebuilding Planner.
+        """Revalidate one Packet-locked move without selecting it again.
 
         The governed caller has already used this exact owner to select the
         Candidate, then materialized the immutable Packet, lease and restore
-        barrier.  Starting a second Planner process and rebuilding the same
-        policy/world projection adds latency without adding independence.
-        Reuse the owner instance, but reload every mutable execution input and
-        re-run ``plan`` so the approved lock, current registry, Matrix,
-        snapshots, policy lineage and control gates are still consumed fresh.
-        A policy-file change fails closed instead of mixing generations.
+        barrier. Rebuilding or rescoring the Candidate after that point is both
+        redundant and semantically wrong: the executor is explicitly forbidden
+        to reselect users or targets. Reuse the immutable committed plan while
+        reloading every mutable execution owner and independently validating
+        the approved lock, registry assignment, Matrix, target, snapshots,
+        policy lineage and control gates. A missing committed plan or any
+        changed identity fails closed instead of falling back to broad
+        planning.
         """
         started_ns = time.monotonic_ns()
         current_policy = read_json(Path(apply_args.policy_file), {})
@@ -4156,11 +4160,104 @@ class AutoswitchPlanner:
             details={
                 "new_planner_instance_created": False,
                 "candidate_reused": True,
+                "candidate_reselected": False,
                 "mutable_execution_inputs_reloaded": True,
                 "policy_generation_equal": True,
             },
         )
-        return self.plan()
+        if not isinstance(committed_plan, dict) or not committed_plan:
+            raise RuntimeError("committed_apply_plan_missing")
+
+        plan = copy.deepcopy(committed_plan)
+        plan["apply_requested"] = True
+        plan["target_egress"] = str(apply_args.target_egress or "")
+        plan["source_egress"] = str(
+            getattr(apply_args, "source_egress", "") or ""
+        )
+        safety = (
+            plan.get("safety")
+            if isinstance(plan.get("safety"), dict)
+            else {}
+        )
+        restore_barrier = dict(self.restore_barrier)
+        approved_plan_lock = self._approved_plan_lock_validation(
+            restore_barrier
+        )
+        restore_barrier["approved_plan_lock_validation"] = (
+            approved_plan_lock
+        )
+        if approved_plan_lock.get("ok") and (
+            approved_plan_lock.get("selected_move_hash_source")
+            == "approved_preview_packet"
+        ):
+            restore_barrier["approved_preview_identity_consumed"] = True
+
+        selected_count = int(
+            approved_plan_lock.get("selected_move_count") or 0
+        )
+        snapshot_gate = self._intelligence_snapshot_gate(selected_count)
+        snapshot_gate = self._apply_source_bundle_lease_to_intelligence_gate(
+            snapshot_gate,
+            restore_barrier,
+            approved_plan_lock,
+        )
+        if bool_value(snapshot_gate.get("stop_required")):
+            restore_barrier[
+                "approved_plan_lock_selected_moves_blocked"
+            ] = True
+            restore_barrier["approved_plan_lock_blocker"] = (
+                "approved_plan_lock_snapshot_gate_stop_required"
+            )
+
+        safety["restore_barrier"] = restore_barrier
+        safety["intelligence_snapshots"] = snapshot_gate
+        diagnostics = (
+            safety.get("selected_moves_diagnostics")
+            if isinstance(
+                safety.get("selected_moves_diagnostics"), dict
+            )
+            else {}
+        )
+        diagnostics.update({
+            "source": "approved_preview_packet_lock",
+            "approved_plan_lock_present": bool_value(
+                approved_plan_lock.get("present")
+            ),
+            "approved_plan_lock_ok": bool_value(
+                approved_plan_lock.get("ok")
+            ),
+            "approved_plan_lock_hash_source": str(
+                approved_plan_lock.get("selected_move_hash_source") or ""
+            ),
+            "planner_recomputed_after_approval": False,
+            "candidate_reselected_after_approval": False,
+        })
+        safety["selected_moves_diagnostics"] = diagnostics
+        plan["safety"] = safety
+
+        # Never leave the pre-Packet rows executable. The existing approved
+        # lock consumer below rehydrates only the exact immutable Packet rows
+        # after all current identity checks have passed.
+        plan["selected_moves"] = []
+        summary = (
+            plan.get("summary")
+            if isinstance(plan.get("summary"), dict)
+            else {}
+        )
+        summary["selected_moves"] = 0
+        summary["selected_move_count"] = 0
+        plan["summary"] = summary
+        committed_moves = (
+            self._committed_selected_moves_from_approved_plan_lock(plan)
+            if approved_plan_lock.get("ok")
+            and not bool_value(snapshot_gate.get("stop_required"))
+            else []
+        )
+        if committed_moves:
+            plan["selected_moves"] = committed_moves
+            summary["selected_moves"] = len(committed_moves)
+            summary["selected_move_count"] = len(committed_moves)
+        return plan
 
     def performance_timeline(self) -> dict[str, Any]:
         return {

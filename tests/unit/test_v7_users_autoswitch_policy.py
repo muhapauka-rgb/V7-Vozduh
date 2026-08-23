@@ -6940,6 +6940,188 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan["summary"]["selected_moves"], 1)
         self.assertEqual(plan["operation"]["selected_move_hash"], bootstrap["operation"]["selected_move_hash"])
 
+    def test_committed_apply_revalidation_does_not_reselect_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={
+                    "telegram": {
+                        "ok": False,
+                        "status": "DOWN",
+                        "score": 0,
+                    }
+                },
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            bootstrap_args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--mode",
+                    "guarded",
+                    "--target-egress",
+                    "vless",
+                    "--max-selected-moves",
+                    "1",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(bootstrap_args)
+            committed = planner.plan()
+            move = committed["selected_moves"][0]
+            barrier = self.approved_restore_barrier_from_plan(committed)
+            operation_id = committed["operation"]["operation_id"]
+            generation = committed["safety"]["generation"][
+                "planner_generation_id"
+            ]
+            barrier.update({
+                "packet_id": "pkt-unit-test",
+                "operation_id": operation_id,
+            })
+            barrier["approved_plan_lock"].update({
+                "packet_id": "pkt-unit-test",
+                "operation_id": operation_id,
+                "authority_generation": generation,
+            })
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(barrier), encoding="utf-8"
+            )
+            apply_args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--mode",
+                    "guarded",
+                    "--user",
+                    move["user_ip"],
+                    "--source-egress",
+                    move["current_egress"],
+                    "--target-egress",
+                    move["recommended_egress"],
+                    "--max-selected-moves",
+                    "1",
+                    "--approved-packet-id",
+                    "pkt-unit-test",
+                    "--approved-operation-id",
+                    operation_id,
+                    "--approved-selected-move-hash",
+                    committed["operation"]["selected_move_hash"],
+                    "--approved-authority-generation",
+                    generation,
+                ],
+            )
+            with mock.patch.object(
+                planner,
+                "plan",
+                side_effect=AssertionError(
+                    "Packet-locked apply must not select a second Candidate"
+                ),
+            ):
+                revalidated = planner.revalidate_committed_apply_plan(
+                    apply_args,
+                    committed_plan=committed,
+                )
+
+        validation = revalidated["safety"]["restore_barrier"][
+            "approved_plan_lock_validation"
+        ]
+        self.assertTrue(validation["ok"])
+        self.assertEqual(len(revalidated["selected_moves"]), 1)
+        self.assertEqual(
+            revalidated["selected_moves"][0]["user_ip"], move["user_ip"]
+        )
+        self.assertFalse(
+            revalidated["safety"]["selected_moves_diagnostics"][
+                "candidate_reselected_after_approval"
+            ]
+        )
+
+    def test_committed_apply_revalidation_blocks_live_assignment_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={
+                    "telegram": {
+                        "ok": False,
+                        "status": "DOWN",
+                        "score": 0,
+                    }
+                },
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            args = self.args_for(
+                root,
+                [
+                    "--apply",
+                    "--mode",
+                    "guarded",
+                    "--target-egress",
+                    "vless",
+                    "--max-selected-moves",
+                    "1",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            committed = planner.plan()
+            barrier = self.approved_restore_barrier_from_plan(committed)
+            (root / "state" / "autoswitch-restore-barrier.json").write_text(
+                json.dumps(barrier), encoding="utf-8"
+            )
+            users_path = root / "state" / "users.registry"
+            users_path.write_text(
+                users_path.read_text(encoding="utf-8").replace(
+                    "current=1", "current=vless"
+                ),
+                encoding="utf-8",
+            )
+            revalidated = planner.revalidate_committed_apply_plan(
+                args,
+                committed_plan=committed,
+            )
+
+        validation = revalidated["safety"]["restore_barrier"][
+            "approved_plan_lock_validation"
+        ]
+        self.assertFalse(validation["ok"])
+        self.assertIn(
+            "approved_plan_lock_user_source_mismatch",
+            validation["reasons"],
+        )
+        self.assertEqual(revalidated["selected_moves"], [])
+
+    def test_committed_apply_revalidation_blocks_policy_generation_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(root, users=1)
+            args = self.args_for(root, ["--apply", "--mode", "guarded"])
+            planner = self.tool.AutoswitchPlanner(args)
+            committed = planner.plan()
+            policy_path = root / "policy.json"
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            policy["cooldown_seconds"] = 999
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "committed_apply_policy_generation_changed",
+            ):
+                planner.revalidate_committed_apply_plan(
+                    args,
+                    committed_plan=committed,
+                )
+
     def test_committed_apply_identity_mismatch_blocks_approved_plan_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -3404,7 +3404,10 @@ def run_autoswitch_apply(
                 )
             planner = prior_planner
             planner_entry_started_ns = time.monotonic_ns()
-            plan = planner.revalidate_committed_apply_plan(apply_args)
+            plan = planner.revalidate_committed_apply_plan(
+                apply_args,
+                committed_plan=planner_runtime.get("committed_plan"),
+            )
             planner._record_performance_span(
                 "planner_entry_target_capacity_and_allocation",
                 planner_entry_started_ns,
@@ -6390,6 +6393,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             execution_control=pre_apply_control,
             lease_terminalization=terminal,
         )
+
+    if isinstance(planner_runtime, dict):
+        # The Packet now owns the exact immutable selection. Retain the
+        # already bound plan only inside this in-process transaction so the
+        # existing Planner can revalidate current owners without selecting a
+        # second Candidate or creating another state surface.
+        planner_runtime["committed_plan"] = copy.deepcopy(plan)
 
     campaign_target = str(
         (

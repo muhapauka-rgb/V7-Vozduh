@@ -702,6 +702,112 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual([row["id"] for row in rows], ["awg3"])
         self.assertEqual(rows[0]["_prepared_services"], "")
 
+    def test_exact_path_refresh_reuses_same_invocation_owner_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            events = Path(tmp) / "events"
+            state.mkdir()
+            events.mkdir()
+            projection = {
+                "owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+                "classes": [{
+                    "source_channel": "exec-source",
+                    "hot_targets": [{"target_id": "awg3"}],
+                }],
+                "hot_target_set": {"contracts": [{
+                    "target_id": "awg3",
+                    "target_safe_additional_capacity": 1,
+                }]},
+            }
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=exec-source enabled=1\nid=awg3 enabled=1\n",
+                encoding="utf-8",
+            )
+            stale = (
+                datetime.now(timezone.utc) - timedelta(seconds=30)
+            ).isoformat()
+            matrix = {"items": {"awg3": {
+                "status": "OK",
+                "path_evidence_updated": stale,
+                "path_evidence": {
+                    "path_fingerprint": "p" * 64,
+                    "component_status": {"routing_tables": "PASS"},
+                },
+            }}}
+            matrix_path = state / "service-matrix.json"
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            owner_payload = {
+                "ok": True,
+                "prepared_class_decisions": projection,
+                "prepared_class_decision_freshness": {
+                    "status": "PREPARED_CLASS_DECISION_FRESH",
+                },
+            }
+            ready_scope = {
+                "certification_only_active_sources": [{
+                    "channel": "exec-source",
+                    "source_currently_failed": True,
+                    "binding_event": {
+                        "observed_at": datetime.now(
+                            timezone.utc
+                        ).isoformat(),
+                    },
+                }],
+            }
+            with mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                return_value=self.refresh.subprocess.CompletedProcess(
+                    ["planner"], 0, stdout=json.dumps(owner_payload),
+                ),
+            ), mock.patch.object(
+                self.refresh,
+                "current_failed_source_scope",
+                return_value=ready_scope,
+            ):
+                rejected = self.refresh.read_prepared_controlled_target_selection_diagnostic(
+                    "planner",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=Path(tmp) / "policy.json",
+                    audit_store=Path(tmp) / "audit.jsonl",
+                )
+            context = rejected["_validated_projection_context"]
+            self.assertFalse(rejected["ok"])
+            matrix["items"]["awg3"]["path_evidence_updated"] = (
+                datetime.now(timezone.utc).isoformat()
+            )
+            matrix_path.write_text(json.dumps(matrix), encoding="utf-8")
+            with mock.patch.object(
+                self.refresh,
+                "in_process_autoswitch_module",
+                side_effect=AssertionError("owner projection revalidated"),
+            ), mock.patch.object(
+                self.refresh.subprocess,
+                "run",
+                side_effect=AssertionError("owner subprocess repeated"),
+            ), mock.patch.object(
+                self.refresh,
+                "current_failed_source_scope",
+                return_value=ready_scope,
+            ):
+                ready = self.refresh.read_prepared_controlled_target_selection_diagnostic(
+                    "planner",
+                    state_dir=state,
+                    event_dir=events,
+                    policy_file=Path(tmp) / "policy.json",
+                    audit_store=Path(tmp) / "audit.jsonl",
+                    validated_projection_context=context,
+                )
+
+        self.assertTrue(ready["ok"], ready)
+        self.assertEqual(ready["selection"]["selected_target_id"], "awg3")
+        self.assertFalse(ready["world_model_rebuilt"])
+
     def test_rejected_prepared_target_refresh_does_not_widen_missing_scope(self):
         diagnostic = {
             "status": "PREPARED_CONTROLLED_TARGET_STOP_SAFE",

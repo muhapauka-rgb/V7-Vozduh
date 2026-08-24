@@ -455,6 +455,7 @@ def read_prepared_controlled_target_selection_diagnostic(
     policy_file: Path,
     audit_store: Path,
     current_source_scope: Optional[dict[str, Any]] = None,
+    validated_projection_context: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Reuse the current Planner hot-target projection on the incident path.
 
@@ -483,32 +484,69 @@ def read_prepared_controlled_target_selection_diagnostic(
         }
     payload: dict[str, Any] = {}
     returncode = 2
-    try:
-        module = in_process_autoswitch_module(planner)
-        owner_args = in_process_autoswitch_args(
-            module,
-            state_dir=state_dir,
-            event_dir=event_dir,
-            policy_file=policy_file,
-            audit_store=audit_store,
-        )
-        reuse = module.reuse_current_prepared_class_projection(owner_args)
-        if reuse.get("ok"):
-            payload = {
+    validated_context = (
+        validated_projection_context
+        if isinstance(validated_projection_context, dict)
+        else {}
+    )
+    context_projection = validated_context.get("prepared_class_decisions")
+    context_freshness = validated_context.get(
+        "prepared_class_decision_freshness"
+    )
+    if (
+        validated_context.get("owner_validation_status")
+        == "PREPARED_CLASS_DECISION_FRESH"
+        and isinstance(context_projection, dict)
+        and bool(context_projection)
+        and isinstance(context_freshness, dict)
+        and str(context_freshness.get("status") or "")
+        == "PREPARED_CLASS_DECISION_FRESH"
+    ):
+        # The same Matrix invocation already asked the official Planner owner
+        # to validate this exact projection.  A bounded refresh below changes
+        # only PATH facts for targets declared by that projection.  Reusing
+        # the process-local result avoids invalidating it merely because that
+        # owned refresh advanced the Matrix generation.  Registry, Matrix,
+        # capacity and target identity are still reread below, and the Planner
+        # performs its normal final mutable-state validation before apply.
+        payload = {
+            "ok": True,
+            "prepared_class_decisions": context_projection,
+            "prepared_class_decision_freshness": context_freshness,
+            "prepared_projection_reuse": {
                 "ok": True,
-                "prepared_class_decisions": reuse.get(
-                    "prepared_class_decisions"
-                ) or {},
-                "prepared_class_decision_freshness": reuse.get(
-                    "prepared_class_decision_freshness"
-                ) or {},
-                "prepared_projection_reuse": reuse,
-            }
-            returncode = 0
-    except Exception:
-        # Fail over to the same executable owner.  This is availability of an
-        # invocation mechanism, never a bypass of its validation result.
-        payload = {}
+                "status": "SAME_INVOCATION_OWNER_VALIDATION_REUSED",
+                "runtime_mutation_performed": False,
+            },
+        }
+        returncode = 0
+    else:
+        try:
+            module = in_process_autoswitch_module(planner)
+            owner_args = in_process_autoswitch_args(
+                module,
+                state_dir=state_dir,
+                event_dir=event_dir,
+                policy_file=policy_file,
+                audit_store=audit_store,
+            )
+            reuse = module.reuse_current_prepared_class_projection(owner_args)
+            if reuse.get("ok"):
+                payload = {
+                    "ok": True,
+                    "prepared_class_decisions": reuse.get(
+                        "prepared_class_decisions"
+                    ) or {},
+                    "prepared_class_decision_freshness": reuse.get(
+                        "prepared_class_decision_freshness"
+                    ) or {},
+                    "prepared_projection_reuse": reuse,
+                }
+                returncode = 0
+        except Exception:
+            # Fail over to the same executable owner.  This is availability of
+            # an invocation mechanism, never a bypass of its validation result.
+            payload = {}
     if not payload:
         command = [
             planner,
@@ -777,7 +815,7 @@ def read_prepared_controlled_target_selection_diagnostic(
                 else "INCIDENT_VALIDATION_ENTRY"
             ),
         })
-    return {
+    result = {
         "schema_version": (
             "v7.prepared-controlled-target-selection-diagnostic.v1"
         ),
@@ -801,6 +839,15 @@ def read_prepared_controlled_target_selection_diagnostic(
         "runtime_mutation_performed": False,
         "users_moved": 0,
     }
+    # Private, process-local hand-off used only when this exact invocation
+    # refreshes rejected declared PATH facts.  The caller removes it before
+    # any diagnostic is persisted or passed to another owner.
+    result["_validated_projection_context"] = {
+        "owner_validation_status": "PREPARED_CLASS_DECISION_FRESH",
+        "prepared_class_decisions": projection,
+        "prepared_class_decision_freshness": freshness,
+    }
+    return result
 
 
 def refresh_rejected_prepared_target_paths(
@@ -2371,6 +2418,9 @@ def run_ct_m0f_standing_validation_campaign(
             current_source_scope=current_source_scope,
         )
     )
+    validated_projection_context = prepared_target_diagnostic.pop(
+        "_validated_projection_context", {}
+    )
     exact_target_refresh: dict[str, Any] = {}
     if (
         prepared_target_diagnostic.get("ok") is not True
@@ -2407,7 +2457,13 @@ def run_ct_m0f_standing_validation_campaign(
                     policy_file=policy_file,
                     audit_store=audit_store,
                     current_source_scope=current_source_scope,
+                    validated_projection_context=(
+                        validated_projection_context
+                    ),
                 )
+            )
+            prepared_target_diagnostic.pop(
+                "_validated_projection_context", None
             )
     target_diagnostic = (
         prepared_target_diagnostic

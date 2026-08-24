@@ -431,6 +431,7 @@ def read_prepared_controlled_target_selection_diagnostic(
     event_dir: Path,
     policy_file: Path,
     audit_store: Path,
+    current_source_scope: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Reuse the current Planner hot-target projection on the incident path.
 
@@ -534,7 +535,11 @@ def read_prepared_controlled_target_selection_diagnostic(
             ),
         }
 
-    current_scope = current_failed_source_scope(event_dir, state_dir)
+    current_scope = (
+        current_source_scope
+        if isinstance(current_source_scope, dict)
+        else current_failed_source_scope(event_dir, state_dir)
+    )
     current_failed = sorted({
         str(row.get("channel") or "")
         for row in (
@@ -1648,6 +1653,7 @@ def run_ct_m0f_standing_validation_campaign(
     timeout_sec: int = 600,
     max_successive_samples: int = 8,
     controlled_successor_wait_sec: float = 0.0,
+    current_source_scope: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Consume the bounded CT-M0F standing policy through existing owners.
 
@@ -2077,6 +2083,7 @@ def run_ct_m0f_standing_validation_campaign(
             event_dir=event_dir,
             policy_file=policy_file,
             audit_store=audit_store,
+            current_source_scope=current_source_scope,
         )
     )
     target_diagnostic = (
@@ -2103,6 +2110,17 @@ def run_ct_m0f_standing_validation_campaign(
         source_selection = module.ct_m0f_standing_source_selection_only(
             owner_args,
             precomputed_target_diagnostic=target_diagnostic,
+            precomputed_service_failure_events=[
+                dict(row.get("binding_event") or {})
+                for row in (
+                    (current_source_scope or {}).get(
+                        "certification_only_active_sources"
+                    )
+                    or []
+                )
+                if isinstance(row, dict)
+                and isinstance(row.get("binding_event"), dict)
+            ],
         )
         source_rc = 0 if source_selection.get("ok") else 2
     except Exception:
@@ -5020,6 +5038,24 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
                 ),
                 "controlled_certification_scope_count": len(certification_users),
             }
+        if certification_users and not ordinary_users:
+            # The same invocation's exact current-scope reconciliation has
+            # already selected this immutable event.  Carry only the bounded
+            # fields consumed by the existing certification binding so the
+            # selector need not rescan the large append-only ledger.  Matrix
+            # and the event ledger remain the owners; this projection is not
+            # persisted as a second incident or identity list.
+            row_projection["binding_event"] = {
+                key: row.get(key)
+                for key in (
+                    "event_id", "event_type", "channel", "object",
+                    "capture_only", "event_provenance", "source_scope",
+                    "correlated_services", "service", "source_incident_id",
+                    "observation_generation", "observed_at", "timestamp",
+                )
+                if row.get(key) not in (None, "", [], {})
+                or key == "capture_only"
+            }
         if count:
             active.append(row_projection)
         elif certification_users and source_currently_failed:
@@ -5939,6 +5975,7 @@ def main() -> int:
                 timeout_sec=int(args.passive_consumer_timeout_sec) + 900,
                 max_successive_samples=2,
                 controlled_successor_wait_sec=3.0,
+                current_source_scope=source_scope,
             )
         )
         ct_m0f_action = payload["ct_m0f_standing_validation_campaign"]

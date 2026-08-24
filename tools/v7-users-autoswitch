@@ -25346,6 +25346,7 @@ def ct_m0f_standing_source_selection_only(
     args: argparse.Namespace,
     *,
     precomputed_target_diagnostic: Optional[dict[str, Any]] = None,
+    precomputed_service_failure_events: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Select one current source through the existing controlled-pool owner.
 
@@ -25360,6 +25361,12 @@ def ct_m0f_standing_source_selection_only(
         "users": users,
         "egress_rows": egress_rows,
     }
+    if isinstance(precomputed_service_failure_events, list):
+        binding_evidence_cache["service_failure_events"] = [
+            dict(row)
+            for row in precomputed_service_failure_events
+            if isinstance(row, dict)
+        ]
     # A canonical certification-only Matrix failure plus an already validated
     # prepared target diagnostic contains every fact needed to identify the
     # exact current source. Avoid rebuilding the broad certification campaign

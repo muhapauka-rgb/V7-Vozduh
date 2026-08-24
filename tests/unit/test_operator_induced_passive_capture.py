@@ -201,6 +201,10 @@ class OperatorInducedPassiveCaptureTest(unittest.TestCase):
         self.assertTrue(result["requires_scope_reconciliation"])
         self.assertEqual(result["decision"], "RECONCILE_CONTROLLED_CERTIFICATION_SCOPE_ONLY")
         self.assertEqual(result["certification_only_active_sources"][0]["controlled_certification_scope_count"], 1)
+        self.assertEqual(
+            result["certification_only_active_sources"][0]["binding_event"]["event_id"],
+            "certification-only",
+        )
 
     def test_current_scope_excludes_historical_incidents_on_same_failed_channel(self):
         with tempfile.TemporaryDirectory() as tmp:

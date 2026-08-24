@@ -25674,6 +25674,7 @@ def ct_m0f_standing_source_selection_only(
     *,
     precomputed_target_diagnostic: Optional[dict[str, Any]] = None,
     precomputed_service_failure_events: Optional[list[dict[str, Any]]] = None,
+    precomputed_audit_records: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
     """Select one current source through the existing controlled-pool owner.
 
@@ -26114,11 +26115,17 @@ def ct_m0f_standing_source_selection_only(
     availability_validation = (
         operator_execution.validate_standing_delegated_operational_policy(
             availability_contract,
-            audit_records=operator_execution.read_live_execution_lineage_records(
-                Path(getattr(args, "action_class_audit_store", "") or ""),
-                required_decision_ids=tuple(filter(None, [
-                    str(availability_decision.get("decision_id") or "")
-                ])),
+            audit_records=(
+                list(precomputed_audit_records)
+                if isinstance(precomputed_audit_records, list)
+                else operator_execution.read_live_execution_lineage_records(
+                    Path(
+                        getattr(args, "action_class_audit_store", "") or ""
+                    ),
+                    required_decision_ids=tuple(filter(None, [
+                        str(availability_decision.get("decision_id") or "")
+                    ])),
+                )
             ),
         )
         if availability_contract

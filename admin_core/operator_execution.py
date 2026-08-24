@@ -167,6 +167,15 @@ CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE = (
 CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE = (
     "ct_m0f_standing_validation_sample_reserved"
 )
+CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE = (
+    "ct_m0f_standing_validation_transaction_reserved"
+)
+CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE = (
+    "ct_m0f_standing_validation_transaction_bound"
+)
+CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE = (
+    "ct_m0f_standing_validation_transaction_terminal"
+)
 CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE = (
     "ct_m0f_standing_validation_sample_terminal"
 )
@@ -178,6 +187,9 @@ CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE = (
 )
 CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES = {
     CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE,
     CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
     CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
     CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,
@@ -187,6 +199,10 @@ CT_M0F_STANDING_VALIDATION_APPROVAL = (
 )
 CT_M0F_STANDING_VALIDATION_REQUEST_TTL_SECONDS = 24 * 60 * 60
 CT_M0F_STANDING_VALIDATION_CONTRACT_TTL_SECONDS = 30 * 24 * 60 * 60
+# This is deliberately short: it covers Matrix observation plus one governed
+# handoff, rather than turning a certification source reservation into an
+# indefinite identity pin.  Expiry is itself a release condition.
+CT_M0F_STANDING_VALIDATION_TRANSACTION_TTL_SECONDS = 5 * 60
 CT_M0F_STANDING_VALIDATION_POLICY_KEY = "ct_m0f_standing_validation_policy"
 CONTROLLED_CERTIFICATION_CAMPAIGN_EFFECT_RECORD_TYPE = (
     "controlled_certification_substrate_effect"
@@ -2693,6 +2709,340 @@ def ct_m0f_standing_validation_sample_from_audit(
         "forward_evidence": copy.deepcopy(forwards[0]) if len(forwards) == 1 else {},
         "terminal": copy.deepcopy(terminals[0]) if len(terminals) == 1 else {},
     }
+
+
+def reserve_ct_m0f_standing_validation_transaction(
+    *, contract, implementation_fingerprint, user, source, target,
+    sample_binding_fingerprint, source_reservation_id, source_fingerprint,
+    audit_store=None, now=None,
+):
+    """Reserve the bounded pre-T0 interval through the existing audit owner.
+
+    This is not an assignment lock.  It protects one certification identity
+    from an *independent* recovery/rebalance only while its exact controlled
+    failure transaction is live.  A later Packet/Lease binds the same record
+    to the governed operation; terminal cleanup or expiry releases it.
+    """
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    contract = contract if isinstance(contract, dict) else {}
+    required = {
+        "contract_id": str(contract.get("contract_id") or ""),
+        "contract_hash": str(contract.get("contract_hash") or ""),
+        "implementation_fingerprint": str(implementation_fingerprint or ""),
+        "user": str(user or ""),
+        "source": str(source or ""),
+        "target": str(target or ""),
+        "sample_binding_fingerprint": str(sample_binding_fingerprint or ""),
+        "source_reservation_id": str(source_reservation_id or ""),
+        "source_fingerprint": str(source_fingerprint or ""),
+    }
+    missing = [
+        f"ct_m0f_transaction_{key}_missing"
+        for key, value in required.items() if not value
+    ]
+    if missing or required["source"] == required["target"]:
+        return {
+            "ok": False,
+            "status": "STOP_SAFE",
+            "errors": sorted(set(
+                missing + (
+                    ["ct_m0f_transaction_source_target_collision"]
+                    if required["source"] == required["target"] else []
+                )
+            )),
+            "audit_write": False,
+        }
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_live_execution_lineage_records(audit_store)
+        validation = validate_ct_m0f_standing_validation_policy(
+            contract, audit_records=records, now=now,
+        )
+        if not validation.get("ok"):
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": validation.get("errors") or [],
+                "audit_write": False,
+            }
+        active = active_ct_m0f_standing_validation_transactions(
+            records, now=now,
+        )
+        exact = [
+            item for item in active
+            if all(str(item.get(key) or "") == value for key, value in required.items())
+        ]
+        if exact:
+            if len(exact) == 1:
+                return {
+                    "ok": True,
+                    "status": "ALREADY_RESERVED_EXACT",
+                    "reservation": copy.deepcopy(exact[0]),
+                    "audit_write": False,
+                }
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_duplicate_exact_reservation"],
+                "audit_write": False,
+            }
+        conflicts = [
+            item for item in active
+            if str(item.get("user") or "") == required["user"]
+            or str(item.get("source") or "") == required["source"]
+        ]
+        if conflicts:
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_active_reservation_conflict"],
+                "active_reservations": copy.deepcopy(conflicts),
+                "audit_write": False,
+            }
+        reservation_id = stable_id("ctm0ftx", required)
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-transaction-reservation.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE,
+            "transaction_reservation_id": reservation_id,
+            **required,
+            "status": "RESERVED_PRE_T0",
+            "created_at": now.isoformat(),
+            "expires_at": (
+                now + timedelta(
+                    seconds=CT_M0F_STANDING_VALIDATION_TRANSACTION_TTL_SECONDS
+                )
+            ).isoformat(),
+            "owner": "admin_core.operator_execution existing CT-M0F reservation owner",
+        })
+    return {
+        "ok": True,
+        "status": "RESERVED_PRE_T0",
+        "reservation": record,
+        "audit_write": True,
+    }
+
+
+def active_ct_m0f_standing_validation_transactions(records, *, now=None):
+    """Return durable, unexpired CT-M0F transaction reservations only."""
+    now = now or utc_now()
+    rows = list(records or [])
+    reservations = [
+        row for row in rows
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE
+    ]
+    bindings = {
+        str(row.get("transaction_reservation_id") or ""): row
+        for row in rows
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE
+    }
+    terminal_ids = {
+        str(row.get("transaction_reservation_id") or "")
+        for row in rows
+        if row.get("record_type")
+        == CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE
+    }
+    active = []
+    for reservation in reservations:
+        reservation_id = str(reservation.get("transaction_reservation_id") or "")
+        if not reservation_id or reservation_id in terminal_ids:
+            continue
+        try:
+            if now >= parse_ts(reservation.get("expires_at")):
+                continue
+        except PacketError:
+            continue
+        item = copy.deepcopy(reservation)
+        binding = bindings.get(reservation_id)
+        if isinstance(binding, dict):
+            item["operation_binding"] = copy.deepcopy(binding)
+        active.append(item)
+    return active
+
+
+def ct_m0f_standing_validation_transaction_guard(
+    *, user, source, target, operation_id="", audit_store=None, now=None,
+):
+    """Tell existing Planner consumers whether a move is independently safe.
+
+    An active unbound reservation stops all normal moves of its identity.  A
+    bound reservation permits only the exact governed operation/source/target.
+    This leaves normal health processing alive for every other identity.
+    """
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    records = read_live_execution_lineage_records(audit_store)
+    matching = [
+        row for row in active_ct_m0f_standing_validation_transactions(
+            records, now=now,
+        )
+        if str(row.get("user") or "") == str(user or "")
+        and str(row.get("source") or "") == str(source or "")
+    ]
+    if not matching:
+        return {
+            "ok": True,
+            "status": "NO_ACTIVE_CT_M0F_TRANSACTION_RESERVATION",
+            "independent_reassignment_allowed": True,
+            "reservation": {},
+        }
+    if len(matching) != 1:
+        return {
+            "ok": False,
+            "status": "STOP_SAFE",
+            "independent_reassignment_allowed": False,
+            "blockers": ["ct_m0f_transaction_reservation_ambiguous"],
+            "reservation": {},
+        }
+    reservation = matching[0]
+    binding = (
+        reservation.get("operation_binding")
+        if isinstance(reservation.get("operation_binding"), dict)
+        else {}
+    )
+    exact_governed = bool(
+        binding
+        and str(binding.get("operation_id") or "") == str(operation_id or "")
+        and str(reservation.get("target") or "") == str(target or "")
+    )
+    return {
+        "ok": exact_governed,
+        "status": (
+            "EXACT_GOVERNED_CT_M0F_TRANSACTION_OPERATION_PERMITTED"
+            if exact_governed
+            else "CT_M0F_TRANSACTION_RESERVATION_PROTECTS_IDENTITY"
+        ),
+        "independent_reassignment_allowed": False,
+        "reservation": reservation,
+        "blockers": ([] if exact_governed else [
+            "ct_m0f_active_transaction_reservation_requires_exact_governed_operation"
+        ]),
+    }
+
+
+def bind_ct_m0f_standing_validation_transaction(
+    *, transaction_reservation_id, packet_id, operation_id, lease_id,
+    audit_store=None, now=None,
+):
+    """Bind the pre-T0 reservation to the exact existing Packet/Lease."""
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    required = {
+        "transaction_reservation_id": str(transaction_reservation_id or ""),
+        "packet_id": str(packet_id or ""),
+        "operation_id": str(operation_id or ""),
+        "lease_id": str(lease_id or ""),
+    }
+    missing = [
+        f"ct_m0f_transaction_{key}_missing"
+        for key, value in required.items() if not value
+    ]
+    if missing:
+        return {"ok": False, "status": "STOP_SAFE", "errors": missing, "audit_write": False}
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_live_execution_lineage_records(audit_store)
+        active = {
+            str(row.get("transaction_reservation_id") or ""): row
+            for row in active_ct_m0f_standing_validation_transactions(records, now=now)
+        }
+        reservation = active.get(required["transaction_reservation_id"])
+        if not reservation:
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_reservation_not_active"],
+                "audit_write": False,
+            }
+        existing = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE
+            and str(row.get("transaction_reservation_id") or "")
+            == required["transaction_reservation_id"]
+        ]
+        if existing:
+            if len(existing) == 1 and all(
+                str(existing[0].get(key) or "") == value
+                for key, value in required.items()
+            ):
+                return {
+                    "ok": True,
+                    "status": "ALREADY_BOUND_EXACT",
+                    "binding": copy.deepcopy(existing[0]),
+                    "audit_write": False,
+                }
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_binding_conflict"],
+                "audit_write": False,
+            }
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-transaction-binding.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE,
+            **required,
+            "user": str(reservation.get("user") or ""),
+            "source": str(reservation.get("source") or ""),
+            "target": str(reservation.get("target") or ""),
+            "implementation_fingerprint": str(
+                reservation.get("implementation_fingerprint") or ""
+            ),
+            "bound_at": now.isoformat(),
+            "owner": "admin_core.operator_execution existing CT-M0F reservation owner",
+        })
+    return {"ok": True, "status": "BOUND_TO_EXACT_PACKET_LEASE", "binding": record, "audit_write": True}
+
+
+def release_ct_m0f_standing_validation_transaction(
+    *, transaction_reservation_id, reason, audit_store=None, now=None,
+):
+    """Close one transaction reservation on terminal/rollback recovery."""
+    now = now or utc_now()
+    audit_store = Path(
+        audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
+    )
+    reservation_id = str(transaction_reservation_id or "")
+    if not reservation_id or not str(reason or ""):
+        return {"ok": False, "status": "STOP_SAFE", "errors": ["ct_m0f_transaction_release_identity_missing"], "audit_write": False}
+    with current_action_class_contract_policy_lock(audit_store):
+        records = read_live_execution_lineage_records(audit_store)
+        reservations = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE
+            and str(row.get("transaction_reservation_id") or "") == reservation_id
+        ]
+        terminals = [
+            row for row in records
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE
+            and str(row.get("transaction_reservation_id") or "") == reservation_id
+        ]
+        if len(reservations) != 1:
+            return {"ok": False, "status": "STOP_SAFE", "errors": ["ct_m0f_transaction_reservation_missing_or_duplicate"], "audit_write": False}
+        if terminals:
+            if len(terminals) == 1:
+                return {"ok": True, "status": "ALREADY_TERMINAL", "terminal": copy.deepcopy(terminals[0]), "audit_write": False}
+            return {"ok": False, "status": "STOP_SAFE", "errors": ["ct_m0f_transaction_terminal_duplicate"], "audit_write": False}
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-transaction-terminal.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE,
+            "transaction_reservation_id": reservation_id,
+            "implementation_fingerprint": str(
+                reservations[0].get("implementation_fingerprint") or ""
+            ),
+            "terminal_reason": str(reason),
+            "terminal_at": now.isoformat(),
+            "owner": "admin_core.operator_execution existing CT-M0F reservation owner",
+        })
+    return {"ok": True, "status": "RELEASED", "terminal": record, "audit_write": True}
 
 
 def record_ct_m0f_standing_validation_forward_evidence(
@@ -8071,6 +8421,9 @@ def read_live_execution_lineage_records(
         CT_M0F_STANDING_VALIDATION_REQUEST_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_TRANSACTION_RESERVATION_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_TRANSACTION_BINDING_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_TRANSACTION_TERMINAL_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,

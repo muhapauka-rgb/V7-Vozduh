@@ -6418,6 +6418,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
     packet_completed_ns = time.monotonic_ns()
 
     ct_m0f_admission_consumption: dict[str, Any] = {}
+    ct_m0f_transaction_binding: dict[str, Any] = {}
     if ct_m0f_validation_requested:
         selected_user = next(
             (
@@ -6526,6 +6527,71 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     target=target,
                     audit_store=audit_dir / "operator-execution-audit.jsonl",
                 )
+            )
+            active_transactions = [
+                row
+                for row in (
+                    operator_execution.active_ct_m0f_standing_validation_transactions(
+                        operator_execution.read_live_execution_lineage_records(
+                            audit_dir / "operator-execution-audit.jsonl"
+                        )
+                    )
+                )
+                if str(row.get("user") or "") == user
+                and str(row.get("source") or "") == source
+                and str(row.get("target") or "") == target
+                and str(row.get("sample_binding_fingerprint") or "")
+                == str(
+                    getattr(
+                        args, "ct_m0f_standing_sample_binding_fingerprint", ""
+                    ) or ""
+                )
+            ]
+            if len(active_transactions) != 1:
+                operator_execution.finish_execution_lease(
+                    lease_file,
+                    status="OPERATOR_CANCELLED",
+                    reason="ct_m0f_transaction_reservation_not_exact_at_packet_lease_bind",
+                    operation={
+                        "terminal_state": "STOP_SAFE",
+                        "terminal_reason": "ct_m0f_transaction_reservation_not_exact_at_packet_lease_bind",
+                        "apply_result": {"applied": False, "results": []},
+                    },
+                )
+                return transaction_stop(
+                    "ct_m0f_transaction_reservation_not_exact_at_packet_lease_bind",
+                    ct_m0f_active_transaction_count=len(active_transactions),
+                )
+            ct_m0f_transaction_binding = (
+                operator_execution.bind_ct_m0f_standing_validation_transaction(
+                    transaction_reservation_id=str(
+                        active_transactions[0].get(
+                            "transaction_reservation_id"
+                        ) or ""
+                    ),
+                    packet_id=str(packet_identity.get("packet_id") or ""),
+                    operation_id=str(packet_identity.get("operation_id") or ""),
+                    lease_id=str(lease.get("lease_id") or ""),
+                    audit_store=audit_dir / "operator-execution-audit.jsonl",
+                )
+            )
+            if not ct_m0f_transaction_binding.get("ok"):
+                operator_execution.finish_execution_lease(
+                    lease_file,
+                    status="OPERATOR_CANCELLED",
+                    reason="ct_m0f_transaction_reservation_bind_failed",
+                    operation={
+                        "terminal_state": "STOP_SAFE",
+                        "terminal_reason": "ct_m0f_transaction_reservation_bind_failed",
+                        "apply_result": {"applied": False, "results": []},
+                    },
+                )
+                return transaction_stop(
+                    "ct_m0f_transaction_reservation_bind_failed",
+                    ct_m0f_transaction_binding=ct_m0f_transaction_binding,
+                )
+            args._ct_m0f_transaction_reservation_id = str(
+                active_transactions[0].get("transaction_reservation_id") or ""
             )
             # The reservation is the sole Authority write between the
             # Matrix-loaded lineage snapshot and committed apply. Preserve
@@ -7108,6 +7174,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         "ct_m0f_standing_validation": bool(ct_m0f_standing_requested),
         "ct_m0f_implementation_fingerprint": ct_m0f_implementation_fingerprint,
         "ct_m0f_admission_consumption": ct_m0f_admission_consumption,
+        "ct_m0f_transaction_binding": ct_m0f_transaction_binding,
         "ct_m0f_cutover_evidence": ct_m0f_cutover_evidence,
         "ct_m0f_forward_evidence_record": ct_m0f_forward_evidence_record,
     }
@@ -7116,6 +7183,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
 def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Path, event_dir: Path, snapshot_root: Path, audit_dir: Path, lease_file: Path) -> dict[str, Any]:
     args._l3_controlled_window_generation = ""
     args._l3_controlled_window_operation_id = ""
+    args._ct_m0f_transaction_reservation_id = ""
     result: dict[str, Any] = {}
     try:
         result = _execute_l3_production_validation_inner(
@@ -7140,6 +7208,50 @@ def execute_l3_production_validation(args: argparse.Namespace, *, state_dir: Pat
             )
             result["controlled_window_finalization"] = finalization
             result["safe_mode_final_state"] = str((finalization.get("after") or {}).get("state") or "")
+        if (
+            bool(getattr(args, "ct_m0f_kernel_cutover_validation", False))
+            and bool(getattr(args, "ct_m0f_standing_validation", False))
+        ):
+            transaction_reservation_id = str(
+                getattr(args, "_ct_m0f_transaction_reservation_id", "") or ""
+            )
+            if not transaction_reservation_id:
+                active = [
+                    row
+                    for row in (
+                        operator_execution.active_ct_m0f_standing_validation_transactions(
+                            operator_execution.read_live_execution_lineage_records(
+                                audit_dir / "operator-execution-audit.jsonl"
+                            )
+                        )
+                    )
+                    if str(row.get("user") or "")
+                    == str(
+                        getattr(args, "ct_m0f_standing_validation_user", "") or ""
+                    )
+                    and str(row.get("source") or "")
+                    == str(getattr(args, "approved_source", "") or "")
+                    and str(row.get("target") or "")
+                    == str(
+                        getattr(args, "ct_m0f_standing_validation_target", "") or ""
+                    )
+                ]
+                if len(active) == 1:
+                    transaction_reservation_id = str(
+                        active[0].get("transaction_reservation_id") or ""
+                    )
+            if transaction_reservation_id:
+                result["ct_m0f_transaction_release"] = (
+                    operator_execution.release_ct_m0f_standing_validation_transaction(
+                        transaction_reservation_id=transaction_reservation_id,
+                        reason=str(
+                            result.get("final_verdict")
+                            or result.get("stop_reason")
+                            or "ct_m0f_l3_terminal"
+                        ),
+                        audit_store=audit_dir / "operator-execution-audit.jsonl",
+                    )
+                )
 
 
 def _execute_governed_transaction_with_guards_inner(
@@ -12661,6 +12773,34 @@ def prepare_ct_m0f_standing_controlled_condition(
             "ct_m0f_standing_controlled_condition_setup_failed",
             setup=setup,
         )
+    transaction_reservation = (
+        operator_execution.reserve_ct_m0f_standing_validation_transaction(
+            contract=contract,
+            implementation_fingerprint=implementation_fingerprint,
+            user=expected["user"],
+            source=expected["source"],
+            target=expected["target"],
+            sample_binding_fingerprint=expected["fingerprint"],
+            source_reservation_id=str(
+                source_row.get("controlled_source_reservation_id") or ""
+            ),
+            source_fingerprint=hashlib.sha256(
+                source_lines[0].encode()
+            ).hexdigest(),
+            audit_store=audit_store,
+        )
+    )
+    if not transaction_reservation.get("ok"):
+        return transaction_stop(
+            "ct_m0f_standing_transaction_reservation_not_admitted",
+            setup=setup,
+            transaction_reservation=transaction_reservation,
+        )
+    transaction_reservation_id = str(
+        (transaction_reservation.get("reservation") or {}).get(
+            "transaction_reservation_id"
+        ) or ""
+    )
     condition = subprocess.run(
         [
             str(getattr(args, "egress_state_owner", "v7-egress-set-state")),
@@ -12682,6 +12822,13 @@ def prepare_ct_m0f_standing_controlled_condition(
         check=False,
     )
     if condition.returncode != 0:
+        transaction_release = (
+            operator_execution.release_ct_m0f_standing_validation_transaction(
+                transaction_reservation_id=transaction_reservation_id,
+                reason="controlled_condition_activation_failed",
+                audit_store=audit_store,
+            )
+        )
         cleanup_args = copy.copy(args)
         cleanup_args._certification_cleanup_request = {
             "user": expected["user"],
@@ -12706,6 +12853,8 @@ def prepare_ct_m0f_standing_controlled_condition(
             setup=setup,
             condition_returncode=condition.returncode,
             condition_output=(condition.stdout or "")[-2000:],
+            transaction_reservation=transaction_reservation,
+            transaction_release=transaction_release,
             recovery=recovery,
         )
     condition_confirmed_monotonic_ns = time.monotonic_ns()
@@ -12721,6 +12870,7 @@ def prepare_ct_m0f_standing_controlled_condition(
             "source": expected["source"],
             "baseline_target": expected["target"],
             "sample_binding_fingerprint": expected["fingerprint"],
+            "transaction_reservation_id": transaction_reservation_id,
             "condition_owner": "v7-egress-set-state",
             "first_failed_observation_monotonic_ns": (
                 condition_confirmed_monotonic_ns
@@ -12731,8 +12881,8 @@ def prepare_ct_m0f_standing_controlled_condition(
             "clock_source": "time.monotonic_ns",
             "next_required_consumer": "ordinary fresh Matrix generation",
             "runtime_mutation_performed": True,
-            "routing_mutation_performed": True,
-            "users_moved": 1,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
             "ordinary_user_delta": 0,
             "authority_expanded": False,
             "production_maturity_change": False,
@@ -12747,13 +12897,14 @@ def prepare_ct_m0f_standing_controlled_condition(
         "condition_returncode": condition.returncode,
         "condition_output": (condition.stdout or "")[-2000:],
         "condition_record": record,
+        "transaction_reservation": transaction_reservation,
         "lineage_checkpoint": lineage_checkpoint,
         "implementation_fingerprint": implementation_fingerprint,
         "exact_client_session": client_session,
         "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE",
         "runtime_mutation_performed": True,
-        "routing_mutation_performed": True,
-        "users_moved": 1,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
         "ordinary_user_delta": 0,
         "authority_expanded": False,
         "production_maturity_change": False,

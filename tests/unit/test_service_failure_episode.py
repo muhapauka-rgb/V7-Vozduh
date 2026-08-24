@@ -1202,6 +1202,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "EXACT_EXISTING_BASELINE_IN_PLACE",
         )
         self.assertEqual(result["setup"]["users_moved"], 0)
+        self.assertTrue(result["transaction_reservation"]["ok"])
+        self.assertTrue(
+            result["condition_record"]["transaction_reservation_id"]
+        )
         self.assertTrue(any(
             "certification-scope" in call.args[0]
             for call in run_mock.mock_calls

@@ -1226,6 +1226,39 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         self.assertEqual(plan.get("selected_moves") or [], selected_before)
         switch.assert_not_called()
 
+    def test_apply_respects_active_ct_m0f_transaction_reservation_before_route_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                egress_1_services={"telegram": {"ok": False, "status": "DOWN", "score": 0}},
+            )
+            args = self.args_for(root, ["--apply"])
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+            protected = {
+                "ok": False,
+                "status": "CT_M0F_TRANSACTION_RESERVATION_PROTECTS_IDENTITY",
+                "independent_reassignment_allowed": False,
+                "blockers": [
+                    "ct_m0f_active_transaction_reservation_requires_exact_governed_operation"
+                ],
+                "reservation": {"transaction_reservation_id": "ctm0ftx_test"},
+            }
+            with mock.patch.object(
+                operator_execution,
+                "ct_m0f_standing_validation_transaction_guard",
+                return_value=protected,
+            ) as guard, mock.patch.object(planner, "_run_switch") as switch:
+                result = planner.apply(plan)
+
+        self.assertEqual(
+            result["reason"], "ct_m0f_transaction_reservation_protects_identity"
+        )
+        self.assertFalse(result["runtime_mutation"])
+        guard.assert_called_once()
+        switch.assert_not_called()
+
     def test_apply_binds_control_window_to_approved_packet_operation_id(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

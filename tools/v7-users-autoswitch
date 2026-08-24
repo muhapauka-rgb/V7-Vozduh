@@ -16241,6 +16241,37 @@ class AutoswitchPlanner:
                     "approved_plan_lock_validation": approved_lock,
                 }
             return {"applied": False, "reason": "no_selected_moves"}
+        transaction_reservation_guards = []
+        for move in (plan.get("selected_moves") or []):
+            if not isinstance(move, dict):
+                continue
+            guard = (
+                operator_execution.ct_m0f_standing_validation_transaction_guard(
+                    user=str(move.get("user_ip") or ""),
+                    source=str(move.get("current_egress") or ""),
+                    target=str(move.get("recommended_egress") or ""),
+                    operation_id=control_operation_id,
+                    audit_store=getattr(
+                        self.args,
+                        "action_class_audit_store",
+                        operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE,
+                    ),
+                )
+            )
+            transaction_reservation_guards.append(guard)
+            if not guard.get("ok"):
+                # Keep the existing Planner and route writer owners alive for
+                # every other identity.  This is a narrow consumption of the
+                # already durable CT-M0F reservation: normal recovery may not
+                # steal the certification identity between T0 preparation and
+                # the exact Packet/Lease-bound governed apply.
+                return {
+                    "applied": False,
+                    "reason": "ct_m0f_transaction_reservation_protects_identity",
+                    "transaction_reservation_guard": guard,
+                    "runtime_mutation": False,
+                    "user_movement": 0,
+                }
         entry_control = self._execution_control_decision(
             mutation_kind="forward",
             action_class=self._execution_action_class((plan.get("selected_moves") or [{}])[0].get("move_type", "")),
@@ -16252,6 +16283,9 @@ class AutoswitchPlanner:
             max_users=max(0, to_int(getattr(self.args, "max_selected_moves", 0), 0)),
         )
         plan.setdefault("safety", {})["autonomous_execution_control"] = entry_control
+        plan.setdefault("safety", {})[
+            "ct_m0f_transaction_reservation_guards"
+        ] = transaction_reservation_guards
         if not entry_control.get("allowed_forward_mutation"):
             return {"applied": False, "reason": "autonomous_execution_control_stop_safe", "execution_control": entry_control}
         envelope = (plan.get("safety") or {}).get("atomic_execution_envelope") or {}

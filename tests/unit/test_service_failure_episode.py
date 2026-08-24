@@ -1123,6 +1123,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             args = SimpleNamespace(
                 state_dir=str(state), event_dir=str(events),
                 policy_file=str(policy), action_class_audit_store=str(audit),
+                egress_drafts_dir=str(root / "drafts"),
             )
             pool = {"active_source_projections": [{
                 "source_id": "exec-source",
@@ -1182,6 +1183,12 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "requires_binding": True,
                     "source": source,
                 },
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_source_topology_diagnostic",
+                side_effect=AssertionError(
+                    "in-place source must not rebuild topology predecessor"
+                ),
             ):
                 result = self.autoswitch.ct_m0f_standing_source_selection_only(
                     args

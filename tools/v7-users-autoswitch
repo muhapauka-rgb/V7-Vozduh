@@ -25919,23 +25919,6 @@ def ct_m0f_standing_source_selection_only(
         ):
             preparation_sources.append(row)
     preparation_sources.sort(key=lambda row: str(row.get("source_id") or ""))
-    topology_predecessor = {}
-    if (
-        not failed_ready
-        and not preparation_sources
-        and not stale_or_unbound_failed_sources
-        and all(
-            hasattr(args, name)
-            for name in (
-                "egress_drafts_dir",
-                "policy_file",
-                "action_class_audit_store",
-            )
-        )
-    ):
-        topology_args = copy.copy(args)
-        topology_args.controlled_source_validation_profile = "ct-m0f-one-user"
-        topology_predecessor = controlled_source_topology_diagnostic(topology_args)
     healthy_baselines = [
         row for row in projections
         if (
@@ -25998,6 +25981,26 @@ def ct_m0f_standing_source_selection_only(
     in_place_preparation_sources.sort(
         key=lambda row: str(row.get("source_id") or "")
     )
+    topology_predecessor = {}
+    if (
+        not failed_ready
+        and not preparation_sources
+        and not in_place_preparation_sources
+        and not stale_or_unbound_failed_sources
+        and all(
+            hasattr(args, name)
+            for name in (
+                "egress_drafts_dir",
+                "policy_file",
+                "action_class_audit_store",
+            )
+        )
+    ):
+        topology_args = copy.copy(args)
+        topology_args.controlled_source_validation_profile = "ct-m0f-one-user"
+        topology_predecessor = controlled_source_topology_diagnostic(
+            topology_args
+        )
     # CT-M0F may consume a real failure on an isolated certification-only
     # source.  The destination is not itself deliberately failed, so requiring
     # it to be another isolated controlled source incorrectly discards an

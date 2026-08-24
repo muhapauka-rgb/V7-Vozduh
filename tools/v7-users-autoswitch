@@ -4141,6 +4141,28 @@ class AutoswitchPlanner:
             self.state_dir / "l3-capability-state.json"
         )
 
+        exact_packet_locked_incident = bool(
+            bool_value(
+                getattr(
+                    apply_args, "ct_m0f_kernel_cutover_validation", False,
+                )
+            )
+            and bool_value(getattr(apply_args, "apply", False))
+            and str(getattr(apply_args, "approved_packet_id", "") or "")
+            and str(
+                getattr(apply_args, "approved_execution_lease_id", "") or ""
+            )
+            and str(
+                getattr(apply_args, "approved_selected_move_hash", "") or ""
+            )
+            and str(getattr(apply_args, "user", "") or "")
+            and str(getattr(apply_args, "source_egress", "") or "")
+            and str(getattr(apply_args, "target_egress", "") or "")
+            and to_int(
+                getattr(apply_args, "max_selected_moves", 0), 0,
+            ) == 1
+        )
+
         current_l3_identity = self._runtime_file_identity(
             self.l3_runtime_state_file
         )
@@ -4152,7 +4174,8 @@ class AutoswitchPlanner:
         if not l3_runtime_state_reused:
             self.l3_runtime_state = self._load_l3_runtime_state()
         self._l3_runtime_state_file_identity = current_l3_identity
-        self.state = read_json(self.state_dir / "v7-state.json", {})
+        if not exact_packet_locked_incident:
+            self.state = read_json(self.state_dir / "v7-state.json", {})
         self.quality_summary = read_json(
             Path(apply_args.quality_summary_file), {"items": {}}
         )
@@ -4165,21 +4188,25 @@ class AutoswitchPlanner:
         self.matrix = read_json(
             self.state_dir / "service-matrix.json", {"items": {}}
         )
-        self.telegram_sentinel = read_json(
-            Path(apply_args.telegram_sentinel_file), {"items": {}}
-        )
-        self.vless_activity = read_json(
-            Path(apply_args.vless_activity_file), {}
-        )
+        if not exact_packet_locked_incident:
+            self.telegram_sentinel = read_json(
+                Path(apply_args.telegram_sentinel_file), {"items": {}}
+            )
+            self.vless_activity = read_json(
+                Path(apply_args.vless_activity_file), {}
+            )
         self.service_prefs = read_json(
             self.state_dir / "service-preferences.json", {}
         )
         self.safety_state = self._load_safety()
         self.restore_barrier = self._restore_barrier_status()
         self.generation = self._generation_status()
-        self.pre_planner_refresh = self._run_pre_planner_refresh()
-        if self.pre_planner_refresh.get("stop_required"):
-            raise RuntimeError("committed_apply_snapshot_refresh_stop_safe")
+        if not exact_packet_locked_incident:
+            self.pre_planner_refresh = self._run_pre_planner_refresh()
+            if self.pre_planner_refresh.get("stop_required"):
+                raise RuntimeError(
+                    "committed_apply_snapshot_refresh_stop_safe"
+                )
         self.intelligence_snapshots = self._load_intelligence_snapshots()
         self._snapshot_items_cache = {}
 
@@ -4189,12 +4216,13 @@ class AutoswitchPlanner:
         self.users = self._load_runtime_registry_users()
         self.egress = self._load_egress()
         self._sync_egress_user_counts()
-        self.last_switch = self._last_switches()
-        self.group_usage = self._group_usage()
-        self.dynamic_load = self._dynamic_load_summary()
-        self.reconnect_state_file = Path(apply_args.reconnect_state_file)
-        self.reconnect_state = self._load_reconnect_state()
-        self.reconnect_events = self._observe_reconnect_events()
+        if not exact_packet_locked_incident:
+            self.last_switch = self._last_switches()
+            self.group_usage = self._group_usage()
+            self.dynamic_load = self._dynamic_load_summary()
+            self.reconnect_state_file = Path(apply_args.reconnect_state_file)
+            self.reconnect_state = self._load_reconnect_state()
+            self.reconnect_events = self._observe_reconnect_events()
         self._routing_intelligence_cache = {}
         self._active_execution_control = {}
         self.controlled_campaign_target_admission = (
@@ -4225,6 +4253,13 @@ class AutoswitchPlanner:
                 ),
                 "l3_runtime_state_source_identity_checked": True,
                 "policy_generation_equal": True,
+                "exact_packet_locked_incident": (
+                    exact_packet_locked_incident
+                ),
+                "post_packet_candidate_ranking_recomputed": False,
+                "non_execution_diagnostic_sources_reloaded": (
+                    not exact_packet_locked_incident
+                ),
             },
         )
         if not isinstance(committed_plan, dict) or not committed_plan:
@@ -5427,6 +5462,7 @@ class AutoswitchPlanner:
         )
 
     def _write_l3_runtime_state(self, state: dict[str, Any]) -> None:
+        state = self._compact_l3_runtime_state_projection(state)
         state["schema_version"] = "v7.l3-runtime-state.v1"
         state["updated"] = now_iso()
         processed = [str(item) for item in (state.get("processed_event_ids") or []) if str(item)]
@@ -5436,6 +5472,174 @@ class AutoswitchPlanner:
         self._l3_runtime_state_file_identity = (
             self._runtime_file_identity(self.l3_runtime_state_file)
         )
+
+    @staticmethod
+    def _compact_l3_runtime_state_projection(
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Bound the current L3 projection without deleting durable history.
+
+        ``l3-runtime-state.json`` is the current incident/continuation owner,
+        not the historical evidence ledger.  Passive closures, automation
+        obligations, OMP receipts and execution outcomes already live in the
+        append-only closure/audit owners.  Retaining every derived projection
+        here made each failure transaction repeatedly parse and rewrite many
+        megabytes of terminal history.
+
+        Keep every actionable passive incident and unfinished cohort, plus a
+        bounded recent diagnostic window.  For automation obligations keep
+        the newest projection for each source incident and a bounded recent
+        window; their immutable full records remain in closure-records.jsonl.
+        This changes neither an incident identity nor its authority and never
+        infers terminality from age.
+        """
+        if not isinstance(state, dict):
+            return {}
+
+        # The write owner already receives a mutable projection and replaces
+        # it atomically below.  Mutate that in-memory object directly; copying
+        # the entire historical payload would recreate the very latency and
+        # memory pressure this compaction removes.
+        compacted = state
+
+        def row_ts(row: dict[str, Any]) -> float:
+            return max(
+                parse_ts(row.get(field))
+                for field in (
+                    "updated_at", "updated", "last_observed_at",
+                    "closed_at", "opened_at", "created_at",
+                )
+            )
+
+        incidents = (
+            compacted.get("incidents")
+            if isinstance(compacted.get("incidents"), dict)
+            else {}
+        )
+        actionable_incidents: dict[str, Any] = {}
+        terminal_passive: list[tuple[str, dict[str, Any]]] = []
+        emergency_history: list[tuple[str, dict[str, Any]]] = []
+        other_history: list[tuple[str, dict[str, Any]]] = []
+        for key, raw in incidents.items():
+            if not isinstance(raw, dict):
+                continue
+            authority = str(raw.get("authority_object") or "")
+            incident_state = str(raw.get("incident_state") or "")
+            if (
+                authority == "PASSIVE_SERVICE_FAILURE_CAPTURE"
+                and incident_state != "INTENT_CLOSED"
+            ):
+                actionable_incidents[str(key)] = raw
+            elif authority == "PASSIVE_SERVICE_FAILURE_CAPTURE":
+                terminal_passive.append((str(key), raw))
+            elif authority == "EMERGENCY_FAILOVER_AUTONOMY":
+                emergency_history.append((str(key), raw))
+            else:
+                other_history.append((str(key), raw))
+
+        def keep_recent(
+            rows: list[tuple[str, dict[str, Any]]], limit: int,
+        ) -> dict[str, dict[str, Any]]:
+            ordered = sorted(
+                rows,
+                key=lambda item: (row_ts(item[1]), item[0]),
+                reverse=True,
+            )
+            return {key: row for key, row in ordered[:limit]}
+
+        retained_incidents = {
+            **keep_recent(other_history, 32),
+            **keep_recent(terminal_passive, 64),
+            **keep_recent(emergency_history, 128),
+            **actionable_incidents,
+        }
+        compacted["incidents"] = retained_incidents
+
+        obligations = (
+            compacted.get("service_failure_automation_obligations")
+            if isinstance(
+                compacted.get("service_failure_automation_obligations"), dict,
+            )
+            else {}
+        )
+        newest_by_incident: dict[str, tuple[str, dict[str, Any]]] = {}
+        obligation_rows: list[tuple[str, dict[str, Any]]] = []
+        for key, raw in obligations.items():
+            if not isinstance(raw, dict):
+                continue
+            key = str(key)
+            obligation_rows.append((key, raw))
+            source_incident_id = str(raw.get("source_incident_id") or "")
+            if not source_incident_id:
+                continue
+            prior = newest_by_incident.get(source_incident_id)
+            if prior is None or (row_ts(raw), key) > (
+                row_ts(prior[1]), prior[0],
+            ):
+                newest_by_incident[source_incident_id] = (key, raw)
+        retained_obligations = keep_recent(obligation_rows, 128)
+        retained_obligations.update({
+            key: raw for key, raw in newest_by_incident.values()
+        })
+        compacted["service_failure_automation_obligations"] = (
+            retained_obligations
+        )
+
+        transactions = (
+            compacted.get("bounded_cohort_transactions")
+            if isinstance(compacted.get("bounded_cohort_transactions"), dict)
+            else {}
+        )
+        unfinished_transactions: dict[str, dict[str, Any]] = {}
+        terminal_transactions: list[tuple[str, dict[str, Any]]] = []
+        for key, raw in transactions.items():
+            if not isinstance(raw, dict):
+                continue
+            if str(raw.get("state") or "") == "IN_PROGRESS" or str(
+                raw.get("closure_obligation_state") or ""
+            ) not in {
+                "CONSUMED_BY_EXISTING_CLOSURE_OWNER",
+                "CLOSED_BY_EXISTING_OUTCOME_OWNER",
+            }:
+                unfinished_transactions[str(key)] = raw
+            else:
+                terminal_transactions.append((str(key), raw))
+        retained_transactions = keep_recent(terminal_transactions, 32)
+        retained_transactions.update(unfinished_transactions)
+        compacted["bounded_cohort_transactions"] = retained_transactions
+
+        prior_meta = (
+            compacted.get("projection_compaction")
+            if isinstance(compacted.get("projection_compaction"), dict)
+            else {}
+        )
+        compacted["projection_compaction"] = {
+            "schema_version": "v7.l3-runtime-projection-compaction.v1",
+            "owner": "tools/v7-users-autoswitch:l3-runtime-state",
+            "compacted_at": now_iso(),
+            "history_owners": [
+                "closure-records.jsonl",
+                "operator-execution-audit.jsonl",
+                "execution-events.jsonl",
+            ],
+            "incidents_before": len(incidents),
+            "incidents_after": len(retained_incidents),
+            "obligations_before": len(obligations),
+            "obligations_after": len(retained_obligations),
+            "bounded_transactions_before": len(transactions),
+            "bounded_transactions_after": len(retained_transactions),
+            "actionable_incidents_preserved": len(actionable_incidents),
+            "unfinished_transactions_preserved": len(
+                unfinished_transactions
+            ),
+            "total_compactions": to_int(
+                prior_meta.get("total_compactions"), 0,
+            ) + 1,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+            "authority_changed": False,
+        }
+        return compacted
 
     def _bounded_cohort_checkpoint(
         self,
@@ -14671,7 +14875,40 @@ class AutoswitchPlanner:
         important = self._important_services(user)
         profile_required = self._profile_required_services(user)
         route_class = self.args.route_class or self._route_class_for_services(important)
-        candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in self.egress.values()]
+        exact_prepared_incident_scope = bool(
+            bool_value(
+                getattr(self.args, "governed_candidate_only", False)
+            )
+            and bool_value(
+                getattr(self.args, "emergency_failover_autonomy", False)
+            )
+            and str(getattr(self.args, "user", "") or "") == user.ip
+            and str(getattr(self.args, "source_egress", "") or "")
+            == user.current
+            and str(getattr(self.args, "target_egress", "") or "")
+            and str(getattr(self.args, "target_egress", "") or "")
+            != user.current
+            and to_int(
+                getattr(self.args, "max_selected_moves", 0), 0,
+            ) == 1
+        )
+        candidate_egress = list(self.egress.values())
+        if exact_prepared_incident_scope:
+            # Matrix/standing-policy preparation has already selected one
+            # bounded target for this exact source and certification identity.
+            # The Planner remains the Candidate owner and runs all ordinary
+            # source/target health, service, capacity, reservation, safety and
+            # Authority gates, but unrelated channels cannot influence this
+            # already-bound one-user Packet predecessor.
+            exact_ids = {
+                user.current,
+                str(getattr(self.args, "target_egress", "") or ""),
+            }
+            candidate_egress = [
+                egress for egress in candidate_egress
+                if egress.id in exact_ids
+            ]
+        candidates = [self._candidate(user, egress, important, route_class, purpose="planned") for egress in candidate_egress]
         candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
         self._mark_best_available_pool(candidates)
         self._attach_ctr_score_simulation(candidates)
@@ -14704,7 +14941,7 @@ class AutoswitchPlanner:
             if service_signal_restore_gate:
                 reason.append("restore_stage_service_signal_failover_requires_approval")
             else:
-                failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in self.egress.values()]
+                failover_candidates = [self._candidate(user, egress, important, route_class, purpose="failover") for egress in candidate_egress]
                 failover_candidates.sort(key=lambda c: (c.eligible, c.score), reverse=True)
                 self._mark_best_available_pool(failover_candidates)
                 best_failover = next((c for c in failover_candidates if c.eligible), None)
@@ -14779,6 +15016,11 @@ class AutoswitchPlanner:
             "route_class": route_class,
             "important_services": important,
             "profile_required_services": profile_required,
+            "candidate_scope": (
+                "EXACT_PREPARED_INCIDENT_SOURCE_AND_TARGET"
+                if exact_prepared_incident_scope
+                else "CURRENT_PLANNER_INVENTORY"
+            ),
             "current_egress": user.current,
             "recommended_egress": recommended,
             "action": action,

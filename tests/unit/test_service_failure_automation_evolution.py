@@ -7295,6 +7295,76 @@ print(json.dumps({'verdict': result.get('final_verdict')}))
         self.assertFalse(result["forbidden_effects"]["candidate_created"])
         self.assertFalse(result["forbidden_effects"]["authority_expansion"])
 
+    def test_l3_runtime_projection_compaction_preserves_actionable_state(self):
+        incidents = {}
+        for index in range(180):
+            incidents[f"emergency_{index:03d}"] = {
+                "authority_object": "EMERGENCY_FAILOVER_AUTONOMY",
+                "incident_state": "NO_INCIDENT_NO_EVIDENCE",
+                "updated_at": f"2026-08-20T00:{index // 60:02d}:{index % 60:02d}+00:00",
+            }
+        for index in range(90):
+            incidents[f"passive_closed_{index:03d}"] = {
+                "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+                "incident_state": "INTENT_CLOSED",
+                "updated_at": f"2026-08-21T00:{index // 60:02d}:{index % 60:02d}+00:00",
+            }
+        incidents["passive_open"] = {
+            "authority_object": "PASSIVE_SERVICE_FAILURE_CAPTURE",
+            "incident_state": "PARTIALLY_PROTECTED",
+            "updated_at": "2026-08-01T00:00:00+00:00",
+            "next_required_consumer": "existing-owner",
+        }
+        obligations = {
+            f"obligation_{index:03d}": {
+                "source_incident_id": f"source_{index % 10}",
+                "status": "READY_FOR_OMP_CONSUMPTION",
+                "updated_at": f"2026-08-22T00:{index // 60:02d}:{index % 60:02d}+00:00",
+            }
+            for index in range(160)
+        }
+        transactions = {
+            f"terminal_{index:03d}": {
+                "state": "CONTAINED_STOP_SAFE",
+                "closure_obligation_state": (
+                    "CONSUMED_BY_EXISTING_CLOSURE_OWNER"
+                ),
+                "updated_at": f"2026-08-23T00:{index // 60:02d}:{index % 60:02d}+00:00",
+            }
+            for index in range(50)
+        }
+        transactions["in_progress"] = {
+            "state": "IN_PROGRESS",
+            "updated_at": "2026-08-01T00:00:00+00:00",
+        }
+        result = (
+            self.autoswitch.AutoswitchPlanner
+            ._compact_l3_runtime_state_projection({
+                "incidents": incidents,
+                "service_failure_automation_obligations": obligations,
+                "bounded_cohort_transactions": transactions,
+            })
+        )
+
+        self.assertIn("passive_open", result["incidents"])
+        self.assertEqual(len(result["incidents"]), 1 + 64 + 128)
+        self.assertEqual(
+            len(result["service_failure_automation_obligations"]), 128,
+        )
+        retained_sources = {
+            row["source_incident_id"]
+            for row in result["service_failure_automation_obligations"].values()
+        }
+        self.assertEqual(retained_sources, {f"source_{index}" for index in range(10)})
+        self.assertIn("in_progress", result["bounded_cohort_transactions"])
+        self.assertEqual(len(result["bounded_cohort_transactions"]), 33)
+        metadata = result["projection_compaction"]
+        self.assertEqual(metadata["incidents_before"], 271)
+        self.assertEqual(metadata["incidents_after"], 193)
+        self.assertEqual(metadata["actionable_incidents_preserved"], 1)
+        self.assertFalse(metadata["routing_mutation_performed"])
+        self.assertEqual(metadata["users_moved"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

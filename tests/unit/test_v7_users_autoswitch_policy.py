@@ -7127,10 +7127,13 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                     "pkt-unit-test",
                     "--approved-operation-id",
                     operation_id,
+                    "--approved-execution-lease-id",
+                    "lease-unit-test",
                     "--approved-selected-move-hash",
                     committed["operation"]["selected_move_hash"],
                     "--approved-authority-generation",
                     generation,
+                    "--ct-m0f-kernel-cutover-validation",
                 ],
             )
             with mock.patch.object(
@@ -7144,6 +7147,19 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 "_load_l3_runtime_state",
                 side_effect=AssertionError(
                     "Unchanged canonical L3 state must not be parsed twice"
+                ),
+            ), mock.patch.object(
+                planner,
+                "_run_pre_planner_refresh",
+                side_effect=AssertionError(
+                    "Packet-locked exact incident must reuse its prepared "
+                    "snapshot generation"
+                ),
+            ), mock.patch.object(
+                planner,
+                "_observe_reconnect_events",
+                side_effect=AssertionError(
+                    "Post-Packet incident must not rescan reconnect history"
                 ),
             ):
                 revalidated = planner.revalidate_committed_apply_plan(
@@ -7175,6 +7191,58 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         )
         self.assertTrue(
             timing["details"]["unchanged_l3_runtime_state_reused"]
+        )
+        self.assertTrue(
+            timing["details"]["exact_packet_locked_incident"]
+        )
+        self.assertFalse(
+            timing["details"]["non_execution_diagnostic_sources_reloaded"]
+        )
+
+    def test_exact_prepared_incident_scores_only_bound_source_and_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_fixture(
+                root,
+                users=1,
+                egress_1_services={
+                    "telegram": {
+                        "ok": False,
+                        "status": "DOWN",
+                        "score": 0,
+                    }
+                },
+                authority_budget={
+                    "authority_class": "CANARY",
+                    "certified_authority_class": "CANARY",
+                    "authority_lifecycle_state": "CANARY_EXPANSION",
+                    "current_allowed_user_budget": 1,
+                },
+            )
+            args = self.args_for(
+                root,
+                [
+                    "--mode", "guarded",
+                    "--governed-candidate-only",
+                    "--emergency-failover-autonomy",
+                    "--user", "10.0.0.2",
+                    "--source-egress", "1",
+                    "--target-egress", "vless",
+                    "--max-selected-moves", "1",
+                ],
+            )
+            planner = self.tool.AutoswitchPlanner(args)
+            plan = planner.plan()
+
+        self.assertEqual(len(plan["decisions"]), 1)
+        decision = plan["decisions"][0]
+        self.assertEqual(
+            decision["candidate_scope"],
+            "EXACT_PREPARED_INCIDENT_SOURCE_AND_TARGET",
+        )
+        self.assertEqual(
+            {row["egress"] for row in decision["candidates"]},
+            {"1", "vless"},
         )
 
     def test_committed_apply_revalidation_blocks_live_assignment_drift(self):

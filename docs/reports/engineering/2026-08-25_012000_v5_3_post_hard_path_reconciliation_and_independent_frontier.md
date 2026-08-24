@@ -81,6 +81,29 @@ No item has all six deletion preconditions (replacement, migrated consumers,
 fallback window, no caller, no consumer, no state dependency). N11 therefore
 performed no destructive change.
 
+The direct unit inventory confirms the classification: the standalone Matrix
+and Telegram timers are disabled, while `v7-health.service` is enabled and
+active and invokes both tools as role children. The install script and the
+freshness/diagnostic contracts still name the disabled timer family; deleting
+the unit files would therefore leave executable-looking reinstatement and
+truth-check consumers inconsistent. The exact N11 result for this block is
+`NO_SAFE_DELETION_ADMITTED`.
+
+## Verification
+
+* `v7-truth-check --runtime-readonly`: `RUNTIME_ALIGNED`; deployed Runtime
+  commit `dd9dd3d89f296be641651261fd16cd0a26fc20ca`; documentation changes do
+  not require deploy.
+* Direct read-only Runtime observation: health active, standalone Matrix and
+  Telegram timers disabled/inactive, no active governed transaction, and only
+  the certification identity in the observed controlled result.
+* Focused owner-bound regression set: 54 passed:
+  `tests.unit.test_v7_health_fast_deadline_loop`,
+  `tests.unit.test_telegram_sentinel_lock_scope`, and
+  `tests.unit.test_v7_truth_check`.
+* Remote branch verification: `Updatesystem` contains
+  `41626c0d8c5871c65498cb8f853a876fc6fb559e`.
+
 ## HARD_PATH owner-decision package
 
 ### A. Executable N5 handoff

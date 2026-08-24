@@ -176,6 +176,12 @@ CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE = (
 CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE = (
     "ct_m0f_standing_validation_lineage_checkpoint"
 )
+CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES = {
+    CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
+    CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,
+}
 CT_M0F_STANDING_VALIDATION_APPROVAL = (
     "APPROVE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"
 )
@@ -7917,6 +7923,14 @@ def _cached_live_execution_lineage_append_extension(
                 or row.get("effect_class") in durable_effect_classes
                 or runtime_action
             ):
+                if (
+                    checkpoint_fingerprint
+                    and row.get("record_type")
+                    in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
+                    and str(row.get("implementation_fingerprint") or "")
+                    != checkpoint_fingerprint
+                ):
+                    continue
                 appended_rows.append(row)
         if not chain_valid:
             continue
@@ -8138,6 +8152,14 @@ def read_live_execution_lineage_records(
                     or row.get("effect_class") in durable_effect_classes
                     or runtime_action
                 ):
+                    if (
+                        checkpoint_fingerprint
+                        and row.get("record_type")
+                        in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
+                        and str(row.get("implementation_fingerprint") or "")
+                        != checkpoint_fingerprint
+                    ):
+                        continue
                     current_segment.append(row)
                     decision_id = str(row.get("decision_id") or "")
                     if (

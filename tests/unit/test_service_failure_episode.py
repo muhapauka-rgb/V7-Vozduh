@@ -282,7 +282,13 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 }
                 return self.refresh.subprocess.CompletedProcess(command, 2, stdout=json.dumps(payload))
 
-            with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+            with mock.patch.object(
+                self.refresh.operator_execution,
+                "ct_m0f_runtime_implementation_fingerprint",
+                return_value="f" * 64,
+            ), mock.patch.object(
+                self.refresh.subprocess, "run", side_effect=fake_run,
+            ):
                 result = self.refresh.run_ct_m0f_standing_validation_campaign(
                     "governed-executor",
                     "existing-planner",

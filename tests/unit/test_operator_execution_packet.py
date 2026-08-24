@@ -778,6 +778,18 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 )
             )
             self.assertEqual(checkpoint["status"], "CREATED")
+            operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": (
+                        operator_execution
+                        .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+                    ),
+                    "contract_id": contract["contract_id"],
+                    "implementation_fingerprint": "d" * 64,
+                    "reservation_id": "unrelated-build-sample",
+                },
+            )
             operator_execution._LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
             with mock.patch(
                 "gzip.open",
@@ -799,6 +811,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 anchors[0]["source_authority_record_hash"],
                 decision["record_hash"],
             )
+            self.assertFalse(any(
+                row.get("reservation_id") == "unrelated-build-sample"
+                for row in compact
+            ))
 
     def test_append_record_reads_only_last_predecessor_semantics(self):
         with tempfile.TemporaryDirectory() as tmp:

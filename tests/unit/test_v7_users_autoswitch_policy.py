@@ -27,6 +27,20 @@ def load_tool_module():
 
 
 class V7UsersAutoswitchPolicyTest(unittest.TestCase):
+    def test_reverse_jsonl_reader_yields_latest_without_materializing_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.jsonl"
+            old_row = json.dumps({"event_id": "old", "padding": "x" * 70000})
+            latest = {"event_id": "latest", "status": "CURRENT"}
+            path.write_text(
+                old_row + "\n" + json.dumps(latest) + "\n",
+                encoding="utf-8",
+            )
+
+            reader = self.tool.iter_jsonl_reverse(path, limit=1000)
+            self.assertEqual(next(reader), latest)
+            reader.close()
+
     @classmethod
     def setUpClass(cls):
         cls.tool = load_tool_module()

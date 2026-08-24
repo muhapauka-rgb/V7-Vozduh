@@ -2710,6 +2710,51 @@ def read_jsonl(
     return rows[-tail_limit:] if tail_limit > 0 else rows
 
 
+def iter_jsonl_reverse(path: Path, *, limit: int = 1000):
+    """Yield a JSONL owner's newest rows first with bounded physical reads.
+
+    Consumers such as the exact current-failure binding normally match the
+    newest row.  Yielding while reading lets them stop immediately instead of
+    decoding and retaining up to 1,000 potentially large historical events.
+    The same append-only file remains authoritative and the hard row limit is
+    unchanged; malformed rows remain non-evidence.
+    """
+    yielded = 0
+    try:
+        with Path(path).open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            position = handle.tell()
+            pending = b""
+            while position > 0 and yielded < max(1, int(limit)):
+                size = min(65536, position)
+                position -= size
+                handle.seek(position)
+                pending = handle.read(size) + pending
+                parts = pending.split(b"\n")
+                pending = parts[0]
+                for raw in reversed(parts[1:]):
+                    if not raw.strip():
+                        continue
+                    try:
+                        value = json.loads(raw.decode("utf-8"))
+                    except (UnicodeDecodeError, json.JSONDecodeError):
+                        continue
+                    if isinstance(value, dict):
+                        yield value
+                        yielded += 1
+                        if yielded >= max(1, int(limit)):
+                            return
+            if position == 0 and pending and yielded < max(1, int(limit)):
+                try:
+                    value = json.loads(pending.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    return
+                if isinstance(value, dict):
+                    yield value
+    except OSError:
+        return
+
+
 def read_service_failure_event_window(
     path: Path,
     *,
@@ -3495,43 +3540,9 @@ def ct_m0f_certification_only_matrix_failure_binding_projection(
     if isinstance(event_rows, list):
         reverse_events = reversed(event_rows)
     else:
-        # This event journal can be large.  The binding needs only the newest
-        # matching immutable event, so scan tail-first rather than materialize
-        # unrelated history into the Runtime heap.
-        reverse_events = []
-        try:
-            with event_path.open("rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                position = handle.tell()
-                pending = b""
-                decoded: list[dict[str, Any]] = []
-                while position > 0 and len(decoded) < 1000:
-                    size = min(65536, position)
-                    position -= size
-                    handle.seek(position)
-                    pending = handle.read(size) + pending
-                    parts = pending.split(b"\n")
-                    pending = parts[0]
-                    for raw in reversed(parts[1:]):
-                        try:
-                            value = json.loads(raw.decode("utf-8"))
-                        except (UnicodeDecodeError, json.JSONDecodeError):
-                            continue
-                        if isinstance(value, dict):
-                            decoded.append(value)
-                    # Keep a bounded recent tail; a matching event may be
-                    # behind unrelated channel events, but the full journal
-                    # is never needed.
-                    if position == 0 and pending:
-                        try:
-                            value = json.loads(pending.decode("utf-8"))
-                            if isinstance(value, dict):
-                                decoded.append(value)
-                        except (UnicodeDecodeError, json.JSONDecodeError):
-                            pass
-                reverse_events = decoded
-        except OSError:
-            reverse_events = []
+        # Preserve the same newest-1,000-row evidence envelope, but allow the
+        # exact-match consumer below to stop after the first current row.
+        reverse_events = iter_jsonl_reverse(event_path, limit=1000)
     for event in reverse_events:
         if str(event.get("event_type") or "") not in {
             "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",

@@ -17,8 +17,8 @@ import gzip
 import hashlib
 import json
 import mmap
-import mmap
 import os
+import re
 import secrets
 import time
 from contextlib import contextmanager
@@ -8117,18 +8117,24 @@ def read_live_execution_lineage_records(
                         with mmap.mmap(
                             raw_handle.fileno(), 0, access=mmap.ACCESS_READ
                         ) as mapped:
-                            for marker in encoded_markers:
-                                position = 0
-                                while True:
-                                    found = mapped.find(marker, position)
-                                    if found < 0:
-                                        break
-                                    start = mapped.rfind(b"\n", 0, found) + 1
-                                    end = mapped.find(b"\n", found)
-                                    if end < 0:
-                                        end = len(mapped)
-                                    line_offsets.add((start, end))
-                                    position = found + len(marker)
+                            # One C-level alternation pass replaces one full
+                            # mmap scan per durable enum value.  On the active
+                            # audit this removes repeated traversal of hundreds
+                            # of MiB from the failure-to-decision path while
+                            # preserving the exact same line and JSON checks.
+                            marker_pattern = re.compile(
+                                b"|".join(
+                                    re.escape(marker)
+                                    for marker in encoded_markers
+                                )
+                            )
+                            for match in marker_pattern.finditer(mapped):
+                                found = match.start()
+                                start = mapped.rfind(b"\n", 0, found) + 1
+                                end = mapped.find(b"\n", found)
+                                if end < 0:
+                                    end = len(mapped)
+                                line_offsets.add((start, end))
                             candidate_lines = [
                                 mapped[start:end].decode(
                                     "utf-8", errors="replace"

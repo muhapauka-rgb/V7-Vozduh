@@ -3349,6 +3349,36 @@ def controlled_engineering_action_class(
     )
 
 
+def extend_in_process_planner_lineage(
+    planner_runtime: Any,
+    record: Any,
+) -> bool:
+    """Carry one owner-written audit row into the reused Planner snapshot.
+
+    The standing sample reservation is appended after the in-process Planner
+    has loaded the append-only Authority lineage.  Reusing that Planner is
+    safe only if the exact hash-bearing row returned by the canonical append
+    owner is also made visible to its validation consumer.  Anything other
+    than an already materialized, hash-bearing record leaves the cache alone
+    and the existing validation fails closed.
+    """
+    if not isinstance(planner_runtime, dict) or not isinstance(record, dict):
+        return False
+    if not str(record.get("record_hash") or ""):
+        return False
+    planner = planner_runtime.get("planner")
+    records = getattr(
+        planner, "_standing_policy_audit_records_cache", None,
+    )
+    if not isinstance(records, list):
+        return False
+    record_hash = str(record.get("record_hash") or "")
+    if any(str(row.get("record_hash") or "") == record_hash for row in records):
+        return True
+    records.append(copy.deepcopy(record))
+    return True
+
+
 def run_autoswitch_apply(
     *,
     state_dir: Path,
@@ -6441,6 +6471,15 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     target=target,
                     audit_store=audit_dir / "operator-execution-audit.jsonl",
                 )
+            )
+            # The reservation is the sole Authority write between the
+            # Matrix-loaded lineage snapshot and committed apply. Preserve
+            # that exact append result on the reused Planner so its existing
+            # reservation validator sees the current row without scanning
+            # rotated history again.
+            extend_in_process_planner_lineage(
+                planner_runtime,
+                ct_m0f_admission_consumption.get("reservation"),
             )
         else:
             ct_m0f_admission_consumption = (

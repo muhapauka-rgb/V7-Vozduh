@@ -5354,6 +5354,41 @@ class GovernedCanaryCliTest(unittest.TestCase):
             },
         )
 
+    def test_reused_planner_receives_exact_new_sample_reservation(self):
+        module = load_cli_module()
+
+        class Planner:
+            _standing_policy_audit_records_cache = [
+                {"record_hash": "decision-hash"},
+            ]
+
+        runtime = {"planner": Planner()}
+        reservation = {
+            "record_type": "ct_m0f_standing_validation_sample_reserved",
+            "record_hash": "reservation-hash",
+            "reservation_id": "ctm0fsample_current",
+        }
+
+        self.assertTrue(
+            module.extend_in_process_planner_lineage(runtime, reservation)
+        )
+        self.assertEqual(
+            runtime["planner"]._standing_policy_audit_records_cache[-1],
+            reservation,
+        )
+        self.assertTrue(
+            module.extend_in_process_planner_lineage(runtime, reservation)
+        )
+        self.assertEqual(
+            len(runtime["planner"]._standing_policy_audit_records_cache),
+            2,
+        )
+        self.assertFalse(
+            module.extend_in_process_planner_lineage(
+                runtime, {"reservation_id": "unhashed"},
+            )
+        )
+
     def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):
         module = load_cli_module()
         captured = {}

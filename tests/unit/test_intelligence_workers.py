@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from admin_core import intelligence_workers as workers
@@ -1162,6 +1163,146 @@ class IntelligenceWorkersTest(unittest.TestCase):
             result.snapshots["service-scores"]["source_hashes"]["service_matrix"],
             refresh.sha256_json(changed_matrix),
         )
+
+    def test_stable_matrix_generation_handoff_consumes_captured_generation_while_writer_advances(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        loader = SourceFileLoader("v7_intelligence_snapshot_refresh_handoff", str(tool_path))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir(parents=True)
+            events.mkdir()
+            audit.mkdir()
+            matrix = service_matrix()
+            matrix["updated"] = datetime.now(timezone.utc).isoformat()
+            advanced = service_matrix()
+            advanced["updated"] = matrix["updated"]
+            advanced["items"]["awg0"]["path_evidence"] = {
+                "path_fingerprint": "advanced-path-generation",
+                "component_status": {"interface": "PASS"},
+            }
+            matrix_file = state / "service-matrix.json"
+            matrix_file.write_text(json.dumps(matrix), encoding="utf-8")
+            (state / "egress-quality-summary.json").write_text(json.dumps(quality_summary()), encoding="utf-8")
+            (state / "service-preferences.json").write_text(
+                json.dumps({"required_services": ["telegram", "chatgpt"]}), encoding="utf-8"
+            )
+            (state / "users.registry").write_text("ip=10.7.0.2 enabled=1\n", encoding="utf-8")
+            (state / "egress.registry").write_text("id=awg0 enabled=1\n", encoding="utf-8")
+            (state / "v7-state.json").write_text(json.dumps({"egress": {"awg0": {}}}), encoding="utf-8")
+            (events / "switch-history.jsonl").write_text("", encoding="utf-8")
+            (events / "rollback-history.jsonl").write_text("", encoding="utf-8")
+            original_build = refresh.build_all_snapshots
+
+            def build_and_advance_once(**kwargs):
+                result = original_build(**kwargs)
+                matrix_file.write_text(json.dumps(advanced), encoding="utf-8")
+                return result
+
+            refresh.build_all_snapshots = build_and_advance_once
+            try:
+                result, source_status = refresh.build_stable_snapshot_run(
+                    state_dir=state,
+                    service_matrix_file=matrix_file,
+                    quality_summary_file=state / "egress-quality-summary.json",
+                    service_preferences_file=state / "service-preferences.json",
+                    audit_paths=[audit / "audit.jsonl"],
+                    switch_history_file=events / "switch-history.jsonl",
+                    rollback_history_file=events / "rollback-history.jsonl",
+                    total_users=0,
+                    affected_candidates=0,
+                    max_source_retries=2,
+                    source_retry_sleep_sec=0,
+                    stable_matrix_generation_handoff=True,
+                )
+            finally:
+                refresh.build_all_snapshots = original_build
+        self.assertIsNotNone(result)
+        self.assertTrue(source_status["source_stable"])
+        self.assertEqual(source_status["source_consistency_attempts"], 1)
+        handoff = source_status["stable_matrix_generation_handoff"]
+        self.assertEqual(handoff["status"], "PASS")
+        self.assertTrue(handoff["generation"]["writer_advanced_during_build"])
+        self.assertTrue(handoff["consumer_reads_one_completed_generation"])
+        self.assertFalse(handoff["mixed_matrix_generation_read"])
+        self.assertEqual(
+            result.snapshots["service-scores"]["source_hashes"]["service_matrix"],
+            refresh.sha256_json(matrix),
+        )
+        self.assertEqual(
+            result.snapshots["service-scores"]["matrix_generation"]["generation_id"],
+            handoff["generation"]["generation_id"],
+        )
+
+    def test_stable_matrix_generation_handoff_stops_on_required_service_state_change(self):
+        tool_path = Path(__file__).resolve().parents[2] / "tools" / "v7-intelligence-snapshot-refresh"
+        loader = SourceFileLoader("v7_intelligence_snapshot_refresh_service_drift", str(tool_path))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        refresh = importlib.util.module_from_spec(spec)
+        self.assertIsNotNone(spec.loader)
+        spec.loader.exec_module(refresh)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "egress" / "state"
+            events = root / "events"
+            audit = root / "audit"
+            state.mkdir(parents=True)
+            events.mkdir()
+            audit.mkdir()
+            matrix = service_matrix()
+            matrix["updated"] = datetime.now(timezone.utc).isoformat()
+            changed = service_matrix()
+            changed["updated"] = matrix["updated"]
+            changed["items"]["awg0"]["services"]["telegram"]["score"] = 1
+            matrix_file = state / "service-matrix.json"
+            matrix_file.write_text(json.dumps(matrix), encoding="utf-8")
+            (state / "egress-quality-summary.json").write_text(json.dumps(quality_summary()), encoding="utf-8")
+            (state / "service-preferences.json").write_text(
+                json.dumps({"required_services": ["telegram", "chatgpt"]}), encoding="utf-8"
+            )
+            (state / "users.registry").write_text("ip=10.7.0.2 enabled=1\n", encoding="utf-8")
+            (state / "egress.registry").write_text("id=awg0 enabled=1\n", encoding="utf-8")
+            (state / "v7-state.json").write_text("{}", encoding="utf-8")
+            (events / "switch-history.jsonl").write_text("", encoding="utf-8")
+            (events / "rollback-history.jsonl").write_text("", encoding="utf-8")
+            original_build = refresh.build_all_snapshots
+
+            def build_and_change_service(**kwargs):
+                result = original_build(**kwargs)
+                matrix_file.write_text(json.dumps(changed), encoding="utf-8")
+                return result
+
+            refresh.build_all_snapshots = build_and_change_service
+            try:
+                result, source_status = refresh.build_stable_snapshot_run(
+                    state_dir=state,
+                    service_matrix_file=matrix_file,
+                    quality_summary_file=state / "egress-quality-summary.json",
+                    service_preferences_file=state / "service-preferences.json",
+                    audit_paths=[audit / "audit.jsonl"],
+                    switch_history_file=events / "switch-history.jsonl",
+                    rollback_history_file=events / "rollback-history.jsonl",
+                    total_users=0,
+                    affected_candidates=0,
+                    max_source_retries=2,
+                    source_retry_sleep_sec=0,
+                    stable_matrix_generation_handoff=True,
+                )
+            finally:
+                refresh.build_all_snapshots = original_build
+        self.assertIsNotNone(result)
+        self.assertFalse(source_status["source_stable"])
+        self.assertEqual(
+            source_status["source_consistency_errors"],
+            ["required_service_state_changed_after_matrix_generation"],
+        )
+        self.assertEqual(source_status["stable_matrix_generation_handoff"]["status"], "STOP_SAFE")
 
     def test_all_worker_generates_and_writes_readable_snapshots(self):
         result = workers.build_all_snapshots(

@@ -8138,17 +8138,44 @@ def read_live_execution_lineage_records(
                                 # Runtime clearance/lease records do not carry
                                 # the CT fingerprint.  They are nevertheless
                                 # part of this exact cohort when they occur
-                                # after its immutable checkpoint.  Parse only
-                                # that bounded suffix and retain the same
-                                # durable predicates as the full reader.
+                                # after its immutable checkpoint.  The
+                                # fingerprint search above already retained
+                                # every CT durable cohort row, so scanning and
+                                # JSON-decoding every unrelated audit row in
+                                # the suffix only makes later warm samples
+                                # slower as the journal grows.  Search for the
+                                # exact clearance verdict and decode only its
+                                # containing lines; the predicate below still
+                                # rejects nested or look-alike payloads.
+                                fast_rows = list(fingerprint_rows)
                                 checkpoint_start = checkpoint_rows[0][0]
-                                for raw in mapped[
-                                    checkpoint_start:
-                                ].splitlines():
-                                    if not raw.strip():
-                                        continue
+                                runtime_marker = json.dumps(
+                                    "RESTORE_BARRIER_CLEARANCE_WRITTEN",
+                                    ensure_ascii=True,
+                                ).encode("ascii")
+                                runtime_line_offsets: set[
+                                    tuple[int, int]
+                                ] = set()
+                                position = checkpoint_start
+                                while True:
+                                    found = mapped.find(
+                                        runtime_marker, position
+                                    )
+                                    if found < 0:
+                                        break
+                                    start = (
+                                        mapped.rfind(b"\n", 0, found) + 1
+                                    )
+                                    end = mapped.find(b"\n", found)
+                                    if end < 0:
+                                        end = len(mapped)
+                                    runtime_line_offsets.add((start, end))
+                                    position = found + len(runtime_marker)
+                                for start, end in sorted(
+                                    runtime_line_offsets
+                                ):
                                     try:
-                                        row = json.loads(raw)
+                                        row = json.loads(mapped[start:end])
                                     except (
                                         UnicodeDecodeError,
                                         json.JSONDecodeError,
@@ -8165,25 +8192,8 @@ def read_live_execution_lineage_records(
                                         )
                                         == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
                                     )
-                                    if not (
-                                        row.get("record_type")
-                                        in durable_record_types
-                                        or row.get("effect_class")
-                                        in durable_effect_classes
-                                        or runtime_action
-                                    ):
-                                        continue
-                                    if (
-                                        row.get("record_type")
-                                        in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
-                                        and str(
-                                            row.get(
-                                                "implementation_fingerprint"
-                                            ) or ""
-                                        ) != checkpoint_fingerprint
-                                    ):
-                                        continue
-                                    fast_rows.append(row)
+                                    if runtime_action:
+                                        fast_rows.append(row)
         except OSError:
             fingerprint_rows = []
             fast_rows = []

@@ -14,6 +14,26 @@ tool = loader.load_module()
 
 
 class OperatorInducedPassiveCaptureTest(unittest.TestCase):
+    def test_in_process_autoswitch_args_avoid_full_cli_parser(self):
+        module = mock.Mock()
+        module.DEFAULT_ORG_POLICY_FILE = Path("/etc/v7/org-egress-policy.json")
+        module.DEFAULT_SAFETY_FILE = Path("/opt/v7/egress/state/autoswitch-safety.json")
+        module.build_arg_parser.side_effect = AssertionError(
+            "full CLI parser must stay off the Matrix hot path"
+        )
+
+        args = tool.in_process_autoswitch_args(
+            module,
+            state_dir=Path("/opt/v7/egress/state"),
+            event_dir=Path("/opt/v7/events"),
+            policy_file=Path("/etc/v7/policy.json"),
+            audit_store=Path("/opt/v7/audit/operator-execution-audit.jsonl"),
+        )
+
+        self.assertEqual(args.state_dir, "/opt/v7/egress/state")
+        self.assertEqual(args.controlled_source_validation_profile, "campaign")
+        module.build_arg_parser.assert_not_called()
+
     def test_passive_capture_dedup_reads_only_bounded_ledger_tail(self):
         path = Path("/events/service-failure-events.jsonl")
         with mock.patch.object(

@@ -118,12 +118,20 @@ def in_process_autoswitch_args(
     policy_file: Path,
     audit_store: Path,
 ) -> argparse.Namespace:
-    return module.build_arg_parser().parse_args([
-        "--state-dir", str(state_dir),
-        "--event-dir", str(event_dir),
-        "--policy-file", str(policy_file),
-        "--action-class-audit-store", str(audit_store),
-    ])
+    # These two in-process read-only entrypoints consume only this bounded
+    # argument surface. Building the full legacy CLI parser (hundreds of
+    # unrelated flags) cost ~2.87 s on the measured failure path and changed
+    # no decision. Keep the same parser defaults explicitly; subprocess/CLI
+    # fallback remains unchanged if an entrypoint ever needs more.
+    return argparse.Namespace(
+        state_dir=str(state_dir),
+        event_dir=str(event_dir),
+        policy_file=str(policy_file),
+        action_class_audit_store=str(audit_store),
+        org_policy_file=str(module.DEFAULT_ORG_POLICY_FILE),
+        safety_file=str(module.DEFAULT_SAFETY_FILE),
+        controlled_source_validation_profile="campaign",
+    )
 
 
 def in_process_governed_module(executor: str, planner: str) -> Any:

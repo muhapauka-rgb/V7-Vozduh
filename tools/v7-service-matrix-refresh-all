@@ -579,6 +579,38 @@ def read_prepared_controlled_target_selection_diagnostic(
         and str(row.get("channel") or "")
     })
     selected_source = current_failed[0] if current_failed else ""
+    incident_reference_epoch = 0.0
+    for source_row in (
+        current_scope.get("certification_only_active_sources") or []
+    ):
+        if not isinstance(source_row, dict) or str(
+            source_row.get("channel") or ""
+        ) != selected_source:
+            continue
+        binding_event = (
+            source_row.get("binding_event")
+            if isinstance(source_row.get("binding_event"), dict)
+            else {}
+        )
+        source_scope = (
+            binding_event.get("source_scope")
+            if isinstance(binding_event.get("source_scope"), dict)
+            else {}
+        )
+        incident_observed_at = str(
+            binding_event.get("observed_at")
+            or source_scope.get("observed_at")
+            or ""
+        )
+        try:
+            incident_reference_epoch = max(
+                incident_reference_epoch,
+                datetime.fromisoformat(
+                    incident_observed_at.replace("Z", "+00:00")
+                ).timestamp(),
+            )
+        except (TypeError, ValueError):
+            continue
     classes = [
         row for row in (projection.get("classes") or [])
         if isinstance(row, dict)
@@ -623,7 +655,6 @@ def read_prepared_controlled_target_selection_diagnostic(
         and isinstance(matrix.get("items"), dict)
         else {}
     )
-    now_epoch = incident_validation_epoch
     targets: list[dict[str, Any]] = []
     rejected: list[str] = []
     for target_id in declared_targets:
@@ -644,15 +675,29 @@ def read_prepared_controlled_target_selection_diagnostic(
             or ""
         )
         try:
+            observed_epoch = datetime.fromisoformat(
+                observed_at.replace("Z", "+00:00")
+            ).timestamp()
+            # A target proven fresh when T0 was confirmed remains legitimate
+            # input to this incident even if Python/Authority validation runs
+            # for several seconds afterwards.  Evidence refreshed after T0 is
+            # measured at validation entry.  Planner/apply still revalidates
+            # the mutable target immediately before route mutation.
+            freshness_reference_epoch = (
+                incident_reference_epoch
+                if (
+                    incident_reference_epoch > 0
+                    and observed_epoch <= incident_reference_epoch
+                )
+                else incident_validation_epoch
+            )
             age_seconds = max(
                 0.0,
-                now_epoch
-                - datetime.fromisoformat(
-                    observed_at.replace("Z", "+00:00")
-                ).timestamp(),
+                freshness_reference_epoch - observed_epoch,
             )
         except (TypeError, ValueError):
             age_seconds = -1.0
+            freshness_reference_epoch = 0.0
         path = (
             observed.get("path_evidence")
             if isinstance(observed.get("path_evidence"), dict)
@@ -725,6 +770,12 @@ def read_prepared_controlled_target_selection_diagnostic(
                 projection.get("produced_at") or ""
             ),
             "matrix_path_age_seconds": round(age_seconds, 3),
+            "matrix_path_freshness_reference": (
+                "CONFIRMED_T0"
+                if freshness_reference_epoch == incident_reference_epoch
+                and incident_reference_epoch > 0
+                else "INCIDENT_VALIDATION_ENTRY"
+            ),
         })
     return {
         "schema_version": (

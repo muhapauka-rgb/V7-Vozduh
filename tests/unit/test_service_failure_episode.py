@@ -511,7 +511,7 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             for command in successor_calls
         ))
 
-    def test_ct_m0f_incident_reuses_fresh_prepared_target_without_full_diagnostic(self):
+    def test_ct_m0f_incident_reuses_target_that_was_fresh_at_confirmed_t0(self):
         with tempfile.TemporaryDirectory() as tmp:
             state = Path(tmp) / "state"
             events = Path(tmp) / "events"
@@ -543,7 +543,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "ip=10.7.0.18 current=exec-source enabled=1\n",
                 encoding="utf-8",
             )
-            observed = datetime.now(timezone.utc).isoformat()
+            now = datetime.now(timezone.utc)
+            observed = (now - timedelta(seconds=5)).isoformat()
+            incident_observed = (now - timedelta(seconds=4)).isoformat()
             stale_full_check = (
                 datetime.now(timezone.utc) - timedelta(seconds=30)
             ).isoformat()
@@ -574,6 +576,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "certification_only_active_sources": [{
                     "channel": "exec-source",
                     "source_currently_failed": True,
+                    "binding_event": {
+                        "observed_at": incident_observed,
+                    },
                 }],
             }
             with mock.patch.object(
@@ -605,6 +610,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertFalse(result["world_model_rebuilt"])
         self.assertFalse(result["manual_server_selection"])
+        self.assertEqual(
+            result["targets"][0]["matrix_path_freshness_reference"],
+            "CONFIRMED_T0",
+        )
         self.assertEqual(
             result["targets"][0]["capacity"][
                 "target_safe_additional_capacity"

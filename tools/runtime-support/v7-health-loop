@@ -147,7 +147,15 @@ DEFAULT_ROLE_NICE = {
     # while all observation/background roles retain the service/background
     # priority.  This is work placement only; cadence and health ownership do
     # not change.
-    "hard": -10,
+    # The service itself runs at Nice=10.  An adjustment of -10 only restored
+    # the incident child to Nice=0, which still competed equally with
+    # unrelated maintenance on the measured two-core host and stretched a
+    # ~2 s recovery transaction beyond 5 s.  A confirmed Matrix-owned HARD
+    # incident is bounded and preempts every disposable health child, so give
+    # that exact child the normal Linux highest non-realtime priority.  This
+    # does not change cadence, admission, Authority or any route decision;
+    # after the child returns all ordinary priorities resume automatically.
+    "hard": -30,
     # Target readiness is the second half of the same HARD recovery
     # transaction.  On the two-core production host it must finish ahead of
     # diagnostic/background work so its three-second PATH proof is still

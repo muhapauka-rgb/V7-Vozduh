@@ -345,17 +345,25 @@ class RoleHealthLoop:
     # therefore never preempt background work.
     hard_takeover_ns: int = 0
     matrix_state_file: Path = DEFAULT_MATRIX_STATE_FILE
+    hard_recovery_latched: bool = False
 
     def _hard_recovery_active(self, now_ns: int) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
-        return bool(
-            hard is not None
-            and hard.process is not None
-            and now_ns - hard.started_ns >= self.hard_takeover_ns
+        if hard is None or hard.process is None:
+            self.hard_recovery_latched = False
+            return False
+        if (
+            now_ns - hard.started_ns >= self.hard_takeover_ns
             and canonical_definitive_hard_failure_active(
                 self.matrix_state_file
             )
-        )
+        ):
+            # Matrix owns admission.  The latch is process-local scheduling
+            # state only: once admitted, preserve priority through every
+            # Matrix episode phase until this exact HARD child returns.  A
+            # later phase name must not restart background probes midway.
+            self.hard_recovery_latched = True
+        return self.hard_recovery_latched
 
     def _hard_recovery_takeover(self, now_ns: int) -> None:
         """Give an admitted long HARD cycle priority until it returns.
@@ -469,12 +477,15 @@ class RoleHealthLoop:
             )
             role.process = None
             role.started_ns = 0
+            if role.name == "hard":
+                self.hard_recovery_latched = False
 
     def _stop_children(self) -> None:
         for role in self.roles:
             if role.process is not None:
                 terminate_process_group(role.process)
                 role.process = None
+        self.hard_recovery_latched = False
 
     def run(self) -> int:
         started = monotonic_ns()

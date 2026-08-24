@@ -300,6 +300,63 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         )
         self.assertIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
 
+    def test_hard_priority_stays_latched_until_exact_child_completes(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            matrix.write_text(json.dumps({
+                "items": {"source-a": {"services": {
+                    "__channel_liveness__": {
+                        "ok": False,
+                        "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_test",
+                        "failure_event_id": "sfe_test",
+                    }
+                }}}
+            }), encoding="utf-8")
+            hard = self.write_command(
+                root, "hard",
+                f"sleep 0.2\nprintf '{{\"items\":{{}}}}' > '{matrix}'\n"
+                "sleep 0.9\n",
+            )
+            quick = self.write_command(root, "quick", "sleep 0.02\n")
+            completed = subprocess.run(
+                [
+                    str(LOOP), "--role-based-fast", "--max-phases", "2",
+                    "--controlled-matrix-state-file", str(matrix),
+                    "--hard-interval-ms", "1000",
+                    "--hot-target-interval-ms", "100",
+                    "--controlled-hard-command", str(hard),
+                    "--controlled-telegram-command", str(quick),
+                    "--controlled-hot-target-command", str(quick),
+                    "--controlled-hot-target-other-command", str(quick),
+                    "--controlled-required-command", str(quick),
+                    "--controlled-planner-projection-command", str(quick),
+                    "--controlled-deep-command", str(quick),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=6,
+            )
+        first_hard_complete = completed.stdout.index(
+            "V7_HEALTH_ROLE_COMPLETE role=hard completion=1"
+        )
+        second_target_start = completed.stdout.index(
+            "V7_HEALTH_ROLE_START role=hot_target start=2"
+        )
+        self.assertGreater(second_target_start, first_hard_complete)
+        self.assertIn(
+            "V7_HEALTH_ROLE_PREEMPTED role=hot_target ",
+            completed.stdout,
+        )
+        self.assertIn(
+            "V7_HEALTH_ROLE_DEFERRED role=hot_target "
+            "reason=HARD_RECOVERY_PRIORITY",
+            completed.stdout,
+        )
+
     def test_slow_healthy_hard_observation_does_not_preempt_projection(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

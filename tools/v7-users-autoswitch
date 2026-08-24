@@ -3888,6 +3888,9 @@ class AutoswitchPlanner:
         self.l3_runtime_state_file = self.state_dir / "l3-runtime-state.json"
         self.l3_capability_state_file = self.state_dir / "l3-capability-state.json"
         self.l3_runtime_state = self._load_l3_runtime_state()
+        self._l3_runtime_state_file_identity = (
+            self._runtime_file_identity(self.l3_runtime_state_file)
+        )
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.policy = read_json(Path(args.policy_file), {})
         self.org_policy = read_json(Path(args.org_policy_file), {})
@@ -4127,7 +4130,17 @@ class AutoswitchPlanner:
             self.state_dir / "l3-capability-state.json"
         )
 
-        self.l3_runtime_state = self._load_l3_runtime_state()
+        current_l3_identity = self._runtime_file_identity(
+            self.l3_runtime_state_file
+        )
+        l3_runtime_state_reused = bool(
+            current_l3_identity
+            == getattr(self, "_l3_runtime_state_file_identity", ())
+            and isinstance(getattr(self, "l3_runtime_state", None), dict)
+        )
+        if not l3_runtime_state_reused:
+            self.l3_runtime_state = self._load_l3_runtime_state()
+        self._l3_runtime_state_file_identity = current_l3_identity
         self.state = read_json(self.state_dir / "v7-state.json", {})
         self.quality_summary = read_json(
             Path(apply_args.quality_summary_file), {"items": {}}
@@ -4196,6 +4209,10 @@ class AutoswitchPlanner:
                 "candidate_reused": True,
                 "candidate_reselected": False,
                 "mutable_execution_inputs_reloaded": True,
+                "unchanged_l3_runtime_state_reused": (
+                    l3_runtime_state_reused
+                ),
+                "l3_runtime_state_source_identity_checked": True,
                 "policy_generation_equal": True,
             },
         )
@@ -5375,6 +5392,29 @@ class AutoswitchPlanner:
         state.setdefault("updated", "")
         return state
 
+    @staticmethod
+    def _runtime_file_identity(path: Path) -> tuple[int, int, int, int, int]:
+        """Return a mutation-sensitive identity for an already loaded file.
+
+        A governed Packet and its apply revalidation execute in one process.
+        Re-parsing the multi-megabyte canonical L3 projection adds no new
+        evidence when its inode, size, mtime and ctime are all unchanged.
+        Any replacement or write changes this tuple and retains the existing
+        full reload/fail-closed behavior.  The file remains the sole owner;
+        this creates no persisted cache or secondary truth source.
+        """
+        try:
+            stat = Path(path).stat()
+        except OSError:
+            return (0, 0, 0, 0, 0)
+        return (
+            int(stat.st_dev),
+            int(stat.st_ino),
+            int(stat.st_size),
+            int(stat.st_mtime_ns),
+            int(stat.st_ctime_ns),
+        )
+
     def _write_l3_runtime_state(self, state: dict[str, Any]) -> None:
         state["schema_version"] = "v7.l3-runtime-state.v1"
         state["updated"] = now_iso()
@@ -5382,6 +5422,9 @@ class AutoswitchPlanner:
         state["processed_event_ids"] = processed[-500:]
         write_json_atomic(self.l3_runtime_state_file, state)
         self.l3_runtime_state = state
+        self._l3_runtime_state_file_identity = (
+            self._runtime_file_identity(self.l3_runtime_state_file)
+        )
 
     def _bounded_cohort_checkpoint(
         self,

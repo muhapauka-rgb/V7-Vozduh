@@ -2332,7 +2332,21 @@ def reserve_ct_m0f_standing_validation_sample(
     with current_action_class_contract_policy_lock(policy_path):
         policy_root = read_json(policy_path)
         contract = (policy_root or {}).get(CT_M0F_STANDING_VALIDATION_POLICY_KEY, {}) if isinstance(policy_root, dict) else {}
-        records = read_live_execution_lineage_records(audit_store)
+        # Name the exact immutable standing decision so the lineage reader
+        # can reuse its already validated, source-signature-bound projection
+        # while retaining every newer reservation/terminal row.  Any append
+        # or rotation changes that signature and forces a fresh scan.
+        standing_decision = (
+            contract.get("authority_decision")
+            if isinstance(contract.get("authority_decision"), dict)
+            else {}
+        )
+        records = read_live_execution_lineage_records(
+            audit_store,
+            required_decision_ids=tuple(filter(None, [
+                str(standing_decision.get("decision_id") or "")
+            ])),
+        )
         validation = validate_ct_m0f_standing_validation_policy(contract, audit_records=records, now=now)
         if not validation.get("ok"):
             return {"ok": False, "status": "STOP_SAFE", "errors": validation.get("errors") or [], "audit_write": False}

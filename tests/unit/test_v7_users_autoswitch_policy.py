@@ -7125,6 +7125,12 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
                 side_effect=AssertionError(
                     "Packet-locked apply must not select a second Candidate"
                 ),
+            ), mock.patch.object(
+                planner,
+                "_load_l3_runtime_state",
+                side_effect=AssertionError(
+                    "Unchanged canonical L3 state must not be parsed twice"
+                ),
             ):
                 revalidated = planner.revalidate_committed_apply_plan(
                     apply_args,
@@ -7148,6 +7154,13 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
             revalidated["safety"]["selected_moves_diagnostics"][
                 "candidate_reselected_after_approval"
             ]
+        )
+        timing = next(
+            row for row in planner._performance_spans
+            if row["stage"] == "committed_apply_mutable_owner_revalidation"
+        )
+        self.assertTrue(
+            timing["details"]["unchanged_l3_runtime_state_reused"]
         )
 
     def test_committed_apply_revalidation_blocks_live_assignment_drift(self):

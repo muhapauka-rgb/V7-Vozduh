@@ -12264,9 +12264,12 @@ def prepare_ct_m0f_standing_controlled_condition(
         if isinstance(policy_root, dict)
         else {}
     )
+    policy_audit_records = (
+        operator_execution.read_live_execution_lineage_records(audit_store)
+    )
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract,
-        audit_records=operator_execution.read_live_execution_lineage_records(audit_store),
+        audit_records=policy_audit_records,
     )
     blockers = list(validation.get("errors") or [])
     if str(args.ct_m0f_standing_validation_contract_id or "") != str(
@@ -12371,6 +12374,38 @@ def prepare_ct_m0f_standing_controlled_condition(
             "ct_m0f_standing_controlled_condition_not_admitted",
             blockers=sorted(set(blockers)),
             selection=selection,
+        )
+
+    # Pay the immutable Authority-lineage lookup before controlled T0.  A
+    # production failure must not wait for the first-use checkpoint of a new
+    # implementation build.  The ordinary Matrix consumer still owns sample
+    # admission and execution; preparation only asks the existing append-only
+    # audit owner to materialize its bounded acceleration pointer while the
+    # exact certification source is healthy.
+    implementation_fingerprint = (
+        operator_execution.ct_m0f_runtime_implementation_fingerprint(
+            governed_cycle=Path(__file__),
+            matrix_failure_consumer=Path(__file__).with_name(
+                "v7-service-matrix-refresh-all"
+            ),
+            autoswitch=planner_observe_executable(),
+            health_runtime=health_runtime_executable(),
+            routing_runtime=routing_runtime_executable(),
+        )
+    )
+    lineage_checkpoint = (
+        operator_execution.ensure_ct_m0f_standing_validation_lineage_checkpoint(
+            contract,
+            implementation_fingerprint,
+            audit_store=audit_store,
+            audit_records=policy_audit_records,
+        )
+    )
+    if lineage_checkpoint.get("ok") is not True:
+        return transaction_stop(
+            "ct_m0f_standing_pre_t0_lineage_checkpoint_invalid",
+            blockers=[str(lineage_checkpoint.get("status") or "")],
+            lineage_checkpoint=lineage_checkpoint,
         )
 
     # A production user is already connected before its server fails.  Warm
@@ -12564,6 +12599,8 @@ def prepare_ct_m0f_standing_controlled_condition(
         "condition_returncode": condition.returncode,
         "condition_output": (condition.stdout or "")[-2000:],
         "condition_record": record,
+        "lineage_checkpoint": lineage_checkpoint,
+        "implementation_fingerprint": implementation_fingerprint,
         "exact_client_session": client_session,
         "durable_successor": "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE",
         "runtime_mutation_performed": True,

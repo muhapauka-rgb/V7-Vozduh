@@ -814,6 +814,18 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "validate_ct_m0f_standing_validation_policy",
                 return_value={"ok": True, "errors": []},
             ), mock.patch.object(
+                self.cycle.operator_execution,
+                "ensure_ct_m0f_standing_validation_lineage_checkpoint",
+                return_value={
+                    "ok": True,
+                    "status": "CREATED",
+                    "audit_write": True,
+                },
+            ) as checkpoint_mock, mock.patch.object(
+                self.cycle.operator_execution,
+                "ct_m0f_runtime_implementation_fingerprint",
+                return_value="c" * 64,
+            ), mock.patch.object(
                 self.cycle,
                 "prepare_controlled_certification_condition",
                 return_value={"final_verdict": "CONTROLLED_CERTIFICATION_CONDITION_PREPARED"},
@@ -846,6 +858,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         )
         self.assertEqual(records[-1]["record_type"], "ct_m0f_standing_controlled_condition_prepared")
         self.assertEqual(records[-1]["next_required_consumer"], "ordinary fresh Matrix generation")
+        self.assertEqual(result["lineage_checkpoint"]["status"], "CREATED")
+        self.assertEqual(result["implementation_fingerprint"], "c" * 64)
+        checkpoint_mock.assert_called_once()
         self.assertIn("--expected-egress-fingerprint", condition_command)
         self.assertIn("INJECT_CONTROLLED_CERTIFICATION_FAILURE", condition_command)
         self.assertGreater(

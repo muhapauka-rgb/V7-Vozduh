@@ -152,6 +152,11 @@ DEFAULT_ROLE_NICE = {
     "other_required": 4,
 }
 SLOW_ROLE_NAMES = frozenset(DEFAULT_ROLE_NICE)
+# A confirmed source failure and fresh target readiness are one recovery
+# transaction. Keep the exact PATH and applicable Telegram target lanes alive
+# while HARD consumes the incident; only unrelated observation/analysis work
+# is disposable. This is the existing role set, not a new worker or owner.
+RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "telegram", "hot_target"})
 
 
 def monotonic_ns() -> int:
@@ -286,15 +291,15 @@ class RoleHealthLoop:
     hard_takeover_ns: int = 250_000_000
 
     def _hard_recovery_takeover(self, now_ns: int) -> None:
-        """Give an admitted long HARD cycle the host until it returns.
+        """Give an admitted long HARD cycle priority until it returns.
 
         Healthy HARD observation normally completes in roughly 100--200 ms.
         Once it remains active beyond this bounded discriminator it is either
         consuming the Matrix-owned failure successor or already fail-closing
-        that successor.  Observation-only roles cannot improve that decision,
-        but on a small host they can delay Packet/apply by seconds.  Cancel
-        only those disposable child invocations; their absolute cadence will
-        start a fresh observation after HARD completes.
+        that successor. PATH and applicable Telegram readiness are inputs to
+        that same decision and must remain fresh in parallel. Cancel only
+        unrelated disposable children; their absolute cadence starts a fresh
+        observation after HARD completes.
         """
         hard = next((role for role in self.roles if role.name == "hard"), None)
         if (
@@ -304,7 +309,10 @@ class RoleHealthLoop:
         ):
             return
         for role in self.roles:
-            if role.name == "hard" or role.process is None:
+            if (
+                role.name in RECOVERY_CRITICAL_ROLE_NAMES
+                or role.process is None
+            ):
                 continue
             duration = elapsed_ms(role.started_ns, now_ns)
             terminate_process_group(role.process)
@@ -336,7 +344,10 @@ class RoleHealthLoop:
                     flush=True,
                 )
                 continue
-            if role.name != "hard" and hard_takeover:
+            if (
+                role.name not in RECOVERY_CRITICAL_ROLE_NAMES
+                and hard_takeover
+            ):
                 print(
                     f"V7_HEALTH_ROLE_DEFERRED role={role.name} "
                     "reason=HARD_RECOVERY_PRIORITY",

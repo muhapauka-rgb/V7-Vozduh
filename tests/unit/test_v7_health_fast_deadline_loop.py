@@ -187,14 +187,15 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             hard = self.write_command(root, "hard", "sleep 0.65\n")
+            critical = self.write_command(root, "critical", "sleep 0.05\n")
             background = self.write_command(root, "background", "sleep 5\n")
             completed = subprocess.run(
                 [
                     str(LOOP), "--role-based-fast", "--max-phases", "1",
                     "--hard-interval-ms", "1000",
                     "--controlled-hard-command", str(hard),
-                    "--controlled-telegram-command", str(background),
-                    "--controlled-hot-target-command", str(background),
+                    "--controlled-telegram-command", str(critical),
+                    "--controlled-hot-target-command", str(critical),
                     "--controlled-hot-target-other-command", str(background),
                     "--controlled-required-command", str(background),
                     "--controlled-planner-projection-command", str(background),
@@ -205,8 +206,14 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 check=True,
                 timeout=5,
             )
+        self.assertNotIn(
+            "V7_HEALTH_ROLE_PREEMPTED role=telegram", completed.stdout,
+        )
+        self.assertNotIn(
+            "V7_HEALTH_ROLE_PREEMPTED role=hot_target ", completed.stdout,
+        )
         self.assertIn(
-            "V7_HEALTH_ROLE_PREEMPTED role=telegram",
+            "V7_HEALTH_ROLE_PREEMPTED role=hot_target_other",
             completed.stdout,
         )
         self.assertIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)

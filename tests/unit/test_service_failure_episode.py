@@ -85,6 +85,49 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertFalse(payload["observation_only"]["downstream_consumer_invoked"])
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
 
+    def test_standing_lineage_initialization_stops_before_runtime_actions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            argv = [
+                str(REFRESH_TOOL),
+                "--state-dir", str(state),
+                "--event-dir", str(root / "events"),
+                "--policy-file", str(root / "policy.json"),
+                "--operator-execution-audit-store", str(root / "audit.jsonl"),
+                "--initialize-standing-lineage-only",
+            ]
+            ready = {
+                "schema_version": (
+                    "v7.ct-m0f-standing-lineage-initialization.v1"
+                ),
+                "status": "CT_M0F_STANDING_LINEAGE_READY",
+                "ok": True,
+                "network_probe_performed": False,
+                "candidate_created": False,
+                "packet_created": False,
+                "lease_created": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                self.refresh,
+                "run_ct_m0f_standing_validation_campaign",
+                return_value=ready,
+            ) as initialize, contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
+
+        payload = json.loads(output.getvalue())
+        self.assertEqual(
+            payload["status"], "CT_M0F_STANDING_LINEAGE_READY",
+        )
+        self.assertFalse(payload["network_probe_performed"])
+        self.assertFalse(payload["routing_mutation_performed"])
+        self.assertEqual(payload["users_moved"], 0)
+        self.assertTrue(initialize.call_args.kwargs["lineage_checkpoint_only"])
+
     def test_controlled_persistence_override_is_forwarded_with_the_existing_event_owner(self):
         calls = []
 

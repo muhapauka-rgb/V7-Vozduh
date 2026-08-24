@@ -1846,6 +1846,7 @@ def run_ct_m0f_standing_validation_campaign(
     max_successive_samples: int = 8,
     controlled_successor_wait_sec: float = 0.0,
     current_source_scope: Optional[dict[str, Any]] = None,
+    lineage_checkpoint_only: bool = False,
 ) -> dict[str, Any]:
     """Consume the bounded CT-M0F standing policy through existing owners.
 
@@ -1929,6 +1930,30 @@ def run_ct_m0f_standing_validation_campaign(
             "blockers": [str(lineage_checkpoint.get("status") or "")],
             "action_attempted": False,
             "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    if lineage_checkpoint_only:
+        return {
+            "schema_version": "v7.ct-m0f-standing-lineage-initialization.v1",
+            "status": "CT_M0F_STANDING_LINEAGE_READY",
+            "ok": True,
+            "contract_id": str(contract.get("contract_id") or ""),
+            "contract_hash": str(contract.get("contract_hash") or ""),
+            "implementation_fingerprint": implementation_fingerprint,
+            "lineage_checkpoint": lineage_checkpoint,
+            "performance_timeline": {
+                "schema_version": "v7.matrix-pre-execution-timing.v1",
+                "spans": list(preparation_spans),
+                "total_ms": round(sum(
+                    float(row.get("duration_ms") or 0.0)
+                    for row in preparation_spans
+                ), 3),
+            },
+            "network_probe_performed": False,
+            "candidate_created": False,
+            "packet_created": False,
+            "lease_created": False,
+            "routing_mutation_performed": False,
             "users_moved": 0,
         }
 
@@ -5907,6 +5932,15 @@ def build_parser() -> argparse.ArgumentParser:
             "the existing Matrix summary; no probes, events or execution."
         ),
     )
+    parser.add_argument(
+        "--initialize-standing-lineage-only",
+        action="store_true",
+        help=(
+            "Validate and checkpoint the current standing CT-M0F lineage "
+            "before the health Runtime starts; no probes, selection, Packet, "
+            "lease, route or user action."
+        ),
+    )
     parser.add_argument("--prepared-projection-file", default="")
     parser.add_argument("--prepared-hot-target-concurrency", type=int, default=16)
     parser.add_argument("--prepared-hot-target-timeout-sec", type=int, default=1)
@@ -5995,6 +6029,36 @@ def main() -> int:
     args = build_parser().parse_args()
     started = time.time()
     state_dir = Path(args.state_dir)
+    if args.initialize_standing_lineage_only:
+        conflicting = bool(
+            args.refresh_prepared_projection_only
+            or args.staggered_deep
+            or args.prepared_hot_targets
+            or args.consume_existing_service_failure_events_only
+            or str(args.egresses or "").strip()
+            or str(args.services or "").strip()
+        )
+        if conflicting:
+            print(json.dumps({
+                "error": "standing_lineage_initialization_scope_conflict",
+            }, ensure_ascii=False))
+            return 2
+        result = run_ct_m0f_standing_validation_campaign(
+            str(args.governed_executor),
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            event_dir=Path(args.event_dir),
+            policy_file=Path(args.policy_file),
+            audit_store=Path(args.operator_execution_audit_store),
+            timeout_sec=max(30, int(args.passive_consumer_timeout_sec)),
+            max_successive_samples=0,
+            lineage_checkpoint_only=True,
+        )
+        print(json.dumps(
+            result, ensure_ascii=False,
+            indent=2 if args.pretty else None,
+        ))
+        return 0 if result.get("ok") is True else 2
     if args.refresh_prepared_projection_only:
         conflicting = bool(
             args.staggered_deep

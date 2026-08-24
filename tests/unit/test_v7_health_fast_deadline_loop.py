@@ -100,6 +100,11 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn(
             "ExecStart=/usr/local/bin/v7-health-loop --role-based-fast", service,
         )
+        self.assertIn(
+            "ExecStartPre=/usr/local/bin/v7-service-matrix-refresh-all "
+            "--initialize-standing-lineage-only",
+            service,
+        )
         self.assertNotIn("sleep 30", service)
         self.assertIn("time.monotonic_ns", loop)
         self.assertIn("start_new_session=True", loop)

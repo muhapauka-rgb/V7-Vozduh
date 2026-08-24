@@ -6,6 +6,7 @@ After=network-online.target v7-routing-sync.service
 [Service]
 Type=simple
 Environment=V7_ACTOR=health
+ExecStartPre=/usr/local/bin/v7-service-matrix-refresh-all --initialize-standing-lineage-only
 ExecStart=/usr/local/bin/v7-health-loop --role-based-fast
 Restart=always
 RestartSec=5

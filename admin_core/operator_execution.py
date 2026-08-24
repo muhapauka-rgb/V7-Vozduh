@@ -8065,6 +8065,68 @@ def read_live_execution_lineage_records(
         )
         return cached_superset
 
+    # A current implementation checkpoint is an immutable, hash-verified
+    # Authority pointer created only after a complete historical scan proved
+    # that this fingerprint had no earlier campaign rows.  When that exact
+    # checkpoint is still in the active append-only segment, one search for
+    # the fingerprint yields the complete current cohort and makes another
+    # multi-enum scan of the same hundreds-of-MiB file unnecessary.  Rotation
+    # or any missing/invalid checkpoint falls through to the full fail-closed
+    # reader below.
+    if checkpoint_fingerprint and path.exists() and path.suffix != ".gz":
+        fingerprint_marker = json.dumps(
+            checkpoint_fingerprint, ensure_ascii=True,
+        ).encode("ascii")
+        fingerprint_rows: list[dict[str, Any]] = []
+        try:
+            with path.open("rb") as raw_handle:
+                if os.fstat(raw_handle.fileno()).st_size:
+                    with mmap.mmap(
+                        raw_handle.fileno(), 0, access=mmap.ACCESS_READ,
+                    ) as mapped:
+                        line_offsets: set[tuple[int, int]] = set()
+                        position = 0
+                        while True:
+                            found = mapped.find(fingerprint_marker, position)
+                            if found < 0:
+                                break
+                            start = mapped.rfind(b"\n", 0, found) + 1
+                            end = mapped.find(b"\n", found)
+                            if end < 0:
+                                end = len(mapped)
+                            line_offsets.add((start, end))
+                            position = found + len(fingerprint_marker)
+                        for start, end in sorted(line_offsets):
+                            try:
+                                row = json.loads(mapped[start:end])
+                            except (UnicodeDecodeError, json.JSONDecodeError):
+                                continue
+                            if (
+                                isinstance(row, dict)
+                                and str(row.get("implementation_fingerprint") or "")
+                                == checkpoint_fingerprint
+                                and row.get("record_type")
+                                in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
+                            ):
+                                fingerprint_rows.append(row)
+        except OSError:
+            fingerprint_rows = []
+        checkpoint_rows = [
+            row for row in fingerprint_rows
+            if row.get("record_type")
+            == CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+            and row.get("no_prior_campaign_records_for_fingerprint") is True
+            and (
+                not required_ids
+                or str(row.get("decision_id") or "") in required_ids
+            )
+        ]
+        if len(checkpoint_rows) == 1:
+            _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE[cache_key] = tuple(
+                copy.deepcopy(fingerprint_rows)
+            )
+            return fingerprint_rows
+
     durable_value_markers = tuple(
         json.dumps(value, ensure_ascii=True)
         for value in sorted(durable_record_types | durable_effect_classes)

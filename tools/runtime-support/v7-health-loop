@@ -175,17 +175,25 @@ SLOW_ROLE_NAMES = frozenset({
 # is disposable. This is the existing role set, not a new worker or owner.
 RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target"})
 DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
+DEFAULT_USERS_REGISTRY_FILE = Path("/opt/v7/egress/state/users.registry")
 
 
-def canonical_definitive_hard_failure_active(matrix_state_file: Path) -> bool:
-    """Read the existing Matrix owner's current definitive-failure surface.
+def canonical_definitive_hard_failure_active(
+    matrix_state_file: Path,
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE,
+) -> bool:
+    """Read the current Matrix failure and unresolved assignment surface.
 
     Process duration alone is not incident evidence: on a busy two-core host a
     healthy HARD observation can cross the scheduling discriminator and used
     to kill the Planner projection which the next real incident needed.  Only
-    Matrix may establish this predicate, and only its explicit local hard-
-    failure episode is admitted.  This reader persists nothing and creates no
-    scheduler or health state.
+    Matrix may establish the failure.  The existing users registry then proves
+    whether an enabled client still needs recovery from that exact source.
+    Once the last affected assignment has moved, the failed source may remain
+    down but it no longer owns the recovery deadline, so background readiness
+    work must resume.  A registry read failure keeps the previous fail-safe
+    priority.  This reader persists nothing and creates no scheduler or health
+    state.
     """
     try:
         payload = json.loads(matrix_state_file.read_text(encoding="utf-8"))
@@ -194,7 +202,8 @@ def canonical_definitive_hard_failure_active(matrix_state_file: Path) -> bool:
     items = payload.get("items") if isinstance(payload, dict) else {}
     if not isinstance(items, dict):
         return False
-    for source in items.values():
+    failed_sources: set[str] = set()
+    for source_id, source in items.items():
         if not isinstance(source, dict):
             continue
         services = source.get("services")
@@ -212,6 +221,28 @@ def canonical_definitive_hard_failure_active(matrix_state_file: Path) -> bool:
             and str(liveness.get("source_incident_id") or "")
             and str(liveness.get("failure_event_id") or "")
         ):
+            failed_sources.add(str(source_id))
+    if not failed_sources:
+        return False
+
+    try:
+        rows = users_registry_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return True
+    for line in rows:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        row = {}
+        for token in stripped.split():
+            key, separator, value = token.partition("=")
+            if separator:
+                row[key] = value
+        if str(row.get("enabled", "1")).lower() in {
+            "0", "false", "no", "off", "disabled",
+        }:
+            continue
+        if str(row.get("current") or "") in failed_sources:
             return True
     return False
 
@@ -353,6 +384,7 @@ class RoleHealthLoop:
     # therefore never preempt background work.
     hard_takeover_ns: int = 0
     matrix_state_file: Path = DEFAULT_MATRIX_STATE_FILE
+    users_registry_file: Path = DEFAULT_USERS_REGISTRY_FILE
     hard_recovery_latched: bool = False
 
     def _hard_recovery_active(self, now_ns: int) -> bool:
@@ -363,7 +395,7 @@ class RoleHealthLoop:
         if (
             now_ns - hard.started_ns >= self.hard_takeover_ns
             and canonical_definitive_hard_failure_active(
-                self.matrix_state_file
+                self.matrix_state_file, self.users_registry_file
             )
         ):
             # Matrix owns admission.  The latch is process-local scheduling
@@ -552,6 +584,14 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "production always reads the canonical default."
         ),
     )
+    parser.add_argument(
+        "--controlled-users-registry-file",
+        default="",
+        help=(
+            "Finite Polygon/test override for the existing users registry; "
+            "production always reads the canonical default."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -580,6 +620,16 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error(
             "--controlled-matrix-state-file requires controlled role commands "
             "and a finite role-based Polygon run"
+        )
+    if args.controlled_users_registry_file and (
+        not args.controlled_matrix_state_file
+        or not args.role_based_fast
+        or not args.max_phases
+        or not any(controlled_roles)
+    ):
+        parser.error(
+            "--controlled-users-registry-file requires the controlled Matrix "
+            "state and a finite role-based Polygon run"
         )
     for value in (
         args.hard_interval_ms, args.telegram_interval_ms,
@@ -638,6 +688,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 Path(args.controlled_matrix_state_file)
                 if args.controlled_matrix_state_file
                 else DEFAULT_MATRIX_STATE_FILE
+            ),
+            users_registry_file=(
+                Path(args.controlled_users_registry_file)
+                if args.controlled_users_registry_file
+                else DEFAULT_USERS_REGISTRY_FILE
             ),
         ).run()
     if args.controlled_fast_command:

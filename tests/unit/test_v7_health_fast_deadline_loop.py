@@ -248,6 +248,58 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             completed.stdout,
         )
 
+    def test_completed_cutover_releases_background_roles_while_source_stays_down(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            matrix.write_text(json.dumps({
+                "items": {
+                    "source-a": {
+                        "services": {
+                            "__channel_liveness__": {
+                                "ok": False,
+                                "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                                "failure_state": "OBSERVED_CONFIRMED",
+                                "source_incident_id": "sfinc_test",
+                                "failure_event_id": "sfe_test",
+                            }
+                        }
+                    }
+                }
+            }), encoding="utf-8")
+            # The source is still definitively down, but the only enabled
+            # client is already assigned to its recovered target.
+            users.write_text(
+                "ip=10.7.0.92 current=target-a enabled=1\n",
+                encoding="utf-8",
+            )
+            hard = self.write_command(root, "hard", "sleep 0.2\n")
+            background = self.write_command(root, "background", "sleep 0.05\n")
+            completed = subprocess.run(
+                [
+                    str(LOOP), "--role-based-fast", "--max-phases", "1",
+                    "--controlled-matrix-state-file", str(matrix),
+                    "--controlled-users-registry-file", str(users),
+                    "--controlled-hard-command", str(hard),
+                    "--controlled-telegram-command", str(background),
+                    "--controlled-hot-target-command", str(background),
+                    "--controlled-hot-target-other-command", str(background),
+                    "--controlled-required-command", str(background),
+                    "--controlled-planner-projection-command", str(background),
+                    "--controlled-deep-command", str(background),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=5,
+            )
+        self.assertNotIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
+        self.assertIn(
+            "V7_HEALTH_ROLE_COMPLETE role=planner_projection completion=1",
+            completed.stdout,
+        )
+
     def test_hard_recovery_preempts_redundant_target_probe_when_path_is_fresh(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

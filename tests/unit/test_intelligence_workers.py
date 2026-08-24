@@ -1235,6 +1235,28 @@ class IntelligenceWorkersTest(unittest.TestCase):
             )
         self.assertEqual([row["idx"] for row in rows], [2, 4])
 
+    def test_jsonl_tail_matching_requires_all_markers_and_skips_partial_window_row(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.jsonl"
+            rows = [
+                {"idx": 1, "incident": "wanted", "source": "other"},
+                {"idx": 2, "incident": "wanted", "source": "exact"},
+                {"idx": 3, "incident": "wanted", "source": "exact"},
+            ]
+            payload = "\n".join(json.dumps(row) for row in rows)
+            path.write_text(payload, encoding="utf-8")
+            # Begin inside row 1.  Only complete rows inside the bounded tail
+            # may be considered canonical evidence.
+            max_bytes = len(payload.encode("utf-8")) - 5
+            matched = workers.read_jsonl_tail_matching(
+                path,
+                markers=["wanted", "exact"],
+                limit=2,
+                max_bytes=max_bytes,
+                require_all=True,
+            )
+        self.assertEqual([row["idx"] for row in matched], [2, 3])
+
     def test_worker_architecture_forbids_runtime_authority(self):
         architecture = workers.worker_architecture()
         forbidden = set(architecture["forbidden"])

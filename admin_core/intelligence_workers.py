@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import importlib
+import mmap
 import os
 import statistics
 from dataclasses import dataclass
@@ -141,34 +142,60 @@ def read_jsonl_tail_matching(
     path_obj = Path(path)
     try:
         with path_obj.open("rb") as handle:
-            handle.seek(0, os.SEEK_END)
-            size = handle.tell()
-            handle.seek(max(0, size - max_bytes))
-            data = handle.read(max_bytes)
-    except (FileNotFoundError, OSError):
+            size = os.fstat(handle.fileno()).st_size
+            if size <= 0:
+                return []
+            window_start = max(0, size - max(1, int(max_bytes)))
+            with mmap.mmap(handle.fileno(), length=0, access=mmap.ACCESS_READ) as mapped:
+                # A bounded tail may begin in the middle of a JSON row.  As in
+                # ``read_jsonl_tail``, exclude that partial row rather than
+                # accepting evidence whose complete bytes were not inspected.
+                if window_start:
+                    first_newline = mapped.find(b"\n", window_start, size)
+                    if first_newline < 0:
+                        return []
+                    window_start = first_newline + 1
+
+                # Locate candidate rows in C without copying or splitting the
+                # whole (potentially 80 MB) tail.  The collected line spans are
+                # only a prefilter; callers still perform exact field checks.
+                candidate_spans: set[tuple[int, int]] = set()
+                search_markers = marker_bytes[:1] if require_all else marker_bytes
+                for marker in search_markers:
+                    position = window_start
+                    while position < size:
+                        found = mapped.find(marker, position, size)
+                        if found < 0:
+                            break
+                        line_start = mapped.rfind(b"\n", window_start, found) + 1
+                        if line_start < window_start:
+                            line_start = window_start
+                        line_end = mapped.find(b"\n", found, size)
+                        if line_end < 0:
+                            line_end = size
+                        candidate_spans.add((line_start, line_end))
+                        position = found + max(1, len(marker))
+
+                rows: list[dict[str, Any]] = []
+                for line_start, line_end in sorted(candidate_spans, reverse=True):
+                    raw = mapped[line_start:line_end]
+                    matched = (
+                        all(marker in raw for marker in marker_bytes)
+                        if require_all
+                        else any(marker in raw for marker in marker_bytes)
+                    )
+                    if not matched:
+                        continue
+                    try:
+                        item = json.loads(raw.decode("utf-8", errors="replace"))
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(item, dict):
+                        rows.append(item)
+                        if len(rows) >= max(1, int(limit)):
+                            break
+    except (FileNotFoundError, OSError, ValueError):
         return []
-    lines = data.splitlines()
-    if size > max_bytes and lines:
-        lines = lines[1:]
-    rows: list[dict[str, Any]] = []
-    for raw in reversed(lines):
-        if not raw.strip():
-            continue
-        matched = (
-            all(marker in raw for marker in marker_bytes)
-            if require_all
-            else any(marker in raw for marker in marker_bytes)
-        )
-        if not matched:
-            continue
-        try:
-            item = json.loads(raw.decode("utf-8", errors="replace"))
-        except json.JSONDecodeError:
-            continue
-        if isinstance(item, dict):
-            rows.append(item)
-            if len(rows) >= max(1, int(limit)):
-                break
     rows.reverse()
     return rows
 

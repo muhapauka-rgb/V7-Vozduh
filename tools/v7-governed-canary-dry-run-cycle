@@ -999,7 +999,55 @@ def bind_availability_first_controlled_selection(
                 f"availability_first_planner_identity_missing:{user}"
             )
             continue
-        row = copy.deepcopy(decision)
+        decision_candidates = [
+            candidate for candidate in (decision.get("candidates") or [])
+            if isinstance(candidate, dict)
+            and str(candidate.get("egress") or "") in {source, target}
+        ]
+        compact_candidates = []
+        for candidate in decision_candidates:
+            service = (
+                candidate.get("service_suitability")
+                if isinstance(candidate.get("service_suitability"), dict)
+                else {}
+            )
+            compact_candidates.append({
+                "egress": str(candidate.get("egress") or ""),
+                "eligible": bool(candidate.get("eligible")),
+                "enabled": bool(candidate.get("enabled", True)),
+                "state": str(candidate.get("state") or ""),
+                "role": str(candidate.get("role") or ""),
+                "score": candidate.get("score", 0.0),
+                "load": copy.deepcopy(candidate.get("load") or {}),
+                "service_suitability": {
+                    "aggregate_score": service.get("aggregate_score"),
+                    "required_low": list(service.get("required_low") or []),
+                    "required_missing": list(service.get("required_missing") or []),
+                    "per_service": {
+                        service_id: {
+                            key: value
+                            for key, value in service_row.items()
+                            if key in {
+                                "available", "status", "truth_class",
+                                "freshness", "required",
+                            }
+                        }
+                        for service_id, service_row in (
+                            service.get("per_service") or {}
+                        ).items()
+                        if isinstance(service_row, dict)
+                    },
+                },
+            })
+        row = {
+            key: copy.deepcopy(decision.get(key))
+            for key in (
+                "reason", "important_services", "profile_required_services",
+                "route_class", "policy_set", "policy_class",
+                "capacity_decision", "service_failover", "confidence", "risk",
+            )
+            if key in decision
+        }
         row.update({
             "user_ip": user,
             "current_egress": source,
@@ -1026,6 +1074,7 @@ def bind_availability_first_controlled_selection(
                     else "CAMPAIGN_STAGE"
                 ),
             },
+            "candidates": compact_candidates,
         })
         selected.append(row)
     if blockers:
@@ -1038,6 +1087,22 @@ def bind_availability_first_controlled_selection(
 
     bound = copy.deepcopy(plan)
     bound["selected_moves"] = selected
+    # Candidate ranking has already been consumed and target identity is now
+    # immutable.  Keeping every unrelated decision/candidate inside the
+    # Packet, lease, barrier and audit made a one-user recovery serialize a
+    # multi-megabyte world model.  Preserve only the exact selected decisions;
+    # the full Planner result remains owned by its existing observation path.
+    bound["decisions"] = copy.deepcopy(selected)
+    bound["prepared_incident_projection_consumed"] = {
+        "schema_version": "v7.prepared-incident-selection-consumption.v1",
+        "status": "EXACT_SELECTED_SCOPE_COMPACTED_AFTER_PLANNER_DECISION",
+        "selection_owner": "tools/v7-users-autoswitch.AutoswitchPlanner.plan",
+        "selected_user_count": len(selected),
+        "selected_target": target,
+        "unrelated_candidates_serialized": False,
+        "candidate_reselection_allowed": False,
+        "runtime_mutation_performed": False,
+    }
     summary = (
         bound.get("summary")
         if isinstance(bound.get("summary"), dict)

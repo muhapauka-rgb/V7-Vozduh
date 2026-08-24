@@ -642,7 +642,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 now=now + timedelta(seconds=2),
             )
 
+            subprocess_commands = []
+
             def fake_run(command, **_kwargs):
+                subprocess_commands.append(command)
                 if "--ct-m0f-standing-source-selection" in command:
                     payload = {
                         "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_READY",
@@ -663,7 +666,39 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 }
                 return self.refresh.subprocess.CompletedProcess(command, 2, stdout=json.dumps(payload))
 
-            with mock.patch.object(self.refresh.subprocess, "run", side_effect=fake_run):
+            governed_calls = []
+
+            class FakeParser:
+                def parse_args(self, _argv):
+                    return SimpleNamespace(
+                        state_dir=str(state),
+                        event_dir=str(events),
+                        snapshot_root="",
+                        audit_dir=str(audit.parent),
+                        execution_lease_file="",
+                    )
+
+            governed_module = SimpleNamespace(
+                build_parser=lambda: FakeParser(),
+                default_audit_dir=lambda _state_dir: audit.parent,
+                execute_l3_production_validation=lambda *args, **kwargs: (
+                    governed_calls.append((args, kwargs))
+                    or {
+                        "final_verdict": "STOP_SAFE",
+                        "stop_reason": "l3_production_validation_transition_blocked",
+                        "runtime_mutation_performed": False,
+                        "users_moved": 0,
+                        "l3_plan_run": {"ok": False},
+                    }
+                ),
+            )
+
+            with mock.patch.object(
+                self.refresh, "in_process_governed_module",
+                return_value=governed_module,
+            ), mock.patch.object(
+                self.refresh.subprocess, "run", side_effect=fake_run,
+            ):
                 result = self.refresh.run_ct_m0f_standing_validation_campaign(
                     "governed-executor",
                     "existing-planner",
@@ -676,6 +711,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 "ct_m0f_standing_validation_campaign": result,
             })
 
+        self.assertEqual(len(governed_calls), 1)
+        self.assertFalse(any(
+            "--execute-l3-production-validation" in command
+            for command in subprocess_commands
+        ))
         self.assertEqual(result["status"], "STOP_SAFE_NO_SAMPLE_ADMITTED")
         receipt = result["sample_preparation_receipt"]
         self.assertEqual(receipt["phase"], "FRESH_SAMPLE_EXECUTION")
@@ -741,7 +781,16 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             }
 
             def fake_run(command, **_kwargs):
-                payload = json.dumps(selection) if "--ct-m0f-standing-source-selection" in command else "condition applied"
+                if "--ct-m0f-standing-source-selection" in command:
+                    payload = json.dumps(selection)
+                elif "--prepare-exact-client-probe-session" in command:
+                    payload = json.dumps({
+                        "ok": True,
+                        "final_verdict": "EXACT_CLIENT_PROBE_SESSION_PREPARED",
+                        "client": "10.7.0.18",
+                    })
+                else:
+                    payload = "condition applied"
                 return self.cycle.subprocess.CompletedProcess(command, 0, stdout=payload)
 
             with mock.patch.object(

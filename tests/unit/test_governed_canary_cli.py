@@ -5739,6 +5739,73 @@ class GovernedCanaryCliTest(unittest.TestCase):
         )
         self.assertEqual(selected_scope["targets"], ["awg3"])
 
+    def test_availability_first_compacts_consumed_planner_world_model(self):
+        module = load_cli_module()
+        plan = self.ready_l3_plan(moves=[])
+        plan["decisions"] = [{
+            "user_ip": "10.7.0.100",
+            "current_egress": "vless",
+            "recommended_egress": "awg3",
+            "reason": ["current_egress_not_eligible"],
+            "important_services": ["telegram"],
+            "candidates": [
+                {
+                    "egress": "vless",
+                    "eligible": False,
+                    "service_suitability": {"aggregate_score": 0},
+                    "quality_history": {"large": "x" * 10000},
+                },
+                {
+                    "egress": "awg3",
+                    "eligible": True,
+                    "load": {"status": "OK"},
+                    "service_suitability": {
+                        "aggregate_score": 100,
+                        "per_service": {
+                            "telegram": {
+                                "available": True,
+                                "status": "OK",
+                                "truth_class": "HEALTHY",
+                                "reason": "large diagnostic text" * 1000,
+                            },
+                        },
+                    },
+                    "quality_history": {"large": "y" * 10000},
+                },
+                {"egress": "unrelated", "eligible": True},
+            ],
+        }]
+        binding = module.bind_availability_first_controlled_selection(
+            plan,
+            expected_users=["10.7.0.100"],
+            source="vless",
+            target="awg3",
+            allocation_fingerprint="a" * 64,
+            performance_benchmark=True,
+        )
+
+        self.assertTrue(binding["ok"])
+        bound = binding["plan"]
+        self.assertEqual(len(bound["decisions"]), 1)
+        self.assertEqual(
+            [row["egress"] for row in bound["selected_moves"][0]["candidates"]],
+            ["vless", "awg3"],
+        )
+        self.assertNotIn(
+            "quality_history", bound["selected_moves"][0]["candidates"][1]
+        )
+        self.assertNotIn(
+            "reason",
+            bound["selected_moves"][0]["candidates"][1][
+                "service_suitability"
+            ]["per_service"]["telegram"],
+        )
+        self.assertFalse(
+            bound["prepared_incident_projection_consumed"][
+                "unrelated_candidates_serialized"
+            ]
+        )
+
     def test_availability_first_selection_fails_closed_on_identity_mismatch(self):
         module = load_cli_module()
         binding = module.bind_availability_first_controlled_selection(

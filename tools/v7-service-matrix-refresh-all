@@ -76,6 +76,7 @@ PERFORMANCE_REVALIDATION_GENERATION = (
 
 
 _IN_PROCESS_AUTOSWITCH_MODULE: Any = None
+_IN_PROCESS_GOVERNED_MODULE: Any = None
 
 
 def in_process_autoswitch_module(planner: str) -> Any:
@@ -118,6 +119,37 @@ def in_process_autoswitch_args(
         "--policy-file", str(policy_file),
         "--action-class-audit-store", str(audit_store),
     ])
+
+
+def in_process_governed_module(executor: str, planner: str) -> Any:
+    """Load the existing governed executor in the current Matrix process.
+
+    The executable, parser, owners and state files remain unchanged.  This
+    removes only the second Python interpreter/import cycle on the exact
+    one-user CT-M0F hot path.  The caller retains the established subprocess
+    fallback when loading or execution cannot be completed in process.
+    """
+    global _IN_PROCESS_GOVERNED_MODULE
+    if _IN_PROCESS_GOVERNED_MODULE is not None:
+        return _IN_PROCESS_GOVERNED_MODULE
+    path = Path(executor)
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    loader = importlib.machinery.SourceFileLoader(
+        "_v7_governed_matrix_runtime", str(path),
+    )
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    if spec is None:
+        raise ImportError(f"governed module spec unavailable: {path}")
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    # Reuse the exact Autoswitch module which this Matrix invocation already
+    # loaded for prepared-target validation/source selection.  This changes
+    # invocation cost only; no Planner instance, decision or mutable state is
+    # shared across transactions.
+    module._IN_PROCESS_PLANNER_MODULE = in_process_autoswitch_module(planner)
+    _IN_PROCESS_GOVERNED_MODULE = module
+    return module
 
 
 def now_iso() -> str:
@@ -1776,6 +1808,44 @@ def run_ct_m0f_standing_validation_campaign(
         ]
 
     def invoke(command: list[str], timeout: int) -> tuple[int, dict[str, Any], str]:
+        if "--execute-l3-production-validation" in command:
+            try:
+                module = in_process_governed_module(executor, planner)
+                args = module.build_parser().parse_args(command[1:])
+                child_state_dir = Path(args.state_dir)
+                child_event_dir = Path(args.event_dir)
+                child_snapshot_root = (
+                    Path(args.snapshot_root)
+                    if args.snapshot_root
+                    else child_state_dir / "intelligence"
+                )
+                child_audit_dir = (
+                    Path(args.audit_dir)
+                    if args.audit_dir
+                    else module.default_audit_dir(child_state_dir)
+                )
+                child_lease_file = (
+                    Path(args.execution_lease_file)
+                    if args.execution_lease_file
+                    else child_state_dir / "operator-execution-lease.json"
+                )
+                result = module.execute_l3_production_validation(
+                    args,
+                    state_dir=child_state_dir,
+                    event_dir=child_event_dir,
+                    snapshot_root=child_snapshot_root,
+                    audit_dir=child_audit_dir,
+                    lease_file=child_lease_file,
+                )
+                return (
+                    0 if result.get("final_verdict") == "L3_PRODUCTION_PROVEN" else 2,
+                    result if isinstance(result, dict) else {},
+                    "",
+                )
+            except Exception:
+                # Invocation availability is not an admission decision.  The
+                # same executable remains the fail-closed compatibility path.
+                pass
         try:
             proc = subprocess.run(
                 command,

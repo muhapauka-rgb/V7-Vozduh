@@ -12248,6 +12248,14 @@ def prepare_ct_m0f_standing_controlled_condition(
         "--policy-file", str(args.policy_file),
         "--action-class-audit-store", str(audit_store),
     ]
+    precomputed_target_file = str(
+        getattr(args, "ct_m0f_precomputed_target_diagnostic_file", "") or ""
+    )
+    if precomputed_target_file:
+        selection_command.extend([
+            "--ct-m0f-precomputed-target-diagnostic-file",
+            precomputed_target_file,
+        ])
     selection_proc = subprocess.run(
         selection_command,
         text=True,
@@ -13346,6 +13354,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-source-incident-generation", default="")
     parser.add_argument(
         "--ct-m0f-standing-sample-binding-fingerprint", default=""
+    )
+    parser.add_argument(
+        "--ct-m0f-precomputed-target-diagnostic-file",
+        default="",
+        help=(
+            "One-shot compact target-owner projection supplied by the "
+            "current Matrix consumer; it is revalidated and never persisted "
+            "as a second state owner."
+        ),
     )
     parser.add_argument(
         "--reset-ct-m0f-standing-validation-sample",

@@ -2236,7 +2236,10 @@ def run_ct_m0f_standing_validation_campaign(
             "users_moved": 0,
         }
 
-    if selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION":
+    if selection_mode in {
+        "PREPARE_CONTROLLED_FAILURE_CONDITION",
+        "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE",
+    }:
         prepare_command = [
             executor,
             "--prepare-ct-m0f-standing-controlled-condition",
@@ -2255,9 +2258,33 @@ def run_ct_m0f_standing_validation_campaign(
             "--max-users", "1",
             "--pretty",
         ]
-        rc, prepared, output = invoke(
-            prepare_command, max(120, min(timeout_sec, 900))
-        )
+        diagnostic_path = ""
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                prefix="v7-ct-m0f-prepare-target-",
+                suffix=".json",
+                delete=False,
+            ) as diagnostic_file:
+                json.dump(
+                    target_diagnostic,
+                    diagnostic_file,
+                    ensure_ascii=False,
+                )
+                diagnostic_file.write("\n")
+                diagnostic_path = diagnostic_file.name
+            prepare_command.extend([
+                "--ct-m0f-precomputed-target-diagnostic-file",
+                diagnostic_path,
+            ])
+            rc, prepared, output = invoke(
+                prepare_command, max(120, min(timeout_sec, 900))
+            )
+        finally:
+            if diagnostic_path:
+                with contextlib.suppress(OSError):
+                    os.unlink(diagnostic_path)
         passed = bool(
             rc == 0
             and prepared.get("final_verdict")

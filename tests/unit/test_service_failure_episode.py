@@ -347,7 +347,9 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     payload = {
                         "status": "CT_M0F_STANDING_CONTROLLED_FAILURE_PREPARATION_READY",
                         "ok": True,
-                        "selection_mode": "PREPARE_CONTROLLED_FAILURE_CONDITION",
+                        "selection_mode": (
+                            "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE"
+                        ),
                         "selected_source_id": "exec-source",
                         "selected_user": "10.7.0.18",
                         "selected_target_id": "vless",
@@ -398,6 +400,16 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "--ct-m0f-precomputed-target-diagnostic-file",
             source_selection_call,
         )
+        self.assertIn(
+            "--ct-m0f-precomputed-target-diagnostic-file",
+            prepare_call,
+        )
+        prepared_target_path = Path(prepare_call[
+            prepare_call.index(
+                "--ct-m0f-precomputed-target-diagnostic-file"
+            ) + 1
+        ])
+        self.assertFalse(prepared_target_path.exists())
         self.assertNotIn("--execute-l3-production-validation", prepare_call)
         self.assertEqual(result["durable_successor"], "NEXT_ORDINARY_MATRIX_GENERATION_DETECTS_CONTROLLED_FAILURE")
         self.assertEqual(

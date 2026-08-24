@@ -83,7 +83,6 @@ PREPARED_SELECTION_INVALIDATOR_KEYS = (
     "policy_authority_generation",
     "organization_policy_generation",
     "service_routing_generation",
-    "anti_flap_generation",
 )
 PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS = 300
 
@@ -722,10 +721,13 @@ def build_prepared_class_decision_projection(plan: dict[str, Any]) -> dict[str, 
         "class_count": len(prepared),
         "excluded_decision_count": exclusions,
         "invalidators": invalidators,
-        # Health observations are refreshed by the dedicated PATH/service
-        # roles and are validated at use time. Rebuilding the O(N) Planner
-        # projection for every Matrix observation would make the slow world
-        # model compete with the one-second detection lanes.
+        # Health observations, capacity and anti-flap state are validated at
+        # use time by their existing owners.  In particular, a confirmed
+        # failure necessarily changes anti-flap state; treating that change as
+        # target-selection identity would force an O(N) world-model rebuild at
+        # the exact moment the prepared target is needed.  The projection
+        # still carries the anti-flap generation as evidence, but it is not a
+        # selection invalidator and never grants execution by itself.
         "selection_invalidator_keys": list(PREPARED_SELECTION_INVALIDATOR_KEYS),
         "maximum_reuse_seconds": PREPARED_PROJECTION_PERIODIC_REBUILD_SECONDS,
         "hot_target_set": {

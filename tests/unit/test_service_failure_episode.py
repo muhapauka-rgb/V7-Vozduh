@@ -2334,6 +2334,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             prepared["hot_validation_law"],
             "COMPARE_DECLARED_GENERATIONS_ONLY_NO_WORLD_MODEL_REBUILD",
         )
+        self.assertNotIn(
+            "anti_flap_generation",
+            prepared["selection_invalidator_keys"],
+        )
+        self.assertEqual(
+            prepared["invalidators"]["anti_flap_generation"],
+            "anti_flap_generation",
+        )
         freshness = self.autoswitch.validate_prepared_class_decision_projection(
             prepared, prepared["invalidators"],
         )

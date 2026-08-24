@@ -9,6 +9,7 @@ and waits for every child it starts before proceeding to the next phase.
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
 import os
 import signal
@@ -208,6 +209,60 @@ def canonical_definitive_hard_failure_active(matrix_state_file: Path) -> bool:
     return False
 
 
+def canonical_prepared_target_path_fresh(
+    matrix_state_file: Path, *, maximum_age_seconds: float = 3.0,
+) -> bool:
+    """Return whether Matrix already has one fresh usable target PATH proof.
+
+    This predicate controls only disposal of a redundant observation child.
+    It never selects a target or admits an action; the incident consumer and
+    Planner retain their exact target, freshness and capacity checks.
+    """
+    try:
+        payload = json.loads(matrix_state_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return False
+    items = payload.get("items") if isinstance(payload, dict) else {}
+    if not isinstance(items, dict):
+        return False
+    now_epoch = time.time()
+    for source in items.values():
+        if not isinstance(source, dict):
+            continue
+        if str(source.get("status") or "").upper() not in {"OK", "DEGRADED"}:
+            continue
+        path = (
+            source.get("path_evidence")
+            if isinstance(source.get("path_evidence"), dict)
+            else {}
+        )
+        components = (
+            path.get("component_status")
+            if isinstance(path.get("component_status"), dict)
+            else {}
+        )
+        if not components or not all(
+            str(value or "").upper() == "PASS"
+            for value in components.values()
+        ):
+            continue
+        observed_at = str(
+            source.get("path_evidence_updated")
+            or source.get("checked_at")
+            or source.get("updated")
+            or ""
+        )
+        try:
+            observed_epoch = datetime.fromisoformat(
+                observed_at.replace("Z", "+00:00")
+            ).timestamp()
+        except (TypeError, ValueError):
+            continue
+        if 0.0 <= now_epoch - observed_epoch <= maximum_age_seconds:
+            return True
+    return False
+
+
 def monotonic_ns() -> int:
     return time.monotonic_ns()
 
@@ -369,9 +424,16 @@ class RoleHealthLoop:
         hard = next((role for role in self.roles if role.name == "hard"), None)
         if hard is None or not self._hard_recovery_active(now_ns):
             return
+        prepared_target_fresh = canonical_prepared_target_path_fresh(
+            self.matrix_state_file
+        )
         for role in self.roles:
             if (
-                role.name in RECOVERY_CRITICAL_ROLE_NAMES
+                role.name == "hard"
+                or (
+                    role.name == "hot_target"
+                    and not prepared_target_fresh
+                )
                 or role.process is None
             ):
                 continue
@@ -388,6 +450,10 @@ class RoleHealthLoop:
     def _start_due_roles(self, now_ns: int) -> None:
         hard = next((role for role in self.roles if role.name == "hard"), None)
         hard_takeover = self._hard_recovery_active(now_ns)
+        prepared_target_fresh = bool(
+            hard_takeover
+            and canonical_prepared_target_path_fresh(self.matrix_state_file)
+        )
         for role in self.roles:
             if now_ns < role.next_due_ns:
                 continue
@@ -401,9 +467,12 @@ class RoleHealthLoop:
                     flush=True,
                 )
                 continue
-            if (
-                role.name not in RECOVERY_CRITICAL_ROLE_NAMES
-                and hard_takeover
+            if hard_takeover and not (
+                role.name == "hard"
+                or (
+                    role.name == "hot_target"
+                    and not prepared_target_fresh
+                )
             ):
                 print(
                     f"V7_HEALTH_ROLE_DEFERRED role={role.name} "

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import json
+from datetime import datetime, timezone
 import subprocess
 import tempfile
 import textwrap
@@ -240,6 +241,64 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
             "V7_HEALTH_ROLE_COMPLETE role=hard completion=1",
             completed.stdout,
         )
+
+    def test_hard_recovery_preempts_redundant_target_probe_when_path_is_fresh(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            matrix.write_text(json.dumps({
+                "items": {
+                    "source-a": {
+                        "services": {
+                            "__channel_liveness__": {
+                                "ok": False,
+                                "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                                "failure_state": "OBSERVED_NEW",
+                                "source_incident_id": "sfinc_test",
+                                "failure_event_id": "sfe_test",
+                            }
+                        }
+                    },
+                    "target-a": {
+                        "status": "OK",
+                        "path_evidence_updated": datetime.now(
+                            timezone.utc
+                        ).isoformat(),
+                        "path_evidence": {
+                            "component_status": {
+                                "interface_addresses": "PASS",
+                                "policy_rules": "PASS",
+                                "routing_tables": "PASS",
+                            }
+                        },
+                    },
+                }
+            }), encoding="utf-8")
+            hard = self.write_command(root, "hard", "sleep 1.1\n")
+            target = self.write_command(root, "target", "sleep 5\n")
+            quick = self.write_command(root, "quick", "sleep 0.02\n")
+            completed = subprocess.run(
+                [
+                    str(LOOP), "--role-based-fast", "--max-phases", "1",
+                    "--controlled-matrix-state-file", str(matrix),
+                    "--hard-interval-ms", "1000",
+                    "--controlled-hard-command", str(hard),
+                    "--controlled-telegram-command", str(quick),
+                    "--controlled-hot-target-command", str(target),
+                    "--controlled-hot-target-other-command", str(quick),
+                    "--controlled-required-command", str(quick),
+                    "--controlled-planner-projection-command", str(quick),
+                    "--controlled-deep-command", str(quick),
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                timeout=5,
+            )
+        self.assertIn(
+            "V7_HEALTH_ROLE_PREEMPTED role=hot_target ", completed.stdout,
+        )
+        self.assertIn("reason=HARD_RECOVERY_PRIORITY", completed.stdout)
 
     def test_slow_healthy_hard_observation_does_not_preempt_projection(self):
         with tempfile.TemporaryDirectory() as td:

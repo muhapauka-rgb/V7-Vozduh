@@ -8127,6 +8127,11 @@ def refresh_controlled_topology_execution_snapshots(
     ]
     if current_state_window:
         command.append("--current-state-window")
+        # Controlled certification consumes one immutable completed Matrix
+        # generation while the canonical health writer remains active.  The
+        # existing snapshot owner performs this bounded hand-off under the
+        # shared Matrix lock; ordinary refreshes retain their normal contract.
+        command.append("--stable-matrix-generation-handoff")
     if current_state_user:
         command.extend(["--current-state-user", current_state_user])
     try:

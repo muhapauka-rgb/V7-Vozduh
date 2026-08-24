@@ -9,7 +9,10 @@ services, or integrate snapshots into planner decisions.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import json
+import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -47,6 +50,7 @@ JSONL_FAMILY_READ_LIMIT = 5000
 JSONL_FAMILY_READ_BYTES = 2_500_000
 CURRENT_STATE_HISTORY_RECORD_LIMIT = 256
 CURRENT_STATE_HISTORY_READ_BYTES = 262_144
+MATRIX_GENERATION_LOCK_TIMEOUT_SECONDS = 5
 
 
 def default_audit_dir(state_dir: Path) -> Path:
@@ -94,7 +98,112 @@ def build_parser() -> argparse.ArgumentParser:
             "an exact governed setup; only valid with --current-state-window"
         ),
     )
+    parser.add_argument(
+        "--stable-matrix-generation-handoff",
+        action="store_true",
+        help=(
+            "capture one completed canonical Matrix generation under the "
+            "existing writer lock and build the bounded snapshot from that "
+            "immutable in-process handoff"
+        ),
+    )
     return parser
+
+
+@contextlib.contextmanager
+def service_matrix_read_lock(state_dir: Path, timeout_sec: int = MATRIX_GENERATION_LOCK_TIMEOUT_SECONDS):
+    """Reuse the canonical Matrix writer lock for a bounded generation read."""
+    lock_path = state_dir / "service-matrix.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    started = time.monotonic()
+    acquired = False
+    try:
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except BlockingIOError:
+                if time.monotonic() - started >= max(1, int(timeout_sec or 1)):
+                    raise TimeoutError("service_matrix_generation_lock_timeout")
+                time.sleep(0.02)
+        yield {"path": str(lock_path), "acquired": True}
+    finally:
+        if acquired:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
+def capture_matrix_generation(
+    *,
+    state_dir: Path,
+    service_matrix_file: Path,
+    freshness_limit_seconds: int = 120,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Capture one complete Matrix generation without creating another truth source."""
+    started = time.monotonic_ns()
+    with service_matrix_read_lock(state_dir):
+        matrix = read_json(service_matrix_file, {"items": {}})
+        if not isinstance(matrix, dict):
+            matrix = {"items": {}}
+        content_fingerprint = sha256_json(matrix)
+        items = matrix.get("items") if isinstance(matrix.get("items"), dict) else {}
+        identity_generations = {
+            str(egress_id): str(row.get("egress_identity_generation") or "")
+            for egress_id, row in items.items()
+            if isinstance(row, dict)
+        }
+        config_generations = {
+            str(egress_id): str(row.get("egress_config_generation") or "")
+            for egress_id, row in items.items()
+            if isinstance(row, dict)
+        }
+        updated = str(matrix.get("updated") or "")
+        generation_id = "matrixgen_" + sha256_json({
+            "content_fingerprint": content_fingerprint,
+            "updated": updated,
+            "identity_generations": identity_generations,
+            "config_generations": config_generations,
+        })[:32]
+    captured_at = datetime.now(timezone.utc).isoformat()
+    generation = {
+        "schema": "v7.canonical-matrix-generation-handoff.v1",
+        "generation_id": generation_id,
+        "content_fingerprint": content_fingerprint,
+        "source_egress": sorted(str(item) for item in items),
+        "source_identity_generations": identity_generations,
+        "topology_config_generations": config_generations,
+        "measured_at": updated or captured_at,
+        "captured_at": captured_at,
+        "freshness_limit_seconds": max(1, int(freshness_limit_seconds)),
+        "owner": "tools/v7-service-matrix-test + tools/v7-service-matrix-refresh-all",
+        "writer_paused_for_benchmark": False,
+        "second_health_truth": False,
+    }
+    handoff = {
+        "schema": "v7.stable-matrix-generation-handoff.v1",
+        "generation": generation,
+        "matrix": matrix,
+        "capture_wall_ms": round((time.monotonic_ns() - started) / 1_000_000.0, 3),
+        "lock_hold_wall_ms": round((time.monotonic_ns() - started) / 1_000_000.0, 3),
+    }
+    return matrix, handoff
+
+
+def matrix_generation_freshness(generation: dict[str, Any]) -> tuple[bool, str, float]:
+    measured_at = str(generation.get("measured_at") or "")
+    try:
+        parsed = datetime.fromisoformat(measured_at.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        age_seconds = max(0.0, (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds())
+    except (TypeError, ValueError):
+        return False, "matrix_generation_measured_at_invalid", -1.0
+    limit = max(1, int(generation.get("freshness_limit_seconds") or 0))
+    if limit <= 0 or age_seconds > limit:
+        return False, "matrix_generation_stale", age_seconds
+    return True, "fresh", age_seconds
 
 
 def load_inputs(
@@ -109,6 +218,7 @@ def load_inputs(
     rollback_history_file: Path,
     history_record_limit: int = JSONL_FAMILY_READ_LIMIT,
     history_read_bytes: int = JSONL_FAMILY_READ_BYTES,
+    service_matrix_override: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     audit_records = []
     for path in audit_paths:
@@ -122,7 +232,11 @@ def load_inputs(
     users = read_registry(state_dir / "users.registry")
     egress = read_registry(state_dir / "egress.registry")
     return {
-        "service_matrix": read_json(service_matrix_file, {"items": {}}),
+        "service_matrix": (
+            service_matrix_override
+            if isinstance(service_matrix_override, dict)
+            else read_json(service_matrix_file, {"items": {}})
+        ),
         "quality_summary": read_json(quality_summary_file, {"items": {}}),
         "service_preferences": read_json(service_preferences_file, {}),
         "audit_records": audit_records,
@@ -195,8 +309,15 @@ def service_snapshot_hashes(result) -> dict[str, str]:
     return dict(hashes) if isinstance(hashes, dict) else {}
 
 
-def source_consistency_errors(result, latest_inputs: dict[str, Any]) -> list[str]:
+def source_consistency_errors(
+    result,
+    latest_inputs: dict[str, Any],
+    *,
+    stable_matrix_hash: str = "",
+) -> list[str]:
     expected = source_hashes_for_inputs(latest_inputs)
+    if stable_matrix_hash:
+        expected["service_matrix"] = stable_matrix_hash
     actual = service_snapshot_hashes(result)
     errors = []
     for key, value in expected.items():
@@ -332,10 +453,45 @@ def build_stable_snapshot_run(
     history_read_bytes: int = JSONL_FAMILY_READ_BYTES,
     current_state_window: bool = False,
     current_state_user: str = "",
+    stable_matrix_generation_handoff: bool = False,
 ) -> tuple[Any, dict[str, Any]]:
     attempts = max(1, int(max_source_retries) + 1)
     last_errors: list[str] = []
     last_result = None
+    stable_matrix: dict[str, Any] | None = None
+    matrix_handoff: dict[str, Any] = {}
+    stable_generation_age_seconds = -1.0
+    if stable_matrix_generation_handoff:
+        try:
+            stable_matrix, matrix_handoff = capture_matrix_generation(
+                state_dir=state_dir,
+                service_matrix_file=service_matrix_file,
+            )
+        except TimeoutError as exc:
+            return None, {
+                "source_stable": False,
+                "source_consistency_attempts": 0,
+                "source_consistency_errors": [str(exc)],
+                "stable_matrix_generation_handoff": {
+                    "status": "STOP_SAFE",
+                    "blocker": str(exc),
+                },
+            }
+        generation = dict(matrix_handoff.get("generation") or {})
+        fresh, freshness_reason, freshness_age = matrix_generation_freshness(generation)
+        stable_generation_age_seconds = freshness_age
+        if not fresh:
+            return None, {
+                "source_stable": False,
+                "source_consistency_attempts": 0,
+                "source_consistency_errors": [freshness_reason],
+                "stable_matrix_generation_handoff": {
+                    "status": "STOP_SAFE",
+                    "generation": generation,
+                    "freshness_age_seconds": round(freshness_age, 3),
+                    "consumer_reads_one_completed_generation": False,
+                },
+            }
     for attempt in range(1, attempts + 1):
         inputs = load_inputs(
             state_dir=state_dir,
@@ -348,6 +504,7 @@ def build_stable_snapshot_run(
             rollback_history_file=rollback_history_file,
             history_record_limit=history_record_limit,
             history_read_bytes=history_read_bytes,
+            service_matrix_override=stable_matrix,
         )
         result = (
             build_current_state_snapshots(
@@ -381,20 +538,85 @@ def build_stable_snapshot_run(
             history_record_limit=history_record_limit,
             history_read_bytes=history_read_bytes,
         )
-        last_errors = source_consistency_errors(result, latest_inputs)
+        stable_hash = (
+            str((matrix_handoff.get("generation") or {}).get("content_fingerprint") or "")
+            if stable_matrix_generation_handoff else ""
+        )
+        last_errors = source_consistency_errors(
+            result,
+            latest_inputs,
+            stable_matrix_hash=stable_hash,
+        )
         last_result = result
         if not last_errors:
-            return result, {
+            status = {
                 "source_stable": True,
                 "source_consistency_attempts": attempt,
                 "source_consistency_errors": [],
             }
+            if stable_matrix_generation_handoff:
+                current_matrix_path_ok = service_matrix_file.exists()
+                current_matrix = latest_inputs.get("service_matrix") or {}
+                current_hash = sha256_json(current_matrix)
+                generation = dict(matrix_handoff.get("generation") or {})
+                generation["writer_advanced_during_build"] = bool(
+                    current_hash and stable_hash and current_hash != stable_hash
+                )
+                if not current_matrix_path_ok:
+                    status["source_stable"] = False
+                    status["source_consistency_errors"] = [
+                        "stable_matrix_generation_source_unavailable"
+                    ]
+                    status["stable_matrix_generation_handoff"] = {
+                        "status": "STOP_SAFE",
+                        "generation": generation,
+                        "consumer_reads_one_completed_generation": False,
+                        "mixed_matrix_generation_read": False,
+                    }
+                    return result, status
+                if not isinstance(current_matrix, dict) or not isinstance(
+                    current_matrix.get("items"), dict
+                ):
+                    status["source_stable"] = False
+                    status["source_consistency_errors"] = [
+                        "stable_matrix_generation_source_corrupt"
+                    ]
+                    status["stable_matrix_generation_handoff"] = {
+                        "status": "STOP_SAFE",
+                        "generation": generation,
+                        "consumer_reads_one_completed_generation": False,
+                        "mixed_matrix_generation_read": False,
+                    }
+                    return result, status
+                status["stable_matrix_generation_handoff"] = {
+                    "status": "PASS",
+                    "generation": generation,
+                    "freshness_age_seconds": round(stable_generation_age_seconds, 3),
+                    "capture_wall_ms": matrix_handoff.get("capture_wall_ms", 0),
+                    "lock_hold_wall_ms": matrix_handoff.get("lock_hold_wall_ms", 0),
+                    "consumer_reads_one_completed_generation": True,
+                    "mixed_matrix_generation_read": False,
+                }
+                for payload in result.snapshots.values():
+                    if isinstance(payload, dict):
+                        payload["matrix_generation"] = generation
+            return result, status
         if attempt < attempts and source_retry_sleep_sec > 0:
             time.sleep(source_retry_sleep_sec)
     return last_result, {
         "source_stable": False,
         "source_consistency_attempts": attempts,
         "source_consistency_errors": last_errors,
+        **(
+            {
+                "stable_matrix_generation_handoff": {
+                    "status": "BLOCKED",
+                    "generation": matrix_handoff.get("generation") or {},
+                    "consumer_reads_one_completed_generation": False,
+                }
+            }
+            if stable_matrix_generation_handoff else {}
+        ),
     }
 
 
@@ -459,9 +681,14 @@ def main(argv=None) -> int:
         history_read_bytes=history_read_bytes,
         current_state_window=bool(args.current_state_window),
         current_state_user=(args.current_state_user if args.current_state_window else ""),
+        stable_matrix_generation_handoff=bool(args.stable_matrix_generation_handoff),
     )
-    written = {} if args.dry_run or not source_status["source_stable"] else write_snapshots(Path(args.out_dir), result.snapshots)
-    warnings = list(result.warnings)
+    written = (
+        {}
+        if args.dry_run or not source_status["source_stable"] or result is None
+        else write_snapshots(Path(args.out_dir), result.snapshots)
+    )
+    warnings = list(result.warnings) if result is not None else []
     if not source_status["source_stable"]:
         warnings.extend(source_status["source_consistency_errors"])
     payload = {
@@ -481,9 +708,9 @@ def main(argv=None) -> int:
             ),
         },
         **source_status,
-        "snapshot_count": len(result.snapshots),
+        "snapshot_count": len(result.snapshots) if result is not None else 0,
         "written": written,
-        "metrics": result.metrics,
+        "metrics": result.metrics if result is not None else {},
         "warnings": warnings,
         "audit_inputs": [str(path) for path in audit_paths],
         "feedback_inputs": [str(path) for path in feedback_paths],

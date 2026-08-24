@@ -107,6 +107,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn('"telegram": 250', loop)
         self.assertIn('"hot_target": 500', loop)
         self.assertIn('"planner_projection": 10', loop)
+        self.assertIn('"hot_target": -5', loop)
         self.assertIn('["/usr/bin/nice", "-n", str(nice)', loop)
         self.assertIn("SLOW_ROLE_ALREADY_RUNNING", loop)
         self.assertIn("serialize_slow_roles=not any(controlled.values())", loop)
@@ -186,7 +187,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
     def test_long_hard_recovery_preempts_disposable_observation_children(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            hard = self.write_command(root, "hard", "sleep 0.65\n")
+            hard = self.write_command(root, "hard", "sleep 1.1\n")
             critical = self.write_command(root, "critical", "sleep 0.05\n")
             background = self.write_command(root, "background", "sleep 5\n")
             completed = subprocess.run(
@@ -194,7 +195,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                     str(LOOP), "--role-based-fast", "--max-phases", "1",
                     "--hard-interval-ms", "1000",
                     "--controlled-hard-command", str(hard),
-                    "--controlled-telegram-command", str(critical),
+                    "--controlled-telegram-command", str(background),
                     "--controlled-hot-target-command", str(critical),
                     "--controlled-hot-target-other-command", str(background),
                     "--controlled-required-command", str(background),
@@ -206,7 +207,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 check=True,
                 timeout=5,
             )
-        self.assertNotIn(
+        self.assertIn(
             "V7_HEALTH_ROLE_PREEMPTED role=telegram", completed.stdout,
         )
         self.assertNotIn(

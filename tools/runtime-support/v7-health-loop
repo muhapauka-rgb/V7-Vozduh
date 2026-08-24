@@ -146,17 +146,24 @@ DEFAULT_ROLE_NICE = {
     # priority.  This is work placement only; cadence and health ownership do
     # not change.
     "hard": -10,
+    # Target readiness is the second half of the same HARD recovery
+    # transaction.  On the two-core production host it must finish ahead of
+    # diagnostic/background work so its three-second PATH proof is still
+    # fresh when the decision consumes it.
+    "hot_target": -5,
     "planner_projection": 10,
     "deep": 8,
     "hot_target_other": 4,
     "other_required": 4,
 }
-SLOW_ROLE_NAMES = frozenset(DEFAULT_ROLE_NICE)
+SLOW_ROLE_NAMES = frozenset({
+    "planner_projection", "deep", "hot_target_other", "other_required",
+})
 # A confirmed source failure and fresh target readiness are one recovery
 # transaction. Keep the exact PATH and applicable Telegram target lanes alive
 # while HARD consumes the incident; only unrelated observation/analysis work
 # is disposable. This is the existing role set, not a new worker or owner.
-RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "telegram", "hot_target"})
+RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target"})
 
 
 def monotonic_ns() -> int:
@@ -288,7 +295,12 @@ class RoleHealthLoop:
     max_hard_phases: int = 0
     poll_ns: int = 25_000_000
     serialize_slow_roles: bool = True
-    hard_takeover_ns: int = 250_000_000
+    # Healthy HARD observations normally finish below this discriminator.
+    # Once it is crossed, the role is consuming a real failure successor and
+    # unrelated service sentinels must yield the two-core host to source
+    # confirmation plus target readiness.  A Telegram incident keeps its own
+    # role because the healthy HARD observer returns before this boundary.
+    hard_takeover_ns: int = 750_000_000
 
     def _hard_recovery_takeover(self, now_ns: int) -> None:
         """Give an admitted long HARD cycle priority until it returns.
@@ -296,10 +308,10 @@ class RoleHealthLoop:
         Healthy HARD observation normally completes in roughly 100--200 ms.
         Once it remains active beyond this bounded discriminator it is either
         consuming the Matrix-owned failure successor or already fail-closing
-        that successor. PATH and applicable Telegram readiness are inputs to
-        that same decision and must remain fresh in parallel. Cancel only
-        unrelated disposable children; their absolute cadence starts a fresh
-        observation after HARD completes.
+        that successor. PATH readiness is an input to the same HARD decision
+        and remains live in parallel. Telegram is critical to its own incident,
+        but is unrelated once a long HARD successor has already been admitted;
+        it restarts on its absolute cadence after HARD completes.
         """
         hard = next((role for role in self.roles if role.name == "hard"), None)
         if (

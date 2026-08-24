@@ -19288,6 +19288,31 @@ class AutoswitchPlanner:
             "assignment_kernel_split": "ATOMIC_BUNDLED_COMPLETION_INTERNAL_SPLIT_UNKNOWN",
             "remote_client_recovery_claimed": False,
             "exact_user_payload_claimed": True,
+            "diagnostic_performance_timeline": {
+                "schema_version": "v7.ct-m0f-cutover-diagnostic-timeline.v1",
+                "matrix_pre_execution_spans": list(
+                    getattr(
+                        self.args,
+                        "ct_m0f_matrix_pre_execution_timing",
+                        [],
+                    )
+                    or []
+                ),
+                "planner_spans": [
+                    {
+                        key: row.get(key)
+                        for key in (
+                            "stage", "duration_ms", "owner", "parent",
+                            "critical_path", "status",
+                        )
+                        if key in row
+                    }
+                    for row in self._performance_spans
+                    if isinstance(row, dict)
+                ],
+                "diagnostic_only": True,
+                "runtime_behavior_changed": False,
+            },
         }
         consumed = operator_execution_pipeline.control_plane_kernel_path_cutover_contract(receipt)
         consumed["sample_kind"] = context["sample_kind"]

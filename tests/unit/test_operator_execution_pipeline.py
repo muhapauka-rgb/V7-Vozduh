@@ -126,9 +126,13 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertIn("kernel_counter_only_forbidden", probe["blockers"])
 
     def test_composed_kernel_cutover_is_proven_without_remote_recovery_overclaim(self):
-        result = pipeline.control_plane_kernel_path_cutover_contract(
-            self.kernel_cutover_receipt()
-        )
+        receipt = self.kernel_cutover_receipt()
+        receipt["diagnostic_performance_timeline"] = {
+            "schema_version": "v7.ct-m0f-cutover-diagnostic-timeline.v1",
+            "planner_spans": [{"stage": "selection", "duration_ms": 12.5}],
+            "diagnostic_only": True,
+        }
+        result = pipeline.control_plane_kernel_path_cutover_contract(receipt)
         self.assertEqual(result["status"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS")
         self.assertEqual(result["claim_class"], "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER")
         self.assertFalse(result["exact_user_payload_path_proven"])
@@ -139,6 +143,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertEqual(
             result["metrics"]["control_plane_and_kernel_path_cutover_latency_ms"],
             600.0,
+        )
+        self.assertEqual(
+            result["diagnostic_performance_timeline"],
+            receipt["diagnostic_performance_timeline"],
         )
 
     def test_exact_user_payload_scope_is_consumed_as_stronger_s11_proof(self):

@@ -1859,6 +1859,13 @@ def run_ct_m0f_standing_validation_campaign(
             try:
                 module = in_process_governed_module(executor, planner)
                 args = module.build_parser().parse_args(command[1:])
+                # Carry the already-measured Matrix preparation spans into
+                # the exact controlled cutover receipt.  They are diagnostic
+                # evidence only: no owner, decision, state or timing source is
+                # added, and the subprocess compatibility path stays intact.
+                args.ct_m0f_matrix_pre_execution_timing = list(
+                    preparation_spans
+                )
                 child_state_dir = Path(args.state_dir)
                 child_event_dir = Path(args.event_dir)
                 child_snapshot_root = (

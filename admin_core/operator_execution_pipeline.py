@@ -3811,6 +3811,13 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
         "clock_source": clock_source,
         "events": events,
         "metrics": metrics,
+        "diagnostic_performance_timeline": (
+            receipt.get("diagnostic_performance_timeline")
+            if isinstance(
+                receipt.get("diagnostic_performance_timeline"), dict,
+            )
+            else {}
+        ),
         "blockers": sorted(set(blockers)),
         "runtime_mutation_performed_by_consumer": False,
         "routing_mutation_performed_by_consumer": False,

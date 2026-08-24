@@ -61,6 +61,52 @@ generation can legitimately refresh its derived selection receipt.
 * Explicit compilation with a writable temporary bytecode cache: passed.
 * `git diff --check`: passed.
 
+## Deployment and live controlled proof
+
+The correction was published as `dd9dd3d89f296be641651261fd16cd0a26fc20ca`
+and deployed as `deploy-z8-14-Updatesystem-dd9dd3d-20260825T003450`.
+Independent runtime truth then reported `RUNTIME_ALIGNED`.
+
+One initial post-deploy attempt remained visible and invalid: the source was
+recovered after a prior controlled interface-down but its one synthetic route
+table had not yet been reconciled.  Preparation stopped before reservation or
+failure injection.  The existing `v7-routing-sync --user 10.7.0.92` owner
+repaired that single kernel route without changing the assignment.
+
+The next fresh owner-backed selection admitted source
+`amneziawg-exec-20260528-10-8-1-14`, user `10.7.0.92`, and Planner-selected
+target `awg3`.  It created transaction
+`ctm0ftx_68d80d344106aead566bf5cd` at T0.  The existing lifecycle then
+created and bound exactly one Packet/Lease/operation:
+
+```text
+Packet:    pkt_fc814b2d90d5435cf986efbd
+Lease:     execlease_3e3bb77b5a4a3dac6dd2dd7e
+Operation: govexec_36d0557d123522c6f8ad9d24
+```
+
+The binding was durable 2.411 seconds after controlled condition creation and
+recorded the fresh Matrix generation fingerprint separately.  The transaction
+terminal was `L3_PRODUCTION_PROVEN`.  The only assignment transition was the
+permitted governed transition of certification identity `10.7.0.92` to its
+Planner-selected target `awg3`; no ordinary user, ordinary route or timer
+configuration changed.
+
+The resulting cold S11 receipt was functionally valid and performance-valid:
+
+| Measurement | Result |
+| --- | ---: |
+| failure evidence to exact decision | 2058.146 ms |
+| decision to Apply admission | 121.361 ms |
+| canonical assignment commit | 362.619 ms |
+| kernel path visible | 22.150 ms |
+| target required-service evidence | 382.897 ms |
+| controlled failure to S11 | **2947.173 ms** |
+
+It proved both exact assignment/kernel-path transition and exact target
+service payload.  The existing Matrix service completed successfully
+afterwards; it made no additional transfer of the identity.
+
 ## Safety and effect
 
 The change still does not pin a user and does not disable health.  It only
@@ -71,7 +117,8 @@ explicit rollback/recovery cleanup.
 
 ## Next action
 
-Deploy this bounded correction, re-run one synthetic-only controlled
-transaction, and require a durable transaction-bound record before Apply.
-Then verify exact route/kernel identity and required-service S11 under the
-existing governed owners.  No ordinary user may be involved.
+This handoff correction is complete.  The next separate Program frontier is
+the frozen homogeneous evidence series (additional cold/warm samples on the
+same implementation), not another change to reservation ownership.  It must
+keep the same synthetic-only and S11 requirements; no ordinary user may be
+involved.

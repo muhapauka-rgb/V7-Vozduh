@@ -538,10 +538,14 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                 encoding="utf-8",
             )
             observed = datetime.now(timezone.utc).isoformat()
+            stale_full_check = (
+                datetime.now(timezone.utc) - timedelta(seconds=30)
+            ).isoformat()
             (state / "service-matrix.json").write_text(json.dumps({
                 "items": {"awg3": {
                     "status": "OK",
-                    "checked_at": observed,
+                    "checked_at": stale_full_check,
+                    "path_evidence_updated": observed,
                     "path_evidence": {
                         "path_fingerprint": "p" * 64,
                         "component_status": {

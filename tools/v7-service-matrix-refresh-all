@@ -609,8 +609,18 @@ def read_prepared_controlled_target_selection_diagnostic(
         registry = egress_rows.get(target_id) or {}
         observed = matrix_items.get(target_id)
         observed = observed if isinstance(observed, dict) else {}
+        # The one-second prepared-target PATH owner intentionally updates only
+        # ``path_evidence_updated``; ``checked_at`` belongs to the slower full
+        # service pass.  Using the latter here discarded fresh pre-ready path
+        # proof and forced a full target/world-model diagnostic at every hard
+        # incident.  Required-service freshness remains owned and checked by
+        # the dedicated Telegram/other-service lanes and again by Planner at
+        # use; this timestamp is only the PATH eligibility clock.
         observed_at = str(
-            observed.get("checked_at") or observed.get("updated") or ""
+            observed.get("path_evidence_updated")
+            or observed.get("checked_at")
+            or observed.get("updated")
+            or ""
         )
         try:
             age_seconds = max(

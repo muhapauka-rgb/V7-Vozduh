@@ -5963,6 +5963,32 @@ def main() -> int:
         payload["prepared_path_timing"] = prepared_path_timing
     if shadow_trigger:
         payload["shadow_trigger"] = shadow_trigger
+    prepared_projection_refresh: dict[str, Any] = {}
+    if (
+        args.prepared_hot_targets
+        and args.prepared_hot_target_service_class == "path"
+    ):
+        # The path probes above advance the canonical Matrix generation.  A
+        # projection prepared before those writes is therefore stale by
+        # construction, even though the target has just been proved ready.
+        # Refresh it in this same existing-owner cycle after every path role so
+        # incident handling can consume a generation-aligned target decision.
+        # This remains observation-only: the established Planner produces the
+        # projection and the established Matrix summary is its sole durable
+        # surface; no Candidate, Packet, lease, route or user effect is made.
+        summary_file = (
+            Path(args.summary_file)
+            if args.summary_file
+            else state_dir / "service-matrix-refresh-summary.json"
+        )
+        prepared_projection_refresh = refresh_prepared_class_projection(
+            str(args.passive_consumer),
+            state_dir=state_dir,
+            summary_file=summary_file,
+            lock_timeout_sec=int(args.lock_timeout_sec),
+            timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
+        )
+        payload["prepared_projection_refresh"] = prepared_projection_refresh
     if args.matrix_observation_only:
         payload["mode"] = (
             "STAGGERED_DEEP_OBSERVATION_ONLY"
@@ -5979,7 +6005,7 @@ def main() -> int:
             "users_moved": 0,
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2 if args.pretty else None))
-        return 0
+        return 0 if not prepared_projection_refresh or prepared_projection_refresh.get("ok") else 2
     summary_file = Path(args.summary_file) if args.summary_file else state_dir / "service-matrix-refresh-summary.json"
     # Every Matrix lifecycle role shares this one summary owner.  Preserve the
     # Planner's compact prepared projection across event-only and ordinary

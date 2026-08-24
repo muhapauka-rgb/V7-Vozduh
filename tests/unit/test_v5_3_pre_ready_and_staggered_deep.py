@@ -265,6 +265,98 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(scope["selected_targets"], ["target-a"])
         self.assertEqual(selected[0]["_prepared_services"], "")
 
+    def test_n10_path_role_refreshes_generation_aligned_projection_same_cycle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text(
+                "id=source-a interface=source enabled=1\n"
+                "id=target-a interface=target enabled=1\n",
+                encoding="utf-8",
+            )
+            projection = self.autoswitch.build_prepared_class_decision_projection({
+                "updated": "2026-08-23T12:00:00+00:00",
+                "operation": {"operation_id": ""},
+                "safety": {"generation": self.generation()},
+                "decisions": [{
+                    "user_ip": "10.7.0.5",
+                    "current_egress": "source-a",
+                    "recommended_egress": "target-a",
+                    "important_services": ["telegram"],
+                }],
+            })
+            summary = state / "service-matrix-refresh-summary.json"
+            summary.write_text(json.dumps({
+                "prepared_class_decisions": projection,
+            }), encoding="utf-8")
+            argv = [
+                str(ROOT / "tools/v7-service-matrix-refresh-all"),
+                "--state-dir", str(state),
+                "--prepared-hot-targets", "--matrix-observation-only",
+                "--prepared-hot-target-service-class", "path",
+            ]
+            refreshed = {
+                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+                "status": "PASS", "ok": True,
+                "routing_mutation_performed": False, "users_moved": 0,
+            }
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                self.refresh, "run_prepared_path_rows_in_process",
+                return_value=([{"egress": "target-a", "ok": True}], {
+                    "concurrency_cap": 1,
+                }),
+            ), mock.patch.object(
+                self.refresh, "refresh_prepared_class_projection",
+                return_value=refreshed,
+            ) as refresh_projection, contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
+            payload = json.loads(output.getvalue())
+
+        refresh_projection.assert_called_once()
+        self.assertEqual(
+            refresh_projection.call_args.kwargs["summary_file"], summary,
+        )
+        self.assertTrue(payload["prepared_projection_refresh"]["ok"])
+        self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
+        self.assertEqual(payload["observation_only"]["users_moved"], 0)
+
+    def test_n10_path_role_fails_closed_when_projection_cannot_align(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text("", encoding="utf-8")
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": {
+                    "schema_version": "v7.prepared-class-decision-projection.v1",
+                    "classes": [], "hot_target_set": {"contracts": []},
+                }}),
+                encoding="utf-8",
+            )
+            argv = [
+                str(ROOT / "tools/v7-service-matrix-refresh-all"),
+                "--state-dir", str(state),
+                "--prepared-hot-targets", "--matrix-observation-only",
+                "--prepared-hot-target-service-class", "path",
+            ]
+            stopped = {
+                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+                "status": "STOP_SAFE", "ok": False,
+                "routing_mutation_performed": False, "users_moved": 0,
+            }
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                self.refresh, "refresh_prepared_class_projection",
+                return_value=stopped,
+            ), contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 2)
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(payload["prepared_projection_refresh"]["status"], "STOP_SAFE")
+        self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
+        self.assertEqual(payload["observation_only"]["users_moved"], 0)
+
     def test_n8_projection_refresh_reuses_matrix_summary_and_lock(self):
         projection = self.autoswitch.build_prepared_class_decision_projection({
             "updated": "2026-08-23T12:00:00+00:00",

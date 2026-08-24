@@ -1173,9 +1173,30 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
                     "selection": {"selected_target_id": "awg3"},
                     "targets": [target],
                 },
+            ), mock.patch.object(
+                self.autoswitch,
+                "ct_m0f_active_service_failure_binding_projection",
+                side_effect=lambda _state, source, **_kwargs: {
+                    "status": "NO_ACTIVE_SERVICE_FAILURE_BINDING",
+                    "ok": False,
+                    "requires_binding": True,
+                    "source": source,
+                },
             ):
                 result = self.autoswitch.ct_m0f_standing_source_selection_only(
                     args
+                )
+                pool["active_source_projections"].append({
+                    "source_id": "unrelated-failed-source",
+                    "certification_group": "g1",
+                    "enabled_certification_users_on_source": 1,
+                    "group_aligned_certification_users_on_source": 1,
+                    "enabled_non_certification_users_on_source": 0,
+                    "source_isolated_for_controlled_failure": True,
+                    "baseline_health": {"ok": False},
+                })
+                with_unrelated_failure = (
+                    self.autoswitch.ct_m0f_standing_source_selection_only(args)
                 )
 
         self.assertTrue(result["ok"], result)
@@ -1191,6 +1212,11 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER",
         )
         self.assertEqual(len(result["sample_binding_fingerprint"]), 64)
+        self.assertTrue(with_unrelated_failure["ok"], with_unrelated_failure)
+        self.assertEqual(
+            with_unrelated_failure["sample_binding_fingerprint"],
+            result["sample_binding_fingerprint"],
+        )
 
     def test_ct_m0f_hard_failure_reuses_exact_source_without_pool_rebuild(self):
         availability_policy = {

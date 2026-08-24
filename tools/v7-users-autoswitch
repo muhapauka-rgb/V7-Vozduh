@@ -26420,7 +26420,15 @@ def ct_m0f_standing_source_selection_only(
         ),
         "selection_mode": selection_mode,
         "active_service_failure_binding": active_service_failure_binding,
-        "stale_or_unbound_failed_sources": stale_or_unbound_failed_sources,
+        # Unrelated failed controlled sources are useful diagnostics, but they
+        # are not part of this exact one-user source/target decision. Binding
+        # the whole diagnostic list made an otherwise identical preparation
+        # fingerprint drift whenever a different Polygon source changed.
+        # Preserve fail-closed evidence only for the selected source.
+        "selected_source_stale_or_unbound_evidence": [
+            row for row in stale_or_unbound_failed_sources
+            if str(row.get("source_id") or "") == selected_source
+        ],
         "controlled_source_topology_predecessor": topology_predecessor,
         "target_observation_fingerprint": str(
             (selected_target_projection.get("baseline_health") or

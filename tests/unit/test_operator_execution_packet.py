@@ -4655,6 +4655,38 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             )
         self.assertNotEqual(before_routing_change, after_routing_change)
 
+    def test_ct_m0f_runtime_fingerprint_includes_exact_payload_consumer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = {}
+            for name in (
+                "governed", "matrix", "autoswitch", "health", "routing",
+                "v7-service-matrix-test", "v7-user-switch",
+                "v7-client-speed-api",
+            ):
+                paths[name] = root / name
+                paths[name].write_text(name, encoding="utf-8")
+
+            before = operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                governed_cycle=paths["governed"],
+                matrix_failure_consumer=paths["matrix"],
+                autoswitch=paths["autoswitch"],
+                health_runtime=paths["health"],
+                routing_runtime=paths["routing"],
+            )
+            paths["v7-client-speed-api"].write_text(
+                "changed-payload-consumer", encoding="utf-8",
+            )
+            after = operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                governed_cycle=paths["governed"],
+                matrix_failure_consumer=paths["matrix"],
+                autoswitch=paths["autoswitch"],
+                health_runtime=paths["health"],
+                routing_runtime=paths["routing"],
+            )
+
+        self.assertNotEqual(before, after)
+
 
 if __name__ == "__main__":
     unittest.main()

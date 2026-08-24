@@ -1937,13 +1937,31 @@ def ct_m0f_runtime_implementation_fingerprint(
     routing_runtime,
 ):
     """Bind one certification campaign to the exact executable hot path."""
+    governed_cycle = Path(governed_cycle)
+    matrix_failure_consumer = Path(matrix_failure_consumer)
+    routing_runtime = Path(routing_runtime)
     return sha256_json({
         "operator_execution": sha256_file(Path(__file__)),
-        "governed_cycle": sha256_file(Path(governed_cycle)),
-        "matrix_failure_consumer": sha256_file(Path(matrix_failure_consumer)),
+        "operator_execution_pipeline": sha256_file(
+            Path(__file__).with_name("operator_execution_pipeline.py")
+        ),
+        "intelligence_workers": sha256_file(
+            Path(__file__).with_name("intelligence_workers.py")
+        ),
+        "governed_cycle": sha256_file(governed_cycle),
+        "matrix_failure_consumer": sha256_file(matrix_failure_consumer),
+        "matrix_signal_producer": sha256_file(
+            matrix_failure_consumer.with_name("v7-service-matrix-test")
+        ),
         "autoswitch": sha256_file(Path(autoswitch)),
         "health_runtime": sha256_file(Path(health_runtime)),
-        "routing_runtime": sha256_file(Path(routing_runtime)),
+        "routing_runtime": sha256_file(routing_runtime),
+        "route_writer_runtime": sha256_file(
+            routing_runtime.with_name("v7-user-switch")
+        ),
+        "payload_consumer_runtime": sha256_file(
+            governed_cycle.with_name("v7-client-speed-api")
+        ),
     })
 
 

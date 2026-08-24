@@ -464,6 +464,12 @@ def read_prepared_controlled_target_selection_diagnostic(
     ranks a new target; any stale/missing fact returns an empty diagnostic so
     the established full diagnostic remains the fail-closed backstop.
     """
+    # Freshness is evaluated at incident-validation entry.  Loading and
+    # validating the existing owner can itself cross the three-second PATH
+    # boundary; measuring at the end made fresh pre-T0 evidence invalidate
+    # itself and synchronously rebuilt the world model after T0.  The Planner
+    # still revalidates mutable target facts immediately before apply.
+    incident_validation_epoch = time.time()
     summary = read_json(
         state_dir / "service-matrix-refresh-summary.json", {},
     )
@@ -617,7 +623,7 @@ def read_prepared_controlled_target_selection_diagnostic(
         and isinstance(matrix.get("items"), dict)
         else {}
     )
-    now_epoch = time.time()
+    now_epoch = incident_validation_epoch
     targets: list[dict[str, Any]] = []
     rejected: list[str] = []
     for target_id in declared_targets:

@@ -186,7 +186,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn("V7_HEALTH_ROLE_DEADLINE_MISS role=deep", completed.stdout)
         self.assertIn("V7_HEALTH_ROLE_COMPLETE role=deep", completed.stdout)
 
-    def test_long_hard_recovery_preempts_disposable_observation_children(self):
+    def test_confirmed_hard_recovery_preempts_all_observation_children(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             matrix = root / "service-matrix.json"
@@ -229,7 +229,7 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertIn(
             "V7_HEALTH_ROLE_PREEMPTED role=telegram", completed.stdout,
         )
-        self.assertNotIn(
+        self.assertIn(
             "V7_HEALTH_ROLE_PREEMPTED role=hot_target ", completed.stdout,
         )
         self.assertIn(

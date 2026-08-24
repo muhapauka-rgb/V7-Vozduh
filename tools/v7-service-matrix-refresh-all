@@ -2037,11 +2037,21 @@ def run_ct_m0f_standing_validation_campaign(
             "next_required_consumer": next_consumer,
         }
 
-    def active_reservations() -> list[dict[str, Any]]:
-        current = operator_execution.read_live_execution_lineage_records(
-            audit_store,
-            required_decision_ids=required_decision_ids,
-            required_checkpoint_fingerprint=implementation_fingerprint,
+    def active_reservations(
+        already_read: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        # The first reconciliation immediately follows the policy/lineage
+        # read above, so reuse that exact owner result.  A second fresh read is
+        # still mandatory immediately before execution and remains the guard
+        # against concurrent reservation or terminal changes.
+        current = (
+            list(already_read)
+            if already_read is not None
+            else operator_execution.read_live_execution_lineage_records(
+                audit_store,
+                required_decision_ids=required_decision_ids,
+                required_checkpoint_fingerprint=implementation_fingerprint,
+            )
         )
         terminal_ids = {
             str(row.get("reservation_id") or "")
@@ -2310,7 +2320,7 @@ def run_ct_m0f_standing_validation_campaign(
         return merged
 
     span_started_ns = time.monotonic_ns()
-    initial_active_reservations = active_reservations()
+    initial_active_reservations = active_reservations(records)
     preparation_span("active_sample_lineage_reconciliation", span_started_ns)
     active_result = close_active_sample(initial_active_reservations)
     if active_result is not None:

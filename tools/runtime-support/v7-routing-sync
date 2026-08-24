@@ -113,6 +113,55 @@ def legacy_sync() -> dict:
     return {"status": "LEGACY_PER_USER_SYNC_PASS", "users": len(users), "mutations": mutations}
 
 
+def scoped_user_sync(user_ip: str) -> dict:
+    """Reconcile one existing registry identity without changing assignment."""
+    try:
+        canonical_ip = str(ipaddress.ip_address(str(user_ip or "")))
+    except ValueError:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_ip_invalid"], "runtime_mutation": False}
+    users = [
+        row for row in rows(USERS)
+        if row.get("ip") == canonical_ip and row.get("enabled", "0") == "1"
+    ]
+    if len(users) != 1:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_registry_identity_not_unique"], "runtime_mutation": False}
+    user = users[0]
+    targets = [
+        row for row in rows(EGRESS)
+        if row.get("id") == user.get("current")
+        and row.get("enabled", "0") == "1"
+        and row.get("interface")
+    ]
+    if len(targets) != 1:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_current_egress_not_unique_or_disabled"], "runtime_mutation": False}
+    try:
+        table = int(str(user.get("table") or ""))
+    except ValueError:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_route_table_invalid"], "runtime_mutation": False}
+    target = targets[0]
+    proc = run([
+        "ip", "route", "replace", "default", "dev", target["interface"],
+        "table", str(table),
+    ])
+    if proc.returncode:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_route_write_failed"], "runtime_mutation": False}
+    try:
+        replace_rule(pref=table, selector=["from", canonical_ip], table=table)
+    except RuntimeError:
+        return {"status": "STOP_SAFE", "blockers": ["scoped_user_rule_write_failed"], "runtime_mutation": False}
+    return {
+        "status": "SCOPED_USER_SYNC_PASS",
+        "user": canonical_ip,
+        "current_egress": str(user.get("current") or ""),
+        "interface": target["interface"],
+        "table": table,
+        "assignment_changed": False,
+        "users": 1,
+        "mutations": 1,
+        "runtime_mutation": True,
+    }
+
+
 def retire_legacy_primary_routes(users: list[dict[str, str]]) -> dict:
     """Remove only the superseded per-user primary rules/routes.
 
@@ -188,12 +237,15 @@ def main() -> int:
     parser.add_argument("--core-primary-apply", action="store_true")
     parser.add_argument("--core-primary-fallback", action="store_true")
     parser.add_argument("--core-primary-verify", action="store_true")
+    parser.add_argument("--user", default="")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     lock_path = Path(os.environ.get("V7_ROUTING_LOCK", "/tmp/v7-routing.lock"))
     with lock_path.open("a+") as handle:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        if args.core_primary_apply:
+        if args.user:
+            result = scoped_user_sync(args.user)
+        elif args.core_primary_apply:
             result = core_primary_apply()
         elif args.core_primary_fallback:
             result = core_primary_fallback()

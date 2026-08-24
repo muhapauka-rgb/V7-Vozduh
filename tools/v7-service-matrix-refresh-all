@@ -88,6 +88,13 @@ def health_runtime_executable() -> Path:
     return ROOT / "tools" / "runtime-support" / "v7-health-loop"
 
 
+def routing_runtime_executable() -> Path:
+    deployed = Path(__file__).with_name("v7-routing-sync")
+    if deployed.is_file():
+        return deployed
+    return ROOT / "tools" / "runtime-support" / "v7-routing-sync"
+
+
 _IN_PROCESS_AUTOSWITCH_MODULE: Any = None
 _IN_PROCESS_GOVERNED_MODULE: Any = None
 
@@ -1717,6 +1724,7 @@ def run_ct_m0f_standing_validation_campaign(
             matrix_failure_consumer=Path(__file__),
             autoswitch=planner,
             health_runtime=health_runtime_executable(),
+            routing_runtime=routing_runtime_executable(),
         )
     )
     required_decision_ids = tuple(filter(None, [

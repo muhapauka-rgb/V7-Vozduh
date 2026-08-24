@@ -4587,7 +4587,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             root = Path(tmp)
             paths = {}
             for name in (
-                "governed", "matrix", "autoswitch", "health",
+                "governed", "matrix", "autoswitch", "health", "routing",
             ):
                 paths[name] = root / name
                 paths[name].write_text(name, encoding="utf-8")
@@ -4597,6 +4597,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 matrix_failure_consumer=paths["matrix"],
                 autoswitch=paths["autoswitch"],
                 health_runtime=paths["health"],
+                routing_runtime=paths["routing"],
             )
             paths["health"].write_text("changed-health", encoding="utf-8")
             second = operator_execution.ct_m0f_runtime_implementation_fingerprint(
@@ -4604,9 +4605,39 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 matrix_failure_consumer=paths["matrix"],
                 autoswitch=paths["autoswitch"],
                 health_runtime=paths["health"],
+                routing_runtime=paths["routing"],
             )
 
         self.assertNotEqual(first, second)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = {}
+            for name in (
+                "governed", "matrix", "autoswitch", "health", "routing",
+            ):
+                paths[name] = root / name
+                paths[name].write_text(name, encoding="utf-8")
+            before_routing_change = (
+                operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                    governed_cycle=paths["governed"],
+                    matrix_failure_consumer=paths["matrix"],
+                    autoswitch=paths["autoswitch"],
+                    health_runtime=paths["health"],
+                    routing_runtime=paths["routing"],
+                )
+            )
+            paths["routing"].write_text("changed-routing", encoding="utf-8")
+            after_routing_change = (
+                operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                    governed_cycle=paths["governed"],
+                    matrix_failure_consumer=paths["matrix"],
+                    autoswitch=paths["autoswitch"],
+                    health_runtime=paths["health"],
+                    routing_runtime=paths["routing"],
+                )
+            )
+        self.assertNotEqual(before_routing_change, after_routing_change)
 
 
 if __name__ == "__main__":

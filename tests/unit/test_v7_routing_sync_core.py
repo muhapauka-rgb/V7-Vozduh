@@ -2,6 +2,7 @@ import importlib.machinery
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "tools/runtime-support/v7-routing-sync"
@@ -27,6 +28,39 @@ class RoutingSyncCoreTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         loader.exec_module(module)
         self.assertEqual(module.NFT_TABLE, "v7_routing_core")
+
+    def test_scoped_user_sync_repairs_only_exact_registry_identity(self):
+        loader = importlib.machinery.SourceFileLoader(
+            "v7_routing_sync_scoped", str(SCRIPT),
+        )
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        user = {
+            "ip": "10.7.0.92", "current": "execution-source",
+            "table": "1090", "enabled": "1",
+        }
+        target = {
+            "id": "execution-source", "interface": "v7execwg0",
+            "enabled": "1",
+        }
+        with mock.patch.object(
+            module, "rows", side_effect=[[user], [target]],
+        ), mock.patch.object(
+            module, "run", return_value=mock.Mock(returncode=0, stdout=""),
+        ) as run_mock, mock.patch.object(module, "replace_rule") as rule_mock:
+            result = module.scoped_user_sync("10.7.0.92")
+
+        self.assertEqual(result["status"], "SCOPED_USER_SYNC_PASS")
+        self.assertFalse(result["assignment_changed"])
+        self.assertEqual(result["users"], 1)
+        run_mock.assert_called_once_with([
+            "ip", "route", "replace", "default", "dev", "v7execwg0",
+            "table", "1090",
+        ])
+        rule_mock.assert_called_once_with(
+            pref=1090, selector=["from", "10.7.0.92"], table=1090,
+        )
 
 
 if __name__ == "__main__":

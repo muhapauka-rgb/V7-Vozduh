@@ -4274,6 +4274,57 @@ def refresh_prepared_class_projection(
     }
 
 
+def prepared_projection_refresh_due(
+    summary: Any,
+    *,
+    now_epoch: Optional[float] = None,
+) -> dict[str, Any]:
+    """Decide cheaply whether the existing Planner projection needs work.
+
+    PATH observations deliberately do not invalidate target selection; their
+    exact readiness is read from canonical Matrix at incident time.  Starting
+    the Planner subprocess after every one-second PATH probe therefore adds
+    load but no safety.  Rebuild only a missing/expired projection here. All
+    other stable-input changes remain caught by the established 30-second
+    Planner role and again fail closed by the incident consumer.
+    """
+    root = summary if isinstance(summary, dict) else {}
+    projection = (
+        root.get("prepared_class_decisions")
+        if isinstance(root.get("prepared_class_decisions"), dict)
+        else {}
+    )
+    produced_at = str(projection.get("produced_at") or "")
+    try:
+        produced_epoch = datetime.fromisoformat(
+            produced_at.replace("Z", "+00:00")
+        ).timestamp()
+    except (TypeError, ValueError):
+        produced_epoch = 0.0
+    maximum_reuse_seconds = int(
+        projection.get("maximum_reuse_seconds") or 0
+    )
+    age_seconds = max(
+        0.0,
+        float(time.time() if now_epoch is None else now_epoch) - produced_epoch,
+    ) if produced_epoch else -1.0
+    reasons: list[str] = []
+    if str(projection.get("schema_version") or "") != (
+        "v7.prepared-class-decision-projection.v1"
+    ):
+        reasons.append("prepared_projection_missing")
+    if maximum_reuse_seconds <= 0:
+        reasons.append("prepared_projection_reuse_contract_missing")
+    elif age_seconds < 0 or age_seconds >= maximum_reuse_seconds:
+        reasons.append("periodic_quality_rerank_due")
+    return {
+        "due": bool(reasons),
+        "reasons": reasons,
+        "age_seconds": round(age_seconds, 3) if age_seconds >= 0 else None,
+        "maximum_reuse_seconds": maximum_reuse_seconds,
+    }
+
+
 def run_service_failure_omp_consumer(*, timeout_sec: int = 45) -> dict[str, Any]:
     """Consume the already-materialized obligation through the standard OMP entrypoint.
 
@@ -5971,8 +6022,9 @@ def main() -> int:
         # The path probes above advance the canonical Matrix generation.  A
         # projection prepared before those writes is therefore stale by
         # construction, even though the target has just been proved ready.
-        # Refresh it in this same existing-owner cycle after every path role so
-        # incident handling can consume a generation-aligned target decision.
+        # Ensure it in this same existing-owner cycle when its declared reuse
+        # window has expired; fresh PATH facts themselves are consumed from
+        # Matrix and deliberately do not rebuild the selection world model.
         # This remains observation-only: the established Planner produces the
         # projection and the established Matrix summary is its sole durable
         # surface; no Candidate, Packet, lease, route or user effect is made.
@@ -5981,13 +6033,28 @@ def main() -> int:
             if args.summary_file
             else state_dir / "service-matrix-refresh-summary.json"
         )
-        prepared_projection_refresh = refresh_prepared_class_projection(
-            str(args.passive_consumer),
-            state_dir=state_dir,
-            summary_file=summary_file,
-            lock_timeout_sec=int(args.lock_timeout_sec),
-            timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
+        refresh_due = prepared_projection_refresh_due(
+            read_json(summary_file, {}),
         )
+        if refresh_due["due"]:
+            prepared_projection_refresh = refresh_prepared_class_projection(
+                str(args.passive_consumer),
+                state_dir=state_dir,
+                summary_file=summary_file,
+                lock_timeout_sec=int(args.lock_timeout_sec),
+                timeout_sec=max(45, int(args.passive_consumer_timeout_sec)),
+            )
+            prepared_projection_refresh["refresh_due"] = refresh_due
+        else:
+            prepared_projection_refresh = {
+                "schema_version": "v7.matrix-prepared-projection-refresh.v1",
+                "status": "CURRENT_PREPARED_PROJECTION_REUSED",
+                "ok": True,
+                "refresh_due": refresh_due,
+                "planner_invoked": False,
+                "routing_mutation_performed": False,
+                "users_moved": 0,
+            }
         payload["prepared_projection_refresh"] = prepared_projection_refresh
     if args.matrix_observation_only:
         payload["mode"] = (

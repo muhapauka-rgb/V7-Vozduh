@@ -101,7 +101,7 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertNotIn("10.7.0.1", json.dumps(projection))
         self.assertFalse(projection["hot_target_set"]["incident_time_world_model_rebuild"])
 
-    def test_n5_fact_specific_generation_change_stops_safe(self):
+    def test_n5_capacity_generation_is_revalidated_at_use_not_selection(self):
         plan = {
             "safety": {"generation": self.generation()},
             "decisions": [{
@@ -117,13 +117,31 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
             projection, current,
         )
 
+        self.assertEqual(result["status"], "PREPARED_CLASS_DECISION_FRESH")
+        self.assertEqual(result["invalidation_reasons"], [])
+        self.assertFalse(result["fact_specific_freshness"]["capacity"]["fresh"])
+        self.assertTrue(result["fact_specific_freshness"]["identity_and_role"]["fresh"])
+
+    def test_n5_policy_generation_change_still_stops_safe(self):
+        projection = self.autoswitch.build_prepared_class_decision_projection({
+            "safety": {"generation": self.generation()},
+            "decisions": [{
+                "user_ip": "10.7.0.5", "current_egress": "source-a",
+                "recommended_egress": "target-a",
+                "important_services": ["telegram"],
+            }],
+        })
+        current = dict(projection["invalidators"])
+        current["policy_authority_generation"] = "changed"
+        result = self.autoswitch.validate_prepared_class_decision_projection(
+            projection, current,
+        )
+
         self.assertEqual(result["status"], "PREPARED_CLASS_DECISION_STALE")
         self.assertEqual(
             result["invalidation_reasons"],
-            ["capacity_reservation_generation"],
+            ["policy_authority_generation"],
         )
-        self.assertFalse(result["fact_specific_freshness"]["capacity"]["fresh"])
-        self.assertTrue(result["fact_specific_freshness"]["identity_and_role"]["fresh"])
 
     def test_n5_no_official_target_is_explicit_no_3s_capacity(self):
         projection = self.autoswitch.build_prepared_class_decision_projection({
@@ -356,6 +374,41 @@ class V53PreReadyAndStaggeredDeepTest(unittest.TestCase):
         self.assertEqual(payload["prepared_projection_refresh"]["status"], "STOP_SAFE")
         self.assertFalse(payload["observation_only"]["routing_mutation_performed"])
         self.assertEqual(payload["observation_only"]["users_moved"], 0)
+
+    def test_n10_fresh_path_role_does_not_restart_planner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state"
+            state.mkdir()
+            (state / "egress.registry").write_text("", encoding="utf-8")
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "produced_at": datetime.now(timezone.utc).isoformat(),
+                "maximum_reuse_seconds": 300,
+                "classes": [],
+                "hot_target_set": {"contracts": []},
+            }
+            (state / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            argv = [
+                str(ROOT / "tools/v7-service-matrix-refresh-all"),
+                "--state-dir", str(state),
+                "--prepared-hot-targets", "--matrix-observation-only",
+                "--prepared-hot-target-service-class", "path",
+            ]
+            output = io.StringIO()
+            with mock.patch.object(sys, "argv", argv), mock.patch.object(
+                self.refresh, "refresh_prepared_class_projection",
+            ) as refresh_projection, contextlib.redirect_stdout(output):
+                self.assertEqual(self.refresh.main(), 0)
+            payload = json.loads(output.getvalue())
+
+        refresh_projection.assert_not_called()
+        refresh = payload["prepared_projection_refresh"]
+        self.assertEqual(refresh["status"], "CURRENT_PREPARED_PROJECTION_REUSED")
+        self.assertFalse(refresh["planner_invoked"])
+        self.assertFalse(refresh["routing_mutation_performed"])
 
     def test_n8_projection_refresh_reuses_matrix_summary_and_lock(self):
         projection = self.autoswitch.build_prepared_class_decision_projection({

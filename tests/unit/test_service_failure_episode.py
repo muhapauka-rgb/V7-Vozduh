@@ -621,6 +621,73 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             79,
         )
 
+    def test_rejected_prepared_target_refresh_is_exact_and_matrix_owned(self):
+        diagnostic = {
+            "status": "PREPARED_CONTROLLED_TARGET_STOP_SAFE",
+            "ok": False,
+            "selected_source_id": "exec-source",
+            "declared_target_count": 1,
+            "rejected_targets": ["awg3"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "egress.registry").write_text(
+                "id=exec-source interface=v7execwg0 enabled=1\n"
+                "id=awg3 interface=awg3 enabled=1\n"
+                "id=unrelated interface=awg9 enabled=1\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.refresh,
+                "run_prepared_path_rows_in_process",
+                return_value=([{
+                    "egress": "awg3", "status": "PASS", "ok": True,
+                    "routing_mutation_performed": False, "users_moved": 0,
+                }], {"total_ms": 125.0}),
+            ) as matrix_owner:
+                result = self.refresh.refresh_rejected_prepared_target_paths(
+                    diagnostic, state_dir=state,
+                )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(result["requested_targets"], ["awg3"])
+        self.assertEqual(result["refreshed_targets"], ["awg3"])
+        self.assertFalse(result["target_scope_widened"])
+        self.assertFalse(result["world_model_rebuilt"])
+        self.assertFalse(result["routing_mutation_performed"])
+        rows = matrix_owner.call_args.args[0]
+        self.assertEqual([row["id"] for row in rows], ["awg3"])
+        self.assertEqual(rows[0]["_prepared_services"], "")
+
+    def test_rejected_prepared_target_refresh_does_not_widen_missing_scope(self):
+        diagnostic = {
+            "status": "PREPARED_CONTROLLED_TARGET_STOP_SAFE",
+            "ok": False,
+            "selected_source_id": "exec-source",
+            "declared_target_count": 1,
+            "rejected_targets": ["missing-target"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            (state / "egress.registry").write_text(
+                "id=unrelated interface=awg9 enabled=1\n",
+                encoding="utf-8",
+            )
+            with mock.patch.object(
+                self.refresh, "run_prepared_path_rows_in_process",
+            ) as matrix_owner:
+                result = self.refresh.refresh_rejected_prepared_target_paths(
+                    diagnostic, state_dir=state,
+                )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(
+            result["status"],
+            "STOP_SAFE_EXACT_PREPARED_TARGET_SCOPE_UNRESOLVED",
+        )
+        self.assertEqual(result["missing_targets"], ["missing-target"])
+        matrix_owner.assert_not_called()
+
     def test_runtime_hot_summary_preserves_existing_prepared_projection(self):
         prepared = {
             "schema_version": "v7.prepared-class-decision-projection.v1",

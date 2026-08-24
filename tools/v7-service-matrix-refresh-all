@@ -803,6 +803,108 @@ def read_prepared_controlled_target_selection_diagnostic(
     }
 
 
+def refresh_rejected_prepared_target_paths(
+    diagnostic: dict[str, Any],
+    *,
+    state_dir: Path,
+    lock_timeout_sec: int = 5,
+) -> dict[str, Any]:
+    """Refresh PATH only for targets already declared by the Planner.
+
+    This is the bounded incident-time counterpart of the pre-ready PATH role.
+    It cannot discover, rank or widen the target set: the input must be the
+    exact rejected set from a current prepared projection.  The canonical
+    Matrix owner performs the observation and durable write.  Any incomplete
+    scope or failed observation leaves the established full diagnostic as the
+    fail-closed backstop.
+    """
+    rejected = sorted({
+        str(target_id or "")
+        for target_id in (diagnostic.get("rejected_targets") or [])
+        if SAFE_EGRESS_RE.fullmatch(str(target_id or ""))
+    })
+    declared_count = int(diagnostic.get("declared_target_count") or 0)
+    selected_source = str(diagnostic.get("selected_source_id") or "")
+    eligible = bool(
+        str(diagnostic.get("status") or "")
+        == "PREPARED_CONTROLLED_TARGET_STOP_SAFE"
+        and declared_count > 0
+        and rejected
+        and len(rejected) <= declared_count
+    )
+    if not eligible:
+        return {
+            "schema_version": "v7.exact-prepared-target-path-refresh.v1",
+            "status": "NOT_APPLICABLE",
+            "ok": False,
+            "requested_targets": rejected,
+            "refreshed_targets": [],
+            "target_scope_widened": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    registry_rows = {
+        str(row.get("id") or ""): row
+        for row in parse_registry(state_dir / "egress.registry")
+        if str(row.get("id") or "") in rejected
+        and str(row.get("id") or "") != selected_source
+        and bool_value(row.get("enabled", "1"), default=True)
+    }
+    rows: list[dict[str, str]] = []
+    for target_id in rejected:
+        registry_row = registry_rows.get(target_id)
+        if not registry_row:
+            continue
+        row = dict(registry_row)
+        row["_prepared_services"] = ""
+        rows.append(row)
+    resolved = [str(row.get("id") or "") for row in rows]
+    if resolved != rejected:
+        return {
+            "schema_version": "v7.exact-prepared-target-path-refresh.v1",
+            "status": "STOP_SAFE_EXACT_PREPARED_TARGET_SCOPE_UNRESOLVED",
+            "ok": False,
+            "requested_targets": rejected,
+            "refreshed_targets": [],
+            "missing_targets": sorted(set(rejected) - set(resolved)),
+            "target_scope_widened": False,
+            "routing_mutation_performed": False,
+            "users_moved": 0,
+        }
+
+    results, timing = run_prepared_path_rows_in_process(
+        rows,
+        checker=default_checker_path(),
+        state_dir=state_dir,
+        concurrency=min(16, len(rows)),
+        lock_timeout_sec=int(lock_timeout_sec),
+    )
+    refreshed = sorted({
+        str(row.get("egress") or "")
+        for row in results
+        if isinstance(row, dict) and row.get("ok") is True
+    })
+    ok = refreshed == rejected
+    return {
+        "schema_version": "v7.exact-prepared-target-path-refresh.v1",
+        "status": (
+            "EXACT_PREPARED_TARGET_PATH_REFRESH_PASS"
+            if ok else "STOP_SAFE_EXACT_PREPARED_TARGET_PATH_REFRESH_FAILED"
+        ),
+        "ok": ok,
+        "requested_targets": rejected,
+        "refreshed_targets": refreshed,
+        "results": results,
+        "performance_timeline": timing,
+        "target_scope_widened": False,
+        "world_model_rebuilt": False,
+        "manual_server_selection": False,
+        "routing_mutation_performed": False,
+        "users_moved": 0,
+    }
+
+
 def consume_approved_controlled_source_topology(
     planner: str,
     *,
@@ -2234,6 +2336,44 @@ def run_ct_m0f_standing_validation_campaign(
             current_source_scope=current_source_scope,
         )
     )
+    exact_target_refresh: dict[str, Any] = {}
+    if (
+        prepared_target_diagnostic.get("ok") is not True
+        and str(prepared_target_diagnostic.get("status") or "")
+        == "PREPARED_CONTROLLED_TARGET_STOP_SAFE"
+        and int(prepared_target_diagnostic.get("declared_target_count") or 0) > 0
+        and bool(prepared_target_diagnostic.get("rejected_targets"))
+    ):
+        refresh_started_ns = time.monotonic_ns()
+        exact_target_refresh = refresh_rejected_prepared_target_paths(
+            prepared_target_diagnostic,
+            state_dir=state_dir,
+            lock_timeout_sec=5,
+        )
+        preparation_span(
+            "exact_prepared_target_path_refresh", refresh_started_ns,
+        )
+        preparation_spans[-1]["result_status"] = str(
+            exact_target_refresh.get("status") or ""
+        )
+        preparation_spans[-1]["requested_targets"] = list(
+            exact_target_refresh.get("requested_targets") or []
+        )[:8]
+        preparation_spans[-1]["refreshed_targets"] = list(
+            exact_target_refresh.get("refreshed_targets") or []
+        )[:8]
+        preparation_spans[-1]["target_scope_widened"] = False
+        if exact_target_refresh.get("ok") is True:
+            prepared_target_diagnostic = (
+                read_prepared_controlled_target_selection_diagnostic(
+                    planner,
+                    state_dir=state_dir,
+                    event_dir=event_dir,
+                    policy_file=policy_file,
+                    audit_store=audit_store,
+                    current_source_scope=current_source_scope,
+                )
+            )
     target_diagnostic = (
         prepared_target_diagnostic
         if prepared_target_diagnostic.get("ok") is True
@@ -2249,6 +2389,9 @@ def run_ct_m0f_standing_validation_campaign(
     )
     preparation_spans[-1]["fallback_used"] = bool(
         prepared_target_diagnostic.get("ok") is not True
+    )
+    preparation_spans[-1]["exact_target_refresh_used"] = bool(
+        exact_target_refresh
     )
     preparation_spans[-1]["blockers"] = list(
         prepared_target_diagnostic.get("blockers") or []

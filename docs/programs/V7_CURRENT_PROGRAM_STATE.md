@@ -2,7 +2,7 @@
 
 Status: active current state
 Program: OMP Continuation
-State captured: 2026-08-22T00:41:29+03:00
+State captured: 2026-08-25T01:09:05+03:00
 Latest terminal Mission: `V7_MATRIX_HEALTH_PHASE_C_D_E_DECISION_V1`
 Latest terminal Mission state: `READ_ONLY_V5_3_MISSION_COMPLETE_CONSUMED`
 Latest terminal Mission report: `docs/reports/engineering/2026-08-20_130000_v5_3_matrix_health_phase_c_d_e_decision.md`
@@ -13,7 +13,7 @@ Source: The existing OMP/CPS atomic consumer consumed the completed V5.3 Phase-G
 
 Status: `AUTHORITATIVE_LIVE_STATE`
 
-Captured: `2026-08-22T00:41:29+03:00`
+Captured: `2026-08-25T01:09:05+03:00`
 
 This section is the single live volatile current-state surface. Older production, capability, dashboard, packet, and implementation snapshots below are retained as historical evidence or read-only capability context unless this section explicitly restates them as live.
 
@@ -21,7 +21,7 @@ This section is the single live volatile current-state surface. Older production
 | --- | --- |
 | `ACTIVE_PROGRAM` | `V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1` |
 | `PRIMARY_ENGINEERING_FRONTIER` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `PRIMARY_ENGINEERING_NEXT_ACTION` | EXECUTE_V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS |
+| `PRIMARY_ENGINEERING_NEXT_ACTION` | `RECORD_HARD_PATH_OWNER_ARCHITECTURAL_DECISION_AND_CONTINUE_N11_RESIDUE_DISCOVERY` |
 | `LEGACY_V7_ROUTING_HOT_PATH` | `FROZEN_FOR_CAPABILITY_GROWTH; PROGRAM_LEVEL_ENGINEERING_RULE_ONLY; RUNTIME_UNCHANGED` |
 | `SYSTEM_RESET_PROGRAM_CONTRACT` | `docs/programs/V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_PROGRAM.md` |
 | `SYSTEM_RESET_PROGRAM_STATE` | `V7_SYSTEM_RESET_AND_ROUTING_CORE_MIGRATION_COMPLETE` |
@@ -39,24 +39,34 @@ This section is the single live volatile current-state surface. Older production
 | `DURABLE_TRUTH_OWNER` | `docs/reference/V7_CANONICAL_REFERENCE.md` |
 | `OWNER_TOPOLOGY_OWNER` | `docs/reference/SYSTEM_MAP.md` |
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
-| `CURRENT_STOP_CONDITION` | `NONE` |
+| `CURRENT_STOP_CONDITION` | `PARTIAL_STOP_HARD_PATH_OWNER_DECISION_ONLY; independent N11 read-only discovery remains lawful` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Controlled Matrix -> T0 -> T11 evidence and Runtime shadow deployment are consumed. Retain the deployed observation-only FAST phase and Full Matrix fallback. Re-enter only when an existing owner supplies a fresh lawful ordinary failure with complete current action context; do not manufacture a customer move.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Freeze the measured HARD_PATH residual and obtain an owner architectural decision on prepared-decision handoff. Continue only independent N11 read-only residue discovery; do not manufacture Telegram, ordinary-like or ordinary customer movement while they share the unresolved T0->decision path.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_RUNTIME_SHADOW_E73AA888` |
-| `CURRENT_TRANSITION_ID` | `V5_3_RUNTIME_SHADOW_AND_CONTROLLED_T0_T11_CONSUMED_V1` |
-| `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_BLOCKED_20260825` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_SLO_ARCHITECTURAL_BLOCKER_RECONCILED_V1` |
+| `CURRENT_NEXT_ACTION_ID` | `V5_3_HARD_PATH_OWNER_DECISION_AND_N11_DISCOVERY` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
-| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V5_3_HARD_PATH_OWNER_DECISION_AND_N11_DISCOVERY` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,BLOCKED_HARD_PATH_SLO; N8,N9,PARTIAL; N10,BLOCKED_BY_HARD_PATH_OWNER_DECISION; N11,READY_FOR_READ_ONLY_DISCOVERY` |
+| `HARD_PATH_RUNTIME_SLO` | `BLOCKED_OWNER_ARCHITECTURAL_DECISION; frozen valid totals=2947.173/3133.279/4987.290/4992.034/8315.205 ms; nearest-rank P95=8315.205 ms; valid max=8315.205 ms; dominant residual=T0_TO_DECISION` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN; no automatic performance patch, SLO/cadence/priority/verifier/Planner/Matrix/Authority change absent fresh owner admission` |
+| `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-25_012000_v5_3_post_hard_path_reconciliation_and_independent_frontier.md` |
+| `HARD_PATH_RUNTIME_FINGERPRINT` | `0cef0edf758f504eab000ecd2e5e68118819817aa4585fcd331360531f4e5735` |
+| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `dd9dd3d89f296be641651261fd16cd0a26fc20ca; local newer commit is docs-only` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_OWNER_DECISION; exact governed Telegram S11 shares mandatory T0_TO_DECISION path and receives no false independent SLO credit` |
+| `V5_3_N10_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_OWNER_DECISION; no ordinary or ordinary-like movement admitted merely to repeat a common unresolved path` |
+| `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_ACTIVE; no deletion before exact replacement, consumer migration, fallback-window, no-caller, no-consumer and no-state-dependency proof` |
+| `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
 | `DEPENDENCY_GRAPH_VERSION` | `v7.omp-capability-dependency-graph.v1` |
-| `CURRENT_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
+| `CURRENT_EXECUTION_FRONTIER` | `V5_3_HARD_PATH_OWNER_DECISION_AND_N11_DISCOVERY` |
 | `WAITING_CAPABILITIES` | `CAP-U02,CAP-U05,CAP-U06,CAP-U07` |
 | `READY_CAPABILITIES` | `NONE` |
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
-| `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
-| `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_ENGINEERING_LATENCY_OPTIMIZATION_CONSUMED_PRODUCTION_OBSERVATION_OPTIONAL` |
+| `CONTINUATION_DECISION` | `CONTINUE_INDEPENDENT_N11_DISCOVERY; HARD_PATH_IMPLEMENTATION_STOPPED_PENDING_OWNER_DECISION` |
+| `NEXT_EXECUTABLE_CAPABILITY` | `N11_READ_ONLY_RESIDUE_DISCOVERY` |
+| `PROGRAM_TERMINAL_STATE` | `HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED; FINAL_N0_N11_TERMINAL_FORBIDDEN` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |

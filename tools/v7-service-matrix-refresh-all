@@ -2153,6 +2153,24 @@ def run_ct_m0f_standing_validation_campaign(
         )
     )
     preparation_span("prepared_target_validation", span_started_ns)
+    preparation_spans[-1]["result_status"] = str(
+        prepared_target_diagnostic.get("status") or ""
+    )
+    preparation_spans[-1]["fallback_used"] = bool(
+        prepared_target_diagnostic.get("ok") is not True
+    )
+    preparation_spans[-1]["blockers"] = list(
+        prepared_target_diagnostic.get("blockers") or []
+    )[:8]
+    preparation_spans[-1]["rejected_targets"] = list(
+        prepared_target_diagnostic.get("rejected_targets") or []
+    )[:8]
+    preparation_spans[-1]["declared_target_count"] = int(
+        prepared_target_diagnostic.get("declared_target_count") or 0
+    )
+    preparation_spans[-1]["selected_source_id"] = str(
+        prepared_target_diagnostic.get("selected_source_id") or ""
+    )
     source_rc = 2
     source_selection: dict[str, Any] = {}
     source_output = ""

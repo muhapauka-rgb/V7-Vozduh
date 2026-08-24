@@ -598,6 +598,50 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 ],
             )
 
+    def test_live_execution_lineage_process_cache_extends_verified_chained_append(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            decision_id = "decision-append-extension"
+            operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": (
+                        operator_execution
+                        .CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+                    ),
+                    "decision_id": decision_id,
+                },
+            )
+            first = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+                required_decision_ids=(decision_id,),
+            )
+            operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": (
+                        operator_execution
+                        .CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE
+                    ),
+                    "reservation_id": "sample-append-extension",
+                },
+            )
+            with mock.patch(
+                "builtins.open",
+                side_effect=AssertionError("full lineage rescan"),
+            ):
+                extended = (
+                    operator_execution.read_live_execution_lineage_records(
+                        audit_path,
+                        required_decision_ids=(decision_id,),
+                    )
+                )
+            self.assertEqual(len(first), 1)
+            self.assertEqual(
+                [row.get("reservation_id") for row in extended if row.get("reservation_id")],
+                ["sample-append-extension"],
+            )
+
     def test_live_execution_lineage_process_cache_reuses_exact_generation_superset(self):
         with tempfile.TemporaryDirectory() as tmp:
             audit_path = Path(tmp) / "operator-execution-audit.jsonl"

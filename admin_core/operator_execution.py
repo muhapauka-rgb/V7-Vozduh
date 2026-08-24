@@ -7607,6 +7607,152 @@ def _cached_live_execution_lineage_superset(
     return None
 
 
+def _cached_live_execution_lineage_append_extension(
+    *,
+    path: Path,
+    max_rotated_segments: int,
+    include_runtime_actions: bool,
+    required_ids: tuple[str, ...],
+    source_signature: tuple[tuple[str, int, int], ...],
+    durable_record_types: set[str],
+    durable_effect_classes: set[str],
+) -> list[dict[str, Any]] | None:
+    """Extend a cached append-only lineage from verified new records only.
+
+    Packet/lease materialisation appends to the same audit between planning
+    and the final mutable-owner revalidation. Re-reading every rotated segment
+    cannot add evidence from the immutable prefix. Reuse that prefix only when
+    every rotated source is byte-generation-identical, the active file only
+    grew, the previous prefix ended on a record boundary, and every appended
+    record continues the audit hash chain. Any replacement, truncation,
+    partial write or chain mismatch returns ``None`` and the established full
+    scan below remains the fail-closed path.
+    """
+    requested = set(required_ids)
+    current_by_path = {row[0]: row for row in source_signature}
+    active_path = str(path)
+    for cache_key, cached in reversed(
+        list(_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.items())
+    ):
+        (
+            cached_path,
+            cached_segments,
+            cached_runtime_actions,
+            _cached_required_ids,
+            cached_signature,
+        ) = cache_key
+        if (
+            cached_path != active_path
+            or cached_segments != max_rotated_segments
+            or cached_runtime_actions != include_runtime_actions
+        ):
+            continue
+        if requested and not requested.issubset({
+            str(row.get("decision_id") or "")
+            for row in cached
+            if isinstance(row, dict)
+        }):
+            continue
+        previous_by_path = {row[0]: row for row in cached_signature}
+        if set(previous_by_path) != set(current_by_path):
+            continue
+        previous_active = previous_by_path.get(active_path)
+        current_active = current_by_path.get(active_path)
+        if previous_active is None or current_active is None:
+            continue
+        if any(
+            previous_by_path[name] != current_by_path[name]
+            for name in previous_by_path
+            if name != active_path
+        ):
+            continue
+        previous_size = int(previous_active[1])
+        current_size = int(current_active[1])
+        if current_size <= previous_size or previous_size <= 0:
+            continue
+        try:
+            with path.open("rb") as handle:
+                handle.seek(previous_size - 1)
+                if handle.read(1) != b"\n":
+                    continue
+                position = previous_size
+                pending = b""
+                previous_row: dict[str, Any] = {}
+                while position > 0 and not previous_row:
+                    size = min(65536, position)
+                    position -= size
+                    handle.seek(position)
+                    pending = handle.read(size) + pending
+                    parts = pending.split(b"\n")
+                    candidates = parts[1:] if position > 0 else parts
+                    for raw in reversed(candidates):
+                        if not raw.strip():
+                            continue
+                        value = json.loads(raw.decode("utf-8"))
+                        if isinstance(value, dict):
+                            previous_row = value
+                        break
+                previous_hash = str(previous_row.get("record_hash") or "")
+                if not previous_hash:
+                    continue
+                handle.seek(previous_size)
+                appended = handle.read(current_size - previous_size)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not appended or not appended.endswith(b"\n"):
+            continue
+        appended_rows: list[dict[str, Any]] = []
+        chain_hash = previous_hash
+        chain_valid = True
+        for raw in appended.splitlines():
+            if not raw.strip():
+                continue
+            try:
+                row = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                chain_valid = False
+                break
+            if not isinstance(row, dict):
+                chain_valid = False
+                break
+            if str(row.get("previous_record_hash") or "") != chain_hash:
+                chain_valid = False
+                break
+            chain_hash = str(row.get("record_hash") or "")
+            if not chain_hash:
+                chain_valid = False
+                break
+            runtime_action = bool(
+                include_runtime_actions
+                and row.get("runtime_action_performed") is True
+                and str(row.get("clearance_verdict") or "")
+                == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+            )
+            if (
+                row.get("record_type") in durable_record_types
+                or row.get("effect_class") in durable_effect_classes
+                or runtime_action
+            ):
+                appended_rows.append(row)
+        if not chain_valid:
+            continue
+        extended = copy.deepcopy(list(cached)) + appended_rows
+        new_key = (
+            active_path,
+            max_rotated_segments,
+            include_runtime_actions,
+            required_ids,
+            source_signature,
+        )
+        if len(_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE) >= 16:
+            _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
+        _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE[new_key] = tuple(
+            copy.deepcopy(extended)
+        )
+        return extended
+    return None
+
+
 def read_live_execution_lineage_records(
     audit_store,
     *,
@@ -7704,6 +7850,17 @@ def read_live_execution_lineage_records(
     runtime_value_markers = (
         json.dumps("RESTORE_BARRIER_CLEARANCE_WRITTEN"),
     ) if include_runtime_actions else ()
+    appended_extension = _cached_live_execution_lineage_append_extension(
+        path=path,
+        max_rotated_segments=max(0, int(max_rotated_segments)),
+        include_runtime_actions=bool(include_runtime_actions),
+        required_ids=required_ids,
+        source_signature=tuple(source_signature),
+        durable_record_types=durable_record_types,
+        durable_effect_classes=durable_effect_classes,
+    )
+    if appended_extension is not None:
+        return copy.deepcopy(appended_extension)
     segment_records: list[list[dict[str, Any]]] = []
     found_required_ids: set[str] = set()
     # A caller that names the exact current Authority decision needs the

@@ -1693,8 +1693,20 @@ def run_ct_m0f_standing_validation_campaign(
         if isinstance(contract.get("authority_decision"), dict)
         else {}
     )
+    delegated_contract = (
+        policy_root.get("delegated_autonomy_policy", {})
+        if isinstance(policy_root, dict)
+        else {}
+    )
+    delegated_decision = (
+        delegated_contract.get("authority_decision")
+        if isinstance(delegated_contract, dict)
+        and isinstance(delegated_contract.get("authority_decision"), dict)
+        else {}
+    )
     required_decision_ids = tuple(filter(None, [
-        str(standing_decision.get("decision_id") or "")
+        str(standing_decision.get("decision_id") or ""),
+        str(delegated_decision.get("decision_id") or ""),
     ]))
     span_started_ns = time.monotonic_ns()
     records = operator_execution.read_live_execution_lineage_records(

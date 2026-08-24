@@ -50,6 +50,17 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertNotIn(
             'start --no-block v7-autoswitch-planner.service', diagnose,
         )
+        health_loop = (
+            ROOT / "tools" / "runtime-support" / "v7-health-loop"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            '"--consumer-wake-command", "/usr/local/bin/v7-service-matrix-refresh-all"',
+            health_loop,
+        )
+        self.assertIn(
+            '--consume-existing-service-failure-events-only', diagnose,
+        )
+        self.assertIn('--runtime-hot-path-only', diagnose)
         self.assertNotIn("Nice=10", service)
         self.assertNotIn("IOSchedulingPriority=7", service)
 
@@ -295,6 +306,39 @@ class V53RoleBasedRecoveryTest(unittest.TestCase):
         self.assertEqual(values["hard_signal_new_t0_count"], "0")
         self.assertNotIn("unused_hard_signal_status", values)
         self.assertEqual(wake_lines, ["wake"])
+
+    def test_existing_diagnose_invokes_direct_matrix_consumer_with_unit_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = self.write_state(root)
+            wake_trace = root / "wake.trace"
+            wake = root / "v7-service-matrix-refresh-all"
+            wake.write_text(
+                f"#!/bin/sh\nprintf '%s\\n' \"$*\" > '{wake_trace}'\n",
+                encoding="utf-8",
+            )
+            wake.chmod(0o755)
+            command = [
+                str(DIAGNOSE_TOOL),
+                "--state-dir", str(state),
+                "--output", str(state / "egress-diagnose.state"),
+                "--hard-signal-only",
+                "--definitive-matrix-command", str(MATRIX_TOOL),
+                "--consumer-wake-command", str(wake),
+            ]
+            env = os.environ.copy()
+            env["V7_EVENT_DIR"] = str(root / "events")
+            result = subprocess.run(
+                command, text=True, capture_output=True, check=False,
+                timeout=10, env=env,
+            )
+            wake_args = wake_trace.read_text(encoding="utf-8").strip()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            wake_args,
+            "--consume-existing-service-failure-events-only --runtime-hot-path-only",
+        )
 
     def test_existing_diagnose_owner_closes_direct_episode_when_interface_recovers(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -42,7 +42,13 @@ DEFAULT_ROLE_COMMANDS = (
             "--output", "-",
             "--hard-signal-only",
             "--definitive-matrix-command", "/usr/local/bin/v7-service-matrix-test",
-            "--consumer-wake-command", "/usr/bin/systemctl",
+            # Reuse the existing admitted Matrix consumer directly in the
+            # already-running HARD role.  The historical systemd wake remains
+            # a compatibility fallback in v7-egress-diagnose, but paying a
+            # second manager/process scheduling boundary after canonical T0
+            # consumed a material part of the recovery SLO on the two-core
+            # production host.
+            "--consumer-wake-command", "/usr/local/bin/v7-service-matrix-refresh-all",
         ),
     ),
     (

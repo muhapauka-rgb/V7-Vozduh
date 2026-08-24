@@ -351,6 +351,17 @@ wake_existing_failure_consumer() {
     # recovery precedence for the complete causal path instead of restarting
     # background probes while a detached Nice=10 consumer is still applying.
     "$CONSUMER_WAKE_COMMAND" start v7-autoswitch-planner.service >/dev/null 2>&1
+  elif [ "$(basename "$CONSUMER_WAKE_COMMAND")" = "v7-service-matrix-refresh-all" ]; then
+    # The production HARD role is already a single, deadline-isolated child
+    # of the existing v7-health owner. Invoke the exact ExecStart consumer
+    # payload directly so canonical T0 does not wait for a second systemd
+    # scheduling boundary. This creates no daemon, watcher, queue or owner;
+    # the same Matrix consumer still performs every current-scope, policy,
+    # Packet, lease, barrier and apply check and this HARD child waits for its
+    # bounded terminal before returning.
+    "$CONSUMER_WAKE_COMMAND" \
+      --consume-existing-service-failure-events-only \
+      --runtime-hot-path-only >/dev/null 2>&1
   else
     "$CONSUMER_WAKE_COMMAND" >/dev/null 2>&1
   fi

@@ -16292,6 +16292,47 @@ class AutoswitchPlanner:
                             0,
                             stdout="controlled verifier condition not activated; induced failure suppressed\n",
                         )
+                    elif (
+                        ct_m0f_cutover_requested
+                        and not self._verification_required_services(move)
+                    ):
+                        # For an exact CT-M0F identity with no declared
+                        # application service, the immediately following
+                        # route-bound payload probe is a stronger end-to-end
+                        # post-apply path proof than launching a second Python
+                        # process merely to fingerprint the same target path.
+                        # The payload result is included in the rollback gate
+                        # below, so this removes duplicate observation work
+                        # without weakening failure containment.
+                        service_verify_started_ns = time.monotonic_ns()
+                        service_verify = subprocess.CompletedProcess(
+                            ["v7-service-matrix-test", "--path-evidence-only"],
+                            0,
+                            stdout=json.dumps({
+                                "status": (
+                                    "DEFERRED_TO_EXACT_ROUTE_BOUND_PAYLOAD_PROBE"
+                                ),
+                                "ok": True,
+                                "required_services": [],
+                                "profile_service_probe_count": 0,
+                                "full_matrix_refreshed": False,
+                                "verification_owner": (
+                                    "existing CT-M0F exact-client payload consumer"
+                                ),
+                            }),
+                        )
+                        service_verify_span = self._record_performance_span(
+                            "required_service_verification",
+                            service_verify_started_ns,
+                            owner=(
+                                "existing CT-M0F exact-client payload consumer"
+                            ),
+                            status="PASS",
+                            parent="apply_and_verification",
+                        )
+                        row["service_verification_timing"] = (
+                            service_verify_span
+                        )
                     else:
                         service_verify_started_ns = time.monotonic_ns()
                         service_verify = self._reuse_or_verify_emergency_required_services(move)
@@ -16320,13 +16361,30 @@ class AutoswitchPlanner:
                     row["ct_m0f_kernel_cutover_evidence"] = (
                         self._ct_m0f_kernel_cutover_evidence(plan, move, row)
                     )
-                verification_failed = verify.returncode != 0 or (service_verify is not None and service_verify.returncode != 0)
+                ct_m0f_payload_failed = bool(
+                    ct_m0f_cutover_requested
+                    and (
+                        row.get("ct_m0f_kernel_cutover_evidence") or {}
+                    ).get("ok") is not True
+                )
+                verification_failed = bool(
+                    verify.returncode != 0
+                    or (
+                        service_verify is not None
+                        and service_verify.returncode != 0
+                    )
+                    or ct_m0f_payload_failed
+                )
                 if verification_failed and self.args.rollback_on_verify_fail:
                     row["verification_failure_reason"] = "route_verify_failed"
                     if service_verify is not None and service_verify.returncode != 0:
                         row["verification_failure_reason"] = "required_service_verify_failed"
                         if "timeout" in str(service_verify.stdout or "").lower():
                             row["verification_failure_reason"] = "required_service_verify_timeout"
+                    elif ct_m0f_payload_failed:
+                        row["verification_failure_reason"] = (
+                            "exact_route_bound_payload_verify_failed"
+                        )
                     row["rollback_attempted"] = True
                     rollback_control = self._execution_control_decision(
                         mutation_kind="rollback",

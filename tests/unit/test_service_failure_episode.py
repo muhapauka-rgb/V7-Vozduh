@@ -5949,6 +5949,8 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         early_scope = source[flag:branch_end]
         self.assertIn("max_successive_samples=2", early_scope)
         self.assertIn("controlled_successor_wait_sec=3.0", early_scope)
+        self.assertNotIn('not source_scope.get("active")', early_scope)
+        self.assertIn("Incident scopes are independent", early_scope)
         self.assertIn(
             "CONSUMED_IN_SAME_EXISTING_OWNER_INVOCATION",
             REFRESH_TOOL.read_text(encoding="utf-8"),

@@ -6208,9 +6208,16 @@ def main() -> int:
     # barrier/apply owners; every live gate remains fail-closed.
     if (
         args.runtime_hot_path_only
-        and not source_scope.get("active")
         and source_scope.get("certification_only_active_sources")
     ):
+        # Incident scopes are independent.  An unrelated ordinary-source
+        # failure must not suppress an exact certification-only Polygon
+        # incident, otherwise the sole T0 wake is consumed by the ordinary
+        # branch and the bounded sample can never start.  This branch still
+        # receives the complete current scope and the CT selector admits only
+        # the exact isolated certification source; ordinary users and actions
+        # remain outside this invocation and are reconsidered by the next
+        # ordinary health cycle.
         payload["current_failed_source_scope"] = source_scope
         payload["ct_m0f_standing_validation_campaign"] = (
             run_ct_m0f_standing_validation_campaign(

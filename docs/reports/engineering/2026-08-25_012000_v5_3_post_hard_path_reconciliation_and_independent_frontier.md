@@ -148,3 +148,24 @@ the product SLO through an owner decision. No option was selected here.
 2. Continue N11 discovery; remove only an independently closed responsibility.
 3. After decision, run separate Telegram S11 and N10 proof; never reuse
    HARD_PATH samples as Telegram evidence.
+
+## Independent-frontier reconciliation terminal
+
+Terminal for this block:
+`HARD_PATH_OWNER_DECISION_REQUIRED_AFTER_INDEPENDENT_FRONTIER_CONSUMED`.
+
+All presently lawful independent work in this prompt has been consumed:
+
+* HARD_PATH has been frozen and packaged rather than patched;
+* Telegram and N10 have a demonstrated shared dependency and cannot receive
+  misleading independent credit;
+* N11 discovery found no responsibility eligible for deletion;
+* final Runtime read-only reconciliation remains `RUNTIME_ALIGNED` with a
+  docs-only local mismatch and no deploy requirement;
+* health is active, legacy standalone Matrix and Telegram timers remain
+  disabled, the observed lease is terminal, and the only affected identity is
+  the certification identity on `awg3`.
+
+The exact next action is the owner architectural decision in section F. No
+further safe implementation, rollout, Telegram proof, N10 progression or N11
+deletion exists without that decision.

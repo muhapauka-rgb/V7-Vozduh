@@ -1660,6 +1660,18 @@ def run_ct_m0f_standing_validation_campaign(
     Matrix remains only the wake/consumer.  Candidate, Packet, lease, cutover,
     reset and evidence are produced by their existing governed owners.
     """
+    preparation_spans: list[dict[str, Any]] = []
+
+    def preparation_span(stage: str, started_ns: int) -> None:
+        preparation_spans.append({
+            "stage": stage,
+            "duration_ms": round(
+                (time.monotonic_ns() - started_ns) / 1_000_000.0, 3,
+            ),
+            "clock_source": "time.monotonic_ns",
+            "owner": "existing Matrix/Authority/selection owners",
+        })
+
     policy_root = read_json(policy_file, {})
     contract = (
         policy_root.get(
@@ -1676,13 +1688,17 @@ def run_ct_m0f_standing_validation_campaign(
     required_decision_ids = tuple(filter(None, [
         str(standing_decision.get("decision_id") or "")
     ]))
+    span_started_ns = time.monotonic_ns()
     records = operator_execution.read_live_execution_lineage_records(
         audit_store,
         required_decision_ids=required_decision_ids,
     )
+    preparation_span("standing_policy_lineage_validation_read", span_started_ns)
+    span_started_ns = time.monotonic_ns()
     validation = operator_execution.validate_ct_m0f_standing_validation_policy(
         contract, audit_records=records,
     )
+    preparation_span("standing_policy_contract_validation", span_started_ns)
     if not validation.get("ok"):
         return {
             "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
@@ -2063,7 +2079,10 @@ def run_ct_m0f_standing_validation_campaign(
         )
         return merged
 
-    active_result = close_active_sample(active_reservations())
+    span_started_ns = time.monotonic_ns()
+    initial_active_reservations = active_reservations()
+    preparation_span("active_sample_lineage_reconciliation", span_started_ns)
+    active_result = close_active_sample(initial_active_reservations)
     if active_result is not None:
         return continue_after_safe_closure(
             active_result,
@@ -2076,6 +2095,7 @@ def run_ct_m0f_standing_validation_campaign(
     # that hand-off private to this invocation: it is neither a cache nor a
     # second state source, and it makes the automatic Matrix consumer use the
     # same target decision as the manual read-only predecessor did.
+    span_started_ns = time.monotonic_ns()
     prepared_target_diagnostic = (
         read_prepared_controlled_target_selection_diagnostic(
             planner,
@@ -2095,9 +2115,11 @@ def run_ct_m0f_standing_validation_campaign(
             audit_store=audit_store,
         )
     )
+    preparation_span("prepared_target_validation", span_started_ns)
     source_rc = 2
     source_selection: dict[str, Any] = {}
     source_output = ""
+    span_started_ns = time.monotonic_ns()
     try:
         module = in_process_autoswitch_module(planner)
         owner_args = in_process_autoswitch_args(
@@ -2154,6 +2176,7 @@ def run_ct_m0f_standing_validation_campaign(
             if diagnostic_path:
                 with contextlib.suppress(OSError):
                     os.unlink(diagnostic_path)
+    preparation_span("source_and_target_selection", span_started_ns)
     selected_source = str(source_selection.get("selected_source_id") or "")
     selected_user = str(source_selection.get("selected_user") or "")
     selected_target = str(source_selection.get("selected_target_id") or "")
@@ -2369,7 +2392,10 @@ def run_ct_m0f_standing_validation_campaign(
         }
 
     for successor_index in range(max(1, int(max_successive_samples))):
-        active_result = close_active_sample(active_reservations())
+        span_started_ns = time.monotonic_ns()
+        current_active_reservations = active_reservations()
+        preparation_span("pre_execution_sample_lineage_recheck", span_started_ns)
+        active_result = close_active_sample(current_active_reservations)
         if active_result is not None:
             return continue_after_safe_closure(
                 active_result,
@@ -2421,6 +2447,19 @@ def run_ct_m0f_standing_validation_campaign(
         rc, result, output = invoke(
             execute_command, max(120, min(timeout_sec, 900))
         )
+        if isinstance(result, dict):
+            execution_timing = result.get("execution_timing")
+            if not isinstance(execution_timing, dict):
+                execution_timing = {}
+                result["execution_timing"] = execution_timing
+            execution_timing["matrix_pre_execution_timing"] = {
+                "schema_version": "v7.matrix-pre-execution-timing.v1",
+                "spans": list(preparation_spans),
+                "total_ms": round(sum(
+                    float(row.get("duration_ms") or 0.0)
+                    for row in preparation_spans
+                ), 3),
+            }
         reservation = (
             (result.get("ct_m0f_admission_consumption") or {}).get("reservation")
             if isinstance(result.get("ct_m0f_admission_consumption"), dict)

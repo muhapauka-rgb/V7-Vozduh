@@ -2344,6 +2344,7 @@ def ensure_ct_m0f_standing_validation_lineage_checkpoint(
     *,
     audit_store,
     audit_records,
+    supporting_authority_decision_ids=(),
     now=None,
 ):
     """Roll immutable Authority proof into the live audit for one new build.
@@ -2399,6 +2400,42 @@ def ensure_ct_m0f_standing_validation_lineage_checkpoint(
         ]
 
     records = audit_records if isinstance(audit_records, list) else []
+    supporting_ids = tuple(sorted({
+        str(value)
+        for value in (supporting_authority_decision_ids or ())
+        if str(value)
+    }))
+    supporting_record_types = {
+        CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE,
+        STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE,
+    }
+
+    def verified_supporting_authority_records():
+        selected = []
+        for decision_id in supporting_ids:
+            matches = [
+                row for row in records
+                if (
+                    row.get("record_type") in supporting_record_types
+                    and str(row.get("decision_id") or "") == decision_id
+                )
+            ]
+            if len(matches) != 1:
+                return []
+            row = copy.deepcopy(matches[0])
+            record_hash = str(row.get("record_hash") or "")
+            if (
+                len(record_hash) != 64
+                or record_hash
+                != sha256_bytes(canonical_json({
+                    key: value for key, value in row.items()
+                    if key != "record_hash"
+                }).encode("utf-8"))
+            ):
+                return []
+            selected.append(row)
+        return selected
+
     existing = exact_checkpoints(records)
     if len(existing) == 1:
         return {"status": "REUSED", "ok": True, "audit_write": False}
@@ -2443,6 +2480,13 @@ def ensure_ct_m0f_standing_validation_lineage_checkpoint(
             "ok": False,
             "audit_write": False,
         }
+    supporting_records = verified_supporting_authority_records()
+    if supporting_ids and len(supporting_records) != len(supporting_ids):
+        return {
+            "status": "STOP_SAFE_SUPPORTING_AUTHORITY_LINEAGE_INVALID",
+            "ok": False,
+            "audit_write": False,
+        }
     with current_action_class_contract_policy_lock(audit_store):
         current = read_live_execution_lineage_records(audit_store)
         existing = exact_checkpoints(current)
@@ -2455,7 +2499,7 @@ def ensure_ct_m0f_standing_validation_lineage_checkpoint(
                 "audit_write": False,
             }
         record = append_record(audit_store, {
-            "schema_version": "v7.ct-m0f-standing-validation-lineage-checkpoint.v1",
+            "schema_version": "v7.ct-m0f-standing-validation-lineage-checkpoint.v2",
             "record_type": CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,
             "contract_id": str(contract.get("contract_id") or ""),
             "contract_hash": str(contract.get("contract_hash") or ""),
@@ -2465,6 +2509,11 @@ def ensure_ct_m0f_standing_validation_lineage_checkpoint(
             "authority_request_hash": str(decision.get("request_hash") or ""),
             "decision": str(decision.get("decision") or ""),
             "source_authority_record_hash": source_hash,
+            # Hash-verified copies of the exact immutable Authority rows from
+            # this same append-only owner let failure-time validation avoid a
+            # repeated read of historical compressed segments.  This is only
+            # an acceleration projection and grants no additional Authority.
+            "supporting_authority_records": supporting_records,
             "no_prior_campaign_records_for_fingerprint": True,
             "producer": "admin_core.operator_execution",
             "created_at": now.isoformat(),
@@ -8131,9 +8180,64 @@ def read_live_execution_lineage_records(
                                 in required_ids
                             )
                         ]
+                        supporting_rows: list[dict[str, Any]] = []
+                        supporting_ids: set[str] = set()
                         if len(checkpoint_rows) == 1:
+                            checkpoint = checkpoint_rows[0][1]
+                            checkpoint_hash = str(
+                                checkpoint.get("record_hash") or ""
+                            )
+                            checkpoint_hash_valid = bool(
+                                len(checkpoint_hash) == 64
+                                and checkpoint_hash
+                                == sha256_bytes(canonical_json({
+                                    key: value
+                                    for key, value in checkpoint.items()
+                                    if key != "record_hash"
+                                }).encode("utf-8"))
+                            )
+                            if not checkpoint_hash_valid:
+                                checkpoint_rows = []
+                            for row in (
+                                checkpoint.get(
+                                    "supporting_authority_records"
+                                ) or []
+                            ):
+                                if not isinstance(row, dict):
+                                    continue
+                                decision_id = str(
+                                    row.get("decision_id") or ""
+                                )
+                                record_hash = str(row.get("record_hash") or "")
+                                if (
+                                    row.get("record_type")
+                                    not in durable_record_types
+                                    or not decision_id
+                                    or len(record_hash) != 64
+                                    or record_hash
+                                    != sha256_bytes(canonical_json({
+                                        key: value
+                                        for key, value in row.items()
+                                        if key != "record_hash"
+                                    }).encode("utf-8"))
+                                ):
+                                    continue
+                                supporting_rows.append(row)
+                                supporting_ids.add(decision_id)
+                        checkpoint_decision_ids = {
+                            str(row.get("decision_id") or "")
+                            for _, row in checkpoint_rows
+                            if str(row.get("decision_id") or "")
+                        }
+                        required_authority_covered = set(required_ids).issubset(
+                            checkpoint_decision_ids | supporting_ids
+                        )
+                        if (
+                            len(checkpoint_rows) == 1
+                            and required_authority_covered
+                        ):
                             if not include_runtime_actions:
-                                fast_rows = list(fingerprint_rows)
+                                fast_rows = list(fingerprint_rows) + supporting_rows
                             else:
                                 # Runtime clearance/lease records do not carry
                                 # the CT fingerprint.  They are nevertheless
@@ -8147,7 +8251,7 @@ def read_live_execution_lineage_records(
                                 # exact clearance verdict and decode only its
                                 # containing lines; the predicate below still
                                 # rejects nested or look-alike payloads.
-                                fast_rows = list(fingerprint_rows)
+                                fast_rows = list(fingerprint_rows) + supporting_rows
                                 checkpoint_start = checkpoint_rows[0][0]
                                 runtime_marker = json.dumps(
                                     "RESTORE_BARRIER_CLEARANCE_WRITTEN",

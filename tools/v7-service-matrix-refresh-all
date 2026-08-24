@@ -1980,6 +1980,7 @@ def run_ct_m0f_standing_validation_campaign(
             implementation_fingerprint,
             audit_store=audit_store,
             audit_records=records,
+            supporting_authority_decision_ids=required_decision_ids,
         )
     )
     preparation_span("standing_policy_lineage_checkpoint", span_started_ns)

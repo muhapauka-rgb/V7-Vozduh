@@ -726,6 +726,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             root = Path(tmp)
             audit_path = root / "operator-execution-audit.jsonl"
             decision_id = "ctm0f-decision-checkpoint"
+            availability_decision_id = "availability-decision-checkpoint"
             request_id = "ctm0f-request-checkpoint"
             request_hash = "a" * 64
             fingerprint = "b" * 64
@@ -754,6 +755,16 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     ),
                 },
             )
+            availability_decision = operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": (
+                        operator_execution
+                        .STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE
+                    ),
+                    "decision_id": availability_decision_id,
+                },
+            )
             audit_path.rename(root / "operator-execution-audit.jsonl.1")
             rotated = root / "operator-execution-audit.jsonl.1"
             with gzip.open(
@@ -766,7 +777,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             audit_path.write_text("", encoding="utf-8")
             lineage = operator_execution.read_live_execution_lineage_records(
                 audit_path,
-                required_decision_ids=(decision_id,),
+                required_decision_ids=(
+                    decision_id,
+                    availability_decision_id,
+                ),
             )
             checkpoint = (
                 operator_execution
@@ -775,6 +789,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     fingerprint,
                     audit_store=audit_path,
                     audit_records=lineage,
+                    supporting_authority_decision_ids=(
+                        decision_id,
+                        availability_decision_id,
+                    ),
                 )
             )
             self.assertEqual(checkpoint["status"], "CREATED")
@@ -808,7 +826,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             ):
                 compact = operator_execution.read_live_execution_lineage_records(
                     audit_path,
-                    required_decision_ids=(decision_id,),
+                    required_decision_ids=(
+                        decision_id,
+                        availability_decision_id,
+                    ),
                     required_checkpoint_fingerprint=fingerprint,
                 )
             anchors = [
@@ -822,6 +843,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 anchors[0]["source_authority_record_hash"],
                 decision["record_hash"],
             )
+            self.assertTrue(any(
+                row.get("record_hash") == availability_decision["record_hash"]
+                for row in compact
+            ))
             self.assertFalse(any(
                 row.get("reservation_id") == "unrelated-build-sample"
                 for row in compact

@@ -12288,6 +12288,12 @@ def prepare_ct_m0f_standing_controlled_condition(
         if isinstance(policy_root, dict)
         else {}
     )
+    availability_contract = (
+        policy_root.get("delegated_autonomy_policy", {})
+        if isinstance(policy_root, dict)
+        and isinstance(policy_root.get("delegated_autonomy_policy"), dict)
+        else {}
+    )
     policy_audit_records = (
         operator_execution.read_live_execution_lineage_records(audit_store)
     )
@@ -12423,6 +12429,18 @@ def prepare_ct_m0f_standing_controlled_condition(
             implementation_fingerprint,
             audit_store=audit_store,
             audit_records=policy_audit_records,
+            supporting_authority_decision_ids=tuple(filter(None, [
+                str(
+                    (contract.get("authority_decision") or {}).get(
+                        "decision_id"
+                    )
+                ),
+                str(
+                    (availability_contract.get("authority_decision") or {}).get(
+                        "decision_id"
+                    )
+                ),
+            ])),
         )
     )
     if lineage_checkpoint.get("ok") is not True:

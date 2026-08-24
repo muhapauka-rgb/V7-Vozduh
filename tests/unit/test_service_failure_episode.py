@@ -2610,6 +2610,109 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(result["invalidation_reasons"], ["target_health_and_path_generation"])
         self.assertFalse(result["registry_scanned"])
 
+    def test_precomputed_decision_handoff_reuses_one_official_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "egress.registry").write_text(
+                "id=source enabled=1\nid=target enabled=1\n",
+                encoding="utf-8",
+            )
+            (root / "users.registry").write_text(
+                "ip=10.7.0.2 current=source enabled=1\n",
+                encoding="utf-8",
+            )
+            for name in (
+                "service-preferences.json", "policy.json", "org-policy.json",
+                "safety.json",
+            ):
+                (root / name).write_text("{}", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(root),
+                policy_file=str(root / "policy.json"),
+                org_policy_file=str(root / "org-policy.json"),
+                safety_file=str(root / "safety.json"),
+            )
+            invalidators = self.autoswitch.current_prepared_selection_invalidators(args)
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                "produced_at": datetime.now(timezone.utc).isoformat(),
+                "selection_invalidator_keys": list(
+                    self.autoswitch.PREPARED_SELECTION_INVALIDATOR_KEYS
+                ),
+                "invalidators": invalidators,
+                "classes": [{
+                    "source_channel": "source",
+                    "hot_targets": [{"target_id": "target"}],
+                }],
+                "hot_target_set": {"contracts": [{
+                    "target_id": "target",
+                    "target_safe_additional_capacity": 4,
+                }]},
+            }
+            (root / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            handoff = self.autoswitch.prepared_decision_handoff_for_scope(
+                state_dir=root,
+                policy_file=root / "policy.json",
+                org_policy_file=root / "org-policy.json",
+                safety_file=root / "safety.json",
+                source="source",
+            )
+        self.assertTrue(handoff["ok"], handoff)
+        self.assertEqual(handoff["status"], "READY_FOR_BOUNDED_HOT_VALIDATION")
+        self.assertEqual(handoff["selected_target"], "target")
+        self.assertEqual(handoff["fallback"], "NONE")
+        self.assertFalse(handoff["runtime_mutation_performed"])
+
+    def test_precomputed_decision_handoff_rejects_ambiguous_targets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in (
+                "egress.registry", "users.registry", "service-preferences.json",
+                "policy.json", "org-policy.json", "safety.json",
+            ):
+                (root / name).write_text("{}", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(root),
+                policy_file=str(root / "policy.json"),
+                org_policy_file=str(root / "org-policy.json"),
+                safety_file=str(root / "safety.json"),
+            )
+            projection = {
+                "schema_version": "v7.prepared-class-decision-projection.v1",
+                "status": "PREPARED_CLASS_DECISION_AVAILABLE",
+                "produced_at": datetime.now(timezone.utc).isoformat(),
+                "selection_invalidator_keys": list(
+                    self.autoswitch.PREPARED_SELECTION_INVALIDATOR_KEYS
+                ),
+                "invalidators": self.autoswitch.current_prepared_selection_invalidators(args),
+                "classes": [{
+                    "source_channel": "source",
+                    "hot_targets": [{"target_id": "target-a"}, {"target_id": "target-b"}],
+                }],
+                "hot_target_set": {"contracts": [
+                    {"target_id": "target-a", "target_safe_additional_capacity": 4},
+                    {"target_id": "target-b", "target_safe_additional_capacity": 4},
+                ]},
+            }
+            (root / "service-matrix-refresh-summary.json").write_text(
+                json.dumps({"prepared_class_decisions": projection}),
+                encoding="utf-8",
+            )
+            handoff = self.autoswitch.prepared_decision_handoff_for_scope(
+                state_dir=root,
+                policy_file=root / "policy.json",
+                org_policy_file=root / "org-policy.json",
+                safety_file=root / "safety.json",
+                source="source",
+            )
+        self.assertFalse(handoff["ok"])
+        self.assertIn("prepared_handoff_target_ambiguous", handoff["blockers"])
+        self.assertEqual(handoff["fallback"], "EXISTING_FULL_PLANNER")
+
     def test_prepared_projection_reuse_rebuilds_legacy_capacity_contract(self):
         projection = {
             "schema_version": "v7.prepared-class-decision-projection.v1",

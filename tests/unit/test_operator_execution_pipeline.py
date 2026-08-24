@@ -233,10 +233,10 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
         self.assertTrue(validity["ok"], validity["blockers"])
         self.assertEqual(validity["authoritative_total_ms"], 4950.0)
 
-    def test_individual_cutover_sample_rejects_over_five_seconds(self):
+    def test_individual_cutover_sample_keeps_slow_functional_observation(self):
         receipt = self.kernel_cutover_receipt()
         receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"] = (
-            receipt["confirmed_hard_failure_monotonic_ns"] + 5_001_000_000
+            receipt["confirmed_hard_failure_monotonic_ns"] + 8_201_000_000
         )
         receipt["target_egress_payload_pass_monotonic_ns"] = (
             receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"]
@@ -245,11 +245,24 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
 
         validity = pipeline.controlled_kernel_cutover_sample_validity(evidence)
 
-        self.assertFalse(validity["ok"])
+        self.assertTrue(validity["ok"])
+        self.assertTrue(validity["functionally_valid"])
+        self.assertEqual(validity["classification"], "FUNCTIONALLY_VALID_PERFORMANCE_FAIL")
+        self.assertEqual(validity["performance_classification"], "PERFORMANCE_FAIL")
         self.assertIn(
             "authoritative_cutover_sample_above_5000ms",
-            validity["blockers"],
+            validity["performance_fail_reasons"],
         )
+
+    def test_individual_cutover_sample_marks_missing_timing_measurement_invalid(self):
+        evidence = self.kernel_cutover_receipt()
+        evidence["control_plane_and_kernel_path_cutover_pass_monotonic_ns"] = None
+        result = pipeline.control_plane_kernel_path_cutover_contract(evidence)
+        validity = pipeline.controlled_kernel_cutover_sample_validity(result)
+        self.assertFalse(validity["ok"])
+        self.assertEqual(validity["classification"], "MEASUREMENT_INVALID")
+        self.assertEqual(validity["performance_classification"], "NOT_EVALUATED")
+        self.assertIn("cutover_latency_unknown", validity["blockers"])
 
     def test_constant_time_ledger_consumes_nested_timing_without_fabricating_unknowns(self):
         result = pipeline.execution_performance_foundation(

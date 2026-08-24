@@ -927,6 +927,107 @@ def reuse_current_prepared_class_projection(args: argparse.Namespace) -> dict[st
     }
 
 
+def prepared_decision_handoff_for_scope(
+    *,
+    state_dir: Path,
+    policy_file: Path,
+    org_policy_file: Path,
+    safety_file: Path,
+    source: str,
+    target: str = "",
+) -> dict[str, Any]:
+    """Expose one existing prepared Planner proposal to the governed caller.
+
+    This is a read-only adapter over the Matrix-owned summary and the normal
+    prepared-decision freshness consumer.  It never selects a target from the
+    registry, creates execution objects or grants permission.  Ambiguous or
+    stale preparation deliberately returns a fallback reason so the existing
+    full Planner path remains authoritative.
+    """
+    args = argparse.Namespace(
+        state_dir=str(state_dir),
+        policy_file=str(policy_file),
+        org_policy_file=str(org_policy_file),
+        safety_file=str(safety_file),
+    )
+    reuse = reuse_current_prepared_class_projection(args)
+    projection = reuse.get("prepared_class_decisions") or {}
+    if not reuse.get("ok"):
+        return {
+            "schema_version": "v7.precomputed-decision-governed-handoff.v1",
+            "status": "PREPARED_DECISION_STALE_OR_MISSING",
+            "ok": False,
+            "fallback": "EXISTING_FULL_PLANNER",
+            "source": str(source or ""),
+            "requested_target": str(target or ""),
+            "selected_target": "",
+            "projection_fingerprint": "",
+            "invalidators": {},
+            "blockers": list(reuse.get("blockers") or ["prepared_projection_not_reusable"]),
+            "runtime_mutation_performed": False,
+        }
+    source = str(source or "")
+    requested_target = str(target or "")
+    classes = [
+        row for row in (projection.get("classes") or [])
+        if isinstance(row, dict) and str(row.get("source_channel") or "") == source
+    ]
+    contracts = {
+        str(row.get("target_id") or ""): row
+        for row in ((projection.get("hot_target_set") or {}).get("contracts") or [])
+        if isinstance(row, dict) and str(row.get("target_id") or "")
+    }
+    class_targets = {
+        str(target_row.get("target_id") or "")
+        for row in classes
+        for target_row in (row.get("hot_targets") or [])
+        if isinstance(target_row, dict) and str(target_row.get("target_id") or "")
+    }
+    candidates = sorted(class_targets & set(contracts))
+    blockers: list[str] = []
+    if not source:
+        blockers.append("prepared_handoff_source_missing")
+    if not classes:
+        blockers.append("prepared_handoff_source_class_missing")
+    if requested_target:
+        if requested_target not in candidates:
+            blockers.append("prepared_handoff_requested_target_not_in_source_class")
+        selected_target = requested_target
+    elif len(candidates) == 1:
+        selected_target = candidates[0]
+    elif len(candidates) > 1:
+        blockers.append("prepared_handoff_target_ambiguous")
+        selected_target = ""
+    else:
+        blockers.append("prepared_handoff_source_class_has_no_hot_target")
+        selected_target = ""
+    if selected_target and selected_target not in contracts:
+        blockers.append("prepared_handoff_target_contract_missing")
+    return {
+        "schema_version": "v7.precomputed-decision-governed-handoff.v1",
+        "status": "READY_FOR_BOUNDED_HOT_VALIDATION" if not blockers else "PREPARED_DECISION_HANDOFF_STOP_SAFE",
+        "ok": not blockers,
+        "fallback": "EXISTING_FULL_PLANNER" if blockers else "NONE",
+        "source": source,
+        "requested_target": requested_target,
+        "selected_target": selected_target,
+        "source_class_count": len(classes),
+        "prepared_target_count": len(candidates),
+        "target_contract": copy.deepcopy(contracts.get(selected_target) or {}),
+        "projection_fingerprint": sha256_json(projection),
+        "invalidators": copy.deepcopy(projection.get("invalidators") or {}),
+        "freshness": {
+            "status": "PREPARED_CLASS_DECISION_FRESH",
+            "selection_invalidator_keys": list(
+                projection.get("selection_invalidator_keys") or []
+            ),
+            "world_model_rebuilt": False,
+        },
+        "blockers": sorted(set(blockers)),
+        "runtime_mutation_performed": False,
+    }
+
+
 def matrix_comparative_probe_selection(
     plan: dict[str, Any], prepared_freshness: dict[str, Any]
 ) -> dict[str, Any]:
@@ -3857,6 +3958,13 @@ def controlled_campaign_execution_target_admission(
 
 class AutoswitchPlanner:
     def __init__(self, args: argparse.Namespace):
+        self._performance_runtime_started_ns = time.monotonic_ns()
+        self._performance_runtime_usage_before = resource.getrusage(
+            resource.RUSAGE_SELF
+        )
+        self._performance_runtime_load_before = self._load_average_snapshot()
+        self._performance_runtime_process_count_before = self._process_count_snapshot()
+        self._prepared_decision_diagnostic: dict[str, Any] = {}
         constructor_started_ns = time.monotonic_ns()
         self.args = args
         self._performance_spans: list[dict[str, Any]] = []
@@ -4061,6 +4169,22 @@ class AutoswitchPlanner:
             row["details"] = details
         self._performance_spans.append(row)
         return row
+
+    @staticmethod
+    def _load_average_snapshot() -> Optional[list[float]]:
+        try:
+            return [round(float(value), 3) for value in os.getloadavg()]
+        except (AttributeError, OSError, ValueError):
+            return None
+
+    @staticmethod
+    def _process_count_snapshot() -> Optional[int]:
+        # Linux production exposes /proc; a missing procfs is explicitly
+        # unknown rather than silently substituted with a host-wide guess.
+        try:
+            return sum(1 for name in os.listdir("/proc") if str(name).isdigit())
+        except (OSError, ValueError):
+            return None
 
     def _standing_policy_audit_records(self) -> list[dict[str, Any]]:
         """Read the active standing decision and its newer lineage once.
@@ -4387,11 +4511,52 @@ class AutoswitchPlanner:
         return plan
 
     def performance_timeline(self) -> dict[str, Any]:
+        usage_after = resource.getrusage(resource.RUSAGE_SELF)
+        load_after = self._load_average_snapshot()
+        process_count_after = self._process_count_snapshot()
+        started_ns = int(getattr(self, "_performance_runtime_started_ns", 0) or 0)
+        wall_ms = (
+            round(max(0, time.monotonic_ns() - started_ns) / 1_000_000.0, 3)
+            if started_ns else None
+        )
+        usage_before = getattr(self, "_performance_runtime_usage_before", None)
+        cpu_ms = None
+        rss_kb = None
+        if usage_before is not None:
+            cpu_ms = round(
+                max(
+                    0.0,
+                    (float(usage_after.ru_utime) + float(usage_after.ru_stime))
+                    - (float(usage_before.ru_utime) + float(usage_before.ru_stime)),
+                )
+                * 1000.0,
+                3,
+            )
+        try:
+            rss_kb = int(getattr(usage_after, "ru_maxrss", 0) or 0)
+        except (TypeError, ValueError):
+            rss_kb = None
         return {
             "schema_version": "v7.governed-transaction-nested-timing.v1",
             "clock_source": "time.monotonic_ns",
             "owner": "tools/v7-users-autoswitch",
             "spans": list(self._performance_spans),
+            "runtime_observation": {
+                "wall_ms": wall_ms,
+                "process_cpu_ms": cpu_ms,
+                "load_average_start": getattr(self, "_performance_runtime_load_before", None),
+                "load_average_end": load_after,
+                "peak_rss_kb": rss_kb,
+                "process_count_start": getattr(self, "_performance_runtime_process_count_before", None),
+                "process_count_end": process_count_after,
+                "lock_wait_ms": "UNKNOWN; existing lock owner exposes no per-run wait counter",
+                "bytes_read": "UNKNOWN; existing owner exposes no per-run byte counter",
+                "files_read": "UNKNOWN; existing owner exposes no per-run file counter",
+                "subprocess_count": "UNKNOWN; no per-run subprocess counter in current owner",
+            },
+            "prepared_decision_diagnostic": copy.deepcopy(
+                getattr(self, "_prepared_decision_diagnostic", {})
+            ),
         }
 
     def _exact_controlled_verifier_scope(self, selected_moves: list[dict[str, Any]]) -> dict[str, Any]:
@@ -12837,6 +13002,63 @@ class AutoswitchPlanner:
         requested_max_selected_moves = to_int(
             getattr(self.args, "max_selected_moves", 0), 0
         )
+        # Read-only decomposition of the existing prepared-decision surface.
+        # This does not change selection or admission; it records whether the
+        # current Matrix-owned projection could have been reused at T0.
+        prepared_lookup_started_ns = time.monotonic_ns()
+        prepared_reuse = reuse_current_prepared_class_projection(self.args)
+        prepared_lookup_completed_ns = time.monotonic_ns()
+        prepared_status = str(
+            prepared_reuse.get("status") or "PREPARED_CLASS_PROJECTION_UNKNOWN"
+        )
+        prepared_blockers = list(prepared_reuse.get("blockers") or [])
+        self._prepared_decision_diagnostic = {
+            "status": prepared_status,
+            "lookup": "FOUND" if prepared_reuse.get("ok") else "MISS_OR_STALE",
+            "prepared_target_count": len(
+                ((prepared_reuse.get("prepared_class_decisions") or {}).get("hot_target_set") or {}).get("contracts") or []
+            ),
+            "invalidators": copy.deepcopy(
+                (prepared_reuse.get("prepared_class_decisions") or {}).get("invalidators") or {}
+            ),
+            "blockers": prepared_blockers,
+            "world_model_rebuilt": bool(prepared_reuse.get("world_model_rebuilt")),
+            "runtime_behavior_changed": False,
+        }
+        prepared_handoff = {}
+        if str(getattr(self.args, "prepared_decision_handoff_file", "") or ""):
+            prepared_handoff = prepared_decision_handoff_for_scope(
+                state_dir=Path(self.args.state_dir),
+                policy_file=Path(self.args.policy_file),
+                org_policy_file=Path(self.args.org_policy_file),
+                safety_file=Path(self.args.safety_file),
+                source=source_egress,
+                target=target_egress,
+            )
+        self._prepared_decision_diagnostic["governed_handoff"] = copy.deepcopy(
+            prepared_handoff
+        )
+        self._record_performance_span(
+            "prepared_decision_lookup",
+            prepared_lookup_started_ns,
+            owner="existing Matrix/Planner prepared decision projection",
+            critical_path=True,
+            details={"result": self._prepared_decision_diagnostic["lookup"]},
+        )
+        self._record_performance_span(
+            "prepared_generation_validation",
+            prepared_lookup_completed_ns,
+            owner="existing prepared decision freshness consumer",
+            critical_path=True,
+            status="PASS" if prepared_reuse.get("ok") else "STOP_SAFE",
+            details={
+                "status": prepared_status,
+                "invalidator_count": len(
+                    self._prepared_decision_diagnostic["invalidators"]
+                ),
+                "blockers": prepared_blockers,
+            },
+        )
         active = self._active_users()
         # A bounded source-specific failover must not score every unrelated
         # customer before it can construct the first eligible Candidate.  The
@@ -12853,7 +13075,31 @@ class AutoswitchPlanner:
             active = [user for user in active if user.ip == self.args.user]
         if source_egress and requested_max_selected_moves > 0:
             active = active[:requested_max_selected_moves]
+        scope_started_ns = time.monotonic_ns()
+        self._record_performance_span(
+            "current_scope_validation",
+            scope_started_ns,
+            owner="existing source/user scope and incident binding owner",
+            critical_path=True,
+            details={"active_scope_count": len(active)},
+        )
+        candidate_started_ns = time.monotonic_ns()
         decisions = [self._decision_for_user(user) for user in active]
+        self._record_performance_span(
+            "candidate_eligibility_and_target_freshness",
+            candidate_started_ns,
+            owner="tools/v7-users-autoswitch.AutoswitchPlanner._decision_for_user",
+            critical_path=True,
+            details={
+                "decision_count": len(decisions),
+                "prepared_decision_reused": bool(prepared_handoff.get("ok")),
+                "classification": (
+                    "BOUNDED_PREPARED_TARGET_VALIDATION"
+                    if prepared_handoff.get("ok")
+                    else "CURRENT_FULL_DECISION_CONSTRUCTION"
+                ),
+            },
+        )
         selection_source = decisions
         if source_egress:
             selection_source = [
@@ -12912,7 +13158,19 @@ class AutoswitchPlanner:
             1 for item in selection_source
             if item.get("recommended_egress") and item.get("recommended_egress") != item.get("current_egress")
         )
+        policy_capacity_started_ns = time.monotonic_ns()
         selected = self._select_moves(selection_source, incident_source_context=incident_source_continuity) if enabled else []
+        self._record_performance_span(
+            "policy_authority_and_capacity_validation",
+            policy_capacity_started_ns,
+            owner="existing policy/Authority/capacity owners",
+            critical_path=True,
+            details={
+                "selected_before_authority": len(selected),
+                "enabled": enabled,
+                "classification": "CURRENT_SYNCHRONOUS_VALIDATION",
+            },
+        )
         selected_after_policy_count = len(selected)
         max_selected_moves = requested_max_selected_moves
         blast_radius_cap_applied = False
@@ -13300,6 +13558,7 @@ class AutoswitchPlanner:
             "org_isolation": self._org_isolation_summary(),
             "decisions": decisions,
             "selected_moves": selected,
+            "prepared_decision_handoff": copy.deepcopy(prepared_handoff),
         }
 
     def _operation_context(self, selected_hash: str, selected_count: int) -> dict[str, Any]:
@@ -19453,6 +19712,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ct-m0f-standing-validation-contract-id", default="")
     parser.add_argument("--ct-m0f-standing-validation-contract-hash", default="")
     parser.add_argument("--ct-m0f-implementation-fingerprint", default="")
+    parser.add_argument(
+        "--prepared-decision-handoff-file",
+        default="",
+        help=(
+            "Existing Matrix summary carrying a fresh prepared Planner "
+            "proposal. It is advisory input only; stale/ambiguous data falls "
+            "back to the full Planner and cannot authorize Apply."
+        ),
+    )
     parser.add_argument("--ct-m0f-standing-reset-reservation-id", default="")
     parser.add_argument("--ct-m0f-source-incident-id", default="")
     parser.add_argument("--ct-m0f-source-incident-generation", default="")

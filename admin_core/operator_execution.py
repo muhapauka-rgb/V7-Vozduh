@@ -2771,6 +2771,14 @@ def record_ct_m0f_standing_validation_forward_evidence(
                 if status == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
                 else "INVALID_DIAGNOSTIC_EVIDENCE"
             ),
+            "sample_classification": str(
+                evidence.get("sample_classification")
+                or (
+                    "FUNCTIONALLY_VALID_PERFORMANCE_PASS"
+                    if status == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
+                    else "MEASUREMENT_INVALID"
+                )
+            ),
             "sample_evidence": copy.deepcopy(evidence),
             "created_at": now.isoformat(),
         })

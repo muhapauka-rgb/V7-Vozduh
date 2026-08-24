@@ -3826,12 +3826,12 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
 
 
 def controlled_kernel_cutover_sample_validity(sample: dict[str, Any]) -> dict[str, Any]:
-    """Validate one CT-M0F observation without applying campaign cardinality.
+    """Classify one CT-M0F observation without conflating validity and SLO.
 
-    The five-sample p95 is a campaign gate.  Applying it while terminalising
-    the first reservation makes the campaign impossible to populate.  One
-    observation earns sample credit when the exact cutover contract passed,
-    its authoritative total is known, and the per-sample 5 s ceiling holds.
+    The exact governed chain determines *functional* validity.  Latency is a
+    separate performance classification consumed by the campaign gate.  A
+    slow but complete sample therefore remains in the distribution instead of
+    being discarded as ``MEASUREMENT_INVALID``.
     """
     sample = sample if isinstance(sample, dict) else {}
     metrics = sample.get("metrics") if isinstance(sample.get("metrics"), dict) else {}
@@ -3841,19 +3841,47 @@ def controlled_kernel_cutover_sample_validity(sample: dict[str, Any]) -> dict[st
         blockers.append("cutover_contract_not_passed")
     if not isinstance(total, (int, float)):
         blockers.append("cutover_latency_unknown")
-    elif float(total) > 5000.0:
-        blockers.append("authoritative_cutover_sample_above_5000ms")
-    ok = not blockers
+    functionally_valid = not blockers
+    performance_fail_reasons: list[str] = []
+    if isinstance(total, (int, float)):
+        if float(total) > 3000.0:
+            performance_fail_reasons.append("authoritative_cutover_sample_above_3000ms")
+        if float(total) > 5000.0:
+            performance_fail_reasons.append("authoritative_cutover_sample_above_5000ms")
+    performance_pass = functionally_valid and not performance_fail_reasons
     return {
         "schema_version": "v7.controlled-kernel-cutover-sample-validity.v1",
+        "classification": (
+            "FUNCTIONALLY_VALID_PERFORMANCE_PASS"
+            if performance_pass
+            else "FUNCTIONALLY_VALID_PERFORMANCE_FAIL"
+            if functionally_valid
+            else "MEASUREMENT_INVALID"
+        ),
+        "functional_classification": (
+            "FUNCTIONALLY_VALID" if functionally_valid else "MEASUREMENT_INVALID"
+        ),
+        "performance_classification": (
+            "PERFORMANCE_PASS"
+            if performance_pass
+            else "PERFORMANCE_FAIL"
+            if functionally_valid
+            else "NOT_EVALUATED"
+        ),
+        # ``ok`` remains the compatibility flag used by the standing-sample
+        # consumer; it now means functionally valid, not under-SLO.
         "status": (
             "CONTROLLED_KERNEL_CUTOVER_SAMPLE_VALID"
-            if ok else "CONTROLLED_KERNEL_CUTOVER_SAMPLE_INVALID"
+            if functionally_valid else "CONTROLLED_KERNEL_CUTOVER_SAMPLE_INVALID"
         ),
-        "ok": ok,
+        "ok": functionally_valid,
+        "functionally_valid": functionally_valid,
+        "performance_pass": performance_pass,
         "authoritative_total_ms": round(float(total), 3)
         if isinstance(total, (int, float)) else None,
+        "performance_slo_ms": 3000,
         "per_sample_ceiling_ms": 5000,
+        "performance_fail_reasons": performance_fail_reasons,
         "blockers": blockers,
     }
 

@@ -810,6 +810,7 @@ def run_l3_production_validation_plan(
     matrix_pre_execution_timing: list[dict[str, Any]] | None = None,
     planner_module: Any = None,
     standing_policy_lineage_reuse: dict[str, Any] | None = None,
+    prepared_decision_handoff: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -853,6 +854,11 @@ def run_l3_production_validation_plan(
         command.extend(["--target-egress", target])
     if controlled_user:
         command.extend(["--user", controlled_user])
+    if isinstance(prepared_decision_handoff, dict) and prepared_decision_handoff.get("ok"):
+        command.extend([
+            "--prepared-decision-handoff-file",
+            str(state_dir / "service-matrix-refresh-summary.json"),
+        ])
     if campaign_request_id or campaign_request_hash:
         command.extend([
             "--controlled-certification-campaign-request-id",
@@ -878,6 +884,9 @@ def run_l3_production_validation_plan(
             )
             planner_args._standing_policy_lineage_reuse = copy.deepcopy(
                 standing_policy_lineage_reuse or {}
+            )
+            planner_args._prepared_decision_handoff = copy.deepcopy(
+                prepared_decision_handoff or {}
             )
             planner = module.AutoswitchPlanner(planner_args)
             plan_started_ns = time.monotonic_ns()
@@ -5779,6 +5788,69 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             "l3_restore_barrier_preflight_reset_failed",
             restore_barrier_preflight_reset=restore_barrier_preflight_reset,
         )
+    planner_source = str(args.approved_source or "")
+    planner_target = str(
+        (
+            getattr(args, "_standing_delegated_policy_authority", {})
+            or {}
+        ).get("controlled_certification_target_id") or ""
+    )
+    planner_user = (
+        str(getattr(args, "ct_m0f_standing_validation_user", "") or "")
+        if ct_m0f_standing_requested
+        else str((availability_request.get("expected_users") or [""])[0])
+        if (
+            availability_mode
+            and requested_max_users == 1
+            and len(availability_request.get("expected_users") or []) == 1
+        )
+        else ""
+    )
+    prepared_decision_handoff: dict[str, Any] = {}
+    prepared_handoff_started_ns = time.monotonic_ns()
+    if planner_source and planner_user and requested_max_users == 1:
+        try:
+            planner_module_for_handoff = (
+                getattr(args, "_ct_m0f_in_process_planner_module", None)
+                or in_process_planner_module()
+            )
+            prepared_decision_handoff = (
+                planner_module_for_handoff.prepared_decision_handoff_for_scope(
+                    state_dir=state_dir,
+                    policy_file=Path(args.policy_file),
+                    org_policy_file=Path(getattr(args, "org_policy_file", "/etc/v7/org-egress-policy.json")),
+                    safety_file=Path(getattr(args, "safety_file", state_dir / "autoswitch-safety.json")),
+                    source=planner_source,
+                    target=planner_target,
+                )
+            )
+        except Exception as exc:
+            prepared_decision_handoff = {
+                "schema_version": "v7.precomputed-decision-governed-handoff.v1",
+                "status": "PREPARED_DECISION_HANDOFF_UNAVAILABLE",
+                "ok": False,
+                "fallback": "EXISTING_FULL_PLANNER",
+                "source": planner_source,
+                "requested_target": planner_target,
+                "selected_target": "",
+                "blockers": [f"handoff_owner_read_failed:{type(exc).__name__}"],
+                "runtime_mutation_performed": False,
+            }
+    if prepared_decision_handoff.get("ok") and not planner_target:
+        planner_target = str(
+            prepared_decision_handoff.get("selected_target") or ""
+        )
+    record_second_level(
+        "prepared_decision_lookup_and_bounded_handoff",
+        prepared_handoff_started_ns,
+        owner="existing Matrix/Planner prepared decision owner",
+        parent="planner",
+        status=(
+            "PASS"
+            if prepared_decision_handoff.get("ok")
+            else "FALLBACK_FULL_PLANNER"
+        ),
+    )
     planner_subprocess_started_ns = time.monotonic_ns()
     l3_plan_run = run_l3_production_validation_plan(
         state_dir=state_dir,
@@ -5786,13 +5858,8 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         snapshot_root=snapshot_root,
         restore_barrier_file=restore_barrier_file,
         max_users=requested_max_users,
-        source=str(args.approved_source or ""),
-        target=str(
-            (
-                getattr(args, "_standing_delegated_policy_authority", {})
-                or {}
-            ).get("controlled_certification_target_id") or ""
-        ),
+        source=planner_source,
+        target=planner_target,
         # Availability-first is independently admitted by its current standing
         # Action Class contract.  The older controlled-campaign identity is
         # lineage only and may bind a different source/execution-only target;
@@ -5841,20 +5908,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 )
             )
         ),
-        controlled_user=(
-            str(
-                getattr(args, "ct_m0f_standing_validation_user", "")
-                or ""
-            )
-            if ct_m0f_standing_requested
-            else str((availability_request.get("expected_users") or [""])[0])
-            if (
-                availability_mode
-                and requested_max_users == 1
-                and len(availability_request.get("expected_users") or []) == 1
-            )
-            else ""
-        ),
+        controlled_user=planner_user,
         in_process=bool(
             ct_m0f_standing_requested
             and str(
@@ -5876,6 +5930,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         standing_policy_lineage_reuse=getattr(
             args, "_standing_policy_lineage_reuse", {},
         ),
+        prepared_decision_handoff=prepared_decision_handoff,
     )
     record_second_level(
         "planner_subprocess_full_lifecycle",
@@ -13035,8 +13090,32 @@ def reset_ct_m0f_standing_validation_sample(
             "blockers": ["cutover_latency_unknown"],
         }
     )
+    # Preserve the exact governed receipt while attaching the current
+    # function/performance interpretation to the new evidence record.  Slow
+    # complete chains remain valid samples and are counted in the distribution;
+    # only structural/provenance defects are measurement-invalid.
+    if isinstance(evidence, dict) and isinstance(sample_validity, dict):
+        evidence = dict(evidence)
+        evidence["sample_classification"] = str(
+            sample_validity.get("classification") or "MEASUREMENT_INVALID"
+        )
+        evidence["functional_classification"] = str(
+            sample_validity.get("functional_classification") or "MEASUREMENT_INVALID"
+        )
+        evidence["performance_classification"] = str(
+            sample_validity.get("performance_classification") or "NOT_EVALUATED"
+        )
+        evidence["performance_slo_ms"] = sample_validity.get("performance_slo_ms")
+        evidence["per_sample_ceiling_ms"] = sample_validity.get("per_sample_ceiling_ms")
+        evidence["performance_fail_reasons"] = list(
+            sample_validity.get("performance_fail_reasons") or []
+        )
     sample_valid = bool(
         evidence_has_timing and sample_validity.get("ok") is True
+    )
+    performance_fail_reason = ":".join(
+        str(value) for value in (sample_validity.get("performance_fail_reasons") or [])
+        if str(value)
     )
     terminal = existing_terminal or (
         operator_execution.record_ct_m0f_standing_validation_sample_terminal(
@@ -13047,6 +13126,7 @@ def reset_ct_m0f_standing_validation_sample(
                 "verified_cutover_and_"
                 + recovery_mode.lower()
                 + "_complete"
+                + (":performance_fail:" + performance_fail_reason if performance_fail_reason else "")
                 if sample_valid
                 else "sample_forward_evidence_invalid_after_safe_reconciliation:"
                 + ",".join(sample_validity.get("blockers") or ["unknown"])

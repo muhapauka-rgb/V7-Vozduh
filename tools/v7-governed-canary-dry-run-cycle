@@ -12268,7 +12268,11 @@ def prepare_ct_m0f_standing_controlled_condition(
     }
     if selection_proc.returncode != 0 or selection.get("ok") is not True:
         blockers.append("ct_m0f_condition_fresh_selection_unavailable")
-    if str(selection.get("selection_mode") or "") != "PREPARE_CONTROLLED_FAILURE_CONDITION":
+    selection_mode = str(selection.get("selection_mode") or "")
+    if selection_mode not in {
+        "PREPARE_CONTROLLED_FAILURE_CONDITION",
+        "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE",
+    }:
         blockers.append("ct_m0f_condition_preparation_mode_not_current")
     for field, selection_field in (
         ("user", "selected_user"),
@@ -12361,21 +12365,70 @@ def prepare_ct_m0f_standing_controlled_condition(
             client_session=client_session,
         )
 
-    setup_args = copy.copy(args)
-    setup_args.confirm_controlled_certification_condition = (
-        "PREPARE_CONTROLLED_CERTIFICATION_CONDITION_APPROVED"
-    )
-    setup_args.certification_user = expected["user"]
-    setup_args.certification_source = expected["source"]
-    setup_args.certification_identity_mode = "REGISTRY_MARKED"
-    setup = prepare_controlled_certification_condition(
-        setup_args,
-        state_dir=state_dir,
-        event_dir=event_dir,
-        snapshot_root=snapshot_root,
-        audit_dir=audit_dir,
-        lease_file=lease_file,
-    )
+    if selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE":
+        # The standing reset has already returned the exact one-user
+        # certification baseline to this execution-only source.  Re-running a
+        # source==target Packet would be both meaningless and correctly
+        # rejected by the canonical Packet owner.  Reuse the current
+        # assignment, validate its kernel route and ask only the existing
+        # egress owner to refresh the certification-scope marker.
+        marker_command = [
+            str(getattr(args, "egress_state_owner", "v7-egress-set-state")),
+            expected["source"], "certification-scope",
+            "--certification-users", expected["user"],
+            "--certification-group", certification_group,
+            "--apply",
+        ]
+        marker = subprocess.run(
+            marker_command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=180,
+            check=False,
+        )
+        route = scoped_user_route_check(state_dir, expected["user"])
+        in_place_ok = bool(marker.returncode == 0 and route.get("passed"))
+        setup = {
+            "schema_version": (
+                "v7.controlled-certification-condition-preparation.v1"
+            ),
+            "final_verdict": (
+                "CONTROLLED_CERTIFICATION_CONDITION_PREPARED"
+                if in_place_ok else "STOP_SAFE"
+            ),
+            "setup_mode": "EXACT_EXISTING_BASELINE_IN_PLACE",
+            "marker_owner": "v7-egress-set-state certification-scope",
+            "marker_returncode": marker.returncode,
+            "marker_output": (marker.stdout or "")[-3000:],
+            "route_verification": route,
+            "certification_user": expected["user"],
+            "controlled_source": expected["source"],
+            "certification_group": certification_group,
+            "evidence_class": "ENGINEERING_SETUP_NOT_L7_EVIDENCE",
+            "ordinary_customer_used": False,
+            "users_moved": 0,
+            "runtime_mutation_performed": bool(marker.returncode == 0),
+            "routing_mutation_performed": False,
+            "authority_expanded_beyond_exact_setup": False,
+            "daemon_or_timer_enabled": False,
+        }
+    else:
+        setup_args = copy.copy(args)
+        setup_args.confirm_controlled_certification_condition = (
+            "PREPARE_CONTROLLED_CERTIFICATION_CONDITION_APPROVED"
+        )
+        setup_args.certification_user = expected["user"]
+        setup_args.certification_source = expected["source"]
+        setup_args.certification_identity_mode = "REGISTRY_MARKED"
+        setup = prepare_controlled_certification_condition(
+            setup_args,
+            state_dir=state_dir,
+            event_dir=event_dir,
+            snapshot_root=snapshot_root,
+            audit_dir=audit_dir,
+            lease_file=lease_file,
+        )
     if setup.get("final_verdict") != "CONTROLLED_CERTIFICATION_CONDITION_PREPARED":
         return transaction_stop(
             "ct_m0f_standing_controlled_condition_setup_failed",

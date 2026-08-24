@@ -25952,6 +25952,52 @@ def ct_m0f_standing_source_selection_only(
             str(row.get("source_id") or ""),
         )
     )
+    # A completed standing sample restores its exact certification identity to
+    # the isolated execution source.  Requiring a *second* healthy controlled
+    # source before the next sample would make a one-source Polygon campaign
+    # impossible and would add a pointless setup cutover before every
+    # measurement.  Admit the already-established baseline in place only for
+    # the exact execution-only contract, exactly one group-aligned
+    # certification identity and zero ordinary identities.  The distinct
+    # target is still selected and admitted below by the existing target and
+    # standing-policy owners; this projection grants no apply by itself.
+    in_place_preparation_sources = []
+    for row in healthy_baselines:
+        source_id = str(row.get("source_id") or "")
+        registry = next(
+            (
+                item for item in egress_rows
+                if str(item.get("id") or "") == source_id
+            ),
+            {},
+        )
+        exact_execution_contract = (
+            bool_value(registry.get("controlled_certification_source"))
+            and str(registry.get("type") or "") == "interface"
+            and str(registry.get("role") or "").upper() == "EXECUTION_ONLY"
+            and str(registry.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and bool_value(registry.get("execution_reserved"))
+            and bool_value(registry.get("canary_reserved"))
+            and not bool_value(registry.get("autoswitch_allowed"))
+            and not bool_value(registry.get("rebalance_allowed"))
+            and str(
+                registry.get("production_assignment_allowed") or ""
+            ).lower() in {"0", "false", "no"}
+        )
+        if (
+            exact_execution_contract
+            and int(row.get("enabled_certification_users_on_source") or 0) == 1
+            and int(
+                row.get("group_aligned_certification_users_on_source") or 0
+            ) == 1
+            and int(row.get("enabled_non_certification_users_on_source") or 0)
+            == 0
+        ):
+            in_place_preparation_sources.append(row)
+    in_place_preparation_sources.sort(
+        key=lambda row: str(row.get("source_id") or "")
+    )
     # CT-M0F may consume a real failure on an isolated certification-only
     # source.  The destination is not itself deliberately failed, so requiring
     # it to be another isolated controlled source incorrectly discards an
@@ -26035,6 +26081,8 @@ def ct_m0f_standing_source_selection_only(
         if failed_ready
         else "PREPARE_CONTROLLED_FAILURE_CONDITION"
         if preparation_sources and healthy_baselines
+        else "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE"
+        if in_place_preparation_sources
         else "STOP_SAFE"
     )
     selected = (
@@ -26042,6 +26090,8 @@ def ct_m0f_standing_source_selection_only(
         if failed_ready
         else preparation_sources[0]
         if preparation_sources and healthy_baselines
+        else in_place_preparation_sources[0]
+        if in_place_preparation_sources
         else {}
     )
     selected_source = str(selected.get("source_id") or "")
@@ -26082,7 +26132,12 @@ def ct_m0f_standing_source_selection_only(
     )
     if selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER":
         selected_user_row = source_users[0] if source_users else {}
-        selected_target_projection = healthy_baselines[0] if healthy_baselines else {}
+        selected_target_projection = (
+            healthy_baselines[0] if healthy_baselines else {}
+        )
+    elif selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE":
+        selected_user_row = source_users[0] if source_users else {}
+        selected_target_projection = {}
     else:
         baseline = healthy_baselines[0] if healthy_baselines else {}
         baseline_id = str(baseline.get("source_id") or "")
@@ -26286,13 +26341,19 @@ def ct_m0f_standing_source_selection_only(
         {},
     )
     shared_target_admitted = bool(
-        selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        selection_mode in {
+            "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
+            "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE",
+        }
         and availability_policy
         and shared_target_action_admitted
         and selected_shared_target
     )
     exact_controlled_contract_target_admitted = bool(
-        selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+        selection_mode in {
+            "EXECUTE_CONTROLLED_FAILURE_CUTOVER",
+            "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE",
+        }
         and availability_policy
         and shared_target_action_admitted
         and selected_controlled_contract_target
@@ -26374,6 +26435,10 @@ def ct_m0f_standing_source_selection_only(
         "status": (
             "CT_M0F_STANDING_CONTROLLED_FAILURE_READY"
             if selection_mode == "EXECUTE_CONTROLLED_FAILURE_CUTOVER"
+            and not blockers
+            else "CT_M0F_STANDING_CONTROLLED_FAILURE_PREPARATION_READY"
+            if selection_mode
+            == "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE"
             and not blockers
             else "CT_M0F_STANDING_CONTROLLED_FAILURE_PREPARATION_READY"
             if selection_mode == "PREPARE_CONTROLLED_FAILURE_CONDITION"

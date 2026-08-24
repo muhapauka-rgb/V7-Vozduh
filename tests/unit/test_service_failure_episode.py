@@ -841,6 +841,114 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             records[-1]["confirmed_hard_failure_monotonic_ns"],
         )
 
+    def test_ct_m0f_condition_reuses_exact_existing_baseline_in_place(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            audit_dir = root / "audit"
+            state.mkdir()
+            events.mkdir()
+            audit_dir.mkdir()
+            (state / "egress.registry").write_text(
+                "id=exec-source protocol=wireguard type=interface "
+                "interface=wg-exec enabled=1 role=EXECUTION_ONLY "
+                "controlled_certification_source=1 "
+                "reservation_owner=operator_execution_governance "
+                "certification_group=ct-m0f "
+                "controlled_source_reservation_id=ctres-test\n",
+                encoding="utf-8",
+            )
+            (state / "users.registry").write_text(
+                "ip=10.7.0.92 current=exec-source enabled=1 "
+                "certification_user=1 certification_group=ct-m0f\n",
+                encoding="utf-8",
+            )
+            policy = root / "policy.json"
+            contract = {
+                "contract_id": "contract",
+                "contract_hash": "a" * 64,
+            }
+            policy.write_text(json.dumps({
+                self.cycle.operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY: contract,
+            }), encoding="utf-8")
+            args = SimpleNamespace(
+                policy_file=str(policy),
+                ct_m0f_standing_validation_contract_id="contract",
+                ct_m0f_standing_validation_contract_hash="a" * 64,
+                ct_m0f_standing_validation_user="10.7.0.92",
+                ct_m0f_standing_validation_target="awg3",
+                ct_m0f_standing_sample_binding_fingerprint="b" * 64,
+                approved_source="exec-source",
+                egress_state_owner="v7-egress-set-state",
+            )
+            selection = {
+                "ok": True,
+                "selection_mode": (
+                    "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE"
+                ),
+                "selected_user": "10.7.0.92",
+                "selected_source_id": "exec-source",
+                "selected_target_id": "awg3",
+                "sample_binding_fingerprint": "b" * 64,
+            }
+
+            def fake_run(command, **_kwargs):
+                if "--ct-m0f-standing-source-selection" in command:
+                    payload = json.dumps(selection)
+                elif "--prepare-exact-client-probe-session" in command:
+                    payload = json.dumps({
+                        "ok": True,
+                        "final_verdict": "EXACT_CLIENT_PROBE_SESSION_PREPARED",
+                        "client": "10.7.0.92",
+                    })
+                else:
+                    payload = "owner applied"
+                return self.cycle.subprocess.CompletedProcess(
+                    command, 0, stdout=payload
+                )
+
+            with mock.patch.object(
+                self.cycle.operator_execution,
+                "validate_ct_m0f_standing_validation_policy",
+                return_value={"ok": True, "errors": []},
+            ), mock.patch.object(
+                self.cycle,
+                "prepare_controlled_certification_condition",
+                side_effect=AssertionError("in-place setup must not move user"),
+            ), mock.patch.object(
+                self.cycle, "scoped_user_route_check",
+                return_value={"passed": True},
+            ), mock.patch.object(
+                self.cycle.subprocess, "run", side_effect=fake_run,
+            ) as run_mock:
+                result = self.cycle.prepare_ct_m0f_standing_controlled_condition(
+                    args,
+                    state_dir=state,
+                    event_dir=events,
+                    snapshot_root=state / "intelligence",
+                    audit_dir=audit_dir,
+                    lease_file=state / "lease.json",
+                )
+
+        self.assertEqual(
+            result["final_verdict"],
+            "CT_M0F_STANDING_CONTROLLED_CONDITION_PREPARED",
+        )
+        self.assertEqual(
+            result["setup"]["setup_mode"],
+            "EXACT_EXISTING_BASELINE_IN_PLACE",
+        )
+        self.assertEqual(result["setup"]["users_moved"], 0)
+        self.assertTrue(any(
+            "certification-scope" in call.args[0]
+            for call in run_mock.mock_calls
+        ))
+        self.assertTrue(any(
+            "certification-failure" in call.args[0]
+            for call in run_mock.mock_calls
+        ))
+
     def test_ct_m0f_standing_source_selection_reuses_controlled_pool_owner(self):
         pool = {
             "active_source_projections": [
@@ -956,6 +1064,121 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
         self.assertEqual(len(result["sample_binding_fingerprint"]), 64)
         self.assertEqual(result["eligible_source_count"], 1)
         self.assertFalse(result["forbidden_effects"]["runtime_apply"])
+
+    def test_ct_m0f_standing_source_selection_reuses_exact_one_user_baseline_in_place(self):
+        availability_policy = {
+            "action_class_scopes": {
+                "bounded availability-first controlled failover": {
+                    "allowed_actions": [
+                        "ASSIGN_CERTIFICATION_COHORT_TO_SHARED_TARGET",
+                    ],
+                    "certification_identities_only": True,
+                    "max_users_per_transaction": 1,
+                    "max_concurrent_transactions": 1,
+                    "ordinary_identity_delta": 0,
+                    "ordinary_route_delta": 0,
+                    "shared_target_fault_injection_allowed": False,
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            state = root / "state"
+            events = root / "events"
+            state.mkdir()
+            events.mkdir()
+            (state / "users.registry").write_text(
+                "ip=10.7.0.92 current=exec-source enabled=1 "
+                "certification_user=1 certification_group=g1\n",
+                encoding="utf-8",
+            )
+            (state / "egress.registry").write_text(
+                "id=exec-source enabled=1 type=interface role=EXECUTION_ONLY "
+                "controlled_certification_source=1 certification_group=g1 "
+                "reservation_owner=operator_execution_governance "
+                "execution_reserved=1 canary_reserved=1 autoswitch_allowed=0 "
+                "rebalance_allowed=0 production_assignment_allowed=0\n",
+                encoding="utf-8",
+            )
+            policy = root / "policy.json"
+            audit = root / "audit.jsonl"
+            policy.write_text(json.dumps({
+                "delegated_autonomy_policy": {
+                    "authority_decision": {"decision_id": "decision"},
+                },
+            }), encoding="utf-8")
+            audit.write_text("", encoding="utf-8")
+            args = SimpleNamespace(
+                state_dir=str(state), event_dir=str(events),
+                policy_file=str(policy), action_class_audit_store=str(audit),
+            )
+            pool = {"active_source_projections": [{
+                "source_id": "exec-source",
+                "certification_group": "g1",
+                "enabled_certification_users_on_source": 1,
+                "group_aligned_certification_users_on_source": 1,
+                "enabled_non_certification_users_on_source": 0,
+                "source_isolated_for_controlled_failure": True,
+                "baseline_health": {
+                    "ok": True,
+                    "observation_fingerprint": "source-health",
+                },
+            }]}
+            target = {
+                "target_id": "awg3",
+                "ordinary_planner_eligible": False,
+                "controlled_rebind_eligible": True,
+                "controlled_only_contract": True,
+                "shared_target_technically_eligible": True,
+                "shared_target_availability": {
+                    "state": "HEALTHY",
+                    "policy_boundary": "NONE",
+                },
+                "role": "EXECUTION_ONLY",
+                "reservation_owner": "operator_execution_governance",
+                "health": {
+                    "ok": True,
+                    "observation_fingerprint": "target-health",
+                },
+                "capacity": {"target_safe_additional_capacity": 1},
+                "verification_supported": True,
+                "rollback_containment_supported": True,
+            }
+            with mock.patch.object(
+                self.autoswitch, "controlled_certification_pool_status",
+                return_value=pool,
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "validate_standing_delegated_operational_policy",
+                return_value={"ok": True, "policy": availability_policy},
+            ), mock.patch.object(
+                self.autoswitch.operator_execution,
+                "read_live_execution_lineage_records", return_value=[],
+            ), mock.patch.object(
+                self.autoswitch,
+                "controlled_campaign_target_selection_diagnostic",
+                return_value={
+                    "selection": {"selected_target_id": "awg3"},
+                    "targets": [target],
+                },
+            ):
+                result = self.autoswitch.ct_m0f_standing_source_selection_only(
+                    args
+                )
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(
+            result["selection_mode"],
+            "PREPARE_CONTROLLED_FAILURE_CONDITION_IN_PLACE",
+        )
+        self.assertEqual(result["selected_source_id"], "exec-source")
+        self.assertEqual(result["selected_user"], "10.7.0.92")
+        self.assertEqual(result["selected_target_id"], "awg3")
+        self.assertEqual(
+            result["selected_target_admission"]["admission_law"],
+            "EXACT_EXISTING_CONTROLLED_EXECUTION_TARGET_ONE_USER",
+        )
+        self.assertEqual(len(result["sample_binding_fingerprint"]), 64)
 
     def test_ct_m0f_hard_failure_reuses_exact_source_without_pool_rebuild(self):
         availability_policy = {

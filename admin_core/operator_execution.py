@@ -17,6 +17,7 @@ import gzip
 import hashlib
 import json
 import mmap
+import mmap
 import os
 import secrets
 import time
@@ -7874,41 +7875,83 @@ def read_live_execution_lineage_records(
         current_segment: list[dict[str, Any]] = []
         try:
             opener = gzip.open if candidate.suffix == ".gz" else open
-            with opener(candidate, "rt", encoding="utf-8", errors="replace") as handle:
-                for line in handle:
-                    if not line.strip():
-                        continue
-                    # Most append-only audit rows are unrelated to current
-                    # Authority/receipt lineage.  Test the immutable enum
-                    # values before JSON decoding: false positives are safe
-                    # (the exact predicates below still decide), while every
-                    # qualifying row necessarily contains one of these quoted
-                    # values regardless of JSON key ordering or whitespace.
-                    if not any(
-                        marker in line
-                        for marker in durable_value_markers
-                        + runtime_value_markers
-                    ):
-                        continue
-                    try:
-                        row = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    runtime_action = bool(
-                        include_runtime_actions
-                        and row.get("runtime_action_performed") is True
-                        and str(row.get("clearance_verdict") or "")
-                        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
-                    )
-                    if (
-                        row.get("record_type") in durable_record_types
-                        or row.get("effect_class") in durable_effect_classes
-                        or runtime_action
-                    ):
-                        current_segment.append(row)
-                        decision_id = str(row.get("decision_id") or "")
-                        if decision_id in required_ids:
-                            found_required_ids.add(decision_id)
+            candidate_lines: list[str] = []
+            if candidate.suffix != ".gz":
+                # The active production journal is append-only and can be
+                # hundreds of MiB, while durable lineage occupies only a tiny
+                # fraction of its rows. Search immutable enum values in the
+                # kernel-backed mapping and decode only the containing lines.
+                # This is still a direct read of the canonical audit owner:
+                # no index, sidecar, cache, watcher or alternate truth is
+                # created, and the exact predicates below remain unchanged.
+                encoded_markers = tuple(
+                    marker.encode("ascii")
+                    for marker in durable_value_markers
+                    + runtime_value_markers
+                )
+                line_offsets: set[tuple[int, int]] = set()
+                with candidate.open("rb") as raw_handle:
+                    if os.fstat(raw_handle.fileno()).st_size:
+                        with mmap.mmap(
+                            raw_handle.fileno(), 0, access=mmap.ACCESS_READ
+                        ) as mapped:
+                            for marker in encoded_markers:
+                                position = 0
+                                while True:
+                                    found = mapped.find(marker, position)
+                                    if found < 0:
+                                        break
+                                    start = mapped.rfind(b"\n", 0, found) + 1
+                                    end = mapped.find(b"\n", found)
+                                    if end < 0:
+                                        end = len(mapped)
+                                    line_offsets.add((start, end))
+                                    position = found + len(marker)
+                            candidate_lines = [
+                                mapped[start:end].decode(
+                                    "utf-8", errors="replace"
+                                )
+                                for start, end in sorted(line_offsets)
+                            ]
+            else:
+                with opener(
+                    candidate, "rt", encoding="utf-8", errors="replace"
+                ) as handle:
+                    candidate_lines = list(handle)
+            for line in candidate_lines:
+                if not line.strip():
+                    continue
+                # Most append-only audit rows are unrelated to current
+                # Authority/receipt lineage. Test the immutable enum
+                # values before JSON decoding: false positives are safe
+                # (the exact predicates below still decide), while every
+                # qualifying row necessarily contains one of these quoted
+                # values regardless of JSON key ordering or whitespace.
+                if not any(
+                    marker in line
+                    for marker in durable_value_markers
+                    + runtime_value_markers
+                ):
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                runtime_action = bool(
+                    include_runtime_actions
+                    and row.get("runtime_action_performed") is True
+                    and str(row.get("clearance_verdict") or "")
+                    == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                )
+                if (
+                    row.get("record_type") in durable_record_types
+                    or row.get("effect_class") in durable_effect_classes
+                    or runtime_action
+                ):
+                    current_segment.append(row)
+                    decision_id = str(row.get("decision_id") or "")
+                    if decision_id in required_ids:
+                        found_required_ids.add(decision_id)
         except OSError:
             continue
         segment_records.append(current_segment)

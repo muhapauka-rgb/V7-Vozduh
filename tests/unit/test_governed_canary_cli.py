@@ -357,6 +357,31 @@ class GovernedCanaryCliTest(unittest.TestCase):
             "PERFORMANCE_BENCHMARK_NO_STAGE_CREDIT",
         )
 
+    def test_in_process_performance_binding_consumes_ephemeral_plan_in_place(self):
+        module = load_cli_module()
+        plan = {
+            "decisions": [{
+                "user_ip": "10.7.0.100",
+                "current_egress": "vless",
+            }],
+            "summary": {"selected_moves": 0},
+            "safety": {},
+        }
+        result = module.bind_availability_first_controlled_selection(
+            plan,
+            expected_users=["10.7.0.100"],
+            source="vless",
+            target="awg3",
+            allocation_fingerprint="a" * 64,
+            performance_benchmark=True,
+            consume_ephemeral_plan=True,
+        )
+
+        self.assertTrue(result["ok"])
+        self.assertIs(result["plan"], plan)
+        self.assertEqual(len(plan["decisions"]), 1)
+        self.assertEqual(plan["selected_moves"][0]["recommended_egress"], "awg3")
+
     def test_legacy_performance_partial_prefers_exact_matrix_scope(self):
         module = load_cli_module()
         with tempfile.TemporaryDirectory() as tmp:

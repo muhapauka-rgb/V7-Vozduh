@@ -7562,6 +7562,51 @@ _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE: dict[
 ] = {}
 
 
+def _cached_live_execution_lineage_superset(
+    *,
+    path: Path,
+    max_rotated_segments: int,
+    include_runtime_actions: bool,
+    required_ids: tuple[str, ...],
+    source_signature: tuple[tuple[str, int, int], ...],
+) -> list[dict[str, Any]] | None:
+    """Reuse an already parsed exact-source projection for another validator.
+
+    One Matrix invocation validates several current standing contracts against
+    the same append-only audit generation.  A decision-bounded scan retains
+    every durable row in each segment it had to traverse, so that result may
+    safely satisfy another exact decision only when the requested decision is
+    actually present.  The source signature equality preserves the same
+    append/rotation invalidation contract as the primary cache key.
+    """
+    requested = set(required_ids)
+    for cache_key, cached in reversed(
+        list(_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.items())
+    ):
+        (
+            cached_path,
+            cached_segments,
+            cached_runtime_actions,
+            _cached_required_ids,
+            cached_signature,
+        ) = cache_key
+        if (
+            cached_path != str(path)
+            or cached_segments != max_rotated_segments
+            or cached_runtime_actions != include_runtime_actions
+            or cached_signature != source_signature
+        ):
+            continue
+        if requested and not requested.issubset({
+            str(row.get("decision_id") or "")
+            for row in cached
+            if isinstance(row, dict)
+        }):
+            continue
+        return copy.deepcopy(list(cached))
+    return None
+
+
 def read_live_execution_lineage_records(
     audit_store,
     *,
@@ -7639,6 +7684,18 @@ def read_live_execution_lineage_records(
         # view while still avoiding repeated gzip/JSON work in the same
         # bounded execution process.
         return copy.deepcopy(list(cached))
+    cached_superset = _cached_live_execution_lineage_superset(
+        path=path,
+        max_rotated_segments=max(0, int(max_rotated_segments)),
+        include_runtime_actions=bool(include_runtime_actions),
+        required_ids=required_ids,
+        source_signature=tuple(source_signature),
+    )
+    if cached_superset is not None:
+        _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE[cache_key] = tuple(
+            copy.deepcopy(cached_superset)
+        )
+        return cached_superset
 
     durable_value_markers = tuple(
         json.dumps(value, ensure_ascii=True)

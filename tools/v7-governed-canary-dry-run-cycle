@@ -953,6 +953,7 @@ def bind_availability_first_controlled_selection(
     target: str,
     allocation_fingerprint: str,
     performance_benchmark: bool = False,
+    consume_ephemeral_plan: bool = False,
 ) -> dict[str, Any]:
     """Bind controlled certification identities to the existing plan.
 
@@ -1085,7 +1086,12 @@ def bind_availability_first_controlled_selection(
             "plan": plan,
         }
 
-    bound = copy.deepcopy(plan)
+    # The in-process governed caller owns an ephemeral Candidate result and
+    # has no consumer for the broad pre-binding view after this exact scope is
+    # frozen.  Compacting that object in place avoids copying the unrelated
+    # world model on the incident path.  Other callers retain the historical
+    # copy-on-bind contract by default.
+    bound = plan if consume_ephemeral_plan else copy.deepcopy(plan)
     bound["selected_moves"] = selected
     # Candidate ranking has already been consumed and target identity is now
     # immutable.  Keeping every unrelated decision/candidate inside the
@@ -5849,6 +5855,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     or ""
                 ),
                 performance_benchmark=True,
+                consume_ephemeral_plan=bool(planner_runtime),
             )
         )
         if ct_m0f_standing_selection_binding.get("ok") is not True:

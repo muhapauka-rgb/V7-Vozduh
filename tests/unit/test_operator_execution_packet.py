@@ -3,6 +3,7 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest import mock
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -596,6 +597,42 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     .CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
                 ],
             )
+
+    def test_live_execution_lineage_process_cache_reuses_exact_generation_superset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            audit_path = Path(tmp) / "operator-execution-audit.jsonl"
+            first_id = "decision-first"
+            second_id = "decision-second"
+            rows = [
+                {
+                    "record_type": (
+                        operator_execution
+                        .CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+                    ),
+                    "decision_id": first_id,
+                },
+                {
+                    "record_type": (
+                        operator_execution
+                        .STANDING_DELEGATED_POLICY_DECISION_RECORD_TYPE
+                    ),
+                    "decision_id": second_id,
+                },
+            ]
+            audit_path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+            first = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+                required_decision_ids=(first_id,),
+            )
+            with mock.patch("builtins.open", side_effect=AssertionError("audit reread")):
+                second = operator_execution.read_live_execution_lineage_records(
+                    audit_path,
+                    required_decision_ids=(second_id,),
+                )
+            self.assertEqual(first, second)
 
     def test_live_execution_lineage_stops_after_exact_required_decision(self):
         with tempfile.TemporaryDirectory() as tmp:

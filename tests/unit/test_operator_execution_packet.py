@@ -4389,6 +4389,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 packet_id="packet-exact",
                 operation_id="operation-exact",
                 lease_id="lease-exact",
+                matrix_sample_binding_fingerprint="d" * 64,
                 audit_store=audit,
                 now=now + timedelta(seconds=5),
             )
@@ -4419,6 +4420,10 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             "CT_M0F_TRANSACTION_RESERVATION_PROTECTS_IDENTITY",
         )
         self.assertTrue(bound["ok"])
+        self.assertEqual(
+            bound["binding"]["matrix_sample_binding_fingerprint"],
+            "d" * 64,
+        )
         self.assertTrue(governed["ok"])
         self.assertFalse(wrong_operation["ok"])
         self.assertTrue(released["ok"])

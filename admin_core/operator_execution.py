@@ -2927,6 +2927,7 @@ def ct_m0f_standing_validation_transaction_guard(
 
 def bind_ct_m0f_standing_validation_transaction(
     *, transaction_reservation_id, packet_id, operation_id, lease_id,
+    matrix_sample_binding_fingerprint,
     audit_store=None, now=None,
 ):
     """Bind the pre-T0 reservation to the exact existing Packet/Lease."""
@@ -2939,6 +2940,15 @@ def bind_ct_m0f_standing_validation_transaction(
         "packet_id": str(packet_id or ""),
         "operation_id": str(operation_id or ""),
         "lease_id": str(lease_id or ""),
+        # This is the fresh Matrix -> Planner selection binding observed on
+        # the governed side of T0.  It is intentionally recorded alongside,
+        # rather than compared with, the pre-T0 reservation fingerprint:
+        # an ordinary Matrix generation is allowed to refresh its derived
+        # selection receipt while the immutable user/source/target and
+        # source-reservation envelope remains exact.
+        "matrix_sample_binding_fingerprint": str(
+            matrix_sample_binding_fingerprint or ""
+        ),
     }
     missing = [
         f"ct_m0f_transaction_{key}_missing"

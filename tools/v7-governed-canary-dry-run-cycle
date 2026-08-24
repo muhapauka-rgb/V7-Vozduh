@@ -6463,6 +6463,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 and str(row.get("enabled") or "1").lower()
                 in {"1", "true", "yes"}
             ]
+            source_lines = [
+                line
+                for line in (state_dir / "egress.registry").read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines()
+                if line.startswith(f"id={source} ")
+            ]
             source_scope_blockers = []
             if str(
                 source_row.get("controlled_certification_source") or ""
@@ -6540,12 +6547,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 if str(row.get("user") or "") == user
                 and str(row.get("source") or "") == source
                 and str(row.get("target") or "") == target
-                and str(row.get("sample_binding_fingerprint") or "")
-                == str(
-                    getattr(
-                        args, "ct_m0f_standing_sample_binding_fingerprint", ""
-                    ) or ""
-                )
+                and str(row.get("source_reservation_id") or "")
+                == str(source_row.get("controlled_source_reservation_id") or "")
+                and len(source_lines) == 1
+                and str(row.get("source_fingerprint") or "")
+                == hashlib.sha256(source_lines[0].encode()).hexdigest()
             ]
             if len(active_transactions) != 1:
                 operator_execution.finish_execution_lease(
@@ -6572,6 +6578,13 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     packet_id=str(packet_identity.get("packet_id") or ""),
                     operation_id=str(packet_identity.get("operation_id") or ""),
                     lease_id=str(lease.get("lease_id") or ""),
+                    matrix_sample_binding_fingerprint=str(
+                        getattr(
+                            args,
+                            "ct_m0f_standing_sample_binding_fingerprint",
+                            "",
+                        ) or ""
+                    ),
                     audit_store=audit_dir / "operator-execution-audit.jsonl",
                 )
             )

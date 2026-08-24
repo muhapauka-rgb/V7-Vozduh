@@ -790,6 +790,17 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                     "reservation_id": "unrelated-build-sample",
                 },
             )
+            operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": "runtime_action_record_persisted",
+                    "runtime_action_performed": True,
+                    "clearance_verdict": (
+                        "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                    ),
+                    "operation_id": "current-checkpoint-operation",
+                },
+            )
             operator_execution._LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
             with mock.patch(
                 "gzip.open",
@@ -814,6 +825,23 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             self.assertFalse(any(
                 row.get("reservation_id") == "unrelated-build-sample"
                 for row in compact
+            ))
+            operator_execution._LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
+            with mock.patch(
+                "gzip.open",
+                side_effect=AssertionError("rotated lineage reread"),
+            ):
+                runtime = (
+                    operator_execution.read_live_execution_lineage_records(
+                        audit_path,
+                        include_runtime_actions=True,
+                        required_decision_ids=(decision_id,),
+                        required_checkpoint_fingerprint=fingerprint,
+                    )
+                )
+            self.assertTrue(any(
+                row.get("operation_id") == "current-checkpoint-operation"
+                for row in runtime
             ))
 
     def test_append_record_reads_only_last_predecessor_semantics(self):

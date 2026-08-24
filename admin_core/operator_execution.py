@@ -8078,6 +8078,8 @@ def read_live_execution_lineage_records(
             checkpoint_fingerprint, ensure_ascii=True,
         ).encode("ascii")
         fingerprint_rows: list[dict[str, Any]] = []
+        fast_rows: list[dict[str, Any]] = []
+        checkpoint_rows: list[tuple[int, dict[str, Any]]] = []
         try:
             with path.open("rb") as raw_handle:
                 if os.fstat(raw_handle.fileno()).st_size:
@@ -8096,6 +8098,9 @@ def read_live_execution_lineage_records(
                                 end = len(mapped)
                             line_offsets.add((start, end))
                             position = found + len(fingerprint_marker)
+                        fingerprint_rows_with_offsets: list[
+                            tuple[int, dict[str, Any]]
+                        ] = []
                         for start, end in sorted(line_offsets):
                             try:
                                 row = json.loads(mapped[start:end])
@@ -8109,23 +8114,85 @@ def read_live_execution_lineage_records(
                                 in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
                             ):
                                 fingerprint_rows.append(row)
+                                fingerprint_rows_with_offsets.append(
+                                    (start, row)
+                                )
+                        checkpoint_rows = [
+                            (start, row)
+                            for start, row in fingerprint_rows_with_offsets
+                            if row.get("record_type")
+                            == CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+                            and row.get(
+                                "no_prior_campaign_records_for_fingerprint"
+                            ) is True
+                            and (
+                                not required_ids
+                                or str(row.get("decision_id") or "")
+                                in required_ids
+                            )
+                        ]
+                        if len(checkpoint_rows) == 1:
+                            if not include_runtime_actions:
+                                fast_rows = list(fingerprint_rows)
+                            else:
+                                # Runtime clearance/lease records do not carry
+                                # the CT fingerprint.  They are nevertheless
+                                # part of this exact cohort when they occur
+                                # after its immutable checkpoint.  Parse only
+                                # that bounded suffix and retain the same
+                                # durable predicates as the full reader.
+                                checkpoint_start = checkpoint_rows[0][0]
+                                for raw in mapped[
+                                    checkpoint_start:
+                                ].splitlines():
+                                    if not raw.strip():
+                                        continue
+                                    try:
+                                        row = json.loads(raw)
+                                    except (
+                                        UnicodeDecodeError,
+                                        json.JSONDecodeError,
+                                    ):
+                                        continue
+                                    if not isinstance(row, dict):
+                                        continue
+                                    runtime_action = bool(
+                                        row.get(
+                                            "runtime_action_performed"
+                                        ) is True
+                                        and str(
+                                            row.get("clearance_verdict") or ""
+                                        )
+                                        == "RESTORE_BARRIER_CLEARANCE_WRITTEN"
+                                    )
+                                    if not (
+                                        row.get("record_type")
+                                        in durable_record_types
+                                        or row.get("effect_class")
+                                        in durable_effect_classes
+                                        or runtime_action
+                                    ):
+                                        continue
+                                    if (
+                                        row.get("record_type")
+                                        in CT_M0F_STANDING_VALIDATION_FINGERPRINT_SCOPED_RECORD_TYPES
+                                        and str(
+                                            row.get(
+                                                "implementation_fingerprint"
+                                            ) or ""
+                                        ) != checkpoint_fingerprint
+                                    ):
+                                        continue
+                                    fast_rows.append(row)
         except OSError:
             fingerprint_rows = []
-        checkpoint_rows = [
-            row for row in fingerprint_rows
-            if row.get("record_type")
-            == CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
-            and row.get("no_prior_campaign_records_for_fingerprint") is True
-            and (
-                not required_ids
-                or str(row.get("decision_id") or "") in required_ids
-            )
-        ]
-        if len(checkpoint_rows) == 1:
+            fast_rows = []
+            checkpoint_rows = []
+        if len(checkpoint_rows) == 1 and fast_rows:
             _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE[cache_key] = tuple(
-                copy.deepcopy(fingerprint_rows)
+                copy.deepcopy(fast_rows)
             )
-            return fingerprint_rows
+            return fast_rows
 
     durable_value_markers = tuple(
         json.dumps(value, ensure_ascii=True)

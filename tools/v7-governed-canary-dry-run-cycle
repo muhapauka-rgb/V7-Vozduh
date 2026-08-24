@@ -12849,23 +12849,19 @@ def reset_ct_m0f_standing_validation_sample(
         isinstance(evidence.get("metrics"), dict)
         and evidence.get("metrics")
     )
-    sample_slo_gate = (
-        operator_execution_pipeline.controlled_kernel_cutover_gate(
-            [evidence] if isinstance(evidence, dict) else []
+    sample_validity = (
+        operator_execution_pipeline.controlled_kernel_cutover_sample_validity(
+            evidence if isinstance(evidence, dict) else {}
         )
         if evidence_has_timing
         else {
             "ok": False,
             "status": "TIMING_NOT_EMITTED_BY_LEGACY_SAMPLE",
+            "blockers": ["cutover_latency_unknown"],
         }
     )
     sample_valid = bool(
-        evidence.get("status")
-        == "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS"
-        and (
-            not evidence_has_timing
-            or sample_slo_gate.get("ok") is True
-        )
+        evidence_has_timing and sample_validity.get("ok") is True
     )
     terminal = existing_terminal or (
         operator_execution.record_ct_m0f_standing_validation_sample_terminal(
@@ -12877,7 +12873,8 @@ def reset_ct_m0f_standing_validation_sample(
                 + recovery_mode.lower()
                 + "_complete"
                 if sample_valid
-                else "sample_forward_evidence_missing_or_invalid_after_safe_reconciliation"
+                else "sample_forward_evidence_invalid_after_safe_reconciliation:"
+                + ",".join(sample_validity.get("blockers") or ["unknown"])
             ),
             audit_store=audit_store,
         )
@@ -12900,7 +12897,7 @@ def reset_ct_m0f_standing_validation_sample(
         "reservation": reservation,
         "reset_transaction": reset_transaction,
         "sample_terminal": terminal,
-        "sample_slo_gate": sample_slo_gate,
+        "sample_validity": sample_validity,
         "budget": budget,
         "recovery_mode": recovery_mode,
         "source_recovery_proven": source_recovery_proven,

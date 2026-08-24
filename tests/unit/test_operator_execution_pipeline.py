@@ -218,6 +218,39 @@ class OperatorExecutionPipelineTest(unittest.TestCase):
             1300.0,
         )
 
+    def test_individual_cutover_sample_does_not_require_five_sample_campaign(self):
+        receipt = self.kernel_cutover_receipt()
+        receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"] = (
+            receipt["confirmed_hard_failure_monotonic_ns"] + 4_950_000_000
+        )
+        receipt["target_egress_payload_pass_monotonic_ns"] = (
+            receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"]
+        )
+        evidence = pipeline.control_plane_kernel_path_cutover_contract(receipt)
+
+        validity = pipeline.controlled_kernel_cutover_sample_validity(evidence)
+
+        self.assertTrue(validity["ok"], validity["blockers"])
+        self.assertEqual(validity["authoritative_total_ms"], 4950.0)
+
+    def test_individual_cutover_sample_rejects_over_five_seconds(self):
+        receipt = self.kernel_cutover_receipt()
+        receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"] = (
+            receipt["confirmed_hard_failure_monotonic_ns"] + 5_001_000_000
+        )
+        receipt["target_egress_payload_pass_monotonic_ns"] = (
+            receipt["control_plane_and_kernel_path_cutover_pass_monotonic_ns"]
+        )
+        evidence = pipeline.control_plane_kernel_path_cutover_contract(receipt)
+
+        validity = pipeline.controlled_kernel_cutover_sample_validity(evidence)
+
+        self.assertFalse(validity["ok"])
+        self.assertIn(
+            "authoritative_cutover_sample_above_5000ms",
+            validity["blockers"],
+        )
+
     def test_constant_time_ledger_consumes_nested_timing_without_fabricating_unknowns(self):
         result = pipeline.execution_performance_foundation(
             performance_timeline={

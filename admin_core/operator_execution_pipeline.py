@@ -3825,6 +3825,39 @@ def control_plane_kernel_path_cutover_contract(receipt: dict[str, Any]) -> dict[
     }
 
 
+def controlled_kernel_cutover_sample_validity(sample: dict[str, Any]) -> dict[str, Any]:
+    """Validate one CT-M0F observation without applying campaign cardinality.
+
+    The five-sample p95 is a campaign gate.  Applying it while terminalising
+    the first reservation makes the campaign impossible to populate.  One
+    observation earns sample credit when the exact cutover contract passed,
+    its authoritative total is known, and the per-sample 5 s ceiling holds.
+    """
+    sample = sample if isinstance(sample, dict) else {}
+    metrics = sample.get("metrics") if isinstance(sample.get("metrics"), dict) else {}
+    total = metrics.get("control_plane_and_kernel_path_cutover_latency_ms")
+    blockers: list[str] = []
+    if sample.get("status") != "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS":
+        blockers.append("cutover_contract_not_passed")
+    if not isinstance(total, (int, float)):
+        blockers.append("cutover_latency_unknown")
+    elif float(total) > 5000.0:
+        blockers.append("authoritative_cutover_sample_above_5000ms")
+    ok = not blockers
+    return {
+        "schema_version": "v7.controlled-kernel-cutover-sample-validity.v1",
+        "status": (
+            "CONTROLLED_KERNEL_CUTOVER_SAMPLE_VALID"
+            if ok else "CONTROLLED_KERNEL_CUTOVER_SAMPLE_INVALID"
+        ),
+        "ok": ok,
+        "authoritative_total_ms": round(float(total), 3)
+        if isinstance(total, (int, float)) else None,
+        "per_sample_ceiling_ms": 5000,
+        "blockers": blockers,
+    }
+
+
 def controlled_kernel_cutover_gate(samples: list[dict[str, Any]]) -> dict[str, Any]:
     """Evaluate the bounded CT-M0F engineering gate with nearest-rank p95.
 

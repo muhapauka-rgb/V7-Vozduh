@@ -1792,6 +1792,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "forward_evidence": {
                     "sample_evidence": {
                         "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                        "metrics": {
+                            "control_plane_and_kernel_path_cutover_latency_ms": 1000.0,
+                        },
                     },
                 },
             },
@@ -1888,6 +1891,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "reservation": reservation,
                 "forward_evidence": {"sample_evidence": {
                     "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                    "metrics": {
+                        "control_plane_and_kernel_path_cutover_latency_ms": 1000.0,
+                    },
                 }},
             },
         ), mock.patch.object(
@@ -1979,6 +1985,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "reservation": reservation,
                 "forward_evidence": {"sample_evidence": {
                     "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                    "metrics": {
+                        "control_plane_and_kernel_path_cutover_latency_ms": 1000.0,
+                    },
                 }},
             },
         ), mock.patch.object(
@@ -2131,6 +2140,9 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 "forward_evidence": {
                     "sample_evidence": {
                         "status": "CONTROL_PLANE_AND_KERNEL_PATH_CUTOVER_PASS",
+                        "metrics": {
+                            "control_plane_and_kernel_path_cutover_latency_ms": 1000.0,
+                        },
                     },
                 },
             },

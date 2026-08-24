@@ -9,12 +9,14 @@ and waits for every child it starts before proceeding to the next phase.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import signal
 import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 
 
@@ -164,6 +166,46 @@ SLOW_ROLE_NAMES = frozenset({
 # while HARD consumes the incident; only unrelated observation/analysis work
 # is disposable. This is the existing role set, not a new worker or owner.
 RECOVERY_CRITICAL_ROLE_NAMES = frozenset({"hard", "hot_target"})
+DEFAULT_MATRIX_STATE_FILE = Path("/opt/v7/egress/state/service-matrix.json")
+
+
+def canonical_definitive_hard_failure_active(matrix_state_file: Path) -> bool:
+    """Read the existing Matrix owner's current definitive-failure surface.
+
+    Process duration alone is not incident evidence: on a busy two-core host a
+    healthy HARD observation can cross the scheduling discriminator and used
+    to kill the Planner projection which the next real incident needed.  Only
+    Matrix may establish this predicate, and only its explicit local hard-
+    failure episode is admitted.  This reader persists nothing and creates no
+    scheduler or health state.
+    """
+    try:
+        payload = json.loads(matrix_state_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return False
+    items = payload.get("items") if isinstance(payload, dict) else {}
+    if not isinstance(items, dict):
+        return False
+    for source in items.values():
+        if not isinstance(source, dict):
+            continue
+        services = source.get("services")
+        services = services if isinstance(services, dict) else {}
+        liveness = services.get("__channel_liveness__")
+        if not isinstance(liveness, dict):
+            continue
+        if (
+            liveness.get("ok") is False
+            and str(liveness.get("evidence_class") or "")
+            == "DEFINITIVE_LOCAL_HARD_FAILURE"
+            and str(liveness.get("failure_state") or "").startswith(
+                "OBSERVED_"
+            )
+            and str(liveness.get("source_incident_id") or "")
+            and str(liveness.get("failure_event_id") or "")
+        ):
+            return True
+    return False
 
 
 def monotonic_ns() -> int:
@@ -301,24 +343,31 @@ class RoleHealthLoop:
     # confirmation plus target readiness.  A Telegram incident keeps its own
     # role because the healthy HARD observer returns before this boundary.
     hard_takeover_ns: int = 750_000_000
+    matrix_state_file: Path = DEFAULT_MATRIX_STATE_FILE
+
+    def _hard_recovery_active(self, now_ns: int) -> bool:
+        hard = next((role for role in self.roles if role.name == "hard"), None)
+        return bool(
+            hard is not None
+            and hard.process is not None
+            and now_ns - hard.started_ns >= self.hard_takeover_ns
+            and canonical_definitive_hard_failure_active(
+                self.matrix_state_file
+            )
+        )
 
     def _hard_recovery_takeover(self, now_ns: int) -> None:
         """Give an admitted long HARD cycle priority until it returns.
 
-        Healthy HARD observation normally completes in roughly 100--200 ms.
-        Once it remains active beyond this bounded discriminator it is either
-        consuming the Matrix-owned failure successor or already fail-closing
-        that successor. PATH readiness is an input to the same HARD decision
-        and remains live in parallel. Telegram is critical to its own incident,
-        but is unrelated once a long HARD successor has already been admitted;
-        it restarts on its absolute cadence after HARD completes.
+        Duration is only the scheduling discriminator.  The existing Matrix
+        state must also expose a current definitive local failure before any
+        other role is preempted. PATH readiness is an input to the same HARD
+        decision and remains live in parallel. Telegram is critical to its own
+        incident, but is unrelated once a Matrix-owned HARD successor has been
+        admitted; it restarts on its absolute cadence after HARD completes.
         """
         hard = next((role for role in self.roles if role.name == "hard"), None)
-        if (
-            hard is None
-            or hard.process is None
-            or now_ns - hard.started_ns < self.hard_takeover_ns
-        ):
+        if hard is None or not self._hard_recovery_active(now_ns):
             return
         for role in self.roles:
             if (
@@ -338,11 +387,7 @@ class RoleHealthLoop:
 
     def _start_due_roles(self, now_ns: int) -> None:
         hard = next((role for role in self.roles if role.name == "hard"), None)
-        hard_takeover = bool(
-            hard is not None
-            and hard.process is not None
-            and now_ns - hard.started_ns >= self.hard_takeover_ns
-        )
+        hard_takeover = self._hard_recovery_active(now_ns)
         for role in self.roles:
             if now_ns < role.next_due_ns:
                 continue
@@ -482,6 +527,14 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument("--required-interval-ms", type=int, default=5_000)
     parser.add_argument("--planner-projection-interval-ms", type=int, default=30_000)
     parser.add_argument("--deep-interval-ms", type=int, default=60_000)
+    parser.add_argument(
+        "--controlled-matrix-state-file",
+        default="",
+        help=(
+            "Finite Polygon/test override for the existing Matrix state reader; "
+            "production always reads the canonical default."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.fast_interval_ms <= 0:
         parser.error("--fast-interval-ms must be positive")
@@ -502,6 +555,15 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     )
     if any(controlled_roles) and (not args.role_based_fast or not args.max_phases):
         parser.error("controlled role commands require --role-based-fast and finite --max-phases")
+    if args.controlled_matrix_state_file and (
+        not args.role_based_fast
+        or not args.max_phases
+        or not any(controlled_roles)
+    ):
+        parser.error(
+            "--controlled-matrix-state-file requires controlled role commands "
+            "and a finite role-based Polygon run"
+        )
     for value in (
         args.hard_interval_ms, args.telegram_interval_ms,
         args.hot_target_interval_ms,
@@ -555,6 +617,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             # overlap. Production commands use one low-priority background
             # role at a time so DEEP/quality work cannot form a CPU burst.
             serialize_slow_roles=not any(controlled.values()),
+            matrix_state_file=(
+                Path(args.controlled_matrix_state_file)
+                if args.controlled_matrix_state_file
+                else DEFAULT_MATRIX_STATE_FILE
+            ),
         ).run()
     if args.controlled_fast_command:
         fast_command = (args.controlled_fast_command,)

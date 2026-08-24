@@ -808,6 +808,7 @@ def run_l3_production_validation_plan(
     controlled_user: str = "",
     in_process: bool = False,
     matrix_pre_execution_timing: list[dict[str, Any]] | None = None,
+    planner_module: Any = None,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -862,7 +863,7 @@ def run_l3_production_validation_plan(
         ])
     if in_process:
         try:
-            module = in_process_planner_module()
+            module = planner_module or in_process_planner_module()
             planner_args = module.build_arg_parser().parse_args(command[1:])
             # The Matrix owner already measured the pre-execution critical
             # path before handing this exact controlled incident to the
@@ -3502,6 +3503,17 @@ def run_autoswitch_apply(
                 raise RuntimeError(
                     "in_process_committed_planner_runtime_unavailable"
                 )
+            # Revalidation replaces the Planner CLI namespace. Preserve the
+            # Matrix owner's diagnostic-only timing handoff on the fresh
+            # namespace so the canonical cutover receipt remains complete.
+            apply_args.ct_m0f_matrix_pre_execution_timing = list(
+                getattr(
+                    prior_planner.args,
+                    "ct_m0f_matrix_pre_execution_timing",
+                    [],
+                )
+                or []
+            )
             planner = prior_planner
             planner_entry_started_ns = time.monotonic_ns()
             plan = planner.revalidate_committed_apply_plan(
@@ -5823,6 +5835,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
         matrix_pre_execution_timing=list(
             getattr(args, "ct_m0f_matrix_pre_execution_timing", []) or []
+        ),
+        planner_module=getattr(
+            args, "_ct_m0f_in_process_planner_module", None,
         ),
     )
     record_second_level(

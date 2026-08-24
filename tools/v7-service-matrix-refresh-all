@@ -2144,6 +2144,13 @@ def run_ct_m0f_standing_validation_campaign(
             try:
                 module = in_process_governed_module(executor, planner)
                 args = module.build_parser().parse_args(command[1:])
+                # Source/target selection in this exact Matrix invocation has
+                # already loaded the canonical Autoswitch owner. Hand that
+                # same invocation-local module to the governed caller instead
+                # of executing its identical top level again after T0.
+                args._ct_m0f_in_process_planner_module = (
+                    _IN_PROCESS_AUTOSWITCH_MODULE
+                )
                 # Carry the already-measured Matrix preparation spans into
                 # the exact controlled cutover receipt.  They are diagnostic
                 # evidence only: no owner, decision, state or timing source is

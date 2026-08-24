@@ -5300,7 +5300,8 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 return FakeParser()
 
         with mock.patch.object(
-            module, "in_process_planner_module", return_value=FakeModule,
+            module, "in_process_planner_module",
+            side_effect=AssertionError("already loaded owner must be reused"),
         ), mock.patch.object(
             module.subprocess,
             "run",
@@ -5318,6 +5319,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 target="awg3",
                 controlled_user="10.7.0.95",
                 in_process=True,
+                planner_module=FakeModule,
                 matrix_pre_execution_timing=[{
                     "stage": "source_selection",
                     "duration_ms": 12.5,

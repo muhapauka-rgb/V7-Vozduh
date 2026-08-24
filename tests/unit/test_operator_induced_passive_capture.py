@@ -14,6 +14,26 @@ tool = loader.load_module()
 
 
 class OperatorInducedPassiveCaptureTest(unittest.TestCase):
+    def test_passive_capture_dedup_reads_only_bounded_ledger_tail(self):
+        path = Path("/events/service-failure-events.jsonl")
+        with mock.patch.object(
+            tool.intelligence_workers,
+            "read_jsonl_tail",
+            return_value=[
+                {"event_id": "older-in-window"},
+                {"event_id": "latest"},
+                {"unrelated": True},
+            ],
+        ) as tail_reader:
+            result = tool.recent_passive_capture_event_ids(path)
+
+        self.assertEqual(result, {"older-in-window", "latest"})
+        tail_reader.assert_called_once_with(
+            path,
+            limit=tool.PASSIVE_CAPTURE_DEDUP_ROW_LIMIT,
+            max_bytes=tool.PASSIVE_CAPTURE_DEDUP_BYTE_LIMIT,
+        )
+
     def test_full_refresh_delegates_matrix_lock_to_each_durable_checker_write(self):
         """Network probes must not inherit a batch-wide Matrix writer lock."""
         with mock.patch.object(

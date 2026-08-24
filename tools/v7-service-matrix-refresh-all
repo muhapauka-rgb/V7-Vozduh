@@ -69,6 +69,11 @@ RECENT_MATRIX_EVENT_BYTE_LIMIT = 2_000_000
 # be parsed in full by every event-only wake.
 CURRENT_SCOPE_EVENT_ROW_LIMIT = 2_000
 CURRENT_SCOPE_EVENT_BYTE_LIMIT = 16_000_000
+# Passive-capture deduplication has the same deliberately recent 2,000-row
+# semantics.  Read that window from the tail instead of materialising the
+# append-only production ledger (currently hundreds of MiB) before slicing it.
+PASSIVE_CAPTURE_DEDUP_ROW_LIMIT = 2_000
+PASSIVE_CAPTURE_DEDUP_BYTE_LIMIT = 16_000_000
 PERFORMANCE_CLOSURE_RECORD_TYPE = "governed_performance_closure_benchmark"
 PERFORMANCE_REVALIDATION_GENERATION = (
     "stage48-second-level-critical-path-v3"
@@ -5262,14 +5267,7 @@ def append_passive_failure_capture(
         }
         event_dir.mkdir(parents=True, exist_ok=True)
         path = event_dir / "service-failure-events.jsonl"
-        existing_ids: set[str] = set()
-        try:
-            for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]:
-                parsed = json.loads(line)
-                if isinstance(parsed, dict) and parsed.get("event_id"):
-                    existing_ids.add(str(parsed["event_id"]))
-        except (OSError, json.JSONDecodeError):
-            pass
+        existing_ids = recent_passive_capture_event_ids(path)
         if row["event_id"] in existing_ids:
             return []
         with path.open("a", encoding="utf-8") as fh:
@@ -5327,20 +5325,26 @@ def append_passive_failure_capture(
         return []
     event_dir.mkdir(parents=True, exist_ok=True)
     path = event_dir / "service-failure-events.jsonl"
-    existing_ids: set[str] = set()
-    try:
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]:
-            parsed = json.loads(line)
-            if isinstance(parsed, dict) and parsed.get("event_id"):
-                existing_ids.add(str(parsed["event_id"]))
-    except (OSError, json.JSONDecodeError):
-        pass
+    existing_ids = recent_passive_capture_event_ids(path)
     new_rows = [row for row in rows if row["event_id"] not in existing_ids]
     if new_rows:
         with path.open("a", encoding="utf-8") as fh:
             for row in new_rows:
                 fh.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     return new_rows
+
+
+def recent_passive_capture_event_ids(path: Path) -> set[str]:
+    """Return the existing bounded deduplication window from the ledger tail."""
+    return {
+        str(row["event_id"])
+        for row in intelligence_workers.read_jsonl_tail(
+            path,
+            limit=PASSIVE_CAPTURE_DEDUP_ROW_LIMIT,
+            max_bytes=PASSIVE_CAPTURE_DEDUP_BYTE_LIMIT,
+        )
+        if isinstance(row, dict) and row.get("event_id")
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:

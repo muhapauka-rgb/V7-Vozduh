@@ -10,7 +10,10 @@ ExecStartPre=/usr/local/bin/v7-service-matrix-refresh-all --initialize-standing-
 ExecStart=/usr/local/bin/v7-health-loop --role-based-fast
 Restart=always
 RestartSec=5
-Nice=10
+# The parent is a tiny deadline/preemption loop. Child processes retain their
+# prior effective nice levels explicitly in v7-health-loop, while the parent
+# must be schedulable promptly enough to stop disposable work at confirmed T0.
+Nice=0
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 

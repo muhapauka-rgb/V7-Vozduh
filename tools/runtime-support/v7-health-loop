@@ -142,29 +142,24 @@ DEFAULT_ROLE_INITIAL_OFFSETS_MS = {
 }
 
 DEFAULT_ROLE_NICE = {
-    # v7-health.service itself runs at Nice=10.  A definitive HARD incident
-    # owns the recovery deadline, so restore that one child to normal priority
-    # while all observation/background roles retain the service/background
-    # priority.  This is work placement only; cadence and health ownership do
-    # not change.
-    # The service itself runs at Nice=10.  An adjustment of -10 only restored
-    # the incident child to Nice=0, which still competed equally with
-    # unrelated maintenance on the measured two-core host and stretched a
-    # ~2 s recovery transaction beyond 5 s.  A confirmed Matrix-owned HARD
-    # incident is bounded and preempts every disposable health child, so give
-    # that exact child the normal Linux highest non-realtime priority.  This
-    # does not change cadence, admission, Authority or any route decision;
-    # after the child returns all ordinary priorities resume automatically.
-    "hard": -30,
+    # The lightweight parent loop runs at Nice=0 so it can promptly observe a
+    # Matrix-owned hard incident and stop disposable children even when the
+    # two-core host is saturated.  Child priorities below preserve the exact
+    # effective values used when the parent ran at Nice=10; total work and
+    # cadence do not increase.  The confirmed HARD child alone retains the
+    # normal Linux highest non-realtime priority until its bounded transaction
+    # returns.
+    "hard": -20,
+    "telegram": 10,
     # Target readiness is the second half of the same HARD recovery
     # transaction.  On the two-core production host it must finish ahead of
     # diagnostic/background work so its three-second PATH proof is still
     # fresh when the decision consumes it.
-    "hot_target": -5,
-    "planner_projection": 10,
-    "deep": 8,
-    "hot_target_other": 4,
-    "other_required": 4,
+    "hot_target": 5,
+    "planner_projection": 19,
+    "deep": 18,
+    "hot_target_other": 14,
+    "other_required": 14,
 }
 SLOW_ROLE_NAMES = frozenset({
     "planner_projection", "deep", "hot_target_other", "other_required",

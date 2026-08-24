@@ -5306,6 +5306,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 target="awg3",
                 controlled_user="10.7.0.95",
                 in_process=True,
+                matrix_pre_execution_timing=[{
+                    "stage": "source_selection",
+                    "duration_ms": 12.5,
+                }],
             )
 
         self.assertTrue(result["ok"])
@@ -5317,6 +5321,11 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertIs(result["_planner_runtime"]["module"], FakeModule)
         self.assertIsInstance(
             result["_planner_runtime"]["planner"], FakePlanner,
+        )
+        self.assertEqual(
+            result["_planner_runtime"]["planner"].args
+            .ct_m0f_matrix_pre_execution_timing,
+            [{"stage": "source_selection", "duration_ms": 12.5}],
         )
 
     def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):

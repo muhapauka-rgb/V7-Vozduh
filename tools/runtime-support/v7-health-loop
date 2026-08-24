@@ -343,7 +343,16 @@ class RoleHealthLoop:
                     flush=True,
                 )
                 continue
-            if self.serialize_slow_roles and role.name in SLOW_ROLE_NAMES:
+            # HARD is the recovery deadline owner. It may run alongside an
+            # observation child long enough to prove that a real incident is
+            # underway; _hard_recovery_takeover then cancels that disposable
+            # work after the bounded discriminator. Never defer the HARD
+            # observation itself behind background serialization.
+            if (
+                self.serialize_slow_roles
+                and role.name in SLOW_ROLE_NAMES
+                and role.name != "hard"
+            ):
                 running_slow = next(
                     (
                         other.name for other in self.roles

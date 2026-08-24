@@ -91,8 +91,15 @@ def read_jsonl_tail(path: Path | str, *, limit: int = MAX_HISTORY_RECORDS, max_b
     lines = data.decode("utf-8", errors="replace").splitlines()
     if size > max_bytes and lines:
         lines = lines[1:]
+    # Decode newest -> oldest and stop after the requested number of valid
+    # records.  The previous implementation JSON-decoded every physical line
+    # in the byte window and only then sliced the result, which made an exact
+    # current-event lookup pay for thousands of unrelated historical rows.
+    # Reversing the bounded window preserves the contract (the last ``limit``
+    # valid JSON objects in chronological order), including corrupt-line
+    # skipping, while avoiding that unrelated parse cost.
     rows: list[dict[str, Any]] = []
-    for line in lines:
+    for line in reversed(lines):
         text = line.strip()
         if not text:
             continue
@@ -102,7 +109,68 @@ def read_jsonl_tail(path: Path | str, *, limit: int = MAX_HISTORY_RECORDS, max_b
             continue
         if isinstance(item, dict):
             rows.append(item)
-    return rows[-limit:]
+            if len(rows) >= max(1, int(limit)):
+                break
+    rows.reverse()
+    return rows
+
+
+def read_jsonl_tail_matching(
+    path: Path | str,
+    *,
+    markers: list[str] | tuple[str, ...] | set[str],
+    limit: int = MAX_HISTORY_RECORDS,
+    max_bytes: int = MAX_HISTORY_BYTES,
+    require_all: bool = False,
+) -> list[dict[str, Any]]:
+    """Read matching current JSONL rows without parsing unrelated history.
+
+    ``markers`` are only a byte-level prefilter.  Callers must retain their
+    exact field predicates after this function returns, so a textual false
+    positive cannot change a decision.  Durable truth remains the supplied
+    append-only JSONL file; this helper creates no index, sidecar, cache or
+    alternate state owner.
+    """
+    marker_bytes = tuple(
+        str(value).encode("utf-8")
+        for value in markers
+        if str(value)
+    )
+    if not marker_bytes:
+        return read_jsonl_tail(path, limit=limit, max_bytes=max_bytes)
+    path_obj = Path(path)
+    try:
+        with path_obj.open("rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            size = handle.tell()
+            handle.seek(max(0, size - max_bytes))
+            data = handle.read(max_bytes)
+    except (FileNotFoundError, OSError):
+        return []
+    lines = data.splitlines()
+    if size > max_bytes and lines:
+        lines = lines[1:]
+    rows: list[dict[str, Any]] = []
+    for raw in reversed(lines):
+        if not raw.strip():
+            continue
+        matched = (
+            all(marker in raw for marker in marker_bytes)
+            if require_all
+            else any(marker in raw for marker in marker_bytes)
+        )
+        if not matched:
+            continue
+        try:
+            item = json.loads(raw.decode("utf-8", errors="replace"))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(item, dict):
+            rows.append(item)
+            if len(rows) >= max(1, int(limit)):
+                break
+    rows.reverse()
+    return rows
 
 
 def write_json_atomic(path: Path | str, payload: dict[str, Any]) -> None:

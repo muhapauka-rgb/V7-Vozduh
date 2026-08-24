@@ -5232,8 +5232,17 @@ def service_failure_obligation_execution_binding(
 
         matching_events: list[dict[str, Any]] = []
         now = datetime.now(timezone.utc)
-        for raw in read_jsonl_family(
-            event_dir / "service-failure-events.jsonl", limit=20000,
+        # The Matrix caller supplies one exact current incident id.  Search
+        # the same canonical ledger with that value as a byte prefilter and
+        # retain all independent registry/Matrix/event predicates below.  A
+        # textual false positive is harmless; no matching row can bypass the
+        # exact normalized checks.  This removes only unrelated JSON parsing
+        # from the failure deadline and creates no index or alternate state.
+        for raw in intelligence_workers.read_jsonl_tail_matching(
+            event_dir / "service-failure-events.jsonl",
+            markers=[expected_incident_id],
+            limit=20000,
+            max_bytes=80_000_000,
         ):
             event = events.normalize_regression_event(raw)
             if str(event.get("event_type") or "") not in {

@@ -1217,6 +1217,24 @@ class IntelligenceWorkersTest(unittest.TestCase):
             rows = workers.read_jsonl_tail(path, limit=5)
         self.assertEqual([row["idx"] for row in rows], [15, 16, 17, 18, 19])
 
+    def test_jsonl_tail_matching_prefilters_but_preserves_chronology(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "history.jsonl"
+            path.write_text(
+                "\n".join([
+                    json.dumps({"idx": 1, "incident": "other"}),
+                    json.dumps({"idx": 2, "incident": "wanted"}),
+                    "broken wanted",
+                    json.dumps({"idx": 3, "incident": "other"}),
+                    json.dumps({"idx": 4, "incident": "wanted"}),
+                ]),
+                encoding="utf-8",
+            )
+            rows = workers.read_jsonl_tail_matching(
+                path, markers=["wanted"], limit=2,
+            )
+        self.assertEqual([row["idx"] for row in rows], [2, 4])
+
     def test_worker_architecture_forbids_runtime_authority(self):
         architecture = workers.worker_architecture()
         forbidden = set(architecture["forbidden"])

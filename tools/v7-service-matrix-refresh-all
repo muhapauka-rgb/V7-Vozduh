@@ -5106,29 +5106,6 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     owner of any fresh revalidation.
     """
     path = event_dir / "service-failure-events.jsonl"
-    latest_by_incident: dict[tuple[str, str], dict[str, Any]] = {}
-    incident_order: dict[tuple[str, str], int] = {}
-    latest_by_channel: dict[str, dict[str, Any]] = {}
-    rows = intelligence_workers.read_jsonl_tail(
-        path,
-        limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
-        max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
-    )
-    for row_index, row in enumerate(rows):
-        if str(row.get("event_type") or "") not in {
-            "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
-        }:
-            continue
-        channel = str(row.get("channel") or "")
-        if channel:
-            incident_id = str(row.get("source_incident_id") or "")
-            # A long-lived source can have an older current hard failure and
-            # a newer stale/recovered episode.  Keep the event identity with
-            # the current Matrix row's source-incident id rather than letting
-            # a later unrelated event silently replace it by channel.
-            latest_by_incident[(channel, incident_id)] = row
-            incident_order[(channel, incident_id)] = row_index
-            latest_by_channel[channel] = row
     try:
         user_rows = [
             parse_kv_line(line)
@@ -5146,6 +5123,57 @@ def current_failed_source_scope(event_dir: Path, state_dir: Path) -> dict[str, A
     }
     matrix = read_json(state_dir / "service-matrix.json", {})
     matrix_items = matrix.get("items") if isinstance(matrix, dict) and isinstance(matrix.get("items"), dict) else {}
+    # Matrix already owns the exact current incident ids.  Use those immutable
+    # values only as a byte prefilter for its canonical event ledger, then keep
+    # every existing exact field predicate below.  Legacy Matrix rows without
+    # an incident id retain the former bounded full-tail fallback.
+    matrix_incident_ids = sorted({
+        str(service.get("source_incident_id") or "")
+        for source_row in matrix_items.values()
+        if isinstance(source_row, dict)
+        for service in (
+            source_row.get("services", {}).values()
+            if isinstance(source_row.get("services"), dict) else []
+        )
+        if isinstance(service, dict)
+        and str(service.get("source_incident_id") or "")
+        and (
+            str(service.get("failure_state") or "").startswith("OBSERVED")
+            or service.get("ok") is False
+        )
+    })
+    rows = (
+        intelligence_workers.read_jsonl_tail_matching(
+            path,
+            markers=matrix_incident_ids,
+            limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
+            max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
+        )
+        if matrix_incident_ids else
+        intelligence_workers.read_jsonl_tail(
+            path,
+            limit=CURRENT_SCOPE_EVENT_ROW_LIMIT,
+            max_bytes=CURRENT_SCOPE_EVENT_BYTE_LIMIT,
+        )
+    )
+    latest_by_incident: dict[tuple[str, str], dict[str, Any]] = {}
+    incident_order: dict[tuple[str, str], int] = {}
+    latest_by_channel: dict[str, dict[str, Any]] = {}
+    for row_index, row in enumerate(rows):
+        if str(row.get("event_type") or "") not in {
+            "SERVICE_FAILURE_OBSERVED", "SERVICE_FAILURE_REVALIDATED",
+        }:
+            continue
+        channel = str(row.get("channel") or "")
+        if channel:
+            incident_id = str(row.get("source_incident_id") or "")
+            # A long-lived source can have an older current hard failure and
+            # a newer stale/recovered episode.  Keep the event identity with
+            # the current Matrix row's source-incident id rather than letting
+            # a later unrelated event silently replace it by channel.
+            latest_by_incident[(channel, incident_id)] = row
+            incident_order[(channel, incident_id)] = row_index
+            latest_by_channel[channel] = row
     current_event_rows: list[tuple[str, dict[str, Any]]] = []
 
     def observation_epoch(row: dict[str, Any]) -> float:

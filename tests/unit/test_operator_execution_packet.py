@@ -4582,6 +4582,32 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             {"approval_seen": False, "engineering_authority_seen": False},
         )
 
+    def test_ct_m0f_runtime_fingerprint_includes_health_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = {}
+            for name in (
+                "governed", "matrix", "autoswitch", "health",
+            ):
+                paths[name] = root / name
+                paths[name].write_text(name, encoding="utf-8")
+
+            first = operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                governed_cycle=paths["governed"],
+                matrix_failure_consumer=paths["matrix"],
+                autoswitch=paths["autoswitch"],
+                health_runtime=paths["health"],
+            )
+            paths["health"].write_text("changed-health", encoding="utf-8")
+            second = operator_execution.ct_m0f_runtime_implementation_fingerprint(
+                governed_cycle=paths["governed"],
+                matrix_failure_consumer=paths["matrix"],
+                autoswitch=paths["autoswitch"],
+                health_runtime=paths["health"],
+            )
+
+        self.assertNotEqual(first, second)
+
 
 if __name__ == "__main__":
     unittest.main()

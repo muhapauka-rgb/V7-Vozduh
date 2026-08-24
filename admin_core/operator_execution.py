@@ -1927,7 +1927,7 @@ def ct_m0f_standing_validation_contract_hash(contract):
 
 
 def ct_m0f_runtime_implementation_fingerprint(
-    *, governed_cycle, matrix_failure_consumer, autoswitch,
+    *, governed_cycle, matrix_failure_consumer, autoswitch, health_runtime,
 ):
     """Bind one certification campaign to the exact executable hot path."""
     return sha256_json({
@@ -1935,6 +1935,7 @@ def ct_m0f_runtime_implementation_fingerprint(
         "governed_cycle": sha256_file(Path(governed_cycle)),
         "matrix_failure_consumer": sha256_file(Path(matrix_failure_consumer)),
         "autoswitch": sha256_file(Path(autoswitch)),
+        "health_runtime": sha256_file(Path(health_runtime)),
     })
 
 

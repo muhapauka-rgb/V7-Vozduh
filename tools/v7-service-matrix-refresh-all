@@ -80,6 +80,14 @@ PERFORMANCE_REVALIDATION_GENERATION = (
 )
 
 
+def health_runtime_executable() -> Path:
+    """Resolve the deployed or repository copy of the existing health owner."""
+    deployed = Path(__file__).with_name("v7-health-loop")
+    if deployed.is_file():
+        return deployed
+    return ROOT / "tools" / "runtime-support" / "v7-health-loop"
+
+
 _IN_PROCESS_AUTOSWITCH_MODULE: Any = None
 _IN_PROCESS_GOVERNED_MODULE: Any = None
 
@@ -1708,6 +1716,7 @@ def run_ct_m0f_standing_validation_campaign(
             governed_cycle=executor,
             matrix_failure_consumer=Path(__file__),
             autoswitch=planner,
+            health_runtime=health_runtime_executable(),
         )
     )
     required_decision_ids = tuple(filter(None, [

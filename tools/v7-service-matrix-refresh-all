@@ -2166,6 +2166,10 @@ def run_ct_m0f_standing_validation_campaign(
                 args._ct_m0f_in_process_planner_module = (
                     _IN_PROCESS_AUTOSWITCH_MODULE
                 )
+                args._standing_policy_lineage_reuse = {
+                    "records": records,
+                    "contract_hash": sha256_json(availability_contract),
+                }
                 # Carry the already-measured Matrix preparation spans into
                 # the exact controlled cutover receipt.  They are diagnostic
                 # evidence only: no owner, decision, state or timing source is

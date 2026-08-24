@@ -4231,10 +4231,14 @@ class AutoswitchPlanner:
             controlled_campaign_execution_target_admission(apply_args)
         )
 
-        # Force the standing-decision reader through its exact decision-aware
-        # freshness key.  The underlying process cache is reused only when the
-        # append-only lineage file signature is unchanged.
-        self._standing_policy_audit_records_cache = None
+        # A Matrix-bound exact Packet cannot change its standing contract.
+        # Its immutable Authority decision was already validated by Matrix
+        # and the Planner constructor in this same process. Re-reading the
+        # rotated append-only audit after Packet creation adds no revocation
+        # signal (revocation changes the policy contract) and delays apply.
+        # Broader/non-packet paths retain the fresh lineage read.
+        if not exact_packet_locked_incident:
+            self._standing_policy_audit_records_cache = None
         self.switch_policy = self._switch_policy()
         self.authority_budget_policy = self._authority_budget_policy()
         self.emergency_failover_policy = self._emergency_failover_policy()
@@ -18603,6 +18607,15 @@ class AutoswitchPlanner:
         env["V7_EXECUTION_SNAPSHOT_BUNDLE_HASH"] = str(live.get("snapshot_bundle_hash") or "")
         env["V7_EXECUTION_MAX_USERS"] = str(live.get("max_users") or "")
         env["V7_EXECUTION_ROLLBACK_CERTIFIED"] = "1" if live.get("rollback_only_allowed") else "0"
+        control_file = Path(
+            getattr(
+                self.args,
+                "execution_control_file",
+                DEFAULT_EXECUTION_CONTROL_FILE,
+            )
+        )
+        env["V7_ADMIN_SAFE_MODE_FILE"] = str(control_file)
+        env["V7_EXECUTION_CONTROL_FILE_HASH"] = sha256_file(control_file)
         return subprocess.run(
             ["v7-user-switch", ip, egress],
             text=True,
@@ -19178,6 +19191,10 @@ class AutoswitchPlanner:
             "expected_egress_ip_source": expected_ip_source,
             "expected_target_egress_fingerprint": hashlib.sha256(expected_ip.encode("utf-8")).hexdigest(),
             "target_url": "https://icanhazip.com",
+            "preferred_probe_protocol": "STUN_XOR_MAPPED_ADDRESS",
+            "stun_host": "stun.cloudflare.com",
+            "stun_port": 3478,
+            "protocol_fallback_allowed": True,
             # Polygon certification identities already have canonical client
             # profiles.  The existing client-speed owner uses one profile in
             # a runtime-only Polygon namespace so the packet genuinely enters

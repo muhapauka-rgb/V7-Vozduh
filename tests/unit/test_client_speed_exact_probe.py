@@ -22,6 +22,8 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         script = client_speed._exact_namespace_http_script()
         compile(script, "<exact-namespace-http>", "exec")
         self.assertIn("http.client.HTTPResponse", script)
+        self.assertIn("STUN_XOR_MAPPED_ADDRESS", script)
+        self.assertIn("stun_mapped_address_missing", script)
         self.assertNotIn("while total<65536", script)
 
     def context(self):
@@ -188,6 +190,59 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertEqual(receipt["dns_mode"], "DECLARED_NO_DNS")
         consumed = client_speed.consume_exact_probe_receipt(receipt, context)
         self.assertTrue(consumed["ok"])
+
+    def test_exact_namespace_prefers_stun_and_keeps_https_fallback(self):
+        context = self.context()
+        context.update({
+            "probe_transport": "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE",
+            "preferred_probe_protocol": "STUN_XOR_MAPPED_ADDRESS",
+            "stun_host": "stun.cloudflare.com",
+            "stun_port": 3478,
+            "protocol_fallback_allowed": True,
+        })
+        stun_attempt = {
+            "payload_response_verified": True,
+            "response_matches_expected_egress_ip": True,
+            "probe_protocol": "STUN_XOR_MAPPED_ADDRESS",
+        }
+        with mock.patch.object(
+            client_speed.socket,
+            "getaddrinfo",
+            return_value=[(
+                client_speed.socket.AF_INET,
+                client_speed.socket.SOCK_DGRAM,
+                17,
+                "",
+                ("162.159.207.0", 3478),
+            )],
+        ), mock.patch.object(
+            client_speed,
+            "execute_ephemeral_client_namespace_probe",
+            return_value=(stun_attempt, [stun_attempt]),
+        ) as execute:
+            successful, attempts = (
+                client_speed.execute_fresh_exact_probe_request(context)
+            )
+        self.assertIs(successful, stun_attempt)
+        self.assertEqual(attempts, [stun_attempt])
+        called_context = execute.call_args.args[0]
+        self.assertEqual(
+            called_context["preferred_probe_protocol"],
+            "STUN_XOR_MAPPED_ADDRESS",
+        )
+        self.assertEqual(called_context["destination_port"], 3478)
+
+    def test_invalid_stun_context_fails_closed(self):
+        context = self.context()
+        context.update({
+            "preferred_probe_protocol": "STUN_XOR_MAPPED_ADDRESS",
+            "stun_host": "",
+            "stun_port": 80,
+        })
+        context["context_hash"] = client_speed.exact_probe_context_hash(context)
+        errors = client_speed.exact_probe_context_errors(context)
+        self.assertIn("stun_host_missing", errors)
+        self.assertIn("stun_port_invalid", errors)
 
     def test_profile_lookup_is_exact_and_wg_quick_fields_are_not_forwarded(self):
         with tempfile.TemporaryDirectory() as td:

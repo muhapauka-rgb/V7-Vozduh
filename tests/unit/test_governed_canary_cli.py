@@ -5324,6 +5324,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
                     "stage": "source_selection",
                     "duration_ms": 12.5,
                 }],
+                standing_policy_lineage_reuse={
+                    "records": [{"decision_id": "availability-current"}],
+                    "contract_hash": "contract-current",
+                },
             )
 
         self.assertTrue(result["ok"])
@@ -5340,6 +5344,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
             result["_planner_runtime"]["planner"].args
             .ct_m0f_matrix_pre_execution_timing,
             [{"stage": "source_selection", "duration_ms": 12.5}],
+        )
+        self.assertEqual(
+            result["_planner_runtime"]["planner"].args
+            ._standing_policy_lineage_reuse,
+            {
+                "records": [{"decision_id": "availability-current"}],
+                "contract_hash": "contract-current",
+            },
         )
 
     def test_controlled_l3_validation_refreshes_existing_snapshot_owner(self):

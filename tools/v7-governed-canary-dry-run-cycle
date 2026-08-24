@@ -809,6 +809,7 @@ def run_l3_production_validation_plan(
     in_process: bool = False,
     matrix_pre_execution_timing: list[dict[str, Any]] | None = None,
     planner_module: Any = None,
+    standing_policy_lineage_reuse: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     command = [
         str(planner_observe_executable()),
@@ -874,6 +875,9 @@ def run_l3_production_validation_plan(
             # handoff into the canonical cutover receipt.
             planner_args.ct_m0f_matrix_pre_execution_timing = list(
                 matrix_pre_execution_timing or []
+            )
+            planner_args._standing_policy_lineage_reuse = copy.deepcopy(
+                standing_policy_lineage_reuse or {}
             )
             planner = module.AutoswitchPlanner(planner_args)
             plan_started_ns = time.monotonic_ns()
@@ -5838,6 +5842,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
         ),
         planner_module=getattr(
             args, "_ct_m0f_in_process_planner_module", None,
+        ),
+        standing_policy_lineage_reuse=getattr(
+            args, "_standing_policy_lineage_reuse", {},
         ),
     )
     record_second_level(

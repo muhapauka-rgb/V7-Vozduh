@@ -57,6 +57,7 @@ SOURCE_BUNDLE_HASH="${V7_EXECUTION_SOURCE_BUNDLE_HASH:-}"
 SNAPSHOT_BUNDLE_HASH="${V7_EXECUTION_SNAPSHOT_BUNDLE_HASH:-}"
 MAX_USERS="${V7_EXECUTION_MAX_USERS:-}"
 CONTROL_FILE="${V7_ADMIN_SAFE_MODE_FILE:-/etc/v7/admin/safe-mode.json}"
+CONTROL_FILE_HASH="${V7_EXECUTION_CONTROL_FILE_HASH:-}"
 [ -n "$CONTROL_GENERATION" ] || { echo "STOP_SAFE: execution control generation missing"; exit 2; }
 [ -n "$MUTATION_KIND" ] || { echo "STOP_SAFE: execution mutation kind missing"; exit 2; }
 [ -n "$OPERATION_ID" ] || { echo "STOP_SAFE: execution operation id missing"; exit 2; }
@@ -90,7 +91,47 @@ if [ "$MUTATION_KIND" = "rollback" ]; then
   [ "${V7_EXECUTION_ROLLBACK_CERTIFIED:-0}" = "1" ] || { echo "STOP_SAFE: rollback context uncertified"; exit 2; }
   validator+=(--rollback-certified)
 fi
-"${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
+# The in-memory Planner owner validates this exact operation immediately
+# before invoking the route writer.  When it supplies the hash of that same
+# control file, re-reading the bytes here proves that the decision surface did
+# not change across the process boundary without paying for a third Python
+# import. Missing, malformed or changed hashes retain the established owner
+# CLI and fail closed exactly as before.
+CONTROL_HASH_REUSED=0
+if [ "$MUTATION_KIND" = "forward" ] \
+  && [[ "$CONTROL_FILE_HASH" =~ ^[0-9a-f]{64}$ ]] \
+  && [ -r "$CONTROL_FILE" ] \
+  && command -v jq >/dev/null 2>&1; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    current_control_hash="$(sha256sum "$CONTROL_FILE" 2>/dev/null | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    current_control_hash="$(shasum -a 256 "$CONTROL_FILE" 2>/dev/null | awk '{print $1}')"
+  else
+    current_control_hash=""
+  fi
+  if [ "$current_control_hash" = "$CONTROL_FILE_HASH" ] \
+    && jq -e \
+      --arg generation "$CONTROL_GENERATION" \
+      --arg operation "$OPERATION_ID" \
+      --arg action "$ACTION_CLASS" \
+      --arg move "$SELECTED_MOVE_HASH" \
+      --arg source "$SOURCE_BUNDLE_HASH" \
+      --arg snapshot "$SNAPSHOT_BUNDLE_HASH" \
+      '.state == "CLOSED"
+       and .scope == "operation"
+       and .generation == $generation
+       and .operation_id == $operation
+       and .action_class == $action
+       and .selected_move_hash == $move
+       and .source_bundle_hash == $source
+       and .snapshot_bundle_hash == $snapshot
+       and .max_users == 1' "$CONTROL_FILE" >/dev/null 2>&1; then
+    CONTROL_HASH_REUSED=1
+  fi
+fi
+if [ "$CONTROL_HASH_REUSED" != "1" ]; then
+  "${validator[@]}" >/dev/null || { echo "STOP_SAFE: autonomous execution control denied"; exit 2; }
+fi
 
 echo "[V7] user $USER_IP -> $EGRESS / table $table / dev $dev"
 if [ -r /proc/uptime ]; then

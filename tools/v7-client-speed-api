@@ -375,6 +375,19 @@ def exact_probe_context_errors(context):
     target = urlparse(str(context.get("target_url") or ""))
     if target.scheme != "https" or not target.hostname:
         errors.append("https_target_required")
+    preferred_protocol = str(
+        context.get("preferred_probe_protocol") or "HTTPS_EGRESS_IP"
+    )
+    if preferred_protocol not in {
+        "HTTPS_EGRESS_IP",
+        "STUN_XOR_MAPPED_ADDRESS",
+    }:
+        errors.append("preferred_probe_protocol_invalid")
+    if preferred_protocol == "STUN_XOR_MAPPED_ADDRESS":
+        if not str(context.get("stun_host") or "").strip():
+            errors.append("stun_host_missing")
+        if safe_int(context.get("stun_port"), 0) != 3478:
+            errors.append("stun_port_invalid")
     expected_ip = str(context.get("expected_egress_ip") or "").strip()
     try:
         expected_ip_value = ipaddress.ip_address(expected_ip)
@@ -590,12 +603,28 @@ def _run_probe_command(command, *, input_text=None, timeout=5):
 def _exact_namespace_http_script():
     # Kept as one bounded child so the socket is genuinely created inside the
     # client namespace.  The context contains no secrets.
-    return r'''import hashlib,http.client,json,secrets,socket,ssl,sys,time
+    return r'''import hashlib,http.client,ipaddress,json,secrets,socket,ssl,struct,sys,time
 from urllib.parse import parse_qsl,urlencode,urlparse,urlunparse
 c=json.loads(sys.stdin.read()); p=urlparse(c["target_url"]); host=p.hostname
-dest=c["destination_ip"]; port=p.port or 443; started=time.monotonic_ns()
+dest=c["destination_ip"]; proto=c.get("preferred_probe_protocol",""); port=c.get("destination_port") or p.port or 443; started=time.monotonic_ns()
 s=None; t=None
 try:
+ if proto=="STUN_XOR_MAPPED_ADDRESS":
+  tx=secrets.token_bytes(12); q=struct.pack("!HHI12s",1,0,0x2112A442,tx)
+  s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.settimeout(c["timeout_seconds"])
+  s.setsockopt(socket.SOL_SOCKET,getattr(socket,"SO_BINDTODEVICE",25),(c["client_interface"]+"\0").encode())
+  s.bind((c["source_address"],0)); s.sendto(q,(dest,port)); data,_=s.recvfrom(2048)
+  rtype,rlen,cookie=struct.unpack("!HHI",data[:8]) if len(data)>=20 else (0,0,0)
+  if rtype!=0x0101 or cookie!=0x2112A442 or len(data)<20+rlen or data[8:20]!=tx: raise ValueError("stun_response_identity_invalid")
+  response=""; pos=20
+  while pos+4<=len(data):
+   kind,size=struct.unpack("!HH",data[pos:pos+4]); value=data[pos+4:pos+4+size]; pos+=4+((size+3)//4)*4
+   if kind==0x0020 and len(value)>=8 and value[1]==1:
+    response=str(ipaddress.ip_address(struct.unpack("!I",value[4:8])[0]^0x2112A442)); break
+   if kind==0x0001 and len(value)>=8 and value[1]==1:
+    response=str(ipaddress.ip_address(value[4:8])); break
+  if not response: raise ValueError("stun_mapped_address_missing")
+  finished=time.monotonic_ns(); print(json.dumps({"ok":True,"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":"STUN/1 BINDING_SUCCESS","response_text":response,"payload_fingerprint":hashlib.sha256(data).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True,"probe_protocol":proto})); sys.exit(0)
  s=socket.socket(socket.AF_INET,socket.SOCK_STREAM); s.settimeout(c["timeout_seconds"])
  s.setsockopt(socket.SOL_SOCKET,getattr(socket,"SO_BINDTODEVICE",25),(c["client_interface"]+"\0").encode())
  s.bind((c["source_address"],0)); s.connect((dest,port))
@@ -607,7 +636,7 @@ try:
  response=http.client.HTTPResponse(t); response.begin(); body=response.read(65536)
  status=f"HTTP/{response.version//10}.{response.version%10} {response.status} {response.reason}"
  response=body.decode("utf-8",errors="replace").strip(); finished=time.monotonic_ns()
- print(json.dumps({"ok":bool(" 200 " in status),"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":status,"response_text":response,"payload_fingerprint":hashlib.sha256(body).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True}))
+ print(json.dumps({"ok":bool(" 200 " in status),"started_monotonic_ns":started,"finished_monotonic_ns":finished,"status_line":status,"response_text":response,"payload_fingerprint":hashlib.sha256(body).hexdigest(),"fresh_socket":True,"source_bind_applied":True,"client_interface_bound":True,"probe_protocol":"HTTPS_EGRESS_IP"}))
 except Exception as e:
  print(json.dumps({"ok":False,"started_monotonic_ns":started,"finished_monotonic_ns":time.monotonic_ns(),"error":f"{type(e).__name__}:{e}"[:240]}))
 finally:
@@ -830,6 +859,9 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             "client_namespace_isolated": bool(client_netns_inode),
             "client_network_namespace_inode": client_netns_inode,
             "prepared_session_reused": session_reused,
+            "probe_protocol": str(
+                result.get("probe_protocol") or "HTTPS_EGRESS_IP"
+            ),
             "status_line": str(result.get("status_line") or ""),
             "payload_response_verified": payload_ok,
             "payload_fingerprint": str(result.get("payload_fingerprint") or ""),
@@ -862,14 +894,35 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
 
 def execute_fresh_exact_probe_request(context):
     parsed = urlparse(str(context.get("target_url") or ""))
-    host = str(parsed.hostname or "")
-    port = int(parsed.port or 443)
+    preferred_protocol = str(
+        context.get("preferred_probe_protocol") or "HTTPS_EGRESS_IP"
+    )
+    host = str(
+        context.get("stun_host")
+        if preferred_protocol == "STUN_XOR_MAPPED_ADDRESS"
+        else parsed.hostname
+        or ""
+    )
+    port = int(
+        context.get("stun_port") or 3478
+        if preferred_protocol == "STUN_XOR_MAPPED_ADDRESS"
+        else parsed.port or 443
+    )
     timeout_seconds = max(0.05, safe_int(context.get("timeout_ms"), 1000) / 1000.0)
     retry_count = max(0, safe_int(context.get("retry_count"), 0))
     cadence_seconds = max(0.001, safe_int(context.get("observation_cadence_ms"), 100) / 1000.0)
     if str(context.get("probe_transport") or "") == "EXISTING_LOCAL_CLIENT_PROFILE_NAMESPACE":
         try:
-            resolved = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+            resolved = socket.getaddrinfo(
+                host,
+                port,
+                socket.AF_INET,
+                (
+                    socket.SOCK_DGRAM
+                    if preferred_protocol == "STUN_XOR_MAPPED_ADDRESS"
+                    else socket.SOCK_STREAM
+                ),
+            )
             destination_ip = str(resolved[0][4][0])
         except (OSError, IndexError) as exc:
             return {}, [{
@@ -877,7 +930,54 @@ def execute_fresh_exact_probe_request(context):
                 "fresh_socket": False,
                 "payload_response_verified": False,
             }]
-        return execute_ephemeral_client_namespace_probe(context, destination_ip)
+        preferred_context = {
+            **context,
+            "preferred_probe_protocol": preferred_protocol,
+            "destination_port": port,
+        }
+        successful, attempts = execute_ephemeral_client_namespace_probe(
+            preferred_context, destination_ip,
+        )
+        if (
+            successful
+            or preferred_protocol != "STUN_XOR_MAPPED_ADDRESS"
+            or context.get("protocol_fallback_allowed") is not True
+        ):
+            return successful, attempts
+        # A protocol failure must not become an availability claim. Reuse the
+        # established HTTPS exact-client proof as a fail-closed compatibility
+        # fallback; it may miss the fast SLO but preserves correctness.
+        try:
+            fallback_host = str(parsed.hostname or "")
+            fallback_port = int(parsed.port or 443)
+            fallback_resolved = socket.getaddrinfo(
+                fallback_host,
+                fallback_port,
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+            )
+            fallback_ip = str(fallback_resolved[0][4][0])
+        except (OSError, IndexError, ValueError) as exc:
+            return {}, attempts + [{
+                "error": f"https_fallback_resolution_failed:{type(exc).__name__}",
+                "probe_protocol": "HTTPS_EGRESS_IP_FALLBACK",
+                "fresh_socket": False,
+                "payload_response_verified": False,
+            }]
+        fallback_context = {
+            **context,
+            "preferred_probe_protocol": "HTTPS_EGRESS_IP",
+            "destination_port": fallback_port,
+        }
+        fallback_success, fallback_attempts = (
+            execute_ephemeral_client_namespace_probe(
+                fallback_context, fallback_ip,
+            )
+        )
+        for row in fallback_attempts:
+            if isinstance(row, dict):
+                row["protocol_fallback_used"] = True
+        return fallback_success, attempts + fallback_attempts
     attempts = []
     for attempt_index in range(retry_count + 1):
         started_ns = time.monotonic_ns()
@@ -1130,6 +1230,9 @@ def build_exact_probe_receipt(context, successful_attempt, attempts):
         "observed_target_egress_fingerprint": observed_target_fingerprint,
         "payload_response_verified": attempt.get("payload_response_verified") is True,
         "payload_fingerprint": str(attempt.get("payload_fingerprint") or ""),
+        "probe_protocol": str(
+            attempt.get("probe_protocol") or "HTTPS_EGRESS_IP"
+        ),
         "management_default_route_used": not (route_bound and exact_identity),
         "fresh_socket": attempt.get("fresh_socket") is True,
         "fresh_dns_resolution": attempt.get("fresh_dns_resolution") is True,

@@ -1,4 +1,6 @@
 import os
+import hashlib
+import json
 import subprocess
 import tempfile
 import unittest
@@ -69,6 +71,84 @@ class V7UserSwitchCircuitBreakerTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("route replace default dev tun0 table 100", calls)
         self.assertIn("rule add pref 100 from 10.7.0.2 table 100", calls)
+
+    def test_exact_parent_control_hash_skips_duplicate_python_validator(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            control = root / "safe-mode.json"
+            control.write_text(json.dumps({
+                "state": "CLOSED",
+                "scope": "operation",
+                "generation": "aec_test",
+                "operation_id": "op-test",
+                "action_class": "USER_SWITCH",
+                "selected_move_hash": "move-test",
+                "source_bundle_hash": "source-test",
+                "snapshot_bundle_hash": "snapshot-test",
+                "max_users": 1,
+            }) + "\n", encoding="utf-8")
+            validator = root / "bin" / "v7-operator-execution-packet"
+            validator.write_text("#!/bin/sh\nexit 99\n", encoding="utf-8")
+            validator.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+                "V7_ADMIN_SAFE_MODE_FILE": str(control),
+                "V7_EXECUTION_CONTROL_FILE_HASH": hashlib.sha256(
+                    control.read_bytes()
+                ).hexdigest(),
+            })
+            result = subprocess.run(
+                [str(SCRIPT), "10.7.0.2", "vless"],
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+            calls = ip_log.read_text(encoding="utf-8")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("route replace default dev tun0 table 100", calls)
+
+    def test_changed_parent_control_hash_falls_back_and_denies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            env, ip_log = self.fixture(root)
+            control = root / "safe-mode.json"
+            control.write_text('{"generation":"changed"}\n', encoding="utf-8")
+            validator = root / "bin" / "v7-operator-execution-packet"
+            validator.write_text("#!/bin/sh\nexit 2\n", encoding="utf-8")
+            validator.chmod(0o755)
+            env.update({
+                "V7_EXECUTION_CONTROL_GENERATION": "aec_test",
+                "V7_EXECUTION_MUTATION_KIND": "forward",
+                "V7_EXECUTION_OPERATION_ID": "op-test",
+                "V7_EXECUTION_ACTION_CLASS": "USER_SWITCH",
+                "V7_EXECUTION_SELECTED_MOVE_HASH": "move-test",
+                "V7_EXECUTION_SOURCE_BUNDLE_HASH": "source-test",
+                "V7_EXECUTION_SNAPSHOT_BUNDLE_HASH": "snapshot-test",
+                "V7_EXECUTION_MAX_USERS": "1",
+                "V7_ADMIN_SAFE_MODE_FILE": str(control),
+                "V7_EXECUTION_CONTROL_FILE_HASH": "0" * 64,
+            })
+            result = subprocess.run(
+                [str(SCRIPT), "10.7.0.2", "vless"],
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+            calls = (
+                ip_log.read_text(encoding="utf-8") if ip_log.exists() else ""
+            )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertNotIn("route replace", calls)
 
     def test_existing_exact_policy_rule_is_not_duplicated(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -173,6 +173,9 @@ CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE = (
 CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE = (
     "ct_m0f_standing_validation_forward_evidence"
 )
+CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE = (
+    "ct_m0f_standing_validation_lineage_checkpoint"
+)
 CT_M0F_STANDING_VALIDATION_APPROVAL = (
     "APPROVE_STANDING_DELEGATED_CT_M0F_VALIDATION_POLICY"
 )
@@ -1923,6 +1926,18 @@ def ct_m0f_standing_validation_contract_hash(contract):
     return sha256_json(canonical)
 
 
+def ct_m0f_runtime_implementation_fingerprint(
+    *, governed_cycle, matrix_failure_consumer, autoswitch,
+):
+    """Bind one certification campaign to the exact executable hot path."""
+    return sha256_json({
+        "operator_execution": sha256_file(Path(__file__)),
+        "governed_cycle": sha256_file(Path(governed_cycle)),
+        "matrix_failure_consumer": sha256_file(Path(matrix_failure_consumer)),
+        "autoswitch": sha256_file(Path(autoswitch)),
+    })
+
+
 def build_ct_m0f_standing_validation_authority_request(
     *, policy_generation_hash, now=None,
 ):
@@ -2271,9 +2286,168 @@ def validate_ct_m0f_standing_validation_policy(
         errors.append("ct_m0f_standing_contract_authority_provenance_invalid")
     if audit_records is not None:
         matches = [row for row in audit_records if row.get("record_type") == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE and row.get("decision_id") == decision.get("decision_id") and row.get("authority_request_id") == decision.get("request_id") and row.get("authority_request_hash") == decision.get("request_hash") and row.get("decision") == decision.get("decision")]
-        if len(matches) != 1:
+        checkpoints = [
+            row for row in audit_records
+            if (
+                row.get("record_type")
+                == CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+                and row.get("contract_id") == contract.get("contract_id")
+                and row.get("contract_hash") == contract_hash
+                and row.get("decision_id") == decision.get("decision_id")
+                and row.get("authority_request_id") == decision.get("request_id")
+                and row.get("authority_request_hash") == decision.get("request_hash")
+                and row.get("decision") == decision.get("decision")
+                and row.get("no_prior_campaign_records_for_fingerprint") is True
+                and len(str(row.get("source_authority_record_hash") or "")) == 64
+                and str(row.get("record_hash") or "")
+                == sha256_bytes(canonical_json({
+                    key: value for key, value in row.items()
+                    if key != "record_hash"
+                }).encode("utf-8"))
+            )
+        ]
+        if len(matches) != 1 and not (len(matches) == 0 and len(checkpoints) == 1):
             errors.append("ct_m0f_standing_authority_audit_missing_or_duplicate")
     return {"ok": not errors, "status": "ACTIVE" if not errors else "STOP_SAFE", "errors": sorted(set(errors)), "contract": copy.deepcopy(contract)}
+
+
+def ensure_ct_m0f_standing_validation_lineage_checkpoint(
+    contract,
+    implementation_fingerprint,
+    *,
+    audit_store,
+    audit_records,
+    now=None,
+):
+    """Roll immutable Authority proof into the live audit for one new build.
+
+    The checkpoint is a bounded pointer inside the existing append-only audit,
+    not another state owner.  It is created only when a complete lineage scan
+    proves that the exact implementation fingerprint has no prior campaign
+    records.  Later readers may therefore stop at the checkpoint while still
+    counting every reservation/forward/terminal record for that fingerprint.
+    """
+    now = now or utc_now()
+    contract = contract if isinstance(contract, dict) else {}
+    fingerprint = str(implementation_fingerprint or "")
+    audit_store = Path(audit_store)
+    if len(fingerprint) != 64:
+        return {
+            "status": "STOP_SAFE_INVALID_IMPLEMENTATION_FINGERPRINT",
+            "ok": False,
+            "audit_write": False,
+        }
+    decision = (
+        contract.get("authority_decision")
+        if isinstance(contract.get("authority_decision"), dict)
+        else {}
+    )
+
+    def exact_checkpoints(records):
+        return [
+            row for row in records
+            if (
+                row.get("record_type")
+                == CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+                and row.get("contract_id") == contract.get("contract_id")
+                and row.get("contract_hash") == contract.get("contract_hash")
+                and row.get("implementation_fingerprint") == fingerprint
+                and row.get("decision_id") == decision.get("decision_id")
+                and row.get("no_prior_campaign_records_for_fingerprint") is True
+            )
+        ]
+
+    def prior_campaign_records(records):
+        return [
+            row for row in records
+            if (
+                row.get("record_type") in {
+                    CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
+                    CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
+                    CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
+                }
+                and row.get("contract_id") == contract.get("contract_id")
+                and row.get("implementation_fingerprint") == fingerprint
+            )
+        ]
+
+    records = audit_records if isinstance(audit_records, list) else []
+    existing = exact_checkpoints(records)
+    if len(existing) == 1:
+        return {"status": "REUSED", "ok": True, "audit_write": False}
+    if len(existing) > 1 or prior_campaign_records(records):
+        return {
+            "status": "NOT_ADMITTED_EXISTING_FINGERPRINT_LINEAGE",
+            "ok": True,
+            "audit_write": False,
+        }
+    decisions = [
+        row for row in records
+        if (
+            row.get("record_type") == CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+            and row.get("decision_id") == decision.get("decision_id")
+            and row.get("authority_request_id") == decision.get("request_id")
+            and row.get("authority_request_hash") == decision.get("request_hash")
+            and row.get("decision") == decision.get("decision")
+        )
+    ]
+    if len(decisions) != 1:
+        return {
+            # The caller has already completed the authoritative policy/audit
+            # validation.  A compact checkpoint is an optional acceleration,
+            # never a new execution prerequisite; absence of an exact source
+            # row therefore keeps the established full-scan behavior.
+            "status": "NOT_ADMITTED_AUTHORITY_DECISION_NOT_EXACT",
+            "ok": True,
+            "audit_write": False,
+        }
+    source_hash = str(decisions[0].get("record_hash") or "")
+    source_hash_valid = bool(
+        len(source_hash) == 64
+        and source_hash
+        == sha256_bytes(canonical_json({
+            key: value for key, value in decisions[0].items()
+            if key != "record_hash"
+        }).encode("utf-8"))
+    )
+    if not source_hash_valid:
+        return {
+            "status": "STOP_SAFE_AUTHORITY_RECORD_HASH_INVALID",
+            "ok": False,
+            "audit_write": False,
+        }
+    with current_action_class_contract_policy_lock(audit_store):
+        current = read_live_execution_lineage_records(audit_store)
+        existing = exact_checkpoints(current)
+        if len(existing) == 1:
+            return {"status": "REUSED", "ok": True, "audit_write": False}
+        if len(existing) > 1 or prior_campaign_records(current):
+            return {
+                "status": "NOT_ADMITTED_EXISTING_FINGERPRINT_LINEAGE",
+                "ok": True,
+                "audit_write": False,
+            }
+        record = append_record(audit_store, {
+            "schema_version": "v7.ct-m0f-standing-validation-lineage-checkpoint.v1",
+            "record_type": CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,
+            "contract_id": str(contract.get("contract_id") or ""),
+            "contract_hash": str(contract.get("contract_hash") or ""),
+            "implementation_fingerprint": fingerprint,
+            "decision_id": str(decision.get("decision_id") or ""),
+            "authority_request_id": str(decision.get("request_id") or ""),
+            "authority_request_hash": str(decision.get("request_hash") or ""),
+            "decision": str(decision.get("decision") or ""),
+            "source_authority_record_hash": source_hash,
+            "no_prior_campaign_records_for_fingerprint": True,
+            "producer": "admin_core.operator_execution",
+            "created_at": now.isoformat(),
+        })
+    return {
+        "status": "CREATED",
+        "ok": True,
+        "audit_write": True,
+        "record_hash": str(record.get("record_hash") or ""),
+    }
 
 
 def ct_m0f_standing_validation_budget_status(
@@ -7558,7 +7732,7 @@ def read_last_audit_record(audit_store):
 
 
 _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE: dict[
-    tuple[str, int, bool, tuple[str, ...], tuple[tuple[str, int, int], ...]],
+    tuple[str, int, bool, tuple[str, ...], str, tuple[tuple[str, int, int], ...]],
     tuple[dict[str, Any], ...],
 ] = {}
 
@@ -7569,6 +7743,7 @@ def _cached_live_execution_lineage_superset(
     max_rotated_segments: int,
     include_runtime_actions: bool,
     required_ids: tuple[str, ...],
+    checkpoint_fingerprint: str,
     source_signature: tuple[tuple[str, int, int], ...],
 ) -> list[dict[str, Any]] | None:
     """Reuse an already parsed exact-source projection for another validator.
@@ -7589,12 +7764,14 @@ def _cached_live_execution_lineage_superset(
             cached_segments,
             cached_runtime_actions,
             _cached_required_ids,
+            cached_checkpoint_fingerprint,
             cached_signature,
         ) = cache_key
         if (
             cached_path != str(path)
             or cached_segments != max_rotated_segments
             or cached_runtime_actions != include_runtime_actions
+            or cached_checkpoint_fingerprint != checkpoint_fingerprint
             or cached_signature != source_signature
         ):
             continue
@@ -7614,6 +7791,7 @@ def _cached_live_execution_lineage_append_extension(
     max_rotated_segments: int,
     include_runtime_actions: bool,
     required_ids: tuple[str, ...],
+    checkpoint_fingerprint: str,
     source_signature: tuple[tuple[str, int, int], ...],
     durable_record_types: set[str],
     durable_effect_classes: set[str],
@@ -7640,12 +7818,14 @@ def _cached_live_execution_lineage_append_extension(
             cached_segments,
             cached_runtime_actions,
             _cached_required_ids,
+            cached_checkpoint_fingerprint,
             cached_signature,
         ) = cache_key
         if (
             cached_path != active_path
             or cached_segments != max_rotated_segments
             or cached_runtime_actions != include_runtime_actions
+            or cached_checkpoint_fingerprint != checkpoint_fingerprint
         ):
             continue
         if requested and not requested.issubset({
@@ -7743,6 +7923,7 @@ def _cached_live_execution_lineage_append_extension(
             max_rotated_segments,
             include_runtime_actions,
             required_ids,
+            checkpoint_fingerprint,
             source_signature,
         )
         if len(_LIVE_EXECUTION_LINEAGE_PROCESS_CACHE) >= 16:
@@ -7760,6 +7941,7 @@ def read_live_execution_lineage_records(
     max_rotated_segments=8,
     include_runtime_actions=False,
     required_decision_ids=(),
+    required_checkpoint_fingerprint="",
 ):
     """Read compact durable execution lineage across bounded audit rotation.
 
@@ -7799,6 +7981,7 @@ def read_live_execution_lineage_records(
         CT_M0F_STANDING_VALIDATION_SAMPLE_RESERVATION_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_FORWARD_RECORD_TYPE,
         CT_M0F_STANDING_VALIDATION_SAMPLE_TERMINAL_RECORD_TYPE,
+        CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE,
     }
     durable_effect_classes = {
         AVAILABILITY_FIRST_CAMPAIGN_STAGE_EFFECT_CLASS,
@@ -7817,11 +8000,13 @@ def read_live_execution_lineage_records(
     required_ids = tuple(sorted({
         str(value) for value in (required_decision_ids or ()) if str(value)
     }))
+    checkpoint_fingerprint = str(required_checkpoint_fingerprint or "")
     cache_key = (
         str(path),
         max(0, int(max_rotated_segments)),
         bool(include_runtime_actions),
         required_ids,
+        checkpoint_fingerprint,
         tuple(source_signature),
     )
     cached = _LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.get(cache_key)
@@ -7836,6 +8021,7 @@ def read_live_execution_lineage_records(
         max_rotated_segments=max(0, int(max_rotated_segments)),
         include_runtime_actions=bool(include_runtime_actions),
         required_ids=required_ids,
+        checkpoint_fingerprint=checkpoint_fingerprint,
         source_signature=tuple(source_signature),
     )
     if cached_superset is not None:
@@ -7856,6 +8042,7 @@ def read_live_execution_lineage_records(
         max_rotated_segments=max(0, int(max_rotated_segments)),
         include_runtime_actions=bool(include_runtime_actions),
         required_ids=required_ids,
+        checkpoint_fingerprint=checkpoint_fingerprint,
         source_signature=tuple(source_signature),
         durable_record_types=durable_record_types,
         durable_effect_classes=durable_effect_classes,
@@ -7950,7 +8137,18 @@ def read_live_execution_lineage_records(
                 ):
                     current_segment.append(row)
                     decision_id = str(row.get("decision_id") or "")
-                    if decision_id in required_ids:
+                    if (
+                        decision_id in required_ids
+                        and (
+                            row.get("record_type")
+                            != CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+                            or (
+                                checkpoint_fingerprint
+                                and row.get("implementation_fingerprint")
+                                == checkpoint_fingerprint
+                            )
+                        )
+                    ):
                         found_required_ids.add(decision_id)
         except OSError:
             continue

@@ -1703,25 +1703,21 @@ def run_ct_m0f_standing_validation_campaign(
         if isinstance(contract.get("authority_decision"), dict)
         else {}
     )
-    delegated_contract = (
-        policy_root.get("delegated_autonomy_policy", {})
-        if isinstance(policy_root, dict)
-        else {}
-    )
-    delegated_decision = (
-        delegated_contract.get("authority_decision")
-        if isinstance(delegated_contract, dict)
-        and isinstance(delegated_contract.get("authority_decision"), dict)
-        else {}
+    implementation_fingerprint = (
+        operator_execution.ct_m0f_runtime_implementation_fingerprint(
+            governed_cycle=executor,
+            matrix_failure_consumer=Path(__file__),
+            autoswitch=planner,
+        )
     )
     required_decision_ids = tuple(filter(None, [
         str(standing_decision.get("decision_id") or ""),
-        str(delegated_decision.get("decision_id") or ""),
     ]))
     span_started_ns = time.monotonic_ns()
     records = operator_execution.read_live_execution_lineage_records(
         audit_store,
         required_decision_ids=required_decision_ids,
+        required_checkpoint_fingerprint=implementation_fingerprint,
     )
     preparation_span("standing_policy_lineage_validation_read", span_started_ns)
     span_started_ns = time.monotonic_ns()
@@ -1735,6 +1731,26 @@ def run_ct_m0f_standing_validation_campaign(
             "status": "INACTIVE_NO_VALID_STANDING_CT_M0F_POLICY",
             "ok": True,
             "blockers": validation.get("errors") or [],
+            "action_attempted": False,
+            "runtime_mutation_performed": False,
+            "users_moved": 0,
+        }
+    span_started_ns = time.monotonic_ns()
+    lineage_checkpoint = (
+        operator_execution.ensure_ct_m0f_standing_validation_lineage_checkpoint(
+            contract,
+            implementation_fingerprint,
+            audit_store=audit_store,
+            audit_records=records,
+        )
+    )
+    preparation_span("standing_policy_lineage_checkpoint", span_started_ns)
+    if lineage_checkpoint.get("ok") is not True:
+        return {
+            "schema_version": "v7.ct-m0f-standing-validation-matrix-consumer.v1",
+            "status": "STOP_SAFE_STANDING_LINEAGE_CHECKPOINT_INVALID",
+            "ok": True,
+            "blockers": [str(lineage_checkpoint.get("status") or "")],
             "action_attempted": False,
             "runtime_mutation_performed": False,
             "users_moved": 0,
@@ -1849,6 +1865,7 @@ def run_ct_m0f_standing_validation_campaign(
         current = operator_execution.read_live_execution_lineage_records(
             audit_store,
             required_decision_ids=required_decision_ids,
+            required_checkpoint_fingerprint=implementation_fingerprint,
         )
         terminal_ids = {
             str(row.get("reservation_id") or "")

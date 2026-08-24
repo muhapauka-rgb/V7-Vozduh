@@ -1,4 +1,5 @@
 import copy
+import gzip
 import json
 import tempfile
 import threading
@@ -718,6 +719,85 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             self.assertEqual(
                 [row.get("decision_id") or row.get("reservation_id") for row in records],
                 [decision_id, "current-sample"],
+            )
+
+    def test_ct_m0f_lineage_checkpoint_keeps_new_build_on_live_audit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            audit_path = root / "operator-execution-audit.jsonl"
+            decision_id = "ctm0f-decision-checkpoint"
+            request_id = "ctm0f-request-checkpoint"
+            request_hash = "a" * 64
+            fingerprint = "b" * 64
+            contract = {
+                "contract_id": "ctm0fsdpc_checkpoint",
+                "contract_hash": "c" * 64,
+                "authority_decision": {
+                    "decision": operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                    "decision_id": decision_id,
+                    "request_id": request_id,
+                    "request_hash": request_hash,
+                },
+            }
+            decision = operator_execution.append_record(
+                audit_path,
+                {
+                    "record_type": (
+                        operator_execution
+                        .CT_M0F_STANDING_VALIDATION_DECISION_RECORD_TYPE
+                    ),
+                    "decision_id": decision_id,
+                    "authority_request_id": request_id,
+                    "authority_request_hash": request_hash,
+                    "decision": (
+                        operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL
+                    ),
+                },
+            )
+            audit_path.rename(root / "operator-execution-audit.jsonl.1")
+            rotated = root / "operator-execution-audit.jsonl.1"
+            with gzip.open(
+                root / "operator-execution-audit.jsonl.1.gz",
+                "wt",
+                encoding="utf-8",
+            ) as handle:
+                handle.write(rotated.read_text(encoding="utf-8"))
+            rotated.unlink()
+            audit_path.write_text("", encoding="utf-8")
+            lineage = operator_execution.read_live_execution_lineage_records(
+                audit_path,
+                required_decision_ids=(decision_id,),
+            )
+            checkpoint = (
+                operator_execution
+                .ensure_ct_m0f_standing_validation_lineage_checkpoint(
+                    contract,
+                    fingerprint,
+                    audit_store=audit_path,
+                    audit_records=lineage,
+                )
+            )
+            self.assertEqual(checkpoint["status"], "CREATED")
+            operator_execution._LIVE_EXECUTION_LINEAGE_PROCESS_CACHE.clear()
+            with mock.patch(
+                "gzip.open",
+                side_effect=AssertionError("rotated lineage reread"),
+            ):
+                compact = operator_execution.read_live_execution_lineage_records(
+                    audit_path,
+                    required_decision_ids=(decision_id,),
+                    required_checkpoint_fingerprint=fingerprint,
+                )
+            anchors = [
+                row for row in compact
+                if row.get("record_type")
+                == operator_execution
+                .CT_M0F_STANDING_VALIDATION_LINEAGE_CHECKPOINT_RECORD_TYPE
+            ]
+            self.assertEqual(len(anchors), 1)
+            self.assertEqual(
+                anchors[0]["source_authority_record_hash"],
+                decision["record_hash"],
             )
 
     def test_append_record_reads_only_last_predecessor_semantics(self):

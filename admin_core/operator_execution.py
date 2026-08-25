@@ -3218,9 +3218,23 @@ def build_controlled_certification_substrate_authority_request(
     else:
         target_total = max(0, as_int(target_total, 0))
     current_total = max(0, as_int(pool.get("total_enabled_certification_users"), 0))
+    # Provisioning is bound to the exact selected source.  A certification
+    # identity elsewhere in the fleet cannot satisfy an empty isolated source
+    # (and must not silently suppress its one-user Polygon reseed).
+    source_rows = pool.get("active_source_projections")
+    source_rows = source_rows if isinstance(source_rows, list) else []
+    exact_source_row = next((
+        row for row in source_rows
+        if isinstance(row, dict) and str(row.get("source_id") or "")
+        == str(source_id or "")
+    ), {})
     current_on_source = max(
         0,
-        as_int(pool.get("max_enabled_certification_users_on_one_active_source"), 0),
+        as_int(
+            exact_source_row.get("enabled_certification_users_on_source"),
+            as_int(pool.get("max_enabled_certification_users_on_one_active_source"), 0)
+            if not source_rows else 0,
+        ),
     )
     controlled_target_admission = (
         controlled_target_admission

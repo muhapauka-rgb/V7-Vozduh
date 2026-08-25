@@ -1585,6 +1585,28 @@ class OperatorExecutionPacketTest(unittest.TestCase):
             {"IDENTITY_PROVISIONING", "CERTIFICATION_CLASSIFICATION_AND_ASSIGNMENT"},
         )
 
+    def test_ct_m0f_empty_selected_source_does_not_reuse_other_source_pool(self):
+        request = build_controlled_certification_substrate_authority_request(
+            active_program="V7_SERVICE_FAILURE_AUTOMATION_EVOLUTION_PROGRAM_V1",
+            source_id="isolated-source",
+            current_pool_status={
+                "total_enabled_certification_users": 3,
+                "max_enabled_certification_users_on_one_active_source": 3,
+                "active_source_projections": [
+                    {"source_id": "occupied-source", "enabled_certification_users_on_source": 3},
+                    {"source_id": "isolated-source", "enabled_certification_users_on_source": 0},
+                ],
+                "fingerprint": "f" * 64,
+                "registry_hashes": {"users_registry": "a" * 64, "egress_registry": "b" * 64},
+            },
+            current_policy_contract_id="sdpc_current",
+            current_policy_contract_hash="c" * 64,
+            profile=operator_execution.CONTROLLED_CERTIFICATION_SUBSTRATE_CT_M0F_ONE_USER_PROFILE,
+        )
+
+        self.assertEqual(request["scope"]["identity_strategy"], "PROVISION_INCREMENTAL_DELTA")
+        self.assertEqual(request["scope"]["max_new_certification_identities"], 1)
+
     def test_controlled_substrate_decision_is_exact_once_and_audit_only(self):
         now = datetime(2026, 7, 28, tzinfo=timezone.utc)
         request = build_controlled_certification_substrate_authority_request(

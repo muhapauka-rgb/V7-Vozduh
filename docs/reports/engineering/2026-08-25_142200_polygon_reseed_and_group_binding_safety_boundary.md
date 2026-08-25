@@ -216,3 +216,27 @@ samples.  Since the first valid frozen cold sample already exceeds 3 seconds,
 do not perform any further performance micro-patch.  After the bounded
 diagnostic set, emit the full distribution and the smallest remaining
 architectural choice.
+
+### Post-deploy re-entry result
+
+Cleanup repair `bf83e100` was published and deployed as
+`deploy-z8-14-Updatesystem-bf83e10-20260825T184305`; safe deploy and truth
+checks passed, `v7-health.service` is active, and the Runtime checksum of the
+changed canary tool is `e31d6078…f17d`.  The synthetic identity is back on
+its isolated source (`v7execwg0`, table `1122`).
+
+The next sample was intentionally not injected.  The existing automatic
+selection owner returned `STOP_SAFE`: it has no distinct admitted target while
+the source is healthy, even though fresh Matrix rows show both `awg0` and
+`awg3` healthy (14/14 required services).  Its current law requires an active
+source-failure binding to admit a target, while the controlled transaction
+requires an admitted target before it may create that failure.  This is a
+deterministic preparation-cycle gap, not a channel-health failure and not an
+external limitation.
+
+The smallest safe next repair is therefore confined to the existing prepared
+Matrix/Planner selection owner: for an already-authorized, one-identity
+certification transaction only, consume its fresh prepared target contract
+before failure injection.  It must retain automatic target choice, all
+freshness/capacity checks and zero ordinary-user scope; no manual target
+argument, general Planner widening or ordinary route change is admissible.

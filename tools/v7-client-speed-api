@@ -545,7 +545,9 @@ def exact_certification_client_profile(source_address):
     return matches[0] if len(matches) == 1 else None
 
 
-def wireguard_setconf_text(profile_text, *, endpoint_override=""):
+def wireguard_setconf_text(
+    profile_text, *, endpoint_override="", peer_public_key_override=""
+):
     """Strip wg-quick-only fields without writing private keys to disk."""
     allowed_interface = {"privatekey", "listenport", "fwmark"}
     allowed_peer = {
@@ -567,7 +569,9 @@ def wireguard_setconf_text(profile_text, *, endpoint_override=""):
             continue
         key = line.split("=", 1)[0].strip().lower()
         allowed = allowed_interface if section == "[interface]" else allowed_peer
-        if key == "endpoint" and endpoint_override:
+        if section == "[peer]" and key == "publickey" and peer_public_key_override:
+            output.append(f"PublicKey = {peer_public_key_override}")
+        elif key == "endpoint" and endpoint_override:
             output.append(f"Endpoint = {endpoint_override}")
         elif key in allowed:
             output.append(line)
@@ -753,6 +757,12 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             # only the deterministic Polygon fixture and rebuild it below.
             _run_probe_command(["ip", "netns", "del", namespace], timeout=5)
             _run_probe_command(["ip", "link", "del", host_if], timeout=5)
+        ingress_key_proc = _run_probe_command(
+            ["wg", "show", EXACT_PROBE_INGRESS_INTERFACE, "public-key"]
+        )
+        ingress_public_key = (ingress_key_proc.stdout or "").strip()
+        if ingress_key_proc.returncode != 0 or not ingress_public_key:
+            raise RuntimeError("canonical_ingress_public_key_unavailable")
         setup = (
             (["ip", "netns", "add", namespace], None),
             (["ip", "link", "add", host_if, "type", "veth", "peer", "name", peer_if], None),
@@ -780,6 +790,11 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
                         f"{metadata['endpoint_port']}"
                         if metadata.get("endpoint_port") else ""
                     ),
+                    # Some retained synthetic client artifacts predate a
+                    # local wg0 key rotation.  The temporary namespace must
+                    # authenticate against the live canonical ingress owner,
+                    # while the stored client artifact remains untouched.
+                    peer_public_key_override=ingress_public_key,
                 ),
             ),
             (["ip", "netns", "exec", namespace, "ip", "addr", "add", f"{source}/32", "dev", wg_if], None),

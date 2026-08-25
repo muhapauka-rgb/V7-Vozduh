@@ -263,12 +263,17 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
             local_endpoint = client_speed.wireguard_setconf_text(
                 profile.read_text(), endpoint_override="169.254.253.1:51820"
             )
+            local_ingress = client_speed.wireguard_setconf_text(
+                profile.read_text(), peer_public_key_override="current-ingress-key"
+            )
             metadata = client_speed.wireguard_profile_metadata(profile.read_text())
         self.assertIn("PrivateKey = private", stripped)
         self.assertIn("AllowedIPs = 0.0.0.0/0", stripped)
         self.assertNotIn("Address =", stripped)
         self.assertNotIn("DNS =", stripped)
         self.assertIn("Endpoint = 169.254.253.1:51820", local_endpoint)
+        self.assertIn("PublicKey = current-ingress-key", local_ingress)
+        self.assertNotIn("PublicKey = public", local_ingress)
         self.assertEqual(metadata["endpoint_port"], "51820")
 
     def test_declared_identity_must_equal_bound_source_address(self):

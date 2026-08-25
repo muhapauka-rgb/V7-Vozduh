@@ -62,3 +62,41 @@ use that owner to reconcile the source group with the one synthetic identity.
 Re-run `--ct-m0f-standing-source-selection`; only if it returns ready, continue
 with a single cold controlled HARD-path sample on the frozen implementation.
 
+## Addendum: current group reconciliation and exact-client readiness
+
+The source reservation was subsequently reconciled through the existing
+`v7-egress-set-state certification-reserve` owner.  The single synthetic
+identity `10.7.0.124` now belongs to the current certification-only group on
+`amneziawg-exec-20260528-10-8-1-14`; the owner recorded zero user moves and
+zero route changes.
+
+The existing target-selection owner then chose `awg3` automatically from a
+fresh one-shot diagnostic.  Its shared-target, one-synthetic-user policy was
+explicitly admitted and records zero ordinary-user effect.  No target was
+chosen manually.  A separate dedicated-draft attempt stopped safely because
+the requested draft would duplicate an unhealthy interface configuration; no
+draft, client or route was created from that stopped branch.
+
+The governed controlled-condition owner next stopped before injecting a
+failure: its isolated client-session handshake did not complete.  Diagnostics
+proved two retained-profile mismatches in the runtime-only Polygon fixture:
+
+- the client namespace was trying to reach the public endpoint from an
+  isolated host-local veth; and
+- the retained synthetic profile's peer public key did not match the live
+  canonical `wg0` ingress key, so WireGuard correctly rejected the handshake.
+
+Commit `2062e171` corrected the first mismatch by directing only the temporary
+namespace's outer UDP packet to the host-side veth gateway.  Its focused test
+suite passed (19 checks) and the published/server checksum aligned.  The
+second, now-measured mismatch is corrected by the pending follow-up: only the
+temporary namespace copy uses the current canonical ingress public key.  The
+stored profile, service configuration, ordinary clients, Matrix, Planner and
+routes are not modified.
+
+## Current next step
+
+Publish and safely deploy the tested runtime-only ingress-key correction,
+re-run the exact-client preparation, and only on a successful handshake issue
+one governed cold controlled condition.  If preparation remains invalid, stop
+before injecting a failure and record the new exact evidence.

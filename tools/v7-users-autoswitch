@@ -21019,6 +21019,11 @@ def controlled_campaign_target_selection_diagnostic(
         if isinstance(standing_validation.get("policy"), dict)
         else {}
     )
+    if (
+        not isinstance(standing_policy.get("action_class_scopes"), dict)
+        and isinstance(standing_policy.get("policy"), dict)
+    ):
+        standing_policy = standing_policy["policy"]
     availability_scope = (
         (standing_policy.get("action_class_scopes") or {}).get(
             operator_execution.AVAILABILITY_FIRST_DELEGATED_ACTION_CLASS
@@ -27246,12 +27251,7 @@ def main() -> int:
                 ct_m0f_precomputed_target_diagnostic_from_file(
                     args.ct_m0f_precomputed_target_diagnostic_file,
                 )
-                if args.ct_m0f_precomputed_target_diagnostic_file else {
-                    "targets": [], "selection": {},
-                    "preflight_error": (
-                        "exact_precomputed_target_diagnostic_required"
-                    ),
-                }
+                if args.ct_m0f_precomputed_target_diagnostic_file else None
             ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2 if args.pretty else None, sort_keys=False))

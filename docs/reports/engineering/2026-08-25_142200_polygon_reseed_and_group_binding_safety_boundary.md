@@ -245,3 +245,8 @@ The root cause was narrowed further: the signed existing availability policy
 stores its action scopes inside `policy`, while this one preparation reader
 accepted only the normalized representation.  The repair accepts both forms
 of the same validated decision; it does not grant, widen or write policy.
+
+One final caller defect was also removed: without an explicitly supplied
+prepared projection, the CLI passed an empty placeholder and thereby
+suppressed its own existing target diagnostic.  It now passes no projection in
+that case, so the selector obtains a fresh owner-backed diagnostic itself.

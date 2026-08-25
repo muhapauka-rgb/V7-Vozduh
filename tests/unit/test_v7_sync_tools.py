@@ -333,6 +333,30 @@ class V7SyncToolsTest(unittest.TestCase):
         self.assertIn("--restart-admin-if-changed", guard["safe_next_command"])
         self.assertIn("DEPLOY_V7_APPROVED", guard["safe_next_command"])
 
+    def test_safe_deploy_requires_health_restart_for_changed_health_loop(self):
+        original_delta = self.lib.deploy_delta
+        original_truth = self.lib.truth_check
+        original_manifest = self.lib.load_manifest
+        original_allowlist = self.lib.deploy_allowlist_validation
+        try:
+            self.lib.deploy_delta = lambda: [{
+                "name": "v7-health-loop", "remote_path": "/usr/local/bin/v7-health-loop",
+                "matches": False, "exists": True,
+            }]
+            self.lib.truth_check = lambda *args, **kwargs: {"final_verdict": "PASS"}
+            self.lib.load_manifest = lambda: {"canonical_branch": self.lib.current_branch()}
+            self.lib.deploy_allowlist_validation = lambda: {"final_verdict": "PASS"}
+            result = self.lib.safe_deploy_plan(
+                apply=True, confirm=self.lib.DEPLOY_CONFIRMATION,
+                update_local_snapshot=False,
+            )
+        finally:
+            self.lib.deploy_delta = original_delta
+            self.lib.truth_check = original_truth
+            self.lib.load_manifest = original_manifest
+            self.lib.deploy_allowlist_validation = original_allowlist
+        self.assertIn("health_loop_changed_requires_explicit_restart_flag", result["blockers"])
+
     def test_runtime_action_guard_exact_next_command_in_json_shape(self):
         status = {
             "final_verdict": "NO-GO",

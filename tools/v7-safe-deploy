@@ -20,12 +20,18 @@ def main() -> int:
         action="store_true",
         help="restart only v7-admin-api.service when its approved binary changed",
     )
+    parser.add_argument(
+        "--restart-health-if-changed",
+        action="store_true",
+        help="restart v7-health.service when its approved health-loop binary changed",
+    )
     args = parser.parse_args()
     result = sync.safe_deploy_plan(
         apply=args.apply,
         confirm=args.confirm,
         update_local_snapshot=args.update_local_snapshot,
         restart_admin_if_changed=args.restart_admin_if_changed,
+        restart_health_if_changed=args.restart_health_if_changed,
     )
     return sync.emit(result, as_json=args.json)
 

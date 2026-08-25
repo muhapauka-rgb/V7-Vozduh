@@ -27285,6 +27285,7 @@ def safe_deploy_plan(
     confirm: str,
     update_local_snapshot: bool,
     restart_admin_if_changed: bool = False,
+    restart_health_if_changed: bool = False,
     runner: CommandRunner = run_command,
 ) -> dict[str, Any]:
     manifest = load_manifest()
@@ -27304,6 +27305,10 @@ def safe_deploy_plan(
     if any(not item["exists"] for item in deploy_file_records()):
         blockers.append("approved_deploy_file_missing")
     changed_admin = any(item["name"] == "v7-admin-api" and not item["matches"] for item in delta)
+    changed_health = any(
+        item["name"] == "v7-health-loop" and not item["matches"]
+        for item in delta
+    )
     changed_systemd = any(
         item["remote_path"].startswith("/etc/systemd/system/")
         and not item["matches"]
@@ -27313,6 +27318,8 @@ def safe_deploy_plan(
         blockers.append("deploy_confirmation_required")
     if apply and changed_admin and not restart_admin_if_changed:
         blockers.append("admin_binary_changed_requires_explicit_restart_flag")
+    if apply and changed_health and not restart_health_if_changed:
+        blockers.append("health_loop_changed_requires_explicit_restart_flag")
 
     deploy_manifest = build_deploy_manifest(branch=branch, commit=commit, deploy_id=deploy_id)
     runtime_linkage = build_runtime_linkage(branch=branch, commit=commit, deploy_id=deploy_id)
@@ -27320,7 +27327,10 @@ def safe_deploy_plan(
         branch=branch,
         commit=commit,
         deploy_id=deploy_id,
-        service_restart_required=bool(restart_admin_if_changed and changed_admin),
+        service_restart_required=bool(
+            (restart_admin_if_changed and changed_admin)
+            or (restart_health_if_changed and changed_health)
+        ),
     )
     planned_remote_paths = {
         "backup_root": f"/root/v7-deploy-backups/{deploy_id}",
@@ -27342,6 +27352,7 @@ def safe_deploy_plan(
         "allowlist_validation": allowlist,
         "deployment_required": any(not item["matches"] for item in delta),
         "restart_admin_if_changed": restart_admin_if_changed,
+        "restart_health_if_changed": restart_health_if_changed,
         "planned_remote_paths": planned_remote_paths,
         "remote_transaction_lock": {
             "owner": "existing service-matrix lifecycle lock",
@@ -27369,6 +27380,7 @@ def safe_deploy_plan(
         "release_manifest": release_manifest,
         "update_local_snapshot": update_local_snapshot,
         "restart_admin_if_changed": restart_admin_if_changed,
+        "restart_health_if_changed": restart_health_if_changed,
         "files": [],
     }
     delta_by_path = {item["remote_path"]: item for item in delta}
@@ -27388,7 +27400,11 @@ def safe_deploy_plan(
         payload["files"].append(file_payload)
     payload_b64 = base64.b64encode(json.dumps(payload, ensure_ascii=False).encode("utf-8")).decode("ascii")
     daemon_reload_block = "systemctl daemon-reload\n" if changed_systemd else ""
-    restart_block = "systemctl restart v7-admin-api.service\n" if restart_admin_if_changed and changed_admin else ""
+    restart_block = ""
+    if restart_admin_if_changed and changed_admin:
+        restart_block += "systemctl restart v7-admin-api.service\n"
+    if restart_health_if_changed and changed_health:
+        restart_block += "systemctl restart v7-health.service\n"
     script = (
         "set -eu\n"
         f"backup_root={planned_remote_paths['backup_root']}\n"

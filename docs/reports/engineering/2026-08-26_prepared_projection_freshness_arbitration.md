@@ -50,9 +50,32 @@ It ensures the already mandatory refresh is not indefinitely prevented from meet
 - The new test proves that a due projection preempts a running disposable slow role and starts; controlled Polygon mode retains its former non-preemptive behavior.
 - Syntax compilation and `git diff --check`: passed.
 
+## Publication and controlled Runtime proof
+
+The correction was published as commit `e4106fd647978adf481d78201ed10a183a130fcb` and deployed only through `tools/v7-safe-deploy`, with its explicit `v7-health.service` restart requirement.  Local, GitHub, and Runtime hashes aligned; the health service was active and the old standalone Matrix/Telegram timers remained inactive.
+
+Immediately after restart, the Runtime emitted:
+
+```text
+V7_HEALTH_ROLE_PREEMPTED role=other_required
+  reason=PREPARED_PROJECTION_FRESHNESS_PRIORITY
+V7_HEALTH_ROLE_START role=planner_projection
+V7_HEALTH_ROLE_COMPLETE role=planner_projection duration_ms=12621
+```
+
+This proves the existing refresh was no longer starved.  One fresh cold controlled Matrix/Polygon transaction then completed automatically through the persistent health consumer.  The synthetic identity was returned to its original isolated source; `v7-health.service` remained active; ordinary-user delta was zero.
+
+| Interval | Before correction | After correction | Change |
+| --- | ---: | ---: | ---: |
+| persistent consumer entry after T0 | 520.826 ms | 389.255 ms | -25% |
+| prepared target validation | 4119.161 ms | 41.150 ms | -99% |
+| failure to decision | 7259.000 ms | 1746.435 ms | -76% |
+| complete control-plane/kernel cutover | 9664.864 ms | 2696.992 ms | -72% |
+
+The later sample retained exact route/kernel and required-service verification.  Its terminal receipt was `verified_cutover_and_forward_recovery_and_controlled_source_reset_complete`; no `performance_fail` reason was recorded.  This is one valid cold measurement, not a five-sample SLO conclusion.
+
 ## Exact next frontier
 
-1. Publish and safe-deploy this arbitration-only correction with the explicit existing health-service restart.
-2. Prove one ordinary Runtime refresh starts at its due point even if a slow observation is running.
-3. Run one fresh certification-only cold scenario.  Credit it only if the prepared decision is current and the full automatic chain preserves all S11 semantics.  Compare the target-validation and T0-to-decision spans with the 4119.161 ms / 7259.000 ms baseline.
-4. If the prepared projection is current yet a material multi-second span remains, stop patching and report that next exact residual; do not weaken freshness or S11.
+1. Freeze this bounded arbitration correction: it has removed the measured stale-projection fallback without changing any safety contract.
+2. Resume the current HARD_PATH evidence programme on the immutable fingerprint.  Collect the remaining homogeneous controlled cold/warm samples across two Matrix generations; retain every functionally valid slow sample.
+3. Do not claim the programme SLO from this single cold result.  If the frozen series exposes a new material residual, report it as a new architecture/evidence decision rather than starting another unbounded micro-patch loop.

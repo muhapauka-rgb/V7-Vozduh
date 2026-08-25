@@ -4140,22 +4140,71 @@ class AutoswitchPlanner:
             },
         )
         policy_resolution_started_ns = time.monotonic_ns()
-        self.switch_policy = self._switch_policy()
-        self.authority_budget_policy = self._authority_budget_policy()
-        self.quality_policy = self._quality_policy()
-        self.load_policy = self._load_policy()
-        self.reconnect_policy = self._reconnect_policy()
-        self.safety_policy = self._safety_policy()
-        self.service_signal_policy = self._service_signal_policy()
-        self.emergency_failover_policy = self._emergency_failover_policy()
-        self.service_quality_policy = self._service_quality_policy()
-        self.best_available_pool_policy = self._best_available_pool_policy()
-        self.last_switch = self._last_switches()
-        self.group_usage = self._group_usage()
-        self.dynamic_load = self._dynamic_load_summary()
+        # This records the *current* post-T0 construction work one owner at a
+        # time.  It is diagnostic only: the same policy and inventory
+        # functions still run in the same order and their values remain the
+        # sole inputs to Candidate/Packet/Lease/Barrier/Apply.  The split is
+        # required to distinguish mandatory mutable gates from removable
+        # reconstruction overhead in the one-user prepared-decision lane.
+        def resolve_initialization_stage(label: str, resolver: Any) -> Any:
+            started_ns = time.monotonic_ns()
+            value = resolver()
+            self._record_performance_span(
+                label,
+                started_ns,
+                owner="tools/v7-users-autoswitch.AutoswitchPlanner",
+            )
+            return value
+
+        self.switch_policy = resolve_initialization_stage(
+            "policy_switch_resolution", self._switch_policy,
+        )
+        self.authority_budget_policy = resolve_initialization_stage(
+            "policy_authority_budget_and_lineage_validation",
+            self._authority_budget_policy,
+        )
+        self.quality_policy = resolve_initialization_stage(
+            "policy_quality_resolution", self._quality_policy,
+        )
+        self.load_policy = resolve_initialization_stage(
+            "policy_load_resolution", self._load_policy,
+        )
+        self.reconnect_policy = resolve_initialization_stage(
+            "policy_reconnect_resolution", self._reconnect_policy,
+        )
+        self.safety_policy = resolve_initialization_stage(
+            "policy_safety_resolution", self._safety_policy,
+        )
+        self.service_signal_policy = resolve_initialization_stage(
+            "policy_service_signal_resolution", self._service_signal_policy,
+        )
+        self.emergency_failover_policy = resolve_initialization_stage(
+            "policy_emergency_failover_and_lineage_validation",
+            self._emergency_failover_policy,
+        )
+        self.service_quality_policy = resolve_initialization_stage(
+            "policy_service_quality_resolution", self._service_quality_policy,
+        )
+        self.best_available_pool_policy = resolve_initialization_stage(
+            "policy_best_available_pool_resolution",
+            self._best_available_pool_policy,
+        )
+        self.last_switch = resolve_initialization_stage(
+            "switch_history_resolution", self._last_switches,
+        )
+        self.group_usage = resolve_initialization_stage(
+            "group_usage_resolution", self._group_usage,
+        )
+        self.dynamic_load = resolve_initialization_stage(
+            "dynamic_load_reconstruction", self._dynamic_load_summary,
+        )
         self.reconnect_state_file = Path(args.reconnect_state_file)
-        self.reconnect_state = self._load_reconnect_state()
-        self.reconnect_events = self._observe_reconnect_events()
+        self.reconnect_state = resolve_initialization_stage(
+            "reconnect_state_read", self._load_reconnect_state,
+        )
+        self.reconnect_events = resolve_initialization_stage(
+            "reconnect_event_reconstruction", self._observe_reconnect_events,
+        )
         self._routing_intelligence_cache: dict[tuple[Any, ...], dict[str, Any]] = {}
         self._active_execution_control: dict[str, Any] = {}
         self._record_performance_span(

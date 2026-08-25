@@ -571,6 +571,45 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 0,
             )
 
+    def test_persistent_handoff_uses_freshest_t0_across_active_assignments(self):
+        """A stale source listed first cannot suppress a newer Matrix wake."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            matrix = root / "service-matrix.json"
+            users = root / "users.registry"
+            matrix.write_text(json.dumps({
+                "items": {
+                    "source-stale": {"services": {"__channel_liveness__": {
+                        "ok": False,
+                        "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                        "failure_state": "OBSERVED_CONTINUING",
+                        "source_incident_id": "sfinc_stale",
+                        "failure_event_id": "sfe_stale",
+                        "confirmed_hard_failure_monotonic_ns": 100,
+                    }}},
+                    "source-fresh": {"services": {"__channel_liveness__": {
+                        "ok": False,
+                        "evidence_class": "DEFINITIVE_LOCAL_HARD_FAILURE",
+                        "failure_state": "OBSERVED_NEW",
+                        "source_incident_id": "sfinc_fresh",
+                        "failure_event_id": "sfe_fresh",
+                        "confirmed_hard_failure_monotonic_ns": 200,
+                    }}},
+                },
+            }), encoding="utf-8")
+            # The older source deliberately occurs first in registry order.
+            users.write_text(
+                "ip=10.7.0.10 enabled=1 current=source-stale\n"
+                "ip=10.7.0.11 enabled=1 current=source-fresh\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                HEALTH_LOOP_MODULE.canonical_definitive_hard_failure_t0_ns(
+                    matrix, users
+                ),
+                200,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

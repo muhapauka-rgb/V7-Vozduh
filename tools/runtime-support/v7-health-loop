@@ -235,6 +235,7 @@ def canonical_definitive_hard_failure_t0_ns(
         rows = users_registry_file.read_text(encoding="utf-8").splitlines()
     except OSError:
         return max(failed_sources.values())
+    assigned_t0s: list[int] = []
     for line in rows:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -250,8 +251,17 @@ def canonical_definitive_hard_failure_t0_ns(
             continue
         source_id = str(row.get("current") or "")
         if source_id in failed_sources:
-            return failed_sources[source_id]
-    return 0
+            assigned_t0s.append(failed_sources[source_id])
+
+    # The persistent consumer has one process-local de-duplication cursor,
+    # while Matrix can hold several independent current failures.  Registry
+    # order is not an incident ordering law: returning the first matching
+    # source could therefore hide a newer T0 behind an older unresolved
+    # source and suppress the only Runtime wake for that newer incident.
+    # Matrix still re-reads and admits the complete current scope; this value
+    # only selects the freshest exact Matrix-owned wake for the existing
+    # health owner.
+    return max(assigned_t0s, default=0)
 
 
 def canonical_definitive_hard_failure_active(

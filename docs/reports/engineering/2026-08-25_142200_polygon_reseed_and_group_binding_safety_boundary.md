@@ -386,3 +386,63 @@ existing Planner validation process across health-loop roles, which is a
 Runtime-boundary decision requiring a separate architecture admission, or
 (b) use a larger CPU substrate and rerun the same frozen proof.  Neither is
 silently applied by this Mission.
+
+## 2026-08-25 — `SUBSTRATE_SCALE_VALIDATION` preflight
+
+### Owner decision and immutable experiment contract
+
+The owner accepted `HARD_PATH_3S_FEASIBILITY_EXHAUSTED` for the current
+two-vCPU substrate and selected the lowest-risk remaining branch:
+`SUBSTRATE_SCALE_VALIDATION`.  The experiment is explicitly bounded to
+resizing the existing Runtime from two to four vCPU and rerunning the same
+five-sample proof.  The implementation fingerprint, Planner, Matrix,
+Authority, health cadence, priorities, verifier, prepared-decision logic,
+route writer and S11 semantics are frozen.  No persistent Planner/validation
+process is admitted.
+
+### Pre-resize Runtime evidence
+
+Read-only Runtime observation at `2026-08-25 21:30 MSK` found:
+
+| check | result |
+|---|---|
+| CPU topology | 2 vCPU, KVM, 1 thread/core |
+| canonical health owner | `v7-health.service` active and enabled |
+| persistent health process | exactly one `v7-health-loop --role-based-fast` parent |
+| standalone autoswitch timer | inactive (last run July 2); no duplicate autoswitch owner |
+| synthetic identity | only `10.7.0.124`, bound to its isolated certification source |
+| ordinary assignment baseline | SHA-256 `8d08…9fb67` after excluding the certification identity |
+| frozen 2-vCPU proof | 5 valid samples; P95 4769.805 ms; all <= 5000 ms |
+
+The service's current child diagnosis was observed beneath the sole health
+owner; it is not a second persistent Matrix or Planner owner.  No ordinary
+assignment or route was changed during this preflight.
+
+### Infrastructure-owner boundary
+
+The existing host identifies as `v3119922.hosted-by-vdsina.ru` (VDSina).  The
+repository contains the read-only `v7-infrastructure-readiness-review` and
+the standard safe-deploy owner, but no VDSina resize command, provider API
+owner or stored automation credential.  No supported provider CLI is present
+on the Runtime host.
+
+The provider control panel is reachable, but the current session is at its
+unauthenticated sign-in screen.  Resizing is a paid provider-side operation
+that can reboot the host.  It therefore cannot be performed safely through an
+existing authenticated infrastructure owner in this environment.  No login,
+credential, API request, resize, reboot, code change, configuration change or
+client movement was attempted.
+
+### Current terminal and exact re-entry
+
+`SUBSTRATE_SCALE_VALIDATION_BLOCKED_BY_PROVIDER_AUTHORITY`
+
+Re-enter only after VDSina access is supplied through an existing approved
+infrastructure owner (an authenticated panel session or a narrowly scoped
+provider resize automation).  Then: resize to four vCPU, re-run alignment,
+service/timer/owner and ordinary-assignment checks, and execute the unchanged
+five-sample HARD-path series.  PASS is still nearest-rank P95 <= 3000 ms with
+no valid sample > 5000 ms; otherwise emit
+`HARD_PATH_3S_SUBSTRATE_SCALE_INSUFFICIENT` and return the remaining
+persistent-existing-owner validation-process versus product-SLO decision to
+the owner.  No code optimization is legal in either outcome.

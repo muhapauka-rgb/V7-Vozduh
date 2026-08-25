@@ -5586,9 +5586,14 @@ class AutoswitchPlanner:
             "policy_authority_lineage_record_reuse",
             lineage_read_started_ns,
             owner="existing operator-execution append-only lineage owner",
+            status=(
+                "REUSED_CURRENT_MATRIX_LINEAGE"
+                if self._standing_policy_audit_records_cache is not None
+                else "FRESH_OWNER_READ"
+            ),
             details={
                 "records_reused_from_matrix": bool(
-                    getattr(self.args, "_standing_policy_lineage_reuse", {})
+                    self._standing_policy_audit_records_cache is not None
                 ),
                 "record_count": len(authority_audit_records),
             },

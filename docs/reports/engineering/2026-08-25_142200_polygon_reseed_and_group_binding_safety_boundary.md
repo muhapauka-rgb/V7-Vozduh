@@ -543,3 +543,32 @@ and a health-owner restart, the next action is one exact synthetic cold
 HARD-path sample, followed—only if it is functionally valid—by the immutable
 five-sample cold/warm, two-Matrix-generation series.  The acceptance remains
 P95 `<= 3000 ms` and no valid sample above `5000 ms`.
+
+### Publication and Runtime observation
+
+The implementation was committed as `ae4d3747f15cd7f3ae260fd4059905fde23a8026`
+(`Reuse health owner for Matrix hard-path consumer`), pushed to `Updatesystem`
+and safely deployed as `deploy-z8-14-Updatesystem-ae4d374-20260825T220658`.
+The deploy gate and independent GitHub truth check both returned `PASS` with a
+clean local tree and matching remote commit.  `v7-health.service` was then
+restarted through its existing systemd owner solely to load the published
+code.  It is active and enabled; exactly one `v7-health-loop` parent exists.
+The old standalone Matrix and autoswitch timers remain inactive.  Runtime
+checksums for the health loop, diagnostic producer and Matrix consumer match
+the deployed files.  The ordinary-assignment projection was read after the
+restart; no Apply, route or user-movement record was created by this deploy.
+
+The current Matrix contains a continuing definitive incident for the isolated
+certification source `amneziawg-exec-20260528-10-8-1-14`; it is not an
+ordinary-user incident.  The new health owner has continued to run as one
+parent and no extra persistent Matrix process was observed.  The existing
+target-selection owner currently returns an empty exact selected target:
+healthy candidates exist, but none is currently admitted for this exact
+certification transaction.  That is a correct `STOP_SAFE` result.  A manual
+target substitution would invalidate the experiment and is not performed.
+
+Consequently no live HARD-path performance sample is credited yet.  The
+deployed behavior and its fallback were verified in the isolated Polygon
+fixtures; live P95/S11 evidence can begin only when the existing selection
+owner emits an exact target for the synthetic identity.  No ordinary client
+was moved and no policy/Authority expansion was attempted.

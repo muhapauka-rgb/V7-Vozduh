@@ -41,21 +41,21 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `OWNER_DECISION_REQUIRED: evaluate the smallest architectural change that removes the measured 7.097 s failure-to-decision residual without weakening S11; no further automatic micro-optimization, Telegram proof, N10 rollout or N11 deletion is admitted.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `FROZEN_HARD_PATH_SERIES: collect four remaining certification-only controlled samples on fingerprint ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3 (at least two warm and a second Matrix generation), with no code/config/cadence/verifier change; retain every functionally valid sample.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_20260825` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_FROZEN_SERIES_PENDING_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_FROZEN_SERIES_PENDING_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED; N11,READ_ONLY_DISCOVERY_CONSUMED` |
-| `HARD_PATH_RUNTIME_SLO` | `FROZEN_CURRENT_FINGERPRINT=3523043275ac5d3c122ed866b7cc8e64bfa64c6a4b7333343fe61c44a46693e2; first valid cold onset-to-S11=8268.609 ms; P95 cannot pass and the per-sample 5000 ms ceiling is exceeded; no automatic patch permitted` |
-| `HARD_PATH_IMPLEMENTATION_STATE` | `FROZEN_AFTER_480_RELEVANT_TESTS_AND_DEPLOY-z8-14-Updatesystem-35a2836-20260825T104533; one cold functional sample completed with S11 semantics unchanged; architectural owner decision now required` |
-| `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-25_012000_v5_3_post_hard_path_reconciliation_and_independent_frontier.md` |
-| `HARD_PATH_RUNTIME_FINGERPRINT` | `3523043275ac5d3c122ed866b7cc8e64bfa64c6a4b7333343fe61c44a46693e2` |
-| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `35a2836f1da2758c6a8175b904a32cd5df4031ac; deploy-z8-14-Updatesystem-35a2836-20260825T104533` |
-| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE; exact governed Telegram S11 receives no independent SLO credit before the shared path passes` |
-| `V5_3_N10_CURRENT_STATUS` | `HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED; no ordinary or ordinary-like movement admitted merely to repeat the measured unresolved path` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,FROZEN_HARD_PATH_SERIES_PENDING; N11,READ_ONLY_DISCOVERY_CONSUMED` |
+| `HARD_PATH_RUNTIME_SLO` | `FROZEN_CURRENT_FINGERPRINT=ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3; one valid cold control-plane/kernel cutover=2696.992 ms; 3 s P95 and 5 s individual ceiling remain unproven pending four further homogeneous samples.` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `OWNER_DECISIONS_CONSUMED; FROZEN_AFTER_DEPLOY-z8-14-Updatesystem-e4106fd-20260826T023921; no further performance patch is admitted during the homogeneous series.` |
+| `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-26_prepared_projection_freshness_arbitration.md` |
+| `HARD_PATH_RUNTIME_FINGERPRINT` | `ba7161f5f0eeb959fb193b7ec94370185f686e6ba0fe7d80b695c6727a926cd3` |
+| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `e4106fd647978adf481d78201ed10a183a130fcb; deploy-z8-14-Updatesystem-e4106fd-20260826T023921` |
+| `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_BY_FROZEN_HARD_PATH_SERIES; exact governed Telegram S11 receives no independent SLO credit before the shared path passes.` |
+| `V5_3_N10_CURRENT_STATUS` | `FROZEN_HARD_PATH_SERIES_PENDING; no ordinary or ordinary-like movement is admitted merely to fill the controlled evidence series.` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_CONSUMED_NO_SAFE_DELETION_ADMITTED; all examined items retain a current role, caller, consumer, state dependency, fallback function or HARD_PATH decision dependency` |
 | `V5_3_RUNTIME_LIVE_HEALTH` | `v7-health.service active; legacy standalone Matrix/Telegram timers disabled; role-based health loop is current producer` |
 | `PROTECTED_CAPABILITY_WIP` | `CAP-U07 remains WAITING_EXTERNAL_DEPENDENCY; six eligible controlled Passports are certified in outset_48bda484f8f3ef7985e4716f with SUCCESS and ROLLBACK_SUCCESS; only qualifying natural L8 evidence remains` |
@@ -735,8 +735,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_20260825` |
-| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_HARD_PATH_FROZEN_SERIES_PENDING_20260826` |
+| `CURRENT_TRANSITION_ID` | `V5_3_HARD_PATH_FROZEN_SERIES_PENDING_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -756,7 +756,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The isolated source has been restored and one frozen controlled cold path completed functionally, but its authoritative onset-to-S11 result is 8268.609 ms.  The 7.097 s failure-to-decision interval violates both 3 s P95 and 5 s per-sample ceilings. OMP must not repeat or micro-patch this path; it awaits an owner architectural decision on the smallest safe change before Telegram or N10 re-entry. |
+| `OMP_CONTINUATION_POINTER` | Owner decisions and their bounded existing-owner implementations are consumed. The frozen fingerprint has one valid cold control-plane/kernel cutover at 2696.992 ms with all S11 checks intact. OMP must collect the remaining four homogeneous controlled samples (including two warm and a second Matrix generation), make no performance patch during the series, then apply the existing 3 s P95 / 5 s per-sample gate before Telegram or N10 re-entry. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -766,8 +766,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_20260825` |
-| `current_transition_id` | `V5_3_HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_HARD_PATH_FROZEN_SERIES_PENDING_20260826` |
+| `current_transition_id` | `V5_3_HARD_PATH_FROZEN_SERIES_PENDING_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |

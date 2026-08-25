@@ -8172,7 +8172,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Resolved contract state: CPS records the approved bounded prepared-decision execution as tested and deployed (`654a45f64afda11fbdd0c25df9bb2bd14128cdda`; `deploy-z8-14-Updatesystem-654a45f-20260825T101139`).  The fresh controlled Polygon baseline and frozen HARD_PATH series are presently STOP_SAFE because no healthy isolated certification-only source exists; the current Matrix observation reports a hard-service failure on the execution-only source and no alternative isolated healthy source.  This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS records the frozen deployed source-only CT-M0F substrate correction (`35a2836f1da2758c6a8175b904a32cd5df4031ac`; `deploy-z8-14-Updatesystem-35a2836-20260825T104533`). The isolated source was restored and one new cold controlled path completed with unchanged S11 semantics, but its authoritative onset-to-S11 was `8268.609 ms` and failure-to-decision was `7096.819 ms`. This breaches both the 3 s P95 and 5 s individual ceiling, so the Program is `HARD_PATH_SLO_ARCHITECTURAL_CONVERGENCE_BLOCKED`: no automatic micro-patch, Telegram proof or N10 rollout may follow until the owner chooses the smallest safe architectural change. This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 
@@ -9160,8 +9160,8 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Current terminal report: `docs/reports/engineering/2026-08-25_101000_prepared_decision_governed_execution_implementation.md`
-Latest consumed report: `docs/reports/engineering/2026-08-25_101000_prepared_decision_governed_execution_implementation.md`
+Current terminal report: `docs/reports/engineering/2026-08-25_105000_hard_path_slo_architectural_convergence_blocked.md`
+Latest consumed report: `docs/reports/engineering/2026-08-25_105000_hard_path_slo_architectural_convergence_blocked.md`
 Current active Mission report: `docs/reports/engineering/2026-08-20_162200_v5_3_complete_health_test_stability_system_atlas.md`
 Previous admitted continuation report: `docs/reports/engineering/2026-07-25_112500_l7_repair_generation_v6_preflight_and_admission.md`
 Previous consumed report: `docs/reports/engineering/2026-08-14_182000_rs6_desired_state_residual_and_nonruntime_admission_correction.md`

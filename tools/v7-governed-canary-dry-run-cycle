@@ -2182,14 +2182,9 @@ def provision_approved_controlled_certification_substrate(
         f"cert-ctm0f-{request_hash[:8]}-"
         if one_user else f"cert-t48-{request_hash[:8]}-"
     )
-    group = (
-        f"ctm0f-{request_hash[:12]}"
-        if one_user else f"t48-{request_hash[:12]}"
-    )
+    group = f"t48-{request_hash[:12]}"
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", source):
         return transaction_stop("controlled_substrate_source_id_unsafe")
-    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", group):
-        return transaction_stop("controlled_substrate_group_unsafe")
 
     egress = read_registry(state_dir / "egress.registry")
     source_rows = [row for row in egress if str(row.get("id") or "") == source]
@@ -2200,6 +2195,17 @@ def provision_approved_controlled_certification_substrate(
         "1", "true", "yes",
     }:
         return transaction_stop("controlled_substrate_source_not_enabled")
+    # CT-M0F selection is deliberately group-aligned with the existing
+    # isolated source marker.  A request-specific group on a new identity
+    # would make a successfully provisioned identity invisible to the
+    # controlled source selector.  The source marker is the canonical owner
+    # of this isolation boundary; fail closed if it is absent.
+    if one_user:
+        group = str(source_row.get("certification_group") or "").strip()
+        if not group:
+            return transaction_stop("controlled_substrate_source_group_missing")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", group):
+        return transaction_stop("controlled_substrate_group_unsafe")
 
     users = read_registry(state_dir / "users.registry")
     controlled_target = str(scope.get("controlled_target_id") or "")

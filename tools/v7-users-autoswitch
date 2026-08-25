@@ -25433,8 +25433,14 @@ def controlled_certification_substrate_authority_request_only(
             audit_store
         ),
     )
+    # This is the existing Authority-request owner for bootstrapping an empty
+    # controlled pool.  It needs the compact, identity-free candidate
+    # projection to select an already reserved source; without it, a closed
+    # previous sample can never be reseeded.  The projection contains no raw
+    # user list and remains read-only until a separately governed request is
+    # accepted.
     pool = controlled_certification_pool_status(
-        Path(args.state_dir), include_candidate_inventory=False,
+        Path(args.state_dir), include_candidate_inventory=True,
     )
     sources = [
         row for row in (pool.get("active_source_projections") or [])

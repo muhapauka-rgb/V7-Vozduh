@@ -2229,7 +2229,9 @@ def run_ct_m0f_standing_validation_campaign(
                 # module's historical diagnostic hash.  Use the consumer's
                 # existing hash law so identical current policy does not
                 # trigger a false stale fallback.
-                planner_contract_hash = getattr(module, "sha256_json", None)
+                planner_contract_hash = getattr(
+                    _IN_PROCESS_AUTOSWITCH_MODULE, "sha256_json", None,
+                )
                 lineage_contract_hash = (
                     planner_contract_hash(lineage_contract)
                     if callable(planner_contract_hash)

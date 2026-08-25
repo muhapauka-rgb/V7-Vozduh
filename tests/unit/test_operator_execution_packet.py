@@ -4411,6 +4411,7 @@ class OperatorExecutionPacketTest(unittest.TestCase):
                 packet_id="packet-exact",
                 operation_id="operation-exact",
                 lease_id="lease-exact",
+                target="awg0",
                 matrix_sample_binding_fingerprint="d" * 64,
                 audit_store=audit,
                 now=now + timedelta(seconds=5),
@@ -4450,6 +4451,58 @@ class OperatorExecutionPacketTest(unittest.TestCase):
         self.assertFalse(wrong_operation["ok"])
         self.assertTrue(released["ok"])
         self.assertTrue(after_release["independent_reassignment_allowed"])
+
+    def test_ct_m0f_transaction_binds_fresh_owner_selected_target_after_t0(self):
+        now = datetime(2026, 8, 25, 9, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy = root / "policy.json"
+            audit = root / "operator-execution-audit.jsonl"
+            policy.write_text("{}\n", encoding="utf-8")
+            request = operator_execution.build_ct_m0f_standing_validation_authority_request(
+                policy_generation_hash=operator_execution.sha256_file(policy), now=now,
+            )
+            operator_execution.register_ct_m0f_standing_validation_authority_request(
+                request, audit_store=audit, now=now + timedelta(seconds=1),
+            )
+            contract = operator_execution.issue_ct_m0f_standing_validation_policy_from_audit(
+                policy, request_id=request["request_id"], request_hash=request["request_hash"],
+                decision=operator_execution.CT_M0F_STANDING_VALIDATION_APPROVAL,
+                actor_id="independent-authority-test", audit_store=audit,
+                now=now + timedelta(seconds=2),
+            )["contract"]
+            reserved = operator_execution.reserve_ct_m0f_standing_validation_transaction(
+                contract=contract, implementation_fingerprint="f" * 64,
+                user="10.7.0.18", source="exec-source", target="awg0",
+                sample_binding_fingerprint="b" * 64,
+                source_reservation_id="source-reservation", source_fingerprint="c" * 64,
+                target_binding_mode="POST_T0_OWNER_SELECTED", audit_store=audit,
+                now=now + timedelta(seconds=3),
+            )
+            reservation_id = reserved["reservation"]["transaction_reservation_id"]
+            bound = operator_execution.bind_ct_m0f_standing_validation_transaction(
+                transaction_reservation_id=reservation_id, packet_id="packet-exact",
+                operation_id="operation-exact", lease_id="lease-exact", target="awg3",
+                matrix_sample_binding_fingerprint="d" * 64, audit_store=audit,
+                now=now + timedelta(seconds=4),
+            )
+            governed = operator_execution.ct_m0f_standing_validation_transaction_guard(
+                user="10.7.0.18", source="exec-source", target="awg3",
+                operation_id="operation-exact", audit_store=audit,
+                now=now + timedelta(seconds=5),
+            )
+            stale_pre_t0_target = operator_execution.ct_m0f_standing_validation_transaction_guard(
+                user="10.7.0.18", source="exec-source", target="awg0",
+                operation_id="operation-exact", audit_store=audit,
+                now=now + timedelta(seconds=5),
+            )
+
+        self.assertTrue(reserved["ok"])
+        self.assertTrue(bound["ok"])
+        self.assertEqual(bound["binding"]["prepared_target"], "awg0")
+        self.assertEqual(bound["binding"]["target"], "awg3")
+        self.assertTrue(governed["ok"])
+        self.assertFalse(stale_pre_t0_target["ok"])
 
     def test_ct_m0f_topology_request_uses_active_standing_contract_basis(self):
         now = datetime(2026, 8, 6, 8, 0, tzinfo=timezone.utc)

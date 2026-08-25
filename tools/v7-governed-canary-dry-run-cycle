@@ -6678,7 +6678,11 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                 )
                 if str(row.get("user") or "") == user
                 and str(row.get("source") or "") == source
-                and str(row.get("target") or "") == target
+                and (
+                    str(row.get("target_binding_mode") or "PRE_T0_FIXED")
+                    == "POST_T0_OWNER_SELECTED"
+                    or str(row.get("target") or "") == target
+                )
                 and str(row.get("source_reservation_id") or "")
                 == str(source_row.get("controlled_source_reservation_id") or "")
                 and len(source_lines) == 1
@@ -6710,6 +6714,7 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
                     packet_id=str(packet_identity.get("packet_id") or ""),
                     operation_id=str(packet_identity.get("operation_id") or ""),
                     lease_id=str(lease.get("lease_id") or ""),
+                    target=target,
                     matrix_sample_binding_fingerprint=str(
                         getattr(
                             args,
@@ -12944,6 +12949,10 @@ def prepare_ct_m0f_standing_controlled_condition(
             source_fingerprint=hashlib.sha256(
                 source_lines[0].encode()
             ).hexdigest(),
+            # Readiness is proven before T0, but the eligible target is a
+            # fresh Matrix/Planner decision after T0.  Keep the certification
+            # identity/source envelope protected without pinning a target.
+            target_binding_mode="POST_T0_OWNER_SELECTED",
             audit_store=audit_store,
         )
     )

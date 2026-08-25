@@ -2722,6 +2722,7 @@ def ct_m0f_standing_validation_sample_from_audit(
 def reserve_ct_m0f_standing_validation_transaction(
     *, contract, implementation_fingerprint, user, source, target,
     sample_binding_fingerprint, source_reservation_id, source_fingerprint,
+    target_binding_mode="PRE_T0_FIXED",
     audit_store=None, now=None,
 ):
     """Reserve the bounded pre-T0 interval through the existing audit owner.
@@ -2736,6 +2737,17 @@ def reserve_ct_m0f_standing_validation_transaction(
         audit_store or DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE
     )
     contract = contract if isinstance(contract, dict) else {}
+    target_binding_mode = str(target_binding_mode or "")
+    if target_binding_mode not in {
+        "PRE_T0_FIXED",
+        "POST_T0_OWNER_SELECTED",
+    }:
+        return {
+            "ok": False,
+            "status": "STOP_SAFE",
+            "errors": ["ct_m0f_transaction_target_binding_mode_invalid"],
+            "audit_write": False,
+        }
     required = {
         "contract_id": str(contract.get("contract_id") or ""),
         "contract_hash": str(contract.get("contract_hash") or ""),
@@ -2746,6 +2758,7 @@ def reserve_ct_m0f_standing_validation_transaction(
         "sample_binding_fingerprint": str(sample_binding_fingerprint or ""),
         "source_reservation_id": str(source_reservation_id or ""),
         "source_fingerprint": str(source_fingerprint or ""),
+        "target_binding_mode": target_binding_mode,
     }
     missing = [
         f"ct_m0f_transaction_{key}_missing"
@@ -2913,10 +2926,14 @@ def ct_m0f_standing_validation_transaction_guard(
         if isinstance(reservation.get("operation_binding"), dict)
         else {}
     )
+    governed_target = str(
+        binding.get("target") if binding else reservation.get("target")
+        or ""
+    )
     exact_governed = bool(
         binding
         and str(binding.get("operation_id") or "") == str(operation_id or "")
-        and str(reservation.get("target") or "") == str(target or "")
+        and governed_target == str(target or "")
     )
     return {
         "ok": exact_governed,
@@ -2935,7 +2952,7 @@ def ct_m0f_standing_validation_transaction_guard(
 
 def bind_ct_m0f_standing_validation_transaction(
     *, transaction_reservation_id, packet_id, operation_id, lease_id,
-    matrix_sample_binding_fingerprint,
+    matrix_sample_binding_fingerprint, target,
     audit_store=None, now=None,
 ):
     """Bind the pre-T0 reservation to the exact existing Packet/Lease."""
@@ -2948,12 +2965,16 @@ def bind_ct_m0f_standing_validation_transaction(
         "packet_id": str(packet_id or ""),
         "operation_id": str(operation_id or ""),
         "lease_id": str(lease_id or ""),
+        # The target is selected by the current Matrix/Planner path after T0,
+        # then atomically bound to the existing protected transaction.
+        "target": str(target or ""),
         # This is the fresh Matrix -> Planner selection binding observed on
         # the governed side of T0.  It is intentionally recorded alongside,
         # rather than compared with, the pre-T0 reservation fingerprint:
         # an ordinary Matrix generation is allowed to refresh its derived
-        # selection receipt while the immutable user/source/target and
-        # source-reservation envelope remains exact.
+        # selection receipt while the immutable user/source and
+        # source-reservation envelope remains exact.  The target is bound
+        # below from this current governed Matrix/Planner decision.
         "matrix_sample_binding_fingerprint": str(
             matrix_sample_binding_fingerprint or ""
         ),
@@ -2976,6 +2997,24 @@ def bind_ct_m0f_standing_validation_transaction(
                 "ok": False,
                 "status": "STOP_SAFE",
                 "errors": ["ct_m0f_transaction_reservation_not_active"],
+                "audit_write": False,
+            }
+        if required["target"] == str(reservation.get("source") or ""):
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_source_target_collision"],
+                "audit_write": False,
+            }
+        if (
+            str(reservation.get("target_binding_mode") or "PRE_T0_FIXED")
+            == "PRE_T0_FIXED"
+            and required["target"] != str(reservation.get("target") or "")
+        ):
+            return {
+                "ok": False,
+                "status": "STOP_SAFE",
+                "errors": ["ct_m0f_transaction_fixed_target_changed_after_t0"],
                 "audit_write": False,
             }
         existing = [
@@ -3008,7 +3047,10 @@ def bind_ct_m0f_standing_validation_transaction(
             **required,
             "user": str(reservation.get("user") or ""),
             "source": str(reservation.get("source") or ""),
-            "target": str(reservation.get("target") or ""),
+            "prepared_target": str(reservation.get("target") or ""),
+            "target_binding_mode": str(
+                reservation.get("target_binding_mode") or "PRE_T0_FIXED"
+            ),
             "implementation_fingerprint": str(
                 reservation.get("implementation_fingerprint") or ""
             ),

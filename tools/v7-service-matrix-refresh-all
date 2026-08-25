@@ -2224,6 +2224,17 @@ def run_ct_m0f_standing_validation_campaign(
                     if isinstance(lineage_policy_root, dict)
                     else {}
                 )
+                # The handoff is consumed by AutoswitchPlanner, whose
+                # canonical JSON hash deliberately differs from this Matrix
+                # module's historical diagnostic hash.  Use the consumer's
+                # existing hash law so identical current policy does not
+                # trigger a false stale fallback.
+                planner_contract_hash = getattr(module, "sha256_json", None)
+                lineage_contract_hash = (
+                    planner_contract_hash(lineage_contract)
+                    if callable(planner_contract_hash)
+                    else sha256_json(lineage_contract)
+                )
                 args._standing_policy_lineage_reuse = {
                     "records": records,
                     # This compact contract snapshot is compared again by
@@ -2232,7 +2243,7 @@ def run_ct_m0f_standing_validation_campaign(
                     # already read Matrix lineage belongs to that exact
                     # current contract without copying the rotated history.
                     "contract": copy.deepcopy(lineage_contract),
-                    "contract_hash": sha256_json(lineage_contract),
+                    "contract_hash": lineage_contract_hash,
                 }
                 # Carry the already-measured Matrix preparation spans into
                 # the exact controlled cutover receipt.  They are diagnostic

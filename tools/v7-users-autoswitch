@@ -5200,6 +5200,11 @@ class AutoswitchPlanner:
             reservation_id,
             audit_store=audit_store,
         )
+        reservation = (
+            sample.get("reservation")
+            if isinstance(sample.get("reservation"), dict)
+            else {}
+        )
         contract = (
             (self.policy or {}).get(
                 operator_execution.CT_M0F_STANDING_VALIDATION_POLICY_KEY,
@@ -5217,7 +5222,15 @@ class AutoswitchPlanner:
                 # incorrectly bind an exact baseline reset to another open
                 # source incident.
                 audit_records=operator_execution.read_live_execution_lineage_records(
-                    audit_store
+                    audit_store,
+                    required_decision_ids=(str(
+                        (contract.get("authority_decision") or {}).get(
+                            "decision_id"
+                        ) or ""
+                    ),),
+                    required_checkpoint_fingerprint=str(
+                        reservation.get("implementation_fingerprint") or ""
+                    ),
                 ),
             )
         )
@@ -5225,11 +5238,6 @@ class AutoswitchPlanner:
         if not sample.get("ok"):
             reasons.extend(sample.get("errors") or ["ct_m0f_sample_lineage_invalid"])
         terminal_residue_reconciliation = bool(sample.get("terminal"))
-        reservation = (
-            sample.get("reservation")
-            if isinstance(sample.get("reservation"), dict)
-            else {}
-        )
         moves = [row for row in selected_moves if isinstance(row, dict)]
         if len(moves) != 1:
             reasons.append("ct_m0f_reset_requires_exactly_one_move")

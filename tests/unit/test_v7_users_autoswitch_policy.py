@@ -5262,6 +5262,7 @@ class V7UsersAutoswitchPolicyTest(unittest.TestCase):
         end = source.index("def _activate_controlled_verifier_contention", start)
         reset_scope = source[start:end]
         self.assertIn("read_live_execution_lineage_records", reset_scope)
+        self.assertIn("required_checkpoint_fingerprint", reset_scope)
         self.assertNotIn("read_audit_records(audit_store)", reset_scope)
         eligibility_start = source.index("def _l3_execution_eligibility")
         eligibility_end = source.index("def _selected_moves_hash", eligibility_start)

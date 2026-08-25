@@ -450,6 +450,11 @@ class RoleHealthLoop:
     persistent_matrix_module: Any = None
     persistent_matrix_ready: bool = False
     persistent_matrix_load_error: str = ""
+    # Process-local de-duplication only.  Matrix remains the durable owner of
+    # the incident and its receipt; this prevents one already-confirmed T0
+    # from being replayed once per HARD observation while that same incident
+    # is still open.
+    persistent_matrix_last_consumed_t0_ns: int = 0
 
     def _default_hard_runtime(self) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -543,6 +548,25 @@ class RoleHealthLoop:
             check=False,
             env=environment,
         )
+
+    def _consume_new_persistent_matrix_t0(self, t0_ns: int) -> bool:
+        """Consume each current canonical T0 at most once per health process.
+
+        The external compatibility child historically re-entered Matrix for
+        every HARD observation.  The persistent owner instead carries a
+        specific canonical T0.  Replaying that same T0 would turn an already
+        terminal controlled attempt into fresh attempts without a new failure
+        generation.  This is scheduling-local de-duplication, not a new
+        Matrix state or an admission rule.
+        """
+        if t0_ns <= 0 or t0_ns <= self.persistent_matrix_last_consumed_t0_ns:
+            return False
+        self._hard_recovery_takeover(monotonic_ns())
+        persistent_rc = self._run_persistent_matrix_consumer(t0_ns)
+        if persistent_rc == 3:
+            self._fallback_matrix_consumer(t0_ns)
+        self.persistent_matrix_last_consumed_t0_ns = t0_ns
+        return True
 
     def _hard_recovery_active(self, now_ns: int) -> bool:
         hard = next((role for role in self.roles if role.name == "hard"), None)
@@ -675,10 +699,7 @@ class RoleHealthLoop:
                     self.matrix_state_file, self.users_registry_file
                 )
                 if t0_ns > 0:
-                    self._hard_recovery_takeover(now_ns)
-                    persistent_rc = self._run_persistent_matrix_consumer(t0_ns)
-                    if persistent_rc == 3:
-                        self._fallback_matrix_consumer(t0_ns)
+                    self._consume_new_persistent_matrix_t0(t0_ns)
                     now_ns = monotonic_ns()
             duration = elapsed_ms(role.started_ns, now_ns)
             role.completions += 1

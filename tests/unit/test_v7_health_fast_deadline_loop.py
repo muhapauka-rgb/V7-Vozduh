@@ -518,6 +518,21 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
         self.assertEqual(environment["V7_HARD_T0_MONOTONIC_NS"], "789")
         self.assertNotIn("V7_HARD_PERSISTENT_MATRIX_OWNER", environment)
 
+    def test_persistent_consumer_does_not_replay_one_canonical_t0(self):
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(roles=tuple())
+        loop.persistent_matrix_ready = True
+        with mock.patch.object(
+            loop, "_run_persistent_matrix_consumer", return_value=0
+        ) as consumer:
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_456))
+            self.assertFalse(loop._consume_new_persistent_matrix_t0(123_456))
+            self.assertFalse(loop._consume_new_persistent_matrix_t0(123_455))
+            self.assertTrue(loop._consume_new_persistent_matrix_t0(123_457))
+        self.assertEqual(consumer.call_args_list, [
+            mock.call(123_456), mock.call(123_457),
+        ])
+        self.assertEqual(loop.persistent_matrix_last_consumed_t0_ns, 123_457)
+
     def test_persistent_handoff_requires_current_matrix_t0_and_exact_assignment(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

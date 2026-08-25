@@ -41,19 +41,19 @@ This section is the single live volatile current-state surface. Older production
 | `LOCKED_KNOWLEDGE_OWNER` | `docs/reference/V7_CANONICAL_ARCHITECTURE_KNOWLEDGE.md` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CURRENT_ACTIVE_SCOPE` | `V5_3_T0_T11_LATENCY_OPTIMIZATION` |
-| `CURRENT_SAFE_NEXT_ACTION` | `Deploy the approved bounded prepared-decision handoff through existing owners, then collect a new frozen Polygon HARD_PATH series before Telegram-critical proof, N10 rollout or N11 deletion.` |
+| `CURRENT_SAFE_NEXT_ACTION` | `Restore the existing certification-only Polygon baseline through its current cleanup/provisioning owners if needed, then collect one new controlled cold HARD_PATH sample and a frozen homogeneous series before Telegram-critical proof, N10 rollout or N11 deletion.` |
 | `CURRENT_SCOPE_CLASS` | `SERVICE_FAILURE_AUTOMATION_EVOLUTION` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOY_PENDING_20260825` |
-| `CURRENT_TRANSITION_ID` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_IMPLEMENTED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOYED_CONTROLLED_EVIDENCE_PENDING_20260825` |
+| `CURRENT_TRANSITION_ID` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_DEPLOYED_V1` |
 | `CURRENT_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_PROGRAM_STAGE` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` |
 | `CURRENT_PROGRAM_EXECUTION_FRONTIER` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
-| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_LOCAL_TESTED_DEPLOY_PENDING; N8,N9,PARTIAL; N10,BLOCKED_PENDING_NEW_FROZEN_HARD_PATH_SERIES; N11,READ_ONLY_DISCOVERY_CONSUMED` |
-| `HARD_PATH_RUNTIME_SLO` | `NEW_FROZEN_SERIES_REQUIRED_AFTER_APPROVED_PREPARED_DECISION_DEPLOY; prior frozen totals=2947.173/3133.279/4987.290/4992.034/8315.205 ms remain baseline only` |
-| `HARD_PATH_IMPLEMENTATION_STATE` | `APPROVED_OWNER_DECISION_CONSUMED; LOCAL_IMPLEMENTATION_AND_479_RELEVANT_TESTS_PASS; SAFE_DEPLOY_AND_NEW_FROZEN_SERIES_PENDING` |
+| `V5_3_N0_N11_CURRENT_RECONCILIATION` | `N0,DONE; N0a,DONE; N1-N6,PARTIAL_REPLACEMENT_PENDING; N7,APPROVED_BOUNDED_PREPARED_DECISION_IMPLEMENTED_TESTED_DEPLOYED; N8,N9,PARTIAL; N10,BLOCKED_PENDING_NEW_FROZEN_HARD_PATH_SERIES; N11,READ_ONLY_DISCOVERY_CONSUMED` |
+| `HARD_PATH_RUNTIME_SLO` | `NEW_FROZEN_SERIES_REQUIRED_ON_DEPLOYED_654A45F_RUNTIME; prior frozen totals=2947.173/3133.279/4987.290/4992.034/8315.205 ms remain baseline only` |
+| `HARD_PATH_IMPLEMENTATION_STATE` | `APPROVED_OWNER_DECISION_CONSUMED; 479_RELEVANT_TESTS_PASS; SAFE_DEPLOY_SUCCEEDED deploy-z8-14-Updatesystem-654a45f-20260825T101139; NEW_FROZEN_SERIES_PENDING` |
 | `HARD_PATH_OWNER_DECISION_PACKAGE` | `docs/reports/engineering/2026-08-25_012000_v5_3_post_hard_path_reconciliation_and_independent_frontier.md` |
-| `HARD_PATH_RUNTIME_FINGERPRINT` | `0cef0edf758f504eab000ecd2e5e68118819817aa4585fcd331360531f4e5735` |
-| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `dd9dd3d89f296be641651261fd16cd0a26fc20ca; local newer commit is docs-only` |
+| `HARD_PATH_RUNTIME_FINGERPRINT` | `4d62e6d180fbda5bc31b2ef27c1bf685d77c4d53bdf235cafa7dabac50ac0e73` |
+| `HARD_PATH_DEPLOYED_RUNTIME_COMMIT` | `654a45f64afda11fbdd0c25df9bb2bd14128cdda; deploy-z8-14-Updatesystem-654a45f-20260825T101139` |
 | `V5_3_TELEGRAM_CRITICAL_CURRENT_STATUS` | `BLOCKED_PENDING_NEW_HARD_PATH_RESULT; exact governed Telegram S11 receives no independent SLO credit before the shared path passes` |
 | `V5_3_N10_CURRENT_STATUS` | `BLOCKED_PENDING_NEW_HARD_PATH_RESULT; no ordinary or ordinary-like movement admitted merely to repeat a common unresolved path` |
 | `V5_3_N11_CURRENT_STATUS` | `READ_ONLY_DISCOVERY_CONSUMED_NO_SAFE_DELETION_ADMITTED; all examined items retain a current role, caller, consumer, state dependency, fallback function or HARD_PATH decision dependency` |
@@ -66,7 +66,7 @@ This section is the single live volatile current-state surface. Older production
 | `BLOCKED_CAPABILITIES` | `CAP-U03,CAP-U04,CAP-U08,CAP-U09,CAP-U10,CAP-U11,CAP-U12,CAP-U13,CAP-U14,CAP-U15,CAP-U16,CAP-U17,CAP-U18,CAP-U19,CAP-U20,CAP-U21,CAP-U22` |
 | `CONTINUATION_DECISION` | `CONTINUE_PROGRAM_FRONTIER` |
 | `NEXT_EXECUTABLE_CAPABILITY` | `NONE` |
-| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_PREPARED_DECISION_DEPLOY_AND_FROZEN_EVIDENCE_PENDING` |
+| `PROGRAM_TERMINAL_STATE` | `NONE_V5_3_PREPARED_DECISION_DEPLOYED_AND_FROZEN_EVIDENCE_PENDING` |
 | `OMP_CONTINUATION_REQUIRED` | `TRUE` |
 | `EXTERNAL_INPUT_REQUIRED` | `FALSE` |
 | `EXTERNAL_INPUT_TYPE` | `NONE` |
@@ -735,8 +735,8 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | Field | Value |
 | --- | --- |
 | `REGISTRY_ID` | `V7_OMP_UNFINISHED_CAPABILITY_CLOSURE_REGISTRY_V1` |
-| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOY_PENDING_20260825` |
-| `CURRENT_TRANSITION_ID` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_IMPLEMENTED_V1` |
+| `CURRENT_STATE_GENERATION` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOYED_CONTROLLED_EVIDENCE_PENDING_20260825` |
+| `CURRENT_TRANSITION_ID` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_DEPLOYED_V1` |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION_ID` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `CURRENT_STOP_CONDITION` | `NONE` |
 | `CAPABILITIES_INVENTORIED` | `34` |
@@ -756,7 +756,7 @@ This is the only authoritative live registry of unfinished V7 capability closure
 | `TRUTH_REUSE_RULE` | `VALID` unless a row says `REVALIDATION_REQUIRED` |
 | `REGISTRY_INVALIDATION_TRIGGERS` | capability closure/legal stop; authority decision; production outcome; certification; owner revalidation; owner contract/status change; Runtime behavior change; new accepted BDP Candidate; active Mission terminal result |
 | `REGISTRY_REGENERATION_RULE` | OMP must reconcile this section after every invalidation trigger before selecting another capability or Mission. |
-| `OMP_CONTINUATION_POINTER` | The approved bounded prepared-decision execution must deploy through existing owners and produce a new frozen HARD_PATH Polygon series before downstream Telegram or N10 work re-enters. |
+| `OMP_CONTINUATION_POINTER` | The deployed bounded prepared-decision execution must obtain a fresh controlled Polygon baseline and produce a new frozen HARD_PATH series before downstream Telegram or N10 work re-enters. |
 | `EXACT_CURRENT_SMALLEST_NEXT_ACTION` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 
 For every row, validity is based on the named owner and evidence pointer. Revalidation follows that owner through tests/certification, Engineering Report, Production Maturity, CPS and OMP. A report, read model, preview, dashboard, test or documentation artifact alone is never a legal production closure.
@@ -766,8 +766,8 @@ For every row, validity is based on the named owner and evidence pointer. Revali
 | Field | Value |
 | --- | --- |
 | `capability_id` | `CAP-U07-LEARNING` |
-| `current_state_generation` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOY_PENDING_20260825` |
-| `current_transition_id` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_IMPLEMENTED_V1` |
+| `current_state_generation` | `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOYED_CONTROLLED_EVIDENCE_PENDING_20260825` |
+| `current_transition_id` | `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_DEPLOYED_V1` |
 | `smallest_existing_next_action_id` | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` |
 | `active_mission_id` | `V7_COMPLETE_HEALTH_TEST_STABILITY_SYSTEM_ATLAS_V1` |
 | `active_mission_state` | `MISSION_CONSUMED` |
@@ -853,7 +853,7 @@ For every unfinished row: `output_produced` is the current owner output describe
 
 | Position | Capability / Mission | Why now / dependency | Smallest existing next action | Execution class | Stop boundary | Expected output -> consumer |
 | ---: | --- | --- | --- | --- | --- | --- |
-| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOY_PENDING_20260825`; `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_IMPLEMENTED_V1` | approved bounded prepared-decision implementation is locally tested and awaits safe deploy plus frozen Polygon evidence | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | deploy through existing owners; then retain Full fallback and assess the new frozen HARD_PATH series |
+| `1` | `V5_3_MATRIX_HEALTH_OPTIMIZATION` program frontier; `cpsgen_SFA_V53_PREPARED_DECISION_DEPLOYED_CONTROLLED_EVIDENCE_PENDING_20260825`; `V5_3_PREPARED_DECISION_GOVERNED_EXECUTION_DEPLOYED_V1` | approved bounded prepared-decision implementation is tested and deployed; certification-only Polygon baseline and frozen evidence remain | `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION` | existing V5.3 Program, OMP lifecycle and Health/Test/Stability owners | `NONE` | restore the controlled baseline only through its owner if required; then retain Full fallback and assess the new frozen HARD_PATH series |
 | `2` | `U07` Learning WAITING WIP (protected capability-local WIP) | U01 Learning chain is consumed; representative real outcomes remain unavailable | `WAIT_FOR_REPRESENTATIVE_REAL_LEARNING_OUTCOMES` | real-world evidence wait | `REAL_WORLD_LIMIT_CAPABILITY_LOCAL` | new representative governed outcomes -> Learning/B13 owner consumption -> dependency frontier recalculation |
 | `4` | `U01 COMPLETE` | satisfied prerequisite; terminal evidence retained by existing owners | none; do not repeat governed certification | terminal historical evidence | `NONE` | certified outcome -> U02/U07/U08/U22 consumers |
 | `5` | `U05` | U01 no-rollback SUCCESS is certified; broader rollback-class evidence remains owner-gated | wait for qualifying real rollback/no-rollback evidence; do not force mutation | governed verification | `REAL_WORLD_LIMIT` | qualifying terminal result -> rollback owner and Production Maturity |

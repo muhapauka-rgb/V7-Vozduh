@@ -2213,6 +2213,17 @@ def run_ct_m0f_standing_validation_campaign(
                 args._ct_m0f_in_process_planner_module = (
                     _IN_PROCESS_AUTOSWITCH_MODULE
                 )
+                # Validators above may normalize their in-memory policy
+                # view.  The Planner independently reads the on-disk current
+                # policy, so bind the reusable lineage to that same compact
+                # file representation immediately before handoff.  Any later
+                # file change still fails the Planner's equality check.
+                lineage_policy_root = read_json(policy_file, {})
+                lineage_contract = (
+                    lineage_policy_root.get("delegated_autonomy_policy", {})
+                    if isinstance(lineage_policy_root, dict)
+                    else {}
+                )
                 args._standing_policy_lineage_reuse = {
                     "records": records,
                     # This compact contract snapshot is compared again by
@@ -2220,8 +2231,8 @@ def run_ct_m0f_standing_validation_campaign(
                     # It lets the one in-process consumer prove that the
                     # already read Matrix lineage belongs to that exact
                     # current contract without copying the rotated history.
-                    "contract": copy.deepcopy(availability_contract),
-                    "contract_hash": sha256_json(availability_contract),
+                    "contract": copy.deepcopy(lineage_contract),
+                    "contract_hash": sha256_json(lineage_contract),
                 }
                 # Carry the already-measured Matrix preparation spans into
                 # the exact controlled cutover receipt.  They are diagnostic

@@ -5581,6 +5581,9 @@ class AutoswitchPlanner:
         standing_policy_contract = (self.policy or {}).get("delegated_autonomy_policy")
         standing_policy_contract = standing_policy_contract if isinstance(standing_policy_contract, dict) else {}
         lineage_read_started_ns = time.monotonic_ns()
+        lineage_reused_at_entry = (
+            self._standing_policy_audit_records_cache is not None
+        )
         authority_audit_records = self._standing_policy_audit_records()
         self._record_performance_span(
             "policy_authority_lineage_record_reuse",
@@ -5588,12 +5591,12 @@ class AutoswitchPlanner:
             owner="existing operator-execution append-only lineage owner",
             status=(
                 "REUSED_CURRENT_MATRIX_LINEAGE"
-                if self._standing_policy_audit_records_cache is not None
+                if lineage_reused_at_entry
                 else "FRESH_OWNER_READ"
             ),
             details={
                 "records_reused_from_matrix": bool(
-                    self._standing_policy_audit_records_cache is not None
+                    lineage_reused_at_entry
                 ),
                 "record_count": len(authority_audit_records),
             },

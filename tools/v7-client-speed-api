@@ -44,9 +44,6 @@ EXACT_PROBE_INGRESS_INTERFACE = os.environ.get(
 EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS = os.environ.get(
     "V7_EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS", "10.0.0.1"
 )
-EXACT_PROBE_HOST_GATEWAY_ADDRESS = os.environ.get(
-    "V7_EXACT_PROBE_HOST_GATEWAY_ADDRESS", "169.254.253.1"
-)
 EXACT_PROBE_LOCK = Path(
     os.environ.get("V7_EXACT_PROBE_LOCK", "/run/v7-exact-client-probe.lock")
 )
@@ -68,6 +65,23 @@ def exact_probe_session_names(source_address):
         "host_interface": f"v7h{suffix}"[:15],
         "peer_interface": f"v7n{suffix}"[:15],
         "client_interface": f"v7w{suffix}"[:15],
+    }
+
+
+def exact_probe_link_addresses(source_address):
+    """Return a deterministic, source-isolated /30 for one Polygon fixture.
+
+    A shared link-local /30 permits a stale prepared namespace to capture a
+    later fixture's reply.  The addresses live only for the namespace session;
+    deriving them from the exact certification identity prevents that overlap.
+    """
+    slot = int(sha256_text(source_address)[:3], 16)
+    third = slot // 64
+    fourth = (slot % 64) * 4
+    return {
+        "gateway": f"169.254.{third}.{fourth + 1}",
+        "client": f"169.254.{third}.{fourth + 2}",
+        "prefix": 30,
     }
 
 
@@ -731,6 +745,7 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
     host_if = names["host_interface"]
     peer_if = names["peer_interface"]
     wg_if = names["client_interface"]
+    link = exact_probe_link_addresses(source)
     cleanup = []
     started_ns = time.monotonic_ns()
     lock_handle = None
@@ -767,12 +782,12 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             (["ip", "netns", "add", namespace], None),
             (["ip", "link", "add", host_if, "type", "veth", "peer", "name", peer_if], None),
             (["ip", "link", "set", peer_if, "netns", namespace], None),
-            (["ip", "addr", "add", "169.254.253.1/30", "dev", host_if], None),
+            (["ip", "addr", "add", f"{link['gateway']}/{link['prefix']}", "dev", host_if], None),
             (["ip", "link", "set", host_if, "up"], None),
             (["ip", "netns", "exec", namespace, "ip", "link", "set", "lo", "up"], None),
-            (["ip", "netns", "exec", namespace, "ip", "addr", "add", "169.254.253.2/30", "dev", peer_if], None),
+            (["ip", "netns", "exec", namespace, "ip", "addr", "add", f"{link['client']}/{link['prefix']}", "dev", peer_if], None),
             (["ip", "netns", "exec", namespace, "ip", "link", "set", peer_if, "up"], None),
-            (["ip", "netns", "exec", namespace, "ip", "route", "add", f"{endpoint_ip}/32", "via", "169.254.253.1", "dev", peer_if], None),
+            (["ip", "netns", "exec", namespace, "ip", "route", "add", f"{endpoint_ip}/32", "via", link["gateway"], "dev", peer_if], None),
             (["ip", "netns", "exec", namespace, "ip", "link", "add", wg_if, "type", "wireguard"], None),
             (
                 ["ip", "netns", "exec", namespace, "wg", "setconf", wg_if, "/dev/stdin"],
@@ -786,7 +801,7 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
                     # the existing client profile and production endpoint are
                     # never written or modified.
                     endpoint_override=(
-                        f"{EXACT_PROBE_HOST_GATEWAY_ADDRESS}:"
+                        f"{link['gateway']}:"
                         f"{metadata['endpoint_port']}"
                         if metadata.get("endpoint_port") else ""
                     ),

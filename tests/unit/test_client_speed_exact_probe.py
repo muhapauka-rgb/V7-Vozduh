@@ -276,6 +276,14 @@ class ExactClientProbeOwnerTest(unittest.TestCase):
         self.assertNotIn("PublicKey = public", local_ingress)
         self.assertEqual(metadata["endpoint_port"], "51820")
 
+    def test_each_exact_identity_has_a_stable_distinct_fixture_link(self):
+        first = client_speed.exact_probe_link_addresses("10.7.0.124")
+        again = client_speed.exact_probe_link_addresses("10.7.0.124")
+        other = client_speed.exact_probe_link_addresses("10.7.0.92")
+        self.assertEqual(first, again)
+        self.assertNotEqual(first["gateway"], other["gateway"])
+        self.assertEqual(first["prefix"], 30)
+
     def test_declared_identity_must_equal_bound_source_address(self):
         context = self.context()
         context["source_address"] = "10.7.0.99"

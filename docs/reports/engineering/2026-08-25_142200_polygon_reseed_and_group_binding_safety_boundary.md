@@ -88,15 +88,22 @@ proved two retained-profile mismatches in the runtime-only Polygon fixture:
 
 Commit `2062e171` corrected the first mismatch by directing only the temporary
 namespace's outer UDP packet to the host-side veth gateway.  Its focused test
-suite passed (19 checks) and the published/server checksum aligned.  The
-second, now-measured mismatch is corrected by the pending follow-up: only the
-temporary namespace copy uses the current canonical ingress public key.  The
-stored profile, service configuration, ordinary clients, Matrix, Planner and
-routes are not modified.
+suite passed (19 checks) and the published/server checksum aligned.  Commit
+`74b860b7` then made the temporary namespace copy use the current canonical
+ingress public key.  The stored profile, service configuration, ordinary
+clients, Matrix, Planner and routes were not modified.
+
+That second deploy exposed one final fixture-only fault.  A five-second
+packet trace proved that the server response was emitted, but was delivered
+to a different, stale Polygon namespace because every fixture reused the same
+`169.254.253.0/30` link.  The current pending correction assigns a stable,
+different link-local /30 from each exact synthetic identity.  It therefore
+prevents one stale prepared namespace from capturing another identity's reply;
+it does not alter an ordinary-user route or any canonical runtime state.
 
 ## Current next step
 
-Publish and safely deploy the tested runtime-only ingress-key correction,
+Publish and safely deploy the tested per-identity fixture-link correction,
 re-run the exact-client preparation, and only on a successful handshake issue
 one governed cold controlled condition.  If preparation remains invalid, stop
 before injecting a failure and record the new exact evidence.

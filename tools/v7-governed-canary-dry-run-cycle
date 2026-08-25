@@ -991,20 +991,17 @@ def run_l3_production_validation_plan(
                 matrix_pre_execution_timing or []
             )
             # The Matrix-owned append-only lineage is read once before T0.
-            # Passing it to the in-process Planner must not deep-copy every
-            # rotated audit record: that is duplicate reconstruction, not a
-            # new freshness proof.  Keep a private list container, preserve
-            # immutable record bodies, and copy only the compact contract.
+            # Passing it to the in-process Planner must not copy every
+            # rotated audit record (or even its complete reference list):
+            # that is duplicate reconstruction, not a new freshness proof.
+            # The append-only result is not mutated by either consumer; copy
+            # only the compact contract used for current-policy equality.
             lineage_reuse = (
                 standing_policy_lineage_reuse
                 if isinstance(standing_policy_lineage_reuse, dict)
                 else {}
             )
             planner_args._standing_policy_lineage_reuse = dict(lineage_reuse)
-            if isinstance(lineage_reuse.get("records"), list):
-                planner_args._standing_policy_lineage_reuse["records"] = list(
-                    lineage_reuse["records"]
-                )
             if isinstance(lineage_reuse.get("contract"), dict):
                 planner_args._standing_policy_lineage_reuse["contract"] = (
                     copy.deepcopy(lineage_reuse["contract"])

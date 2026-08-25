@@ -4083,10 +4083,10 @@ class AutoswitchPlanner:
             # governed process and no consumer mutates those record bodies.
             # A deep copy of the complete rotated history was therefore pure
             # post-T0 reconstruction cost (and, at scale, the dominant one).
-            # Keep only a new list container: the existing owner remains the
-            # source of every record, while policy/hash mismatch still falls
-            # back to a fresh owner read below.
-            list(reused_records)
+            # Reuse the append-only owner result directly: neither consumer
+            # mutates it, and policy/hash mismatch still falls back to a
+            # fresh owner read below.
+            reused_records
             if isinstance(reused_records, list)
             and (
                 matrix_contract_reuse_matches

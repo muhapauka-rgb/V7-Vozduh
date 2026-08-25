@@ -44,6 +44,9 @@ EXACT_PROBE_INGRESS_INTERFACE = os.environ.get(
 EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS = os.environ.get(
     "V7_EXACT_PROBE_TUNNEL_KEEPALIVE_ADDRESS", "10.0.0.1"
 )
+EXACT_PROBE_HOST_GATEWAY_ADDRESS = os.environ.get(
+    "V7_EXACT_PROBE_HOST_GATEWAY_ADDRESS", "169.254.253.1"
+)
 EXACT_PROBE_LOCK = Path(
     os.environ.get("V7_EXACT_PROBE_LOCK", "/run/v7-exact-client-probe.lock")
 )
@@ -542,7 +545,7 @@ def exact_certification_client_profile(source_address):
     return matches[0] if len(matches) == 1 else None
 
 
-def wireguard_setconf_text(profile_text):
+def wireguard_setconf_text(profile_text, *, endpoint_override=""):
     """Strip wg-quick-only fields without writing private keys to disk."""
     allowed_interface = {"privatekey", "listenport", "fwmark"}
     allowed_peer = {
@@ -564,13 +567,18 @@ def wireguard_setconf_text(profile_text):
             continue
         key = line.split("=", 1)[0].strip().lower()
         allowed = allowed_interface if section == "[interface]" else allowed_peer
-        if key in allowed:
+        if key == "endpoint" and endpoint_override:
+            output.append(f"Endpoint = {endpoint_override}")
+        elif key in allowed:
             output.append(line)
     return "\n".join(output) + "\n"
 
 
 def wireguard_profile_metadata(profile_text):
-    metadata = {"address": "", "endpoint_host": "", "private_key": ""}
+    metadata = {
+        "address": "", "endpoint_host": "", "endpoint_port": "",
+        "private_key": "",
+    }
     for raw in str(profile_text or "").splitlines():
         if "=" not in raw:
             continue
@@ -584,6 +592,10 @@ def wireguard_profile_metadata(profile_text):
             metadata["endpoint_host"] = (
                 endpoint.rsplit(":", 1)[0].strip("[]")
                 if ":" in endpoint else endpoint
+            )
+            metadata["endpoint_port"] = (
+                endpoint.rsplit(":", 1)[1].strip()
+                if ":" in endpoint else ""
             )
     return metadata
 
@@ -752,7 +764,24 @@ def execute_ephemeral_client_namespace_probe(context, destination_ip):
             (["ip", "netns", "exec", namespace, "ip", "link", "set", peer_if, "up"], None),
             (["ip", "netns", "exec", namespace, "ip", "route", "add", f"{endpoint_ip}/32", "via", "169.254.253.1", "dev", peer_if], None),
             (["ip", "netns", "exec", namespace, "ip", "link", "add", wg_if, "type", "wireguard"], None),
-            (["ip", "netns", "exec", namespace, "wg", "setconf", wg_if, "/dev/stdin"], wireguard_setconf_text(profile_text)),
+            (
+                ["ip", "netns", "exec", namespace, "wg", "setconf", wg_if, "/dev/stdin"],
+                wireguard_setconf_text(
+                    profile_text,
+                    # The Polygon client namespace is on this host.  Its
+                    # outer WireGuard UDP packet must therefore enter the
+                    # host-side veth directly rather than attempt an
+                    # unroutable public-address round trip from 169.254/30.
+                    # This changes only the runtime-only namespace fixture;
+                    # the existing client profile and production endpoint are
+                    # never written or modified.
+                    endpoint_override=(
+                        f"{EXACT_PROBE_HOST_GATEWAY_ADDRESS}:"
+                        f"{metadata['endpoint_port']}"
+                        if metadata.get("endpoint_port") else ""
+                    ),
+                ),
+            ),
             (["ip", "netns", "exec", namespace, "ip", "addr", "add", f"{source}/32", "dev", wg_if], None),
             (["ip", "netns", "exec", namespace, "ip", "link", "set", wg_if, "up"], None),
             (["ip", "netns", "exec", namespace, "ip", "route", "add", "default", "dev", wg_if], None),

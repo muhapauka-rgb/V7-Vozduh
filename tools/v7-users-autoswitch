@@ -5556,12 +5556,35 @@ class AutoswitchPlanner:
             "action_class_audit_store",
             str(operator_execution.DEFAULT_PRODUCTION_OPERATOR_EXECUTION_AUDIT_STORE),
         ))
+        lineage_read_started_ns = time.monotonic_ns()
+        authority_audit_records = self._standing_policy_audit_records()
+        self._record_performance_span(
+            "policy_authority_lineage_record_reuse",
+            lineage_read_started_ns,
+            owner="existing operator-execution append-only lineage owner",
+            details={
+                "records_reused_from_matrix": bool(
+                    getattr(self.args, "_standing_policy_lineage_reuse", {})
+                ),
+                "record_count": len(authority_audit_records),
+            },
+        )
+        action_contract_started_ns = time.monotonic_ns()
         action_contract = runtime_authority_contract_status(
             policy,
             prepared_class=prepared_class,
             certified_class=certified_class,
             standing_policy_contract=standing_policy_contract,
-            authority_audit_records=self._standing_policy_audit_records(),
+            authority_audit_records=authority_audit_records,
+        )
+        self._record_performance_span(
+            "policy_authority_contract_evaluation",
+            action_contract_started_ns,
+            owner="existing Authority contract validator",
+            details={
+                "action_contract_required": bool(action_contract.get("required")),
+                "action_contract_valid": bool(action_contract.get("valid")),
+            },
         )
         frozen = bool_value(policy.get("frozen") or policy.get("authority_frozen"))
         revoked = bool_value(policy.get("revoked") or policy.get("authority_revoked"))

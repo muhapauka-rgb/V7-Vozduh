@@ -13053,7 +13053,20 @@ class AutoswitchPlanner:
             "runtime_behavior_changed": False,
         }
         prepared_handoff = {}
-        if str(getattr(self.args, "prepared_decision_handoff_file", "") or ""):
+        # A one-user governed incident already names its exact source and
+        # target.  Reuse the fresh Matrix-owned prepared projection directly
+        # for that narrow lane; an absent or stale projection still falls
+        # back to the unchanged full Planner below.
+        prepared_handoff_requested = bool(
+            str(getattr(self.args, "prepared_decision_handoff_file", "") or "")
+            or (
+                bool_value(getattr(self.args, "governed_candidate_only", False))
+                and bool_value(getattr(self.args, "emergency_failover_autonomy", False))
+                and bool(source_egress and target_egress and self.args.user)
+                and requested_max_selected_moves == 1
+            )
+        )
+        if prepared_handoff_requested:
             prepared_handoff = prepared_decision_handoff_for_scope(
                 state_dir=Path(self.args.state_dir),
                 policy_file=Path(self.args.policy_file),

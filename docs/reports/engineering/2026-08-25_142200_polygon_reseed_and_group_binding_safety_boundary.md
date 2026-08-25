@@ -265,3 +265,13 @@ interval is `failure_to_decision_latency_ms = 5096.479`.  In contrast,
 decision-to-apply was 72.831 ms, assignment commit 442.656 ms, kernel
 visibility 19.270 ms, and target payload 433.119 ms.  It is therefore retained
 in the frozen distribution and no micro-patch is inferred from it.
+
+## Admitted decision-path acceleration
+
+The measured dominant interval is before decision binding, while route apply
+and kernel visibility are already short.  The existing Matrix prepared-decision
+handoff is now consumed automatically only for an exact one-user governed
+synthetic transaction with source, target and one-user budget already bound.
+It still re-reads the fresh Matrix projection and falls back to the unchanged
+full Planner on any missing or stale handoff.  No normal customer path, target
+selection rule, policy or route writer changes.

@@ -8,6 +8,7 @@ treating every run as FAIL because no legacy status= line was printed.
 """
 
 import argparse
+import copy
 import concurrent.futures
 import contextlib
 import fcntl
@@ -2214,6 +2215,12 @@ def run_ct_m0f_standing_validation_campaign(
                 )
                 args._standing_policy_lineage_reuse = {
                     "records": records,
+                    # This compact contract snapshot is compared again by
+                    # the existing Planner against its freshly read policy.
+                    # It lets the one in-process consumer prove that the
+                    # already read Matrix lineage belongs to that exact
+                    # current contract without copying the rotated history.
+                    "contract": copy.deepcopy(availability_contract),
                     "contract_hash": sha256_json(availability_contract),
                 }
                 # Carry the already-measured Matrix preparation spans into

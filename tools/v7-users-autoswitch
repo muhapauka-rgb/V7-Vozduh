@@ -4056,6 +4056,26 @@ class AutoswitchPlanner:
             else {}
         )
         reused_records = standing_reuse.get("records")
+        reused_contract = standing_reuse.get("contract")
+        current_standing_contract_hash = sha256_json(
+            current_standing_contract
+        )
+        # The Matrix hands this exact compact policy object and its lineage to
+        # the in-process governed Planner.  Require an exact current-policy
+        # match before reuse; all older callers retain the former hash-only
+        # compatibility condition.  A mismatch never trusts the handoff and
+        # continues with the existing fresh append-only owner read.
+        matrix_contract_reuse_matches = (
+            isinstance(reused_contract, dict)
+            and str(standing_reuse.get("contract_hash") or "")
+            == sha256_json(reused_contract)
+            and sha256_json(reused_contract)
+            == current_standing_contract_hash
+        )
+        legacy_contract_reuse_matches = (
+            str(standing_reuse.get("contract_hash") or "")
+            == current_standing_contract_hash
+        )
         self._standing_policy_audit_records_cache: Optional[
             list[dict[str, Any]]
         ] = (
@@ -4068,8 +4088,10 @@ class AutoswitchPlanner:
             # back to a fresh owner read below.
             list(reused_records)
             if isinstance(reused_records, list)
-            and str(standing_reuse.get("contract_hash") or "")
-            == sha256_json(current_standing_contract)
+            and (
+                matrix_contract_reuse_matches
+                or legacy_contract_reuse_matches
+            )
             else None
         )
         self.quality_summary = read_json(Path(args.quality_summary_file), {"items": {}})

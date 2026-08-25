@@ -161,3 +161,58 @@ Focused tests cover the success path and prove that the only writer command is
 `v7-user-switch <exact synthetic IP> <exact source>`.  The next live step is
 safe deployment, runtime-alignment verification, one exact client preparation,
 then one cold governed HARD-path transaction.
+
+## Initial source binding: deployed evidence and self-contained cleanup
+
+Commit `a53b57af` deployed the bounded binding through `tools/v7-safe-deploy`.
+The local, GitHub and Runtime checksum of `v7-governed-canary-dry-run-cycle`
+matched (`2649c95c…6141f`); `v7-health.service` remained active.  The focused
+suite passed 161/161.  No standalone Matrix or Telegram timer was enabled.
+
+The isolated certification identity `10.7.0.124` was then bound through the
+sole route writer to its registered source `v7execwg0` / table `1122`.
+The source was deliberately made unavailable through its existing owner; the
+system selected `awg3` automatically and completed the governed Candidate →
+Packet → Lease → Apply chain.  Exact route and target-bound required-service
+verification passed.  The only moved identity was the synthetic certification
+identity; ordinary-user delta was zero.
+
+The cold sample is functionally valid but not an SLO pass:
+
+| interval | measured |
+|---|---:|
+| failure evidence → decision | 4759.137 ms |
+| decision → apply admission | 120.151 ms |
+| apply → assignment | 932.421 ms |
+| assignment → kernel path | 20.665 ms |
+| target payload ready | 878.478 ms |
+| total evidence → S11 | **6710.852 ms** |
+
+It therefore exceeds both the 3-second goal and the 5-second single-sample
+ceiling.  Per the frozen-series law, this evidence is retained and no
+performance patch was derived from it.
+
+Cleanup exposed one bounded lifecycle omission: re-enabling the isolated
+source did not automatically consume the already-existing Matrix local
+recovery writer, leaving the former `NOT_STARTED` liveness observation in
+canonical state.  The existing recovery owner was used once to reconcile the
+live transaction; it produced `CANONICAL_RECOVERY_WRITTEN`, and the existing
+governed cleanup then returned the synthetic identity to `v7execwg0` with an
+exact route check.
+
+The same omission is now repaired in the controlled cleanup path: after a
+successful source enable, it calls the existing
+`v7-service-matrix-test --direct-local-recovery` owner, re-reads the canonical
+Matrix and registry, and only then permits the existing governed return move.
+It fails closed on either recovery-write or registry-reconciliation failure.
+This introduces no owner, timer, Matrix architecture, Planner, route writer
+or parallel truth source.
+
+## Current frontier
+
+Safely publish and deploy this cleanup-only repair, prove the deployed hashes,
+then create at most two additional immutable-fingerprint controlled diagnostic
+samples.  Since the first valid frozen cold sample already exceeds 3 seconds,
+do not perform any further performance micro-patch.  After the bounded
+diagnostic set, emit the full distribution and the smallest remaining
+architectural choice.

@@ -13306,6 +13306,84 @@ def reset_ct_m0f_standing_validation_sample(
                 reservation=reservation,
                 controlled_source_reset=controlled_source_reset,
             )
+        # The controlled source is now physically back, but its former
+        # definitive-local failure remains canonical until the existing
+        # Matrix writer records the matching recovery.  Consume that
+        # existing recovery owner here so a certification transaction cannot
+        # strand its sole synthetic identity on the target after cleanup.
+        recovery_proc = subprocess.run(
+            [
+                "v7-service-matrix-test", source, "all",
+                "--direct-local-recovery", "--state-dir", str(state_dir),
+                "--event-dir", str(event_dir),
+                "--timeout", "30",
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=90,
+            check=False,
+        )
+        controlled_source_reset["matrix_recovery_owner"] = (
+            "v7-service-matrix-test --direct-local-recovery"
+        )
+        controlled_source_reset["matrix_recovery_returncode"] = recovery_proc.returncode
+        controlled_source_reset["matrix_recovery_output"] = (
+            recovery_proc.stdout or ""
+        )[-2000:]
+        if recovery_proc.returncode != 0:
+            return transaction_stop(
+                "ct_m0f_standing_controlled_source_matrix_recovery_failed",
+                reservation=reservation,
+                controlled_source_reset=controlled_source_reset,
+            )
+        matrix = read_json(state_dir / "service-matrix.json", {})
+        matrix_row = (
+            (matrix.get("items") or {}).get(source) or {}
+            if isinstance(matrix, dict)
+            else {}
+        )
+        services = (
+            matrix_row.get("services")
+            if isinstance(matrix_row.get("services"), dict)
+            else {}
+        )
+        source_hard_failed = any(
+            str((row or {}).get("status") or "").upper()
+            in {"FAIL", "DOWN", "NOT_STARTED"}
+            or str((row or {}).get("status") or "").upper().startswith(
+                "TELEGRAM_DOWN_"
+            )
+            for row in services.values()
+            if isinstance(row, dict)
+        )
+        source_recovery_proven = bool(
+            services
+            and not source_hard_failed
+            and any(
+                bool_value((row or {}).get("ok"))
+                for row in services.values()
+                if isinstance(row, dict)
+            )
+        )
+        refreshed_source_row = next(
+            (
+                row for row in read_registry(state_dir / "egress.registry")
+                if str(row.get("id") or "") == source
+            ),
+            {},
+        )
+        if not refreshed_source_row:
+            return transaction_stop(
+                "ct_m0f_standing_controlled_source_registry_missing_after_reset",
+                reservation=reservation,
+                controlled_source_reset=controlled_source_reset,
+            )
+        controlled_condition_active = bool(
+            not bool_value(refreshed_source_row.get("enabled", "1"))
+            or str(refreshed_source_row.get("state") or "").lower()
+            in {"disabled", "maintenance"}
+        )
     recovery_mode = (
         "BASELINE_ALREADY_RESTORED"
         if current == source

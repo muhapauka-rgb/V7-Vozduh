@@ -2209,17 +2209,21 @@ class GovernedCanaryCliTest(unittest.TestCase):
         ), mock.patch.object(
             module,
             "read_registry",
-            side_effect=lambda path: (
-                [{"ip": "10.7.0.107", "current": "vless", "enabled": "1"}]
-                if str(path).endswith("users.registry")
-                else [{
-                    "id": "execution-source",
-                    "enabled": "0",
+            side_effect=[
+                [{"ip": "10.7.0.107", "current": "vless", "enabled": "1"}],
+                [{
+                    "id": "execution-source", "enabled": "0",
                     "role": "EXECUTION_ONLY",
                     "controlled_certification_source": "1",
                     "reservation_owner": "operator_execution_governance",
-                }]
-            ),
+                }],
+                [{
+                    "id": "execution-source", "enabled": "1",
+                    "role": "EXECUTION_ONLY",
+                    "controlled_certification_source": "1",
+                    "reservation_owner": "operator_execution_governance",
+                }],
+            ],
         ), mock.patch.object(
             module.subprocess,
             "run",
@@ -2227,6 +2231,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         ) as run_mock, mock.patch.object(
             module,
             "execute_governed_transaction_with_guards",
+            return_value={
+                "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
+                "verification_result": "PASS",
+            },
         ) as execute_mock, mock.patch.object(
             module.operator_execution,
             "record_ct_m0f_standing_validation_sample_terminal",
@@ -2253,7 +2261,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
             result["recovery_mode"],
             "FORWARD_RECOVERY_AND_CONTROLLED_SOURCE_RESET",
         )
-        run_mock.assert_called_once_with(
+        run_mock.assert_any_call(
             ["v7-egress-set-state", "execution-source", "enabled", "--apply"],
             text=True,
             stdout=module.subprocess.PIPE,
@@ -2261,7 +2269,19 @@ class GovernedCanaryCliTest(unittest.TestCase):
             timeout=240,
             check=False,
         )
-        execute_mock.assert_not_called()
+        run_mock.assert_any_call(
+            [
+                "v7-service-matrix-test", "execution-source", "all",
+                "--direct-local-recovery", "--state-dir", "/state",
+                "--event-dir", "/events", "--timeout", "30",
+            ],
+            text=True,
+            stdout=module.subprocess.PIPE,
+            stderr=module.subprocess.STDOUT,
+            timeout=90,
+            check=False,
+        )
+        execute_mock.assert_called_once()
 
     def test_compact_failed_transaction_preserves_exact_stop_reason(self):
         module = load_cli_module()

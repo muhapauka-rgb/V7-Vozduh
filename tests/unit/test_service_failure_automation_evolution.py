@@ -3243,6 +3243,35 @@ class ServiceFailureAutomationEvolutionTest(unittest.TestCase):
         self.assertFalse(target["ordinary_production_eligible"])
         self.assertTrue(target["controlled_certification_target_eligible"])
 
+    def test_reserved_marked_certification_source_can_reseed_empty_polygon_pool(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state_dir = Path(tmp)
+            state_dir.joinpath("users.registry").write_text("", encoding="utf-8")
+            state_dir.joinpath("egress.registry").write_text(
+                "id=polygon-source type=interface protocol=amneziawg enabled=1 "
+                "role=EXECUTION_ONLY controlled_certification_source=1 "
+                "certification_group=ctm0f execution_reserved=1 canary_reserved=1 "
+                "reservation_owner=operator_execution_governance "
+                "autoswitch_allowed=false rebalance_allowed=false "
+                "production_assignment_allowed=false\n",
+                encoding="utf-8",
+            )
+            state_dir.joinpath("service-matrix.json").write_text(json.dumps({
+                "updated": "2099-01-01T00:00:00+00:00",
+                "items": {"polygon-source": {"services": {"google": {
+                    "ok": True, "status": "OK",
+                    "tested_at": "2099-01-01T00:00:00+00:00",
+                }}}},
+            }), encoding="utf-8")
+
+            result = self.autoswitch.controlled_certification_pool_status(state_dir)
+
+        self.assertEqual(
+            [row["source_id"] for row in result["healthy_isolated_source_candidates"]],
+            ["polygon-source"],
+        )
+        self.assertEqual(result["healthy_execution_only_controlled_target_candidates"], [])
+
     def test_execution_only_target_requires_exact_approved_campaign_binding(self):
         with tempfile.TemporaryDirectory() as tmp:
             state_dir = Path(tmp)

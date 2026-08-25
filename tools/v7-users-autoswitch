@@ -1896,6 +1896,26 @@ def controlled_certification_pool_status(
         if not include_candidate_inventory:
             break
         source_id = str(source.get("id") or "")
+        # A reserved execution interface is normally a destination-only
+        # controlled target.  The one explicit exception is an interface
+        # already marked as the certification source: it remains unavailable
+        # to ordinary assignment/rebalancing, but may seed a fresh isolated
+        # certification identity after its previous test pool was cleaned up.
+        # Keeping the roles separate here prevents that source from also
+        # becoming a controlled destination by accident.
+        reserved_certification_source = (
+            bool_value(source.get("controlled_certification_source"))
+            and bool(str(source.get("certification_group") or "").strip())
+            and bool_value(source.get("execution_reserved"))
+            and bool_value(source.get("canary_reserved"))
+            and str(source.get("role") or "").upper() == "EXECUTION_ONLY"
+            and str(source.get("reservation_owner") or "")
+            == "operator_execution_governance"
+            and not bool_value(source.get("autoswitch_allowed"))
+            and not bool_value(source.get("rebalance_allowed"))
+            and str(source.get("production_assignment_allowed") or "").lower()
+            in {"0", "false", "no"}
+        )
         execution_only_contract = (
             bool_value(source.get("enabled", "1"))
             and str(source.get("state") or "").lower()
@@ -1911,6 +1931,7 @@ def controlled_certification_pool_status(
             and not bool_value(source.get("rebalance_allowed"))
             and str(source.get("production_assignment_allowed") or "").lower()
             in {"0", "false", "no"}
+            and not reserved_certification_source
         )
         if source_id and execution_only_contract:
             baseline_health = controlled_certification_source_health_status(
@@ -1939,9 +1960,15 @@ def controlled_certification_pool_status(
             or not bool_value(source.get("enabled", "1"))
             or str(source.get("state") or "").lower()
             in {"disabled", "maintenance"}
-            or bool_value(source.get("execution_reserved"))
-            or str(source.get("production_assignment_allowed") or "").lower()
-            in {"0", "false", "no"}
+            or (
+                bool_value(source.get("execution_reserved"))
+                and not reserved_certification_source
+            )
+            or (
+                str(source.get("production_assignment_allowed") or "").lower()
+                in {"0", "false", "no"}
+                and not reserved_certification_source
+            )
             or str(source.get("type") or "") != "interface"
         ):
             continue

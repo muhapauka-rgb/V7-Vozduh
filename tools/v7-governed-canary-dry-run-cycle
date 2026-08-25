@@ -3558,6 +3558,7 @@ def run_autoswitch_apply(
     ct_m0f_source_incident_generation: str = "",
     ct_m0f_first_failed_observation_monotonic_ns: int = 0,
     ct_m0f_confirmed_hard_failure_monotonic_ns: int = 0,
+    action_class_audit_store: str = "",
     planner_runtime: Any = None,
     controlled_engineering_setup: bool = False,
 ) -> dict[str, Any]:
@@ -3619,6 +3620,11 @@ def run_autoswitch_apply(
         command.extend(["--approved-snapshot-bundle-hash", snapshot_bundle_hash])
     if execution_control_file:
         command.extend(["--execution-control-file", execution_control_file])
+    if action_class_audit_store:
+        command.extend([
+            "--action-class-audit-store",
+            action_class_audit_store,
+        ])
     if emergency_failover_autonomy:
         command.insert(1, "--emergency-failover-autonomy")
     if controlled_verifier_contention:
@@ -6950,6 +6956,9 @@ def _execute_l3_production_validation_inner(args: argparse.Namespace, *, state_d
             )
             or 0
         ),
+        action_class_audit_store=str(
+            getattr(args, "operator_execution_audit_store", "") or ""
+        ),
         planner_runtime=planner_runtime,
     )
     apply_completed_ns = time.monotonic_ns()
@@ -8202,6 +8211,9 @@ def _execute_governed_transaction_with_guards_inner(
                 "confirmed_hard_failure_monotonic_ns"
             )
             or 0
+        ),
+        action_class_audit_store=str(
+            getattr(args, "operator_execution_audit_store", "") or ""
         ),
         controlled_engineering_setup=bool(setup_mode),
         **apply_options,

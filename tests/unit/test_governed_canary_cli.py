@@ -5876,6 +5876,7 @@ class GovernedCanaryCliTest(unittest.TestCase):
                 ct_m0f_source_incident_generation="egid_exact",
                 ct_m0f_first_failed_observation_monotonic_ns=101,
                 ct_m0f_confirmed_hard_failure_monotonic_ns=202,
+                action_class_audit_store="/audit/operator-execution-audit.jsonl",
             )
         finally:
             module.subprocess.run = original_run
@@ -5892,6 +5893,10 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             command[command.index("--ct-m0f-source-incident-id") + 1],
             "sfinc_exact",
+        )
+        self.assertEqual(
+            command[command.index("--action-class-audit-store") + 1],
+            "/audit/operator-execution-audit.jsonl",
         )
         self.assertEqual(
             command[command.index("--ct-m0f-source-incident-generation") + 1],

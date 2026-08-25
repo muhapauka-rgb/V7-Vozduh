@@ -51,12 +51,38 @@ of the deployed prepared-decision handoff.  No route, ordinary client,
 Candidate, Packet, Lease or controlled failure condition was created in these
 observations.
 
-## Remaining lawful action
+## Closure of the inherited controlled sample
 
-Use only the existing controlled cleanup/provisioning owners to restore one
-current, isolated certification identity and its exact source/target binding.
-Do not use the legacy generic repair preflight as an Authority substitute: it
-has no fresh request and correctly remains read-only STOP_SAFE.  Once the
-existing owner establishes the baseline, execute exactly one new cold
-HARD_PATH sample on the deployed fingerprint, freeze the implementation, and
-collect the prescribed homogeneous five-sample series.
+The current predecessor reservation
+`ctm0fsample_fc11fadddf30115ff68940d7` was closed through
+`--reset-ct-m0f-standing-validation-sample`.  Its existing cleanup owner
+re-enabled only `amneziawg-exec-20260528-10-8-1-14`; it moved no user,
+left no active reservation, and changed no ordinary route.  The historical
+sample remains historical evidence and is not credited to the deployed
+fingerprint.
+
+## Current external boundary
+
+The fresh owner-backed certification-substrate preflight is STOP_SAFE before
+it can issue an Authority request.  It found no healthy isolated source:
+
+- `amneziawg-exec-20260528-10-8-1-14` has 14 reachable services but one hard
+  failure;
+- the other isolated controlled sources are baseline-unhealthy;
+- the only healthy controlled source has ordinary occupants and therefore is
+  not a legal test-failure source.
+
+Moving a synthetic identity onto any of those sources would either manufacture
+a healthy baseline or expose ordinary users to the controlled failure.  Both
+are prohibited.  This is an infrastructure/health boundary, not an Authority
+or code-deployment gap.
+
+## Exact re-entry
+
+The existing egress and Matrix owners must first prove one isolated
+certification-only source with at least one reachable service and zero hard
+service failures.  Then the existing substrate owner may restore an exact
+synthetic binding; Matrix can prepare the controlled failure; and the program
+can execute one new cold HARD_PATH sample followed by the immutable
+five-sample series.  No code, configuration, cadence, Planner, Matrix,
+Authority or verifier change is admitted before that precondition is true.

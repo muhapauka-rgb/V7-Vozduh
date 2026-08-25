@@ -8172,7 +8172,7 @@ Scheduling Authority: `CPS_ONLY`
 Execution Authority: `NONE`
 Resolved current stop: `NONE`
 Resolved current next action: `V7_FAILURE_DETECTION_AND_RECOVERY_LATENCY_OPTIMIZATION`
-Resolved contract state: CPS records the approved bounded prepared-decision execution as tested and deployed (`654a45f64afda11fbdd0c25df9bb2bd14128cdda`; `deploy-z8-14-Updatesystem-654a45f-20260825T101139`) and awaiting only a fresh controlled Polygon baseline plus a frozen HARD_PATH series.  This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
+Resolved contract state: CPS records the approved bounded prepared-decision execution as tested and deployed (`654a45f64afda11fbdd0c25df9bb2bd14128cdda`; `deploy-z8-14-Updatesystem-654a45f-20260825T101139`).  The fresh controlled Polygon baseline and frozen HARD_PATH series are presently STOP_SAFE because no healthy isolated certification-only source exists; the current Matrix observation reports a hard-service failure on the execution-only source and no alternative isolated healthy source.  This is a CPS-derived pointer only; Authority, campaign receipts and Runtime effects remain owned by their existing canonical producers.
 
 These values are validated against CPS section 0. This subsection is a pointer projection and cannot independently select a Mission, Candidate, packet, Authority, stop, or next action.
 

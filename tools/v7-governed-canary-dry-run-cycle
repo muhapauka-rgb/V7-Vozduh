@@ -13444,6 +13444,11 @@ def reset_ct_m0f_standing_validation_sample(
         transaction_args.ct_m0f_kernel_cutover_validation = False
         transaction_args.ct_m0f_standing_validation = False
         transaction_args.engineering_authority_request_file = ""
+        # The reset is the second half of the same CT-M0F transaction.  Its
+        # Planner consumer must read the exact audit family that admitted the
+        # sample, rather than fall back to a different default audit location.
+        transaction_args.action_class_audit_store = str(audit_store)
+        transaction_args.operator_execution_audit_store = str(audit_store)
         reset_transaction = execute_governed_transaction_with_guards(
             transaction_args,
             state_dir=state_dir,

@@ -1816,6 +1816,12 @@ class GovernedCanaryCliTest(unittest.TestCase):
             captured["request"] = dict(
                 getattr(transaction_args, "_certification_cleanup_request", {})
             )
+            captured["action_class_audit_store"] = str(
+                getattr(transaction_args, "action_class_audit_store", "")
+            )
+            captured["operator_execution_audit_store"] = str(
+                getattr(transaction_args, "operator_execution_audit_store", "")
+            )
             return {
                 "final_verdict": "GOVERNED_TRANSACTION_COMPLETED",
                 "verification_result": "PASS",
@@ -1897,6 +1903,14 @@ class GovernedCanaryCliTest(unittest.TestCase):
         self.assertEqual(
             captured["request"]["ct_m0f_standing_reservation_id"],
             "ctm0fsample_test",
+        )
+        self.assertEqual(
+            captured["action_class_audit_store"],
+            "/audit/operator-execution-audit.jsonl",
+        )
+        self.assertEqual(
+            captured["operator_execution_audit_store"],
+            "/audit/operator-execution-audit.jsonl",
         )
 
     def test_ct_m0f_reset_reconciles_terminal_sample_route_residue(self):

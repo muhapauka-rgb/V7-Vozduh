@@ -571,6 +571,41 @@ class V7HealthFastDeadlineLoopTest(unittest.TestCase):
                 0,
             )
 
+    def test_due_projection_preempts_disposable_slow_observation(self):
+        """A slow probe cannot defer the bounded prepared-decision refresh."""
+        probe_process = mock.Mock()
+        running_probe = HEALTH_LOOP_MODULE.ManagedRole(
+            name="hot_target_other",
+            cadence_ns=5_000_000_000,
+            command=("/bin/true",),
+            next_due_ns=10_000,
+            process=probe_process,
+            started_ns=1_000,
+        )
+        projection = HEALTH_LOOP_MODULE.ManagedRole(
+            name="planner_projection",
+            cadence_ns=30_000_000_000,
+            command=("/bin/true",),
+            next_due_ns=0,
+        )
+        loop = HEALTH_LOOP_MODULE.RoleHealthLoop(
+            roles=(running_probe, projection),
+        )
+        with mock.patch.object(
+            HEALTH_LOOP_MODULE, "terminate_process_group"
+        ) as terminate, mock.patch.object(
+            HEALTH_LOOP_MODULE.subprocess, "Popen", return_value=mock.Mock()
+        ) as popen, mock.patch("builtins.print") as printed:
+            loop._start_due_roles(5_000)
+        terminate.assert_called_once_with(probe_process)
+        self.assertIsNone(running_probe.process)
+        popen.assert_called_once()
+        self.assertTrue(projection.process)
+        self.assertIn(
+            "reason=PREPARED_PROJECTION_FRESHNESS_PRIORITY",
+            " ".join(str(call) for call in printed.call_args_list),
+        )
+
     def test_persistent_handoff_uses_freshest_t0_across_active_assignments(self):
         """A stale source listed first cannot suppress a newer Matrix wake."""
         with tempfile.TemporaryDirectory() as td:

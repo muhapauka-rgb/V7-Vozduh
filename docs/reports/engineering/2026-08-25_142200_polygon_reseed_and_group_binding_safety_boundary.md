@@ -107,3 +107,40 @@ Publish and safely deploy the tested per-identity fixture-link correction,
 re-run the exact-client preparation, and only on a successful handshake issue
 one governed cold controlled condition.  If preparation remains invalid, stop
 before injecting a failure and record the new exact evidence.
+
+## Terminal finding for this execution block
+
+The per-identity fixture-link correction was published and safely deployed as
+`f628fbe3`; focused verification passed 20/20.  Exact client preparation then
+succeeded in 264.019 ms with no canonical state creation, route mutation or
+ordinary-user effect.
+
+The next governed step safely stopped before injecting the controlled failure.
+The synthetic identity is registered on the isolated source with policy table
+`1122`, but that Linux table does not exist and its route lookup falls back to
+the public interface.  This is not a Matrix, target-selection or client-tunnel
+failure.
+
+The cause is an ownership gap in the current implementation: the existing
+production-only `v7-user-create-from-ipam` owner creates and registers a
+client, and explicitly leaves routing to V7, while the sole existing route
+writer (`v7-user-switch`) correctly refuses any call without a complete
+operation-scoped execution-control contract.  The current Program has no
+admitted operation that binds an already-registered certification identity to
+its initial source route.  Bypassing the route writer manually would violate
+the Program's owner and safety rules.
+
+No controlled failure was injected.  No Candidate, Packet, Lease, barrier or
+ordinary-user route was created or changed in this block.  The certification
+scope marker was refreshed only for the one synthetic identity.
+
+### Required architectural decision
+
+Add one bounded **initial certification source-binding** transition to the
+existing governed certification/substrate lifecycle.  It must reuse the
+existing `v7-user-switch` writer and its operation-scoped control/verification
+contract, create the policy rule and default route only for the already marked
+one-user certification identity, and fail closed/clean up on every failure.
+It must not be a new route writer, timer, Planner, Matrix owner or direct shell
+bypass.  After that transition is implemented and deployed, the exact next
+action is one fresh cold governed HARD-path sample.

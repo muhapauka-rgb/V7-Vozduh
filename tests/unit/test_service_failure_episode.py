@@ -1427,7 +1427,10 @@ class ServiceFailureEpisodeTest(unittest.TestCase):
             ), mock.patch.object(
                 self.autoswitch.operator_execution,
                 "validate_standing_delegated_operational_policy",
-                return_value={"ok": True, "policy": availability_policy},
+                return_value={
+                    "ok": True,
+                    "policy": {"policy": availability_policy},
+                },
             ), mock.patch.object(
                 self.autoswitch.operator_execution,
                 "read_live_execution_lineage_records", return_value=[],

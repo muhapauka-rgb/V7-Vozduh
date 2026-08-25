@@ -240,3 +240,8 @@ certification transaction only, consume its fresh prepared target contract
 before failure injection.  It must retain automatic target choice, all
 freshness/capacity checks and zero ordinary-user scope; no manual target
 argument, general Planner widening or ordinary route change is admissible.
+
+The root cause was narrowed further: the signed existing availability policy
+stores its action scopes inside `policy`, while this one preparation reader
+accepted only the normalized representation.  The repair accepts both forms
+of the same validated decision; it does not grant, widen or write policy.

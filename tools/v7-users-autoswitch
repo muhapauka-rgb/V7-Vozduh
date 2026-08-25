@@ -26646,6 +26646,15 @@ def ct_m0f_standing_source_selection_only(
         if isinstance(availability_validation.get("policy"), dict)
         else {}
     )
+    # The standing-policy validator may return either the normalized policy
+    # body or its signed contract envelope.  Both are the same existing
+    # Authority decision; consume the body in either representation so a
+    # healthy prepared certification target is not lost before T0.
+    if (
+        not isinstance(availability_policy.get("action_class_scopes"), dict)
+        and isinstance(availability_policy.get("policy"), dict)
+    ):
+        availability_policy = availability_policy["policy"]
     availability_scope = (
         (availability_policy.get("action_class_scopes") or {}).get(
             "bounded availability-first controlled failover"

@@ -2596,6 +2596,9 @@ def run_ct_m0f_standing_validation_campaign(
     preparation_spans[-1]["declared_target_count"] = int(
         prepared_target_diagnostic.get("declared_target_count") or 0
     )
+    preparation_spans[-1]["diagnostic_timing"] = copy.deepcopy(
+        prepared_target_diagnostic.get("performance_timeline") or {}
+    )
     preparation_spans[-1]["selected_source_id"] = str(
         prepared_target_diagnostic.get("selected_source_id") or ""
     )

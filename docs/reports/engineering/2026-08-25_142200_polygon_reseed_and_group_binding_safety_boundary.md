@@ -275,3 +275,77 @@ synthetic transaction with source, target and one-user budget already bound.
 It still re-reads the fresh Matrix projection and falls back to the unchanged
 full Planner on any missing or stale handoff.  No normal customer path, target
 selection rule, policy or route writer changes.
+
+## 2026-08-25 — prepared-decision hot-path reconciliation and freeze frontier
+
+### Scope and safety
+
+This logical block continued the already admitted one-user HARD-path mission.
+All live exercises used only certification identity `10.7.0.124` on its
+isolated source `amneziawg-exec-20260528-10-8-1-14`; target `awg3` was always
+selected by the existing owner.  Every exercise returned the identity to the
+same isolated source.  `v7-health.service` remained `active`; ordinary-user
+delta stayed `0`; no timer, owner, Planner, queue, registry, route writer or
+parallel state source was created.
+
+### Changes, evidence and deployment
+
+The initial prepared-decision integration reduced one valid cold
+failure-to-decision interval from `5096.479 ms` to `2566.188 ms`.  Exact
+timeline instrumentation then identified an avoidable post-T0 cost: the
+already-read Matrix Authority lineage was copied and subsequently rejected by
+an inconsistent JSON-hash law between Matrix and Planner.
+
+The bounded repair:
+
+- passes the existing append-only lineage by reference inside the same
+  governed process;
+- binds it to the freshly reread current policy contract;
+- uses the Planner's canonical hash law for that binding;
+- retains the existing fresh-owner fallback on any absent, mismatched or stale
+  handoff;
+- records whether the handoff was actually reused.
+
+Focused suites (`test_service_failure_episode`,
+`test_governed_canary_cli`, `test_v7_users_autoswitch_policy`) passed
+`456/456` after the final repair.  The deployed Runtime and GitHub were
+aligned by `tools/v7-safe-deploy` at code commit `d16db6b4` for the final
+measurement instrumentation (the preceding functional hash-law repair is
+`345cb41c`).
+
+### Measured result
+
+The final valid controlled sample proved that the Matrix lineage handoff is
+actually consumed: both planner-side lineage reads were
+`REUSED_CURRENT_MATRIX_LINEAGE` and took `0.027 ms` and `0.026 ms`, replacing
+earlier `~0.75–0.92 s` fresh append-only reads.  Current policy and handed-off
+contract hashes matched exactly; no relaxed verification was introduced.
+
+The remaining variable interval is Matrix prepared-target validation.  Its
+latest decomposition is:
+
+| interval | latest measurement |
+|---|---:|
+| current prepared-projection owner validation | 793.116 ms |
+| summary read | 0.811 ms |
+| target intersection / capacity / path check | 9.754 ms |
+| final Planner initialization | 162.060 ms |
+| decision → Apply admission | 110.699 ms |
+| route writer | 427.725 ms |
+
+An isolated read-only measurement of the existing Planner import plus its
+prepared-projection validator was `158.839 ms`.  The larger live values are
+therefore not evidence of another duplicated full Matrix/Planner reconstruction;
+they include process scheduling contention on the current two-vCPU substrate.
+The required fresh target/path and final mutable checks remain intact.
+
+### Current exact frontier
+
+Implementation is frozen after `d16db6b4`.  The next action is a homogeneous
+controlled HARD-path series on that single fingerprint: at least five valid
+samples, including at least one cold, two warm and two Matrix generations.
+No code, configuration, cadence, priority or verifier change is permitted
+during this series.  Pass requires nearest-rank P95 `<= 3000 ms` and no valid
+sample above `5000 ms`; otherwise the mission emits
+`HARD_PATH_3S_FEASIBILITY_EXHAUSTED` with the full distribution and smallest
+remaining architectural choice.

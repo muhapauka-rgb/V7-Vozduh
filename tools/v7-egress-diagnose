@@ -23,6 +23,7 @@ CONSUMER_WAKE_COMMAND=""
 HARD_SIGNAL_OBSERVATION_COUNT=0
 HARD_SIGNAL_T0_COUNT=0
 HARD_SIGNAL_WAKE_COUNT=0
+HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS=""
 OUTPUT_EXPLICIT="0"
 PROFILE_SERVICE_SHADOW_MATRIX_SAMPLES=""
 PROFILE_SERVICE_SHADOW_MATRIX_WINDOW_SEC=""
@@ -359,9 +360,16 @@ wake_existing_failure_consumer() {
     # the same Matrix consumer still performs every current-scope, policy,
     # Packet, lease, barrier and apply check and this HARD child waits for its
     # bounded terminal before returning.
-    "$CONSUMER_WAKE_COMMAND" \
-      --consume-existing-service-failure-events-only \
-      --runtime-hot-path-only >/dev/null 2>&1
+    if [ -n "$HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS" ]; then
+      V7_HARD_T0_MONOTONIC_NS="$HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS" \
+        "$CONSUMER_WAKE_COMMAND" \
+          --consume-existing-service-failure-events-only \
+          --runtime-hot-path-only >/dev/null 2>&1
+    else
+      "$CONSUMER_WAKE_COMMAND" \
+        --consume-existing-service-failure-events-only \
+        --runtime-hot-path-only >/dev/null 2>&1
+    fi
   else
     "$CONSUMER_WAKE_COMMAND" >/dev/null 2>&1
   fi
@@ -380,7 +388,7 @@ publish_definitive_interface_failure() {
       --direct-local-failure-class INTERFACE_DOWN_OR_MISSING \
       --direct-signal-observed-at "$observed_at" \
       --direct-signal-max-age-seconds 3 >"$result_file" 2>/dev/null; then
-    direct_status="$(python3 - "$result_file" <<'PY'
+    direct_result="$(python3 - "$result_file" <<'PY'
 import json
 import sys
 try:
@@ -388,15 +396,17 @@ try:
 except Exception:
     payload = {}
 direct = payload.get("direct_local_failure") if isinstance(payload, dict) else {}
-print("EMITTED" if isinstance(direct, dict) and direct.get("event_emitted") else (
+status = "EMITTED" if isinstance(direct, dict) and direct.get("event_emitted") else (
     "T0" if isinstance(direct, dict) and direct.get("status") == "CANONICAL_T0_WRITTEN" else "STOP_SAFE"
-))
+)
+print(status, int(direct.get("confirmed_hard_failure_monotonic_ns") or 0) if isinstance(direct, dict) else 0)
 PY
 )"
   else
-    direct_status="STOP_SAFE"
+    direct_result="STOP_SAFE"
   fi
   rm -f "$result_file"
+  read -r direct_status HARD_SIGNAL_CONSUMER_T0_MONOTONIC_NS <<<"$direct_result"
   printf '%s_hard_signal_class=INTERFACE_DOWN_OR_MISSING\n' "$source_id" >> "$TMP"
   printf '%s_hard_signal_status=%s\n' "$source_id" "$direct_status" >> "$TMP"
   printf '%s_hard_signal_observed_at=%s\n' "$source_id" "$observed_at" >> "$TMP"

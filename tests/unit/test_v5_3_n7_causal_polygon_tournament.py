@@ -128,6 +128,7 @@ def measured_direct_t0_ms() -> float:
         elapsed = (time.monotonic_ns() - started) / 1_000_000.0
         result = json.loads(output.getvalue())
         assert rc == 0 and result["direct_local_failure"]["event_emitted"]
+        assert result["direct_local_failure"]["confirmed_hard_failure_monotonic_ns"] > 0
         return elapsed
 
 
@@ -480,6 +481,30 @@ class V53N7CausalPolygonTournamentTest(unittest.TestCase):
     def test_terminal_is_s11_and_never_overclaims_client_t11(self):
         self.assertEqual(self.evidence["terminal"], "S11_SERVER_SIDE_RECOVERY_VERIFIED")
         self.assertFalse(self.evidence["t11_claimed"])
+
+    def test_matrix_entry_timing_is_diagnostic_and_rejects_invalid_t0(self):
+        spans = REFRESH.matrix_runtime_entry_timing(
+            environment={"V7_HARD_T0_MONOTONIC_NS": "100"},
+            module_ready_ns=160,
+            entry_ns=220,
+        )
+        self.assertEqual(
+            [row["stage"] for row in spans],
+            [
+                "hard_t0_to_matrix_module_ready",
+                "matrix_module_ready_to_controlled_consumer_entry",
+            ],
+        )
+        self.assertEqual([row["duration_ms"] for row in spans], [0.0, 0.0])
+        self.assertTrue(all(row["diagnostic_only"] for row in spans))
+        self.assertEqual(
+            REFRESH.matrix_runtime_entry_timing(
+                environment={"V7_HARD_T0_MONOTONIC_NS": "invalid"},
+                module_ready_ns=160,
+                entry_ns=220,
+            ),
+            [],
+        )
 
 
 if __name__ == "__main__":

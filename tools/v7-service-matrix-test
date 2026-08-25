@@ -2217,6 +2217,13 @@ def main() -> int:
             "status": "CANONICAL_T0_WRITTEN",
             "event_id": current_event_id,
             "event_emitted": bool(current_event_id and current_event_id != direct_previous_event_id),
+            # The existing HARD consumer receives this monotonic source-bound
+            # T0 through its process environment for diagnostic attribution
+            # only.  It remains Matrix-owned truth and does not participate in
+            # admission, routing or freshness decisions.
+            "confirmed_hard_failure_monotonic_ns": int(
+                direct_service.get("confirmed_hard_failure_monotonic_ns") or 0
+            ),
             "canonical_service_id": DIRECT_LOCAL_SERVICE_ID,
             "candidate_created": False,
             "packet_created": False,

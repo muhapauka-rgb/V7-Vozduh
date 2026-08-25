@@ -40,6 +40,10 @@ from v7_sync_lib import (  # noqa: E402
     service_failure_direct_execution_handoff,
 )
 
+# A diagnostic-only boundary for the existing hard-event consumer.  This is
+# intentionally process-local and is never persisted or used as health truth.
+MATRIX_RUNTIME_MODULE_READY_NS = time.monotonic_ns()
+
 
 DEFAULT_STATE_DIR = Path("/opt/v7/egress/state")
 DEFAULT_EVENT_DIR = Path("/opt/v7/events")
@@ -183,6 +187,45 @@ def in_process_governed_module(executor: str, planner: str) -> Any:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def matrix_runtime_entry_timing(
+    *,
+    environment: Optional[dict[str, str]] = None,
+    module_ready_ns: Optional[int] = None,
+    entry_ns: Optional[int] = None,
+) -> list[dict[str, Any]]:
+    """Attribute the existing T0-to-Matrix process boundary without new state.
+
+    The source is the Matrix-owned monotonic T0 forwarded by the existing
+    HARD child only for this invocation.  Invalid or absent values remain
+    unmeasured rather than being invented as zero.
+    """
+    source = environment if environment is not None else os.environ
+    try:
+        t0_ns = int(str(source.get("V7_HARD_T0_MONOTONIC_NS") or "0"))
+    except (TypeError, ValueError):
+        return []
+    ready_ns = int(module_ready_ns or MATRIX_RUNTIME_MODULE_READY_NS)
+    current_ns = int(entry_ns or time.monotonic_ns())
+    if t0_ns <= 0 or ready_ns < t0_ns or current_ns < ready_ns:
+        return []
+    return [
+        {
+            "stage": "hard_t0_to_matrix_module_ready",
+            "duration_ms": round((ready_ns - t0_ns) / 1_000_000.0, 3),
+            "clock_source": "time.monotonic_ns",
+            "owner": "existing HARD child -> Matrix process boundary",
+            "diagnostic_only": True,
+        },
+        {
+            "stage": "matrix_module_ready_to_controlled_consumer_entry",
+            "duration_ms": round((current_ns - ready_ns) / 1_000_000.0, 3),
+            "clock_source": "time.monotonic_ns",
+            "owner": "existing Matrix controlled consumer entry",
+            "diagnostic_only": True,
+        },
+    ]
 
 
 def read_json(path: Path, default: Any) -> Any:
@@ -1947,7 +1990,7 @@ def run_ct_m0f_standing_validation_campaign(
     Matrix remains only the wake/consumer.  Candidate, Packet, lease, cutover,
     reset and evidence are produced by their existing governed owners.
     """
-    preparation_spans: list[dict[str, Any]] = []
+    preparation_spans: list[dict[str, Any]] = matrix_runtime_entry_timing()
 
     def preparation_span(stage: str, started_ns: int) -> None:
         preparation_spans.append({

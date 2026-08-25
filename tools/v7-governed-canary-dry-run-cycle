@@ -2239,11 +2239,16 @@ def provision_approved_controlled_certification_substrate(
             reuse_blockers.append(
                 "controlled_substrate_reuse_source_contains_ordinary_users"
             )
-        if not controlled_target or len(target_rows) != 1:
+        # CT-M0F establishes only a healthy, certification-only source
+        # baseline.  Its target remains intentionally unbound here: Matrix
+        # selects and revalidates it at the later controlled T0 transaction.
+        # Requiring a target at this point contradicted that contract and
+        # made reuse of an already valid one-user source impossible.
+        if not one_user and (not controlled_target or len(target_rows) != 1):
             reuse_blockers.append(
                 "controlled_substrate_reuse_target_not_unique"
             )
-        if users_on_target:
+        if not one_user and users_on_target:
             reuse_blockers.append(
                 "controlled_substrate_reuse_target_not_empty"
             )

@@ -38,7 +38,8 @@ Authority owner (`cpsauth_r1_f6e77c6...`); это не расширяет Author
 | `v7-health.service` | `active` |
 | standalone Matrix/Telegram timers | `inactive` |
 | deployed product hashes | совпадают с локальными: autoswitch `9585b60f…`, operator_execution `28d6164c…` |
-| users/egress/Matrix fingerprints | до и после harness не изменились |
+| users/egress fingerprints | не изменились; canonical assignments и source registry сохранены |
+| Matrix fingerprint | файл естественно обновлялся активным `v7-health.service` между сверками; harness Matrix не вызывал и не писал |
 
 ## Server-side Polygon measurements
 
@@ -85,7 +86,7 @@ one-second gate. Это подтверждает готовность Polygon da
 - ordinary user movement: `0`;
 - route/kernel changes: `0`;
 - Candidate/Packet/Lease: `0`;
-- Matrix/Planner/Authority semantics: unchanged;
+- Matrix/Planner/Authority semantics: unchanged; Matrix продолжал обновляться только своим штатным health lifecycle;
 - Runtime product code: unchanged;
 - temporary harness: удалён локально и на сервере;
 - no fabricated production timing or SLO credit.
